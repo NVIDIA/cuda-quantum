@@ -295,6 +295,7 @@ prepend
 preprocessor
 probability
 programmatically
+prx
 pybind
 qaoa
 qed
@@ -350,6 +351,7 @@ toolchain
 toolchains
 toolset
 transmon
+transpile
 trotterization
 uccsd
 unary

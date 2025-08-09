@@ -15,10 +15,7 @@
 // RUN: nvq++ %cpp_std -target quantinuum -emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -target ionq       -emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -target oqc        -emulate %s -o %t && %t | FileCheck %s
-
-// 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std -target iqm --iqm-machine Crystal_5 -emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target iqm --iqm-machine Crystal_20 -emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -target iqm        -emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
