@@ -32,8 +32,7 @@
             "version": "3.13",
             "operating_systems":
             [
-                "fedora:41",
-                "redhat/ubi10:10.0"
+                "fedora:41"
             ]
         }
     ],
