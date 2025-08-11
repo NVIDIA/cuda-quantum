@@ -1,4 +1,3 @@
-
 // ========================================================================== //
 // Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
@@ -20,6 +19,8 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__controlled_operat
     return
   }
 }
+
+// Test here is that this does not crash
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__controlled_operation(
 // CHECK-SAME:               %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
