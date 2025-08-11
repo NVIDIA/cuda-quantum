@@ -6,7 +6,9 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "fedora:42"
+                "redhat/ubi8:8.0",
+                "fedora:42",
+                "opensuse/leap:15.6"
             ]
         },
         {
@@ -16,7 +18,10 @@
                 "ubuntu:22.04",
                 "debian:12",
                 "fedora:42",
-                "redhat/ubi9:9.2"
+                "redhat/ubi8:8.0",
+                "redhat/ubi9:9.2",
+                "redhat/ubi10:10.0",
+                "opensuse/leap:15.6"
             ]
         },
         {
@@ -25,14 +30,18 @@
             [
                 "ubuntu:24.04",
                 "fedora:42",
-                "redhat/ubi9:9.2"
+                "redhat/ubi8:8.0",
+                "redhat/ubi9:9.2",
+                "redhat/ubi10:10.0",
+                "opensuse/leap:15.6"
             ]
         },
         {
             "version": "3.13",
             "operating_systems":
             [
-                "fedora:42"
+                "fedora:42",
+                "opensuse/leap:15.6"
             ]
         }
     ],
