@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/Environment.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/algorithms/draw.h" // TODO  translate.h
@@ -18,7 +19,7 @@
 namespace cudaq {
 std::string getQIR(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs,
-                   const std::string &profile);
+                   const std::string &profile, bool qirVersionUnderDevelopment);
 
 std::string getASM(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs);
@@ -26,6 +27,9 @@ std::string getASM(const std::string &name, MlirModule module,
 /// @brief Run `cudaq::translate` on the provided kernel.
 std::string pyTranslate(py::object &kernel, py::args args,
                         const std::string &format) {
+
+  bool qirVersionUnderDevelopment =
+      getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
 
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
@@ -39,12 +43,14 @@ std::string pyTranslate(py::object &kernel, py::args args,
                 [&]() {
                   cudaq::OpaqueArguments args;
                   std::string profile = "";
-                  return getQIR(name, module, args, profile);
+                  return getQIR(name, module, args, profile,
+                                qirVersionUnderDevelopment);
                 })
           .Cases("qir-adaptive", "qir-base",
                  [&]() {
                    cudaq::OpaqueArguments args;
-                   return getQIR(name, module, args, format);
+                   return getQIR(name, module, args, format,
+                                 qirVersionUnderDevelopment);
                  })
           .Case("openqasm2",
                 [&]() {
