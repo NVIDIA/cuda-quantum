@@ -997,10 +997,9 @@ However, IonQ’s documentation uses the term “target” to refer to specific 
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution in the IonQ Cloud,
 pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">ionq</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>ionq<span class="w"> </span>src.cpp
 </pre></div>
 </div>
-<p>nvq++ –target ionq src.cpp</p>
 <p>This will take the API key and handle all authentication with, and submission to, the IonQ QPU(s). By default, quantum kernel code will be submitted to the IonQsimulator.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
