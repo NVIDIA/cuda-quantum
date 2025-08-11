@@ -76,8 +76,10 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
 cudensitymatWrappedTensorCallback_t
 cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
     const std::vector<matrix_handler> &matrixOps,
-    const std::vector<std::string> &paramNames) {
-  m_tensorCallbacks.push_back(TensorCallBackContext(matrixOps, paramNames));
+    const std::vector<std::string> &paramNames,
+    const cudaq::dimension_map &dims) {
+  m_tensorCallbacks.push_back(
+      TensorCallBackContext(matrixOps, paramNames, dims));
   TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
   using WrapperFuncType = int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
@@ -123,10 +125,9 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
                      context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
-      cudaq::dimension_map dimensions;
+      cudaq::dimension_map &dimensions = context->dimensions;
       std::size_t totalDim = 1;
       for (std::size_t i = 0; i < num_modes; ++i) {
-        dimensions[i] = modeExtents[i];
         totalDim *= modeExtents[i];
       }
 
