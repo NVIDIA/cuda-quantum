@@ -68,7 +68,7 @@ Submitting
 
         .. code:: bash
 
-        nvq++ --target ionq src.cpp
+            nvq++ --target ionq src.cpp
 
         This will take the API key and handle all authentication with, and submission to, the IonQ QPU(s). By default, quantum kernel code will be submitted to the IonQsimulator.
 

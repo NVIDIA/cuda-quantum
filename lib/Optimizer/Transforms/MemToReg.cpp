@@ -482,11 +482,30 @@ public:
   /// dominate parent.
   SmallVector<SSAReg> &getLiveInArgs() { return liveInArgs; }
 
+  void incBindingsAdded(Operation *op, Block *target) {
+    if (isPreciseEdgeTerminator(op))
+      ++preciseEdgeBindingsAdded[op][target];
+    else
+      ++bindingsAdded[op];
+  }
+
+  unsigned numBindingsAdded(Operation *op, Block *target) {
+    if (isPreciseEdgeTerminator(op))
+      return preciseEdgeBindingsAdded[op][target];
+    return bindingsAdded[op];
+  }
+
 private:
   // Delete all ctors that should never be used.
   RegionDataFlow() = delete;
   RegionDataFlow(const RegionDataFlow &) = delete;
   RegionDataFlow(RegionDataFlow &&) = delete;
+
+  /// Does this terminator naturally have multiple targets and also support
+  /// precise CFG edge semantics?
+  bool isPreciseEdgeTerminator(Operation *op) {
+    return isa<cf::CondBranchOp>(op);
+  }
 
   /// A map for each block to its bindings from a memory reference to a
   /// virtual register value.
@@ -494,7 +513,12 @@ private:
   /// For a CFG, maintain a distinct map for each block of the definitions
   /// that are live-in to each block.
   DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> liveInMap;
+  /// Map from a memory reference to its promoted value.
   DenseMap<MemRef, SSAReg> promotedDefs;
+  /// Map for each imprecise terminator to track the number of bindings added.
+  DenseMap<Operation *, unsigned> bindingsAdded;
+  /// Map for each precise terminator to track the number of bindings added.
+  DenseMap<Operation *, DenseMap<Block *, unsigned>> preciseEdgeBindingsAdded;
 
   /// The list of live-in arguments to the parent. The parent cannot be a
   /// function.
@@ -949,17 +973,13 @@ public:
     // successor.
     auto liveOutParent = dataFlow.getLiveOutOfParent();
 
-    auto addTerminatorArgument = [&](Operation *term, Block *target, Value val,
-                                     std::size_t ignored) {
+    auto addTerminatorArgument = [&](Operation *term, Block *target,
+                                     Value val) {
       if (auto branch = dyn_cast<BranchOpInterface>(term)) {
         unsigned numSuccs = branch->getNumSuccessors();
         bool changes = false;
         for (unsigned i = 0; i < numSuccs; ++i) {
           if (target && branch->getSuccessor(i) != target)
-            continue;
-          auto newArgs = branch.getSuccessorOperands(i).getForwardedOperands();
-          if (std::find(newArgs.begin() + ignored, newArgs.end(), val) !=
-              newArgs.end())
             continue;
           branch.getSuccessorOperands(i).append(val);
           changes = true;
@@ -969,9 +989,6 @@ public:
         return;
       }
       SmallVector<Value> newArgs(term->getOperands());
-      if (std::find(newArgs.begin() + ignored, newArgs.end(), val) !=
-          newArgs.end())
-        return;
       newArgs.push_back(val);
       term->setOperands(newArgs);
       worklist.push_back(term->getBlock());
@@ -979,37 +996,33 @@ public:
 
     const bool usePromo = neverTakesRegionArguments(parent);
     const bool onlyLinear = onlyTakesLinearTypeArguments(parent);
-    auto updateTerminator = [&](Operation *term, Block *target, auto bindings,
-                                std::size_t ignored) {
+    auto updateTerminator = [&](Operation *term, Block *target, auto bindings) {
       auto *block = term->getBlock();
-      for (auto liveOut : bindings) {
+      for (auto i : llvm::enumerate(bindings)) {
+        auto liveOut = i.value();
+        if (i.index() < dataFlow.numBindingsAdded(term, target))
+          continue;
         if (dataFlow.hasBinding(block, liveOut)) {
           if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
             dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
           auto oldVal = dataFlow.getBinding(block, liveOut);
-          addTerminatorArgument(term, target, oldVal, ignored);
+          addTerminatorArgument(term, target, oldVal);
         } else if ((usePromo ||
                     (onlyLinear && !isa<quake::RefType>(liveOut.getType()))) &&
                    dataFlow.isEntryBlock(block)) {
           auto newVal = dataFlow.getPromotedValue(liveOut);
           dataFlow.addBinding(block, liveOut, newVal);
-          addTerminatorArgument(term, target, newVal, ignored);
+          addTerminatorArgument(term, target, newVal);
         } else {
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
-          addTerminatorArgument(term, target, newArg, ignored);
+          addTerminatorArgument(term, target, newArg);
         }
+        dataFlow.incBindingsAdded(term, target);
       }
     };
 
-    const auto ignoredCount = parent->getNumResults();
-    auto getIgnored = [ignoredCount](Operation *op) {
-      return isa_and_nonnull<cudaq::cc::CCDialect>(op->getDialect())
-                 ? ignoredCount
-                 : 0;
-    };
     auto updateExitTerminator = [&](Block *block, auto bindings) {
-      return updateTerminator(block->getTerminator(), nullptr, bindings,
-                              getIgnored(block->getTerminator()));
+      return updateTerminator(block->getTerminator(), nullptr, bindings);
     };
 
     SmallPtrSet<Block *, 8> blocksVisited;
@@ -1025,8 +1038,7 @@ public:
       if (!liveInBlock.empty()) {
         auto preds = dataFlow.getPredecessors(block);
         for (auto *pred : preds)
-          updateTerminator(pred->getTerminator(), block, liveInBlock,
-                           getIgnored(pred->getTerminator()));
+          updateTerminator(pred->getTerminator(), block, liveInBlock);
       }
 
       // We should visit all the blocks at least once.

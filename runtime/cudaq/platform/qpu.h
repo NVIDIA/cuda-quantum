@@ -183,8 +183,8 @@ public:
                const std::vector<void *> &rawArgs) = 0;
 
   /// Launch the kernel with given name and argument arrays.
-  // This is intended for remote QPUs whereby we need to JIT-compile the kernel
-  // with argument synthesis. Remote QPU implementation to override this.
+  // This is intended for any QPUs whereby we need to JIT-compile the kernel
+  // with argument synthesis. The QPU implementation must override this.
   virtual void launchKernel(const std::string &name,
                             const std::vector<void *> &rawArgs) {
     if (!isRemote())
