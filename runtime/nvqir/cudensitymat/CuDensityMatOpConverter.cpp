@@ -201,6 +201,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
     opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
     return opNames;
   }();
 
@@ -221,7 +222,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         parameters.begin(), parameters.end());
     auto ks = std::views::keys(sortedParameters);
     const std::vector<std::string> keys{ks.begin(), ks.end()};
-    wrappedTensorCallback = wrapTensorCallback(elemOps, keys);
+    wrappedTensorCallback = wrapTensorCallback(elemOps, keys, dimensions);
   }
 
   const auto batchSize = elemOps.size();
