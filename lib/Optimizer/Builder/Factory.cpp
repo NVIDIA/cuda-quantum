@@ -78,9 +78,9 @@ Type factory::genArgumentBufferType(Type ty) {
   return genBufferType</*isOutput=*/false>(ty);
 }
 
-cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy,
-                                                     std::size_t startingArgIdx,
-                                                     bool packed) {
+cudaq::cc::StructType
+factory::buildInvokeStructType(FunctionType funcTy,
+                               std::size_t startingArgIdx) {
   auto *ctx = funcTy.getContext();
   SmallVector<Type> eleTys;
   for (auto inTy : llvm::enumerate(funcTy.getInputs()))
@@ -88,7 +88,7 @@ cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy,
       eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys, packed);
+  return cudaq::cc::StructType::get(ctx, eleTys, /*packed=*/false);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
