@@ -40,3 +40,8 @@ target-arguments:
     type: string
     platform-arg: project
     help-string: "Specify the Nexus project name or ID."
+  - key: credentials
+    required: false
+    type: string
+    platform-arg: credentials
+    help-string: "Specify the path to the credentials file."

@@ -138,6 +138,11 @@ async def create_job(job: dict):
     job_name = job.get("data", {}).get("attributes", {}).get("name", "")
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
+    
+    device_name = job.get("data", {}).get("attributes", {}).get("backend_config", {}).get("device_name", "")
+    # If device name starts with "Helios", we assume it's an NR device
+    is_nr_device = device_name.startswith("Helios")
+    
     if not items:
         raise HTTPException(status_code=400,
                             detail="No items in job definition")
@@ -167,11 +172,20 @@ async def create_job(job: dict):
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
-    results.dump()
+    if is_nr_device:
+        for i in range(shots):
+            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
+            kernel()
+            _ = cudaq.testing.finalize(qubits, context)
+        results = cudaq.testing.getAndClearOutputLog()
+        print("Output Log:", outputLog)
+    else:
+        cudaq.testing.toggleDynamicQubitManagement()
+        qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
+        kernel()
+        results = cudaq.testing.finalize(qubits, context)
+        results.dump()
+
     createdJobs[job_id] = (job_name, results)
 
     engine.remove_module(m)
@@ -212,6 +226,9 @@ async def get_job_status(job_id: str):
     # Job completed
     countJobGetRequests = 0
 
+    _, results = createdJobs[job_id]
+    is_qir_log = isinstance(results, str)
+
     result_id = str(uuid.uuid4())
     createdResults[result_id] = job_id
 
@@ -224,7 +241,8 @@ async def get_job_status(job_id: str):
                 },
                 "definition": {
                     "items": [{
-                        "result_id": result_id
+                        "result_id": result_id,
+                        "result_type": "QSYS" if is_qir_log else "PYTKET",
                     }]
                 }
             }
@@ -280,6 +298,27 @@ async def get_results(result_id: str):
                 "shots": shots_data,
                 "counts": [],
                 "counts_formatted": formatted_counts
+            }
+        }
+    }
+
+# NR device results retrieval endpoint (qsys_results)
+@app.get("/api/qsys_results/v1beta/{result_id}")
+async def get_results(result_id: str):
+    global createdJobs, createdResults
+    # Find the job that produced this result
+    # This is a simplified implementation, and may need to be updated
+    job_id = createdResults.get(result_id)
+    if not job_id:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    _, qir_log = createdJobs[job_id]
+
+    return {
+        "data": {
+            "id": result_id,
+            "attributes": {
+                "results": qir_log
             }
         }
     }

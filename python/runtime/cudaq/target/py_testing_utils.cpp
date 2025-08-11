@@ -41,15 +41,19 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
       [&]() { nvqir::toggleDynamicQubitManagement(); }, "");
 
   testingSubmodule.def(
-      "initialize", [&](std::size_t numQubits, std::size_t numShots) {
+      "initialize",
+      [&](std::size_t numQubits, std::size_t numShots,
+          const std::string &contextName = "sample") {
         cudaq::ExecutionContext *context =
-            new cudaq::ExecutionContext("sample", numShots);
+            new cudaq::ExecutionContext(contextName, numShots);
         cudaq::set_random_seed(13);
         auto simName = holder.getTarget().simulatorName;
         holder.getSimulator(simName)->setExecutionContext(context);
         return std::make_tuple(
             holder.getSimulator(simName)->allocateQubits(numQubits), context);
-      });
+      },
+      py::arg("numQubits"), py::arg("numShots"),
+      py::arg("contextName") = "sample");
 
   testingSubmodule.def("finalize", [&](const std::vector<std::size_t> &qubits,
                                        cudaq::ExecutionContext *context) {
@@ -60,6 +64,13 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
     // Pybind will delete the context bc its been wrapped in a unique_ptr
     return context->result;
   });
+  testingSubmodule.def("getAndClearOutputLog", [&]() {
+    auto simName = holder.getTarget().simulatorName;
+    auto log = holder.getSimulator(simName)->outputLog;
+    holder.getSimulator(simName)->outputLog.clear();
+    return log;
+  });
+  
 }
 
 } // namespace cudaq
