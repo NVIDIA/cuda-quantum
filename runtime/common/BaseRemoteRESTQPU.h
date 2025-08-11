@@ -355,13 +355,19 @@ public:
 
     // Set the qpu name
     qpuName = mutableBackend;
-    // Create the ServerHelper for this QPU and give it the backend config
-    serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
-    if (!serverHelper) {
-      throw std::runtime_error("ServerHelper not found for target");
-    }
+
+    // Create the ServerHelper for this QPU and give it the backend config,
+    // may be overridden by the target yaml, by default should be same as target
+    // name
+    auto maybeSH = config.BackendConfig->ServerHelper;
+    auto shName = maybeSH ? maybeSH.value() : qpuName;
+    serverHelper = cudaq::registry::get<cudaq::ServerHelper>(shName);
+    if (!serverHelper)
+      throw std::runtime_error(
+          fmt::format("ServerHelper not found for target ({})", shName));
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
+
     cudaq::info("Retrieving executor with name {}", qpuName);
     cudaq::info("Is this executor registered? {}",
                 cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
