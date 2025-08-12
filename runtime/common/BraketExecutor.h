@@ -75,7 +75,8 @@ public:
 
   /// @brief Execute the provided Braket task
   details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          bool isObserve) override;
+                          bool isObserve, bool isRun,
+                          std::vector<char> *rawOutput) override;
 
   /// @brief Set the server helper
   void setServerHelper(ServerHelper *helper) override;

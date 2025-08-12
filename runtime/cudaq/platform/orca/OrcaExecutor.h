@@ -18,7 +18,7 @@ namespace cudaq {
 class OrcaExecutor : public Executor {
 public:
   details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          bool isObserve) override {
+                          bool isObserve, bool isRun, std::vector<char> *rawOutput) override {
     throw std::runtime_error(
         "ORCA backend does not support executing arbitrary kernels");
   }

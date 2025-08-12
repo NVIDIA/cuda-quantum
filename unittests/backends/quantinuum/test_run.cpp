@@ -30,7 +30,7 @@ __qpu__ int simple_ghz(int num_qubits) {
 
 int main() {
   // Execute the kernel 20 times
-  auto results = cudaq::run(1, simple_ghz, 3);
+  auto results = cudaq::run(20, simple_ghz, 3);
   // Print results
   printf("Executed %zu shots\n", results.size());
   printf("Results: [");

@@ -30,6 +30,7 @@ namespace details {
 class future {
 public:
   using Job = std::pair<std::string, std::string>;
+  enum class ResultType : int { sample = 1, observe, run };
 
 protected:
   /// @brief Vector of job ids that make up the execution
@@ -49,8 +50,9 @@ protected:
   std::future<sample_result> inFuture;
   bool wrapsFutureSampling = false;
 
-  /// @brief Whether or not this is in support of an "observe" call
-  bool isObserve = false;
+  /// @brief Indicate the execution context of this call
+  ResultType resultType = ResultType::sample;
+  std::vector<char> *inFutureRawOutput = nullptr;
 
 public:
   /// @brief The constructor
@@ -73,9 +75,10 @@ public:
       : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config) {}
 
   future(std::vector<Job> &_jobs, std::string &qpuNameIn,
-         std::map<std::string, std::string> &config, bool isObserve)
-      : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config),
-        isObserve(isObserve) {}
+         std::map<std::string, std::string> &config, ResultType type,
+         std::vector<char> *rawOutput = nullptr)
+      : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config), resultType(type),
+        inFutureRawOutput(rawOutput) {}
 
   future &operator=(future &other);
   future &operator=(future &&other);
@@ -84,6 +87,9 @@ public:
 
   friend std::ostream &operator<<(std::ostream &, future &);
   friend std::istream &operator>>(std::istream &, future &);
+
+private:
+  bool isObserve() const { return resultType == ResultType::observe; }
 };
 
 std::ostream &operator<<(std::ostream &os, future &f);

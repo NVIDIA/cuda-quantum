@@ -138,8 +138,10 @@ async def create_job(job: dict):
     job_name = job.get("data", {}).get("attributes", {}).get("name", "")
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
-    
-    device_name = job.get("data", {}).get("attributes", {}).get("backend_config", {}).get("device_name", "")
+
+    device_name = job.get("data", {}).get("attributes", {}).get("definition", {}).get("backend_config", {}).get("device_name", "")
+    print("Job data =", job)
+    print("Device name =", device_name)
     # If device name starts with "Helios", we assume it's an NR device
     is_nr_device = device_name.startswith("Helios")
     
@@ -173,12 +175,17 @@ async def create_job(job: dict):
 
     # Invoke the Kernel
     if is_nr_device:
+        print("Number of shots =", shots)
         for i in range(shots):
+            cudaq.testing.toggleDynamicQubitManagement()
             qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
             kernel()
             _ = cudaq.testing.finalize(qubits, context)
+        # Note: this QIR log may not contain the header information that real services would return.
+        # TODO: update this once we can test with a real NR device
         results = cudaq.testing.getAndClearOutputLog()
-        print("Output Log:", outputLog)
+        print("Output Log:")
+        print(results)
     else:
         cudaq.testing.toggleDynamicQubitManagement()
         qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)

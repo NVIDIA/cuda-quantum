@@ -40,9 +40,28 @@ sample_result future::get() {
       resultResponse = client.get(jobGetPath, "", headers, false,
                                   serverHelper->getCookies());
     }
-    auto c = serverHelper->processResults(resultResponse, id.first);
 
-    if (isObserve) {
+    if (resultType == ResultType::run) {
+      QirServerHelper *qirServerHelper =
+          dynamic_cast<QirServerHelper *>(serverHelper.get());
+      if (!qirServerHelper)
+        throw std::runtime_error(
+            "cudaq::details::future::getRawOutput() requires QIR Server Helper "
+            "but QPU named " +
+            qpuName + " is not implementing it.");
+      if (!inFutureRawOutput)
+        throw std::runtime_error(
+            "cudaq::details::future::get() for 'run' requires a raw output "
+            "pointer but it was not provided.");
+
+      const auto qirOutputLog =
+          qirServerHelper->extractOutputLog(resultResponse, id.first);
+      inFutureRawOutput->assign(qirOutputLog.begin(), qirOutputLog.end());
+      return sample_result();
+    }
+
+    auto c = serverHelper->processResults(resultResponse, id.first);
+    if (isObserve()) {
       // Use the job name instead of the global register.
       results.emplace_back(c.to_map(), id.second);
       results.back().sequentialData = c.sequential_data();
@@ -75,7 +94,7 @@ future &future::operator=(future &other) {
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
-  isObserve = other.isObserve;
+  resultType = other.resultType;
   if (other.wrapsFutureSampling) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
@@ -87,7 +106,7 @@ future &future::operator=(future &&other) {
   jobs = other.jobs;
   qpuName = other.qpuName;
   serverConfig = other.serverConfig;
-  isObserve = other.isObserve;
+  resultType = other.resultType;
   if (other.wrapsFutureSampling) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
@@ -104,7 +123,7 @@ std::ostream &operator<<(std::ostream &os, future &f) {
   j["jobs"] = f.jobs;
   j["qpu"] = f.qpuName;
   j["config"] = f.serverConfig;
-  j["isObserve"] = f.isObserve;
+  j["resultType"] = f.resultType;
   os << j.dump(4);
   return os;
 }
@@ -120,7 +139,7 @@ std::istream &operator>>(std::istream &is, future &f) {
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();
-  f.isObserve = j["isObserve"].get<bool>();
+  f.resultType = j["resultType"].get<future::ResultType>();
   return is;
 }
 

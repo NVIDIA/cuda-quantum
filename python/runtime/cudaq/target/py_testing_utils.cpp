@@ -46,7 +46,11 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
           const std::string &contextName = "sample") {
         cudaq::ExecutionContext *context =
             new cudaq::ExecutionContext(contextName, numShots);
-        cudaq::set_random_seed(13);
+        static bool runOnce = false;
+        if (!runOnce) {
+          runOnce = true;
+          cudaq::set_random_seed(13);
+        }
         auto simName = holder.getTarget().simulatorName;
         holder.getSimulator(simName)->setExecutionContext(context);
         return std::make_tuple(

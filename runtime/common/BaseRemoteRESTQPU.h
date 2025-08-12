@@ -939,7 +939,8 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      future = executor->execute(codes, isObserve);
+      future = executor->execute(codes, isObserve, isRun,
+                                 &executionContext->invocationResultBuffer);
     }
 
     // Keep this asynchronous if requested
