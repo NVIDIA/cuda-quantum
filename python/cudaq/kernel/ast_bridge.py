@@ -26,7 +26,7 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            InsertionPoint, IntegerAttr, IntegerType, Location,
                            Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
 from cudaq.mlir.passmanager import PassManager
-from .analysis import FindDepKernelsVisitor
+from .analysis import FindDepKernelsVisitor, ValidateArgumentAnnotations, ValidateReturnStatements
 from .captured_data import CapturedDataStorage
 from .utils import (
     Color,
@@ -241,72 +241,6 @@ class PyASTBridge(ast.NodeVisitor):
             "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
             hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
         raise CompilerError(msg)
-
-    def validateArgumentAnnotations(self, astModule):
-        """
-        Utility function for quickly validating that we have
-        all arguments annotated.
-        """
-
-        class ValidateArgumentAnnotations(ast.NodeVisitor):
-            """
-            Utility visitor for finding argument annotations
-            """
-
-            def __init__(self, bridge):
-                self.bridge = bridge
-
-            def visit_FunctionDef(self, node):
-                for arg in node.args.args:
-                    if arg.annotation == None:
-                        self.bridge.emitFatalError(
-                            'cudaq.kernel functions must have argument type annotations.',
-                            arg)
-
-        ValidateArgumentAnnotations(self).visit(astModule)
-
-        # Ensure that functions with a return-type annotation actually has a valid return statement
-        # in all paths, if not throw an error.
-        class ValidateReturnStatements(ast.NodeVisitor):
-
-            def __init__(self, bridge):
-                self.bridge = bridge
-
-            def visit_FunctionDef(self, node):
-                # skip if un-annotated or explicitly marked as None
-                is_none_ret = (isinstance(node.returns, ast.Constant) and
-                               node.returns.value is None) or (
-                                   isinstance(node.returns, ast.Name) and
-                                   node.returns.id == 'None')
-
-                if node.returns is None or is_none_ret:
-                    return self.generic_visit(node)
-
-                def all_paths_return(stmts):
-                    for stmt in stmts:
-                        if isinstance(stmt, ast.Return):
-                            return True
-
-                        if isinstance(stmt, ast.If):
-                            if all_paths_return(stmt.body) and all_paths_return(
-                                    stmt.orelse):
-                                return True
-
-                        if isinstance(stmt, (ast.For, ast.While)):
-                            if all_paths_return(stmt.body) or all_paths_return(
-                                    stmt.orelse):
-                                return True
-
-                    return False
-
-                if not all_paths_return(node.body):
-                    self.bridge.emitFatalError(
-                        'cudaq.kernel functions with return type annotations must have a return statement.',
-                        node)
-
-                self.generic_visit(node)
-
-        ValidateReturnStatements(self).visit(astModule)
 
     def getVeqType(self, size=None):
         """
@@ -4605,8 +4539,8 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
                          locationOffset=lineNumberOffset,
                          capturedVariables=parentVariables)
 
-    # First validate the arguments, make sure they are annotated
-    bridge.validateArgumentAnnotations(astModule)
+    ValidateArgumentAnnotations(bridge).visit(astModule)
+    ValidateReturnStatements(bridge).visit(astModule)
 
     # First we need to find any dependent kernels, they have to be
     # built as part of this ModuleOp...
