@@ -146,6 +146,10 @@ The following code illustrates how to run kernels on Quantinuum's backends.
    .. literalinclude:: ../../targets/cpp/quantinuum.cpp
       :language: cpp
 
+
+
+.. _quantum-machines-examples:
+
 Quantum Machines
 ==================================
 
