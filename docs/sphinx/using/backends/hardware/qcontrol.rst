@@ -69,4 +69,4 @@ set up with Quantum Machines.  By default, a mock executor is used.
     - ``--quantum-machines-executor``: The name of the executor/backend to use (defaults to "mock")
     - ``--quantum-machines-api-key``: Your API key (if not set via environment variable)
 
-To see a complete example, take a look at `Quantum Machines examples <../../examples/hardware_providers.html#quantum-machines>`__.
+To see a complete example, take a look at :ref:`Quantum Machines examples <quantum-machines-examples>`.
