@@ -7,6 +7,7 @@
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE IQMServerHelper.cpp)
 add_target_config(iqm)
+add_target_mapping_arch(iqm Crystal_20.txt)
 
 
 add_library(cudaq-serverhelper-iqm SHARED IQMServerHelper.cpp )

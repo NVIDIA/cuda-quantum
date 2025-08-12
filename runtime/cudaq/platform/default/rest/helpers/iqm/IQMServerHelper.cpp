@@ -17,6 +17,7 @@
 #include <regex>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -149,13 +150,7 @@ void IQMServerHelper::initialize(BackendConfig config) {
   }
 
   // In emulation mode no server is contacted. So there is no need for
-  // an URL or tokens. As there is no server information no mapping file
-  // will be created but one can be given via commandline parameter.
-  // When the pass pipeline is prepared the mapping file parameter is
-  // in most cases '' which is ok despite the warning from LLVM about
-  // the non existing path. LLVM emulates the server and no job will be
-  // created here.
-
+  // an URL or tokens.
   if (emulation_mode) {
     cudaq::info("Emulation is enabled, ignore tokens file and IQM Server URL");
     return;
@@ -326,6 +321,7 @@ void IQMServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
   std::string pathToFile;
 
+  // Allow setting of a mapping file from outside.
   auto iter = backendConfig.find("mapping_file");
   if (iter != backendConfig.end()) {
     // Use provided string as path+filename
@@ -335,6 +331,11 @@ void IQMServerHelper::updatePassPipeline(
       // Use the dynamic quantum architecture of the configured IQM server
       fetchQuantumArchitecture();
       pathToFile = writeQuantumArchitectureFile();
+    } else {
+      // In emulation mode there is no server information so no mapping file
+      // can be created. Use a static mapping file instead.
+      pathToFile =
+          std::string(platformPath / std::string("mapping/iqm/Crystal_20.txt"));
     }
   }
   cudaq::info("Using quantum architecture file: {}", pathToFile);
