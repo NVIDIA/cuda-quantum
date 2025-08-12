@@ -43,12 +43,16 @@ void bindCountResources(py::module &mod) {
         // Use the resource counter simulator
         __internal__::switchToResourceCounterSimulator();
         // Set the choice function for the simulator
+
         if (!choice) {
           auto seed = cudaq::get_random_seed();
           std::mt19937 gen(seed);
           std::uniform_int_distribution<> rand(0, 1);
-          choice = [&]() { return rand(gen); };
+          choice = [gen = std::move(gen), rand = std::move(rand)]() mutable {
+            return rand(gen);
+          };
         }
+
         __internal__::setChoiceFunction(*choice);
 
         // Set the platform
