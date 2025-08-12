@@ -430,7 +430,7 @@ public:
         handle, deviceStateVector, cuStateVecCudaDataType, nQubitsAllocated,
         &parity, basisBits, /*N Bits*/ 1, rand,
         CUSTATEVEC_COLLAPSE_NORMALIZE_AND_ZERO));
-    CUDAQ_INFO("Measured qubit {} -> {} (random number = {})", qubitIdx, parity, rand);
+    CUDAQ_INFO("Measured qubit {} -> {}", qubitIdx, parity);
     return parity == 1 ? true : false;
   }
 
