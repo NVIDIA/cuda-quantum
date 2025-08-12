@@ -34,7 +34,7 @@ namespace cudaq {
 /// to map Job requests and Job result retrievals actions from the calling
 /// Executor to the specific schema required by the remote Quantinuum REST
 /// server.
-class QuantinuumServerHelper : public ServerHelper, QirServerHelper {
+class QuantinuumServerHelper : public ServerHelper, public QirServerHelper {
 protected:
   /// @brief The base URL
   std::string baseUrl = "https://nexus.quantinuum.com/";

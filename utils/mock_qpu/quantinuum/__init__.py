@@ -139,12 +139,16 @@ async def create_job(job: dict):
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
 
-    device_name = job.get("data", {}).get("attributes", {}).get("definition", {}).get("backend_config", {}).get("device_name", "")
+    device_name = job.get("data",
+                          {}).get("attributes",
+                                  {}).get("definition",
+                                          {}).get("backend_config",
+                                                  {}).get("device_name", "")
     print("Job data =", job)
     print("Device name =", device_name)
     # If device name starts with "Helios", we assume it's an NR device
     is_nr_device = device_name.startswith("Helios")
-    
+
     if not items:
         raise HTTPException(status_code=400,
                             detail="No items in job definition")
@@ -178,7 +182,8 @@ async def create_job(job: dict):
         print("Number of shots =", shots)
         for i in range(shots):
             cudaq.testing.toggleDynamicQubitManagement()
-            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
+            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1,
+                                                       "run")
             kernel()
             _ = cudaq.testing.finalize(qubits, context)
         # Note: this QIR log may not contain the header information that real services would return.
@@ -309,6 +314,7 @@ async def get_results(result_id: str):
         }
     }
 
+
 # NR device results retrieval endpoint (qsys_results)
 @app.get("/api/qsys_results/v1beta/{result_id}")
 async def get_results(result_id: str):
@@ -320,12 +326,18 @@ async def get_results(result_id: str):
         raise HTTPException(status_code=404, detail="Result not found")
 
     _, qir_log = createdJobs[job_id]
-
     return {
         "data": {
             "id": result_id,
             "attributes": {
                 "results": qir_log
+            },
+            "relationships": {
+                "program": {
+                    "data": {
+                        "type": "qir"
+                    }
+                }
             }
         }
     }

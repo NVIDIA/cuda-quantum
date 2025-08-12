@@ -36,6 +36,26 @@ done
 ./test_quantinuum
 # Did they fail? 
 testsPassed=$?
+
+if [ $testsPassed -ne 0 ]; then
+  echo "Tests failed with exit code $testsPassed"
+  kill -INT $pid
+  exit $testsPassed
+fi
+
+
+rm -f @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
+echo "key: key" >> @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
+echo "refresh: refresh" >> @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
+# Run the test for the QIR output
+@CMAKE_BINARY_DIR@/bin/nvq++ -fenable-cudaq-run --target quantinuum --quantinuum-credentials @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config --quantinuum-machine Helios-SC --quantinuum-project mock --quantinuum-url http://localhost:62440 @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/test_run.cpp -o test_run.x
+CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 ./test_run.x
+# Clean up the config file
+rm -f @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
+
+# Did they fail?
+testsPassed=$?
+
 # kill the server
 kill -INT $pid
 # return success / failure

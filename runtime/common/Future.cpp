@@ -99,6 +99,7 @@ future &future::operator=(future &other) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
   }
+  inFutureRawOutput = other.inFutureRawOutput;
   return *this;
 }
 
@@ -111,6 +112,7 @@ future &future::operator=(future &&other) {
     wrapsFutureSampling = true;
     inFuture = std::move(other.inFuture);
   }
+  inFutureRawOutput = other.inFutureRawOutput;
   return *this;
 }
 

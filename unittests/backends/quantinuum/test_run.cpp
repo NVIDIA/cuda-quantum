@@ -30,7 +30,11 @@ __qpu__ int simple_ghz(int num_qubits) {
 
 int main() {
   // Execute the kernel 20 times
-  auto results = cudaq::run(20, simple_ghz, 3);
+  constexpr int num_shots = 20;
+  auto results = cudaq::run(num_shots, simple_ghz, 3);
+  if (results.size() != num_shots)
+    return 1; // error code if the number of results is not as expected
+
   // Print results
   printf("Executed %zu shots\n", results.size());
   printf("Results: [");
@@ -50,6 +54,10 @@ int main() {
   printf("\nCounts of each result:\n");
   for (const auto &pair : value_counts) {
     printf("%d: %d times\n", pair.first, pair.second);
+  }
+  if (value_counts.size() != 2) {
+    return 2; // error code if the results do not match expected values (0 and
+              // 3)
   }
   return 0;
 }
