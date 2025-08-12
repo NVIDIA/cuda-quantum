@@ -10,7 +10,7 @@
 
 namespace nvqir {
 // Should be alive for the whole runtime, so won't leak memory
-thread_local ResourceCounter *resource_counter_simulator;
+thread_local ResourceCounter *resource_counter_simulator = nullptr;
 
 ResourceCounter *getResourceCounterSimulator() {
   if (!resource_counter_simulator)

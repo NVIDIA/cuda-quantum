@@ -56,12 +56,13 @@ void bindCountResources(py::module &mod) {
 
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
 
+        platform.reset_exec_ctx();
+
         // Save and clone counts data
         auto counts = Resources(*__internal__::getResourceCounts());
+
         // Switch simulators back
         __internal__::stopUsingResourceCounterSimulator();
-
-        platform.reset_exec_ctx();
 
         return counts;
       },
