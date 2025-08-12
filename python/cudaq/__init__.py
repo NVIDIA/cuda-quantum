@@ -84,6 +84,7 @@ State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
+Resources = cudaq_runtime.Resources
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
