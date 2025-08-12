@@ -5,7 +5,7 @@ import cudaq
 # To use different targets in the same file, you must update
 # it via another call to `cudaq.set_target()`
 
-# To use the Anyon target you will need to set up credentials in ~/.anyon_config
+# To use the Anyon target you will need to set up credentials in `~/.anyon_config`
 # The configuration file should contain your Anyon Technologies username and password:
 # credentials: {"username":"<username>","password":"<password>"}
 
@@ -13,9 +13,13 @@ import cudaq
 cudaq.set_target("anyon")
 
 # You can specify a specific machine via the machine parameter:
+# ```
 # cudaq.set_target("anyon", machine="telegraph-8q")
+# ```
 # or for the larger system:
+# ```
 # cudaq.set_target("anyon", machine="berkeley-25q")
+# ```
 
 
 # Create the kernel we'd like to execute on Anyon.
