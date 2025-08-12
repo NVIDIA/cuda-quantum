@@ -85,7 +85,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "8.0"
+                "8.0", "8.10"
             ]
         },
         {
@@ -93,7 +93,7 @@
             "platforms": "linux/amd64,linux/arm64",
             "tags": 
             [
-                "9.2"
+                "9.2", "9.6"
             ]
         },
         {
