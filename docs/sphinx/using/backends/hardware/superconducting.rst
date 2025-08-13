@@ -74,8 +74,6 @@ Submitting
 
             cudaq.sample(kernel, shots_count=10000)
 
-        To see a complete example for using Anyon's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
-
 
 .. tab:: C++
 
@@ -107,7 +105,7 @@ Submitting
 
             nvq++ --target anyon --emulate src.cpp
 
-        To see a complete example for using Anyon's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
+To see a complete example, take a look at :ref:`Anyon examples <anyon-examples>`.
 
 
 IQM
@@ -137,9 +135,8 @@ Submitting
     
 .. tab:: Python 
     
-    
         The target to which quantum kernels are submitted
-        can be controlled with the ``cudaq::set_target()`` function.
+        can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
 
@@ -160,16 +157,9 @@ Submitting
         .. code:: python
 
             cudaq.sample(kernel, shots_count=10000)
-
-        To see a complete example for using IQM server backends, take a look at our :doc:`Python examples<../../examples/examples>`.
-    
-    
-    
-    
-    
+  
 .. tab:: C++
     
-
         To target quantum kernel code for execution on an IQM Server,
         pass the ``--target iqm`` flag to the ``nvq++`` compiler, along with a specified ``--iqm-machine``.
 
@@ -201,14 +191,13 @@ Submitting
 
             nvq++ --emulate --target iqm --iqm-machine Crystal_5 src.cpp
 
-        To see a complete example for using IQM server backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
+To see a complete example, take a look at :ref:`IQM examples <iqm-examples>`.
 
 
 OQC
 ++++
 
 .. _oqc-backend:
-
 
 
 `Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA-Q integration for multiple Quantum Processing Unit types.
@@ -232,9 +221,7 @@ There are three environment variables that the OQC target will look for during c
 Submitting
 `````````````````````````
 
-
 .. tab:: Python
-
 
         To set which OQC URL, set the :code:`url` parameter.
         To set which OQC email, set the :code:`email` parameter.
@@ -244,21 +231,17 @@ Submitting
 
             import os
             import cudaq
-            # ...
             os.environ['OQC_PASSWORD'] = password
             cudaq.set_target("oqc", url=url, machine="lucy")
 
         You can then execute a kernel against the platform using the OQC Lucy device
 
+        To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can set the ``emulate`` flag to ``True``.
+        This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.
+
         .. code:: python
 
-            kernel = cudaq.make_kernel()
-            qvec = kernel.qalloc(2)
-            kernel.h(qvec[0])
-            kernel.x(qvec[1])
-            kernel.cx(qvec[0], qvec[1])
-            kernel.mz(qvec)
-            str(cudaq.sample(kernel=kernel, shots_count=1000))
+            cudaq.set_target("oqc", emulate=True)
 
 
 .. tab:: C++
@@ -286,15 +269,14 @@ Submitting
 
             nvq++ --emulate --target oqc src.cpp -o executable
 
-
         .. note::
 
             The oqc target supports a ``--oqc-machine`` option.
             The default is the 8 qubit Lucy device.
             You can set this to be either ``toshiko`` or ``lucy`` via this flag.
 
-        .. note::
+.. note::
 
-            The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
+    The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
 
-
+To see a complete example, take a look at :ref:`OQC examples <oqc-examples>`.
