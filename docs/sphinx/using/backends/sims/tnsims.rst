@@ -229,7 +229,7 @@ compute expectation values of observables.
 .. tab:: Python
 
     The target to which quantum kernels are submitted 
-    can be controlled with the ``cudaq::set_target()`` function.
+    can be controlled with the ``cudaq.set_target()`` function.
 
     .. code:: python
 

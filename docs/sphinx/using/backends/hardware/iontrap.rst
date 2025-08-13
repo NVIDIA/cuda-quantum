@@ -58,8 +58,6 @@ Submitting
 
        cudaq.sample(kernel, shots_count=10000)
 
-   To see a complete example for using IonQ's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
-
 
 .. tab:: C++
 
@@ -93,8 +91,7 @@ Submitting
 
                 nvq++ --emulate --target ionq src.cpp
 
-        To see a complete example for using IonQ's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
-  
+To see a complete example, take a look at :ref:`IonQ examples <ionq-examples>`.
 
 Quantinuum
 +++++++++++
@@ -139,7 +136,7 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
        
         The backend to which quantum kernels are submitted 
-        can be controlled with the ``cudaq::set_target()`` function.
+        can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
 
@@ -182,8 +179,6 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
             cudaq.sample(kernel, shots_count=10000)
 
-        To see a complete example for using Quantinuum's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
-
 
 .. tab:: C++
 
@@ -223,5 +218,4 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
             nvq++ --emulate --target quantinuum src.cpp
 
-        To see a complete example for using Quantinuum's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
-
+To see a complete example, take a look at :ref:`Quantinuum examples <quantinuum-examples>`.
