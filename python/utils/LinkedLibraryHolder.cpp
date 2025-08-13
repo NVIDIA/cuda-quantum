@@ -499,4 +499,17 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
+namespace __internal__ {
+void switchToResourceCounterSimulator() {
+  nvqir::switchToResourceCounterSimulator();
+}
+void stopUsingResourceCounterSimulator() {
+  nvqir::stopUsingResourceCounterSimulator();
+}
+void setChoiceFunction(std::function<bool()> choice) {
+  nvqir::setChoiceFunction(choice);
+}
+cudaq::Resources *getResourceCounts() { return nvqir::getResourceCounts(); }
+} // namespace __internal__
+
 } // namespace cudaq
