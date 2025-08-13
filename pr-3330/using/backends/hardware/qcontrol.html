@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Photonics Simulators &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum Control Systems &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -28,14 +28,12 @@
         <script src="../../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <script src="../../../_static/filter.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Quantum Hardware (QPU)" href="../hardware.html" />
-    <link rel="prev" title="Noisy Simulators" href="noisy.html" /> 
+    <link rel="next" title="Dynamics Simulation" href="../dynamics_backends.html" />
+    <link rel="prev" title="Photonic" href="photonic.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -524,60 +522,60 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="../simulators.html">     Circuit Simulation</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="svsims.html">     State Vector Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="svsims.html#cpu">CPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="svsims.html#single-gpu">Single-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="svsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../simulators.html">     Circuit Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../sims/svsims.html">     State Vector Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sims/svsims.html#cpu">CPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/svsims.html#single-gpu">Single-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/svsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tnsims.html">     Tensor Network Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="tnsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
-<li class="toctree-l4"><a class="reference internal" href="tnsims.html#matrix-product-state">Matrix product state</a></li>
-<li class="toctree-l4"><a class="reference internal" href="tnsims.html#fermioniq">Fermioniq</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sims/tnsims.html">     Tensor Network Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sims/tnsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/tnsims.html#matrix-product-state">Matrix product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/tnsims.html#fermioniq">Fermioniq</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="mqpusims.html">     Multi-QPU Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="noisy.html">     Noisy Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="noisy.html#density-matrix">Density Matrix</a></li>
-<li class="toctree-l4"><a class="reference internal" href="noisy.html#stim">Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sims/noisy.html">     Noisy Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#density-matrix">Density Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#stim">Stim</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">     Photonics Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#orca-photonics">orca-photonics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../sims/photonics.html">     Photonics Simulators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../sims/photonics.html#orca-photonics">orca-photonics</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../hardware.html">     Quantum Hardware (QPUs)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../hardware/iontrap.html">     Ion Trap QPUs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/iontrap.html#ionq">IonQ</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/iontrap.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../hardware.html">     Quantum Hardware (QPUs)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="iontrap.html">     Ion Trap QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="iontrap.html#ionq">IonQ</a></li>
+<li class="toctree-l4"><a class="reference internal" href="iontrap.html#quantinuum">Quantinuum</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../hardware/superconducting.html">     Superconducting QPUs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/superconducting.html#iqm">IQM</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/superconducting.html#oqc">OQC</a></li>
+<li class="toctree-l3"><a class="reference internal" href="superconducting.html">     Superconducting QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superconducting.html#iqm">IQM</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superconducting.html#oqc">OQC</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/neutralatom.html#infleqtion">Infleqtion</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/neutralatom.html#pasqal">Pasqal</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/neutralatom.html#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="neutralatom.html">     Neutral Atom QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="neutralatom.html#pasqal">Pasqal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../hardware/photonic.html">     Photonic QPUs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/photonic.html#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="photonic.html">     Photonic QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="photonic.html#orca-computing">ORCA Computing</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../hardware/qcontrol.html">     Quantum Control Systems</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../hardware/qcontrol.html#quantum-machines">Quantum Machines</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
 </ul>
@@ -943,330 +941,75 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../backends.html">CUDA-Q Backends</a></li>
-          <li class="breadcrumb-item"><a href="../simulators.html">CUDA-Q Circuit Simulation Backends</a></li>
-      <li class="breadcrumb-item active">Photonics Simulators</li>
+          <li class="breadcrumb-item"><a href="../hardware.html">Quantum Hardware (QPU)</a></li>
+      <li class="breadcrumb-item active">Quantum Control Systems</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="noisy.html" class="btn btn-neutral float-left" title="Noisy Simulators" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../hardware.html" class="btn btn-neutral float-right" title="Quantum Hardware (QPU)" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="photonic.html" class="btn btn-neutral float-left" title="Photonic" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dynamics_backends.html" class="btn btn-neutral float-right" title="Dynamics Simulation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="photonics-simulators">
-<h1>Photonics Simulators<a class="headerlink" href="#photonics-simulators" title="Permalink to this heading">¶</a></h1>
-<p>CUDA-Q provides the ability to simulate photonics circuits. This page provides the details
-needed to run photonics simulations followed by an introduction to photonics kernels.</p>
-<section id="orca-photonics">
-<h2>orca-photonics<a class="headerlink" href="#orca-photonics" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> backend provides a state vector simulator with the <code class="code docutils literal notranslate"><span class="pre">Q++</span></code> library.
-The <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> backend supports supports a double precision simulator that can run in multiple CPUs.</p>
-<section id="openmp-cpu-only">
-<h3>OpenMP CPU-only<a class="headerlink" href="#openmp-cpu-only" title="Permalink to this heading">¶</a></h3>
-<p id="qpp-cpu-photonics-backend">This target provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a>  library.
-To execute a program on the <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> target, use the following commands:</p>
+  <section id="quantum-control-systems">
+<h1>Quantum Control Systems<a class="headerlink" href="#quantum-control-systems" title="Permalink to this heading">¶</a></h1>
+<section id="quantum-machines">
+<h2>Quantum Machines<a class="headerlink" href="#quantum-machines" title="Permalink to this heading">¶</a></h2>
+<p id="quantum-machines-backend">Quantum Machines provides a unified quantum computing control system that enables
+users to execute quantum programs on various QPU types (hardware backends) through
+their Quantum Orchestration Platform (QOP) - a platform that controls different
+quantum hardware implementations through a unified software API.</p>
+<p>For information about available hardware backends and their capabilities,
+please consult the <a class="reference external" href="https://www.quantum-machines.co/">Quantum Machines website</a>.</p>
+<section id="setting-credentials">
+<h3>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h3>
+<p>To use Quantum Machines with CUDA-Q, you need to have an API key and access to
+the Quantum Machines server or their <code class="code docutils literal notranslate"><span class="pre">QOperator</span></code> service. You can set it using
+an environment variable:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QUANTUM_MACHINES_API_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;your_api_key&gt;&quot;</span>
+</pre></div>
+</div>
+<p>Alternatively, you can provide it directly when setting the target in your code.</p>
+</section>
+<section id="submitting">
+<h3>Submitting<a class="headerlink" href="#submitting" title="Permalink to this heading">¶</a></h3>
+<p>To specify which backend to use, set the <code class="code docutils literal notranslate"><span class="pre">executor</span></code> parameter when configuring
+the target. The available backends depend on your specific access rights and
+set up with Quantum Machines.  By default, a mock executor is used.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>--target<span class="w"> </span>orca-photonics
+<p>To target Quantum Machines from Python, use the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantum_machines&quot;</span><span class="p">,</span>
+                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://api.quantum-machines.com&quot;</span><span class="p">,</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your_api_key&quot;</span><span class="p">,</span>
+                <span class="n">executor</span><span class="o">=</span><span class="s2">&quot;mock&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The target can also be defined in the application code by calling</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;orca-photonics&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>If a target is set in the application code, this target will override the <code class="code docutils literal notranslate"><span class="pre">--target</span></code> command line flag given during program invocation.</p>
+<p>Parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code>: The URL of the Quantum Machines server</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">executor</span></code>: The name of the executor/backend to use (defaults to “mock”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api_key</span></code>: Your API key (optional if set via environment variable)</p></li>
+</ul>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--library-mode<span class="w"> </span>--target<span class="w"> </span>orca-photonics<span class="w"> </span>program.cpp<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-o<span class="w"> </span>program.x
+<p>To target quantum kernel code for execution on Quantum Machines, pass the
+flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quantum_machines</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantum_machines<span class="w"> </span>--quantum-machines-url<span class="w"> </span><span class="s2">&quot;https://api.quantum-machines.com&quot;</span><span class="w"> </span>src.cpp
 </pre></div>
 </div>
+<p>You can specify additional parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--quantum-machines-url</span></code>: The URL of the QOperator server</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--quantum-machines-executor</span></code>: The name of the executor/backend to use (defaults to “mock”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--quantum-machines-api-key</span></code>: Your API key (if not set via environment variable)</p></li>
+</ul>
 </div>
 </div>
-</section>
-<section id="photonics-101">
-<h3>Photonics 101<a class="headerlink" href="#photonics-101" title="Permalink to this heading">¶</a></h3>
-<p>The following provides a basic introduction to photonics circuits so that you can simulate your own photonics circuits.</p>
-<section id="quantum-photonic-states">
-<h4>Quantum Photonic States<a class="headerlink" href="#quantum-photonic-states" title="Permalink to this heading">¶</a></h4>
-<p>We define a qumode (qudit) to have the states
-<span class="math notranslate nohighlight">\(\ket{0}\)</span>, <span class="math notranslate nohighlight">\(\ket{1}\)</span>, … <span class="math notranslate nohighlight">\(\ket{d}\)</span> in Dirac notation where:</p>
-<div class="math notranslate nohighlight">
-\[\ket{0} = \begin{bmatrix} 1 &amp; 0 &amp; 0 &amp; \dots &amp; 0 \end{bmatrix} ^ \top\]</div>
-<div class="math notranslate nohighlight">
-\[\ket{1} = \begin{bmatrix} 0 &amp; 1 &amp; 0 &amp; \dots &amp; 0 \end{bmatrix}^ \top\]</div>
-<div class="math notranslate nohighlight">
-\[\ket{2} = \begin{bmatrix} 0 &amp; 0 &amp; 1 &amp; \dots &amp; 0 \end{bmatrix}^ \top\]</div>
-<div class="math notranslate nohighlight">
-\[\vdots\]</div>
-<div class="math notranslate nohighlight">
-\[\ket{d} = \begin{bmatrix} 0 &amp; 0 &amp; 0 &amp; \dots &amp; 1 \end{bmatrix}^ \top\]</div>
-<p>where the linear combinations of states or superpositions are:</p>
-<div class="math notranslate nohighlight">
-\[\ket{\psi} = \alpha_0\ket{0} + \alpha_1\ket{1} + \alpha_2\ket{2} + \dots + \alpha_d\ket{d}\]</div>
-<p>where <span class="math notranslate nohighlight">\(\alpha_i \in \mathbb{C}\)</span>. It is important to note that this is
-still the state of one qudit; although we have <span class="math notranslate nohighlight">\(d\)</span> kets, they represent a
-superposition state of one qudit.</p>
-<p>Multiple qudits can be combined and the possible combinations of their states
-used to process information.</p>
-<p>A two qudit system, <span class="math notranslate nohighlight">\(n=2\)</span>, with three levels, <span class="math notranslate nohighlight">\(d=3\)</span>, has
-<span class="math notranslate nohighlight">\(d^n=8\)</span> computational basis states:
-<span class="math notranslate nohighlight">\(\ket{00}, \ket{01}, \ket{02}, \ket{10}, \ket{11}, \ket{12}, \ket{20}, \ket{21}, \ket{22}\)</span>.</p>
-<p>A photonic quantum state of a <span class="math notranslate nohighlight">\(n\)</span> qudit system with <span class="math notranslate nohighlight">\(d\)</span> levels is
-written as a sum of <span class="math notranslate nohighlight">\(d^n\)</span> possible basis states where the coefficients
-track the probability of the system collapsing into that state if a measurement
-is applied.</p>
-<p>Storing the complex numbers associated with <span class="math notranslate nohighlight">\(d^n\)</span> amplitudes would not be
-feasible using bits and classical computations once <span class="math notranslate nohighlight">\(n\)</span> and <span class="math notranslate nohighlight">\(d\)</span> are
-relatively large.</p>
-</section>
-<section id="quantum-photonics-gates">
-<h4>Quantum Photonics Gates<a class="headerlink" href="#quantum-photonics-gates" title="Permalink to this heading">¶</a></h4>
-<p>We can manipulate the state of a qumode via quantum photonic gates. For
-example, the create gate allows us to increase the number of photons in a
-qumode up to a maximum given by the qudit level <span class="math notranslate nohighlight">\(d\)</span>:</p>
-<div class="math notranslate nohighlight">
-\[C \ket{0} = \ket{1}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{bmatrix}
-    0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-    1 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-    0 &amp; 1 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
-      &amp;   &amp; \ddots &amp;  &amp;   &amp;   &amp; \\
-    0 &amp; 0 &amp; \dots &amp; 1 &amp; 0 &amp; 0 &amp; 0 \\
-    0 &amp; 0 &amp; \dots &amp; 0 &amp; 1 &amp; 0 &amp; 0 \\
-    0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 1 &amp; 1
-\end{bmatrix}
-\begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
-\begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-    <span class="c1"># A single qumode with 2 levels initialized to the ground / zero state.</span>
-    <span class="n">level</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">qumode</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
-
-    <span class="c1"># Apply the create gate to the qumode.</span>
-    <span class="n">create</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>  <span class="c1"># |0⟩ -&gt; |1⟩</span>
-
-    <span class="c1"># Measurement operator.</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>
-
-
-<span class="c1"># Sample the qumode for 1000 shots to gather statistics.</span>
-<span class="c1"># In this case, the results are deterministic and all return state 1.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">1</span><span class="p">:</span><span class="mi">1000</span> <span class="p">}</span>
-</pre></div>
-</div>
-<p>The annihilate gate allows us to decrease the number of photons in a qumode, if
-it is applied to a qumode where the number of photons is already at the minimum
-value 0, the operation has no effect:</p>
-<div class="math notranslate nohighlight">
-\[A \ket{1} =  \ket{0}\]</div>
-<div class="math notranslate nohighlight">
-\[\begin{split}\begin{bmatrix}
-    1 &amp; 1 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 \\
-    0 &amp; 0 &amp; 1 &amp; 0 &amp; \dots &amp; 0 &amp; 0 \\
-    0 &amp; 0 &amp; 0 &amp; 1 &amp; \dots &amp; 0 &amp; 0 \\
-      &amp;   &amp;   &amp;   &amp; \ddots &amp;  &amp; \\
-    0 &amp; 0 &amp; 0 &amp; 0 &amp; \dots &amp; 1 &amp; 0 \\
-    0 &amp; 0 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 1 \\
-    0 &amp; 0 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 0
-\end{bmatrix}
-\begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
-\begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-    <span class="c1"># A single qumode with 2 levels initialized to the ground / zero state.</span>
-    <span class="n">level</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">qumode</span> <span class="o">=</span> <span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span>
-
-    <span class="c1"># Apply the create gate to the qumode.</span>
-    <span class="n">create</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>  <span class="c1"># |0⟩ -&gt; |1⟩</span>
-
-    <span class="c1"># Apply the annihilate gate to the qumode.</span>
-    <span class="n">annihilate</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>  <span class="c1"># |1⟩ -&gt; |0⟩</span>
-
-    <span class="c1"># Measurement operator.</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qumode</span><span class="p">)</span>
-
-
-<span class="c1"># Sample the qumode for 1000 shots to gather statistics.</span>
-<span class="c1"># In this case, the results are deterministic and all return state 0.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1000</span> <span class="p">}</span>
-</pre></div>
-</div>
-<p>A phase shifter adds a phase <span class="math notranslate nohighlight">\(\phi\)</span> on a qumode. For the annihilation
-(<span class="math notranslate nohighlight">\(a_1\)</span>) and creation operators (<span class="math notranslate nohighlight">\(a_1^\dagger\)</span>) of a qumode, the
-phase shift operator is defined  by</p>
-<div class="math notranslate nohighlight">
-\[P(\phi) = \exp\left(i \phi a_1^\dagger a_1  \right)\]</div>
-<p>Just like the single-qubit gates above, we can define multi-qudit gates to act
-on multiple qumodes.</p>
-<p>Beam splitters act on two qumodes together and are parameterized by a single
-angle <span class="math notranslate nohighlight">\(\theta\)</span>, which is related to the transmission amplitude <span class="math notranslate nohighlight">\(t\)</span>
-by <span class="math notranslate nohighlight">\(t=\cos(\theta)\)</span>.</p>
-<p>For the annihilation (<span class="math notranslate nohighlight">\(a_1\)</span> and <span class="math notranslate nohighlight">\(a_2\)</span>) and creation operators
-(<span class="math notranslate nohighlight">\(a_1^\dagger\)</span> and <span class="math notranslate nohighlight">\(a_2^\dagger\)</span>) of two qumodes, the beam splitter
-operator is defined by</p>
-<div class="math notranslate nohighlight">
-\[B(\theta) = \exp\left[i \theta (a_1^\dagger a_2 + a_1 a_2^\dagger) \right]\]</div>
-<p>As an example, the code below implements a simulation of the Hong-Ou-Mandel
-effect, in which two identical photons that interfere on a balanced beam
-splitter leave the beam splitter together.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-    <span class="n">n_modes</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">level</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># qudit level</span>
-
-    <span class="c1"># Two qumode with 3 levels initialized to the ground / zero state.</span>
-    <span class="n">qumodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_modes</span><span class="p">)]</span>
-
-    <span class="c1"># Apply the create gate to the qumodes.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_modes</span><span class="p">):</span>
-        <span class="n">create</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># |00⟩ -&gt; |11⟩</span>
-
-    <span class="c1"># Apply the beam_splitter gate to the qumodes.</span>
-    <span class="n">beam_splitter</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qumodes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">)</span>
-
-    <span class="c1"># Measurement operator.</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qumodes</span><span class="p">)</span>
-
-
-<span class="c1"># Sample the qumode for 1000 shots to gather statistics.</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">02</span><span class="p">:</span><span class="mi">491</span> <span class="mi">20</span><span class="p">:</span><span class="mi">509</span> <span class="p">}</span>
-</pre></div>
-</div>
-<p>For a full list of photonic gates supported in CUDA-Q see
-<a class="reference internal" href="../../../api/default_ops.html"><span class="doc">Photonic Operations on Qudits</span></a>.</p>
-</section>
-<section id="measurements">
-<h4>Measurements<a class="headerlink" href="#measurements" title="Permalink to this heading">¶</a></h4>
-<p>Quantum theory is probabilistic and hence requires statistical inference
-to derive observations. Prior to measurement, the state of a qumode is
-all possible combinations of <span class="math notranslate nohighlight">\(\alpha_0, \alpha_1, \dots, \alpha_d\)</span>
-and upon measurement, wave function collapse yields either a classical
-<span class="math notranslate nohighlight">\(0, 1, \dots,\)</span> or <span class="math notranslate nohighlight">\(d\)</span>.</p>
-<p>The mathematical theory devised to explain quantum phenomena tells us
-that the probability of observing the qumode in the state
-<span class="math notranslate nohighlight">\(\ket{0}, \ket{1}, \dots, \ket{d}\)</span>, yielding a classical
-<span class="math notranslate nohighlight">\(0, 1, \dots,\)</span> or <span class="math notranslate nohighlight">\(d\)</span>, is <span class="math notranslate nohighlight">\(\lvert \alpha_0 \rvert ^2, \lvert \alpha_1 \rvert ^2, \dots,\)</span>
-or <span class="math notranslate nohighlight">\(\lvert \alpha_d \rvert ^2\)</span>, respectively.</p>
-<p>As we see in the example of the <code class="code docutils literal notranslate"><span class="pre">beam_splitter</span></code> gate above, states 02 and 20
-are yielded roughly 50% of the times, providing and illustration of the
-Hong-Ou-Mandel effect.</p>
-</section>
-</section>
-<section id="executing-photonics-kernels">
-<h3>Executing Photonics Kernels<a class="headerlink" href="#executing-photonics-kernels" title="Permalink to this heading">¶</a></h3>
-<p>In order to execute a photonics kernel, you need to specify a photonics simulator backend like <code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code> used in the example below.
-There are two ways to execute photonics kernels <code class="code docutils literal notranslate"><span class="pre">sample</span></code> and <code class="code docutils literal notranslate"><span class="pre">get_state</span></code></p>
-<p>The <code class="code docutils literal notranslate"><span class="pre">sample</span></code> command can be used to generate statistics about the quantum state.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="n">qumode_count</span> <span class="o">=</span> <span class="mi">2</span>
-
-<span class="c1"># Define the simulation target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
-
-<span class="c1"># Define a quantum kernel function.</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qumode_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="n">level</span> <span class="o">=</span> <span class="n">qumode_count</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">qumodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qumode_count</span><span class="p">)]</span>
-
-    <span class="c1"># Apply the create gate to the qumodes.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qumode_count</span><span class="p">):</span>
-        <span class="n">create</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># |00⟩ -&gt; |11⟩</span>
-
-    <span class="c1"># Apply the beam_splitter gate to the qumodes.</span>
-    <span class="n">beam_splitter</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qumodes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span>
-
-    <span class="c1"># measure all qumodes</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qumodes</span><span class="p">)</span>
-
-
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qumode_count</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="mi">02</span><span class="p">:</span><span class="mi">376</span> <span class="mi">11</span><span class="p">:</span><span class="mi">234</span> <span class="mi">20</span><span class="p">:</span><span class="mi">390</span> <span class="p">}</span>
-</pre></div>
-</div>
-<p>The <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> command can be used to generate statistics about the quantum state.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-
-<span class="n">qumode_count</span> <span class="o">=</span> <span class="mi">2</span>
-
-<span class="c1"># Define the simulation target.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
-
-<span class="c1"># Define a quantum kernel function.</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">qumode_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="n">level</span> <span class="o">=</span> <span class="n">qumode_count</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="n">qumodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">qudit</span><span class="p">(</span><span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qumode_count</span><span class="p">)]</span>
-
-    <span class="c1"># Apply the create gate to the qumodes.</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qumode_count</span><span class="p">):</span>
-        <span class="n">create</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># |00⟩ -&gt; |11⟩</span>
-
-    <span class="c1"># Apply the beam_splitter gate to the qumodes.</span>
-    <span class="n">beam_splitter</span><span class="p">(</span><span class="n">qumodes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qumodes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">)</span>
-
-    <span class="c1"># measure some of all qumodes if need to be measured</span>
-    <span class="c1"># mz(qumodes)</span>
-
-
-<span class="c1"># Compute the statevector of the kernel</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qumode_count</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
-</pre></div>
-</div>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span> <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span> <span class="o">-</span><span class="mf">0.61237244</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>
-<span class="mf">0.5</span>       <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.61237244</span><span class="o">+</span><span class="mf">0.</span><span class="n">j</span>  <span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span>
-<span class="mf">0.</span>        <span class="o">+</span><span class="mf">0.</span><span class="n">j</span><span class="p">]</span>
-</pre></div>
-</div>
-<p>The statevector generated by the <code class="code docutils literal notranslate"><span class="pre">get_state</span></code> command follows little-endian convention for associating numbers with their digit string representations, which places the least significant digit on the right. That is, for the example of a 2-qumode system of level 3 (in which possible states are 0, 1, and 2), resulting in the following translation between integers and digit string:</p>
-<a class="reference internal image-reference" href="../../../_images/photonics_notation.png"><img alt="../../../_images/photonics_notation.png" src="../../../_images/photonics_notation.png" style="width: 269.0px; height: 201.0px;" /></a>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines-examples"><span class="std std-ref">Quantum Machines examples</span></a>.</p>
 </section>
 </section>
 </section>
@@ -1275,8 +1018,8 @@ There are two ways to execute photonics kernels <code class="code docutils liter
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="noisy.html" class="btn btn-neutral float-left" title="Noisy Simulators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../hardware.html" class="btn btn-neutral float-right" title="Quantum Hardware (QPU)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="photonic.html" class="btn btn-neutral float-left" title="Photonic" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dynamics_backends.html" class="btn btn-neutral float-right" title="Dynamics Simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
