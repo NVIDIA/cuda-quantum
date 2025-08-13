@@ -33,13 +33,15 @@ namespace cudaq::opt {
 /// @param convertTo Expected to be `qir-base` or `qir-adaptive` (comes from the
 /// cudaq-translate command line `--convert-to` parameter)
 /// \deprecated Replaced by the convert to QIR API pipeline.
-void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
+void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo,
+                           bool qirVersionUnderDevelopment);
 
 void addQIRProfileVerify(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
-                                    llvm::StringRef profile);
+                                    llvm::StringRef profile,
+                                    bool qirVersionUnderDevelopment);
 
 /// Verify that all `CallOp` targets are QIR- or NVQIR-defined functions or in
 /// the provided allowed list.
@@ -48,10 +50,13 @@ createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
-createQIRToQIRProfilePass(llvm::StringRef convertTo);
-std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
+createQIRToQIRProfilePass(llvm::StringRef convertTo,
+                          bool qirVersionUnderDevelopment);
 std::unique_ptr<mlir::Pass>
-createConvertToQIRFuncPass(llvm::StringRef convertTo);
+createQIRProfilePreparationPass(bool qirVersionUnderDevelopment);
+std::unique_ptr<mlir::Pass>
+createConvertToQIRFuncPass(llvm::StringRef convertTo,
+                           bool qirVersionUnderDevelopment);
 
 /// Register target pipelines.
 void registerTargetPipelines();
@@ -67,7 +72,8 @@ mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 /// before conversion to the LLVM-IR dialect.
 void registerToQIRAPIPipeline();
 void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
-                                bool opaquePtr = false);
+                                bool opaquePtr,
+                                bool qirVersionUnderDevelopment);
 
 /// The pipeline for lowering Quake code to the execution manager API. This
 /// pipeline should be run before conversion to the LLVM-IR dialect.

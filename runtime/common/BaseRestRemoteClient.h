@@ -124,6 +124,8 @@ public:
       std::size_t startingArgIdx, const std::vector<void *> *rawArgs) {
     enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+    bool qirVersionUnderDevelopment =
+        getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
@@ -231,7 +233,7 @@ public:
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
 
-    opt::addPipelineConvertToQIR(pm);
+    opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
