@@ -804,6 +804,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -863,6 +864,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1130,8 +1132,12 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.gradients.CentralDifference">CentralDifference (class in cudaq.gradients)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.clear">clear() (cudaq.SampleResult method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.clear">clear() (cudaq.Resources method)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.SampleResult.clear">(cudaq.SampleResult method)</a>
 </li>
+      </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.COBYLA">COBYLA (class in cudaq.optimizers)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperatorTerm.coefficient">coefficient (cudaq.operators.boson.BosonOperatorTerm property)</a>
@@ -1178,7 +1184,13 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.copy">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.SampleResult.count">count() (cudaq.SampleResult method)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.count">count() (cudaq.Resources method)</a>
+
+      <ul>
+        <li><a href="api/languages/python_api.html#cudaq.SampleResult.count">(cudaq.SampleResult method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.count_controls">count_controls() (cudaq.Resources method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ObserveResult.counts">counts() (cudaq.ObserveResult method)</a>
 </li>
@@ -1701,10 +1713,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEiNSt6size_tE">cudaq::orca::sample_async (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEEiNSt6size_tE">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
@@ -2331,10 +2343,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize() (cudaq.SampleResult method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.displace">displace() (in module cudaq.operators.custom)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.distribute_terms">distribute_terms() (cudaq.operators.boson.BosonOperator method)</a>
@@ -2372,6 +2384,8 @@
 </li>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.dump">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
+        <li><a href="api/languages/python_api.html#cudaq.Resources.dump">(cudaq.Resources method)</a>
+</li>
         <li><a href="api/languages/python_api.html#cudaq.SampleResult.dump">(cudaq.SampleResult method)</a>
 </li>
         <li><a href="api/languages/python_api.html#cudaq.State.dump">(cudaq.State method)</a>
@@ -2406,6 +2420,8 @@
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.empty_op">empty_op() (cudaq.operators.spin.SpinOperator static method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.enable_return_to_log">enable_return_to_log() (cudaq.PyKernelDecorator method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.estimate_resources">estimate_resources() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator.evaluate">evaluate() (cudaq.operators.ScalarOperator method)</a>
 </li>
@@ -2999,6 +3015,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.reset_target">reset_target() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources">Resources (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.right_multiply">right_multiply() (cudaq.SuperOperator static method)</a>
 </li>
