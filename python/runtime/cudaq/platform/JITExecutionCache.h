@@ -5,13 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #pragma once
 
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <mutex>
 #include <unordered_map>
-
-using namespace mlir;
 
 namespace cudaq {
 
@@ -27,7 +26,7 @@ protected:
   // the execution engine and to the LRU iterator that is used to track which
   // engine is the least recently used.
   struct MapItemType {
-    ExecutionEngine *execEngine = nullptr;
+    mlir::ExecutionEngine *execEngine = nullptr;
     std::list<std::size_t>::iterator lruListIt;
   };
   std::unordered_map<std::size_t, MapItemType> cacheMap;
@@ -38,8 +37,8 @@ public:
   JITExecutionCache() = default;
   ~JITExecutionCache();
 
-  void cache(std::size_t hash, ExecutionEngine *);
+  void cache(std::size_t hash, mlir::ExecutionEngine *);
   bool hasJITEngine(std::size_t hash);
-  ExecutionEngine *getJITEngine(std::size_t hash);
+  mlir::ExecutionEngine *getJITEngine(std::size_t hash);
 };
 } // namespace cudaq
