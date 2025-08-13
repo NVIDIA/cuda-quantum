@@ -8,6 +8,7 @@
 
 #pragma once
 #include "common/ExecutionContext.h"
+#include "common/ExtraPayloadProvider.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 
@@ -26,6 +27,9 @@ protected:
   /// job posts and results translation
   ServerHelper *serverHelper;
 
+  /// @brief The target that manages this executor
+  RuntimeTarget runtimeTarget;
+
   /// @brief The number of shots to execute
   std::size_t shots = 100;
 
@@ -35,6 +39,9 @@ public:
 
   /// @brief Set the server helper
   virtual void setServerHelper(ServerHelper *helper) { serverHelper = helper; }
+
+  /// @brief Set the runtime target
+  void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
 
   /// @brief Set the number of shots to execute
   void setShots(std::size_t s) { shots = s; }

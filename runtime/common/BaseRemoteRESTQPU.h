@@ -12,6 +12,7 @@
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
+#include "common/ExtraPayloadProvider.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
@@ -29,7 +30,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
@@ -358,8 +359,9 @@ public:
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     if (!serverHelper) {
-      throw std::runtime_error("ServerHelper not found for target");
+      throw std::runtime_error("ServerHelper not found for target: " + qpuName);
     }
+
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
     cudaq::info("Retrieving executor with name {}", qpuName);
@@ -371,6 +373,15 @@ public:
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
+
+    // Construct the runtime target
+    RuntimeTarget runtimeTarget;
+    runtimeTarget.config = config;
+    runtimeTarget.name = mutableBackend;
+    runtimeTarget.description = config.Description;
+    runtimeTarget.runtimeConfig = backendConfig;
+    runtimeTarget.serverHelper = serverHelper.get();
+    executor->setRuntimeTarget(runtimeTarget);
   }
 
   /// @brief Conditionally form an output_names JSON object if this was for QIR
