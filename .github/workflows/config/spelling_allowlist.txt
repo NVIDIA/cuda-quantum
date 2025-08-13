@@ -99,6 +99,7 @@ QCaaS
 QEC
 QIR
 QIS
+QOP
 QPP
 QPU
 QPUs
