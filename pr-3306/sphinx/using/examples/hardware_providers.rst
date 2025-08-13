@@ -146,6 +146,26 @@ The following code illustrates how to run kernels on Quantinuum's backends.
    .. literalinclude:: ../../targets/cpp/quantinuum.cpp
       :language: cpp
 
+
+
+.. _quantum-machines-examples:
+
+Quantum Machines
+==================================
+
+The following code illustrates how to run kernels on Quantum Machines' backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/quantum_machines.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/quantum_machines.cpp
+      :language: cpp
+
+
 QuEra Computing
 ==================================
 
