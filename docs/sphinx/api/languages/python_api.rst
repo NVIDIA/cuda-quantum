@@ -72,6 +72,7 @@ Kernel Execution
 .. autofunction:: cudaq::vqe
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
+.. autofunction:: cudaq::estimate_resources
 
 Backend Configuration
 =============================
@@ -283,6 +284,9 @@ Data Types
     :members:
 
 .. autoclass:: cudaq::AsyncEvolveResult
+    :members:
+
+.. autoclass:: cudaq::Resources
     :members:
 
 Optimizers
