@@ -212,6 +212,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -571,6 +572,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/hardware/photonic.html">     Photonic QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/photonic.html#orca-computing">ORCA Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware/qcontrol.html">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/qcontrol.html#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
 </ul>
@@ -2039,11 +2044,102 @@ parameters of the time bin interferometer.</p>
 </div>
 </div>
 </section>
+<section id="quantum-machines">
+<span id="quantum-machines-examples"></span><h2>Quantum Machines<a class="headerlink" href="#quantum-machines" title="Permalink to this heading">¶</a></h2>
+<p>The following code illustrates how to run kernels on Quantum Machines’ backends.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+
+<span class="c1"># The default executor is mock, use executor name to run on another backend (real or simulator).</span>
+<span class="c1"># Configure the address of the QOperator server in the `url` argument, and set the `api_key`.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantum_machines&quot;</span><span class="p">,</span>
+                 <span class="n">url</span><span class="o">=</span><span class="s2">&quot;http://host.docker.internal:8080&quot;</span><span class="p">,</span>
+                 <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;1234567890&quot;</span><span class="p">,</span>
+                 <span class="n">executor</span><span class="o">=</span><span class="s2">&quot;mock&quot;</span><span class="p">)</span>
+
+<span class="n">qubit_count</span> <span class="o">=</span> <span class="mi">5</span>
+
+
+<span class="c1"># Maximally entangled state between 5 qubits</span>
+<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">all_h</span><span class="p">():</span>
+    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">qubit_count</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">qubit_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">s</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">r1</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">qvector</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+
+
+<span class="c1"># Submit synchronously</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">all_h</span><span class="p">)</span><span class="o">.</span><span class="n">dump</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target quantum_machines quantum_machines.cpp -o out.x &amp;&amp; ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// This will submit the job to the Quantum Machines OPX available in the address</span>
+<span class="c1">// provider by `--quantum-machines-url`. By default, the action runs a on a mock</span>
+<span class="c1">// executor. To execute or a real QPU please note the executor name by</span>
+<span class="c1">// `--quantum-machines-executor`.</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target quantum_machines --quantum-machines-url</span>
+<span class="c1">// &quot;https://iqcc.qoperator.qm.co&quot; \</span>
+<span class="c1">//  --quantum-machines-executor iqcc quantum_machines.cpp -o out.x</span>
+<span class="c1">// ./out.x</span>
+<span class="c1">// ```</span>
+<span class="c1">// Assumes a valid set of credentials have been set prior to execution.</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;math.h&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
+
+<span class="c1">// Define a simple quantum kernel to execute on Quantum Machines OPX.</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">all_h</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="k">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="nf">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">s</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="w">    </span><span class="n">r1</span><span class="p">(</span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mz</span><span class="p">(</span><span class="n">q</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Submit asynchronously (e.g., continue executing code in the file until</span>
+<span class="w">  </span><span class="c1">// the job has been returned).</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">all_h</span><span class="p">{});</span>
+<span class="w">  </span><span class="c1">// ... classical code to execute in the meantime ...</span>
+
+<span class="w">  </span><span class="c1">// Get the results of the read in future.</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">async_counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">future</span><span class="p">.</span><span class="n">get</span><span class="p">();</span>
+<span class="w">  </span><span class="n">async_counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// OR: Submit synchronously (e.g., wait for the job</span>
+<span class="w">  </span><span class="c1">// result to be returned before proceeding).</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">all_h</span><span class="p">{});</span>
+<span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
 <section id="quera-computing">
 <h2>QuEra Computing<a class="headerlink" href="#quera-computing" title="Permalink to this heading">¶</a></h2>
 <p>The following code illustrates how to run kernels on QuEra’s backends.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--8-input--1" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--9-input--1" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.operators</span><span class="w"> </span><span class="kn">import</span> <span class="n">RydbergHamiltonian</span><span class="p">,</span> <span class="n">ScalarOperator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Schedule</span>
@@ -2120,7 +2216,7 @@ parameters of the time bin interferometer.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--8-input--2" name="tab-set--8" type="radio"><label class="tab-label" for="tab-set--8-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--9-input--2" name="tab-set--9" type="radio"><label class="tab-label" for="tab-set--9-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Compile and run with:</span>
 <span class="c1">// ```</span>
 <span class="c1">// nvq++ --target quera quera_basic.cpp -o out.x</span>
