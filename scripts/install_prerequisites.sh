@@ -16,15 +16,15 @@
 # bash install_prerequisites.sh
 #
 # For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
-# library is not found the location defined by the corresponding environment variable 
-# *_INSTALL_PREFIX, it will be built from source and installed that location.
+# library is not found in the location defined by the corresponding environment variable
+# *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
 # can be used to customize which projects are built, and pybind11 will be built and 
 # installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
 # The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
 # is installed. 
 # 
-# By default, all prerequisites as outlines above are installed even if the
+# By default, all prerequisites outlined above are installed even if the
 # corresponding *_INSTALL_PREFIX is not defined. The command line flag -m changes
 # that behavior to only install the libraries for which this variable is defined.
 # A compiler toolchain, cmake, and ninja will be installed unless the the -m flag 
@@ -35,15 +35,25 @@
 toolchain=''
 exclude_prereq=''
 install_all=true
+keep_sources=false
+tpls_dir="/opt/cudaq/tpls"
+sudo mkdir -p "$tpls_dir"
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:m" opt; do
+while getopts ":e:t:mk-:" opt; do
   case $opt in
     e) exclude_prereq="${OPTARG,,}"
     ;;
     t) toolchain="$OPTARG"
     ;;
     m) install_all=false
+    ;;
+    k) keep_sources=true
+    ;;
+    -) case $OPTARG in keep-sources) keep_sources=true
+    ;;
+    esac
     ;;
     :) echo "Option -$OPTARG requires an argument."
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -143,7 +153,14 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     LDFLAGS="-static-libstdc++" cmake -B build
     cmake --build build
     mv build/ninja /usr/local/bin/
-    cd .. && rm -rf v1.11.1.tar.gz ninja-1.11.1
+    cd ..
+    rm -rf v1.11.1.tar.gz
+    if [ "$keep_sources" = true ]; then
+      mkdir -p "$tpls_dir"
+      mv ninja-1.11.1 "$tpls_dir"
+    else
+      rm -rf ninja-1.11.1
+    fi
   fi
 fi
 
@@ -166,7 +183,14 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
     make CC="$CC" && make install
-    cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
+    cd ../../..
+    rm -rf zlib-1.3.tar.gz
+    if [ "$keep_sources" = true ]; then
+      mkdir -p "$tpls_dir"
+      mv zlib-1.3 "$tpls_dir"
+    else
+      rm -rf zlib-1.3
+    fi
     remove_temp_installs
   else
     echo "libz already installed in $ZLIB_INSTALL_PREFIX."
@@ -214,7 +238,14 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_LINUX.a "$BLAS_INSTALL_PREFIX/libblas.a"
-    cd .. && rm -rf blas-3.11.0.tgz BLAS-3.11.0
+    cd ..
+    rm -rf blas-3.11.0.tgz
+    if [ "$keep_sources" = true ]; then
+      mkdir -p "$tpls_dir"
+      mv BLAS-3.11.0 "$tpls_dir"
+    else
+      rm -rf BLAS-3.11.0
+    fi
     remove_temp_installs
   else
     echo "BLAS already installed in $BLAS_INSTALL_PREFIX."
@@ -252,7 +283,14 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     "$HOME/.perl5/bin/perl" Configure no-shared \
       --prefix="$OPENSSL_INSTALL_PREFIX" zlib --with-zlib-lib="$ZLIB_INSTALL_PREFIX"
     make CC="$CC" CXX="$CXX" && make install
-    cd .. && rm -rf openssl-3.5.1.tar.gz openssl-3.5.1 "$HOME/.perl5"
+    cd ..
+    rm -rf openssl-3.5.1.tar.gz "$HOME/.perl5"
+    if [ "$keep_sources" = true ]; then
+      mkdir -p "$tpls_dir"
+      mv openssl-3.5.1 "$tpls_dir"
+    else
+      rm -rf openssl-3.5.1
+    fi
     remove_temp_installs
   else
     echo "OpenSSL already installed in $OPENSSL_INSTALL_PREFIX."
@@ -305,7 +343,14 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
       --disable-pop3 --disable-imap --disable-file  --disable-dict \
       --disable-versioned-symbols --disable-manual
     make CC="$CC" && make install
-    cd .. && rm -rf curl-8.5.0.tar.gz curl-8.5.0
+    cd ..
+    rm -rf curl-8.5.0.tar.gz
+    if [ "$keep_sources" = true ]; then
+      mkdir -p "$tpls_dir"
+      mv curl-8.5.0 "$tpls_dir"
+    else
+      rm -rf curl-8.5.0
+    fi
     remove_temp_installs
   else
     echo "Curl already installed in $CURL_INSTALL_PREFIX."
@@ -340,11 +385,65 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
       -DAUTORUN_UNIT_TESTS=OFF
     cmake --build . --config=Release
     cmake --install . --config=Release
-    cd ../.. && rm -rf 1.11.454.tar.gz aws-sdk-cpp
+    cd ../..
+    rm -rf 1.11.454.tar.gz
+    if [ "$keep_sources" = true ]; then
+      mkdir -p "$tpls_dir"
+      mv aws-sdk-cpp "$tpls_dir"
+    else
+      rm -rf aws-sdk-cpp
+    fi
     remove_temp_installs
   else
     echo "AWS SDK already installed in $AWS_INSTALL_PREFIX."
   fi
+fi
+
+lookup_tpls_sha() {
+  local path="$1"
+
+  # Using lock file
+  if [[ -f /tmp/tpls_commits.lock ]]; then
+    awk -v p="$path" '$2==p{print $1}' /tmp/tpls_commits.lock && return 0
+  fi
+}
+
+# Clone the third-party libraries to include its source code in the NVQC docker image.
+if [ "$keep_sources" = true ]; then
+  echo "Cloning additional third-party libraries into $tpls_dir..."
+  sudo mkdir -p "$tpls_dir"
+  # make sure we are at the repo root
+  cd "$this_file_dir"
+
+  # for each submodule.<name>.url in .gitmodules
+  git config --file .gitmodules --get-regexp 'submodule\..*\.url' | \
+  while read -r key url; do
+    # key = "submodule.tpls/foo.url"
+    sub=${key#submodule.}         # -> "tpls/foo.url"
+    sub=${sub%.url}               # -> "tpls/foo"
+    path=$(git config --file .gitmodules --get "submodule.$sub.path")
+    lib=$(basename "$path")       # -> "foo"
+    dest="$tpls_dir/$lib"
+
+    echo "Processing submodule $lib at path $path ..."
+    repo="$(git config --file=.gitmodules submodule.$path.url)"
+    echo "Repository URL: $repo"
+
+    echo "Adding $dest as a safe.directory..."
+    sudo git config --global --add safe.directory "$dest"
+
+    commit="$(lookup_tpls_sha "$path")" || {
+      echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
+      continue
+    }
+    echo "Using commit $commit for $lib."
+
+    echo "Cloning $lib@$commit from $repo into $dest ..."
+    sudo git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
+    && sudo git -C "$dest" fetch --depth 1 origin "$commit" \
+    && sudo git -C "$dest" checkout --detach FETCH_HEAD \
+    || { echo "Failed to clone $lib"; continue; }
+  done
 fi
 
 # [cuQuantum and cuTensor] Needed for GPU-accelerated components
