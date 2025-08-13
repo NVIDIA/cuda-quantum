@@ -24,7 +24,7 @@ constexpr const char *jobsEndpoint = "api/jobs/v1beta3/";
 constexpr const char *qirEndpoint = "api/qir/v1beta/";
 // Legacy result endpoint (PYTKET)
 constexpr const char *resultsEndpoint = "api/results/v1beta3/";
-// NR device result endpoint (QSYS)
+// NG device result endpoint (QSYS)
 constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta/";
 } // namespace
 
@@ -73,7 +73,7 @@ protected:
   enum class QsysResultVersion : int { DEFAULT = 3, RAW = 4 };
   /// @brief Helper to parse the result ID from the job response
   std::pair<ResultType, std::string> getResultId(ServerMessage &getJobResponse);
-  // Extract QIR output data 
+  // Extract QIR output data
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override;
 
@@ -428,8 +428,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
   // shot data.
   const std::string paramStr =
       resultType == QuantinuumServerHelper::ResultType::QSYS
-          ? fmt::format("?version={}",
-                        static_cast<int>(QsysResultVersion::RAW))
+          ? fmt::format("?version={}", static_cast<int>(QsysResultVersion::RAW))
           : std::string();
 
   // Retrieve the results

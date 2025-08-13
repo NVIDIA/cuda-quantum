@@ -158,7 +158,7 @@ async def create_job(job: dict):
                                                   {}).get("device_name", "")
     print("Job data =", job)
     print("Device name =", device_name)
-    # If device name starts with "Helios", we assume it's an NR device
+    # If device name starts with "Helios", we assume it's an NG device
     is_nr_device = device_name.startswith("Helios")
 
     if not items:
@@ -199,7 +199,7 @@ async def create_job(job: dict):
             kernel()
             _ = cudaq.testing.finalize(qubits, context)
         # Note: this QIR log may not contain the header information that real services would return.
-        # TODO: update this once we can test with a real NR device
+        # TODO: update this once we can test with a real NG device
         results = cudaq.testing.getAndClearOutputLog()
         print("Output Log:")
         print(results)
@@ -327,7 +327,7 @@ async def get_results(result_id: str):
     }
 
 
-# NR device results retrieval endpoint (qsys_results)
+# NG device results retrieval endpoint (`qsys_results`)
 @app.get("/api/qsys_results/v1beta/{result_id}")
 async def get_results(result_id: str):
     global createdJobs, createdResults

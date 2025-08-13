@@ -187,7 +187,10 @@ void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
 
 details::future
 BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
-                        bool isObserve, bool isRun, std::vector<char> *rawOutput) {
+                        cudaq::details::ExecutionContextType execType,
+                        std::vector<char> *rawOutput) {
+  const bool isObserve =
+      execType == cudaq::details::ExecutionContextType::observe;
   auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
 
   std::string const defaultBucket = defaultBucketFuture.get();

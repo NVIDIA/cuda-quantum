@@ -41,7 +41,7 @@ sample_result future::get() {
                                   serverHelper->getCookies());
     }
 
-    if (resultType == ResultType::run) {
+    if (resultType == ExecutionContextType::run) {
       QirServerHelper *qirServerHelper =
           dynamic_cast<QirServerHelper *>(serverHelper.get());
       if (!qirServerHelper)
@@ -141,7 +141,7 @@ std::istream &operator>>(std::istream &is, future &f) {
   f.jobs = j["jobs"].get<std::vector<future::Job>>();
   f.qpuName = j["qpu"].get<std::string>();
   f.serverConfig = j["config"].get<std::map<std::string, std::string>>();
-  f.resultType = j["resultType"].get<future::ResultType>();
+  f.resultType = j["resultType"].get<ExecutionContextType>();
   return is;
 }
 

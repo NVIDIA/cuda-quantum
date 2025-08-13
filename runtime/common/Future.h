@@ -16,6 +16,12 @@
 
 namespace cudaq {
 namespace details {
+
+/// @brief The execution context of a server job.
+// Depending on the type, we may process the return data from the server
+// differently when propagating it back to the runtime.
+enum class ExecutionContextType : int { sample = 1, observe, run };
+
 /// @brief The future type models the expected result of a
 /// CUDA-Q kernel execution under a specific execution context.
 /// This type is returned from asynchronous execution calls. It
@@ -30,7 +36,6 @@ namespace details {
 class future {
 public:
   using Job = std::pair<std::string, std::string>;
-  enum class ResultType : int { sample = 1, observe, run };
 
 protected:
   /// @brief Vector of job ids that make up the execution
@@ -51,7 +56,10 @@ protected:
   bool wrapsFutureSampling = false;
 
   /// @brief Indicate the execution context of this call
-  ResultType resultType = ResultType::sample;
+  ExecutionContextType resultType = ExecutionContextType::sample;
+
+  /// @brief Raw output data, if any, that is being returned
+  /// from the server. This is used for `run` calls.
   std::vector<char> *inFutureRawOutput = nullptr;
 
 public:
@@ -75,7 +83,7 @@ public:
       : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config) {}
 
   future(std::vector<Job> &_jobs, std::string &qpuNameIn,
-         std::map<std::string, std::string> &config, ResultType type,
+         std::map<std::string, std::string> &config, ExecutionContextType type,
          std::vector<char> *rawOutput = nullptr)
       : jobs(_jobs), qpuName(qpuNameIn), serverConfig(config), resultType(type),
         inFutureRawOutput(rawOutput) {}
@@ -89,7 +97,7 @@ public:
   friend std::istream &operator>>(std::istream &, future &);
 
 private:
-  bool isObserve() const { return resultType == ResultType::observe; }
+  bool isObserve() const { return resultType == ExecutionContextType::observe; }
 };
 
 std::ostream &operator<<(std::ostream &os, future &f);

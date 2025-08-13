@@ -939,7 +939,14 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      future = executor->execute(codes, isObserve, isRun,
+      // Cannot be observe and run at the same time
+      assert(!isObserve || !isRun);
+      const cudaq::details::ExecutionContextType execType =
+          isRun       ? cudaq::details::ExecutionContextType::run
+          : isObserve ? cudaq::details::ExecutionContextType::observe
+                      : cudaq::details::ExecutionContextType::sample;
+
+      future = executor->execute(codes, execType,
                                  &executionContext->invocationResultBuffer);
     }
 

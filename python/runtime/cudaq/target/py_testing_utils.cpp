@@ -74,7 +74,6 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
     holder.getSimulator(simName)->outputLog.clear();
     return log;
   });
-  
 }
 
 } // namespace cudaq
