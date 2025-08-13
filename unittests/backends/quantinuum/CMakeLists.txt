@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_quantinuum QuantinuumTester.cpp)
+add_executable(test_quantinuum QuantinuumTester.cpp QuantinuumNGTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_quantinuum PRIVATE -Wl,--no-as-needed)
 endif()
