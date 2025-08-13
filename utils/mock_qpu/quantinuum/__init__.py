@@ -191,7 +191,7 @@ async def create_job(job: dict):
 
     # Invoke the Kernel
     if is_ng_device:
-        # For NG result, we don't yet know how to execute it (run/sample) until we get the result (result version determines how we should execute it).
+        # For `NG` result, we don't yet know how to execute it (run/sample) until we get the result (result version determines how we should execute it).
         # Hence, cache the job
         createdJobs[job_id] = (job_name, numQubitsRequired, kernel, shots, m)
     else:
