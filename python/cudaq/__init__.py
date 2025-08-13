@@ -84,6 +84,7 @@ State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
+Resources = cudaq_runtime.Resources
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -159,6 +160,7 @@ vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
 get_unitary = cudaq_runtime.get_unitary
 run = cudaq_runtime.run
+estimate_resources = cudaq_runtime.estimate_resources
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring
