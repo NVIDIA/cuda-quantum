@@ -21,6 +21,6 @@ inline quantum_platform &get_platform() {
 }
 
 // Declare this function, implemented elsewhere
-std::string getQIR(const std::string &);
+std::string getQIR(const std::string &, bool);
 
 } // namespace cudaq
