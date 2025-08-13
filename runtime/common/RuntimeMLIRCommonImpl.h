@@ -12,6 +12,7 @@
 #include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -113,6 +114,133 @@ void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
             callInst->addParamAttr(arg_num, llvm::Attribute::WriteOnly);
         }
       }
+}
+
+/// @brief Add module flags according to the spec:
+/// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Adaptive_Profile.md#module-flags-metadata
+void applyQIRAdaptiveCapabilitiesAttributes(llvm::Module *llvmModule,
+                                            bool supportIntegerComputations,
+                                            bool supportFloatComputations,
+                                            bool qirVersionUnderDevelopment) {
+  if (qirVersionUnderDevelopment) {
+    // Add default values to the best of our knowledge for now.
+    // TODO: Design yaml QIR settings, module flags analysis, and QIR
+    // validation.
+    auto &llvmContext = llvmModule->getContext();
+
+    if (supportIntegerComputations) {
+      llvm::Constant *intPrecisionValue =
+          llvm::ConstantDataArray::getString(llvmContext, "i64", false);
+      llvmModule->addModuleFlag(
+          llvm::Module::ModFlagBehavior::Error,
+          cudaq::opt::qir_under_development::QIRIntComputationsFlagName,
+          intPrecisionValue);
+    }
+    if (supportFloatComputations) {
+      llvm::Constant *floatPrecisionValue =
+          llvm::ConstantDataArray::getString(llvmContext, "f64", false);
+      llvmModule->addModuleFlag(
+          llvm::Module::ModFlagBehavior::Error,
+          cudaq::opt::qir_under_development::QIRFloatComputationsFlagName,
+          floatPrecisionValue);
+    }
+
+    auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
+        llvm::Type::getIntNTy(llvmContext, 2), llvm::APInt(2, 0, false));
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_under_development::QIRBackwardsBranchingFlagName,
+        backwardsBranchingValue);
+  } else {
+    auto &llvmContext = llvmModule->getContext();
+    auto falseValue =
+        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+    llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+    auto trueValue =
+        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+    llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(llvmContext));
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_current::QIRQubitResettingFlagName, trueValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              cudaq::opt::qir_current::QIRClassicalIntsFlagName,
+                              falseValue);
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_current::QIRClassicalFloatsFlagName, falseValue);
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_current::QIRClassicalFixedPointsFlagName, falseValue);
+    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                              cudaq::opt::qir_current::QIRUserFunctionsFlagName,
+                              falseValue);
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_current::QIRDynamicFloatArgsFlagName, falseValue);
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_current::QIRExternFunctionsFlagName, falseValue);
+    llvmModule->addModuleFlag(
+        llvm::Module::ModFlagBehavior::Error,
+        cudaq::opt::qir_current::QIRBackwardsBranchingFlagName, falseValue);
+  }
+}
+
+static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
+  // Not a valid adaptive profile instruction
+  // Check if it's in the extended instruction set
+  const auto isValidIntegerBinaryInst = [](const auto &inst) {
+    if (!llvm::isa<llvm::BinaryOperator>(inst))
+      return false;
+    const auto opCode = inst.getOpcode();
+    static const std::vector<int> integerOps = {
+        llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
+        llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
+        llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
+        llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
+        llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
+        llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
+        llvm::BinaryOperator::AShr};
+    return std::find(integerOps.begin(), integerOps.end(), opCode) !=
+           integerOps.end();
+  };
+
+  return isValidIntegerBinaryInst(inst) || llvm::isa<llvm::ICmpInst>(inst) ||
+         llvm::isa<llvm::ZExtInst>(inst) || llvm::isa<llvm::SExtInst>(inst) ||
+         llvm::isa<llvm::TruncInst>(inst) ||
+         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
+}
+
+static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
+  const auto isValidFloatBinaryInst = [](const auto &inst) {
+    if (!llvm::isa<llvm::BinaryOperator>(inst))
+      return false;
+    const auto opCode = inst.getOpcode();
+    static const std::vector<int> floatOps = {
+        llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
+        llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv,
+        llvm::Instruction::FRem};
+    return std::find(floatOps.begin(), floatOps.end(), opCode) !=
+           floatOps.end();
+  };
+
+  return isValidFloatBinaryInst(inst) || llvm::isa<llvm::FCmpInst>(inst) ||
+         llvm::isa<llvm::FPExtInst>(inst) || llvm::isa<llvm::FPTruncInst>(inst);
+}
+
+static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
+  // Not a valid adaptive profile instruction
+  // Check if it's an record output call.
+  if (auto *call = dyn_cast<llvm::CallBase>(&inst)) {
+    auto name = call->getCalledFunction()->getName().str();
+    std::vector<const char *> outputFunctions{
+        cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRIntegerRecordOutput,
+        cudaq::opt::QIRDoubleRecordOutput, cudaq::opt::QIRTupleRecordOutput,
+        cudaq::opt::QIRArrayRecordOutput};
+    return std::find(outputFunctions.begin(), outputFunctions.end(),
+                     name.c_str()) == outputFunctions.end();
+  }
+  return false;
 }
 
 // Once a call to a function with irreversible attribute is seen, no more calls
@@ -266,15 +394,19 @@ std::size_t getArgAsInteger(llvm::Value *arg) {
 // QIRMeasureBody and QIRRecordOutput. Checking more than that would
 // require comprehending the full list of possible QIS instructions, which is
 // not currently feasible.
-mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
-  std::size_t required_num_qubits = 0;
-  std::size_t required_num_results = 0;
+mlir::LogicalResult
+verifyQubitAndResultRanges(llvm::Module *llvmModule,
+                           bool qirVersionUnderDevelopment) {
+  std::size_t requiredNumQubits = 0;
+  std::size_t requiredNumResults = 0;
   for (llvm::Function &func : *llvmModule) {
-    if (func.hasFnAttribute("entry_point")) {
-      required_num_qubits = func.getFnAttributeAsParsedInteger(
-          "requiredQubits", required_num_qubits);
-      required_num_results = func.getFnAttributeAsParsedInteger(
-          "requiredResults", required_num_results);
+    if (func.hasFnAttribute(cudaq::opt::QIREntryPointAttrName)) {
+      requiredNumQubits = func.getFnAttributeAsParsedInteger(
+          cudaq::opt::getQIRRequiredQubitsAttrName(qirVersionUnderDevelopment),
+          requiredNumQubits);
+      requiredNumResults = func.getFnAttributeAsParsedInteger(
+          cudaq::opt::getQIRRequiredResultsAttrName(qirVersionUnderDevelopment),
+          requiredNumResults);
       break; // no need to keep looking
     }
   }
@@ -286,18 +418,58 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
             // All results must be in range for output recording functions
             if (func->getName() == cudaq::opt::QIRRecordOutput) {
               auto result = getArgAsInteger(callInst->getArgOperand(0));
-              CHECK_RANGE(result, required_num_results);
+              CHECK_RANGE(result, requiredNumResults);
             }
             // All qubits and results must be in range for measurements
             else if (func->getName() == cudaq::opt::QIRMeasureBody) {
               auto qubit = getArgAsInteger(callInst->getArgOperand(0));
               auto result = getArgAsInteger(callInst->getArgOperand(1));
-              CHECK_RANGE(qubit, required_num_qubits);
-              CHECK_RANGE(result, required_num_results);
+              CHECK_RANGE(qubit, requiredNumQubits);
+              CHECK_RANGE(result, requiredNumResults);
             }
           }
         }
       }
+    }
+  }
+  return mlir::success();
+}
+
+/// Filter out code patterns that do not meet the accepted QIR specification for
+/// a particular target. The patterns are selectable via environment variables.
+/// Note that no analysis is used and this simply drops code on the floor. As
+/// such, the code may not function correctly nor as expected.
+static mlir::LogicalResult
+filterSpecificCodePatterns(llvm::Module *llvmModule) {
+  // If CUDAQ_ENABLE_QUANTUM_DEVICE_RUN is true, erase all "offending" isns.
+  const bool erasePatterns =
+      getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
+  // If CUDAQ_QIR_ERASE_STACK_INTRINSIC is true, erase stacksave/stackrestore.
+  const bool eraseStackBounding =
+      erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_STACK_INTRINSIC", false);
+  // If CUDAQ_QIR_ERASE_RESULT_RECORD is true, erase result_record_output.
+  const bool eraseResultRecordCalls =
+      erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_RESULT_RECORD", false);
+
+  if (erasePatterns || eraseStackBounding || eraseResultRecordCalls) {
+    llvm::SmallVector<llvm::Instruction *> eraseInst;
+    for (llvm::Function &func : *llvmModule)
+      for (llvm::BasicBlock &block : func)
+        for (llvm::Instruction &inst : block)
+          if (auto *call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
+            auto *calledFunc = call->getCalledFunction();
+            auto name = calledFunc->getGlobalIdentifier();
+            if (eraseStackBounding && calledFunc->isIntrinsic() &&
+                (name == cudaq::llvmStackSave ||
+                 name == cudaq::llvmStackRestore))
+              eraseInst.push_back(&inst);
+            if (eraseResultRecordCalls && name == cudaq::opt::QIRRecordOutput)
+              eraseInst.push_back(&inst);
+          }
+    for (auto *insn : eraseInst) {
+      if (insn->hasNUsesOrMore(1))
+        insn->replaceAllUsesWith(llvm::UndefValue::get(insn->getType()));
+      insn->eraseFromParent();
     }
   }
   return mlir::success();
@@ -332,47 +504,15 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
           // Not a valid adaptive profile instruction
           // Check if it's in the extended instruction set
-          const auto isValidIntegerBinaryInst = [](const auto &inst) {
-            if (!llvm::isa<llvm::BinaryOperator>(inst))
-              return false;
-            const auto opCode = inst.getOpcode();
-            static const std::vector<int> integerOps = {
-                llvm::BinaryOperator::Add,  llvm::BinaryOperator::Sub,
-                llvm::BinaryOperator::Mul,  llvm::BinaryOperator::UDiv,
-                llvm::BinaryOperator::SDiv, llvm::BinaryOperator::URem,
-                llvm::BinaryOperator::SRem, llvm::BinaryOperator::And,
-                llvm::BinaryOperator::Or,   llvm::BinaryOperator::Xor,
-                llvm::BinaryOperator::Shl,  llvm::BinaryOperator::LShr,
-                llvm::BinaryOperator::AShr};
-            return std::find(integerOps.begin(), integerOps.end(), opCode) !=
-                   integerOps.end();
-          };
-
           const bool isValidIntExtension =
-              integerComputations && (isValidIntegerBinaryInst(inst) ||
-                                      llvm::isa<llvm::ICmpInst>(inst) ||
-                                      llvm::isa<llvm::ZExtInst>(inst) ||
-                                      llvm::isa<llvm::SExtInst>(inst) ||
-                                      llvm::isa<llvm::TruncInst>(inst) ||
-                                      llvm::isa<llvm::SelectInst>(inst) ||
-                                      llvm::isa<llvm::PHINode>(inst));
-
-          const auto isValidFloatBinaryInst = [](const auto &inst) {
-            if (!llvm::isa<llvm::BinaryOperator>(inst))
-              return false;
-            const auto opCode = inst.getOpcode();
-            static const std::vector<int> floatOps = {
-                llvm::BinaryOperator::FAdd, llvm::BinaryOperator::FSub,
-                llvm::BinaryOperator::FMul, llvm::BinaryOperator::FDiv};
-            return std::find(floatOps.begin(), floatOps.end(), opCode) !=
-                   floatOps.end();
-          };
+              integerComputations && isValidIntegerArithmeticInstruction(inst);
 
           const bool isValidFloatExtension =
-              floatComputations && (isValidFloatBinaryInst(inst) ||
-                                    llvm::isa<llvm::FPExtInst>(inst) ||
-                                    llvm::isa<llvm::FPTruncInst>(inst));
-          if (!isValidIntExtension && !isValidFloatExtension) {
+              floatComputations && isValidFloatingArithmeticInstruction(inst);
+
+          const bool isValidOutputCall = isValidOutputCallInstruction(inst);
+          if (!isValidIntExtension && !isValidFloatExtension &&
+              !isValidOutputCall) {
             llvm::errs() << "error - invalid instruction found: " << inst
                          << '\n';
             if (!allowAllInstructions)
@@ -413,6 +553,9 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                               bool printIntermediateMLIR, bool printStats) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
+  bool qirVersionUnderDevelopment =
+      getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
+
   const std::uint32_t qir_major_version = 1;
   const std::uint32_t qir_minor_version = 0;
 
@@ -442,9 +585,11 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
   const std::string rootQirProfileName =
       isAdaptiveProfile ? "qir-adaptive" : qirProfile;
   if (containsWireSet)
-    cudaq::opt::addWiresetToProfileQIRPipeline(pm, rootQirProfileName);
+    cudaq::opt::addWiresetToProfileQIRPipeline(pm, rootQirProfileName,
+                                               qirVersionUnderDevelopment);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, rootQirProfileName);
+    cudaq::opt::addPipelineConvertToQIR(pm, rootQirProfileName,
+                                        qirVersionUnderDevelopment);
 
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
@@ -476,32 +621,22 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
                             "dynamic_qubit_management", falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                             "dynamic_result_management", falseValue);
-  if (isAdaptiveProfile) {
-    auto trueValue =
-        llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "qubit_resetting", trueValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_ints", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_floats", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_fixed_points", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "user_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "dynamic_float_args", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "extern_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "backwards_branching", falseValue);
-  }
+
+  // There are certain function calls that may be produced that we want to drop
+  // on the floor instead of passing to the QIR consumer.
+  if (failed(filterSpecificCodePatterns(llvmModule.get())))
+    return mlir::failure();
 
   // Note: optimizeLLVM is the one that is setting nonnull attributes on
   // the @__quantum__rt__result_record_output calls.
   cudaq::optimizeLLVM(llvmModule.get());
   if (!cudaq::setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
+
+  if (isAdaptiveProfile)
+    applyQIRAdaptiveCapabilitiesAttributes(
+        llvmModule.get(), supportIntegerComputations, supportFloatComputations,
+        qirVersionUnderDevelopment);
 
   // PyQIR currently requires named blocks. It's not clear if blocks can share
   // names across functions, so we are being conservative by giving every block
@@ -522,7 +657,8 @@ qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
       failed(verifyBaseProfileMeasurementOrdering(llvmModule.get())))
     return mlir::failure();
 
-  if (failed(verifyQubitAndResultRanges(llvmModule.get())))
+  if (failed(verifyQubitAndResultRanges(llvmModule.get(),
+                                        qirVersionUnderDevelopment)))
     return mlir::failure();
 
   if (failed(verifyLLVMInstructions(llvmModule.get(), isBaseProfile,
@@ -631,7 +767,8 @@ void registerToIQMJsonTranslation() {
       });
 }
 
-void insertSetupAndCleanupOperations(mlir::Operation *module) {
+void insertSetupAndCleanupOperations(mlir::Operation *module,
+                                     bool qirVersionUnderDevelopment) {
   mlir::OpBuilder modBuilder(module);
   auto *context = module->getContext();
   auto arrayQubitTy = cudaq::opt::getArrayType(context);
@@ -666,7 +803,8 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
       continue;
     std::int64_t num_qubits = -1;
     if (auto requiredQubits = func->getAttrOfType<mlir::StringAttr>(
-            cudaq::opt::QIRRequiredQubitsAttrName))
+            cudaq::opt::getQIRRequiredQubitsAttrName(
+                qirVersionUnderDevelopment)))
       requiredQubits.strref().getAsInteger(10, num_qubits);
 
     // Further processing on funcOp if needed
@@ -720,6 +858,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
   // LLVM. This use of LLVM command line parameters could be changed if the LLVM
   // JIT ever supports the TargetMachine options in the future.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createQIRJITEngine");
+
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
 
@@ -732,6 +871,8 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "createQIRJITEngine::llvmModuleBuilder");
+    bool qirVersionUnderDevelopment =
+        getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
     llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
@@ -750,9 +891,11 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     // emulated path, we need to pass in the `convertTo` in order to mimic what
     // the non-emulated path would do.
     if (containsWireSet)
-      cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
+      cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo,
+                                                 qirVersionUnderDevelopment);
     else
-      cudaq::opt::commonPipelineConvertToQIR(pm, "qir", convertTo);
+      cudaq::opt::commonPipelineConvertToQIR(pm, "qir", convertTo,
+                                             qirVersionUnderDevelopment);
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
@@ -776,7 +919,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     // allocated qubit IDs in that case, and the simulator needs these
     // additional calls in order to operate properly.
     if (containsWireSet)
-      insertSetupAndCleanupOperations(module);
+      insertSetupAndCleanupOperations(module, qirVersionUnderDevelopment);
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)
