@@ -32,9 +32,12 @@ class DummyProvider : public cudaq::ExtraPayloadProvider {
 public:
   DummyProvider() = default;
   virtual ~DummyProvider() = default;
-  virtual const std::string name() const override { return "dummy"; }
-  virtual void injectExtraPayload(const cudaq::RuntimeTarget &target,
-                                  cudaq::ServerMessage &msg) override {}
+  virtual std::string name() const override { return "dummy"; }
+  virtual std::string getPayloadType() const override { return "test_type"; }
+  virtual std::string
+  getExtraPayload(const cudaq::RuntimeTarget &target) override {
+    return "test";
+  }
 };
 
 CUDAQ_TEST(ExtraPayloadProviderTester, checkWrongProvider) {
@@ -58,11 +61,11 @@ class SunriseProvider : public cudaq::ExtraPayloadProvider {
 public:
   SunriseProvider() = default;
   virtual ~SunriseProvider() = default;
-  virtual const std::string name() const override { return "sunrise"; }
-  virtual void injectExtraPayload(const cudaq::RuntimeTarget &target,
-                                  cudaq::ServerMessage &msg) override {
-    nlohmann::json_pointer<std::string> path("/foo/bar"); // The path to inject
-    msg[path] = "test";
+  virtual std::string name() const override { return "sunrise"; }
+  virtual std::string getPayloadType() const override { return "test_type"; }
+  virtual std::string
+  getExtraPayload(const cudaq::RuntimeTarget &target) override {
+    return "test";
   }
 };
 

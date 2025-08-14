@@ -26,7 +26,9 @@ async def postJob(request: Request):
         if "bar" not in payload["foo"]:
             raise HTTPException(status_code=400,
                                 detail="Payload must contain 'foo/bar' key")
-
+        if payload["foo"]["bar"] != "test":
+            raise HTTPException(status_code=400,
+                                detail="Invalid value for 'foo/bar' key")
     newId = str(uuid.uuid4())
     # Job "created", return the id
     return ({"job_token": newId}, 201)

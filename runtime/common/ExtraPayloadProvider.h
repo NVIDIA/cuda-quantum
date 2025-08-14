@@ -19,13 +19,19 @@ public:
   virtual ~ExtraPayloadProvider() = default;
 
   /// @brief Get the name of the extra payload provider.
-  virtual const std::string name() const = 0;
+  virtual std::string name() const = 0;
 
-  /// @brief Inject extra payload into the server message.
+  /// @brief Get the type of the extra payload.
+  // This would help the server determine how to handle the payload.
+  virtual std::string getPayloadType() const = 0;
+
+  /// @brief Get extra payload for the target's service request.
   /// @param target The RuntimeTarget to generate the payload for.
-  /// @param msg The server message to inject extra payload into.
-  virtual void injectExtraPayload(const RuntimeTarget &target,
-                                  ServerMessage &msg) = 0;
+  /// @param msg The extra payload content to be used for the target's service
+  /// request.
+  // Note: the target's server helper will use the extra payload in accordance
+  // with the service API.
+  virtual std::string getExtraPayload(const RuntimeTarget &target) = 0;
 };
 
 /// @brief Register an extra payload provider.

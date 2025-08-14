@@ -380,8 +380,7 @@ public:
     runtimeTarget.name = mutableBackend;
     runtimeTarget.description = config.Description;
     runtimeTarget.runtimeConfig = backendConfig;
-    runtimeTarget.serverHelper = serverHelper.get();
-    executor->setRuntimeTarget(runtimeTarget);
+    serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
   /// @brief Conditionally form an output_names JSON object if this was for QIR
