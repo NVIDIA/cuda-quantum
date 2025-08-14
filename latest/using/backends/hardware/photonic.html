@@ -205,6 +205,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#iqm">IQM</a></li>
@@ -807,6 +808,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -866,6 +868,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -1001,7 +1004,6 @@ you can set the environment variable as follows:</p>
 <span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using ORCA’s backends, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
 <p>To execute a boson sampling experiment on the ORCA platform, provide the flag
@@ -1018,9 +1020,9 @@ the previously set environment variable <code class="docutils literal notranslat
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./executable
 </pre></div>
 </div>
-<p>To see a complete example for using ORCA server backends, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
 </div>
 </div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#orca-examples"><span class="std std-ref">ORCA Computing examples</span></a>.</p>
 </section>
 </section>
 </section>
