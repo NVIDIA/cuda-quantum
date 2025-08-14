@@ -205,6 +205,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#iqm">IQM</a></li>
@@ -1002,12 +1003,11 @@ you can also pass the <code class="docutils literal notranslate"><span class="pr
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>braket<span class="w"> </span>src.cpp
 </pre></div>
 </div>
-<p>To see a complete example for using Amazon Braket backends, take a look at our <a class="reference internal" href="../../examples/examples.html#examples"><span class="std std-ref">C++ examples</span></a>.</p>
 </section>
 <section id="submission-from-python">
 <h2>Submission from Python<a class="headerlink" href="#submission-from-python" title="Permalink to this heading">¶</a></h2>
 <p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;braket&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1028,7 +1028,7 @@ argument to <code class="docutils literal notranslate"><span class="pre">cudaq.s
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using Amazon Braket backends, take a look at our <a class="reference internal" href="../../examples/examples.html#examples"><span class="std std-ref">Python examples</span></a>.</p>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket-examples"><span class="std std-ref">Amazon Braket examples</span></a>.</p>
 </section>
 </section>
 
