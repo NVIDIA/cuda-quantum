@@ -270,6 +270,10 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
     is deprecated and will be removed in a future release.
 
+.. |:spellcheck-disable:| replace:: \
+.. |:spellcheck-enable:| replace:: \
+
+
 .. _gate-fusion-table:
 
 .. list-table:: **Default Gate Fusion Size**
@@ -280,20 +284,19 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - Default Gate Fusion Size
   * - 8.0
     - NVIDIA A100
-    - 4 (fp32) or 5 (fp64)
+    - 4 (`fp32`) or 5 (`fp64`)
   * - 9.0
-    - NVIDIA H100, H200, GH200
-    - 5 (fp32) or 6 (fp64)
+    - NVIDIA H100, H200, |:spellcheck-disable:| GH200 |:spellcheck-enable:| 
+    - 5 (`fp32`) or 6 (`fp64`)
   * - 10.0
     - NVIDIA GB200, B200
-    - 5 (fp32) or 4 (fp64)
+    - 5 (`fp32`) or 4 (`fp64`)
   * - 10.3
     - NVIDIA B300
-    - 5 (fp32) or 1 (fp64)
+    - 5 (`fp32`) or 1 (`fp64`)
   * - Others
     - 
-    - 4 (fp32 and fp64)
-
+    - 4 (`fp32` and `fp64`)
 
 
 The above configuration options of the :code:`nvidia` backend 
