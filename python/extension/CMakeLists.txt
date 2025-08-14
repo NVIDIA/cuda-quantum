@@ -93,6 +93,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/orca/OrcaServerHelper.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
+    ../../runtime/cudaq/platform/qilimanjaro/QilimanjaroRemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/qilimanjaro/QilimanjaroServerHelper.cpp
     ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
 
   EMBED_CAPI_LINK_LIBS

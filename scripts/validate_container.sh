@@ -84,6 +84,7 @@ available_backends=`\
         if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
         && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
         && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
+        && [ "${qpu}" != "qilimanjaro" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
             basename $file | cut -d "." -f 1; \
         fi; \

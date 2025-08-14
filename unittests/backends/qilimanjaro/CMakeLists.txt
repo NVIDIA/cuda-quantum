@@ -6,25 +6,20 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-include(HandleLLVMOptions)
-add_subdirectory(default)
-if (OPENSSL_FOUND)
-  add_subdirectory(orca)
-endif()
-if (CUDAQ_ENABLE_REST)
-  add_subdirectory(mqpu)
+add_executable(test_pasqal QilimanjaroTester.cpp)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(test_qilimanjaro PRIVATE -Wl,--no-as-needed)
 endif()
 
-add_subdirectory(fermioniq)
+target_include_directories(test_qilimanjaro PRIVATE ../..)
 
-if (AWSSDK_ROOT)
-  add_subdirectory(quera)
-endif()
+target_link_libraries(test_qilimanjaro
+  PRIVATE
+    fmt::fmt-header-only 
+    cudaq
+    cudaq-common 
+    gtest_main
+)
 
-if (CUDAQ_ENABLE_PASQAL_BACKEND)
-  add_subdirectory(pasqal)
-endif()
-
-if (CUDAQ_ENABLE_QILIMANJARO_BACKEND)
-  add_subdirectory(qilimanjaro)
-endif()
+gtest_discover_tests(test_qilimanjaro)

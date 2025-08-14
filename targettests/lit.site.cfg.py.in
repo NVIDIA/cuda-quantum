@@ -57,6 +57,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_pasqal):
 else:
   config.substitutions.append(('%pasqal_avail', 'false'))
 
+config.cudaq_backends_qilimanjaro = "@CUDAQ_ENABLE_QILIMANJARO_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qilimanjaro):
+  config.available_features.add('qilimanjaro')
+  config.substitutions.append(('%qilimanjaro_avail', 'true'))
+else:
+  config.substitutions.append(('%qilimanjaro_avail', 'false'))
+
 config.cudaq_backends_quantum_machines = "@CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND@"
 if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
   config.available_features.add('quantum_machines')
