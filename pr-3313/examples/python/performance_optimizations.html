@@ -207,6 +207,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
@@ -214,6 +215,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
@@ -575,6 +577,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/photonic.html#orca-computing">ORCA Computing</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/qcontrol.html">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/qcontrol.html#quantum-machines">Quantum Machines</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/backends/dynamics_backends.html">     Dynamics Simulation</a></li>
@@ -804,6 +810,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -863,6 +870,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -956,9 +964,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="5aa44f0caa1d4423b85467a7760cd16b" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="97c1ac2cbabb4b72a378b6a6c6d1fb32" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="6556f566a0104470b0ccab71953bed97" src="../../_images/gatefusion.png" /></p>
+<p><img alt="e69e1ced013240a89a66351f01603f4a" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 
