@@ -205,6 +205,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#iqm">IQM</a></li>
@@ -212,24 +213,54 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/dynamics_examples.html">   Dynamics Examples</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#cavity-qed">Cavity QED</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#pulse">Pulse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html">   Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?">Why dynamics simulations vs. circuit simulations?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Functionality">Functionality</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian">Section 1 - Simulating the Jaynes-Cummings Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian">Exercise 1 - Simulating a many-photon Jaynes-Cummings Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators">Section 2 - Simulating open quantum systems with the <code class="docutils literal notranslate"><span class="pre">collapse_operators</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i">Exercise 2 - Adding additional jump operators <span class="math notranslate nohighlight">\(L_i\)</span></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator">Section 3 - Many qubits coupled to the resonator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html">   Introduction to CUDA-Q Dynamics (Time Dependent Hamiltonians)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model">The Landau-Zener model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms">Section 1 - Implementing time dependent terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators">Section 2 - Implementing custom operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field">Section 3 - Heisenberg Model with a time-varying magnetic field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field">Exercise 1 - Define a time-varying magnetic field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)">Exercise 2 (Optional)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html">   Superconducting Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html#Cavity-QED">Cavity QED</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html#Cross-Resonance">Cross Resonance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html#Transmon-Resonator">Transmon Resonator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/spinqubits.html">   Spin Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit">Silicon Spin Qubit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/spinqubits.html#Heisenberg-Model">Heisenberg Model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/iontrap.html">   Trapped Ion Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/iontrap.html#GHZ-state">GHZ state</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/control.html">   Control</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Gate-Calibration">Gate Calibration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Pulse">Pulse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Qubit-Control">Qubit Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Qubit-Dynamics">Qubit Dynamics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Landau-Zenner">Landau-Zenner</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -437,7 +468,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/grovers.html">Grover’s Algorithm</a><ul>
@@ -539,6 +573,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../hardware/photonic.html">     Photonic QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../hardware/photonic.html#orca-computing">ORCA Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../hardware/qcontrol.html">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../hardware/qcontrol.html#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
 </ul>
@@ -770,6 +808,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -829,6 +868,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -907,7 +947,6 @@
           <li class="breadcrumb-item"><a href="../simulators.html">CUDA-Q Circuit Simulation Backends</a></li>
       <li class="breadcrumb-item active">State Vector Simulators</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/using/backends/sims/svsims.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="../simulators.html" class="btn btn-neutral float-left" title="CUDA-Q Circuit Simulation Backends" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -1001,7 +1040,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code></p></td>
 <td><p>positive integer</p></td>
-<td><p>The max number of qubits used for gate fusion. The default value depends on <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">GPU Compute Capability</a> (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are <code class="code docutils literal notranslate"><span class="pre">4</span></code>, <code class="code docutils literal notranslate"><span class="pre">5</span></code>, and <code class="code docutils literal notranslate"><span class="pre">5</span></code> for <code class="code docutils literal notranslate"><span class="pre">FP32</span></code>. For <code class="code docutils literal notranslate"><span class="pre">FP64</span></code> the corresponding defaults are <code class="code docutils literal notranslate"><span class="pre">5</span></code>, <code class="code docutils literal notranslate"><span class="pre">6</span></code>, and <code class="code docutils literal notranslate"><span class="pre">4</span></code>. For all other CC, the default is <code class="code docutils literal notranslate"><span class="pre">4</span></code> for both precision modes.</p></td>
+<td><p>The max number of qubits used for gate fusion. The default value depends on <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">GPU Compute Capability</a> (CC) and the floating point precision selected for the simulator as specified <a class="reference internal" href="#gate-fusion-table"><span class="std std-ref">here</span></a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS</span></code></p></td>
 <td><p>integer greater than or equal to -1</p></td>
@@ -1136,7 +1175,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code></p></td>
 <td><p>positive integer</p></td>
-<td><p>The max number of qubits used for gate fusion. The default value depends on <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">GPU Compute Capability</a> (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are <code class="code docutils literal notranslate"><span class="pre">4</span></code>, <code class="code docutils literal notranslate"><span class="pre">5</span></code>, and <code class="code docutils literal notranslate"><span class="pre">5</span></code> for <code class="code docutils literal notranslate"><span class="pre">FP32</span></code>. For <code class="code docutils literal notranslate"><span class="pre">FP64</span></code> the corresponding defaults are <code class="code docutils literal notranslate"><span class="pre">5</span></code>, <code class="code docutils literal notranslate"><span class="pre">6</span></code>, and <code class="code docutils literal notranslate"><span class="pre">4</span></code>. For all other CC, the default is <code class="code docutils literal notranslate"><span class="pre">4</span></code> for both precision modes.</p></td>
+<td><p>The max number of qubits used for gate fusion. The default value depends on <a class="reference external" href="https://developer.nvidia.com/cuda-gpus">GPU Compute Capability</a> (CC) and the floating point precision selected for the simulator as specified <a class="reference internal" href="#gate-fusion-table"><span class="std std-ref">here</span></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_P2P_DEVICE_BITS</span></code></p></td>
 <td><p>positive integer</p></td>
@@ -1164,6 +1203,40 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 <p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend, which is equivalent to the multi-node multi-GPU double-precision option (<code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>) of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>
 is deprecated and will be removed in a future release.</p>
 </div>
+<span id="gate-fusion-table"></span><table class="docutils align-default" id="id3">
+<caption><span class="caption-text"><strong>Default Gate Fusion Size</strong></span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 30%" />
+<col style="width: 50%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p>Compute Capability</p></td>
+<td><p>GPU</p></td>
+<td><p>Default Gate Fusion Size</p></td>
+</tr>
+<tr class="row-even"><td><p>8.0</p></td>
+<td><p>NVIDIA A100</p></td>
+<td><p>4 (<code class="code docutils literal notranslate"><span class="pre">fp32</span></code>) or 5 (<code class="code docutils literal notranslate"><span class="pre">fp64</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>9.0</p></td>
+<td><p>NVIDIA H100, H200,  GH200 </p></td>
+<td><p>5 (<code class="code docutils literal notranslate"><span class="pre">fp32</span></code>) or 6 (<code class="code docutils literal notranslate"><span class="pre">fp64</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>10.0</p></td>
+<td><p>NVIDIA GB200, B200</p></td>
+<td><p>5 (<code class="code docutils literal notranslate"><span class="pre">fp32</span></code>) or 4 (<code class="code docutils literal notranslate"><span class="pre">fp64</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p>10.3</p></td>
+<td><p>NVIDIA B300</p></td>
+<td><p>5 (<code class="code docutils literal notranslate"><span class="pre">fp32</span></code>) or 1 (<code class="code docutils literal notranslate"><span class="pre">fp64</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>Others</p></td>
+<td></td>
+<td><p>4 (<code class="code docutils literal notranslate"><span class="pre">fp32</span></code> and <code class="code docutils literal notranslate"><span class="pre">fp64</span></code>)</p></td>
+</tr>
+</tbody>
+</table>
 <p>The above configuration options of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend
 can be tuned to reduce your simulation runtimes. One of the
 performance improvements is to fuse multiple gates together during runtime. For

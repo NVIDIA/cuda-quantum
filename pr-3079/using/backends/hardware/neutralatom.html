@@ -205,6 +205,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#iqm">IQM</a></li>
@@ -212,24 +213,54 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/dynamics_examples.html">   Dynamics Examples</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#cavity-qed">Cavity QED</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#pulse">Pulse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html">   Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?">Why dynamics simulations vs. circuit simulations?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Functionality">Functionality</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian">Section 1 - Simulating the Jaynes-Cummings Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian">Exercise 1 - Simulating a many-photon Jaynes-Cummings Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators">Section 2 - Simulating open quantum systems with the <code class="docutils literal notranslate"><span class="pre">collapse_operators</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i">Exercise 2 - Adding additional jump operators <span class="math notranslate nohighlight">\(L_i\)</span></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator">Section 3 - Many qubits coupled to the resonator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html">   Introduction to CUDA-Q Dynamics (Time Dependent Hamiltonians)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model">The Landau-Zener model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms">Section 1 - Implementing time dependent terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators">Section 2 - Implementing custom operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field">Section 3 - Heisenberg Model with a time-varying magnetic field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field">Exercise 1 - Define a time-varying magnetic field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)">Exercise 2 (Optional)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html">   Superconducting Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html#Cavity-QED">Cavity QED</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html#Cross-Resonance">Cross Resonance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/superconducting.html#Transmon-Resonator">Transmon Resonator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/spinqubits.html">   Spin Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit">Silicon Spin Qubit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/spinqubits.html#Heisenberg-Model">Heisenberg Model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/iontrap.html">   Trapped Ion Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/iontrap.html#GHZ-state">GHZ state</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples/python/dynamics/control.html">   Control</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Gate-Calibration">Gate Calibration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Pulse">Pulse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Qubit-Control">Qubit Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Qubit-Dynamics">Qubit Dynamics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../examples/python/dynamics/control.html#Landau-Zenner">Landau-Zenner</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -437,7 +468,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/grovers.html">Grover’s Algorithm</a><ul>
@@ -539,6 +573,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="photonic.html">     Photonic QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="photonic.html#orca-computing">ORCA Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="qcontrol.html">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="qcontrol.html#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
 </ul>
@@ -770,6 +808,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -829,6 +868,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -907,7 +947,6 @@
           <li class="breadcrumb-item"><a href="../hardware.html">Quantum Hardware (QPU)</a></li>
       <li class="breadcrumb-item active">Neutral Atom</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../../_sources/using/backends/hardware/neutralatom.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="superconducting.html" class="btn btn-neutral float-left" title="Superconducting" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -940,7 +979,7 @@ it as an environment variable:</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -971,9 +1010,6 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using Infleqtion’s backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">Python examples</span></a>.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
-<a class="reference internal" href="../../applications.html"><span class="doc">Anderson Impurity Model ground state solver</span></a> notebook.</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution on Infleqtion’s backends,
@@ -1005,9 +1041,11 @@ specific compiler diagnostics, before running a noise free emulation.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>src.cpp
 </pre></div>
 </div>
-<p>To see a complete example for using Infleqtion’s backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
 </div>
 </div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#infleqtion-examples"><span class="std std-ref">Infleqtion examples</span></a>.
+Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
+<a class="reference internal" href="../../../applications/python/logical_aim_sqale.html"><span class="doc">Anderson Impurity Model ground state solver</span></a> notebook.</p>
 </section>
 </section>
 <section id="pasqal">
@@ -1050,7 +1088,7 @@ For example from Python one can use the <a class="reference external" href="http
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1085,7 +1123,6 @@ set to 100.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using Pasqal’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
 </div>
 <input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution on Pasqal QPU or simulators,
@@ -1124,9 +1161,9 @@ set to 100.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(...),</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>To see a complete example for using Pasqal’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
 </div>
 </div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#pasqal-examples"><span class="std std-ref">Pasqal examples</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">pasqal</span></code> target.</p>
@@ -1165,7 +1202,7 @@ Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1187,7 +1224,6 @@ set to 100.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using QuEra’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">Python examples</span></a>.</p>
 </div>
 <input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution on QuEra’s Aquila,
@@ -1211,9 +1247,9 @@ set to 100.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(...),</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>To see a complete example for using QuEra’s backend, take a look at our <a class="reference internal" href="../../examples/hardware_providers.html"><span class="doc">C++ examples</span></a>.</p>
 </div>
 </div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quera-examples"><span class="std std-ref">QuEra Computing examples</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">quera</span></code> target.</p>

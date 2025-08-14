@@ -1,12 +1,15 @@
 CUDA-Q Applications
 ====================
 
+This page contains a number of different applications implemented using CUDA-Q. All notebooks can be found `here. <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/applications/python>`_
+
+
 .. when adding applications
 .. 1. Add notebook to the hidden TOC list directly below
 .. 2. Add an html block along with any tags
 .. 3. Add a preview image in the _static folder
 
-:spellcheck-disable:
+.. |:spellcheck-disable:| replace:: \
 
 .. toctree::
    :maxdepth: 1
@@ -42,8 +45,7 @@ CUDA-Q Applications
    /applications/python/mps_encoding
    /applications/python/qm_mm_pe
 
-:spellcheck-enable:
-
+.. |:spellcheck-enable:| replace:: \
 
 .. raw:: html
 

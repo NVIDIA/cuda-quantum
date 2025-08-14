@@ -205,6 +205,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#iqm">IQM</a></li>
@@ -212,24 +213,54 @@
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/dynamics_examples.html">   Dynamics Examples</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#cavity-qed">Cavity QED</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#cross-resonance">Cross Resonance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#gate-calibration">Gate Calibration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model">Heisenberg Model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#ion-trap">Ion Trap</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#landau-zener">Landau Zener</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#pulse">Pulse</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#qubit-control">Qubit Control</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#qubit-dynamics">Qubit Dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#silicon-spin-qubit">Silicon Spin Qubit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#tensor-callback">Tensor Callback</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#transmon-resonator">Transmon Resonator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#initial-state-multi-gpu-multi-node">Initial State (Multi-GPU Multi-Node)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dynamics_examples.html#heisenberg-model-multi-gpu-multi-node">Heisenberg Model (Multi-GPU Multi-Node)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html">   Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?">Why dynamics simulations vs. circuit simulations?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Functionality">Functionality</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Performance">Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian">Section 1 - Simulating the Jaynes-Cummings Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian">Exercise 1 - Simulating a many-photon Jaynes-Cummings Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators">Section 2 - Simulating open quantum systems with the <code class="docutils literal notranslate"><span class="pre">collapse_operators</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i">Exercise 2 - Adding additional jump operators <span class="math notranslate nohighlight">\(L_i\)</span></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator">Section 3 - Many qubits coupled to the resonator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html">   Introduction to CUDA-Q Dynamics (Time Dependent Hamiltonians)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model">The Landau-Zener model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms">Section 1 - Implementing time dependent terms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators">Section 2 - Implementing custom operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field">Section 3 - Heisenberg Model with a time-varying magnetic field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field">Exercise 1 - Define a time-varying magnetic field</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)">Exercise 2 (Optional)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/superconducting.html">   Superconducting Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/superconducting.html#Cavity-QED">Cavity QED</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/superconducting.html#Cross-Resonance">Cross Resonance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/superconducting.html#Transmon-Resonator">Transmon Resonator</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/spinqubits.html">   Spin Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit">Silicon Spin Qubit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/spinqubits.html#Heisenberg-Model">Heisenberg Model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/iontrap.html">   Trapped Ion Qubits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/iontrap.html#GHZ-state">GHZ state</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/dynamics/control.html">   Control</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/control.html#Gate-Calibration">Gate Calibration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/control.html#Pulse">Pulse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/control.html#Qubit-Control">Qubit Control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/control.html#Qubit-Dynamics">Qubit Dynamics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/control.html#Landau-Zenner">Landau-Zenner</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -437,7 +468,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/grovers.html">Grover’s Algorithm</a><ul>
@@ -539,6 +573,10 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/photonic.html">     Photonic QPUs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/photonic.html#orca-computing">ORCA Computing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/hardware/qcontrol.html">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/hardware/qcontrol.html#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
 </ul>
@@ -770,6 +808,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#backend-configuration">Backend Configuration</a><ul>
@@ -829,6 +868,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#noisy-simulation">Noisy Simulation</a></li>
@@ -906,7 +946,6 @@
           <li class="breadcrumb-item"><a href="../api.html">Code documentation</a></li>
       <li class="breadcrumb-item active">CUDA-Q Python API</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/api/languages/python_api.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="cpp_api.html" class="btn btn-neutral float-left" title="CUDA-Q C++ API" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -1537,6 +1576,39 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <span class="p">}</span>
 </pre></div>
 </div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.estimate_resources">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">estimate_resources</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.estimate_resources" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">estimate_resources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel:</span> <span class="pre">object</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">\*args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choice:</span> <span class="pre">Optional[Callable[[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bool]]</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><span class="pre">Resources</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Performs resource counting on the given quantum kernel
+expression and returns an accounting of how many times each gate
+was applied, in addition to the total number of gates and qubits used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>choice</strong> (<em>Any</em>) – A choice function called to determine the outcome of
+measurements, in case control flow depends on measurements. Should
+only return either <code class="code docutils literal notranslate"><span class="pre">True</span></code> or <code class="code docutils literal notranslate"><span class="pre">False</span></code>. Invoking the kernel within
+the choice function is forbidden. Default: returns <code class="code docutils literal notranslate"><span class="pre">True</span></code> or <code class="code docutils literal notranslate"><span class="pre">False</span></code>
+with 50% probability.</p></li>
+<li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to count resources on</p></li>
+<li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel
+function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the resource count results for the <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><code class="xref py py-class docutils literal notranslate"><span class="pre">Resources</span></code></a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -2318,7 +2390,7 @@ on multiple degrees of freedom.</p></li>
 <em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.random" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3275348729</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
+<span class="sig-name descname"><span class="pre">random</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubit_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">term_count</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4060238018</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cudaq.operators.spin.SpinOperator" title="cudaq.operators.spin.SpinOperator"><span class="pre">SpinOperator</span></a></span></span></dt>
 <dd></dd></dl>
 
 <p>Return a random spin operator with the given number of terms (<code class="code docutils literal notranslate"><span class="pre">term_count</span></code>) where each term acts on all targets in the open range [0, qubit_count). An optional seed value may also be provided.</p>
@@ -5837,6 +5909,70 @@ for more information on this programming pattern.</p>
 
 <p>Retrieve the evolution result from the asynchronous evolve execution
 .</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.Resources">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">Resources</span></span><a class="headerlink" href="#cudaq.Resources" title="Permalink to this definition">¶</a></dt>
+<dd><p>A data-type containing the results of a call to <a class="reference internal" href="#cudaq.estimate_resources" title="cudaq.estimate_resources"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a>.
+This includes all gate counts.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Resources.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Resources.clear" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><span class="pre">Resources</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Clear out all metadata from <code class="code docutils literal notranslate"><span class="pre">self</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Resources.count">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Resources.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overloaded function.</p>
+<ol class="arabic">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><span class="pre">Resources</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Get the number of occurrences of a given gate with any number of controls</p>
+<ol class="arabic" start="2">
+<li><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">count</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><span class="pre">Resources</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+</li>
+</ol>
+<p>Get the total number of occurrences of all gates</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Resources.count_controls">
+<span class="sig-name descname"><span class="pre">count_controls</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Resources.count_controls" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">count_controls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><span class="pre">Resources</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">arg1</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Get the number of occurrences of a given gate with the given number of controls</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.Resources.dump">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.Resources.dump" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">dump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><span class="pre">Resources</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span></dt>
+<dd></dd></dl>
+
+<p>Print a string of the raw resource counts data to the terminal.</p>
 </dd></dl>
 
 </dd></dl>
