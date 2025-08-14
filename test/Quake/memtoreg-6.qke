@@ -169,3 +169,123 @@ func.func private @test_2.f(!quake.struq<!quake.veq<?>, !quake.veq<?>, !quake.ve
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
+
+func.func private @live(i32, i32, i32)
+
+func.func @test_3() {
+  %0 = cc.alloca i32
+  %1 = cc.alloca i32
+  %2 = arith.constant 42 : i32
+  %c = arith.constant true
+  %3 = cc.if (%c) -> i32 {
+    %10 = arith.constant 8 : i32
+    %11 = arith.constant 14 : i32
+    cc.store %10, %0 : !cc.ptr<i32>
+    cc.store %11, %1 : !cc.ptr<i32>
+    cc.continue %2 : i32
+  } else {
+    %10 = arith.constant 23 : i32
+    %11 = arith.constant 78234 : i32
+    cc.store %10, %0 : !cc.ptr<i32>
+    cc.store %11, %1 : !cc.ptr<i32>
+    cc.continue %2 : i32
+  }
+  %4 = cc.load %0 : !cc.ptr<i32>
+  %5 = cc.load %1 : !cc.ptr<i32>
+  call @live(%3, %4, %5) : (i32, i32, i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test_3() {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 42 : i32
+// CHECK:           %[[VAL_3:.*]] = arith.constant true
+// CHECK:           %[[VAL_4:.*]]:3 = cc.if(%[[VAL_3]]) -> (i32, i32, i32) {
+// CHECK:             %[[VAL_5:.*]] = arith.constant 8 : i32
+// CHECK:             %[[VAL_6:.*]] = arith.constant 14 : i32
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_5]], %[[VAL_6]] : i32, i32, i32
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]] = arith.constant 23 : i32
+// CHECK:             %[[VAL_8:.*]] = arith.constant 78234 : i32
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_7]], %[[VAL_8]] : i32, i32, i32
+// CHECK:           }
+// CHECK:           call @live(%[[VAL_9:.*]]#0, %[[VAL_9]]#1, %[[VAL_9]]#2) : (i32, i32, i32) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @test_4() {
+  %0 = cc.alloca i32
+  %1 = cc.alloca i32
+  %2 = arith.constant 42 : i32
+  %c = arith.constant true
+  %3 = cc.if (%c) -> i32 {
+    %10 = arith.constant 8 : i32
+    %11 = arith.constant 42 : i32
+    cc.store %10, %0 : !cc.ptr<i32>
+    cc.store %11, %1 : !cc.ptr<i32>
+    cc.continue %2 : i32
+  } else {
+    %10 = arith.constant 23 : i32
+    %11 = arith.constant 78234 : i32
+    cc.store %10, %0 : !cc.ptr<i32>
+    cc.store %11, %1 : !cc.ptr<i32>
+    cc.continue %2 : i32
+  }
+  %4 = cc.load %0 : !cc.ptr<i32>
+  %5 = cc.load %1 : !cc.ptr<i32>
+  call @live(%3, %4, %5) : (i32, i32, i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test_4() {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 42 : i32
+// CHECK:           %[[VAL_3:.*]] = arith.constant true
+// CHECK:           %[[VAL_4:.*]]:3 = cc.if(%[[VAL_3]]) -> (i32, i32, i32) {
+// CHECK:             %[[VAL_5:.*]] = arith.constant 8 : i32
+// CHECK:             %[[VAL_6:.*]] = arith.constant 42 : i32
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_5]], %[[VAL_6]] : i32, i32, i32
+// CHECK:           } else {
+// CHECK:             %[[VAL_7:.*]] = arith.constant 23 : i32
+// CHECK:             %[[VAL_8:.*]] = arith.constant 78234 : i32
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_7]], %[[VAL_8]] : i32, i32, i32
+// CHECK:           }
+// CHECK:           call @live(%[[VAL_9:.*]]#0, %[[VAL_9]]#1, %[[VAL_9]]#2) : (i32, i32, i32) -> ()
+// CHECK:           return
+// CHECK:         }
+
+func.func @test_5() {
+  %0 = cc.alloca i32
+  %1 = cc.alloca i32
+  %2 = arith.constant 42 : i32
+  %c = arith.constant true
+  %3 = cc.if (%c) -> i32 {
+    %10 = arith.constant 8 : i32
+    cc.store %10, %0 : !cc.ptr<i32>
+    cc.store %10, %1 : !cc.ptr<i32>
+    cc.continue %2 : i32
+  } else {
+    %10 = arith.constant 23 : i32
+    %11 = arith.constant 78234 : i32
+    cc.store %10, %0 : !cc.ptr<i32>
+    cc.store %11, %1 : !cc.ptr<i32>
+    cc.continue %2 : i32
+  }
+  %4 = cc.load %0 : !cc.ptr<i32>
+  %5 = cc.load %1 : !cc.ptr<i32>
+  call @live(%3, %4, %5) : (i32, i32, i32) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test_5() {
+// CHECK:           %[[VAL_2:.*]] = arith.constant 42 : i32
+// CHECK:           %[[VAL_3:.*]] = arith.constant true
+// CHECK:           %[[VAL_4:.*]]:3 = cc.if(%[[VAL_3]]) -> (i32, i32, i32) {
+// CHECK:             %[[VAL_5:.*]] = arith.constant 8 : i32
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_5]], %[[VAL_5]] : i32, i32, i32
+// CHECK:           } else {
+// CHECK:             %[[VAL_6:.*]] = arith.constant 23 : i32
+// CHECK:             %[[VAL_7:.*]] = arith.constant 78234 : i32
+// CHECK:             cc.continue %[[VAL_2]], %[[VAL_6]], %[[VAL_7]] : i32, i32, i32
+// CHECK:           }
+// CHECK:           call @live(%[[VAL_8:.*]]#0, %[[VAL_8]]#1, %[[VAL_8]]#2) : (i32, i32, i32) -> ()
+// CHECK:           return
+// CHECK:         }

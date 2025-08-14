@@ -580,6 +580,9 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   auto loc = toLocation(x);
   auto intToIntCast = [&](Location locSub, Value mlirVal) {
     clang::QualType srcTy = x->getSubExpr()->getType();
+    // Check for and handle reference to integer cases.
+    if (isa<cudaq::cc::PointerType>(mlirVal.getType()))
+      mlirVal = builder.create<cudaq::cc::LoadOp>(loc, mlirVal);
     return pushValue(integerCoercion(locSub, srcTy, castToTy, mlirVal));
   };
 
@@ -1361,12 +1364,15 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   }
 
   if (isInClassInNamespace(func, "_Bit_reference", "std") ||
-      isInClassInNamespace(func, "__bit_reference", "std")) {
+      isInClassInNamespace(func, "__bit_reference", "std") ||
+      isInClassInNamespace(func, "__bit_const_reference", "std")) {
     // Calling std::_Bit_reference::method().
     auto loadFromReference = [&](mlir::Value ref) -> Value {
       if (auto mrTy = dyn_cast<cc::PointerType>(ref.getType())) {
-        assert(mrTy.getElementType() == builder.getI1Type());
-        return builder.create<cc::LoadOp>(loc, ref);
+        auto loadVal = builder.create<cc::LoadOp>(loc, ref);
+        if (mrTy.getElementType() == builder.getI8Type())
+          return builder.create<cc::CastOp>(loc, builder.getI1Type(), loadVal);
+        return loadVal;
       }
       assert(ref.getType() == builder.getI1Type());
       return ref;
@@ -1388,6 +1394,16 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto rhs = loadFromReference(popValue());
         auto lhs = popValue();
         popValue(); // The assignment operator address.
+        if (rhs.getType() == builder.getI1Type()) {
+          // If we're storing a bool, we may have to zext the value to a byte.
+          auto ptrTy = cast<cc::PointerType>(lhs.getType());
+          auto eleTy = ptrTy.getElementType();
+          if (auto arrTy = dyn_cast<cc::ArrayType>(eleTy))
+            eleTy = arrTy.getElementType();
+          if (eleTy != rhs.getType())
+            rhs = builder.create<cc::CastOp>(loc, eleTy, rhs,
+                                             cc::CastOpMode::Unsigned);
+        }
         builder.create<cc::StoreOp>(loc, rhs, lhs);
         return pushValue(loadFromReference(lhs));
       }
@@ -2407,7 +2423,8 @@ std::optional<std::string> QuakeBridgeVisitor::isInterceptedSubscriptOperator(
         if (typeName == "vector")
           return {typeName};
       } else if (isInNamespace(decl, "std")) {
-        if (typeName == "_Bit_reference" || typeName == "__bit_reference")
+        if (typeName == "_Bit_reference" || typeName == "__bit_reference" ||
+            typeName == "__bit_const_reference")
           return {typeName};
       }
     }
@@ -2508,6 +2525,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         return false;
       }
       auto eleTy = cast<cc::StdvecType>(svec.getType()).getElementType();
+      if (eleTy == builder.getI1Type())
+        eleTy = builder.getI8Type();
       auto elePtrTy = cc::PointerType::get(eleTy);
       auto eleArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
       auto vecPtr = builder.create<cc::StdvecDataOp>(loc, eleArrTy, svec);
@@ -2515,7 +2534,8 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
                                                       ValueRange{indexVar});
       return replaceTOSValue(eleAddr);
     }
-    if (typeName == "_Bit_reference" || typeName == "__bit_reference") {
+    if (typeName == "_Bit_reference" || typeName == "__bit_reference" ||
+        typeName == "__bit_const_reference") {
       // For vector<bool>, on the kernel side this is represented as a sequence
       // of byte-sized boolean values (true and false). On the host side, C++ is
       // likely going to pack the booleans as bits in words.
@@ -3101,7 +3121,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
             // Create stdvec init op without a buffer. Allocate the required
             // memory chunk.
-            Value alloca = builder.create<cc::AllocaOp>(loc, eleTy, arrSize);
+            Type ty =
+                (eleTy == builder.getI1Type()) ? builder.getI8Type() : eleTy;
+            Value alloca = builder.create<cc::AllocaOp>(loc, ty, arrSize);
 
             // Create the stdvec_init op
             return pushValue(builder.create<cc::StdvecInitOp>(

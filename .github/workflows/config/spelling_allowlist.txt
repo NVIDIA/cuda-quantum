@@ -99,6 +99,7 @@ QCaaS
 QEC
 QIR
 QIS
+QOP
 QPP
 QPU
 QPUs
@@ -313,6 +314,7 @@ runtimes
 rvalue
 scalability
 scalable
+selectable
 sexualized
 shifter
 shifters
@@ -357,6 +359,7 @@ uncompute
 unitaries
 unitarity
 unitary
+unitaryHACK
 unoptimized
 upvote
 variadic
