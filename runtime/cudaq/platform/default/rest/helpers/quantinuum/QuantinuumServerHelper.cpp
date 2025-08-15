@@ -40,6 +40,8 @@ protected:
   std::string baseUrl = "https://nexus.quantinuum.com/";
   /// @brief The machine we are targeting
   std::string machine = "H2-1SC";
+  /// @brief Max HQC cost
+  std::optional<int> maxCost;
   /// @brief The Nexus project ID
   std::string projectId = "";
   /// @brief Time string, when the last tokens were retrieved
@@ -92,6 +94,14 @@ public:
     auto iter = backendConfig.find("machine");
     if (iter != backendConfig.end())
       machine = iter->second;
+
+    // Set max cost
+    iter = backendConfig.find("max_cost");
+    if (iter != backendConfig.end()) {
+      maxCost = std::stoi(iter->second);
+      if (maxCost.value() < 1)
+        throw std::runtime_error("max_cost must be a positive integer.");
+    }
 
     // Set an alternate base URL if provided
     iter = backendConfig.find("url");
@@ -319,6 +329,20 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
         "QuantinuumConfig";
     j["data"]["attributes"]["definition"]["backend_config"]["device_name"] =
         machine;
+    // On Helios devices, we need to specify max-cost unless it's a syntax
+    // checker
+    if (machine.starts_with("Helios") && !machine.ends_with("SC") &&
+        !maxCost.has_value())
+      throw std::runtime_error(
+          "Please specify a maximum cost (`--quantinuum-max-cost <val>` when "
+          "compiling with nvq++ or `max_cost=<val>` in Python `set_target`) "
+          "when using device: " +
+          machine);
+
+    if (maxCost.has_value())
+      j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
+          maxCost.value();
+
     // Add program items
     j["data"]["attributes"]["definition"]["items"] = ServerMessage::array();
     ServerMessage item = ServerMessage::object();
