@@ -869,14 +869,13 @@ public:
     for (auto &op : *module.getBody())
       if (auto funcOp = dyn_cast<func::FuncOp>(op))
         if (funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName) &&
-            cudaq::opt::marshal::hasLegalType(funcOp.getFunctionType()))
+            cudaq::opt::marshal::hasLegalType(funcOp.getFunctionType()) &&
+            !funcOp.empty() && !funcOp->hasAttr(cudaq::generatorAnnotation))
           workList.push_back(funcOp);
 
     LLVM_DEBUG(llvm::dbgs()
                << workList.size() << " kernel entry functions to process\n");
     for (auto funcOp : workList) {
-      if (funcOp->hasAttr(cudaq::generatorAnnotation))
-        continue;
       auto loc = funcOp.getLoc();
       [[maybe_unused]] auto className =
           funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
