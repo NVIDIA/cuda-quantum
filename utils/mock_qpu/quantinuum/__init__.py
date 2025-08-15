@@ -150,6 +150,17 @@ async def create_job(job: dict):
     job_name = job.get("data", {}).get("attributes", {}).get("name", "")
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
+
+    device_name = job.get("data",
+                          {}).get("attributes",
+                                  {}).get("definition",
+                                          {}).get("backend_config",
+                                                  {}).get("device_name", "")
+    print("Job data =", job)
+    print("Device name =", device_name)
+    # If device name starts with "Helios", we assume it's an NG device
+    is_ng_device = device_name.startswith("Helios")
+
     if not items:
         raise HTTPException(status_code=400,
                             detail="No items in job definition")
@@ -179,14 +190,20 @@ async def create_job(job: dict):
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
-    results.dump()
-    createdJobs[job_id] = (job_name, results)
+    if is_ng_device:
+        # For `NG` result, we don't yet know how to execute it (run/sample) until we get the result (result version determines how we should execute it).
+        # Hence, cache the job
+        createdJobs[job_id] = (job_name, numQubitsRequired, kernel, shots, m)
+    else:
+        cudaq.testing.toggleDynamicQubitManagement()
+        qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
+        kernel()
+        results = cudaq.testing.finalize(qubits, context)
+        results.dump()
 
-    engine.remove_module(m)
+        createdJobs[job_id] = (job_name, results)
+
+        engine.remove_module(m)
 
     return {
         "data": {
@@ -224,6 +241,8 @@ async def get_job_status(job_id: str):
     # Job completed
     countJobGetRequests = 0
 
+    is_qsys_job = len(createdJobs[job_id]) > 2
+
     result_id = str(uuid.uuid4())
     createdResults[result_id] = job_id
 
@@ -236,7 +255,8 @@ async def get_job_status(job_id: str):
                 },
                 "definition": {
                     "items": [{
-                        "result_id": result_id
+                        "result_id": result_id,
+                        "result_type": "QSYS" if is_qsys_job else "PYTKET",
                     }]
                 }
             }
@@ -295,6 +315,86 @@ async def get_results(result_id: str):
             }
         }
     }
+
+
+# NG device results retrieval endpoint (`qsys_results`)
+@app.get("/api/qsys_results/v1beta/{result_id}")
+async def get_results(result_id: str, version: int):
+    # Version can only be 3 (default) or 4 (raw)
+    if version not in [3, 4]:
+        raise HTTPException(status_code=400, detail="Invalid version")
+    global createdJobs, createdResults
+    # Find the job that produced this result
+    # This is a simplified implementation, and may need to be updated
+    job_id = createdResults.get(result_id)
+    if not job_id:
+        raise HTTPException(status_code=404, detail="Result not found")
+
+    _, numQubitsRequired, kernel, shots, m = createdJobs[job_id]
+    print("Number of shots =", shots)
+
+    # Default (QIR result)
+    if version == 3:
+        for i in range(shots):
+            cudaq.testing.toggleDynamicQubitManagement()
+            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1,
+                                                       "run")
+            kernel()
+            _ = cudaq.testing.finalize(qubits, context)
+        # Note: this QIR log may not contain the header information that real services would return.
+        # TODO: update this once we can test with a real NG device
+        qir_log = cudaq.testing.getAndClearOutputLog()
+        return {
+            "data": {
+                "id": result_id,
+                "attributes": {
+                    "results": qir_log
+                },
+                "relationships": {
+                    "program": {
+                        "data": {
+                            "type": "qir"
+                        }
+                    }
+                }
+            }
+        }
+    else:
+        # QSYS result
+        cudaq.testing.toggleDynamicQubitManagement()
+        qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
+        kernel()
+        counts = cudaq.testing.finalize(qubits, context)
+        # Get the exact length of the first bitstring
+        bit_length = len(list(counts.items())[0][0]) if counts else 0
+
+        qsys_result = []
+        for bits, count in counts.items():
+            for _ in range(count):
+                qsys_shot = []
+                for i in range(bit_length):
+                    reg_idx = i
+                    reg_name = f"r{reg_idx:05d}"
+                    qsys_shot.append([reg_name, int(bits[reg_idx])])
+                qsys_result.append(qsys_shot)
+
+        return {
+            "data": {
+                "id": result_id,
+                "attributes": {
+                    "results": qsys_result
+                },
+                "relationships": {
+                    "program": {
+                        "data": {
+                            "type": "qir"
+                        }
+                    }
+                }
+            }
+        }
+
+    engine.remove_module(m)
 
 
 def startServer(port):

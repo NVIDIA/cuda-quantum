@@ -11,7 +11,8 @@
 
 namespace cudaq {
 details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
-                                  bool isObserve) {
+                                  cudaq::details::ExecutionContextType execType,
+                                  std::vector<char> *rawOutput) {
 
   serverHelper->setShots(shots);
 
@@ -54,7 +55,7 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 
   config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
-  return details::future(ids, name, config, isObserve);
+  return details::future(ids, name, config, execType, rawOutput);
 }
 } // namespace cudaq
 

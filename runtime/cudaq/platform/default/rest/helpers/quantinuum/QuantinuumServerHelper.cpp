@@ -22,7 +22,10 @@ constexpr const char *authEndpoint = "auth/tokens/refresh";
 constexpr const char *projectsEndpoint = "api/projects/v1beta2";
 constexpr const char *jobsEndpoint = "api/jobs/v1beta3/";
 constexpr const char *qirEndpoint = "api/qir/v1beta/";
+// Legacy result endpoint (PYTKET)
 constexpr const char *resultsEndpoint = "api/results/v1beta3/";
+// NG device result endpoint (QSYS)
+constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta/";
 } // namespace
 
 namespace cudaq {
@@ -31,12 +34,14 @@ namespace cudaq {
 /// to map Job requests and Job result retrievals actions from the calling
 /// Executor to the specific schema required by the remote Quantinuum REST
 /// server.
-class QuantinuumServerHelper : public ServerHelper {
+class QuantinuumServerHelper : public ServerHelper, public QirServerHelper {
 protected:
   /// @brief The base URL
   std::string baseUrl = "https://nexus.quantinuum.com/";
   /// @brief The machine we are targeting
   std::string machine = "H2-1SC";
+  /// @brief Max HQC cost
+  std::optional<int> maxCost;
   /// @brief The Nexus project ID
   std::string projectId = "";
   /// @brief Time string, when the last tokens were retrieved
@@ -64,9 +69,15 @@ protected:
 
   /// @brief Create a QIR module from the provided circuit code
   ServerMessage createQIRModule(const KernelExecution &circuitCode);
-
+  /// @brief Different result type that the service may return
+  enum class ResultType { PYTKET, QSYS };
+  /// @brief Enum to specify results in a specific format
+  enum class QsysResultVersion : int { DEFAULT = 3, RAW = 4 };
   /// @brief Helper to parse the result ID from the job response
-  std::string getResultId(ServerMessage &getJobResponse);
+  std::pair<ResultType, std::string> getResultId(ServerMessage &getJobResponse);
+  // Extract QIR output data
+  std::string extractOutputLog(ServerMessage &postJobResponse,
+                               std::string &jobId) override;
 
 public:
   /// @brief Return the name of this server helper, must be the
@@ -83,6 +94,14 @@ public:
     auto iter = backendConfig.find("machine");
     if (iter != backendConfig.end())
       machine = iter->second;
+
+    // Set max cost
+    iter = backendConfig.find("max_cost");
+    if (iter != backendConfig.end()) {
+      maxCost = std::stoi(iter->second);
+      if (maxCost.value() < 1)
+        throw std::runtime_error("max_cost must be a positive integer.");
+    }
 
     // Set an alternate base URL if provided
     iter = backendConfig.find("url");
@@ -310,6 +329,20 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
         "QuantinuumConfig";
     j["data"]["attributes"]["definition"]["backend_config"]["device_name"] =
         machine;
+    // On Helios devices, we need to specify max-cost unless it's a syntax
+    // checker
+    if (machine.starts_with("Helios") && !machine.ends_with("SC") &&
+        !maxCost.has_value())
+      throw std::runtime_error(
+          "Please specify a maximum cost (`--quantinuum-max-cost <val>` when "
+          "compiling with nvq++ or `max_cost=<val>` in Python `set_target`) "
+          "when using device: " +
+          machine);
+
+    if (maxCost.has_value())
+      j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
+          maxCost.value();
+
     // Add program items
     j["data"]["attributes"]["definition"]["items"] = ServerMessage::array();
     ServerMessage item = ServerMessage::object();
@@ -365,12 +398,13 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // Check if the response contains the result ID
     // In some cases, the status may be "COMPLETED" but the result ID
     // is not yet available, so we will check for that.
-    return getResultId(getJobResponse) != "";
+    return getResultId(getJobResponse).second != "";
   }
   return false;
 }
 
-std::string QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
+std::pair<QuantinuumServerHelper::ResultType, std::string>
+QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
   const auto resultItems =
       getJobResponse["data"]["attributes"]["definition"]["items"];
 
@@ -383,40 +417,148 @@ std::string QuantinuumServerHelper::getResultId(ServerMessage &getJobResponse) {
 
   const auto &item = resultItems[0];
   if (!item.contains("result_id")) {
-    return ""; // No result ID available yet
+    return std::make_pair(QuantinuumServerHelper::ResultType::PYTKET,
+                          ""); // No result ID available yet
   }
-  return item["result_id"].get<std::string>();
+
+  const std::string resultTypeStr = item["result_type"].get<std::string>();
+  const std::string resultId = item["result_id"].get<std::string>();
+  if (resultTypeStr == "QSYS") {
+    // This is a QSYS result
+    return std::make_pair(QuantinuumServerHelper::ResultType::QSYS, resultId);
+  } else if (resultTypeStr == "PYTKET") {
+    // This is a PYTKET result
+    return std::make_pair(QuantinuumServerHelper::ResultType::PYTKET, resultId);
+  } else {
+    throw std::runtime_error("Unknown result type: " + resultTypeStr);
+  }
 }
 
 cudaq::sample_result
 QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
-  const std::string resultId = getResultId(jobResponse);
+  const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
     throw std::runtime_error("Job completed but no result ID found.");
   }
-  const std::string resultPath = baseUrl + resultsEndpoint + resultId;
+  const std::string resultPath =
+      resultType == QuantinuumServerHelper::ResultType::QSYS
+          ? baseUrl + qsysResultsEndpoint + resultId
+          : baseUrl + resultsEndpoint + resultId;
   CUDAQ_INFO("Retrieving results from path: {}", resultPath);
   RestHeaders headers = generateRequestHeader();
   RestCookies cookies = getCookies();
-  // Retrieve the results
-  auto resultResponse = restClient.get(resultPath, "", headers, false, cookies);
-  CUDAQ_INFO("Job result response: {}\n", resultResponse.dump());
-  auto shotResults = resultResponse["data"]["attributes"]["shots"];
-  CUDAQ_DBG("Count data: {}", shotResults.dump());
+  // If this is a Qsys result, use the default version to retrieve accumulated
+  // shot data.
+  const std::string paramStr =
+      resultType == QuantinuumServerHelper::ResultType::QSYS
+          ? fmt::format("?version={}", static_cast<int>(QsysResultVersion::RAW))
+          : std::string();
 
-  // Get the register names
-  auto bitResults = resultResponse["data"]["attributes"]["bits"];
-  std::vector<std::string> outputNames;
-  for (auto item : bitResults) {
-    CUDAQ_DBG("Bit data: {}", item.dump());
-    const auto registerName = item[0].get<std::string>();
-    outputNames.push_back(registerName);
+  // Retrieve the results
+  auto resultResponse =
+      restClient.get(resultPath, paramStr, headers, false, cookies);
+  CUDAQ_INFO("Job result response: {}\n", resultResponse.dump());
+  if (resultType == QuantinuumServerHelper::ResultType::PYTKET) {
+    auto shotResults = resultResponse["data"]["attributes"]["shots"];
+    CUDAQ_DBG("Count data: {}", shotResults.dump());
+
+    // Get the register names
+    auto bitResults = resultResponse["data"]["attributes"]["bits"];
+    std::vector<std::string> outputNames;
+    for (auto item : bitResults) {
+      CUDAQ_DBG("Bit data: {}", item.dump());
+      const auto registerName = item[0].get<std::string>();
+      outputNames.push_back(registerName);
+    }
+    // The names are listed in the reverse order (w.r.t. CUDA-Q bit indexing
+    // convention)
+    std::reverse(outputNames.begin(), outputNames.end());
+    return cudaq::utils::quantinuum::processResults(shotResults, outputNames);
+  } else {
+    auto results = resultResponse["data"]["attributes"]["results"];
+    CUDAQ_DBG("Count result data: {}", results.dump());
+    const auto numShots = results.size();
+    CUDAQ_DBG("Number of shots: {}", numShots);
+
+    // This is QSYS results: array of QSYS shots
+    cudaq::CountsDictionary globalCounts;
+    std::vector<std::string> globalSequentialData;
+    globalSequentialData.reserve(numShots);
+    std::map<std::string,
+             std::pair<cudaq::CountsDictionary, std::vector<std::string>>>
+        registerResults;
+    for (const auto &qsysShot : results) {
+      CUDAQ_DBG("QSYS shot data: {}", qsysShot.dump());
+      // Each QSYS shot is an array of tagged results
+      std::string bitString;
+      for (const auto &taggedResult : qsysShot) {
+        CUDAQ_DBG("Tagged result data: {}", taggedResult.dump());
+        // The tagged result is a pair of register name and bit value
+        const std::string regName = taggedResult[0].get<std::string>();
+        const int bitValue = taggedResult[1].get<int>();
+        if (bitValue != 0 && bitValue != 1) {
+          throw std::runtime_error("Invalid bit value in QSYS result: " +
+                                   std::to_string(bitValue));
+        }
+        bitString.append(std::to_string(bitValue));
+        auto &[regCountMap, regSeqData] = registerResults[regName];
+        regCountMap[std::to_string(bitValue)]++;
+        regSeqData.push_back(std::to_string(bitValue));
+      }
+      // Global register results
+      globalCounts[bitString]++;
+      globalSequentialData.push_back(bitString);
+    }
+
+    std::vector<cudaq::ExecutionResult> allResults;
+    allResults.reserve(registerResults.size() + 1);
+    for (auto &[regName, data] : registerResults) {
+      allResults.push_back({data.first, regName});
+      allResults.back().sequentialData = data.second;
+    }
+
+    // Add the global register results
+    cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
+    result.sequentialData = globalSequentialData;
+    allResults.push_back(result);
+    return cudaq::sample_result{allResults};
   }
-  // The names are listed in the reverse order (w.r.t. CUDA-Q bit indexing
-  // convention)
-  std::reverse(outputNames.begin(), outputNames.end());
-  return cudaq::utils::quantinuum::processResults(shotResults, outputNames);
+}
+
+// Extract QIR output data
+std::string QuantinuumServerHelper::extractOutputLog(ServerMessage &jobResponse,
+                                                     std::string &jobId) {
+  const auto [resultType, resultId] = getResultId(jobResponse);
+  if (resultId.empty()) {
+    throw std::runtime_error("Job completed but no result ID found.");
+  }
+  if (resultType != QuantinuumServerHelper::ResultType::QSYS) {
+    throw std::runtime_error(
+        "Expected QSYS result type for QIR output extraction.");
+  }
+
+  const std::string resultPath = baseUrl + qsysResultsEndpoint + resultId;
+  CUDAQ_INFO("Retrieving results from path: {}", resultPath);
+  RestHeaders headers = generateRequestHeader();
+  RestCookies cookies = getCookies();
+  // Retrieve the results (default version for QIR output)
+  auto resultResponse = restClient.get(
+      resultPath,
+      fmt::format("?version={}", static_cast<int>(QsysResultVersion::DEFAULT)),
+      headers, false, cookies);
+  CUDAQ_INFO("Job result response: {}\n", resultResponse.dump());
+  const std::string programType =
+      resultResponse["data"]["relationships"]["program"]["data"]["type"]
+          .get<std::string>();
+  if (programType != "qir") {
+    throw std::runtime_error(
+        "Expected 'qir' type in the result response, got: " + programType);
+  }
+
+  const std::string qirResult =
+      resultResponse["data"]["attributes"]["results"].get<std::string>();
+  return qirResult;
 }
 
 std::map<std::string, std::string>
