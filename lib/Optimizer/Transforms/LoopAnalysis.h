@@ -74,7 +74,9 @@ bool isSignedPredicate(mlir::arith::CmpIPredicate p);
 bool isaCountedLoop(cc::LoopOp op, bool allowClosedInterval = true);
 
 bool loopContainsBreak(cc::LoopOp op);
-bool isaConstantUpperBoundLoop(cc::LoopOp op, bool allowClosedInterval = true);
+
+/// An indefinite counted loop is a counted loop which may have early exits.
+bool isaIndefiniteCountedLoop(cc::LoopOp op, bool allowClosedInterval = true);
 
 /// An invariant loop is defined to be a loop that will execute some run-time
 /// invariant number of iterations. We recognize a normalized, semi-open
@@ -87,6 +89,23 @@ bool isaConstantUpperBoundLoop(cc::LoopOp op, bool allowClosedInterval = true);
 bool isaInvariantLoop(cc::LoopOp op, bool allowClosedInterval = true,
                       bool allowEarlyExit = false, LoopComponents *c = nullptr);
 bool isaInvariantLoop(const LoopComponents &c, bool allowClosedInterval);
+
+/// An indefinite invariant loop is an invariant loop which may have early
+/// exits. The number of iterations will be at most the upper bound expression.
+/// We recognize the normalized, semi-open interval loop such as
+/// ```
+///   for(i = 0; i < invariant_expression; ++i) {
+///     ...
+///       break;
+///     ...
+///   }
+/// ```
+/// is a canonical indefinite loop.
+inline bool isaIndefiniteInvariantLoop(cc::LoopOp op,
+                                       bool allowClosedInterval = true,
+                                       LoopComponents *c = nullptr) {
+  return isaInvariantLoop(op, allowClosedInterval, /*allowEarlyExit=*/true, c);
+}
 
 // We expect the loop control value to have the following form.
 //
@@ -118,8 +137,9 @@ bool hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *c = nullptr);
 /// ```
 ///   for(i = start; i < stop; i += step)
 /// ```
-/// is a monotonic loop that must execute a number of iterations as given
-/// by the following equation. Early exits (break statements) are not permitted.
+/// is a (definite) monotonic loop that must execute a number of iterations as
+/// given by the following equation. Early exits (break statements) are
+/// permitted in \e indefinite monotonic loops.
 /// ```
 ///   let iterations = (stop - 1 - start + step) / step
 ///      iterations : if iterations > 0
@@ -129,6 +149,12 @@ bool hasMonotonicControlInduction(cc::LoopOp loop, LoopComponents *c = nullptr);
 /// be returned via \p c.
 bool isaMonotonicLoop(mlir::Operation *op, bool allowEarlyExit = false,
                       LoopComponents *c = nullptr);
+
+/// An indefinite monotonic loop is a monotonic loop that may have early exits.
+inline bool isaIndefiniteMonotonicLoop(mlir::Operation *op,
+                                       LoopComponents *c = nullptr) {
+  return isaMonotonicLoop(op, /*allowEarlyExit=*/true, c);
+}
 
 /// Recover the different subexpressions from the loop if it conforms to the
 /// pattern. Given a LoopOp where induction is in a register:
