@@ -1,6 +1,7 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
+ * Copyright 2025 IQM Quantum Computers                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -121,10 +122,10 @@ static LogicalResult emitOperation(nlohmann::json &json,
     emitter.getOrAssignName(optor->getResult(1),
                             emitter.getOrAssignName(optor.getTarget(0)).str());
   } else {
-    json["name"] = name;
+    json["name"] = "prx";
 
     if (optor.getParameters().size() != 2)
-      optor.emitError("IQM phased_rx gate expects exactly two parameters.");
+      optor.emitError("IQM prx gate expects exactly two parameters.");
 
     auto parameter0 =
         cudaq::getParameterValueAsDouble(optor.getParameters()[0]);
@@ -154,7 +155,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter, quake::MzOp op) {
-  json["name"] = "measurement";
+  json["name"] = "measure";
   std::vector<std::string> qubits;
   for (auto target : op.getTargets())
     qubits.push_back(emitter.getOrAssignName(target).str());
