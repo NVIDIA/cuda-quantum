@@ -59,7 +59,7 @@ module attributes {
 // CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
 // CHECK:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]], align 8
 // CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_6]])
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_6]], %[[VAL_3]]* %[[VAL_4]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_6]], %[[VAL_3]]* %[[VAL_4]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }

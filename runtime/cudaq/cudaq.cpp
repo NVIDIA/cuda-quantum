@@ -14,14 +14,10 @@
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
-#include "cudaq/qis/qkernel.h"
-#include "cudaq/utils/registry.h"
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>
-#include <regex>
-#include <shared_mutex>
 #include <signal.h>
 #include <string>
 #include <vector>
@@ -204,6 +200,7 @@ std::string demangle_kernel(const char *name) {
 bool globalFalse = false;
 } // namespace cudaq::__internal__
 
+#if 0
 // Shared mutex to guard concurrent access to global kernel data (e.g.,
 // `quakeRegistry`, `kernelRegistry`, `argsCreators`, `lambdaNames`).
 // These global variables might be accessed (write or read) concurrently, e.g.,
@@ -330,6 +327,7 @@ bool cudaq::detail::isKernelGenerated(const std::string &kernelName) {
 bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
   return !detail::isKernelGenerated(kernelname);
 }
+#endif
 
 //===----------------------------------------------------------------------===//
 
@@ -342,65 +340,6 @@ namespace cudaq {
 void set_target_backend(const char *backend) {
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(std::string(backend));
-}
-
-KernelArgsCreator getArgsCreator(const std::string &kernelName) {
-  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
-  return argsCreators[kernelName];
-}
-
-std::string get_quake_by_name(const std::string &kernelName,
-                              bool throwException,
-                              std::optional<std::string> knownMangledArgs) {
-  // A prefix name has a '.' before the C++ mangled name suffix.
-  auto kernelNamePrefix = kernelName + '.';
-
-  // Find the quake code
-  std::optional<std::string> result;
-  std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
-
-  for (const auto &pair : quakeRegistry) {
-    if (pair.first == kernelName) {
-      // Exact match. Return the code.
-      return pair.second;
-    }
-
-    if (pair.first.starts_with(kernelNamePrefix)) {
-      // Prefix match. Record it and make sure that it is a unique prefix.
-      if (result.has_value()) {
-        if (throwException)
-          throw std::runtime_error("Quake code for '" + kernelName +
-                                   "' has multiple matches.\n");
-      } else {
-        result = pair.second;
-        if (knownMangledArgs.has_value() &&
-            pair.first.ends_with(*knownMangledArgs))
-          break;
-      }
-    }
-  }
-
-  if (result.has_value())
-    return *result;
-  if (throwException)
-    throw std::runtime_error("Quake code not found for '" + kernelName +
-                             "'.\n");
-  return {};
-}
-
-std::string get_quake_by_name(const std::string &kernelName) {
-  return get_quake_by_name(kernelName, true);
-}
-
-std::string get_quake_by_name(const std::string &kernelName,
-                              std::optional<std::string> knownMangledArgs) {
-  return get_quake_by_name(kernelName, true, knownMangledArgs);
-}
-
-bool kernelHasConditionalFeedback(const std::string &kernelName) {
-  auto quakeCode = get_quake_by_name(kernelName, false);
-  return !quakeCode.empty() &&
-         quakeCode.find("qubitMeasurementFeedback = true") != std::string::npos;
 }
 
 // Ignore warnings about deprecations in platform.set_shots and
