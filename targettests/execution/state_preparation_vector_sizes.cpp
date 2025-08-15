@@ -17,6 +17,7 @@
 // RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 
 #include <cudaq.h>
 #include <iostream>
