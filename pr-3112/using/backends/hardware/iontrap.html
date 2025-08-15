@@ -205,6 +205,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#iqm">IQM</a></li>
@@ -999,7 +1000,6 @@ However, IonQ’s documentation uses the term “target” to refer to specific 
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using IonQ’s backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution in the IonQ Cloud,
@@ -1023,9 +1023,9 @@ However, IonQ’s documentation uses the term “target” to refer to specific 
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>ionq<span class="w"> </span>src.cpp
 </pre></div>
 </div>
-<p>To see a complete example for using IonQ’s backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
 </div>
 </div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#ionq-examples"><span class="std std-ref">IonQ examples</span></a>.</p>
 </section>
 </section>
 <section id="quantinuum">
@@ -1058,7 +1058,7 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The backend to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq::set_target()</span></code> function.</p>
+can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s1">&#39;nexus_project_name&#39;</span><span class="p">)</span>
 <span class="c1"># or</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s1">&#39;nexus_project_id&#39;</span><span class="p">)</span>
@@ -1090,7 +1090,6 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>To see a complete example for using Quantinuum’s backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">Python examples</span></a>.</p>
 </div>
 <input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution in the Quantinuum backends,
@@ -1121,9 +1120,9 @@ You do not need to specify project or machine when emulating.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>src.cpp
 </pre></div>
 </div>
-<p>To see a complete example for using Quantinuum’s backends, take a look at our <a class="reference internal" href="../../examples/examples.html"><span class="doc">C++ examples</span></a>.</p>
 </div>
 </div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quantinuum-examples"><span class="std std-ref">Quantinuum examples</span></a>.</p>
 </section>
 </section>
 </section>
