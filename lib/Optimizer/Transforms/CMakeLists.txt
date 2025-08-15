@@ -63,6 +63,7 @@ add_cudaq_library(OptTransforms
   ResourceCountPreprocess.cpp
   SROA.cpp
   StatePreparation.cpp
+  UnitaryDecomposition.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
