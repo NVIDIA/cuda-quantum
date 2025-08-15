@@ -323,10 +323,10 @@ class PyKernel(object):
     @staticmethod
     def _cleanup(capturedDataStorage):
         """
-        Cleanup function to be called when the PyKernel instance is garbage 
+        Cleanup function to be called when the `PyKernel` instance is garbage 
         collected. This resource management method is used with `weakref.finalize()`
         to ensure proper cleanup of resources. Note that this method is intentionally
-        empty since `CapturedDataStorage` has its own finalizer. However, it is still
+        empty since `CapturedDataStorage` has its own `finalizer`. However, it is still
         included for maintaining the reference to `CapturedDataStorage` until the
         `PyKernel` instance is garbage collected ensuring proper cleanup order.
         """
