@@ -1,0 +1,56 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// RUN: python3 %random_gen_script %s --seed=1 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=2 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=3 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=4 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=5 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=6 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=7 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=8 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=9 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: python3 %random_gen_script %s --seed=10 --block-length=20-30 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+
+#include <cudaq.h>
+#include <cudaq/algorithm.h>
+#include <random>
+
+#define ASSERT_NEAR(x,y,tolerance) assert(abs(x-y) < tolerance)
+
+int main() {
+  auto kernel = []() __qpu__ {
+    GEN-QALLOC: nqubits=5-10
+    for (size_t i = 0; i < 10; i++) {
+      GEN-SUBCIRCUIT
+      if (mz(GEN:<qubit>)) {
+        break;
+      }
+
+      GEN-SUBCIRCUIT
+      GEN-BLOCK
+    }
+  };
+
+  const auto PHASE_SWITCH = "CUDAQ_PHASE_FOLDING";
+
+  setenv(PHASE_SWITCH, "0", true);
+  cudaq::set_random_seed(1);
+  auto state1 = cudaq::get_state(kernel);
+
+  setenv(PHASE_SWITCH, "1", true);
+  cudaq::set_random_seed(1);
+  auto state2 = cudaq::get_state(kernel);
+
+  assert(state1.get_num_qubits() == state2.get_num_qubits());
+  auto result = state1.overlap(state2);
+  printf("Real: %f, imag: %f\n", result.real(), result.imag());
+  ASSERT_NEAR(result.real(), 1., 0.00001);
+  ASSERT_NEAR(result.imag(), 0., 0.00001);
+  return 0;
+}

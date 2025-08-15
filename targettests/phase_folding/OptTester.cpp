@@ -5,12 +5,16 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
+// RUN: nvq++ --target=remote-mqpu %s -o %t && %t
+
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
-#include <gtest/gtest.h>
 #include <random>
 
-TEST(OptTester, checkSimple) {
+#define ASSERT_NEAR(x,y,tolerance) assert(abs(x-y) < tolerance)
+
+void checkSimple() {
   auto kernel = []() __qpu__ {
     cudaq::qubit q, p, r;
     h(q);
@@ -34,25 +38,27 @@ TEST(OptTester, checkSimple) {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(20);
   auto state1 = cudaq::get_state(kernel);
+  //state1.dump();
   // Add resource counter call (once merged) here to make sure opts are actually
   // done
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(20);
   auto state2 = cudaq::get_state(kernel);
+  //state2.dump();
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
-  EXPECT_NEAR(result.real(), 1, 0.0000001);
-  EXPECT_NEAR(result.imag(), 0, 0.0000001);
+  ASSERT_NEAR(result.real(), 1, 0.0000001);
+  ASSERT_NEAR(result.imag(), 0, 0.0000001);
 }
 
-TEST(OptTester, checkSubkernel) {
-  auto subkernel = [](cudaq::qubit &q, cudaq::qubit &p) __qpu__ {
-    rz(1.0, p);
-    x<cudaq::ctrl>(p, q);
-    rz(3.0, q);
-  };
+__qpu__ void subkernel(cudaq::qubit &q, cudaq::qubit &p) {
+  rz(1.0, p);
+  x<cudaq::ctrl>(p, q);
+  rz(3.0, q);
+};
 
+void checkSubkernel() {
   auto kernel = [&]() __qpu__ {
     cudaq::qubit q, p, r;
     h(q);
@@ -83,11 +89,11 @@ TEST(OptTester, checkSubkernel) {
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
-  EXPECT_NEAR(result.real(), 1, 0.0000001);
-  EXPECT_NEAR(result.imag(), 0, 0.0000001);
+  ASSERT_NEAR(result.real(), 1, 0.0000001);
+  ASSERT_NEAR(result.imag(), 0, 0.0000001);
 }
 
-TEST(OptTester, checkClassicalSimple) {
+void checkClassicalSimple() {
   auto kernel = [&]() __qpu__ {
     cudaq::qubit q, p, r;
     x<cudaq::ctrl>(q, p);
@@ -113,14 +119,14 @@ TEST(OptTester, checkClassicalSimple) {
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
-  EXPECT_NEAR(result.real(), 1, 0.0000001);
-  EXPECT_NEAR(result.imag(), 0, 0.0000001);
+  ASSERT_NEAR(result.real(), 1, 0.0000001);
+  ASSERT_NEAR(result.imag(), 0, 0.0000001);
 }
 
-TEST(OptTester, checkClassicalComplex) {
+void checkClassicalComplex() {
   auto kernel = [&]() __qpu__ {
     cudaq::qubit q, p;
-    auto fs = std::vector<float>(10, 2.);
+    float fs[] = { 2., 2., 2., 2., 2., 2., 2., 2., 2., 2. };
     for (auto i = 0; i < 10; i++) {
       rz(fs[i], q);
       x<cudaq::ctrl>(q, p);
@@ -140,6 +146,13 @@ TEST(OptTester, checkClassicalComplex) {
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
-  EXPECT_NEAR(result.real(), 1, 0.0000001);
-  EXPECT_NEAR(result.imag(), 0, 0.0000001);
+  ASSERT_NEAR(result.real(), 1, 0.0000001);
+  ASSERT_NEAR(result.imag(), 0, 0.0000001);
+}
+
+int main() {
+  checkSimple();
+  checkSubkernel();
+  checkClassicalSimple();
+  checkClassicalComplex();
 }

@@ -19,7 +19,6 @@ gates = [
         "continuous": 0,
         "hasAdj": False,
         "subcircuit": True,
-        "weight": .2
     },
     {
         "name": "x",
@@ -28,7 +27,6 @@ gates = [
         "continuous": 0,
         "hasAdj": False,
         "subcircuit": True,
-        "weight": .2
     },
     {
         "name": "x",
@@ -101,7 +99,6 @@ gates = [
         "continuous": 1,
         "hasAdj": False,
         "subcircuit": True,
-        "weight": .5
     },
     {
         "name": "rz",
@@ -158,7 +155,6 @@ gates = [
         "continuous": 0,
         "hasAdj": False,
         "subcircuit": True,
-        "weight": .1
     },
 ]
 
@@ -167,11 +163,27 @@ def generate_indent(indent):
     return ''.join(['  ' for _ in range(indent)])
 
 
-def generate_instruction(qubits, gates, subcircuit=False, indent=0):
+def generate_instruction(qubits,
+                         gates,
+                         subcircuit=False,
+                         rz_weight=None,
+                         indent=0):
     if subcircuit:
-        gates = [gate for gate in gates if gate["subcircuit"]]
-        weights = [gate["weight"] for gate in gates if gate["subcircuit"]]
-        gate = random.choices(population=gates, k=1, weights=weights)[0]
+        if random.random() <= rz_weight:
+            gate = {
+                "name": "rz",
+                "ncontrols": 0,
+                "ntargets": 1,
+                "continuous": 1,
+                "hasAdj": False,
+                "subcircuit": True,
+            }
+        else:
+            sc_gates = [
+                gate for gate in gates
+                if gate["subcircuit"] and gate["name"] != "rz"
+            ]
+            gate = random.choices(population=sc_gates, k=1)[0]
     else:
         gate = random.choice(gates)
     gatestr = str(gate["name"])
@@ -220,17 +232,22 @@ def generate_qvector(nQubits, indent=0):
     return [qvector, decl, choices]
 
 
-def generate_subcircuit(qubits, nGates, indent=0):
-    return generate_block(qubits, nGates, True, indent=indent)
+def generate_subcircuit(qubits, nGates, rz_weight, indent=0):
+    return generate_block(qubits,
+                          nGates,
+                          True,
+                          rz_weight=rz_weight,
+                          indent=indent)
     # breakers = [
     #     generate_indent(indent) + "h({});".format(qubit) for qubit in qubits
     # ]
     # return block + "\n".join(breakers) + "\n"
 
 
-def generate_block(qubits, nGates, subcircuit=False, indent=0):
+def generate_block(qubits, nGates, subcircuit=False, rz_weight=None, indent=0):
     return "\n".join([
-        generate_instruction(qubits, gates, subcircuit, indent=indent)
+        generate_instruction(
+            qubits, gates, subcircuit, rz_weight=rz_weight, indent=indent)
         for _ in range(nGates)
     ]) + "\n"
 
@@ -273,9 +290,11 @@ argparser = argparse.ArgumentParser(prog='RandomCircuitGenerator',
 argparser.add_argument('template', type=str)
 argparser.add_argument('--seed', type=int)
 argparser.add_argument('--block-length', type=str)
+argparser.add_argument('--rz-weight', type=float)
 args = argparser.parse_args()
 
 block_length = parse_range(args.block_length)
+rz_weight = args.rz_weight
 program = ""
 with open(args.template, 'r') as file:
     random.seed(args.seed)
@@ -311,6 +330,7 @@ with open(args.template, 'r') as file:
             nGates = random.choice(block_length)
             program += generate_subcircuit(working_qubits,
                                            nGates,
+                                           rz_weight,
                                            indent=indent)
         elif line.startswith("GEN-MEASURES"):
             program += generate_measures(working_qubits, indent=indent)

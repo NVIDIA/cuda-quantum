@@ -6,25 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// RUN: python3 %random_gen_script %s --seed=27 --block-length=100 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
-#include <gtest/gtest.h>
 #include <random>
 
-TEST(OptTester, branchInLoop) {
+#define ASSERT_NEAR(x,y,tolerance) assert(abs(x-y) < tolerance)
+
+int main() {
   auto kernel = []() __qpu__ {
-    GEN-QALLOC: nqubits=3-5
-    for (size_t i = 0; i < GEN:<nqubits>; i++) {
-      GEN-BLOCK
-      GEN-SUBCIRCUIT
-      GEN-BLOCK
-      if (mz(GEN:<qubit>)) {
-        GEN-BLOCK
-        GEN-SUBCIRCUIT
-        GEN-BLOCK
-      }
-      GEN-MEASURES
-    }
+    GEN-QALLOC: nqubits=5
+    GEN-SUBCIRCUIT
   };
 
   const auto PHASE_SWITCH = "CUDAQ_PHASE_FOLDING";
@@ -32,7 +25,6 @@ TEST(OptTester, branchInLoop) {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(1);
   auto state1 = cudaq::get_state(kernel);
-
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(1);
   auto state2 = cudaq::get_state(kernel);
@@ -40,6 +32,7 @@ TEST(OptTester, branchInLoop) {
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
   printf("Real: %f, imag: %f\n", result.real(), result.imag());
-  EXPECT_NEAR(result.real(), 1., 0.0000001);
-  EXPECT_NEAR(result.imag(), 0., 0.0000001);
+  ASSERT_NEAR(result.real(), 1., 0.0000001);
+  ASSERT_NEAR(result.imag(), 0., 0.0000001);
+  return 0;
 }

@@ -6,32 +6,35 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// RUN: python3 %random_gen_script %s --seed=1 --block-length=15-25 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
-#include <gtest/gtest.h>
 #include <random>
 
-TEST(OptTester, subkernel) {
-  auto iqft = [](cudaq::qview<> q) __qpu__ {
-    int N = q.size();
-    // Swap qubits
-    for (int i = 0; i < N / 2; ++i) {
-      swap(q[i], q[N - i - 1]);
+#define ASSERT_NEAR(x,y,tolerance) assert(abs(x-y) < tolerance)
+
+__qpu__ void iqft(cudaq::qview<> q) {
+  int N = q.size();
+  // Swap qubits
+  for (int i = 0; i < N / 2; ++i) {
+    swap(q[i], q[N - i - 1]);
+  }
+
+  for (int i = 0; i < N - 1; ++i) {
+    h(q[i]);
+    int j = i + 1;
+    for (int y = i; y >= 0; --y) {
+      double denom = (1UL << (j - y));
+      const double theta = -M_PI / denom;
+      r1<cudaq::ctrl>(theta, q[j], q[y]);
     }
+  }
 
-    for (int i = 0; i < N - 1; ++i) {
-      h(q[i]);
-      int j = i + 1;
-      for (int y = i; y >= 0; --y) {
-        double denom = (1UL << (j - y));
-        const double theta = -M_PI / denom;
-        r1<cudaq::ctrl>(theta, q[j], q[y]);
-      }
-    }
+  h(q[N - 1]);
+};
 
-    h(q[N - 1]);
-  };
-
+int main() {
   auto kernel = [&]() __qpu__ {
     GEN-QALLOC: nqubits=8
     GEN-SUBCIRCUIT
@@ -53,6 +56,6 @@ TEST(OptTester, subkernel) {
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
   printf("Real: %f, imag: %f\n", result.real(), result.imag());
-  EXPECT_NEAR(result.real(), 1., 0.0000001);
-  EXPECT_NEAR(result.imag(), 0., 0.0000001);
+  ASSERT_NEAR(result.real(), 1., 0.0000001);
+  ASSERT_NEAR(result.imag(), 0., 0.0000001);
 }
