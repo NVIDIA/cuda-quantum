@@ -133,6 +133,18 @@ struct CCToLLVM : public cudaq::opt::impl::CCToLLVMBase<CCToLLVM> {
       LLVM_DEBUG(getOperation().dump());
       signalPassFailure();
     }
+
+    // Set the __ctl functions to extern_weak linkage. These need special
+    // linkage because they are passed to
+    // generalizedInvokeWithRotationsControlsTargets as a function parameter.
+    // Without this change, one needs to bring the entire NVQIR world (with
+    // simulators and platforms) in order to dlopen a .so file that contains
+    // __qpu__ kernels.
+    auto mod = getOperation();
+    mod.walk([&](LLVM::LLVMFuncOp funcOp) {
+      if (funcOp.getName().endswith("__ctl"))
+        funcOp.setLinkage(::mlir::LLVM::Linkage::ExternWeak);
+    });
   }
 };
 } // namespace
