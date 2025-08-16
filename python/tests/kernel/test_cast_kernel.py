@@ -8,6 +8,7 @@
 
 import cudaq
 import numpy as np
+import pytest
 
 
 # bool <-> int32
@@ -168,3 +169,15 @@ def testFloat32Float64():
         return f
 
     assert cudaq.run(kernelFloat64Float32, -2.0, shots_count=1) == [-2.0]
+
+
+def test_multiplication():
+
+    @cudaq.kernel
+    def mult_check(angle: float) -> float:
+        M_PI = 3.1415926536
+        phase = 2 * M_PI * angle
+        return phase
+
+    result = cudaq.run(mult_check, 0.1, shots_count=1)
+    assert result[0] == pytest.approx(0.6283185307179586)
