@@ -72,7 +72,7 @@ def test_synth_and_translate():
 # CHECK:         %[[VAL_39:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_1]], i64 %[[VAL_38]])
 # CHECK:         %[[VAL_40:.*]] = bitcast %Qubit** %[[VAL_39]] to i8**
 # CHECK:         %[[VAL_41:.*]] = load i8*, i8** %[[VAL_40]]
-# CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_37]], i8* %[[VAL_41]])
+# CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_37]], i8* %[[VAL_41]])
 # CHECK:         %[[VAL_30]] = add nuw nsw i64 %[[VAL_29]], 1
 # CHECK:         %[[VAL_42:.*]] = icmp slt i64 %[[VAL_30]], %[[VAL_6]]
 # CHECK:         br i1 %[[VAL_42]], label %[[VAL_20]], label %[[VAL_11]]
