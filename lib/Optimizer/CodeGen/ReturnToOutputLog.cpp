@@ -28,29 +28,20 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-class ReturnRewrite : public OpRewritePattern<func::ReturnOp> {
+class ReturnRewrite : public OpRewritePattern<cudaq::cc::LogOutputOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   // This is where the heavy lifting is done. We take the return op's operand(s)
   // and convert them to calls to the QIR output logging functions with the
   // appropriate label information.
-  LogicalResult matchAndRewrite(func::ReturnOp ret,
+  LogicalResult matchAndRewrite(cudaq::cc::LogOutputOp log,
                                 PatternRewriter &rewriter) const override {
-    auto fn = ret->getParentOfType<func::FuncOp>();
-    // If the containing function is not an entry-point kernel, or it was marked
-    // private by the JIT, or it has already been processed then we're done.
-    if (!fn || !fn->hasAttr(cudaq::entryPointAttrName) || fn.isPrivate() ||
-        ret->hasAttr("cc.cudaq.run"))
-      return failure();
-
-    auto loc = ret.getLoc();
-    // For each operand:
-    for (auto operand : ret.getOperands())
+    auto loc = log.getLoc();
+    // For each operand, generate a QIR logging call.
+    for (auto operand : log.getOperands())
       genOutputLog(loc, rewriter, operand, std::nullopt);
-    auto unitAttr = rewriter.getUnitAttr();
-    rewriter.updateRootInPlace(
-        ret, [&]() { ret->setAttr("cc.cudaq.run", unitAttr); });
+    rewriter.eraseOp(log);
     return success();
   }
 
@@ -229,8 +220,14 @@ struct ReturnToOutputLogPass
 
     auto *ctx = &getContext();
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-    if (failed(irBuilder.loadIntrinsic(module, "qir_output_logging"))) {
-      module.emitError("could not load QIR output logging declarations.");
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::opt::QIRArrayRecordOutput))) {
+      module.emitError("could not load QIR output logging functions.");
+      signalPassFailure();
+      return;
+    }
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::QISTrap))) {
+      module.emitError("could not load QIR trap function.");
       signalPassFailure();
       return;
     }

@@ -727,8 +727,9 @@ class PyKernel(object):
         Return a string representation of this kernels MLIR Module.
         """
         if canonicalize:
-            pm = PassManager.parse("builtin.module(canonicalize,cse)",
-                                   context=self.ctx)
+            pm = PassManager.parse(
+                "builtin.module(func.func(unwind-lowering,canonicalize,cse,quake-add-metadata),quake-propagate-metadata)",
+                context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
             pm.run(cloned)
             return str(cloned)

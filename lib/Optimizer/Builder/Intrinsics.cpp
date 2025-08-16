@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
@@ -61,16 +62,19 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : !cc.ptr<i8>) -> i64
 )#"},
 
-    // Initialize a (preallocated) buffer (the first parameter) with i64 values
-    // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::runtime::getLinkableKernelKey, {}, R"#(
   func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-  )#"},
+)#"},
 
     {cudaq::runtime::registerLinkableKernel, {}, R"#(
   func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ()
 )#"},
+    {cudaq::runtime::registerRunnableKernel, {}, R"#(
+  func.func private @__cudaq_registerRunnableKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
 
+    // Initialize a (preallocated) buffer (the first parameter) with i64 values
+    // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::setCudaqRangeVector, {}, R"#(
   func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.stdvec<i64> {
     %0 = arith.constant 0 : i64
@@ -406,6 +410,31 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
+    {cudaq::opt::QISTrap, {}, R"#(
+  func.func private @__quantum__qis__trap(i64)
+)#"},
+
+    // The QIR defined output logging functions.
+    {cudaq::opt::QIRArrayRecordOutput,
+     // note: uses all DefaultPrerequisiteSize slots
+     {cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRDoubleRecordOutput,
+      cudaq::opt::QIRIntegerRecordOutput, cudaq::opt::QIRTupleRecordOutput},
+     R"#(
+  func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRBoolRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRDoubleRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRIntegerRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRTupleRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
+)#"},
+
     // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset)
     {cudaq::runtime::launchKernelFuncName, {}, R"#(
   func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
@@ -462,7 +491,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // subtargets (full, base profle, or adaptive profile).
     // These include qubit allocation and management, control variants of the
     // gates, some one offs, and control form invocation helper routines.
-    {"qir_common", {}, R"#(
+    {"qir_common", {cudaq::opt::QISTrap}, R"#(
   func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
   func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
@@ -502,7 +531,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
   func.func private @__quantum__qis__convert_array_to_stdvector(!qir_array) -> !qir_array
   func.func private @__quantum__qis__free_converted_stdvector(!qir_array)
-  func.func private @__quantum__qis__trap(i64)
 
   llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
@@ -584,17 +612,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_charptr = !cc.ptr<i8>
   !qir_llvmptr = !llvm.ptr<i8>
 )#"},
-
-    // The QIR defined output logging functions.
-    {"qir_output_logging",
-     {},
-     R"#(
-  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
-  func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
-  func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
-  func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
-  func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
-    )#"},
 
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
     {cudaq::runtime::launchKernelStreamlinedFuncName, {}, R"#(

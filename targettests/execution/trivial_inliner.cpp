@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -fenable-cudaq-run %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
