@@ -140,11 +140,10 @@ struct CCToLLVM : public cudaq::opt::impl::CCToLLVMBase<CCToLLVM> {
     // Without this change, one needs to bring the entire NVQIR world (with
     // simulators and platforms) in order to dlopen a .so file that contains
     // __qpu__ kernels.
-    auto mod = getOperation();
-    mod.walk([&](LLVM::LLVMFuncOp funcOp) {
-      if (funcOp.getName().endswith("__ctl"))
-        funcOp.setLinkage(::mlir::LLVM::Linkage::ExternWeak);
-    });
+    for (auto &f : getOperation())
+      if (auto funcOp = dyn_cast<LLVM::LLVMFuncOp>(f))
+        if (funcOp.getName().endswith("__ctl"))
+          funcOp.setLinkage(::mlir::LLVM::Linkage::ExternWeak);
   }
 };
 } // namespace
