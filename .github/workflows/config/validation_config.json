@@ -6,7 +6,6 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "redhat/ubi8:8.10",
                 "fedora:42"
             ]
         },
