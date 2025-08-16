@@ -12,6 +12,7 @@ set(LIBRARY_NAME cudaq-common)
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
   CustomOp.cpp
+  DeviceCodeRegistry.cpp
   Environment.cpp
   Executor.cpp
   Future.cpp
