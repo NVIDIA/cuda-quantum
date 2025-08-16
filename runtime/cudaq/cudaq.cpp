@@ -14,14 +14,10 @@
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
-#include "cudaq/qis/qkernel.h"
-#include "cudaq/utils/registry.h"
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>
-#include <regex>
-#include <shared_mutex>
 #include <signal.h>
 #include <string>
 #include <vector>
