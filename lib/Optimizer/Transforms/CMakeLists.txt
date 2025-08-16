@@ -51,6 +51,7 @@ add_cudaq_library(OptTransforms
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  PhaseFolding.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp
