@@ -7,8 +7,9 @@
 # ============================================================================ #
 
 import uuid
-import numpy as np
+import weakref
 
+import numpy as np
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import arith, cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FlatSymbolRefAttr,
@@ -34,19 +35,28 @@ class CapturedDataStorage(object):
         self.loc = kwargs['loc'] if 'loc' in kwargs else None
         self.name = kwargs['name'] if 'name' in kwargs else None
         self.module = kwargs['module'] if 'module' in kwargs else None
+        self._finalizer = weakref.finalize(self, CapturedDataStorage._cleanup,
+                                           self.cudaqStateIDs, self.arrayIDs)
+
+    @staticmethod
+    def _cleanup(state_ids, array_ids):
+        """
+        Safely clean up resources associated with captured data during garbage collection.
+        This method is to be used with `weakref.finalize()` as an alternative to `__del__`,
+        such that it handles Python interpreter shutdown gracefully, catching exceptions
+        that occur when modules are unloaded before they are cleaned up.
+        """
+        try:
+            cudaq_runtime.deletePointersToCudaqState(state_ids)
+            cudaq_runtime.deletePointersToStateData(array_ids)
+        except (ImportError, AttributeError):
+            pass
 
     def setKernelContext(self, ctx, loc, name, module):
         self.ctx = ctx
         self.loc = loc
         self.name = name
         self.module = module
-
-    def __del__(self):
-        """
-        Remove pointers to stored data for the current kernel.
-        """
-        cudaq_runtime.deletePointersToCudaqState(self.cudaqStateIDs)
-        cudaq_runtime.deletePointersToStateData(self.arrayIDs)
 
     def getIntegerAttr(self, type, value):
         """
