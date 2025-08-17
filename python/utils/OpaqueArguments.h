@@ -31,8 +31,8 @@
 #include <vector>
 
 namespace py = pybind11;
-using namespace std::chrono_literals;
-using namespace mlir;
+// using namespace std::chrono_literals;
+// using namespace mlir;
 
 namespace cudaq {
 
