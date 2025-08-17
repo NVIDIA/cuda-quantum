@@ -24,7 +24,7 @@ from .helpers import InitialState, InitialStateArgT, IntermediateResultSave
 from .integrator import BaseIntegrator
 from .schedule import Schedule
 
-analog_targets = ["pasqal", "quera"]
+analog_targets = ["pasqal", "qilimanjaro", "quera"]
 
 
 def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
