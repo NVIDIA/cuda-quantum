@@ -61,7 +61,14 @@ public:
         getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["executor"] =
         getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
-    backendConfig["api_key"] = getValueOrDefault(config, "api_key", "");
+    // Check for API key in config, then fall back to environment variable
+    std::string apiKey = getValueOrDefault(config, "api_key", "");
+    if (apiKey.empty()) {
+      char *envApiKey = std::getenv("QUANTUM_MACHINES_API_KEY");
+      if (envApiKey)
+        apiKey = envApiKey;
+    }
+    backendConfig["api_key"] = apiKey;
 
     cudaq::info("Initializing Quantum Machines Backend. config: {}",
                 backendConfig);
