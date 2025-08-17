@@ -55,7 +55,7 @@
 // CHECK:         %[[VAL_19:.*]] = tail call %[[VAL_5]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_3]]* %[[VAL_2]], i64 %[[VAL_15]])
 // CHECK:         %[[VAL_20:.*]] = bitcast %[[VAL_5]]** %[[VAL_19]] to i8**
 // CHECK:         %[[VAL_21:.*]] = load i8*, i8** %[[VAL_20]], align 8
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_3]]*, %[[VAL_5]]*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_18]], i8* %[[VAL_21]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* bitcast (void (%[[VAL_3]]*, %[[VAL_5]]*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_18]], i8* %[[VAL_21]])
 // CHECK:         %[[VAL_22:.*]] = icmp eq i64 %[[VAL_15]], %[[VAL_12]]
 // CHECK:         br i1 %[[VAL_22]], label %[[VAL_9]], label %[[VAL_13]]
 // CHECK:       :                                      ; preds = %[[VAL_13]], %[[VAL_11]]

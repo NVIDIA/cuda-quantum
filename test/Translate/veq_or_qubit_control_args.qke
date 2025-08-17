@@ -42,7 +42,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_fancyCno
 // CHECK:         %[[VAL_11:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_10]], i64 0)
 // CHECK:         store %Qubit* %[[VAL_4]], %Qubit** %[[VAL_11]], align 8
 // CHECK:         %[[VAL_12:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%Array* %[[VAL_10]])
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), i64 %[[VAL_12]], %Array* %[[VAL_10]], i8* %[[VAL_9]], %Qubit* %[[VAL_6]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i64 1, i8* bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), i64 %[[VAL_12]], %Array* %[[VAL_10]], i8* %[[VAL_9]], %Qubit* %[[VAL_6]])
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(%Array* %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
