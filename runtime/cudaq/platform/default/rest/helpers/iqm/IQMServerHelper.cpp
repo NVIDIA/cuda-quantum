@@ -404,7 +404,7 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     uint idx = 0; // enumeration counter
     for (auto qubit = qubitNameMap.begin(); qubit != qubitNameMap.end();) {
       if (qubit->second == ((1 << 0) | (1 << 1) | (1 << 2))) {
-        qubit->second = idx++;  // replace flags with enumeration value
+        qubit->second = idx++; // replace flags with enumeration value
         qubit++;
       } else {
         qubit = qubitNameMap.erase(qubit);
