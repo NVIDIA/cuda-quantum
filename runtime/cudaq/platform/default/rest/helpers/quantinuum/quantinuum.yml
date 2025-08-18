@@ -40,3 +40,8 @@ target-arguments:
     type: string
     platform-arg: project
     help-string: "Specify the Nexus project name or ID."
+  - key: extra-payload-provider
+    required: false
+    type: string
+    platform-arg: extra_payload_provider
+    help-string: "Specify the extra payload provider if any."

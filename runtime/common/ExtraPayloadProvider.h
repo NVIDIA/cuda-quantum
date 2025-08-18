@@ -7,11 +7,12 @@
  ******************************************************************************/
 #pragma once
 
-#include "RuntimeTarget.h"
-#include "ServerHelper.h"
+#include <memory>
+#include <vector>
 
 namespace cudaq {
-
+// Forward declaration
+class RuntimeTarget;
 /// @brief An abstract base class for providing extra payload to the server.
 class ExtraPayloadProvider {
 public:
