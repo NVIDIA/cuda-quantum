@@ -27,8 +27,6 @@ public:
 
   /// @brief Get extra payload for the target's service request.
   /// @param target The RuntimeTarget to generate the payload for.
-  /// @param msg The extra payload content to be used for the target's service
-  /// request.
   // Note: the target's server helper will use the extra payload in accordance
   // with the service API.
   virtual std::string getExtraPayload(const RuntimeTarget &target) = 0;
