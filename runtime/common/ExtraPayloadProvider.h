@@ -12,7 +12,7 @@
 
 namespace cudaq {
 // Forward declaration
-class RuntimeTarget;
+struct RuntimeTarget;
 /// @brief An abstract base class for providing extra payload to the server.
 class ExtraPayloadProvider {
 public:
