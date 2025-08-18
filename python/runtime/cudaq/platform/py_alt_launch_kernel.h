@@ -54,7 +54,7 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 /// @brief Launch python kernel with arguments.
 std::tuple<void *, std::size_t, std::int32_t, KernelThunkType>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
-                      Type returnType, cudaq::OpaqueArguments &runtimeArgs,
+                      mlir::Type returnType, cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names,
                       std::size_t startingArgIdx = 0, bool launch = true);
 

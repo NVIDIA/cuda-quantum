@@ -31,8 +31,8 @@
 #include <vector>
 
 namespace py = pybind11;
-// using namespace std::chrono_literals;
-// using namespace mlir;
+using namespace std::chrono_literals;
+//using namespace mlir;
 
 namespace cudaq {
 
@@ -194,23 +194,23 @@ inline std::string mlirTypeToString(mlir::Type ty) {
 
 /// @brief Return the size and member variable offsets for the input struct.
 inline std::pair<std::size_t, std::vector<std::size_t>>
-getTargetLayout(func::FuncOp func, cudaq::cc::StructType structTy) {
-  auto mod = func->getParentOfType<ModuleOp>();
-  StringRef dataLayoutSpec = "";
+getTargetLayout(mlir::func::FuncOp func, cudaq::cc::StructType structTy) {
+  auto mod = func->getParentOfType<mlir::ModuleOp>();
+  mlir::StringRef dataLayoutSpec = "";
   if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-    dataLayoutSpec = cast<StringAttr>(attr);
+    dataLayoutSpec = mlir::cast<mlir::StringAttr>(attr);
   else
     throw std::runtime_error("No data layout attribute is set on the module.");
 
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
   // Convert bufferTy to llvm.
   llvm::LLVMContext context;
-  LLVMTypeConverter converter(func.getContext());
+  mlir::LLVMTypeConverter converter(func.getContext());
   cudaq::opt::initializeTypeConversions(converter);
   auto llvmDialectTy = converter.convertType(structTy);
-  LLVM::TypeToLLVMIRTranslator translator(context);
+  mlir::LLVM::TypeToLLVMIRTranslator translator(context);
   auto *llvmStructTy =
-      cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+      mlir::cast<llvm::StructType>(translator.translateType(llvmDialectTy));
   auto *layout = dataLayout.getStructLayout(llvmStructTy);
   auto strSize = layout->getSizeInBytes();
   std::vector<std::size_t> fieldOffsets;
@@ -222,13 +222,13 @@ getTargetLayout(func::FuncOp func, cudaq::cc::StructType structTy) {
 /// @brief For the current struct member variable type, insert the
 /// value into the dynamically-constructed struct.
 inline void handleStructMemberVariable(void *data, std::size_t offset,
-                                       Type memberType, py::object value) {
+                                       mlir::Type memberType, py::object value) {
   auto appendValue = [](void *data, auto &&value, std::size_t offset) {
     std::memcpy(((char *)data) + offset, &value,
                 sizeof(std::remove_cvref_t<decltype(value)>));
   };
-  llvm::TypeSwitch<Type, void>(memberType)
-      .Case([&](IntegerType ty) {
+  llvm::TypeSwitch<mlir::Type, void>(memberType)
+      .Case([&](mlir::IntegerType ty) {
         if (ty.isInteger(1)) {
           appendValue(data, (bool)value.cast<py::bool_>(), offset);
           return;
@@ -249,8 +249,8 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
           std::memcpy(((char *)data) + offset, values, 16);
         };
 
-        TypeSwitch<Type, void>(ty.getElementType())
-            .Case([&](IntegerType type) {
+        mlir::TypeSwitch<mlir::Type, void>(ty.getElementType())
+            .Case([&](mlir::IntegerType type) {
               if (type.isInteger(1)) {
                 appendVectorValue(value, data, offset, bool());
                 return;
@@ -259,7 +259,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
               appendVectorValue(value, data, offset, std::size_t());
               return;
             })
-            .Case([&](FloatType type) {
+            .Case([&](mlir::FloatType type) {
               if (type.isF32()) {
                 appendVectorValue(value, data, offset, float());
                 return;
@@ -269,7 +269,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
               return;
             });
       })
-      .Default([&](Type ty) {
+      .Default([&](mlir::Type ty) {
         ty.dump();
         throw std::runtime_error(
             "Type not supported for custom struct in kernel.");
@@ -278,7 +278,7 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
 
 /// @brief For the current vector element type, insert the
 /// value into the dynamically-constructed vector.
-inline void *handleVectorElements(Type eleTy, py::list list) {
+inline void *handleVectorElements(mlir::Type eleTy, py::list list) {
   auto appendValue = []<typename T>(py::list list, auto &&converter) -> void * {
     std::vector<T> *values = new std::vector<T>(list.size());
     for (std::size_t i = 0; auto &v : list) {
@@ -288,8 +288,8 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
     return values;
   };
 
-  return llvm::TypeSwitch<Type, void *>(eleTy)
-      .Case([&](IntegerType ty) {
+  return llvm::TypeSwitch<mlir::Type, void *>(eleTy)
+      .Case([&](mlir::IntegerType ty) {
         if (ty.getIntOrFloatBitWidth() == 1)
           return appendValue.template operator()<bool>(
               list, [](py::handle v, std::size_t i) {
@@ -340,8 +340,8 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
               return v.cast<cudaq::pauli_word>().str();
             });
       })
-      .Case([&](ComplexType type) {
-        if (isa<Float64Type>(type.getElementType()))
+      .Case([&](mlir::ComplexType type) {
+        if (mlir::isa<mlir::Float64Type>(type.getElementType()))
           return appendValue.template operator()<std::complex<double>>(
               list, [](py::handle v, std::size_t i) {
                 checkListElementType<py_ext::Complex>(v, i);
@@ -354,7 +354,7 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
             });
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        auto appendVectorValue = []<typename T>(Type eleTy,
+        auto appendVectorValue = []<typename T>(mlir::Type eleTy,
                                                 py::list list) -> void * {
           auto *values = new std::vector<std::vector<T>>();
           for (std::size_t i = 0; i < list.size(); i++) {
@@ -373,7 +373,7 @@ inline void *handleVectorElements(Type eleTy, py::list list) {
         // All other `std::Vector<T>` types, including nested vectors.
         return appendVectorValue.template operator()<std::size_t>(eleTy, list);
       })
-      .Default([&](Type ty) {
+      .Default([&](mlir::Type ty) {
         throw std::runtime_error("invalid list element type (" +
                                  mlirTypeToString(ty) + ").");
         return nullptr;
@@ -397,9 +397,9 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
     llvm::TypeSwitch<mlir::Type, void>(kernelArgTy)
         .Case([&](mlir::ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
-          if (isa<Float64Type>(ty.getElementType())) {
+          if (mlir::isa<mlir::Float64Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<double>>());
-          } else if (isa<Float32Type>(ty.getElementType())) {
+          } else if (mlir::isa<mlir::Float32Type>(ty.getElementType())) {
             addArgument(argData, arg.cast<std::complex<float>>());
           } else {
             throw std::runtime_error("Invalid complex type argument: " +
@@ -480,7 +480,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           }
         })
         .Case([&](cudaq::cc::StdvecType ty) {
-          auto appendVectorValue = [&argData]<typename T>(Type eleTy,
+          auto appendVectorValue = [&argData]<typename T>(mlir::Type eleTy,
                                                           py::list list) {
             auto allocatedArg = handleVectorElements(eleTy, list);
             argData.emplace_back(allocatedArg, [](void *ptr) {
@@ -499,7 +499,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           // All other `std::vector<T>` types, including nested vectors.
           appendVectorValue.template operator()<std::int64_t>(eleTy, list);
         })
-        .Default([&](Type ty) {
+        .Default([&](mlir::Type ty) {
           // See if we have a backup type handler.
           auto worked = backupHandler(argData, arg);
           if (!worked)

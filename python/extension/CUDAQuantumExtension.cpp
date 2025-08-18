@@ -307,12 +307,12 @@ PYBIND11_MODULE(_quakeDialects, m) {
         // the func op.
         auto [kName, code] = ret;
         auto ctx = unwrap(mod).getContext();
-        auto moduleB = mlir::parseSourceString<ModuleOp>(code, ctx);
+        auto moduleB = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
         auto moduleA = unwrap(mod);
-        moduleB->walk([&moduleA](func::FuncOp op) {
-          if (!moduleA.lookupSymbol<func::FuncOp>(op.getName()))
+        moduleB->walk([&moduleA](mlir::func::FuncOp op) {
+          if (!moduleA.lookupSymbol<mlir::func::FuncOp>(op.getName()))
             moduleA.push_back(op.clone());
-          return WalkResult::advance();
+          return mlir::WalkResult::advance();
         });
         return kName;
       },

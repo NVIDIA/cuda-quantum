@@ -60,7 +60,7 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 }
 
 RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
-                             func::FuncOp funcOp,
+                             mlir::func::FuncOp funcOp,
                              cudaq::OpaqueArguments &runtimeArgs,
                              cudaq::quantum_platform &platform,
                              std::size_t shots_count, std::size_t qpu_id = 0) {
@@ -94,7 +94,7 @@ RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
 }
 
 std::vector<py::object> pyReadResults(RunResultSpan results, MlirModule module,
-                                      func::FuncOp funcOp,
+                                      mlir::func::FuncOp funcOp,
                                       std::size_t shots_count) {
   auto mod = unwrap(module);
   auto returnTypes = funcOp.getResultTypes();
