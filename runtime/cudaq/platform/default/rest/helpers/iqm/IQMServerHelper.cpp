@@ -15,7 +15,6 @@
 
 #include <fstream>
 #include <regex>
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <unordered_map>
@@ -43,7 +42,7 @@ protected:
   /// @brief The base URL
   std::string iqmServerUrl = "http://localhost/";
 
-  /// @brief Authentication token
+  /// @brief Authorization token
   std::optional<std::string> authToken = std::nullopt;
 
   /// @brief The default cortex-cli tokens file path
@@ -56,7 +55,7 @@ protected:
   std::optional<std::string> readApiToken() const {
     if (!tokensFilePath.has_value()) {
       cudaq::info(
-          "tokensFilePath is not set, assuming no authentication is required");
+          "tokensFilePath is not set, assuming no authorization is required");
       return std::nullopt;
     }
 
@@ -162,10 +161,8 @@ void IQMServerHelper::initialize(BackendConfig config) {
     iqmServerUrl = iter->second;
   }
 
-  // Allow overriding IQM Server Url, the compiled program will still work if
-  // architecture matches. This is useful in case we're using the same program
-  // against different backends, for example simulated and actually connected
-  // to the hardware.
+  // Allow overriding IQM Server URL. This allows sending a program to any
+  // given URL without recompilation.
   auto envIqmServerUrl = getenv("IQM_SERVER_URL");
   if (envIqmServerUrl) {
     iqmServerUrl = std::string(envIqmServerUrl);
@@ -394,19 +391,19 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     for (auto cz : cz_loci) {
       // each cz loci has 2 qubits - mark each qubit
       for (auto qubit : cz) { // cz is an array of strings
-        qubitNameMap[qubit] |= 1 << 0;
+        qubitNameMap[qubit] |= (1 << 0);
       }
     }
     for (auto prx : prx_loci) {
-      qubitNameMap[prx[0]] |= 1 << 1;
+      qubitNameMap[prx[0]] |= (1 << 1);
     }
     for (auto measure : measure_loci) {
-      qubitNameMap[measure[0]] |= 1 << 2;
+      qubitNameMap[measure[0]] |= (1 << 2);
     }
 
     uint idx = 0; // enumeration counter
     for (auto qubit = qubitNameMap.begin(); qubit != qubitNameMap.end();) {
-      if (qubit->second == 7) { // 7 = (1 << 0) | (1 << 1) | (1 << 2)
+      if (qubit->second == ((1 << 0) | (1 << 1) | (1 << 2))) {
         qubit->second = idx++;  // replace flags with enumeration value
         qubit++;
       } else {
@@ -414,7 +411,7 @@ void IQMServerHelper::fetchQuantumArchitecture() {
       }
     }
     // From here on the qubitNameMap lists only qubits which can be used
-    // for above listed operations. Starting with 0 each qubit in the list
+    // for all operations. Starting with 0 each qubit in the list
     // is enumerated.
 
     // The number of qubits in this dynamic quantum architecture.
