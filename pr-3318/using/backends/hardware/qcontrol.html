@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Photonic &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Quantum Control Systems &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Quantum Control Systems" href="qcontrol.html" />
-    <link rel="prev" title="Neutral Atom" href="neutralatom.html" /> 
+    <link rel="next" title="Dynamics Simulation" href="../dynamics_backends.html" />
+    <link rel="prev" title="Photonic" href="photonic.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -571,12 +571,12 @@
 <li class="toctree-l4"><a class="reference internal" href="neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">     Photonic QPUs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#orca-computing">ORCA Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="photonic.html">     Photonic QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="photonic.html#orca-computing">ORCA Computing</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="qcontrol.html">     Quantum Control Systems</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="qcontrol.html#quantum-machines">Quantum Machines</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
 </ul>
@@ -945,84 +945,74 @@
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../backends.html">CUDA-Q Backends</a></li>
           <li class="breadcrumb-item"><a href="../hardware.html">Quantum Hardware (QPU)</a></li>
-      <li class="breadcrumb-item active">Photonic</li>
+      <li class="breadcrumb-item active">Quantum Control Systems</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="neutralatom.html" class="btn btn-neutral float-left" title="Neutral Atom" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="qcontrol.html" class="btn btn-neutral float-right" title="Quantum Control Systems" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="photonic.html" class="btn btn-neutral float-left" title="Photonic" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dynamics_backends.html" class="btn btn-neutral float-right" title="Dynamics Simulation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="photonic">
-<h1>Photonic<a class="headerlink" href="#photonic" title="Permalink to this heading">¶</a></h1>
-<section id="orca-computing">
-<h2>ORCA Computing<a class="headerlink" href="#orca-computing" title="Permalink to this heading">¶</a></h2>
-<p id="orca-backend">ORCA Computing’s PT Series implement the boson sampling model of quantum computation, in which
-multiple single photons are interfered with each other within a network of beam splitters, and
-photon detectors measure where the photons leave this network. This process is implemented within
-a time-bin interferometer (TBI) architecture where photons are created in different time-bins
-and interfered within a network of delay lines. This can be represented by a circuit diagram,
-like the one below, where this illustration example corresponds to 4 photons in 8 modes sent into
-alternating time-bins in a circuit composed of two delay lines in series.</p>
-<a class="reference internal image-reference" href="../../../_images/orca_tbi.png"><img alt="../../../_images/orca_tbi.png" class="align-center" src="../../../_images/orca_tbi.png" style="width: 400px;" /></a>
+  <section id="quantum-control-systems">
+<h1>Quantum Control Systems<a class="headerlink" href="#quantum-control-systems" title="Permalink to this heading">¶</a></h1>
+<section id="quantum-machines">
+<h2>Quantum Machines<a class="headerlink" href="#quantum-machines" title="Permalink to this heading">¶</a></h2>
+<p id="quantum-machines-backend">Quantum Machines provides a unified quantum computing control system that enables
+users to execute quantum programs on various QPU types (hardware backends) through
+their Quantum Orchestration Platform (QOP) - a platform that controls different
+quantum hardware implementations through a unified software API.</p>
+<p>For information about available hardware backends and their capabilities,
+please consult the <a class="reference external" href="https://www.quantum-machines.co/">Quantum Machines website</a>.</p>
 <section id="setting-credentials">
 <h3>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access the ORCA API from either C++ or Python. There is an environment
-variable <code class="docutils literal notranslate"><span class="pre">ORCA_ACCESS_URL</span></code> that can be set so that the ORCA target can look for it during
-configuration.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_ACCESS_URL</span><span class="o">=</span><span class="s2">&quot;https://&lt;ORCA API Server&gt;&quot;</span>
+<p>To use Quantum Machines with CUDA-Q, you need to have an API key and access to
+the Quantum Machines server or their <code class="code docutils literal notranslate"><span class="pre">QOperator</span></code> service. You can set it using
+an environment variable:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QUANTUM_MACHINES_API_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;your_api_key&gt;&quot;</span>
 </pre></div>
 </div>
-<p>Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
-environment variable named <code class="docutils literal notranslate"><span class="pre">ORCA_AUTH_TOKEN</span></code>. For example, if the token is <code class="code docutils literal notranslate"><span class="pre">token123</span></code>,
-you can set the environment variable as follows:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">ORCA_AUTH_TOKEN</span><span class="o">=</span><span class="s2">&quot;token123&quot;</span>
-</pre></div>
-</div>
+<p>Alternatively, you can provide it directly when setting the target in your code.</p>
 </section>
 <section id="submitting">
 <h3>Submitting<a class="headerlink" href="#submitting" title="Permalink to this heading">¶</a></h3>
+<p>To specify which backend to use, set the <code class="code docutils literal notranslate"><span class="pre">executor</span></code> parameter when configuring
+the target. The available backends depend on your specific access rights and
+set up with Quantum Machines.  By default, a mock executor is used.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<p>To set which ORCA URL to be used, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-<span class="c1"># ...</span>
-<span class="n">orca_url</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ORCA_ACCESS_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;http://localhost/sample&quot;</span><span class="p">)</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca&quot;</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="n">orca_url</span><span class="p">)</span>
+<p>To target Quantum Machines from Python, use the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;quantum_machines&quot;</span><span class="p">,</span>
+                <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://api.quantum-machines.com&quot;</span><span class="p">,</span>
+                <span class="n">api_key</span><span class="o">=</span><span class="s2">&quot;your_api_key&quot;</span><span class="p">,</span>
+                <span class="n">executor</span><span class="o">=</span><span class="s2">&quot;mock&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>You can then execute a time-bin boson sampling experiment against the platform using an ORCA device.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">bs_angles</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">6</span><span class="p">]</span>
-<span class="n">input_state</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-<span class="n">loop_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">orca</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">input_state</span><span class="p">,</span> <span class="n">loop_lengths</span><span class="p">,</span> <span class="n">bs_angles</span><span class="p">)</span>
-</pre></div>
-</div>
+<p>Parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code>: The URL of the Quantum Machines server</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">executor</span></code>: The name of the executor/backend to use (defaults to “mock”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api_key</span></code>: Your API key (optional if set via environment variable)</p></li>
+</ul>
 </div>
 <input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>To execute a boson sampling experiment on the ORCA platform, provide the flag
-<code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">orca</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler. You should then pass the <code class="docutils literal notranslate"><span class="pre">--orca-url</span></code> flag set with
-the previously set environment variable <code class="docutils literal notranslate"><span class="pre">$ORCA_ACCESS_URL</span></code> or an <code class="code docutils literal notranslate"><span class="pre">url</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>orca<span class="w"> </span>--orca-url<span class="w"> </span><span class="nv">$ORCA_ACCESS_URL</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
+<p>To target quantum kernel code for execution on Quantum Machines, pass the
+flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quantum_machines</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantum_machines<span class="w"> </span>--quantum-machines-url<span class="w"> </span><span class="s2">&quot;https://api.quantum-machines.com&quot;</span><span class="w"> </span>src.cpp
 </pre></div>
 </div>
-<p>or</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>orca<span class="w"> </span>--orca-url<span class="w"> </span>&lt;url&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
-</pre></div>
-</div>
-<p>To run the output, invoke the executable</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./executable
-</pre></div>
-</div>
+<p>You can specify additional parameters:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--quantum-machines-url</span></code>: The URL of the QOperator server</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--quantum-machines-executor</span></code>: The name of the executor/backend to use (defaults to “mock”)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--quantum-machines-api-key</span></code>: Your API key (if not set via environment variable)</p></li>
+</ul>
 </div>
 </div>
-<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#orca-examples"><span class="std std-ref">ORCA Computing examples</span></a>.</p>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines-examples"><span class="std std-ref">Quantum Machines examples</span></a>.</p>
 </section>
 </section>
 </section>
@@ -1031,8 +1021,8 @@ the previously set environment variable <code class="docutils literal notranslat
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="neutralatom.html" class="btn btn-neutral float-left" title="Neutral Atom" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="qcontrol.html" class="btn btn-neutral float-right" title="Quantum Control Systems" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="photonic.html" class="btn btn-neutral float-left" title="Photonic" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../dynamics_backends.html" class="btn btn-neutral float-right" title="Dynamics Simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
