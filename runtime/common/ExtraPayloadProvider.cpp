@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "ExtraPayloadProvider.h"
+#include <algorithm>
 
 namespace cudaq {
 
