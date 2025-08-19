@@ -811,7 +811,7 @@ jobs:
   image_validation:
     name: Docker image validation
     needs: [assets, cudaq_images, image_validation_config]
-    runs-on: linux-amd64-gpu-v100-latest-1
+    runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
       contents: read
       packages: read
@@ -918,7 +918,7 @@ jobs:
   installer_validation:
     name: Installer validation
     needs: [assets, cudaq_installers]
-    runs-on: linux-amd64-gpu-v100-latest-1
+    runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
       contents: read
 
@@ -1047,7 +1047,7 @@ jobs:
 
     strategy:
       matrix:
-        platform: ['amd64-gpu-v100', 'arm64-gpu-a100']
+        platform: ['amd64-gpu-a100', 'arm64-gpu-a100']
         cuda_major: ['', '11', '12']
       fail-fast: false
 
@@ -1137,7 +1137,7 @@ jobs:
   metapackage_validation_conda:
     name: Python metapackage validation, conda environment
     needs: [assets, cudaq_wheels, cudaq_metapackages]
-    runs-on: linux-amd64-gpu-v100-latest-1
+    runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
       contents: read
 
