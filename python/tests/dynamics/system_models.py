@@ -126,14 +126,6 @@ class TestCompositeSystems(TestSystem):
     sm_dag = create(0)
     hamiltonian = 2 * np.pi * number(1) + 2 * np.pi * number(
         0) + 2 * np.pi * 0.25 * (sm * a_dag + sm_dag * a)
-    qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
-    cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
-    cavity_state[5][5] = 1.0
-    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
-    qubit_state = cp.array([1.0, 0.0], dtype=cp.complex128)
-    cavity_state = cp.zeros(10, dtype=cp.complex128)
-    cavity_state[5] = 1.0
-    psi0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
     steps = np.linspace(0, 10, 201)
     tol = 0.1
     # Expected results (from qutips)
@@ -239,8 +231,17 @@ class TestCompositeSystems(TestSystem):
                                    atol=self.tol)
 
     def run_tests(self, integrator):
-        self.run_test_simple(self.rho0, integrator)
-        self.run_test_simple(self.psi0, integrator)
+        qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
+        cavity_state = cp.zeros((10, 10), dtype=cp.complex128)
+        cavity_state[5][5] = 1.0
+        rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
+        self.run_test_simple(rho0, integrator)
+
+        qubit_state = cp.array([1.0, 0.0], dtype=cp.complex128)
+        cavity_state = cp.zeros(10, dtype=cp.complex128)
+        cavity_state[5] = 1.0
+        psi0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
+        self.run_test_simple(psi0, integrator)
 
 
 class TestCrossResonance(TestSystem):
@@ -411,6 +412,99 @@ class TestCallbackTensor(TestSystem):
         np.testing.assert_allclose(ideal_results[0][-1], 0, atol=0.1)
         np.testing.assert_allclose(ideal_results[1][-1], 0, atol=0.1)
         np.testing.assert_allclose(ideal_results[2][-1], -1, atol=0.1)
+
+
+class TestBug3326(TestSystem):
+
+    def case1(self, integrator):
+        # This test is to reproduce the bug reported in issue #3326
+        # Number of spins
+        N = 3
+        dimensions = {i: 2 for i in range(N)}
+
+        # Observable
+        observables = []
+        for i in range(N):
+            ob = spin.empty()
+            ob += spin.z(i) / N
+            observables.append(ob)
+
+        H = spin.empty()
+        for i in range(N):
+            H += spin.x(i)
+        for i in range(N - 1):
+            H += spin.y(i) * spin.z(i + 1)
+
+        steps = np.linspace(0.0, 1, 200)
+        schedule = Schedule(steps, ["time"])
+
+        gamma_dephasing = 0.05
+
+        # Run the simulation
+        evolution_result = cudaq.evolve(
+            H,
+            dimensions,
+            schedule,
+            initial_state=cudaq.dynamics.InitialState.ZERO,
+            observables=observables,
+            collapse_operators=[np.sqrt(gamma_dephasing) * spin.z(0)],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
+        assert len(evolution_result.expectation_values()) == len(steps)
+
+    def case2(self, integrator):
+        # This test is to reproduce the bug reported in issue #3326 (comment)
+        w_q0 = 5
+        w_q1 = 5
+        w_tunc = 7
+
+        anharmonicity = 0.21
+        tunc_anharmonicity = 0.13
+        N_tuncs = 3
+        dim = {0: N_tuncs, 1: N_tuncs, 2: N_tuncs}
+
+        H_q0 = w_q0 * boson.number(0) - anharmonicity * boson.number(0) * (
+            boson.number(0) - 1) / 2
+        H_q1 = w_q1 * boson.number(1) - anharmonicity * boson.number(1) * (
+            boson.number(1) - 1) / 2
+        H_tc = w_tunc * boson.create(2) * boson.annihilate(
+            2) - tunc_anharmonicity * boson.number(2) * (boson.number(2) -
+                                                         1) / 2
+        H = H_tc + H_q0 + H_q1
+
+        q0_state = cp.zeros((N_tuncs, N_tuncs), dtype=cp.complex128)
+        q0_state[1, 1] = 1.0
+
+        q1_state = cp.zeros((N_tuncs, N_tuncs), dtype=cp.complex128)
+        q1_state[0, 0] = 1.0
+
+        tc_state = cp.zeros((N_tuncs, N_tuncs), dtype=cp.complex128)
+        tc_state[0, 0] = 1.0
+
+        composite_state = cp.kron(cp.kron(tc_state, q1_state), q0_state)
+        rho0 = cudaq.State.from_data(composite_state)
+
+        steps = np.linspace(0, 10, 1000)
+        schedule = Schedule(steps, ["t"])
+
+        evolution_result = cudaq.evolve(
+            H,
+            dim,
+            schedule,
+            rho0,
+            observables=[boson.number(0),
+                         boson.number(1),
+                         boson.number(2)],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
+        assert len(evolution_result.expectation_values()) == len(steps)
+
+    def run_tests(self, integrator):
+        self.case1(integrator)
+        self.case2(integrator)
 
 
 class TestInitialStateEnum(TestSystem):

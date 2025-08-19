@@ -250,3 +250,34 @@ def test_controlled_rotation():
     U = cudaq.get_unitary(k, theta)
     expected = block_diag(np.eye(6, dtype=np.complex128), Rx(theta))
     np.testing.assert_allclose(U, expected, atol=1e-12)
+
+
+def test_cy_to_cx():
+
+    expected_cy = np.array(
+        [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, -1j], [0, 0, 1j, 0]],
+        dtype=np.complex128)
+
+    @cudaq.kernel
+    def kernel_with_cy():
+        q = cudaq.qvector(2)
+        y.ctrl(q[0], q[1])
+
+    U = cudaq.get_unitary(kernel_with_cy)
+    np.testing.assert_allclose(U, expected_cy, atol=1e-12)
+
+    @cudaq.kernel
+    def kernel_with_decomposed_cy():
+        q = cudaq.qvector(2)
+        s.adj(q[1])
+        x.ctrl(q[0], q[1])
+        s(q[1])
+
+    U_decomposed = cudaq.get_unitary(kernel_with_decomposed_cy)
+    np.testing.assert_allclose(U_decomposed, expected_cy, atol=1e-12)
+
+
+# leave for gdb debugging
+if __name__ == "__main__":
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

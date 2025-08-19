@@ -25,7 +25,7 @@ protected:
   std::string iqmServerUrl = "http://localhost/cocos/";
 
   /// @brief IQM QPU architecture, provided during the compile-time
-  std::string qpuArchitecture = "Adonis";
+  std::string qpuArchitecture = "Crystal_5";
 
   /// @brief The default cortex-cli tokens file path
   std::optional<std::string> tokensFilePath = std::nullopt;
@@ -93,12 +93,18 @@ public:
       throw std::runtime_error("QPU architecture is not provided");
     }
     qpuArchitecture = iter->second;
+    std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), '_', ' ');
     cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
 
     // Set an alternate base URL if provided.
     iter = backendConfig.find("url");
     if (iter != backendConfig.end()) {
       iqmServerUrl = iter->second;
+      // For running unittests
+      if (iqmServerUrl.find("localhost") != std::string::npos) {
+        std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), ' ', '_');
+        cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
+      }
     }
 
     // Allow overriding IQM Server Url, the compiled program will still work if

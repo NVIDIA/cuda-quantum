@@ -7,9 +7,9 @@
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE IQMServerHelper.cpp)
 add_target_config(iqm)
-add_target_mapping_arch(iqm Adonis.txt)
-add_target_mapping_arch(iqm Apollo.txt)
-add_target_mapping_arch(iqm Aphrodite.txt)
+add_target_mapping_arch(iqm "Crystal_5.txt")
+add_target_mapping_arch(iqm "Crystal_20.txt")
+add_target_mapping_arch(iqm "Crystal_54.txt")
 
 
 add_library(cudaq-serverhelper-iqm SHARED IQMServerHelper.cpp )
