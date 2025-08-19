@@ -171,6 +171,8 @@ async def create_job(job: dict):
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
     assert ('entry_point' in mstr)
+    print("Code")
+    print(mstr)
 
     # Get the function, number of qubits, and kernel name
     function = getKernelFunction(m)
@@ -344,6 +346,8 @@ async def get_results(result_id: str, version: int):
         # Note: this QIR log may not contain the header information that real services would return.
         # TODO: update this once we can test with a real NG device
         qir_log = cudaq.testing.getAndClearOutputLog()
+        print("QIR output:")
+        print(qir_log)
         return {
             "data": {
                 "id": result_id,

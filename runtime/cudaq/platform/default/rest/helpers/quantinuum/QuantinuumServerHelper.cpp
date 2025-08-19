@@ -496,7 +496,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
   // shot data.
   const std::string paramStr =
       resultType == QuantinuumServerHelper::ResultType::QSYS
-          ? fmt::format("?version={}", static_cast<int>(QsysResultVersion::RAW))
+          ? fmt::format("?version={}", static_cast<int>(QsysResultVersion::DEFAULT))
           : std::string();
 
   // Retrieve the results
