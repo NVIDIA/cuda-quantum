@@ -11,16 +11,25 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
+#include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 #include <fstream>
+
+namespace nvqir {
+cudaq::Resources *getResourceCounts();
+bool isUsingResourceCounterSimulator();
+} // namespace nvqir
 
 namespace cudaq {
 
@@ -55,10 +64,6 @@ public:
   std::thread::id getExecutionThreadId() const {
     return execution_queue->getExecutionThreadId();
   }
-
-  virtual bool isRemote() override { return true; }
-
-  virtual bool isSimulator() override { return true; }
 
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
@@ -148,6 +153,24 @@ public:
       cudaq::getExecutionManager()->setExecutionContext(executionContextPtr);
       auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
                                             voidStarSize, 0, rawArgs);
+
+      mlir::PassManager pm(m_mlirContext.get());
+      // Each pass may run in a separate thread, so we have to make sure to
+      // grab this reference in this thread
+      auto resource_counts = nvqir::getResourceCounts();
+      std::function<void(std::string, size_t, size_t)> f =
+          [&](std::string gate, size_t nControls, size_t count) {
+            cudaq::info("Appending: {}", gate);
+            resource_counts->appendInstruction(gate, nControls, count);
+          };
+      cudaq::opt::ResourceCountPreprocessOptions opt{f};
+      pm.addNestedPass<mlir::func::FuncOp>(
+          opt::createResourceCountPreprocess(opt));
+      pm.addPass(mlir::createCanonicalizerPass());
+
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error(
+            "Remote rest platform: applying resource-count passes failed.");
 
       auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
 
@@ -251,6 +274,11 @@ public:
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
+    if (nvqir::isUsingResourceCounterSimulator())
+      throw std::runtime_error(
+          "Illegal use of resource counter simulator! (Did you attempt to run "
+          "a kernel inside of a choice function?)");
+
     cudaq::info("BaseRemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts[std::this_thread::get_id()] = context;
