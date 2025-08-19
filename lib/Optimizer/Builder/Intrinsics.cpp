@@ -62,6 +62,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : !cc.ptr<i8>) -> i64
 )#"},
 
+    {cudaq::runtime::deviceCodeHolderAdd, {}, R"#(
+  llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+)#"},
+
     {cudaq::runtime::getLinkableKernelKey, {}, R"#(
   func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
 )#"},

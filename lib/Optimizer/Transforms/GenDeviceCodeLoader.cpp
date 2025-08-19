@@ -50,12 +50,11 @@ public:
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     if (generateAsQuake) {
       // Add declaration of deviceCodeHolderAdd
-      builder.create<LLVM::LLVMFuncOp>(
-          loc, cudaq::runtime::deviceCodeHolderAdd,
-          LLVM::LLVMFunctionType::get(
-              cudaq::opt::factory::getVoidType(ctx),
-              {cudaq::opt::factory::getPointerType(ctx),
-               cudaq::opt::factory::getPointerType(ctx)}));
+      cudaq::IRBuilder irBuilder(builder);
+      if (failed(irBuilder.loadIntrinsic(
+              module, cudaq::runtime::deviceCodeHolderAdd))) {
+        signalPassFailure();
+      }
     }
 
     auto mangledNameMap =
