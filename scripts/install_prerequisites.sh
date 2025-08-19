@@ -36,7 +36,8 @@ toolchain=''
 exclude_prereq=''
 install_all=true
 keep_sources=false
-tpls_dir="/opt/cudaq/tpls"
+tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
+tpls_dir="$tpls_root/tpls"
 sudo mkdir -p "$tpls_dir"
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 __optind__=$OPTIND
@@ -399,15 +400,6 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   fi
 fi
 
-lookup_tpls_sha() {
-  local path="$1"
-
-  # Using lock file
-  if [[ -f /tmp/tpls_commits.lock ]]; then
-    awk -v p="$path" '$2==p{print $1}' /tmp/tpls_commits.lock && return 0
-  fi
-}
-
 # Clone the third-party libraries to include its source code in the NVQC docker image.
 if [ "$keep_sources" = true ]; then
   echo "Cloning additional third-party libraries into $tpls_dir..."
@@ -432,9 +424,9 @@ if [ "$keep_sources" = true ]; then
     echo "Adding $dest as a safe.directory..."
     sudo git config --global --add safe.directory "$dest"
 
-    commit="$(lookup_tpls_sha "$path")" || {
+    commit="$(git rev-parse "HEAD:$path" 2>/dev/null)" || {
       echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
-      continue
+      exit 1
     }
     echo "Using commit $commit for $lib."
 
