@@ -86,6 +86,10 @@ public:
   // Return the remote capabilities of the server.
   virtual RemoteCapabilities getRemoteCapabilities() const = 0;
 
+  // Extract the quake representation for the kernel `kernelName`,
+  // with all the relevant client-side passes run. The returned
+  // `ModuleOp` will then need the final codegen pipeline
+  // (e.g., convertToQIR) run before it can be executed.
   virtual mlir::ModuleOp lowerKernel(mlir::MLIRContext &mlirContext,
                                      const std::string &kernelName,
                                      const void *kernelArgs,
