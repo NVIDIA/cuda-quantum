@@ -60,6 +60,17 @@ public:
 
     auto mangledNameMap =
         module->getAttrOfType<DictionaryAttr>(cudaq::runtime::mangledNameMap);
+    {
+      cudaq::IRBuilder irBuilder(builder);
+      if (failed(irBuilder.loadIntrinsic(
+              module, cudaq::runtime::registerLinkableKernel))) {
+        signalPassFailure();
+      }
+      if (failed(irBuilder.loadIntrinsic(
+              module, cudaq::runtime::registerRunnableKernel))) {
+        signalPassFailure();
+      }
+    }
 
     // Collect all function declarations to forward as part of each Module.
     // These are thrown in so the Module's CallOps are complete. Unused
@@ -92,6 +103,8 @@ public:
       if (!funcOp.getName().startswith(cudaq::runtime::cudaqGenPrefixName))
         continue;
       if (funcOp->hasAttr(cudaq::generatorAnnotation) || funcOp.empty())
+        continue;
+      if (funcOp.getName().endswith(".entry"))
         continue;
       auto className =
           funcOp.getName().drop_front(cudaq::runtime::cudaqGenPrefixLength);
@@ -182,36 +195,48 @@ public:
       auto kernName = funcOp.getSymName().str();
       if (!jitTime && mangledNameMap && !mangledNameMap.empty() &&
           mangledNameMap.contains(kernName)) {
-        auto hostFuncNameAttr = mangledNameMap.getAs<StringAttr>(kernName);
-        auto hostFuncName = hostFuncNameAttr.getValue();
-        auto hostFuncOp = module.lookupSymbol<func::FuncOp>(hostFuncName);
-        if (!hostFuncOp) {
-          // Using a fake type. We just want the symbol of an artifact defined
-          // in host code. We're not calling this function.
-          hostFuncOp =
-              cudaq::opt::factory::createFunction(hostFuncName, {}, {}, module);
-          hostFuncOp.setPrivate();
-        }
         auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-        auto entryRef = builder.create<func::ConstantOp>(
-            loc, hostFuncOp.getFunctionType(), hostFuncOp.getSymName());
-        auto castEntryRef =
-            builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrTy, entryRef);
-        auto deviceRef = builder.create<func::ConstantOp>(
-            loc, funcOp.getFunctionType(), funcOp.getSymName());
-        auto castDeviceRef =
-            builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrTy, deviceRef);
-        auto castKernNameRef =
-            builder.create<cudaq::cc::CastOp>(loc, ptrTy, devRef);
+        auto getEntryRef = [&](auto kernName) {
+          auto hostFuncNameAttr = mangledNameMap.getAs<StringAttr>(kernName);
+          auto hostFuncName = hostFuncNameAttr.getValue();
+          auto hostFuncOp = module.lookupSymbol<func::FuncOp>(hostFuncName);
+          if (!hostFuncOp) {
+            // Using a fake type. We just want the symbol of an artifact defined
+            // in host code. We're not calling this function.
+            hostFuncOp = cudaq::opt::factory::createFunction(hostFuncName, {},
+                                                             {}, module);
+            hostFuncOp.setPrivate();
+          }
+          auto entryRef = builder.create<func::ConstantOp>(
+              loc, hostFuncOp.getFunctionType(), hostFuncOp.getSymName());
+          return builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrTy, entryRef);
+        };
+        auto castEntryRef = getEntryRef(kernName);
 
-        cudaq::IRBuilder irBuilder(builder);
-        if (failed(irBuilder.loadIntrinsic(
-                module, cudaq::runtime::registerLinkableKernel))) {
-          signalPassFailure();
+        if (kernName.ends_with(".run")) {
+          kernName = className.str();
+          kernName.resize(kernName.size() - 4);
+          auto nameTy =
+              cudaq::opt::factory::getStringType(ctx, kernName.size() + 1);
+          // The original kernel's name was already created.
+          auto devRef = builder.create<LLVM::AddressOfOp>(
+              loc, cudaq::opt::factory::getPointerType(nameTy),
+              kernName + "CodeHolder.extract_device_name");
+          auto ccPtr = builder.create<cudaq::cc::CastOp>(loc, ptrTy, devRef);
+          builder.create<func::CallOp>(loc, std::nullopt,
+                                       cudaq::runtime::registerRunnableKernel,
+                                       ValueRange{ccPtr, castEntryRef});
+        } else {
+          auto deviceRef = builder.create<func::ConstantOp>(
+              loc, funcOp.getFunctionType(), funcOp.getSymName());
+          auto castDeviceRef =
+              builder.create<cudaq::cc::FuncToPtrOp>(loc, ptrTy, deviceRef);
+          auto castKernNameRef =
+              builder.create<cudaq::cc::CastOp>(loc, ptrTy, devRef);
+          builder.create<func::CallOp>(
+              loc, std::nullopt, cudaq::runtime::registerLinkableKernel,
+              ValueRange{castEntryRef, castKernNameRef, castDeviceRef});
         }
-        builder.create<func::CallOp>(
-            loc, std::nullopt, cudaq::runtime::registerLinkableKernel,
-            ValueRange{castEntryRef, castKernNameRef, castDeviceRef});
       }
 
       builder.create<LLVM::ReturnOp>(loc, ValueRange{});
