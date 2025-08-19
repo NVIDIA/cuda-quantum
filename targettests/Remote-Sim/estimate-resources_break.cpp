@@ -6,10 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: remote-sim
 
 // Compile and run with:
 // ```
-// RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target remote-mqpu                             %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 2 %s -o %t && %t | FileCheck %s
 // ```
 
 #include <cudaq.h>
@@ -21,9 +23,10 @@ struct mykernel {
 
     cudaq::qubit q;
     h(q);
-    while (mz(q)) {
-      rz(0.1, q);
-      h(q);
+    for (size_t i = 0; i < 100; i++) {
+      x(q);
+      if (mz(q))
+        break;
     }
   }
 };
@@ -31,13 +34,12 @@ struct mykernel {
 int main() {
   auto kernel = mykernel{};
   int i = 0;
-  // Should cause 5 loops
-  auto counts = cudaq::estimate_resources([&](){ return i++ < 5; }, kernel);
+  auto counts = cudaq::estimate_resources([&](){ return ++i >= 10; }, kernel);
   counts.dump();
 
   // CHECK: Total # of gates: 11
-  // CHECK-DAG: h :  6
-  // CHECK-DAG: rz :  5
+  // CHECK-DAG: h :  1
+  // CHECK-DAG: x :  10
 
   return 0;
 }

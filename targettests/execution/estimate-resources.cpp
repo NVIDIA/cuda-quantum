@@ -9,8 +9,7 @@
 
 // Compile and run with:
 // ```
-// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t
-// RUN: nvq++ %cpp_std %s -o %t && %t
+// RUN: nvq++ %cpp_std --target nvidia                   --emulate %s -o %t && %t | FileCheck %s
 // ```
 
 #include <cudaq.h>
@@ -19,30 +18,37 @@
 struct mykernel {
   auto operator()() __qpu__ {
     cudaq::qubit q;
-
+    
+    rx(.0,q);
+    ry(.0,q);
+    rz(.0,q);
+    h(q);
     x(q);
-
-    auto m1 = mz(q);
-    if (m1)
-      x(q);
+    y(q);
+    z(q);
+    s(q);
+    t(q);
   }
 };
 
 int main() {
   auto kernel = mykernel{};
-  std::function<bool()> choice = [&](){
-    auto counts1 = cudaq::sample(5, kernel);
-    counts1.dump();
-    return true;
-  };
-  auto exception_thrown = false;
-  try {
-    auto gateCounts = cudaq::estimate_resources(choice, kernel);
-    gateCounts.dump();
-  } catch (...) {
-    exception_thrown = true;
-  }
-  assert(exception_thrown);
+  auto gateCounts = cudaq::estimate_resources(kernel);
+
+  gateCounts.dump();
+  // CHECK: Total # of gates: 9, total # of qubits: 1
+  // Note: This is a little fragile with filecheck, it's important to have `rx :  1`
+  //       before `x :  1` or else `x :  1` will match `rx :  1` and `rx :  1` will
+  //       have no matches
+  // CHECK-DAG: rx :  1
+  // CHECK-DAG: ry :  1
+  // CHECK-DAG: rz :  1
+  // CHECK-DAG: h :  1
+  // CHECK-DAG: x :  1
+  // CHECK-DAG: y :  1
+  // CHECK-DAG: z :  1
+  // CHECK-DAG: s :  1
+  // CHECK-DAG: t :  1
 
   return 0;
 }

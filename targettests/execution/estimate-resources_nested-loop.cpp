@@ -9,35 +9,35 @@
 
 // Compile and run with:
 // ```
-// RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target nvidia                   --emulate %s -o %t && %t | FileCheck %s
 // ```
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
 
-// Tests that the choice function works properly for a loop condition
+template <std::size_t N>
 struct mykernel {
   auto operator()() __qpu__ {
 
-    cudaq::qubit q;
-    h(q);
-    for (size_t i = 0; i < 100; i++) {
-      x(q);
-      if (mz(q))
-        break;
+    cudaq::qarray<N> q;
+    for (size_t i = 0; i < N - 1; i++) {
+      h(q[i]);
+      for (size_t j = i + 1; j < N; j++) {
+        x<cudaq::ctrl>(q[i], q[j]);
+      }
     }
+    mz(q);
   }
 };
 
 int main() {
-  auto kernel = mykernel{};
-  int i = 0;
-  auto counts = cudaq::estimate_resources([&](){ return ++i >= 10; }, kernel);
-  counts.dump();
+  auto kernel = mykernel<10>{};
+  auto counts = cudaq::estimate_resources(kernel);
 
-  // CHECK: Total # of gates: 11
-  // CHECK-DAG: h :  1
-  // CHECK-DAG: x :  10
+  counts.dump();
+  // CHECK: Total # of gates: 54
+  // CHECK-DAG: h :  9
+  // CHECK-DAG: cx :  45
 
   return 0;
 }
