@@ -274,7 +274,8 @@ public:
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (nvqir::isUsingResourceCounterSimulator())
+    if (nvqir::isUsingResourceCounterSimulator() &&
+        context->name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
