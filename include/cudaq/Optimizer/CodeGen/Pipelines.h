@@ -36,7 +36,7 @@ void commonPipelineConvertToQIR(mlir::PassManager &pm,
 /// \p convertTo QIR triple
 /// The QIR triple is a name indicating the selected profile (`qir`, `qir-full`,
 /// `qir-base`, or `qir-adaptive`) followed by an optional `:` and QIR version
-/// followed by an optional `:` and a list of suboptions.
+/// followed by an optional `:` and a list of `suboptions`.
 void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
