@@ -597,11 +597,20 @@ class PhaseFoldingPass
 public:
   void runOnOperation() override {
     auto func = getOperation();
+    mlir::DefaultTimingManager tm;
+    tm.setEnabled(false);
+    auto root = tm.getRootTimer();
+    root.start();
+    auto netlistBuild = root.nest("Building netlist");
+    netlistBuild.start();
     // Get the netlist represention for the qubits in the function,
     // this will walk the whole function once
     auto nl = Netlist(func);
+    netlistBuild.stop();
     SmallVector<Subcircuit *> subcircuits;
 
+    auto subcircuitBuild = root.nest("Building subcircuits");
+    subcircuitBuild.start();
     func.walk([&](quake::XOp op) {
       // AXIS-SPECIFIC: controlled not only
       if (!::isCNOT(op) || ::processed(op))
@@ -615,17 +624,24 @@ public:
       auto subcircuit = new Subcircuit(op, &nl);
       subcircuits.push_back(subcircuit);
     });
+    subcircuitBuild.stop();
 
     // Performing the actual optimization over subcircuits after collecting them
     // A) allows for eventually parallelizing the optimization, and
     // B) avoids rewriting the AST as it is being walked above, causing an
     // error. This does introduce a requirement that each operation belongs to
     // at most one subcircuit.
+    auto rotationMerging = root.nest("Merging rotations by phase");
+    rotationMerging.start();
     for (auto subcircuit : subcircuits) {
       doPhaseFolding(subcircuit);
       // Clean up
       delete subcircuit;
     }
+    rotationMerging.stop();
+
+    root.stop();
+    tm.setDisplayMode(mlir::DefaultTimingManager::DisplayMode::Tree);
   }
 };
 } // namespace
