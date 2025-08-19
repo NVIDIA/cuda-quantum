@@ -221,11 +221,11 @@ public:
       moduleOp.getContext()->disableMultithreading();
       pm.enableIRPrinting();
     }
-    if (failed(parsePassPipeline(pipeline, pm, os)))
+    if (failed(parsePassPipeline(pipeline, pm, os))) {
       throw std::runtime_error(
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
-
+    }
     return moduleOp;
   }
 
@@ -234,14 +234,11 @@ public:
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx,
                                      const std::vector<void *> *rawArgs) {
-    bool qirVersionUnderDevelopment =
-        getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
-
     auto moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
                                 startingArgIdx, rawArgs);
 
     mlir::PassManager pm(&mlirContext);
-    opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
+    opt::addPipelineConvertToQIR(pm, "qir:0.1");
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
@@ -255,6 +252,7 @@ public:
     moduleOp.print(outStr, opf);
     return llvm::encodeBase64(mlirCode);
   }
+
   cudaq::RestRequest constructVQEJobRequest(
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,

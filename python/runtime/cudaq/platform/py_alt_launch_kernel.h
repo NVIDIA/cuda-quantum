@@ -65,4 +65,11 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
                     const std::vector<std::string> &names);
 
 void bindAltLaunchKernel(py::module &mod);
+
+std::string getQIR(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs,
+                   const std::string &profile);
+
+std::string getASM(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs);
 } // namespace cudaq

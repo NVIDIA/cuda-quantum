@@ -142,9 +142,6 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel - execute passes",
                            name);
 
-    bool qirVersionUnderDevelopment =
-        getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
-
     auto cloned = mod.clone();
     auto context = cloned.getContext();
     PassManager pm(context);
@@ -155,7 +152,8 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
         {.startingArgIdx = startingArgIdx}));
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createReturnToOutputLog());
-    cudaq::opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
+    pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    cudaq::opt::addPipelineConvertToQIR(pm, "qir:0.1");
     pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =
@@ -821,10 +819,8 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
 
 std::string getQIR(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs,
-                   const std::string &profile,
-                   bool qirVersionUnderDevelopment) {
+                   const std::string &profile_) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
-
   auto noneType = mlir::NoneType::get(unwrap(module).getContext());
 
   auto [jit, rawArgs, size, returnOffset] =
@@ -835,11 +831,10 @@ std::string getQIR(const std::string &name, MlirModule module,
   PassManager pm(context);
   pm.addPass(cudaq::opt::createLambdaLiftingPass());
   pm.addPass(cudaq::opt::createReturnToOutputLog());
+  std::string profile{profile_};
   if (profile.empty())
-    cudaq::opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
-  else
-    cudaq::opt::addPipelineConvertToQIR(pm, profile,
-                                        qirVersionUnderDevelopment);
+    profile = "qir:0.1";
+  cudaq::opt::addPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
@@ -1003,15 +998,13 @@ void bindAltLaunchKernel(py::module &mod) {
                      "to_qir()/get_qir() is deprecated, use translate() "
                      "with `format=\"qir\"`.",
                      1);
-        bool qirVersionUnderDevelopment =
-            getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
 
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
         MlirModule module = kernel.attr("module").cast<MlirModule>();
         auto name = kernel.attr("name").cast<std::string>();
         cudaq::OpaqueArguments args;
-        return getQIR(name, module, args, profile, qirVersionUnderDevelopment);
+        return getQIR(name, module, args, profile);
       },
       py::arg("kernel"), py::kw_only(), py::arg("profile") = "");
 

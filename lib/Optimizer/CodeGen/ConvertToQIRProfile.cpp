@@ -204,10 +204,8 @@ private:
 
 struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
   explicit AddFuncAttribute(MLIRContext *ctx, const FunctionAnalysisInfo &info,
-                            llvm::StringRef convertTo_,
-                            bool qirVersionUnderDevelopment_)
-      : OpRewritePattern(ctx), infoMap(info), convertTo(convertTo_),
-        qirVersionUnderDevelopment(qirVersionUnderDevelopment_) {}
+                            llvm::StringRef convertTo_)
+      : OpRewritePattern(ctx), infoMap(info), convertTo(convertTo_) {}
 
   LogicalResult matchAndRewrite(LLVM::LLVMFuncOp op,
                                 PatternRewriter &rewriter) const override {
@@ -223,15 +221,15 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
 
     auto requiredQubitsStr = std::to_string(info.nQubits);
     StringRef requiredQubitsStrRef = requiredQubitsStr;
-    if (auto stringAttr = op->getAttr(cudaq::opt::getQIRRequiredQubitsAttrName(
-                                          qirVersionUnderDevelopment))
-                              .dyn_cast_or_null<mlir::StringAttr>())
+    if (auto stringAttr =
+            op->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName)
+                .dyn_cast_or_null<mlir::StringAttr>())
       requiredQubitsStrRef = stringAttr;
     auto requiredResultsStr = std::to_string(info.nResults);
     StringRef requiredResultsStrRef = requiredResultsStr;
-    if (auto stringAttr = op->getAttr(cudaq::opt::getQIRRequiredResultsAttrName(
-                                          qirVersionUnderDevelopment))
-                              .dyn_cast_or_null<mlir::StringAttr>())
+    if (auto stringAttr =
+            op->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName)
+                .dyn_cast_or_null<mlir::StringAttr>())
       requiredResultsStrRef = stringAttr;
     StringRef outputNamesStrRef;
     std::string resultQubitJSONStr;
@@ -244,7 +242,8 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     }
 
     // QIR functions need certain attributes, add them here.
-    // TODO: Update schema_id with valid value (issues #385 and #556)
+    // This pass is deprecated and will always use QIR 0.1. Future extensions
+    // are not required either.
     SmallVector<Attribute> attrArray{
         rewriter.getStringAttr(cudaq::opt::QIREntryPointAttrName),
         rewriter.getStrArrayAttr(
@@ -253,12 +252,12 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
             {cudaq::opt::QIROutputLabelingSchemaAttrName, "schema_id"}),
         rewriter.getStrArrayAttr(
             {cudaq::opt::QIROutputNamesAttrName, outputNamesStrRef}),
-        rewriter.getStrArrayAttr({cudaq::opt::getQIRRequiredQubitsAttrName(
-                                      qirVersionUnderDevelopment),
-                                  requiredQubitsStrRef}),
-        rewriter.getStrArrayAttr({cudaq::opt::getQIRRequiredResultsAttrName(
-                                      qirVersionUnderDevelopment),
-                                  requiredResultsStrRef})};
+        rewriter.getStrArrayAttr(
+            {cudaq::opt::qir0_1::RequiredQubitsAttrName, requiredQubitsStrRef}),
+        rewriter.getStrArrayAttr(
+            // This pass is deprecated and will always use QIR 0.1.
+            {cudaq::opt::qir0_1::RequiredResultsAttrName,
+             requiredResultsStrRef})};
 
     op.setPassthroughAttr(rewriter.getArrayAttr(attrArray));
 
@@ -305,7 +304,6 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
 
   const FunctionAnalysisInfo &infoMap;
   std::string convertTo;
-  bool qirVersionUnderDevelopment;
 };
 
 struct AddCallAttribute : public OpRewritePattern<LLVM::CallOp> {
@@ -342,11 +340,9 @@ struct QIRToQIRProfileFuncPass
     : public cudaq::opt::QIRToQIRProfileFuncBase<QIRToQIRProfileFuncPass> {
   using QIRToQIRProfileFuncBase::QIRToQIRProfileFuncBase;
 
-  explicit QIRToQIRProfileFuncPass(llvm::StringRef convertTo_,
-                                   bool qirVersionUnderDevelopment_)
+  explicit QIRToQIRProfileFuncPass(llvm::StringRef convertTo_)
       : QIRToQIRProfileFuncBase() {
     convertTo.setValue(convertTo_.str());
-    qirVersionUnderDevelopment.setValue(qirVersionUnderDevelopment_);
   }
 
   void runOnOperation() override {
@@ -356,8 +352,7 @@ struct QIRToQIRProfileFuncPass
     const auto &analysis = getAnalysis<FunctionProfileAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
     patterns.insert<AddFuncAttribute>(ctx, funcAnalysisInfo,
-                                      convertTo.getValue(),
-                                      qirVersionUnderDevelopment);
+                                      convertTo.getValue());
     patterns.insert<AddCallAttribute>(ctx, funcAnalysisInfo);
     ConversionTarget target(*ctx);
     target.addLegalDialect<LLVM::LLVMDialect>();
@@ -385,10 +380,8 @@ struct QIRToQIRProfileFuncPass
 } // namespace
 
 std::unique_ptr<Pass>
-cudaq::opt::createConvertToQIRFuncPass(llvm::StringRef convertTo,
-                                       bool qirVersionUnderDevelopment) {
-  return std::make_unique<QIRToQIRProfileFuncPass>(convertTo,
-                                                   qirVersionUnderDevelopment);
+cudaq::opt::createConvertToQIRFuncPass(llvm::StringRef convertTo) {
+  return std::make_unique<QIRToQIRProfileFuncPass>(convertTo);
 }
 
 //===----------------------------------------------------------------------===//
@@ -482,11 +475,8 @@ struct QIRToQIRProfileQIRPass
 
   /// @brief Construct pass
   /// @param convertTo_ expected "qir-base" or "qir-adaptive"
-  QIRToQIRProfileQIRPass(llvm::StringRef convertTo_,
-                         bool qirVersionUnderDevelopment_)
-      : QIRToQIRProfileBase() {
+  QIRToQIRProfileQIRPass(llvm::StringRef convertTo_) : QIRToQIRProfileBase() {
     convertTo.setValue(convertTo_.str());
-    qirVersionUnderDevelopment.setValue(qirVersionUnderDevelopment_);
   }
 
   void runOnOperation() override {
@@ -502,7 +492,7 @@ struct QIRToQIRProfileQIRPass
                 MeasureCallConv, MeasureToRegisterCallConv,
                 XCtrlOneTargetToCNot, ZCtrlOneTargetToCZ>(context);
     if (convertTo.getValue() == "qir-adaptive")
-      patterns.insert<LoadMeasureResult>(context, qirVersionUnderDevelopment);
+      patterns.insert<LoadMeasureResult>(context);
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After QIR profile:\n" << *op << '\n');
@@ -514,10 +504,8 @@ private:
 } // namespace
 
 std::unique_ptr<Pass>
-cudaq::opt::createQIRToQIRProfilePass(llvm::StringRef convertTo,
-                                      bool qirVersionUnderDevelopment) {
-  return std::make_unique<QIRToQIRProfileQIRPass>(convertTo,
-                                                  qirVersionUnderDevelopment);
+cudaq::opt::createQIRToQIRProfilePass(llvm::StringRef convertTo) {
+  return std::make_unique<QIRToQIRProfileQIRPass>(convertTo);
 }
 
 //===----------------------------------------------------------------------===//
@@ -537,11 +525,6 @@ static constexpr std::array<const char *, 3> measurementFunctionNames{
 
 struct QIRProfilePreparationPass
     : public cudaq::opt::QIRToQIRProfilePrepBase<QIRProfilePreparationPass> {
-
-  explicit QIRProfilePreparationPass(bool qirVersionUnderDevelopment_)
-      : QIRToQIRProfilePrepBase() {
-    qirVersionUnderDevelopment.setValue(qirVersionUnderDevelopment_);
-  }
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
@@ -564,8 +547,8 @@ struct QIRProfilePreparationPass
         module);
 
     cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::getQIRReadResultBody(qirVersionUnderDevelopment),
-        IntegerType::get(ctx, 1), {cudaq::opt::getResultType(ctx)}, module);
+        cudaq::opt::qir0_1::ReadResultBody, IntegerType::get(ctx, 1),
+        {cudaq::opt::getResultType(ctx)}, module);
 
     // Add record functions for any measurements.
     cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -598,10 +581,8 @@ struct QIRProfilePreparationPass
 };
 } // namespace
 
-std::unique_ptr<Pass>
-cudaq::opt::createQIRProfilePreparationPass(bool qirVersionUnderDevelopment) {
-  return std::make_unique<QIRProfilePreparationPass>(
-      qirVersionUnderDevelopment);
+std::unique_ptr<Pass> cudaq::opt::createQIRProfilePreparationPass() {
+  return std::make_unique<QIRProfilePreparationPass>();
 }
 
 //===----------------------------------------------------------------------===//
@@ -614,12 +595,10 @@ void cudaq::opt::addQIRProfileVerify(OpPassManager &pm,
 }
 
 void cudaq::opt::addQIRProfilePipeline(OpPassManager &pm,
-                                       llvm::StringRef convertTo,
-                                       bool qirVersionUnderDevelopment) {
+                                       llvm::StringRef convertTo) {
   assert(convertTo == "qir-adaptive" || convertTo == "qir-base");
-  pm.addPass(createQIRProfilePreparationPass(qirVersionUnderDevelopment));
-  pm.addNestedPass<LLVM::LLVMFuncOp>(
-      createConvertToQIRFuncPass(convertTo, qirVersionUnderDevelopment));
-  pm.addPass(createQIRToQIRProfilePass(convertTo, qirVersionUnderDevelopment));
+  pm.addPass(createQIRProfilePreparationPass());
+  pm.addNestedPass<LLVM::LLVMFuncOp>(createConvertToQIRFuncPass(convertTo));
+  pm.addPass(createQIRToQIRProfilePass(convertTo));
   addQIRProfileVerify(pm, convertTo);
 }

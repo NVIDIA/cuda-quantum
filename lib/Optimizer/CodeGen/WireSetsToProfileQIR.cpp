@@ -340,11 +340,9 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
   using Base = OpConversionPattern;
 
   explicit DiscriminateRewrite(TypeConverter &typeConverter, bool adaptive,
-                               bool qirVersionUnderDevelopment,
                                DenseMap<Operation *, StringRef> &nameMap,
                                MLIRContext *ctxt, PatternBenefit benefit = 1)
       : Base(typeConverter, ctxt, benefit), isAdaptiveProfile(adaptive),
-        qirVersionUnderDevelopment(qirVersionUnderDevelopment),
         regNameMap(nameMap) {}
 
   LogicalResult
@@ -372,8 +370,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         loc, std::nullopt, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
-      std::string funcName =
-          cudaq::opt::getQIRReadResultBody(qirVersionUnderDevelopment);
+      std::string funcName = toQisBodyName(std::string("read_result"));
       rewriter.replaceOpWithNewOp<func::CallOp>(
           disc, rewriter.getI1Type(), funcName,
           ValueRange{adaptor.getMeasurement()});
@@ -387,7 +384,6 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
 
 private:
   bool isAdaptiveProfile;
-  bool qirVersionUnderDevelopment;
   DenseMap<Operation *, StringRef> &regNameMap;
 };
 
@@ -416,9 +412,8 @@ struct WireSetToProfileQIRPass
                             : op.getIdentity();
     });
     if (highestIdentity)
-      op->setAttr(
-          cudaq::opt::getQIRRequiredQubitsAttrName(qirVersionUnderDevelopment),
-          builder.getStringAttr(std::to_string(*highestIdentity + 1)));
+      op->setAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName,
+                  builder.getStringAttr(std::to_string(*highestIdentity + 1)));
 
     RewritePatternSet patterns(context);
     QuakeTypeConverter quakeTypeConverter;
@@ -438,8 +433,7 @@ struct WireSetToProfileQIRPass
                                resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
     patterns.insert<DiscriminateRewrite>(quakeTypeConverter, isAdaptiveProfile,
-                                         qirVersionUnderDevelopment, regNameMap,
-                                         context);
+                                         regNameMap, context);
     ConversionTarget target(*context);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            func::FuncDialect, LLVM::LLVMDialect>();
@@ -457,9 +451,8 @@ struct WireSetToProfileQIRPass
     }
 
     if (highestIdentity)
-      op->setAttr(
-          cudaq::opt::getQIRRequiredResultsAttrName(qirVersionUnderDevelopment),
-          builder.getStringAttr(std::to_string(resultCounter)));
+      op->setAttr(cudaq::opt::qir0_1::RequiredResultsAttrName,
+                  builder.getStringAttr(std::to_string(resultCounter)));
 
     LLVM_DEBUG(llvm::dbgs() << "Module after:\n"; op.dump());
   }
@@ -550,8 +543,7 @@ struct WireSetToProfileQIRPrepPass
     addBodyDecl("mz", measTy);
     auto readResTy = FunctionType::get(ctx, TypeRange{resTy},
                                        TypeRange{builder.getI1Type()});
-    createNewDecl(cudaq::opt::getQIRReadResultBody(qirVersionUnderDevelopment),
-                  readResTy);
+    createNewDecl("__quantum__qis__read_result__body", readResTy);
 
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
     auto recordTy =
@@ -616,8 +608,7 @@ struct WireSetToProfileQIRPostPass
 
             if (auto reqQubits =
                     parentFuncOp
-                        ->getAttr(cudaq::opt::getQIRRequiredQubitsAttrName(
-                            qirVersionUnderDevelopment))
+                        ->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName)
                         .dyn_cast_or_null<StringAttr>()) {
               std::uint32_t thisFuncReqQubits = 0;
               if (!reqQubits.strref().getAsInteger(10, thisFuncReqQubits)) {
@@ -631,8 +622,7 @@ struct WireSetToProfileQIRPostPass
 
             if (auto reqResults =
                     parentFuncOp
-                        ->getAttr(cudaq::opt::getQIRRequiredResultsAttrName(
-                            qirVersionUnderDevelopment))
+                        ->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName)
                         .dyn_cast_or_null<StringAttr>()) {
               std::uint32_t thisFuncReqResults = 0;
               if (!reqResults.strref().getAsInteger(10, thisFuncReqResults)) {
@@ -647,13 +637,11 @@ struct WireSetToProfileQIRPostPass
           // Apply the final attribute on the entrypoint function
           if (highestIdentity)
             funcOp->setAttr(
-                cudaq::opt::getQIRRequiredQubitsAttrName(
-                    qirVersionUnderDevelopment),
+                cudaq::opt::qir0_1::RequiredQubitsAttrName,
                 builder.getStringAttr(std::to_string(*highestIdentity + 1)));
           if (highestResult)
             funcOp->setAttr(
-                cudaq::opt::getQIRRequiredResultsAttrName(
-                    qirVersionUnderDevelopment),
+                cudaq::opt::qir0_1::RequiredResultsAttrName,
                 builder.getStringAttr(std::to_string(*highestResult + 1)));
         }
       }
@@ -678,23 +666,18 @@ struct WireSetToProfileQIRPostPass
 };
 } // namespace
 
-void cudaq::opt::addWiresetToProfileQIRPipeline(
-    OpPassManager &pm, StringRef profile, bool qirVersionUnderDevelopment) {
-  WireSetToProfileQIRPrepOptions wPrepOpt{.qirVersionUnderDevelopment =
-                                              qirVersionUnderDevelopment};
-  pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep(wPrepOpt));
-  WireSetToProfileQIROptions wOpt;
+void cudaq::opt::addWiresetToProfileQIRPipeline(OpPassManager &pm,
+                                                StringRef profile) {
+  pm.addPass(cudaq::opt::createWireSetToProfileQIRPrep());
+  WireSetToProfileQIROptions wopt;
   if (!profile.empty())
-    wOpt.convertTo = profile.str();
-  wOpt.qirVersionUnderDevelopment = qirVersionUnderDevelopment;
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createWireSetToProfileQIR(wOpt));
-  WireSetToProfileQIRPostOptions wPostOpt{.qirVersionUnderDevelopment =
-                                              qirVersionUnderDevelopment};
-  pm.addPass(cudaq::opt::createWireSetToProfileQIRPost(wPostOpt));
+    wopt.convertTo = profile.str();
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createWireSetToProfileQIR(wopt));
+  pm.addPass(cudaq::opt::createWireSetToProfileQIRPost());
   // Perform final cleanup for other dialect conversions (like func.func)
   pm.addPass(cudaq::opt::createConvertToQIR());
   if (profile.starts_with("qir"))
-    cudaq::opt::addQIRProfilePipeline(pm, profile, qirVersionUnderDevelopment);
+    cudaq::opt::addQIRProfilePipeline(pm, profile);
 }
 
 namespace {
@@ -706,10 +689,6 @@ struct WiresetToProfileQIRPipelineOptions
       llvm::cl::desc(
           "select the profile to convert to [qir-base, qir-adaptive]"),
       llvm::cl::init("qir-base")};
-  PassOptions::Option<bool> qirVersionUnderDevelopment{
-      *this, "qir-version-under-development",
-      llvm::cl::desc("use version under development to create qir"),
-      llvm::cl::init(false)};
 };
 } // namespace
 
@@ -718,7 +697,6 @@ void cudaq::opt::registerWireSetToProfileQIRPipeline() {
       "lower-wireset-to-profile-qir",
       "Convert quake directly to one of the profiles of QIR.",
       [](OpPassManager &pm, const WiresetToProfileQIRPipelineOptions &opt) {
-        addWiresetToProfileQIRPipeline(pm, opt.profile,
-                                       opt.qirVersionUnderDevelopment);
+        addWiresetToProfileQIRPipeline(pm, opt.profile);
       });
 }
