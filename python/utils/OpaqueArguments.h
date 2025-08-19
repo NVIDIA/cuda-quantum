@@ -130,21 +130,20 @@ inline py::args simplifiedValidateInputArguments(py::args &args) {
 /// @brief Search the given Module for the function with provided name.
 inline mlir::func::FuncOp getKernelFuncOp(MlirModule module,
                                           const std::string &kernelName) {
-  using namespace mlir;
-  ModuleOp mod = unwrap(module);
-  func::FuncOp kernelFunc;
-  mod.walk([&](func::FuncOp function) {
-    if (function.getName().equals("__nvqpp__mlirgen__" + kernelName)) {
+  mlir::ModuleOp mod = unwrap(module);
+  mlir::func::FuncOp kernelFunc;
+  for (auto &artifact : mod) {
+    if (auto function = llvm::dyn_cast<mlir::func::FuncOp>(artifact);
+        function &&
+        function.getName() == cudaq::runtime::cudaqGenPrefixName + kernelName) {
       kernelFunc = function;
-      return WalkResult::interrupt();
+      break;
     }
-    return WalkResult::advance();
-  });
+  }
 
   if (!kernelFunc)
     throw std::runtime_error("Could not find " + kernelName +
                              " function in current module.");
-
   return kernelFunc;
 }
 
