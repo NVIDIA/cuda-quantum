@@ -30,7 +30,7 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
-namespace py = pybind11; 
+namespace py = pybind11;
 
 namespace cudaq {
 
@@ -219,7 +219,8 @@ getTargetLayout(mlir::func::FuncOp func, cudaq::cc::StructType structTy) {
 /// @brief For the current struct member variable type, insert the
 /// value into the dynamically-constructed struct.
 inline void handleStructMemberVariable(void *data, std::size_t offset,
-                                       mlir::Type memberType, py::object value) {
+                                       mlir::Type memberType,
+                                       py::object value) {
   auto appendValue = [](void *data, auto &&value, std::size_t offset) {
     std::memcpy(((char *)data) + offset, &value,
                 sizeof(std::remove_cvref_t<decltype(value)>));
