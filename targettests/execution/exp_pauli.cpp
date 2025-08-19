@@ -17,6 +17,7 @@
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target oqc        --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target anyon      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm        --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std -fkernel-exec-kind=2 -target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

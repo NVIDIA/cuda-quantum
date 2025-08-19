@@ -16,6 +16,7 @@
 // RUN: nvq++ %cpp_std -target ionq       -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -target oqc        -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -target iqm        -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <complex>
