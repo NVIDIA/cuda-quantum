@@ -463,3 +463,74 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
     EXPECT_ANY_THROW(parser.parse(missingIndex));
   }
 }
+
+CUDAQ_TEST(ParserTester, checkResultType) {
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
+      "0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_"
+      "profile\nMETADATA\trequired_num_qubits\t10\nMETADATA\trequired_num_"
+      "results\t10\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPU"
+      "T\tRESULT\t0\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr000"
+      "04\nOUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT"
+      "\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t"
+      "0\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\t"
+      "RESULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004"
+      "\nOUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t"
+      "1\tr00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0"
+      "\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tR"
+      "ESULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1"
+      "\tr00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\n"
+      "START\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRES"
+      "ULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOU"
+      "TPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr"
+      "00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTA"
+      "RT\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT"
+      "\t0\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPU"
+      "T\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr000"
+      "07\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART"
+      "\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t"
+      "1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT"
+      "\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr0000"
+      "7\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0"
+      "\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPUT\t"
+      "RESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr00007"
+      "\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\nO"
+      "UTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\t"
+      "r00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT\tRE"
+      "SULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr00007\nO"
+      "UTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\nOUTP"
+      "UT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00"
+      "002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPUT\tRESUL"
+      "T\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr00007\nOUTP"
+      "UT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\nOUTPUT"
+      "\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr0000"
+      "2\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT\tRESULT"
+      "\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr00007\nOUTPU"
+      "T\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\n";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  // This is parsed as a vector of bool vectors
+  std::vector<std::vector<bool>> results = {
+      reinterpret_cast<std::vector<bool> *>(span.data),
+      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
+  // 10 shots
+  EXPECT_EQ(10, results.size());
+  for (const auto &result : results) {
+    // 10 measured bits each
+    EXPECT_EQ(10, result.size());
+    // This is GHZ result, all bits should be equal
+    EXPECT_TRUE(std::all_of(result.begin(), result.end(),
+                            [&result](bool bit) { return bit == result[0]; }));
+  }
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}

@@ -58,7 +58,9 @@ void cudaq::RecordLogParser::handleHeader(
 
 void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
-  // Ignore metadata for now
+  if (entries.size() < 2 || entries.size() > 3)
+    cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
+  metadata[entries[1]] = entries.size() == 3 ? entries[2] : "";
 }
 
 void cudaq::RecordLogParser::handleStart(
@@ -83,8 +85,38 @@ void cudaq::RecordLogParser::handleOutput(
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
-  if (recType == "RESULT")
-    throw std::runtime_error("This type is not yet supported");
+  if (recType == "RESULT") {
+    // Sample-type QIR output, where we have an array of `RESULT` per shot. For
+    // example,
+    //  START
+    //  OUTPUT    RESULT  1       r00000
+    //  ....
+    //  OUTPUT    RESULT  1       r00009
+    //  END       0
+
+    currentOutput = OutputType::RESULT;
+    const bool isUninitializedContainer =
+        (containerMeta.m_type == ContainerType::NONE) ||
+        (containerMeta.m_type == ContainerType::ARRAY &&
+         containerMeta.elementCount == 0);
+    if (isUninitializedContainer) {
+      // Currently, our QIR for sampled kernel only has a sequence of RESULT
+      // records, not wrapped in an ARRAY. Hence, we treat it as an array of
+      // results.
+      containerMeta.m_type = ContainerType::ARRAY;
+      const auto it = metadata.find("required_num_results");
+      if (it != metadata.end()) {
+        containerMeta.elementCount = std::stoul(it->second);
+      } else {
+        cudaq::info("No required_num_results metadata found, defaulting to 1.");
+        containerMeta.elementCount = 1;
+      }
+
+      containerMeta.arrayType = "i1";
+      schema = RecordSchemaType::LABELED;
+      preallocateArray();
+    }
+  }
   if (recType == "ARRAY") {
     containerMeta.m_type = ContainerType::ARRAY;
     containerMeta.elementCount = std::stoul(recValue);
@@ -111,6 +143,8 @@ void cudaq::RecordLogParser::handleOutput(
     currentOutput = OutputType::INT;
   else if (recType == "DOUBLE")
     currentOutput = OutputType::DOUBLE;
+  else if (recType == "RESULT")
+    currentOutput = OutputType::RESULT;
   else
     throw std::runtime_error("Invalid data");
   if ((containerMeta.elementCount > 0) &&
@@ -183,6 +217,10 @@ void cudaq::RecordLogParser::preallocateTuple() {
 void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
                                                  const std::string &recLabel) {
   auto label = recLabel;
+  // For result type, we don't use the record label (register name) as the type
+  // annotation.
+  if (currentOutput == OutputType::RESULT)
+    label = "i1";
   if (label.empty()) {
     if (currentOutput == OutputType::BOOL)
       label = "i1";

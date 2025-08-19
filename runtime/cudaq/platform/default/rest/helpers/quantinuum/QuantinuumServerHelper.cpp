@@ -9,6 +9,7 @@
 #include "QuantinuumHelper.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/Logger.h"
+#include "common/RecordLogParser.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -520,53 +521,41 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
     std::reverse(outputNames.begin(), outputNames.end());
     return cudaq::utils::quantinuum::processResults(shotResults, outputNames);
   } else {
-    auto results = resultResponse["data"]["attributes"]["results"];
-    CUDAQ_DBG("Count result data: {}", results.dump());
-    const auto numShots = results.size();
-    CUDAQ_DBG("Number of shots: {}", numShots);
+    const std::string qirResults =
+        resultResponse["data"]["attributes"]["results"];
+    CUDAQ_DBG("Count result data: {}", qirResults);
 
-    // This is QSYS results: array of QSYS shots
+    cudaq::RecordLogParser parser;
+    parser.parse(qirResults);
+
+    // Get the buffer and length of buffer (in bytes) from the parser.
+    auto *origBuffer = parser.getBufferPtr();
+    std::size_t bufferSize = parser.getBufferSize();
+    char *buffer = static_cast<char *>(malloc(bufferSize));
+    std::memcpy(buffer, origBuffer, bufferSize);
+
+    std::vector<std::vector<bool>> results = {
+        reinterpret_cast<std::vector<bool> *>(buffer),
+        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
+    const auto numShots = results.size();
+    // Get the result
     cudaq::CountsDictionary globalCounts;
     std::vector<std::string> globalSequentialData;
     globalSequentialData.reserve(numShots);
-    std::map<std::string,
-             std::pair<cudaq::CountsDictionary, std::vector<std::string>>>
-        registerResults;
-    for (const auto &qsysShot : results) {
-      CUDAQ_DBG("QSYS shot data: {}", qsysShot.dump());
+    for (const auto &shotResult : results) {
       // Each QSYS shot is an array of tagged results
       std::string bitString;
-      for (const auto &taggedResult : qsysShot) {
-        CUDAQ_DBG("Tagged result data: {}", taggedResult.dump());
-        // The tagged result is a pair of register name and bit value
-        const std::string regName = taggedResult[0].get<std::string>();
-        const int bitValue = taggedResult[1].get<int>();
-        if (bitValue != 0 && bitValue != 1) {
-          throw std::runtime_error("Invalid bit value in QSYS result: " +
-                                   std::to_string(bitValue));
-        }
-        bitString.append(std::to_string(bitValue));
-        auto &[regCountMap, regSeqData] = registerResults[regName];
-        regCountMap[std::to_string(bitValue)]++;
-        regSeqData.push_back(std::to_string(bitValue));
+      for (const auto &bitVal : shotResult) {
+        bitString.append(bitVal ? "1" : "0");
       }
       // Global register results
       globalCounts[bitString]++;
       globalSequentialData.push_back(bitString);
     }
 
-    std::vector<cudaq::ExecutionResult> allResults;
-    allResults.reserve(registerResults.size() + 1);
-    for (auto &[regName, data] : registerResults) {
-      allResults.push_back({data.first, regName});
-      allResults.back().sequentialData = data.second;
-    }
-
     // Add the global register results
     cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
-    result.sequentialData = globalSequentialData;
-    allResults.push_back(result);
-    return cudaq::sample_result{allResults};
+    return cudaq::sample_result({result});
   }
 }
 
