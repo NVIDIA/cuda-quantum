@@ -15,6 +15,7 @@
 #pragma once
 
 #include "common/Registry.h"
+#include "common/RuntimeMLIR.h"
 #include "cudaq/remote_capabilities.h"
 #include <optional>
 #include <string_view>
@@ -84,6 +85,13 @@ public:
 
   // Return the remote capabilities of the server.
   virtual RemoteCapabilities getRemoteCapabilities() const = 0;
+
+  virtual mlir::ModuleOp lowerKernel(mlir::MLIRContext &mlirContext,
+                                     const std::string &kernelName,
+                                     const void *kernelArgs,
+                                     std::uint64_t argsSize,
+                                     const std::size_t startingArgIdx,
+                                     const std::vector<void *> *rawArgs) = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and

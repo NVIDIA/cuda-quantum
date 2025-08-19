@@ -14,10 +14,12 @@
 #include "common/RuntimeMLIR.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <fstream>
 
 namespace cudaq {
@@ -53,6 +55,10 @@ public:
   std::thread::id getExecutionThreadId() const {
     return execution_queue->getExecutionThreadId();
   }
+
+  virtual bool isRemote() override { return true; }
+
+  virtual bool isSimulator() override { return true; }
 
   // Conditional feedback is handled by the server side.
   virtual bool supportsConditionalFeedback() override { return true; }
@@ -134,6 +140,26 @@ public:
         getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return {};
+    }
+
+    // Run resource estimation locally
+    if (executionContextPtr && executionContextPtr->name == "resource-count") {
+      cudaq::getExecutionManager()->setExecutionContext(executionContextPtr);
+      auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
+                                            voidStarSize, 0, rawArgs);
+
+      auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
+
+      auto funcPtr =
+          jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) + name);
+      if (!funcPtr) {
+        throw std::runtime_error(
+            "cudaq::builder failed to get kernelReg function.");
+      }
+      reinterpret_cast<void (*)()>(*funcPtr)();
+      delete jit;
+      cudaq::getExecutionManager()->resetExecutionContext();
       return {};
     }
 
