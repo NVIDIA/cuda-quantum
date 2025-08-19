@@ -8,6 +8,7 @@
 
 // REQUIRES: c++20
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ --enable-mlir %s -o %t && %t
 
 // The test here is the assert statement.

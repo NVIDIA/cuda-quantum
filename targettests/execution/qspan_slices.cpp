@@ -14,6 +14,7 @@
 // RUN: nvq++ --target iqm --iqm-machine Crystal_5           --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target oqc                                --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum                         --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // Tests for --disable-qubit-mapping:
 // RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
 // RUN: nvq++ -v %s -o %t --target iqm --iqm-machine Crystal_5 --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
