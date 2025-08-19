@@ -30,7 +30,7 @@
 #include <pybind11/pybind11.h>
 #include <vector>
 
-namespace py = pybind11;
+namespace py = pybind11; 
 
 namespace cudaq {
 
