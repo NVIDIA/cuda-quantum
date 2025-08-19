@@ -24,6 +24,7 @@ found in our complete :doc:`Installation Guide <install/install>`.
 .. note::
 
     Tegra devices (e.g., Jetson, Nintendo switch) are not supported in CUDA-Q at this time.
+    
     For more information, please refer to `Binary Compatibility documentation <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility>`_.
 
 Install CUDA-Q
