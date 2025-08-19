@@ -57,6 +57,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_pasqal):
 else:
   config.substitutions.append(('%pasqal_avail', 'false'))
 
+config.cudaq_backends_qci = "@CUDAQ_ENABLE_QCI_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qci):
+  config.available_features.add('qci')
+  config.substitutions.append(('%qci_avail', 'true'))
+else:
+  config.substitutions.append(('%qci_avail', 'false'))
+
 config.cudaq_backends_quantum_machines = "@CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND@"
 if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
   config.available_features.add('quantum_machines')
