@@ -66,6 +66,12 @@ while getopts ":e:t:mk-:" opt; do
 done
 OPTIND=$__optind__
 
+# Check if the lock file is present when keep_sources is true
+if $keep_sources && [ ! -f /tmp/tpls_commits.lock ]; then
+  echo "Lock file /tmp/tpls_commits.lock not found."
+  exit 1
+fi
+
 if $install_all; then
   LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
   PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
@@ -400,6 +406,15 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   fi
 fi
 
+lookup_tpls_sha() {
+  local path="$1"
+
+  # Using lock file
+  if [[ -f /tmp/tpls_commits.lock ]]; then
+    awk -v p="$path" '$2==p{print $1}' /tmp/tpls_commits.lock && return 0
+  fi
+}
+
 # Clone the third-party libraries to include its source code in the NVQC docker image.
 if [ "$keep_sources" = true ]; then
   echo "Cloning additional third-party libraries into $tpls_dir..."
@@ -424,7 +439,7 @@ if [ "$keep_sources" = true ]; then
     echo "Adding $dest as a safe.directory..."
     sudo git config --global --add safe.directory "$dest"
 
-    commit="$(git rev-parse "HEAD:$path" 2>/dev/null)" || {
+    commit="$(lookup_tpls_sha "$path")" || {
       echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
       exit 1
     }
