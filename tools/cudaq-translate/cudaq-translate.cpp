@@ -62,8 +62,7 @@ static llvm::cl::opt<std::string> convertTo(
     llvm::cl::desc(
         "Specify the translation output to be created. [Default: \"qir:0.1\"]"),
     llvm::cl::value_desc(
-        "Target transport layer format, <name[:version[:suboptions]]>"
-        ". Valid "
+        "Target transport layer format, <name[:version[:suboptions]]>. Valid "
         "names: \"qir\", \"qir-full\", \"qir-adaptive\", \"qir-base\", "
         "\"openqasm2\", \"iqm\"."),
     llvm::cl::init("qir:0.1"));
