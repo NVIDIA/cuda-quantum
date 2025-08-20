@@ -196,6 +196,9 @@ pr-3308
         -   [Amazon
             Braket](../../examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../examples/hardware_providers.html#ionq){.reference
@@ -210,6 +213,9 @@ pr-3308
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
@@ -884,6 +890,11 @@ pr-3308
             -   [ORCA
                 Computing](photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control Systems](qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics Simulation](../dynamics_backends.html){.reference
         .internal}
     -   [Cloud](../cloud.html){.reference .internal}
@@ -1307,6 +1318,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1457,6 +1471,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1641,7 +1658,7 @@ Python
 
 ::: {.tab-content .docutils}
 The target to which quantum kernels are submitted can be controlled with
-the `cudaq::set_target()`{.docutils .literal .notranslate} function.
+the `cudaq.set_target()`{.docutils .literal .notranslate} function.
 
 ::: {.highlight-python .notranslate}
 ::: {.highlight}
@@ -1706,14 +1723,6 @@ The number of shots for a kernel execution can be set through the
     cudaq.sample(kernel, shots_count=100)
 :::
 :::
-
-To see a complete example for using Infleqtion's backends, take a look
-at our [[Python
-examples]{.doc}](../../examples/examples.html){.reference .internal}.
-Moreover, for an end-to-end application workflow example executed on the
-Infleqtion QPU, take a look at the [[Anderson Impurity Model ground
-state solver]{.doc}](../../applications.html){.reference .internal}
-notebook.
 :::
 
 C++
@@ -1779,12 +1788,16 @@ diagnostics, before running a noise free emulation.
     nvq++ --emulate --target infleqtion src.cpp
 :::
 :::
+:::
+:::
 
-To see a complete example for using Infleqtion's backends, take a look
-at our [[C++ examples]{.doc}](../../examples/examples.html){.reference
-.internal}.
-:::
-:::
+To see a complete example, take a look at [[Infleqtion examples]{.std
+.std-ref}](../../examples/hardware_providers.html#infleqtion-examples){.reference
+.internal}. Moreover, for an end-to-end application workflow example
+executed on the Infleqtion QPU, take a look at the [[Anderson Impurity
+Model ground state
+solver]{.doc}](../../../applications/python/logical_aim_sqale.html){.reference
+.internal} notebook.
 :::
 :::
 
@@ -1857,7 +1870,7 @@ Python
 
 ::: {.tab-content .docutils}
 The target to which quantum kernels are submitted can be controlled with
-the `cudaq::set_target()`{.docutils .literal .notranslate} function.
+the `cudaq.set_target()`{.docutils .literal .notranslate} function.
 
 ::: {.highlight-python .notranslate}
 ::: {.highlight}
@@ -1923,11 +1936,6 @@ The number of shots for a kernel execution can be set through the
     cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 :::
 :::
-
-To see a complete example for using Pasqal's backend, take a look at our
-[[Python
-examples]{.doc}](../../examples/hardware_providers.html){.reference
-.internal}.
 :::
 
 C++
@@ -2004,13 +2012,12 @@ The number of shots for a kernel execution can be set through the
     auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
 :::
 :::
+:::
+:::
 
-To see a complete example for using Pasqal's backend, take a look at our
-[[C++
-examples]{.doc}](../../examples/hardware_providers.html){.reference
+To see a complete example, take a look at [[Pasqal examples]{.std
+.std-ref}](../../examples/hardware_providers.html#pasqal-examples){.reference
 .internal}.
-:::
-:::
 
 ::: {.admonition .note}
 Note
@@ -2077,7 +2084,7 @@ Python
 
 ::: {.tab-content .docutils}
 The target to which quantum kernels are submitted can be controlled with
-the `cudaq::set_target()`{.docutils .literal .notranslate} function.
+the `cudaq.set_target()`{.docutils .literal .notranslate} function.
 
 ::: {.highlight-python .notranslate}
 ::: {.highlight}
@@ -2118,11 +2125,6 @@ The number of shots for a kernel execution can be set through the
     cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 :::
 :::
-
-To see a complete example for using QuEra's backend, take a look at our
-[[Python
-examples]{.doc}](../../examples/hardware_providers.html){.reference
-.internal}.
 :::
 
 C++
@@ -2168,13 +2170,13 @@ The number of shots for a kernel execution can be set through the
     auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
 :::
 :::
+:::
+:::
 
-To see a complete example for using QuEra's backend, take a look at our
-[[C++
-examples]{.doc}](../../examples/hardware_providers.html){.reference
+To see a complete example, take a look at [[QuEra Computing
+examples]{.std
+.std-ref}](../../examples/hardware_providers.html#quera-examples){.reference
 .internal}.
-:::
-:::
 
 ::: {.admonition .note}
 Note

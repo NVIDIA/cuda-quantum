@@ -196,6 +196,9 @@ pr-3308
         -   [Amazon
             Braket](../../examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../examples/hardware_providers.html#ionq){.reference
@@ -210,6 +213,9 @@ pr-3308
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
@@ -884,6 +890,11 @@ pr-3308
                 .internal}
         -   [Photonic QPUs](#){.current .reference .internal}
             -   [ORCA Computing](#orca-computing){.reference .internal}
+        -   [Quantum Control Systems](qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics Simulation](../dynamics_backends.html){.reference
         .internal}
     -   [Cloud](../cloud.html){.reference .internal}
@@ -1307,6 +1318,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1458,6 +1472,9 @@ pr-3308
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
                 .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.Resources){.reference
+                .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
             -   [Gradients](../../../api/languages/python_api.html#gradients){.reference
@@ -1592,7 +1609,7 @@ pr-3308
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](neutralatom.html "Neutral Atom"){.btn .btn-neutral
 .float-left} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../dynamics_backends.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](qcontrol.html "Quantum Control Systems"){.btn
 .btn-neutral .float-right}
 :::
 
@@ -1682,11 +1699,6 @@ platform using an ORCA device.
     counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
 :::
 :::
-
-To see a complete example for using ORCA's backends, take a look at our
-[[Python
-examples]{.doc}](../../examples/hardware_providers.html){.reference
-.internal}.
 :::
 
 C++
@@ -1721,13 +1733,13 @@ To run the output, invoke the executable
     ./executable
 :::
 :::
+:::
+:::
 
-To see a complete example for using ORCA server backends, take a look at
-our [[C++
-examples]{.doc}](../../examples/hardware_providers.html){.reference
+To see a complete example, take a look at [[ORCA Computing
+examples]{.std
+.std-ref}](../../examples/hardware_providers.html#orca-examples){.reference
 .internal}.
-:::
-:::
 :::
 :::
 :::
@@ -1738,7 +1750,7 @@ examples]{.doc}](../../examples/hardware_providers.html){.reference
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](neutralatom.html "Neutral Atom"){.btn .btn-neutral
 .float-left} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../dynamics_backends.html "Dynamics Simulation"){.btn
+aria-hidden="true"}](qcontrol.html "Quantum Control Systems"){.btn
 .btn-neutral .float-right}
 :::
 

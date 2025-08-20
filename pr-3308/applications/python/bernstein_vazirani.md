@@ -200,6 +200,9 @@ pr-3308
         -   [Amazon
             Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
@@ -214,6 +217,9 @@ pr-3308
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
@@ -866,6 +872,12 @@ pr-3308
             -   [ORCA
                 Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control
+            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics
         Simulation](../../using/backends/dynamics_backends.html){.reference
         .internal}
@@ -1302,6 +1314,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1452,6 +1467,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}

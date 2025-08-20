@@ -200,6 +200,9 @@ pr-3308
         -   [Amazon
             Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
@@ -214,6 +217,9 @@ pr-3308
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
@@ -864,6 +870,12 @@ pr-3308
             -   [ORCA
                 Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control
+            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics
         Simulation](../../using/backends/dynamics_backends.html){.reference
         .internal}
@@ -1300,6 +1312,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1450,6 +1465,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1739,7 +1757,7 @@ number, the result is 0 otherwise 1.
 Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------------------------
 
-![88fd4acb62fb4eaba76eb2a2f17b56d3](../../_images/oracle.png){.no-scaled-link}
+![1d3518a20fef4632b3f150e6364261f7](../../_images/oracle.png){.no-scaled-link}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
 .notranslate .nohighlight}. We can compute this function on a quantum
@@ -1846,7 +1864,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![bc2054aaa55a4a9199d1024fcc84b37e](../../_images/deutsch.png){.no-scaled-link}
+![962e3c07591d4129a1be9181f5c5243e](../../_images/deutsch.png){.no-scaled-link}
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\ket{\\psi\_0} = \\ket{01} \\tag{1}\\\]

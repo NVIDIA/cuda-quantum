@@ -196,6 +196,9 @@ pr-3308
         -   [Amazon
             Braket](../../examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../examples/hardware_providers.html#ionq){.reference
@@ -210,6 +213,9 @@ pr-3308
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
@@ -885,6 +891,11 @@ pr-3308
             -   [ORCA
                 Computing](photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control Systems](qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics Simulation](../dynamics_backends.html){.reference
         .internal}
     -   [Cloud](../cloud.html){.reference .internal}
@@ -1308,6 +1319,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1458,6 +1472,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1704,10 +1721,6 @@ The number of shots for a kernel execution can be set through the
     cudaq.sample(kernel, shots_count=10000)
 :::
 :::
-
-To see a complete example for using Anyon's backends, take a look at our
-[[Python examples]{.doc}](../../examples/examples.html){.reference
-.internal}.
 :::
 
 C++
@@ -1756,12 +1769,12 @@ running a noise free emulation.
     nvq++ --target anyon --emulate src.cpp
 :::
 :::
+:::
+:::
 
-To see a complete example for using Anyon's backends, take a look at our
-[[C++ examples]{.doc}](../../examples/examples.html){.reference
+To see a complete example, take a look at [[Anyon examples]{.std
+.std-ref}](../../examples/hardware_providers.html#anyon-examples){.reference
 .internal}.
-:::
-:::
 :::
 :::
 
@@ -1804,7 +1817,7 @@ Python
 
 ::: {.tab-content .docutils}
 The target to which quantum kernels are submitted can be controlled with
-the `cudaq::set_target()`{.docutils .literal .notranslate} function.
+the `cudaq.set_target()`{.docutils .literal .notranslate} function.
 
 ::: {.highlight-python .notranslate}
 ::: {.highlight}
@@ -1834,10 +1847,6 @@ The number of shots for a kernel execution can be set through the
     cudaq.sample(kernel, shots_count=10000)
 :::
 :::
-
-To see a complete example for using IQM server backends, take a look at
-our [[Python examples]{.doc}](../../examples/examples.html){.reference
-.internal}.
 :::
 
 C++
@@ -1890,12 +1899,12 @@ noise free emulation.
     nvq++ --emulate --target iqm --iqm-machine Crystal_5 src.cpp
 :::
 :::
+:::
+:::
 
-To see a complete example for using IQM server backends, take a look at
-our [[C++ examples]{.doc}](../../examples/examples.html){.reference
+To see a complete example, take a look at [[IQM examples]{.std
+.std-ref}](../../examples/hardware_providers.html#iqm-examples){.reference
 .internal}.
-:::
-:::
 :::
 :::
 
@@ -1947,7 +1956,6 @@ set the `machine`{.code .docutils .literal .notranslate} parameter.
 ::: {.highlight}
     import os
     import cudaq
-    # ...
     os.environ['OQC_PASSWORD'] = password
     cudaq.set_target("oqc", url=url, machine="lucy")
 :::
@@ -1956,15 +1964,15 @@ set the `machine`{.code .docutils .literal .notranslate} parameter.
 You can then execute a kernel against the platform using the OQC Lucy
 device
 
+To emulate the OQC device locally, without submitting through the OQC
+QCaaS services, you can set the `emulate`{.docutils .literal
+.notranslate} flag to `True`{.docutils .literal .notranslate}. This will
+emit any target specific compiler warnings and diagnostics, before
+running a noise free emulation.
+
 ::: {.highlight-python .notranslate}
 ::: {.highlight}
-    kernel = cudaq.make_kernel()
-    qvec = kernel.qalloc(2)
-    kernel.h(qvec[0])
-    kernel.x(qvec[1])
-    kernel.cx(qvec[0], qvec[1])
-    kernel.mz(qvec)
-    str(cudaq.sample(kernel=kernel, shots_count=1000))
+    cudaq.set_target("oqc", emulate=True)
 :::
 :::
 :::
@@ -2015,6 +2023,8 @@ The oqc target supports a `--oqc-machine`{.docutils .literal
 set this to be either `toshiko`{.docutils .literal .notranslate} or
 `lucy`{.docutils .literal .notranslate} via this flag.
 :::
+:::
+:::
 
 ::: {.admonition .note}
 Note
@@ -2024,8 +2034,10 @@ execute instructions can be found on github as
 [oqc-community/qat](https://github.com/oqc-community/qat){.reference
 .external}
 :::
-:::
-:::
+
+To see a complete example, take a look at [[OQC examples]{.std
+.std-ref}](../../examples/hardware_providers.html#oqc-examples){.reference
+.internal}.
 :::
 :::
 :::

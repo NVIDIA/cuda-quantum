@@ -180,6 +180,8 @@ pr-3308
     -   [Using Quantum Hardware Providers](#){.current .reference
         .internal}
         -   [Amazon Braket](#amazon-braket){.reference .internal}
+        -   [Anyon Technologies](#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](#infleqtion){.reference .internal}
         -   [IonQ](#ionq){.reference .internal}
         -   [IQM](#iqm){.reference .internal}
@@ -187,6 +189,7 @@ pr-3308
         -   [ORCA Computing](#orca-computing){.reference .internal}
         -   [Pasqal](#pasqal){.reference .internal}
         -   [Quantinuum](#quantinuum){.reference .internal}
+        -   [Quantum Machines](#quantum-machines){.reference .internal}
         -   [QuEra Computing](#quera-computing){.reference .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
         .internal}
@@ -877,6 +880,12 @@ pr-3308
             -   [ORCA
                 Computing](../backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control
+            Systems](../backends/hardware/qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](../backends/hardware/qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics
         Simulation](../backends/dynamics_backends.html){.reference
         .internal}
@@ -1301,6 +1310,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1451,6 +1463,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1605,6 +1620,8 @@ on different hardware backends, please take a look at
 [[hardware]{.doc}](../backends/hardware.html){.reference .internal}.
 
 ::: {#amazon-braket .section}
+[]{#amazon-braket-examples}
+
 Amazon Braket[¶](#amazon-braket "Permalink to this heading"){.headerlink}
 -------------------------------------------------------------------------
 
@@ -1718,7 +1735,170 @@ C++
 :::
 :::
 
+::: {#anyon-technologies .section}
+[]{#anyon-examples}
+
+Anyon Technologies[¶](#anyon-technologies "Permalink to this heading"){.headerlink}
+-----------------------------------------------------------------------------------
+
+The following code illustrates how to run kernels on Anyon's backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: {.highlight}
+    import cudaq
+
+    # You only have to set the target once! No need to redefine it
+    # for every execution call on your kernel.
+    # To use different targets in the same file, you must update
+    # it via another call to `cudaq.set_target()`
+
+    # To use the Anyon target you will need to set up credentials in `~/.anyon_config`
+    # The configuration file should contain your Anyon Technologies username and password:
+    # credentials: {"username":"<username>","password":"<password>"}
+
+    # Set the target to the default QPU
+    cudaq.set_target("anyon")
+
+    # You can specify a specific machine via the machine parameter:
+    # ```
+    # cudaq.set_target("anyon", machine="telegraph-8q")
+    # ```
+    # or for the larger system:
+    # ```
+    # cudaq.set_target("anyon", machine="berkeley-25q")
+    # ```
+
+
+    # Create the kernel we'd like to execute on Anyon.
+    @cudaq.kernel
+    def ghz():
+        """Maximally entangled state between 5 qubits."""
+        q = cudaq.qvector(5)
+        h(q[0])
+        for i in range(4):
+            x.ctrl(q[i], q[i + 1])
+        return mz(q)
+
+
+    # Execute on Anyon and print out the results.
+
+    # Option A (recommended):
+    # By using the asynchronous `cudaq.sample_async`, the remaining
+    # classical code will be executed while the job is being handled
+    # remotely on Anyon's superconducting QPU. This is ideal for
+    # longer running jobs.
+    future = cudaq.sample_async(ghz)
+    # ... classical optimization code can run while job executes ...
+
+    # Can write the future to file:
+    with open("future.txt", "w") as outfile:
+        print(future, file=outfile)
+
+    # Then come back and read it in later.
+    with open("future.txt", "r") as infile:
+        restored_future = cudaq.AsyncSampleResult(infile.read())
+
+    # Get the results of the restored future.
+    async_counts = restored_future.get()
+    print("Asynchronous results:")
+    async_counts.dump()
+
+    # Option B:
+    # By using the synchronous `cudaq.sample`, the kernel
+    # will be executed on Anyon and the calling thread will be blocked
+    # until the results are returned.
+    counts = cudaq.sample(ghz)
+    print("\nSynchronous results:")
+    counts.dump()
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: {.highlight}
+    // Compile and run with:
+    // ```
+    // nvq++ --target anyon anyon.cpp -o out.x && ./out.x
+    // ```
+    // This will submit the job to Anyon's default superconducting QPU.
+    // You can specify a specific machine via the `--anyon-machine` flag:
+    // ```
+    // nvq++ --target anyon --anyon-machine telegraph-8q anyon.cpp -o out.x &&
+    // ./out.x
+    // ```
+    // or for the larger system:
+    // ```
+    // nvq++ --target anyon --anyon-machine berkeley-25q anyon.cpp -o out.x &&
+    // ./out.x
+    // ```
+    //
+    // To use this target you will need to set up credentials in `~/.anyon_config`
+    // The configuration file should contain your Anyon Technologies username and
+    // password:
+    // ```
+    // credential:<username>:<password>
+    // ```
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    // Define a quantum kernel to execute on Anyon backend.
+    struct ghz {
+      // Maximally entangled state between 5 qubits.
+      auto operator()() __qpu__ {
+        cudaq::qvector q(5);
+        h(q[0]);
+        for (int i = 0; i < 4; i++) {
+          x<cudaq::ctrl>(q[i], q[i + 1]);
+        }
+        auto result = mz(q);
+      }
+    };
+
+    int main() {
+
+      // Submit asynchronously
+      auto future = cudaq::sample_async(ghz{});
+
+      // ... classical optimization code can run while job executes ...
+
+      // Can write the future to file:
+      {
+        std::ofstream out("saveMe.json");
+        out << future;
+      }
+
+      // Then come back and read it in later.
+      cudaq::async_result<cudaq::sample_result> readIn;
+      std::ifstream in("saveMe.json");
+      in >> readIn;
+
+      // Get the results of the read in future.
+      auto async_counts = readIn.get();
+      async_counts.dump();
+
+      // OR: Submit to synchronously
+      auto counts = cudaq::sample(ghz{});
+      counts.dump();
+
+      return 0;
+    }
+:::
+:::
+:::
+:::
+:::
+
 ::: {#infleqtion .section}
+[]{#infleqtion-examples}
+
 Infleqtion[¶](#infleqtion "Permalink to this heading"){.headerlink}
 -------------------------------------------------------------------
 
@@ -1866,6 +2046,8 @@ C++
 :::
 
 ::: {#ionq .section}
+[]{#ionq-examples}
+
 IonQ[¶](#ionq "Permalink to this heading"){.headerlink}
 -------------------------------------------------------
 
@@ -2008,6 +2190,8 @@ C++
 :::
 
 ::: {#iqm .section}
+[]{#iqm-examples}
+
 IQM[¶](#iqm "Permalink to this heading"){.headerlink}
 -----------------------------------------------------
 
@@ -2159,6 +2343,8 @@ C++
 :::
 
 ::: {#oqc .section}
+[]{#oqc-examples}
+
 OQC[¶](#oqc "Permalink to this heading"){.headerlink}
 -----------------------------------------------------
 
@@ -2230,10 +2416,77 @@ Python
 :::
 :::
 :::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: {.highlight}
+    // Compile and run with:
+    // ```
+    // nvq++ --target oqc oqc.cpp -o out.x && ./out.x
+    // ```
+    // This will submit the job to the OQC platform. You can also specify
+    // the machine to use via the `--oqc-machine` flag:
+    // ```
+    // nvq++ --target oqc --oqc-machine lucy oqc.cpp -o out.x && ./out.x
+    // ```
+    // The default is the 8 qubit Lucy device. You can set this to be either
+    // `toshiko` or `lucy` via this flag.
+    //
+    // To use the OQC target you will need to set the following environment
+    // variables: OQC_URL OQC_EMAIL OQC_PASSWORD To setup an account, contact
+    // oqc_qcaas_support@oxfordquantumcircuits.com
+
+    #include <cudaq.h>
+    #include <fstream>
+
+    // Define a simple quantum kernel to execute on OQC backends.
+    struct bell_state {
+      auto operator()() __qpu__ {
+        cudaq::qvector q(2);
+        h(q[0]);
+        x<cudaq::ctrl>(q[0], q[1]);
+        auto result = mz(q);
+        return result;
+      }
+    };
+
+    int main() {
+      // Submit to OQC asynchronously (e.g., continue executing
+      // code in the file until the job has been returned).
+      auto future = cudaq::sample_async(bell_state{});
+      // ... classical code to execute in the meantime ...
+
+      // Can write the future to file:
+      {
+        std::ofstream out("future.json");
+        out << future;
+      }
+
+      // Then come back and read it in later.
+      cudaq::async_result<cudaq::sample_result> readIn;
+      std::ifstream in("future.json");
+      in >> readIn;
+
+      // Get the results of the read in future.
+      auto async_counts = readIn.get();
+      async_counts.dump();
+
+      // OR: Submit to OQC synchronously (e.g., wait for the job
+      // result to be returned before proceeding).
+      auto counts = cudaq::sample(bell_state{});
+      counts.dump();
+    }
+:::
+:::
+:::
 :::
 :::
 
 ::: {#orca-computing .section}
+[]{#orca-examples}
+
 ORCA Computing[¶](#orca-computing "Permalink to this heading"){.headerlink}
 ---------------------------------------------------------------------------
 
@@ -2480,6 +2733,8 @@ C++
 :::
 
 ::: {#pasqal .section}
+[]{#pasqal-examples}
+
 Pasqal[¶](#pasqal "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------
 
@@ -2652,6 +2907,8 @@ C++
 :::
 
 ::: {#quantinuum .section}
+[]{#quantinuum-examples}
+
 Quantinuum[¶](#quantinuum "Permalink to this heading"){.headerlink}
 -------------------------------------------------------------------
 
@@ -2802,7 +3059,116 @@ C++
 :::
 :::
 
+::: {#quantum-machines .section}
+[]{#quantum-machines-examples}
+
+Quantum Machines[¶](#quantum-machines "Permalink to this heading"){.headerlink}
+-------------------------------------------------------------------------------
+
+The following code illustrates how to run kernels on Quantum Machines'
+backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: {.highlight}
+    import cudaq
+    import math
+
+    # The default executor is mock, use executor name to run on another backend (real or simulator).
+    # Configure the address of the QOperator server in the `url` argument, and set the `api_key`.
+    cudaq.set_target("quantum_machines",
+                     url="http://host.docker.internal:8080",
+                     api_key="1234567890",
+                     executor="mock")
+
+    qubit_count = 5
+
+
+    # Maximally entangled state between 5 qubits
+    @cudaq.kernel
+    def all_h():
+        qvector = cudaq.qvector(qubit_count)
+
+        for i in range(qubit_count - 1):
+            h(qvector[i])
+
+        s(qvector[0])
+        r1(math.pi / 2, qvector[1])
+        mz(qvector)
+
+
+    # Submit synchronously
+    cudaq.sample(all_h).dump()
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: {.highlight}
+    // Compile and run with:
+    // ```
+    // nvq++ --target quantum_machines quantum_machines.cpp -o out.x && ./out.x
+    // ```
+    // This will submit the job to the Quantum Machines OPX available in the address
+    // provider by `--quantum-machines-url`. By default, the action runs a on a mock
+    // executor. To execute or a real QPU please note the executor name by
+    // `--quantum-machines-executor`.
+    // ```
+    // nvq++ --target quantum_machines --quantum-machines-url
+    // "https://iqcc.qoperator.qm.co" \
+    //  --quantum-machines-executor iqcc quantum_machines.cpp -o out.x
+    // ./out.x
+    // ```
+    // Assumes a valid set of credentials have been set prior to execution.
+
+    #include "math.h"
+    #include <cudaq.h>
+    #include <fstream>
+
+    // Define a simple quantum kernel to execute on Quantum Machines OPX.
+    struct all_h {
+      // Maximally entangled state between 5 qubits.
+      auto operator()() __qpu__ {
+        cudaq::qvector q(5);
+        for (int i = 0; i < 4; i++) {
+          h(q[i]);
+        }
+        s(q[0]);
+        r1(M_PI / 2, q[1]);
+        auto result = mz(q);
+      }
+    };
+
+    int main() {
+      // Submit asynchronously (e.g., continue executing code in the file until
+      // the job has been returned).
+      auto future = cudaq::sample_async(all_h{});
+      // ... classical code to execute in the meantime ...
+
+      // Get the results of the read in future.
+      auto async_counts = future.get();
+      async_counts.dump();
+
+      // OR: Submit synchronously (e.g., wait for the job
+      // result to be returned before proceeding).
+      auto counts = cudaq::sample(all_h{});
+      counts.dump();
+    }
+:::
+:::
+:::
+:::
+:::
+
 ::: {#quera-computing .section}
+[]{#quera-examples}
+
 QuEra Computing[¶](#quera-computing "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------------------------
 

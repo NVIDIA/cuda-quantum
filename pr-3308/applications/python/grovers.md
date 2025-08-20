@@ -200,6 +200,9 @@ pr-3308
         -   [Amazon
             Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
@@ -214,6 +217,9 @@ pr-3308
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
@@ -870,6 +876,12 @@ pr-3308
             -   [ORCA
                 Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control
+            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics
         Simulation](../../using/backends/dynamics_backends.html){.reference
         .internal}
@@ -1306,6 +1318,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1456,6 +1471,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1882,7 +1900,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![3548e06d17794a36954ee9a1169214cd](../../_images/grovers-2D-plane.png)
+![f8510a69222c40a4800d65bfc104e31f](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2098,7 +2116,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![a0f9ccb982274e3d94657522a72faecf](../../_images/grovers-steps1-3.png)
+![b2df75421c9e46ef8d6a79b4262000c9](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2110,7 +2128,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![f4f8efb90b864cf9b5ec1569ab87b469](../../_images/grovers-full-rotation.png)
+![e2e6fed721d841d9bed8b8d39203ea89](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

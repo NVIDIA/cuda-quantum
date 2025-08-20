@@ -200,6 +200,9 @@ pr-3308
         -   [Amazon
             Braket](../../using/examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../using/examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../using/examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../using/examples/hardware_providers.html#ionq){.reference
@@ -214,6 +217,9 @@ pr-3308
         -   [Pasqal](../../using/examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../using/examples/hardware_providers.html#quera-computing){.reference
@@ -911,6 +917,12 @@ pr-3308
             -   [ORCA
                 Computing](../../using/backends/hardware/photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control
+            Systems](../../using/backends/hardware/qcontrol.html){.reference
+            .internal}
+            -   [Quantum
+                Machines](../../using/backends/hardware/qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics
         Simulation](../../using/backends/dynamics_backends.html){.reference
         .internal}
@@ -1321,6 +1333,9 @@ pr-3308
                 .notranslate}](#cudaq.draw){.reference .internal}
             -   [`translate()`{.docutils .literal
                 .notranslate}](#cudaq.translate){.reference .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend Configuration](#backend-configuration){.reference
             .internal}
             -   [`has_target()`{.docutils .literal
@@ -1447,6 +1462,8 @@ pr-3308
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](#cudaq.AsyncEvolveResult){.reference
                 .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](#cudaq.Resources){.reference .internal}
             -   [Optimizers](#optimizers){.reference .internal}
             -   [Gradients](#gradients){.reference .internal}
             -   [Noisy Simulation](#noisy-simulation){.reference
@@ -2455,6 +2472,57 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
         }
     :::
     :::
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate\_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
+
+:   
+
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate\_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[choice:]{.pre} [Optional\[Callable\[\[\]]{.pre}]{.n}*, *[[bool\]\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+
+    :   
+
+    Performs resource counting on the given quantum kernel expression
+    and returns an accounting of how many times each gate was applied,
+    in addition to the total number of gates and qubits used.
+
+    Parameters[:]{.colon}
+
+    :   -   **choice** (*Any*) -- A choice function called to determine
+            the outcome of measurements, in case control flow depends on
+            measurements. Should only return either `True`{.code
+            .docutils .literal .notranslate} or `False`{.code .docutils
+            .literal .notranslate}. Invoking the kernel within the
+            choice function is forbidden. Default: returns `True`{.code
+            .docutils .literal .notranslate} or `False`{.code .docutils
+            .literal .notranslate} with 50% probability.
+
+        -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
+            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to count resources on
+
+        -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
+            to evaluate the kernel function at. Leave empty if the
+            kernel doesn't accept any arguments.
+
+    Returns[:]{.colon}
+
+    :   A dictionary containing the resource count results for the
+        [`Kernel`{.xref .py .py-class .docutils .literal
+        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        .internal}.
+
+    Return type[:]{.colon}
+
+    :   [`Resources`{.xref .py .py-class .docutils .literal
+        .notranslate}](#cudaq.Resources "cudaq.Resources"){.reference
+        .internal}
 :::
 
 ::: {#backend-configuration .section}
@@ -3379,7 +3447,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[379205041]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2637333395]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7500,6 +7568,70 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         Retrieve the evolution result from the asynchronous evolve
         execution .
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Resources]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources "Permalink to this definition"){.headerlink}
+
+:   A data-type containing the results of a call to
+    [`estimate_resources()`{.xref .py .py-func .docutils .literal
+    .notranslate}](#cudaq.estimate_resources "cudaq.estimate_resources"){.reference
+    .internal}. This includes all gate counts.
+
+    [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.clear "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Clear out all metadata from `self`{.code .docutils .literal
+        .notranslate}.
+
+    [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.Resources.count "Permalink to this definition"){.headerlink}
+
+    :   Overloaded function.
+
+        1.  
+
+            [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+            :   
+
+        Get the number of occurrences of a given gate with any number of
+        controls
+
+        2.  
+
+            [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+            :   
+
+        Get the total number of occurrences of all gates
+
+    [[count\_controls]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.count_controls "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[count\_controls]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Get the number of occurrences of a given gate with the given
+        number of controls
+
+    [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.dump "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Print a string of the raw resource counts data to the terminal.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}

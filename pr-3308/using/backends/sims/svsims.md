@@ -196,6 +196,9 @@ pr-3308
         -   [Amazon
             Braket](../../examples/hardware_providers.html#amazon-braket){.reference
             .internal}
+        -   [Anyon
+            Technologies](../../examples/hardware_providers.html#anyon-technologies){.reference
+            .internal}
         -   [Infleqtion](../../examples/hardware_providers.html#infleqtion){.reference
             .internal}
         -   [IonQ](../../examples/hardware_providers.html#ionq){.reference
@@ -210,6 +213,9 @@ pr-3308
         -   [Pasqal](../../examples/hardware_providers.html#pasqal){.reference
             .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
+            .internal}
+        -   [Quantum
+            Machines](../../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
         -   [QuEra
             Computing](../../examples/hardware_providers.html#quera-computing){.reference
@@ -887,6 +893,11 @@ pr-3308
             -   [ORCA
                 Computing](../hardware/photonic.html#orca-computing){.reference
                 .internal}
+        -   [Quantum Control
+            Systems](../hardware/qcontrol.html){.reference .internal}
+            -   [Quantum
+                Machines](../hardware/qcontrol.html#quantum-machines){.reference
+                .internal}
     -   [Dynamics Simulation](../dynamics_backends.html){.reference
         .internal}
     -   [Cloud](../cloud.html){.reference .internal}
@@ -1310,6 +1321,9 @@ pr-3308
             -   [`translate()`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
+            -   [`estimate_resources()`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
         -   [Backend
             Configuration](../../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
@@ -1460,6 +1474,9 @@ pr-3308
                 .internal}
             -   [`AsyncEvolveResult`{.docutils .literal
                 .notranslate}](../../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [`Resources`{.docutils .literal
+                .notranslate}](../../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1767,25 +1784,11 @@ detail
 | .literal    |                    | .nvidia.com/cuda-gpus){.reference |
 | .n          |                    | .external} (CC) and the floating  |
 | otranslate} |                    | point precision selected for the  |
-|             |                    | simulator. Specifically, for CC   |
-|             |                    | 8.0, 9.0, and 10.0 the defaults   |
-|             |                    | are `4`{.code .docutils .literal  |
-|             |                    | .notranslate}, `5`{.code          |
-|             |                    | .docutils .literal .notranslate}, |
-|             |                    | and `5`{.code .docutils .literal  |
-|             |                    | .notranslate} for `FP32`{.code    |
-|             |                    | .docutils .literal .notranslate}. |
-|             |                    | For `FP64`{.code .docutils        |
-|             |                    | .literal .notranslate} the        |
-|             |                    | corresponding defaults are        |
-|             |                    | `5`{.code .docutils .literal      |
-|             |                    | .notranslate}, `6`{.code          |
-|             |                    | .docutils .literal .notranslate}, |
-|             |                    | and `4`{.code .docutils .literal  |
-|             |                    | .notranslate}. For all other CC,  |
-|             |                    | the default is `4`{.code          |
-|             |                    | .docutils .literal .notranslate}  |
-|             |                    | for both precision modes.         |
+|             |                    | simulator as specified            |
+|             |                    | [[here]{.std                      |
+|             |                    | .std-ref                          |
+|             |                    | }](#gate-fusion-table){.reference |
+|             |                    | .internal}.                       |
 +-------------+--------------------+-----------------------------------+
 | `CUDA       | integer greater    | The max number of qubits used for |
 | Q_FUSION_DI | than or equal to   | diagonal gate fusion. The default |
@@ -2084,25 +2087,11 @@ must be set prior to setting the target or running "`import cudaq`{.code
 | .n          |                    | .nvidia.com/cuda-gpus){.reference |
 | otranslate} |                    | .external} (CC) and the floating  |
 |             |                    | point precision selected for the  |
-|             |                    | simulator. Specifically, for CC   |
-|             |                    | 8.0, 9.0, and 10.0 the defaults   |
-|             |                    | are `4`{.code .docutils .literal  |
-|             |                    | .notranslate}, `5`{.code          |
-|             |                    | .docutils .literal .notranslate}, |
-|             |                    | and `5`{.code .docutils .literal  |
-|             |                    | .notranslate} for `FP32`{.code    |
-|             |                    | .docutils .literal .notranslate}. |
-|             |                    | For `FP64`{.code .docutils        |
-|             |                    | .literal .notranslate} the        |
-|             |                    | corresponding defaults are        |
-|             |                    | `5`{.code .docutils .literal      |
-|             |                    | .notranslate}, `6`{.code          |
-|             |                    | .docutils .literal .notranslate}, |
-|             |                    | and `4`{.code .docutils .literal  |
-|             |                    | .notranslate}. For all other CC,  |
-|             |                    | the default is `4`{.code          |
-|             |                    | .docutils .literal .notranslate}  |
-|             |                    | for both precision modes.         |
+|             |                    | simulator as specified            |
+|             |                    | [[here]{.std                      |
+|             |                    | .std-ref                          |
+|             |                    | }](#gate-fusion-table){.reference |
+|             |                    | .internal}.                       |
 +-------------+--------------------+-----------------------------------+
 | `CUDA       | positive integer   | Specify the number of GPUs that   |
 | Q_MGPU_P2P_ |                    | can communicate by using          |
@@ -2205,6 +2194,41 @@ equivalent to the multi-node multi-GPU double-precision option
 `nvidia`{.code .docutils .literal .notranslate} is deprecated and will
 be removed in a future release.
 :::
+
+[]{#gate-fusion-table}
+
++-------------+--------------------+-----------------------------------+
+| Compute     | GPU                | Default Gate Fusion Size          |
+| Capability  |                    |                                   |
++-------------+--------------------+-----------------------------------+
+| 8.0         | NVIDIA A100        | 4 (`fp32`{.code .docutils         |
+|             |                    | .literal .notranslate}) or 5      |
+|             |                    | (`fp64`{.code .docutils .literal  |
+|             |                    | .notranslate})                    |
++-------------+--------------------+-----------------------------------+
+| 9.0         | NVIDIA H100, H200, | 5 (`fp32`{.code .docutils         |
+|             | GH200              | .literal .notranslate}) or 6      |
+|             |                    | (`fp64`{.code .docutils .literal  |
+|             |                    | .notranslate})                    |
++-------------+--------------------+-----------------------------------+
+| 10.0        | NVIDIA GB200, B200 | 5 (`fp32`{.code .docutils         |
+|             |                    | .literal .notranslate}) or 4      |
+|             |                    | (`fp64`{.code .docutils .literal  |
+|             |                    | .notranslate})                    |
++-------------+--------------------+-----------------------------------+
+| 10.3        | NVIDIA B300        | 5 (`fp32`{.code .docutils         |
+|             |                    | .literal .notranslate}) or 1      |
+|             |                    | (`fp64`{.code .docutils .literal  |
+|             |                    | .notranslate})                    |
++-------------+--------------------+-----------------------------------+
+| Others      |                    | 4 (`fp32`{.code .docutils         |
+|             |                    | .literal .notranslate} and        |
+|             |                    | `fp64`{.code .docutils .literal   |
+|             |                    | .notranslate})                    |
++-------------+--------------------+-----------------------------------+
+
+: [**Default Gate Fusion
+Size**]{.caption-text}[¶](#id3 "Permalink to this table"){.headerlink}
 
 The above configuration options of the `nvidia`{.code .docutils .literal
 .notranslate} backend can be tuned to reduce your simulation runtimes.
