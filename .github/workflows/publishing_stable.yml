@@ -17,7 +17,7 @@ on:
         description: The registry prefix for the image to pull. 
       image_target_location:
         type: string
-        default: publ.io/nvidia/quantum
+        default: nvcr.io/nvidia/quantum
         required: false
         description: The registry prefix for the image to push.
       ngc_api_key:
