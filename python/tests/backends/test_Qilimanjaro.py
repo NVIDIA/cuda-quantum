@@ -11,7 +11,7 @@ import json
 import os
 import pytest
 
-skipIfPasqalNotInstalled = pytest.mark.skipif(
+skipIfQilimanjaroNotInstalled = pytest.mark.skipif(
     not cudaq.has_target("qilimanjaro"),
     reason='Could not find `qilimanjaro` in installation'
 )
