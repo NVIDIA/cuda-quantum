@@ -168,7 +168,6 @@ public:
     // It's a match. We have a chain of insert_values back to a undef. Let's
     // replace this store.
     Value dest = storeOp.getPtrvalue();
-    Type baseTy = dest.getType();
     for (auto insVal : stack) {
       // Each insert_value is converted to a compute_ptr and store.
       auto v = insVal.getValue();
