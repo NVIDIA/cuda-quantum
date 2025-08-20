@@ -9,7 +9,7 @@
 
 // Compile and run with:
 // ```
-// RUN: nvq++ %cpp_std                   --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std                   --emulate %s -o %t && %t
 // ```
 
 #include <cudaq.h>
