@@ -176,8 +176,9 @@ public:
       for (std::int32_t off : insVal.getPosition())
         args.push_back(off);
       auto loc = insVal.getLoc();
+      auto vTy = cudaq::cc::PointerType::get(v.getType());
       auto toAddr =
-          rewriter.create<cudaq::cc::ComputePtrOp>(loc, baseTy, dest, args);
+          rewriter.create<cudaq::cc::ComputePtrOp>(loc, vTy, dest, args);
       rewriter.create<cudaq::cc::StoreOp>(loc, v, toAddr);
     }
     LLVM_DEBUG(llvm::dbgs() << "updated: " << storeOp << '\n');
