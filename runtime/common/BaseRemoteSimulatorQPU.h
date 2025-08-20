@@ -11,13 +11,19 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
+#include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
 #include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/Passes.h"
 #include <fstream>
 
 namespace cudaq {
@@ -31,6 +37,7 @@ protected:
   std::mutex m_contextMutex;
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
+  bool in_resource_estimation = false;
 
   /// @brief Return a pointer to the execution context for this thread. It will
   /// return `nullptr` if it was not found in `m_contexts`.
@@ -130,10 +137,38 @@ public:
         "(simulator = {})",
         name, qpu_id, m_simName);
 
+    if (in_resource_estimation)
+      throw std::runtime_error(
+          "Illegal use of resource counter simulator! (Did you attempt to run "
+          "a kernel inside of a choice function?)");
+
     cudaq::ExecutionContext *executionContextPtr =
         getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
+      return {};
+    }
+
+    // Run resource estimation locally
+    if (executionContextPtr && executionContextPtr->name == "resource-count") {
+      in_resource_estimation = true;
+      cudaq::getExecutionManager()->setExecutionContext(executionContextPtr);
+      auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
+                                            voidStarSize, 0, rawArgs);
+
+      mlir::PassManager pm(m_mlirContext.get());
+      auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
+
+      auto funcPtr =
+          jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) + name);
+      if (!funcPtr) {
+        throw std::runtime_error(
+            "cudaq::builder failed to get kernelReg function.");
+      }
+      reinterpret_cast<void (*)()>(*funcPtr)();
+      delete jit;
+      cudaq::getExecutionManager()->resetExecutionContext();
+      in_resource_estimation = false;
       return {};
     }
 
