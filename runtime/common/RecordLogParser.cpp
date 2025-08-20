@@ -122,8 +122,8 @@ void cudaq::RecordLogParser::handleOutput(
     // Note: we expect the results are sequential in the same order that mz
     // operations are called. This may include results in named registers
     // (specified in kernel code) and other auto-generated register names.
-    processArrayEntry(
-        recValue, fmt::format("[{}]", containerMeta.processedElements));
+    processArrayEntry(recValue,
+                      fmt::format("[{}]", containerMeta.processedElements));
     containerMeta.processedElements++;
     return;
   }
