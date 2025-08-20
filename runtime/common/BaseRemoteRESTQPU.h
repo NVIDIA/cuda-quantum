@@ -772,7 +772,7 @@ public:
           return cudaq::getTranslation("qir-adaptive-if");
         else if (qirIntegerExtension)
           return cudaq::getTranslation("qir-adaptive-i");
-        else if (qirIntegerExtension)
+        else if (qirFloatExtension)
           return cudaq::getTranslation("qir-adaptive-f");
         else
           return cudaq::getTranslation("qir-adaptive");

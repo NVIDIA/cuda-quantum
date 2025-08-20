@@ -74,6 +74,9 @@ void cudaq::RecordLogParser::handleEnd(
     throw std::runtime_error("Missing shot status");
   if ("0" != entries[1])
     throw std::runtime_error("Cannot handle unsuccessful shot");
+
+  // Always reset the container metadata when finishing a shot
+  containerMeta.reset();
 }
 
 void cudaq::RecordLogParser::handleOutput(
@@ -113,9 +116,16 @@ void cudaq::RecordLogParser::handleOutput(
       }
 
       containerMeta.arrayType = "i1";
-      schema = RecordSchemaType::LABELED;
       preallocateArray();
     }
+
+    // Note: we expect the results are sequential in the same order that mz
+    // operations are called. This may include results in named registers
+    // (specified in kernel code) and other auto-generated register names.
+    processArrayEntry(
+        recValue, fmt::format("[{}]", containerMeta.processedElements));
+    containerMeta.processedElements++;
+    return;
   }
   if (recType == "ARRAY") {
     containerMeta.m_type = ContainerType::ARRAY;

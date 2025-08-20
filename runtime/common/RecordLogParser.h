@@ -216,14 +216,11 @@ public:
       ty.erase(std::remove(ty.begin(), ty.end(), ' '), ty.end());
   }
 
-  /// Parse string like "[0]" for array index, ".0" for tuple index, and "r0001"
-  /// for register measurement results.
+  /// Parse string like "[0]" for array index, and ".0" for tuple index.
   std::size_t extractIndex(const std::string &label) {
     if ((label[0] == '[') && (label[label.size() - 1] == ']'))
       return std::stoi(label.substr(1, label.size() - 2));
     if (label[0] == '.')
-      return std::stoi(label.substr(1, label.size() - 1));
-    if (label[0] == 'r')
       return std::stoi(label.substr(1, label.size() - 1));
     throw std::runtime_error("Index not found in label");
   }

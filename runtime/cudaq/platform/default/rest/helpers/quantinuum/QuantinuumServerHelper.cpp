@@ -44,6 +44,8 @@ protected:
   std::string machine = "H2-1SC";
   /// @brief Max HQC cost
   std::optional<int> maxCost;
+  /// @brief Enable/disable noisy simulation on emulator.
+  std::optional<bool> noisySim;
   /// @brief The Nexus project ID
   std::string projectId = "";
   /// @brief Time string, when the last tokens were retrieved
@@ -114,6 +116,14 @@ public:
       maxCost = std::stoi(iter->second);
       if (maxCost.value() < 1)
         throw std::runtime_error("max_cost must be a positive integer.");
+    }
+
+    // Noisy simulation
+    iter = backendConfig.find("noisy_simulation");
+    if (iter != backendConfig.end()) {
+      if (iter->second != "true" && iter->second != "false")
+        throw std::runtime_error("noisy_simulation must be true or false.");
+      noisySim = (iter->second == "true");
     }
 
     // Set an alternate base URL if provided
@@ -360,6 +370,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     if (maxCost.has_value())
       j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
           maxCost.value();
+
+    if (noisySim.has_value() && machine.ends_with("E"))
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["noisy_simulation"] = noisySim.value() ? "true" : "false";
 
     // Add program items
     j["data"]["attributes"]["definition"]["items"] = ServerMessage::array();
