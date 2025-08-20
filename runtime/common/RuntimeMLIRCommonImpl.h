@@ -401,7 +401,8 @@ filterSpecificCodePatterns(llvm::Module *llvmModule) {
   return mlir::success();
 }
 
-// Verify that only the allowed LLVM instructions are present
+/// Verify that only LLVM instructions allowed by the QIR specification per the
+/// selected profile, version, and extensions are present.
 mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            bool isBaseProfile,
                                            bool integerComputations,
@@ -424,7 +425,8 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // computation instructions.
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
-          llvm::errs() << "error - invalid instruction found: " << inst << '\n';
+          llvm::errs() << "QIR verification error - invalid instruction found: "
+                       << inst << " (base profile)\n";
           if (!allowAllInstructions)
             return mlir::failure();
         } else if (isAdaptiveProfile && !isValidAdaptiveProfileInstruction) {
@@ -439,8 +441,9 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
           const bool isValidOutputCall = isValidOutputCallInstruction(inst);
           if (!isValidIntExtension && !isValidFloatExtension &&
               !isValidOutputCall) {
-            llvm::errs() << "error - invalid instruction found: " << inst
-                         << '\n';
+            llvm::errs()
+                << "QIR verification error - invalid instruction found: "
+                << inst << " (adaptive profile)\n";
             if (!allowAllInstructions)
               return mlir::failure();
           }
@@ -456,8 +459,9 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                 constExpr->getOpcode() != llvm::Instruction::GetElementPtr &&
                 constExpr->getOpcode() != llvm::Instruction::IntToPtr &&
                 constExpr->getOpcode() != llvm::Instruction::BitCast) {
-              llvm::errs() << "error - invalid instruction found: "
-                           << *constExpr << '\n';
+              llvm::errs()
+                  << "QIR verification error - invalid instruction found: "
+                  << *constExpr << " (call argument)\n";
               if (!allowAllInstructions)
                 return mlir::failure();
             }
