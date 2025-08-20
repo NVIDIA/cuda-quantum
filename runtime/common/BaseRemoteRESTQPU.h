@@ -69,7 +69,7 @@ bool isUsingResourceCounterSimulator();
 
 namespace cudaq {
 
-class BaseRemoteRESTQPU : public cudaq::QPU {
+class BaseRemoteRESTQPU : public QPU {
 protected:
   /// The number of shots
   std::optional<int> nShots;

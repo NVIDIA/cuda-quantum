@@ -77,7 +77,8 @@ private:
 } // namespace
 
 namespace cudaq {
-class BaseRemoteRestRuntimeClient : public cudaq::RemoteRuntimeClient {
+
+class BaseRemoteRestRuntimeClient : public RemoteRuntimeClient {
 protected:
   std::string m_url;
   static inline const std::vector<std::string> clientPasses = {};
@@ -238,6 +239,7 @@ public:
                                 startingArgIdx, rawArgs);
 
     mlir::PassManager pm(&mlirContext);
+    // For now, the server side expects full-QIR.
     opt::addPipelineConvertToQIR(pm, "qir:0.1");
 
     if (failed(pm.run(moduleOp)))

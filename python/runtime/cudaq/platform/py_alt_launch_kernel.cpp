@@ -44,11 +44,18 @@
 namespace py = pybind11;
 using namespace mlir;
 
-namespace cudaq {
 // TODO: unify with the definition in GenKernelExec.cpp
 static constexpr std::int32_t NoResultOffset =
     std::numeric_limits<std::int32_t>::max();
-static std::unique_ptr<JITExecutionCache> jitCache;
+
+static std::unique_ptr<cudaq::JITExecutionCache> jitCache;
+
+static std::function<std::string()> getTransportLayer = []() -> std::string {
+  throw std::runtime_error("binding for kernel launch is incomplete");
+  return {};
+};
+
+namespace cudaq {
 
 struct PyStateVectorData {
   void *data = nullptr;
@@ -153,7 +160,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createReturnToOutputLog());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineConvertToQIR(pm, "qir:0.1");
+    cudaq::opt::addPipelineConvertToQIR(pm, getTransportLayer());
     pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =
@@ -923,8 +930,10 @@ std::string getASM(const std::string &name, MlirModule module,
   return str;
 }
 
-void bindAltLaunchKernel(py::module &mod) {
+void bindAltLaunchKernel(py::module &mod,
+                         std::function<std::string()> &&getTL) {
   jitCache = std::make_unique<JITExecutionCache>();
+  getTransportLayer = std::move(getTL);
 
   auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
                                py::object &arg) {

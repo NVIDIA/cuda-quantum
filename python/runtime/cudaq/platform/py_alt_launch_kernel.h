@@ -64,7 +64,7 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
                     void *rawArgs, std::size_t size, std::uint32_t returnOffset,
                     const std::vector<std::string> &names);
 
-void bindAltLaunchKernel(py::module &mod);
+void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
 
 std::string getQIR(const std::string &name, MlirModule module,
                    cudaq::OpaqueArguments &runtimeArgs,

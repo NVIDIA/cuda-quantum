@@ -54,6 +54,13 @@ static std::string getGateFunctionPrefix(Operation *op) {
   return cudaq::opt::QIRQISPrefix + getGateName(op);
 }
 
+// The transport triple is a colon separated string that determines the profile,
+// optional version, and an optional list of extensions being used.
+inline static void splitTransportTriple(SmallVectorImpl<StringRef> &results,
+                                        StringRef transportLayer) {
+  transportLayer.split(results, ":");
+}
+
 constexpr std::array<std::string_view, 2> filterAdjointNames = {"s", "t"};
 
 template <typename OP>
@@ -2029,8 +2036,7 @@ struct QuakeToQIRAPIPass
     LLVM_DEBUG(llvm::dbgs() << "Begin converting to QIR\n");
     QIRAPITypeConverter typeConverter(opaquePtr);
     SmallVector<StringRef> apiField;
-    StringRef api_{api};
-    api_.split(apiField, ":");
+    splitTransportTriple(apiField, api);
     if (apiField[0] == "full") {
       if (opaquePtr)
         processOperation<FullQIR</*opaquePtr=*/true>>(typeConverter);
@@ -2086,8 +2092,7 @@ struct QuakeToQIRAPIPrepPass
   void runOnOperation() override {
     ModuleOp module = getOperation();
     SmallVector<StringRef> apiFields;
-    StringRef api_{api};
-    api_.split(apiFields, ":");
+    splitTransportTriple(apiFields, api);
 
     if (apiFields.empty()) {
       emitError(module.getLoc(), "api may not be empty");

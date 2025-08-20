@@ -510,12 +510,10 @@ mlir::LogicalResult qirProfileTranslationFunction(
           return mlir::WalkResult::interrupt();
         }).wasInterrupted();
 
-  const std::string rootQirProfileName =
-      isAdaptiveProfile ? "qir-adaptive" : qirProfile;
   if (containsWireSet)
-    cudaq::opt::addWiresetToProfileQIRPipeline(pm, rootQirProfileName);
+    cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileFields[0]);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, rootQirProfileName);
+    cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
 
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&

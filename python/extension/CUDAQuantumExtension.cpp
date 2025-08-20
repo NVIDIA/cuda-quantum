@@ -130,7 +130,9 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
   cudaq::bindVQE(cudaqRuntime);
-  cudaq::bindAltLaunchKernel(cudaqRuntime);
+  cudaq::bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
+    return cudaq::python::getTransportLayer(holderPtr);
+  });
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());
   cudaq::bindCustomOpRegistry(cudaqRuntime);
 
