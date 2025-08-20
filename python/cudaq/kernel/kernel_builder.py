@@ -6,13 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np
 import random
 import re
 import string
+import weakref
 from functools import partialmethod
 from typing import get_origin
 
+import numpy as np
 from cudaq.mlir.ir import (
     BoolAttr,
     Block,
@@ -316,12 +317,20 @@ class PyKernel(object):
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
 
-    def __del__(self):
+        self._finalizer = weakref.finalize(self, PyKernel._cleanup,
+                                           self.capturedDataStorage)
+
+    @staticmethod
+    def _cleanup(capturedDataStorage):
         """
-        When a kernel builder is deleted we need to clean up 
-        any state data if there is any.
+        Cleanup function to be called when the `PyKernel` instance is garbage 
+        collected. This resource management method is used with `weakref.finalize()`
+        to ensure proper cleanup of resources. Note that this method is intentionally
+        empty since `CapturedDataStorage` has its own `finalizer`. However, it is still
+        included for maintaining the reference to `CapturedDataStorage` until the
+        `PyKernel` instance is garbage collected ensuring proper cleanup order.
         """
-        self.capturedDataStorage.__del__()
+        pass
 
     def __processArgType(self, ty):
         """

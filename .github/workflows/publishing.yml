@@ -924,7 +924,7 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.0', 'ubuntu:22.04']
+        os_image: ['redhat/ubi8:8.10', 'ubuntu:22.04']
         cuda_version: ['11.8', '12.0']
       fail-fast: false
 
