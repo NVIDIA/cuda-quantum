@@ -420,7 +420,7 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
         // By default, the adaptive profile supports the same set of
         // instructions as the base profile. Extra/optional
         // instructions/capabilities can be enabled in the target config. For
-        // example, `qir-adaptive[int_computations]` to allow integer
+        // example, `qir-adaptive:0.1:int_computations` to allow integer
         // computation instructions.
         bool isValidAdaptiveProfileInstruction = isValidBaseProfileInstruction;
         if (isBaseProfile && !isValidBaseProfileInstruction) {
@@ -472,25 +472,26 @@ mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
 /// @param additionalPasses Additional passes to run at the end
 /// @param printIR Print IR to `stderr`
 /// @param printIntermediateMLIR Print IR in between each pass
-mlir::LogicalResult
-qirProfileTranslationFunction(const char *qirProfile, mlir::Operation *op,
-                              llvm::raw_string_ostream &output,
-                              const std::string &additionalPasses, bool printIR,
-                              bool printIntermediateMLIR, bool printStats) {
+mlir::LogicalResult qirProfileTranslationFunction(
+    const std::string &qirProfile, mlir::Operation *op,
+    llvm::raw_string_ostream &output, const std::string &additionalPasses,
+    bool printIR, bool printIntermediateMLIR, bool printStats) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
 
   const std::uint32_t qir_major_version = 1;
   const std::uint32_t qir_minor_version = 0;
 
-  const bool isAdaptiveProfile =
-      std::string{qirProfile}.starts_with("qir-adaptive");
+  llvm::StringRef qirProf{qirProfile};
+  llvm::SmallVector<llvm::StringRef> profileFields;
+  qirProf.split(profileFields, ":");
+  const bool isAdaptiveProfile = profileFields[0] == "qir-adaptive";
   const bool supportIntegerComputations =
-      (std::string{qirProfile} == "qir-adaptive-i" ||
-       std::string{qirProfile} == "qir-adaptive-if");
+      (profileFields.size() > 2) &&
+      profileFields[2].contains("int_computations");
   const bool supportFloatComputations =
-      (std::string{qirProfile} == "qir-adaptive-f" ||
-       std::string{qirProfile} == "qir-adaptive-if");
-  const bool isBaseProfile = !isAdaptiveProfile;
+      (profileFields.size() > 2) &&
+      profileFields[2].contains("float_computations");
+  const bool isBaseProfile = profileFields[0] == "qir-base";
 
   auto context = op->getContext();
   mlir::PassManager pm(context);
@@ -613,11 +614,12 @@ void registerToQIRTranslation() {
 #define CREATE_QIR_REGISTRATION(_regName, _profile)                            \
   cudaq::TranslateFromMLIRRegistration _regName(                               \
       _profile, "translate from quake to " _profile,                           \
-      [](mlir::Operation *op, llvm::raw_string_ostream &output,                \
+      [](mlir::Operation *op, const std::string &transportTriple,              \
+         llvm::raw_string_ostream &output,                                     \
          const std::string &additionalPasses, bool printIR,                    \
          bool printIntermediateMLIR, bool printStats) {                        \
         return qirProfileTranslationFunction(                                  \
-            _profile, op, output, additionalPasses, printIR,                   \
+            transportTriple, op, output, additionalPasses, printIR,            \
             printIntermediateMLIR, printStats);                                \
       })
 
@@ -630,14 +632,6 @@ void registerToQIRTranslation() {
   CREATE_QIR_REGISTRATION(regBase, "qir-base");
   // Base adaptive profile
   CREATE_QIR_REGISTRATION(regAdaptive, "qir-adaptive");
-  // Adaptive with integer computations
-  CREATE_QIR_REGISTRATION(regAdaptiveI, "qir-adaptive-i");
-  // Adaptive with floating point computations
-  // FIXME: not sure if there is a platform with floating point support but not
-  // integer. We just have it here for completeness.
-  CREATE_QIR_REGISTRATION(regAdaptiveF, "qir-adaptive-f");
-  // Adaptive with integer and floating point computations
-  CREATE_QIR_REGISTRATION(regAdaptiveIF, "qir-adaptive-if");
 }
 
 void registerToOpenQASMTranslation() {
