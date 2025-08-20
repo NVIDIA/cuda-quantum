@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "py_run.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
@@ -20,13 +22,13 @@
 #include <tuple>
 #include <vector>
 
-namespace cudaq {
-namespace details {
+using namespace cudaq;
 
-std::vector<py::object> readRunResults(mlir::ModuleOp module,
-                                       mlir::func::FuncOp kernelFuncOp,
-                                       mlir::Type ty, RunResultSpan &results,
-                                       std::size_t count) {
+static std::vector<py::object> readRunResults(mlir::ModuleOp module,
+                                              mlir::func::FuncOp kernelFuncOp,
+                                              mlir::Type ty,
+                                              details::RunResultSpan &results,
+                                              std::size_t count) {
   std::vector<py::object> ret;
   std::size_t byteSize = results.lengthInBytes / count;
   for (std::size_t i = 0; i < results.lengthInBytes; i += byteSize) {
@@ -37,7 +39,7 @@ std::vector<py::object> readRunResults(mlir::ModuleOp module,
 }
 
 static std::tuple<std::string, MlirModule, OpaqueArguments *,
-                  mlir::func::FuncOp>
+                  mlir::func::FuncOp, std::string, mlir::func::FuncOp>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
     throw std::runtime_error("Invalid number of arguments passed to run:" +
@@ -47,32 +49,48 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  auto kernelName = kernel.attr("name").cast<std::string>();
+  auto origKernName = kernel.attr("name").cast<std::string>();
+  auto kernelName = origKernName + ".run";
   if (!py::hasattr(kernel, "module") || kernel.attr("module").is_none())
     throw std::runtime_error(
         "Unsupported target / Invalid kernel for `run`: missing module");
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto origKern = getKernelFuncOp(kernelMod, origKernName);
 
+  // Lookup the runnable kernel.
+  auto mod = unwrap(kernelMod);
+  auto runKern = mod.lookupSymbol<func::FuncOp>(
+      cudaq::runtime::cudaqGenPrefixName + kernelName);
+  if (!runKern) {
+    if (origKern.getResultTypes().empty())
+      throw std::runtime_error(
+          "`cudaq.run` only supports kernels that return a value.");
+    PassManager pm(mod.getContext());
+    pm.addPass(cudaq::opt::createGenerateKernelExecution(
+        {.genRunStack = true, .deferToJIT = true}));
+    if (failed(pm.run(mod)))
+      throw std::runtime_error(
+          "failed to autogenerate the runnable variant of the kernel.");
+  }
+  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
   auto funcOp = getKernelFuncOp(kernelMod, kernelName);
-  return {kernelName, kernelMod, argData, funcOp};
+  return {kernelName, kernelMod, argData, funcOp, origKernName, origKern};
 }
 
-RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
-                             func::FuncOp funcOp,
-                             cudaq::OpaqueArguments &runtimeArgs,
-                             cudaq::quantum_platform &platform,
-                             std::size_t shots_count, std::size_t qpu_id = 0) {
-
-  auto returnTypes = funcOp.getResultTypes();
+static details::RunResultSpan
+pyRunTheKernel(const std::string &name, const std::string &origName,
+               MlirModule module, func::FuncOp funcOp, func::FuncOp origKernel,
+               OpaqueArguments &runtimeArgs, quantum_platform &platform,
+               std::size_t shots_count, std::size_t qpu_id = 0) {
+  auto returnTypes = origKernel.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
     throw std::runtime_error(
         "`cudaq.run` only supports kernels that return a value.");
 
   auto returnTy = returnTypes[0];
   // Disallow returning list / vectors from entry-point kernels.
-  if (returnTy.isa<cudaq::cc::StdvecType>()) {
+  if (returnTy.isa<cc::StdvecType>()) {
     throw std::runtime_error("`cudaq.run` does not yet support returning "
                              "`list` from entry-point kernels.");
   }
@@ -87,24 +105,23 @@ RunResultSpan pyRunTheKernel(const std::string &name, MlirModule module,
         pyLaunchKernel(name, thunk, mod, runtimeArgs, rawArgs, size,
                        returnOffset, {});
       },
-      platform, name, shots_count, qpu_id);
+      platform, name, origName, shots_count, qpu_id);
 
   std::free(rawArgs);
   return results;
 }
 
-std::vector<py::object> pyReadResults(RunResultSpan results, MlirModule module,
-                                      func::FuncOp funcOp,
-                                      std::size_t shots_count) {
+static std::vector<py::object> pyReadResults(details::RunResultSpan results,
+                                             MlirModule module,
+                                             func::FuncOp funcOp,
+                                             func::FuncOp origKern,
+                                             std::size_t shots_count) {
   auto mod = unwrap(module);
-  auto returnTypes = funcOp.getResultTypes();
-  auto returnTy = returnTypes[0];
-
+  auto returnTy = origKern.getResultTypes()[0];
   return readRunResults(mod, funcOp, returnTy, results, shots_count);
 }
 
-} // namespace details
-
+namespace cudaq {
 /// @brief Run `cudaq::run` on the provided kernel.
 std::vector<py::object> pyRun(py::object &kernel, py::args args,
                               std::size_t shots_count,
@@ -112,8 +129,8 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   if (shots_count == 0)
     return {};
 
-  auto [name, module, argData, func] =
-      details::getKernelLaunchParameters(kernel, args);
+  auto [name, module, argData, func, origName, origKern] =
+      getKernelLaunchParameters(kernel, args);
 
   auto mod = unwrap(module);
   mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
@@ -127,17 +144,19 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
     platform.set_noise(&noise_model.value());
   }
 
-  auto span = details::pyRunTheKernel(name, module, func, *argData, platform,
-                                      shots_count);
+  auto span = pyRunTheKernel(name, origName, module, func, origKern, *argData,
+                             platform, shots_count);
   delete argData;
-  auto results = details::pyReadResults(span, module, func, shots_count);
+  auto results = pyReadResults(span, module, func, origKern, shots_count);
 
   if (noise_model.has_value())
     platform.reset_noise();
 
   return results;
 }
+} // namespace cudaq
 
+namespace {
 // Internal struct representing buffer to be filled asynchronously.
 // When the `ready` future is set, the content of the buffer is filled.
 struct async_run_result {
@@ -145,7 +164,9 @@ struct async_run_result {
   std::vector<py::object> *results;
   std::string *error;
 };
+} // namespace
 
+namespace cudaq {
 /// @brief Run `cudaq::run_async` on the provided kernel.
 async_run_result pyRunAsync(py::object &kernel, py::args args,
                             std::size_t shots_count,
@@ -159,8 +180,8 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
                              ") exceeds the number of available QPUs (" +
                              std::to_string(numQPUs) + ")");
 
-  auto [name, module, argData, func] =
-      details::getKernelLaunchParameters(kernel, args);
+  auto [name, module, argData, func, origName, origKern] =
+      getKernelLaunchParameters(kernel, args);
 
   auto mod = unwrap(module);
   mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
@@ -193,7 +214,7 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
     py::gil_scoped_release gil_release{};
     QuantumTask wrapped = detail::make_copyable_function(
         [sp = std::move(spanPromise), ep = std::move(errorPromise), shots_count,
-         qpu_id, argData, name, module, func,
+         qpu_id, argData, name, module, func, origKern, origName,
          noise_model = std::move(noise_model)]() mutable {
           auto &platform = get_platform();
 
@@ -202,8 +223,8 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
             platform.set_noise(&noise_model.value());
 
           try {
-            auto span = details::pyRunTheKernel(name, module, func, *argData,
-                                                platform, shots_count, qpu_id);
+            auto span = pyRunTheKernel(name, origName, module, func, origKern,
+                                       *argData, platform, shots_count, qpu_id);
             delete argData;
             sp.set_value(span);
             ep.set_value("");
@@ -226,14 +247,14 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
         std::async(std::launch::deferred,
                    [sf = std::move(spanFuture), ef = std::move(errorFuture),
                     errorPtr = result.error, resultsPtr = result.results,
-                    module, func, shots_count]() mutable {
+                    module, func, origKern, shots_count]() mutable {
                      auto error = ef.get();
                      std::swap(*errorPtr, error);
                      if (error.empty()) {
                        auto span = sf.get();
                        py::gil_scoped_acquire gil{};
-                       auto results = details::pyReadResults(span, module, func,
-                                                             shots_count);
+                       auto results = pyReadResults(span, module, func,
+                                                    origKern, shots_count);
                        std::swap(*resultsPtr, results);
                      }
                    });
@@ -242,9 +263,10 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
 
   return result;
 }
+} // namespace cudaq
 
 /// @brief Bind the run cudaq function.
-void bindPyRun(py::module &mod) {
+void cudaq::bindPyRun(py::module &mod) {
   mod.def("run", &pyRun, py::arg("kernel"), py::kw_only(),
           py::arg("shots_count") = 100, py::arg("noise_model") = py::none(),
           R"#(Run the provided `kernel` with the given kernel arguments over 
@@ -262,7 +284,7 @@ Returns:
 }
 
 /// @brief Bind the run_async cudaq function.
-void bindPyRunAsync(py::module &mod) {
+void cudaq::bindPyRunAsync(py::module &mod) {
   py::class_<async_run_result>(mod, "AsyncRunResult", "")
       .def(
           "get",
@@ -296,4 +318,3 @@ Returns:
   AsyncRunResult: A handle which can be waited on via a `get()` method.
 )#");
 }
-} // namespace cudaq

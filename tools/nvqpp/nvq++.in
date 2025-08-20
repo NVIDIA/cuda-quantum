@@ -26,11 +26,11 @@ function error_exit {
 
 function run() {
 	if $ECHO; then
-		echo "$*"
+		echo "$@"
 	fi
-	$*
+	"$@"
 	if [ $? -ne 0 ]; then
-		echo "failed: \"$*\"" >&2
+		echo "failed: \"$@\"" >&2
 		exit 1
 	fi
 }
@@ -102,7 +102,7 @@ function f_option_handling {
 		ENABLE_LOWER_TO_CFG=true
 		;;
 	-fkernel-exec-kind=*)
-		KERNEL_EXECUTION_KIND="{codegen=${1#*=}}"
+		KERNEL_EXECUTION_KIND="codegen=${1#*=}"
 		;;
 	-fno-set-target-backend)
 		SET_TARGET_BACKEND=false
@@ -361,6 +361,7 @@ ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_KERNEL_EXECUTION=true
 KERNEL_EXECUTION_KIND=
+AUTO_GENERATE_RUN_OPTION=
 ENABLE_AGGRESSIVE_EARLY_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
@@ -712,6 +713,24 @@ if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
 	fi
 fi
 
+# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
+# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
+# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
+# at runtime. Note: this override is still required because no targets support
+# run yet.
+if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
+	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+	fi
+else
+	# we honor the user's explicit command-line request.
+	if ${ENABLE_CUDAQ_RUN}; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+	fi
+fi
+
 RUN_OPT=false
 OPT_PASSES=
 if ${ENABLE_VARIABLE_COALESCE}; then
@@ -732,7 +751,17 @@ if ${ENABLE_APPLY_SPECIALIZATION}; then
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_KIND}")
+	KERNEL_EXECUTION_OPTIONS=
+	if [[ -n "${AUTO_GENERATE_RUN_OPTION}" ]]; then
+		if [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
+			KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND} ${AUTO_GENERATE_RUN_OPTION}}"
+		else
+			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
+		fi
+	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
+		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
+	fi
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 fi
 if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	RUN_OPT=true
@@ -758,20 +787,6 @@ fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
-fi
-# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
-# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
-# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
-# at runtime. Note: this override is still required because no targets support
-# run yet.
-if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
-	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-	fi
-else # we honor the user's explicit command-line request.
-	if ${ENABLE_CUDAQ_RUN}; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-	fi
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call,canonicalize,cse")
