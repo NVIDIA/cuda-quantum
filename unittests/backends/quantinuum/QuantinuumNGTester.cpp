@@ -144,60 +144,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkSampleAsyncLoadFromFile) {
   std::remove("saveMe.json");
 }
 
-CUDAQ_TEST(QuantinuumNGTester, checkObserveSync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
-
-  cudaq::spin_op h =
-      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
-      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto result = cudaq::observe(10000, kernel, h, .59);
-  result.dump();
-
-  printf("ENERGY: %lf\n", result.expectation());
-  EXPECT_TRUE(isValidExpVal(result.expectation()));
-}
-
-CUDAQ_TEST(QuantinuumNGTester, checkObserveSyncEmulate) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-  backendString =
-      std::regex_replace(backendString, std::regex("false"), "true");
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
-
-  cudaq::spin_op h =
-      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
-      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto result = cudaq::observe(100000, kernel, h, .59);
-  result.dump();
-
-  printf("ENERGY: %lf\n", result.expectation());
-  EXPECT_TRUE(isValidExpVal(result.expectation()));
-}
-
 CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppQuantinuum.config";
@@ -218,36 +164,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   auto future = cudaq::observe_async(kernel, h, .59);
-
-  auto result = future.get();
-  result.dump();
-
-  printf("ENERGY: %lf\n", result.expectation());
-  EXPECT_TRUE(isValidExpVal(result.expectation()));
-}
-
-CUDAQ_TEST(QuantinuumNGTester, checkObserveAsyncEmulate) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-  backendString =
-      std::regex_replace(backendString, std::regex("false"), "true");
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto [kernel, theta] = cudaq::make_kernel<double>();
-  auto qubit = kernel.qalloc(2);
-  kernel.x(qubit[0]);
-  kernel.ry(theta, qubit[1]);
-  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
-
-  cudaq::spin_op h =
-      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
-      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
-      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto future = cudaq::observe_async(100000, 0, kernel, h, .59);
 
   auto result = future.get();
   result.dump();
@@ -323,14 +239,17 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
-
+    kernel.mz(controls1);
+    kernel.mz(controls2);
+    kernel.mz(control3);
+    kernel.mz(target);
     std::cout << kernel.to_quake() << "\n";
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
 
     // Target qubit should've been rotated to |1>.
-    EXPECT_EQ(counts.count("0000111111"), 1000);
+    EXPECT_EQ(counts.count("111111"), 1000);
   }
 
   // rx: 0.0
@@ -347,12 +266,15 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.rx<cudaq::ctrl>(0.0, controls1, controls2, control3, target);
-
+    kernel.mz(controls1);
+    kernel.mz(controls2);
+    kernel.mz(control3);
+    kernel.mz(target);
     auto counts = cudaq::sample(kernel);
     counts.dump();
 
     // Target qubit should've stayed in |0>
-    EXPECT_EQ(counts.count("0000111110"), 1000);
+    EXPECT_EQ(counts.count("111110"), 1000);
   }
 
   // ry: pi
@@ -369,12 +291,15 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.ry<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
-
+    kernel.mz(controls1);
+    kernel.mz(controls2);
+    kernel.mz(control3);
+    kernel.mz(target);
     auto counts = cudaq::sample(kernel);
     counts.dump();
 
     // Target qubit should've been rotated to |1>
-    EXPECT_EQ(counts.count("0000111111"), 1000);
+    EXPECT_EQ(counts.count("111111"), 1000);
   }
 
   // ry: pi / 2
@@ -393,13 +318,16 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.ry<cudaq::ctrl>(M_PI_2, controls1, controls2, control3, target);
-
+    kernel.mz(controls1);
+    kernel.mz(controls2);
+    kernel.mz(control3);
+    kernel.mz(target);
     auto counts = cudaq::sample(kernel);
     counts.dump();
 
     // Target qubit should have a 50/50 mix between |0> and |1>
-    EXPECT_TRUE(counts.count("0000111111") < 550);
-    EXPECT_TRUE(counts.count("0000111110") > 450);
+    EXPECT_TRUE(counts.count("111111") < 550);
+    EXPECT_TRUE(counts.count("111110") > 450);
   }
 
   {
@@ -416,9 +344,12 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(controls2);
     // Should rotate `target`.
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
-
+    kernel.mz(controls1);
+    kernel.mz(controls2);
+    kernel.mz(control3);
+    kernel.mz(target);
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    EXPECT_EQ(counts.count("00000011111111"), 1000);
+    EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }

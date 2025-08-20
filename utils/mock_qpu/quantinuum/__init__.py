@@ -48,6 +48,7 @@ engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 qirVersionUnderDevelopment = os.environ.get(
     "CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", False)
 requiredQubits = "required_num_qubits" if qirVersionUnderDevelopment else "requiredQubits"
+requiredResults = "required_num_results" if qirVersionUnderDevelopment else "requiredResults"
 
 
 def getNumRequiredQubits(function):
@@ -58,19 +59,19 @@ def getNumRequiredQubits(function):
                     "\"", "").replace("'", ""))
 
 
+def getNumRequiredResults(function):
+    for a in function.attributes:
+        if requiredResults in str(a):
+            return int(
+                str(a).split(f'{requiredResults}\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
 def getKernelFunction(module):
     for f in module.functions:
         if not f.is_declaration:
             return f
     return None
-
-
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "requiredQubits" in str(a):
-            return int(
-                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
-                    "\"", "").replace("'", ""))
 
 
 # Here we test that the login endpoint works
@@ -179,10 +180,12 @@ async def create_job(job: dict):
     if function == None:
         raise Exception("Could not find kernel function")
     numQubitsRequired = getNumRequiredQubits(function)
+    numResultsRequired = getNumRequiredResults(function)
     kernelFunctionName = function.name
 
     print("Kernel name = ", kernelFunctionName)
     print("Requires {} qubits".format(numQubitsRequired))
+    print("Requires {} results".format(numResultsRequired))
 
     # JIT Compile and get Function Pointer
     engine.add_module(m)
@@ -193,9 +196,23 @@ async def create_job(job: dict):
 
     # Invoke the Kernel
     if is_ng_device:
-        # For `NG` result, we don't yet know how to execute it (run/sample) until we get the result (result version determines how we should execute it).
-        # Hence, cache the job
-        createdJobs[job_id] = (job_name, numQubitsRequired, kernel, shots, m)
+        print("Number of shots =", shots)
+        qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
+
+        for i in range(shots):
+            cudaq.testing.toggleDynamicQubitManagement()
+            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1,
+                                                       "run")
+            kernel()
+            _ = cudaq.testing.finalize(qubits, context)
+
+            shot_log = cudaq.testing.getAndClearOutputLog()
+            if i > 0:
+                qir_log += "START\n"
+            qir_log += shot_log
+            qir_log += "END\t0\n"
+
+        createdJobs[job_id] = (job_name, qir_log)
     else:
         cudaq.testing.toggleDynamicQubitManagement()
         qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
@@ -205,7 +222,7 @@ async def create_job(job: dict):
 
         createdJobs[job_id] = (job_name, results)
 
-        engine.remove_module(m)
+    engine.remove_module(m)
 
     return {
         "data": {
@@ -243,7 +260,7 @@ async def get_job_status(job_id: str):
     # Job completed
     countJobGetRequests = 0
 
-    is_qsys_job = len(createdJobs[job_id]) > 2
+    is_qsys_job = isinstance(createdJobs[job_id][1], str)
 
     result_id = str(uuid.uuid4())
     createdResults[result_id] = job_id
@@ -322,8 +339,8 @@ async def get_results(result_id: str):
 # NG device results retrieval endpoint (`qsys_results`)
 @app.get("/api/qsys_results/v1beta/{result_id}")
 async def get_results(result_id: str, version: int):
-    # Version can only be 3 (default) or 4 (raw)
-    if version not in [3, 4]:
+    # Version can only be 3 (default)
+    if version not in [3]:
         raise HTTPException(status_code=400, detail="Invalid version")
     global createdJobs, createdResults
     # Find the job that produced this result
@@ -332,73 +349,25 @@ async def get_results(result_id: str, version: int):
     if not job_id:
         raise HTTPException(status_code=404, detail="Result not found")
 
-    _, numQubitsRequired, kernel, shots, m = createdJobs[job_id]
-    print("Number of shots =", shots)
+    _, qir_log = createdJobs[job_id]
+    print("QIR output log:")
+    print(qir_log)
 
-    # Default (QIR result)
-    if version == 3:
-        for i in range(shots):
-            cudaq.testing.toggleDynamicQubitManagement()
-            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1,
-                                                       "run")
-            kernel()
-            _ = cudaq.testing.finalize(qubits, context)
-        # Note: this QIR log may not contain the header information that real services would return.
-        # TODO: update this once we can test with a real NG device
-        qir_log = cudaq.testing.getAndClearOutputLog()
-        print("QIR output:")
-        print(qir_log)
-        return {
-            "data": {
-                "id": result_id,
-                "attributes": {
-                    "results": qir_log
-                },
-                "relationships": {
-                    "program": {
-                        "data": {
-                            "type": "qir"
-                        }
+    return {
+        "data": {
+            "id": result_id,
+            "attributes": {
+                "results": qir_log
+            },
+            "relationships": {
+                "program": {
+                    "data": {
+                        "type": "qir"
                     }
                 }
             }
         }
-    else:
-        # QSYS result
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
-        kernel()
-        counts = cudaq.testing.finalize(qubits, context)
-        # Get the exact length of the first bitstring
-        bit_length = len(list(counts.items())[0][0]) if counts else 0
-
-        qsys_result = []
-        for bits, count in counts.items():
-            for _ in range(count):
-                qsys_shot = []
-                for i in range(bit_length):
-                    reg_idx = i
-                    reg_name = f"r{reg_idx:05d}"
-                    qsys_shot.append([reg_name, int(bits[reg_idx])])
-                qsys_result.append(qsys_shot)
-
-        return {
-            "data": {
-                "id": result_id,
-                "attributes": {
-                    "results": qsys_result
-                },
-                "relationships": {
-                    "program": {
-                        "data": {
-                            "type": "qir"
-                        }
-                    }
-                }
-            }
-        }
-
-    engine.remove_module(m)
+    }
 
 
 def startServer(port):
