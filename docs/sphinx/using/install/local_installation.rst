@@ -896,6 +896,11 @@ The following table summarizes the required components.
 
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
+.. note::
+
+    Tegra devices (Jetson) are not supported in CUDA-Q at this time.
+
+    For more information, please refer to `Binary Compatibility documentation <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility>`_.
 
 .. _post-installation:
 
