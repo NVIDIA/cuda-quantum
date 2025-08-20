@@ -162,7 +162,7 @@ jobs:
             exit 1
           fi
 
-          $python -m pip install "cudaq==${{ inputs.cudaq_version }}" --no-index --find-links "file:///tmp/packages"
+          $python -m pip install "cudaq==${{ inputs.cudaq_version }}" --find-links "file:///tmp/packages"
 
           if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
             echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
@@ -179,8 +179,8 @@ jobs:
           fi
 
           if [ "$package_dep" != "cuda-quantum" ]; then
-            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} --no-index --find-links "file:///tmp/packages
-            $python -m pip install cudaq==${{ inputs.cudaq_version }} --no-index --find-links "file:///tmp/packages
+            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages
+            $python -m pip install cudaq==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages
             $python -c 'import cudaq; print(cudaq.get_target().name)'
             $autoremove -y cudaq
             if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
@@ -197,14 +197,14 @@ jobs:
           case "${{ matrix.cuda_version }}" in
             "") 
               set +e # continue on error
-              $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} --no-index --find-links "file:///tmp/packages
+              $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages
               set -e && check_package=cuda-quantum
             ;; 
             12.*) 
               test_conflicting=cuda-quantum-cu11
-              $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} --no-index --find-links "file:///tmp/packages
+              $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages
               set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v --no-index --find-links "file:///tmp/packages \
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v --find-links "file:///tmp/packages \
               2>&1 | tee /tmp/install.out
               set -e && check_package=cudaq
             ;; 
@@ -216,12 +216,12 @@ jobs:
               if [ -z "$($python -m pip list | grep cuda-quantum)" ]; then 
                 # if we don't have a 0.8.0 version for this python version, test other conflict
                 test_conflicting=cuda-quantum-cu12
-                $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} --no-index --find-links "file:///tmp/packages
+                $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages
               else
                 test_conflicting=cuda-quantum
               fi
               set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v --no-index --find-links "file:///tmp/packages \
+              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v --find-links "file:///tmp/packages \
               2>&1 | tee /tmp/install.out
               set -e && check_package=cudaq
             ;; 
