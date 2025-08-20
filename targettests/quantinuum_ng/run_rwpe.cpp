@@ -6,6 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
+// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
+
 #include <cudaq.h>
 
 // Here we demonstrate an algorithm expressed as a CUDA-Q kernel that
@@ -60,4 +64,6 @@ int main() {
   for (auto &phase : phases)
     printf("Phase = %lf\n", phase);
   assert(phases.size() == shots);
+
+  return 0;
 }
