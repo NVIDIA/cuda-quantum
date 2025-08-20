@@ -38,7 +38,7 @@ COPY .gitmodules /tmp/.gitmodules
 #         > tpls_commits.lock
 
 # Uncomment the following line to copy the tpls_commits.lock file into the image
-COPY tpls_commits.lock /tmp/tpls_commits.lock
+# COPY tpls_commits.lock /tmp/tpls_commits.lock
 
 # Copy and run the install_prerequisites script into the image
 RUN if [ "${WITH_TPLS}" = "true" ]; then \
