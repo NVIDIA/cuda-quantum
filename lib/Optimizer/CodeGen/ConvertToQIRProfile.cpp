@@ -25,10 +25,16 @@
 
 #define DEBUG_TYPE "qir-profile"
 
-/// This file maps full QIR to either the Adaptive Profile QIR or Base Profile
-/// QIR. It is generally assumed that the input QIR here will be generated after
-/// the quake-synth pass, thereby greatly simplifying the transformations
-/// required here.
+/**
+   \file
+
+   This file maps full QIR to either the Adaptive Profile QIR or Base Profile
+   QIR. It is generally assumed that the input QIR here will be generated after
+   the quake-synth pass, thereby greatly simplifying the transformations
+   required here.
+
+   This pass \e only supports QIR version 0.1.
+ */
 
 using namespace mlir;
 

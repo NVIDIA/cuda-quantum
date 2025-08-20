@@ -48,6 +48,8 @@
      - using value semantics and wire_set globals
      - decomposed into single control (at most) gate form
      - negated controls must have been erased
+
+   This pass \e only supports QIR version 0.1.
  */
 
 namespace cudaq::opt {
