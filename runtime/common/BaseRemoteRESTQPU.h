@@ -314,10 +314,9 @@ public:
       if (!config.BackendConfig->CodegenEmission.empty()) {
         cudaq::info("Set codegen translation: {}",
                     config.BackendConfig->CodegenEmission);
-        auto [codeGenName, codeGenVersion, codeGenOptions] =
-            parseCodeGenTranslationString(
-                config.BackendConfig->CodegenEmission);
         codegenTranslation = config.BackendConfig->CodegenEmission;
+        auto [codeGenName, codeGenVersion, codeGenOptions] =
+            parseCodeGenTranslationString(codegenTranslation);
         if (codeGenName == "qir-adaptive") {
           for (auto option : codeGenOptions) {
             if (option == "int_computations") {
