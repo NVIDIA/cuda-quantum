@@ -51,3 +51,6 @@
 [submodule "docs/sphinx/applications/python/qaoa_gpt_src/FEATHER"]
 	path = docs/sphinx/applications/python/qaoa_gpt_src/FEATHER
 	url = https://github.com/benedekrozemberczki/FEATHER.git
+[submodule "docs/sphinx/applications/python/nanoGPT"]
+	path = docs/sphinx/applications/python/nanoGPT
+	url = https://github.com/IlyaTyagin/nanoGPT.git
