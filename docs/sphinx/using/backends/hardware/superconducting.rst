@@ -306,7 +306,7 @@ Users who wish to get started with running CUDA-Q on AquSim should visit our
 `Explore <https://quantumcircuits.com/explore/>`__ page to learn more about the Quantum Circuits
 Select Quantum Release Program.
 
-Using CUDA-Q with Quantum Circuits
+Submitting
 `````````````````````````
 
 Until CUDA-Q release 0.13.0 is available, the integration with Quantum Circuits will be supported
@@ -323,6 +323,7 @@ named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program.
 
 
 .. tab:: Python
+
         To set the target to Quantum Circuits, add the following to your Python
         program:
 
