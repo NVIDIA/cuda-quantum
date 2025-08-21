@@ -481,11 +481,13 @@ Resources *python::detail::getResourceCounts() {
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
-  auto runtimeTarget = holder->getTarget();
-  if (runtimeTarget.config.BackendConfig) {
-    auto &config = *runtimeTarget.config.BackendConfig;
-    if (!config.CodegenEmission.empty())
-      return config.CodegenEmission;
+  if (holder) {
+    auto runtimeTarget = holder->getTarget();
+    if (runtimeTarget.config.BackendConfig) {
+      auto &config = *runtimeTarget.config.BackendConfig;
+      if (!config.CodegenEmission.empty())
+        return config.CodegenEmission;
+    }
   }
   // Default is full QIR.
   return "qir:0.1";

@@ -41,7 +41,7 @@ void bindCountResources(py::module &mod) {
         ctx->asyncExec = false;
 
         // Use the resource counter simulator
-	python::detail::switchToResourceCounterSimulator();
+        python::detail::switchToResourceCounterSimulator();
         // Set the choice function for the simulator
 
         if (!choice) {
@@ -53,7 +53,7 @@ void bindCountResources(py::module &mod) {
           };
         }
 
-	python::detail::setChoiceFunction(*choice);
+        python::detail::setChoiceFunction(*choice);
 
         // Set the platform
         platform.set_exec_ctx(ctx.get());
@@ -66,7 +66,7 @@ void bindCountResources(py::module &mod) {
         Resources counts = *python::detail::getResourceCounts();
 
         // Switch simulators back
-	python::detail::stopUsingResourceCounterSimulator();
+        python::detail::stopUsingResourceCounterSimulator();
 
         return counts;
       },

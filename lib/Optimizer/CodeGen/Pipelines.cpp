@@ -91,9 +91,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
 
 void cudaq::opt::addPipelineConvertToQIR(PassManager &pm, StringRef convertTo) {
   commonPipelineConvertToQIR(pm, convertTo, convertTo);
-  SmallVector<StringRef> targetFields;
-  convertTo.split(targetFields, ":");
-  if (!targetFields.empty())
-    if (targetFields[0] != "qir" && targetFields[0] != "qir-full")
-      addQIRProfileVerify(pm, convertTo);
+  auto targetPair = convertTo.split(':');
+  if (targetPair.first != "qir" && targetPair.first != "qir-full")
+    addQIRProfileVerify(pm, convertTo);
 }

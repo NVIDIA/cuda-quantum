@@ -52,7 +52,6 @@ static std::unique_ptr<cudaq::JITExecutionCache> jitCache;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
-  return {};
 };
 
 namespace cudaq {
@@ -160,7 +159,8 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createReturnToOutputLog());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addPipelineConvertToQIR(pm, getTransportLayer());
+    std::string tl = getTransportLayer();
+    cudaq::opt::commonPipelineConvertToQIR(pm, tl, tl);
     pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =
