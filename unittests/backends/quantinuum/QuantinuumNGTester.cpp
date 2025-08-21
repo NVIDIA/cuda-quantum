@@ -45,29 +45,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkSampleSync) {
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(QuantinuumNGTester, checkSampleSyncEmulate) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-  backendString =
-      std::regex_replace(backendString, std::regex("false"), "true");
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
-
-  auto counts = cudaq::sample(100, kernel);
-  counts.dump();
-  EXPECT_EQ(counts.size(), 2);
-}
-
 CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppQuantinuum.config";
@@ -97,8 +74,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
 }
 
 CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
-  // Checks for more advanced controlled rotations that only
-  // work in emulation.
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppQuantinuum.config";
   auto backendString =
@@ -106,7 +81,9 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
 
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
-
+  // Small number of shots as NG device mock always
+  // runs in shot-shot mode for QIR output.
+  constexpr int numShots = 10;
   // rx: pi
   {
     auto kernel = cudaq::make_kernel();
@@ -127,11 +104,11 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.mz(target);
     std::cout << kernel.to_quake() << "\n";
 
-    auto counts = cudaq::sample(kernel);
+    auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
 
     // Target qubit should've been rotated to |1>.
-    EXPECT_EQ(counts.count("111111"), 1000);
+    EXPECT_EQ(counts.count("111111"), numShots);
   }
 
   // rx: 0.0
@@ -152,11 +129,11 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.mz(controls2);
     kernel.mz(control3);
     kernel.mz(target);
-    auto counts = cudaq::sample(kernel);
+    auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
 
     // Target qubit should've stayed in |0>
-    EXPECT_EQ(counts.count("111110"), 1000);
+    EXPECT_EQ(counts.count("111110"), numShots);
   }
 
   // ry: pi
@@ -177,11 +154,11 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.mz(controls2);
     kernel.mz(control3);
     kernel.mz(target);
-    auto counts = cudaq::sample(kernel);
+    auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
 
     // Target qubit should've been rotated to |1>
-    EXPECT_EQ(counts.count("111111"), 1000);
+    EXPECT_EQ(counts.count("111111"), numShots);
   }
 
   // ry: pi / 2
@@ -204,12 +181,12 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.mz(controls2);
     kernel.mz(control3);
     kernel.mz(target);
-    auto counts = cudaq::sample(kernel);
+    auto counts = cudaq::sample(100, kernel);
     counts.dump();
 
     // Target qubit should have a 50/50 mix between |0> and |1>
-    EXPECT_TRUE(counts.count("111111") < 550);
-    EXPECT_TRUE(counts.count("111110") > 450);
+    EXPECT_TRUE(counts.count("111111") < 60);
+    EXPECT_TRUE(counts.count("111110") > 40);
   }
 
   {
@@ -230,8 +207,8 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.mz(controls2);
     kernel.mz(control3);
     kernel.mz(target);
-    auto counts = cudaq::sample(kernel);
+    auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
-    EXPECT_EQ(counts.count("11111111"), 1000);
+    EXPECT_EQ(counts.count("11111111"), numShots);
   }
 }

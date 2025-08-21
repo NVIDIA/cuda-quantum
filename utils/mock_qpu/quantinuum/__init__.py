@@ -49,6 +49,8 @@ qirVersionUnderDevelopment = os.environ.get(
     "CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", False)
 requiredQubits = "required_num_qubits" if qirVersionUnderDevelopment else "requiredQubits"
 requiredResults = "required_num_results" if qirVersionUnderDevelopment else "requiredResults"
+# Verbose logging for debugging
+verbose = False
 
 
 def getNumRequiredQubits(function):
@@ -157,8 +159,9 @@ async def create_job(job: dict):
                                   {}).get("definition",
                                           {}).get("backend_config",
                                                   {}).get("device_name", "")
-    print("Job data =", job)
-    print("Device name =", device_name)
+    if verbose:
+        print("Job data =", job)
+        print("Device name =", device_name)
     # If device name starts with "Helios", we assume it's an NG device
     is_ng_device = device_name.startswith("Helios")
 
@@ -172,8 +175,9 @@ async def create_job(job: dict):
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
     assert ('entry_point' in mstr)
-    print("Code")
-    print(mstr)
+    if verbose:
+        print("Code")
+        print(mstr)
 
     # Get the function, number of qubits, and kernel name
     function = getKernelFunction(m)
@@ -183,9 +187,10 @@ async def create_job(job: dict):
     numResultsRequired = getNumRequiredResults(function)
     kernelFunctionName = function.name
 
-    print("Kernel name = ", kernelFunctionName)
-    print("Requires {} qubits".format(numQubitsRequired))
-    print("Requires {} results".format(numResultsRequired))
+    if verbose:
+        print("Kernel name = ", kernelFunctionName)
+        print("Requires {} qubits".format(numQubitsRequired))
+        print("Requires {} results".format(numResultsRequired))
 
     # JIT Compile and get Function Pointer
     engine.add_module(m)
@@ -196,7 +201,6 @@ async def create_job(job: dict):
 
     # Invoke the Kernel
     if is_ng_device:
-        print("Number of shots =", shots)
         qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
         for i in range(shots):
@@ -350,8 +354,10 @@ async def get_results(result_id: str, version: int):
         raise HTTPException(status_code=404, detail="Result not found")
 
     _, qir_log = createdJobs[job_id]
-    print("QIR output log:")
-    print(qir_log)
+
+    if verbose:
+        print("QIR output log:")
+        print(qir_log)
 
     return {
         "data": {
