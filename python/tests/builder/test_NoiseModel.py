@@ -647,7 +647,7 @@ def test_apply_noise_custom():
     cudaq.reset_target()
 
 
-@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+@pytest.mark.parametrize('target', ['stim', 'density-matrix-cpu'])
 def test_apply_noise_builtin(target: str):
     cudaq.set_target(target)
 
