@@ -31,17 +31,17 @@ private:
   /// obsolete releases. Each new release of the SDK should incorporate a new
   /// API token.
   const std::string DEFAULT_API_TOKEN =
-      "eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0."
-      "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzNjUwOTQwMDQsImlhdCI6MTczNDM3NDAwNCwiaXNz"
-      "IjoiYXF1bWVuIiwianRpIjoiMDE5M2QwYmYtMTY0OS03NTE4LWI3MTktNGJlNzU4MDRiNWNh"
-      "IiwibmJmIjoxNzM0Mzc0MDA0LCJzdWIiOiIwMTkzZDBiZi0xNjQwLTdjYzQtOTU2Ni00YjJk"
-      "M2ZjOTk2ZWYifQ._"
-      "fdj5Mcsv8BAEuaIMfnIAHqme883wWZTfWCbN3zOodxxHjIL84B0CT9ULFRN3I_"
-      "qUw4P3vmLM99f-tBu8hOKDw";
+    "eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0."
+    "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzODY0NDgxOTcsImlhdCI6MTc1NTcyODE5NywiaXNz"
+    "IjoiYXF1bWVuIiwianRpIjoiMDE5OGM5OGUtMzg4Mi03OWU1LWI4M2MtMzdmZmFmNzM3MzVl"
+    "IiwibmJmIjoxNzU1NzI4MTk3LCJzdWIiOiIwMTk4Yzk4ZS0zODdkLTdmZjctYmIzNS0zMDE4"
+    "NDZiNTA4ZDYifQ."
+    "3BzcsSX5lScDqnjd9mOxQA7o9aXIkSBhP2WbkfwiKsu40QKKwjvtGwgk0EU7vGxPwr3zF3O6"
+    "q15Y3R57CY3KCQ";
 
   /// @brief Default base URL for QCI's service.
   const std::string DEFAULT_API_URL =
-      "https://beta-service-aqumen.sensedata.dev/";
+      "https://aqumen.quantumcircuits.com/";
 
   /// @brief Default machine, the simulator.
   const std::string DEFAULT_MACHINE = "simulator";
