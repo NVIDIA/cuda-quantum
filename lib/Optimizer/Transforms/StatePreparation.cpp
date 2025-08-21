@@ -326,14 +326,13 @@ public:
   LogicalResult matchAndRewrite(quake::InitializeStateOp init,
                                 PatternRewriter &rewriter) const override {
     auto loc = init.getLoc();
-    auto qubits = init.getOperand(0);
+    auto qubits = init.getTargets();
     if (auto alloc = qubits.getDefiningOp<quake::AllocaOp>()) {
 
       // Find vector data.
-      auto data = init.getOperand(1);
-      auto cast = data.getDefiningOp<cudaq::cc::CastOp>();
-      if (cast)
-        data = cast.getOperand();
+      Value data = init.getState();
+      if (auto cast = data.getDefiningOp<cudaq::cc::CastOp>())
+        data = cast.getValue();
 
       if (auto addr = data.getDefiningOp<cudaq::cc::AddressOfOp>()) {
         auto globalName = addr.getGlobalName();
@@ -358,8 +357,7 @@ public:
         }
       }
     }
-    return init.emitError(
-        "StatePreparation failed to replace quake.state_init");
+    return init.emitOpError("failed to replace op");
   }
 
 private:
@@ -382,8 +380,7 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<StatePrepPattern>(ctx, phaseThreshold);
 
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
       func.emitOpError("State preparation failed");
       signalPassFailure();
     }

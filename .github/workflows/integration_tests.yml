@@ -26,6 +26,7 @@ on:
           - nvqc
           - orca
           - fermioniq
+          - qci
       single_test_name:
         type: string
         required: false
@@ -60,6 +61,7 @@ on:
         - '3.10'
         - '3.11'
         - '3.12'
+        - '3.13'
 
   schedule:
     - cron: 0 3 * * *
@@ -390,11 +392,10 @@ jobs:
       - name: Setup quantinum account
         if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'quantinuum')
         run: |
-          curl -X POST -H "Content Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_PASSWORD }}" }' https://qapi.quantinuum.com/v1/login > credentials.json
-          id_token=`cat credentials.json | jq -r '."id-token"'`
-          refresh_token=`cat credentials.json | jq -r '."refresh-token"'`
-          echo "key: $id_token" > ~/.quantinuum_config
-          echo "refresh: $refresh_token" >> ~/.quantinuum_config
+          echo "### Setup Quantinuum account" >> $GITHUB_STEP_SUMMARY
+          curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
+          awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
+          rm ~/.quantinuum_cookies.txt
 
       - name: QIR syntax check (Quantinuum)
         if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly')
@@ -407,7 +408,7 @@ jobs:
             case $filename in
               targettests/quantinuum/*)
                 [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC
+                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
@@ -424,6 +425,18 @@ jobs:
                 fi
               ;;
             esac
+          done
+          python_tests="docs/sphinx/targets/python/quantinuum.py"
+          for filename in $python_tests; do
+            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
+            QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
+            test_status=$?
+            if [ $test_status -eq 0 ]; then
+              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+            else
+              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+              test_err_sum=$((test_err_sum+1))
+            fi
           done
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
@@ -477,7 +490,7 @@ jobs:
           # Create a json file with the Resonance auth token
           echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
           export IQM_TOKENS_FILE=".resonance.api-token.json"
-          # Use IQM Resonance Pyrite mock, which implements the Adonis architecture
+          # Use IQM Resonance Pyrite mock, which implements the Crystal_5 architecture
           export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:test"
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
@@ -487,7 +500,7 @@ jobs:
             # Only the following tests are currently supported on IQM
             case $filename in
               targettests/iqm/*)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Adonis $filename
+                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
@@ -747,6 +760,41 @@ jobs:
           fi
         shell: bash
 
+      - name: Submit to QCI test server
+        if: (success() || failure()) && (inputs.target == 'qci' || github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### Submit to QCI server" >> $GITHUB_STEP_SUMMARY
+          export QCI_AUTH_TOKEN='${{ secrets.QCI_AUTH_TOKEN }}'
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in ${{ steps.gettests.outputs.testlist }}; do
+            case $filename in
+              targettests/qci/*)
+                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+                nvq++ -v $filename --target qci
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              ;;
+            esac
+          done          
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+
       - name: Submit to ${{ inputs.target }}
         # The full set of tests used by this step is currently only supported on
         # Quantinuum.  The other supported tests are tested by the step above.
@@ -835,10 +883,9 @@ jobs:
 
           # Test all remote-sim tests
           for filename in `find targettests/Remote-Sim -name '*.cpp'`; do
-            # unsupport_args and compile_errors are compile error tests
-            # nested_vectors: Compiler fails to synthesize nested vector parameters (https://github.com/NVIDIA/cuda-quantum/issues/2001)
+            # unsupport_args is compile error test
             # qvector_init_from_state, qvector_init_from_state_lazy, test_trotter: New argument synthesis is not executed for nvqc (https://github.com/NVIDIA/cuda-quantum/issues/2146)
-            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"compile_errors"* ]] && [[ "$filename" != *"nested_vectors"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_state_lazy"* ]] && [[ "$filename" != *"test_trotter"* ]]; then
+            if [[ "$filename" != *"unsupport_args"* ]] && [[ "$filename" != *"qvector_init_from_state"* ]] && [[ "$filename" != *"qvector_init_from_state_lazy"* ]] && [[ "$filename" != *"test_trotter"* ]]; then
               echo "$filename"
               nvqc_config=""
               # Look for a --remote-mqpu-auto-launch to determine the number of QPUs

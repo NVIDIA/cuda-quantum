@@ -104,9 +104,9 @@ int main() {
   // simultaneously. No collapsed operators are provided (closed system
   // evolution). The evolution returns expectation values for all defined
   // observables at each time step.
-  auto evolution_results =
-      cudaq::evolve(hamiltonian, dimensions, schedule, {psi_00, psi_10},
-                    integrator, {}, observables, true);
+  auto evolution_results = cudaq::evolve(
+      hamiltonian, dimensions, schedule, {psi_00, psi_10}, integrator, {},
+      observables, cudaq::IntermediateResultSave::ExpectationValue);
 
   // Retrieve the evolution result corresponding to each initial state.
   auto &evolution_result_00 = evolution_results[0];

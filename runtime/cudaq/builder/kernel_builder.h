@@ -243,6 +243,10 @@ void reset(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec);
 void c_if(mlir::ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
 
+void u3(mlir::ImplicitLocOpBuilder &builder,
+        std::vector<QuakeValue> &parameters, std::vector<QuakeValue> &ctrls,
+        QuakeValue &target, bool adjoint = false);
+
 /// @brief Return the name of this `kernel_builder`, it is also the name of the
 /// function
 std::string name(std::string_view kernelName);
@@ -270,6 +274,11 @@ void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
 /// @brief Apply the given kernel controlled on the provided qubit value.
 void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, QuakeValue &control,
+             std::vector<QuakeValue> &values);
+
+/// @brief Apply the given kernel controlled on multiple qubit values.
+void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
+             std::string &quakeCode, const std::vector<QuakeValue> &controls,
              std::vector<QuakeValue> &values);
 
 /// @brief Apply the adjoint of the given kernel
@@ -744,6 +753,76 @@ public:
                          pauliWord);
     else
       details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
+  }
+
+  void u3(QuakeValue param1, QuakeValue param2, QuakeValue param3,
+          QuakeValue target) {
+    std::vector<QuakeValue> empty;
+    std::vector<QuakeValue> parameters{param1, param2, param3};
+    details::u3(*opBuilder, parameters, empty, target);
+  }
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void u3(QuakeValue param1, QuakeValue param2, QuakeValue param3,
+          std::vector<QuakeValue> &ctrls, QuakeValue &target) {
+    std::vector<QuakeValue> parameters{param1, param2, param3};
+    details::u3(*opBuilder, parameters, ctrls, target);
+  }
+  void u3(double param1, double param2, double param3, QuakeValue target) {
+    std::vector<QuakeValue> empty;
+    QuakeValue v1(*opBuilder, param1);
+    QuakeValue v2(*opBuilder, param2);
+    QuakeValue v3(*opBuilder, param3);
+    std::vector<QuakeValue> parameters{v1, v2, v3};
+    details::u3(*opBuilder, parameters, empty, target);
+  }
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void u3(double param1, double param2, double param3,
+          std::vector<QuakeValue> &ctrls, QuakeValue &target) {
+    QuakeValue v1(*opBuilder, param1);
+    QuakeValue v2(*opBuilder, param2);
+    QuakeValue v3(*opBuilder, param3);
+    std::vector<QuakeValue> parameters{v1, v2, v3};
+    details::u3(*opBuilder, parameters, ctrls, target);
+  }
+  template <
+      typename mod, typename ParamT,
+      typename = typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>
+  void u3(const ParamT &param1, const ParamT &param2, const ParamT &param3,
+          QuakeValue target) {
+    // swap the 2nd and 3rd parameter for correctness
+    if constexpr (std::is_floating_point_v<ParamT>)
+      u3(QuakeValue(*opBuilder, -param1), QuakeValue(*opBuilder, -param3),
+         QuakeValue(*opBuilder, -param2), target);
+    else
+      u3(-param1, -param3, -param2, target);
+  }
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void u3(std::vector<QuakeValue> &parameters, std::vector<QuakeValue> &ctrls,
+          QuakeValue &target) {
+    details::u3(*opBuilder, parameters, ctrls, target);
+  }
+  template <typename mod, typename ParamT, typename... QubitValues,
+            typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>>
+  void u3(const ParamT &param1, const ParamT &param2, const ParamT &param3,
+          QubitValues... args) {
+    std::vector<QuakeValue> values{args...};
+    if constexpr (std::is_same_v<mod, cudaq::ctrl>) {
+      std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);
+      auto &target = values.back();
+      if constexpr (std::is_floating_point_v<ParamT>) {
+        QuakeValue v1(*opBuilder, param1);
+        QuakeValue v2(*opBuilder, param2);
+        QuakeValue v3(*opBuilder, param3);
+        std::vector<QuakeValue> parameters{v1, v2, v3};
+        u3<cudaq::ctrl>(parameters, ctrls, target);
+      } else {
+        std::vector<QuakeValue> parameters{param1, param2, param3};
+        u3<cudaq::ctrl>(parameters, ctrls, target);
+      }
+    }
   }
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`

@@ -30,10 +30,10 @@ using namespace mlir;
 /// A \em monotonic loop: a loop that counts from $i$ up to (down to) $j$
 /// stepping by positive (negative) integral values; mathematically, it is a
 /// strictly monotonic sequence. If the step is a compile-time constant, $k$,
-/// then a closed iterval monotonic loop must execute exactly $\max(0, \floor{(j
-/// - i + k) / k})$ iterations. By normalizing a monotonic loop and constant
-/// folding and propagation, we may be able to convert it to static control
-/// flow.
+/// then a closed iterval definite monotonic loop must execute exactly $\max(0,
+/// \floor{(j - i + k) / k})$ iterations. By normalizing a monotonic loop and
+/// constant folding and propagation, we may be able to convert it to static
+/// control flow.
 ///
 /// For completeness, a \em{conditionally iterated} loop is a monotonic loop
 /// that has a second auxilliary condition to determine if a given loop
@@ -309,10 +309,9 @@ bool opt::isaCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
          isaConstant(c.compareValue);
 }
 
-bool opt::isaConstantUpperBoundLoop(cc::LoopOp loop, bool allowClosedInterval) {
+bool opt::isaIndefiniteCountedLoop(cc::LoopOp loop, bool allowClosedInterval) {
   LoopComponents c;
-  return isaInvariantLoop(loop, allowClosedInterval, /*allowEarlyExit=*/true,
-                          &c) &&
+  return isaIndefiniteInvariantLoop(loop, allowClosedInterval, &c) &&
          isaConstant(c.compareValue);
 }
 

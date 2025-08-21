@@ -15,7 +15,7 @@ from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
-                           SymbolTable)
+                           SymbolTable, UnitAttr)
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
@@ -94,7 +94,7 @@ class PyKernelDecorator(object):
         # in the kernel definition
         for name, var in self.globalScopedVars.items():
             if isinstance(var, type) and hasattr(var, '__annotations__'):
-                globalRegisteredTypes[name] = (var, var.__annotations__)
+                globalRegisteredTypes.registerClass(name, var)
 
         # Once the kernel is compiled to MLIR, we
         # want to know what capture variables, if any, were
@@ -273,6 +273,14 @@ class PyKernelDecorator(object):
         self.compile()
         return str(self.module)
 
+    def enable_return_to_log(self):
+        """
+        Enable translation from `return` statements to QIR output log
+        """
+        self.compile()
+        self.module.operation.attributes.__setitem__(
+            'quake.cudaq_run', UnitAttr.get(context=self.module.context))
+
     def _repr_svg_(self):
         """
         Return the SVG representation of `self` (:class:`PyKernelDecorator`).
@@ -297,14 +305,18 @@ class PyKernelDecorator(object):
             return None
 
     def isCastablePyType(self, fromTy, toTy):
-        if IntegerType.isinstance(toTy):
-            return IntegerType.isinstance(fromTy)
+        if IntegerType.isinstance(toTy) and IntegerType(toTy).width != 1:
+            return IntegerType.isinstance(fromTy) and IntegerType(
+                fromTy).width != 1
 
         if F64Type.isinstance(toTy):
             return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if F32Type.isinstance(toTy):
             return F64Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
+
+        if F64Type.isinstance(toTy):
+            return F32Type.isinstance(fromTy) or IntegerType.isinstance(fromTy)
 
         if ComplexType.isinstance(toTy):
             floatToType = ComplexType(toTy).element_type

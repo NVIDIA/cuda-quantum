@@ -35,7 +35,7 @@ module {
     %cst2 = arith.constant 2 : index
     %cst3 = arith.constant 3 : index
 
-    // Extrac qubits
+    // Extract qubits
     %a0 = quake.extract_ref %a[%cst0] : (!quake.veq<4>, index) -> !quake.ref
     %a1 = quake.extract_ref %a[%cst1] : (!quake.veq<4>, index) -> !quake.ref
     %a2 = quake.extract_ref %a[%cst2] : (!quake.veq<4>, index) -> !quake.ref

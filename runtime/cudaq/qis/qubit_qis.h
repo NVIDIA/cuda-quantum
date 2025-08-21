@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
@@ -799,6 +799,15 @@ std::vector<measure_result> mz(QubitRange &q) {
   return b;
 }
 
+template <std::size_t Levels>
+std::vector<measure_result> mz(const qview<Levels> &q) {
+  std::vector<measure_result> b;
+  for (auto &qq : q) {
+    b.emplace_back(mz(qq));
+  }
+  return b;
+}
+
 template <typename... Qs>
 std::vector<measure_result> mz(qubit &q, Qs &&...qs);
 
@@ -852,8 +861,8 @@ inline SpinMeasureResult measure(const cudaq::spin_op &term) {
 
 // Cast a measure register to an int64_t.
 // This function is classic control code that may run on a QPU.
-inline int64_t to_integer(std::vector<measure_result> bits) {
-  int64_t ret = 0;
+inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
+  std::int64_t ret = 0;
   for (std::size_t i = 0; i < bits.size(); i++) {
     if (bits[i]) {
       ret |= 1UL << i;
@@ -862,7 +871,8 @@ inline int64_t to_integer(std::vector<measure_result> bits) {
   return ret;
 }
 
-inline int64_t to_integer(std::string bitString) {
+inline std::int64_t to_integer(const std::string &arg) {
+  std::string bitString{arg};
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
 }
@@ -1237,7 +1247,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called without a noise model provided.");
+    return details::warn("apply_noise called but no noise model provided.");
 
   std::vector<double> parameters;
   cudaq::tuple_for_each(paramTuple,
@@ -1311,7 +1321,7 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called without a noise model provided. "
+    return details::warn("apply_noise called but no noise model provided. "
                          "skipping kraus channel application.");
 
   std::vector<QuditInfo> qubits;

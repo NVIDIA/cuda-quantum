@@ -295,6 +295,9 @@ public:
               .Case([&](LLVM::LLVMPointerType) {
                 boilerplate((LLVM::BitcastOp *)nullptr);
               })
+              .Case([&](LLVM::LLVMFunctionType) {
+                boilerplate((LLVM::BitcastOp *)nullptr);
+              })
               .Case([&](IntegerType) {
                 boilerplate((LLVM::IntToPtrOp *)nullptr);
               });
@@ -610,8 +613,20 @@ public:
                                                  operands[0]);
     val = rewriter.create<LLVM::InsertValueOp>(loc, val, cast, zero);
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
-    rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
-                                                     one);
+    if (operands.size() == 2) {
+      rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
+                                                       one);
+    } else {
+      std::int64_t arrSize =
+          llvm::cast<LLVM::LLVMArrayType>(
+              llvm::cast<LLVM::LLVMPointerType>(operands[0].getType())
+                  .getElementType())
+              .getNumElements();
+      auto i64Ty = rewriter.getI64Type();
+      Value len = rewriter.create<LLVM::ConstantOp>(
+          loc, i64Ty, IntegerAttr::get(i64Ty, arrSize));
+      rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, len, one);
+    }
     return success();
   }
 };
@@ -726,17 +741,34 @@ class VarargCallPattern
     return success();
   }
 };
+
+class NoInlineCallPattern
+    : public ConvertOpToLLVMPattern<cudaq::cc::NoInlineCallOp> {
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::NoInlineCallOp nicall, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    SmallVector<Type> types;
+    for (auto ty : nicall.getResultTypes())
+      types.push_back(getTypeConverter()->convertType(ty));
+    rewriter.replaceOpWithNewOp<func::CallOp>(nicall, types, nicall.getCallee(),
+                                              adaptor.getArgs());
+    return success();
+  }
+};
 } // namespace
 
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                           RewritePatternSet &patterns) {
-  patterns.insert<
-      AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
-      CallableFuncOpPattern, CallCallableOpPattern,
-      CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
-      CreateStringLiteralOpPattern, ExtractValueOpPattern, FuncToPtrOpPattern,
-      GlobalOpPattern, InsertValueOpPattern, InstantiateCallableOpPattern,
-      LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
-      StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-      StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
+  patterns
+      .insert<AddressOfOpPattern, AllocaOpPattern, CallableClosureOpPattern,
+              CallableFuncOpPattern, CallCallableOpPattern,
+              CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
+              CreateStringLiteralOpPattern, ExtractValueOpPattern,
+              FuncToPtrOpPattern, GlobalOpPattern, InsertValueOpPattern,
+              InstantiateCallableOpPattern, LoadOpPattern, NoInlineCallPattern,
+              OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
+              StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
+              StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
 }

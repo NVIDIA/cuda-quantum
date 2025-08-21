@@ -29,6 +29,7 @@ DOI
 Deuteron
 Deutsch
 Doxygen
+Exponentiating
 FPGAs
 Fermion
 Fock
@@ -74,6 +75,7 @@ NVIDIA
 NVLink
 NVQC
 NVQIR
+OPX
 OQC
 ORCA
 OpenACC
@@ -93,10 +95,12 @@ Photonics
 PyPI
 Pygments
 QAOA
+QCI
 QCaaS
 QEC
 QIR
 QIS
+QOP
 QPP
 QPU
 QPUs
@@ -235,6 +239,7 @@ fmt
 fourier
 frontend
 frontends
+grovers
 hadamard
 hamiltonian
 heisenberg
@@ -266,6 +271,7 @@ lossy
 lvalue
 makefiles
 merchantability
+mps
 multithreaded
 mutex
 namespace
@@ -276,8 +282,10 @@ nullary
 observables
 optimizer
 optimizers
+pagerank
 parallelization
 parallelize
+parallelized
 parallelizing
 parameterization
 performant
@@ -307,6 +315,7 @@ runtimes
 rvalue
 scalability
 scalable
+selectable
 sexualized
 shifter
 shifters
@@ -351,6 +360,7 @@ uncompute
 unitaries
 unitarity
 unitary
+unitaryHACK
 unoptimized
 upvote
 variadic

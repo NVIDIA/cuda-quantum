@@ -10,6 +10,7 @@
 #include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform.h"
 #include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
@@ -65,36 +66,6 @@ int countGPUs() {
   close(fileDescriptor);
   unlink(tmpFile);
   return std::stoi(buffer.str());
-}
-
-std::size_t RuntimeTarget::num_qpus() {
-  auto &platform = cudaq::get_platform();
-  return platform.num_qpus();
-}
-
-bool RuntimeTarget::is_remote() {
-  auto &platform = cudaq::get_platform();
-  return platform.is_remote();
-}
-bool RuntimeTarget::is_emulated() {
-  auto &platform = cudaq::get_platform();
-  return platform.is_emulated();
-}
-
-simulation_precision RuntimeTarget::get_precision() { return precision; }
-
-std::string RuntimeTarget::get_target_args_help_string() const {
-  std::stringstream ss;
-  for (const auto &argConfig : config.TargetArguments) {
-    ss << "  - " << argConfig.KeyName;
-    if (!argConfig.HelpString.empty()) {
-      ss << " (" << argConfig.HelpString << ")";
-    }
-
-    ss << "\n";
-  }
-
-  return ss.str();
 }
 
 void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
@@ -440,12 +411,10 @@ void LinkedLibraryHolder::setTarget(
 
   auto &target = iter->second;
   if (!target.config.WarningMsg.empty()) {
+    fmt::print(fmt::fg(fmt::color::red), "[warning] ");
     // Output the warning message if any
-    fmt::print(
-        "[{}] Target {}: {}\n",
-        fmt::format(fmt::fg(fmt::color::red), "warning"),
-        fmt::format(fmt::fg(fmt::color::blue), target.name),
-        fmt::format(fmt::fg(fmt::color::blue), target.config.WarningMsg));
+    fmt::print(fmt::fg(fmt::color::blue), "Target {}: {}\n", target.name,
+               target.config.WarningMsg);
   }
   const std::string targetConfigStr =
       cudaq::config::processRuntimeArgs(target.config, argv);
@@ -494,5 +463,18 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
     ret.emplace_back(target);
   return ret;
 }
+
+namespace __internal__ {
+void switchToResourceCounterSimulator() {
+  nvqir::switchToResourceCounterSimulator();
+}
+void stopUsingResourceCounterSimulator() {
+  nvqir::stopUsingResourceCounterSimulator();
+}
+void setChoiceFunction(std::function<bool()> choice) {
+  nvqir::setChoiceFunction(choice);
+}
+cudaq::Resources *getResourceCounts() { return nvqir::getResourceCounts(); }
+} // namespace __internal__
 
 } // namespace cudaq

@@ -32,7 +32,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
     auto resultFuture1 = cudaq::evolve_async(
         ham, dims, schedule, initialState, integrator,
         std::vector<cudaq::spin_op_term>{},
-        std::vector<cudaq::spin_op_term>{cudaq::spin_op::z(0)}, true, {}, 0);
+        std::vector<cudaq::spin_op_term>{cudaq::spin_op::z(0)},
+        cudaq::IntermediateResultSave::ExpectationValue, {}, 0);
     std::cout << "Launched evolve job on QPU 0\n";
     return resultFuture1;
   }();
@@ -60,7 +61,8 @@ TEST(DynamicsAsyncTester, checkSimple) {
         hamiltonian, dimensions, schedule, psi0, integrator,
         std::vector<cudaq::boson_op_term>{std::sqrt(decay_rate) *
                                           cudaq::boson_op::annihilate(0)},
-        std::vector<cudaq::boson_op_term>{hamiltonian}, true, {}, 1);
+        std::vector<cudaq::boson_op_term>{hamiltonian},
+        cudaq::IntermediateResultSave::ExpectationValue, {}, 1);
     std::cout << "Launched evolve job on QPU 1\n";
     return resultFuture;
   }();
@@ -126,9 +128,10 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     auto initialState =
         cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
     cudaq::integrators::runge_kutta integrator(1, 0.001);
-    auto resultFuture1 =
-        cudaq::evolve_async(ham, dims, schedule, initialState, integrator, {},
-                            {cudaq::spin_op::z(0)}, true, {}, 0);
+    auto resultFuture1 = cudaq::evolve_async(
+        ham, dims, schedule, initialState, integrator, {},
+        {cudaq::spin_op::z(0)}, cudaq::IntermediateResultSave::ExpectationValue,
+        {}, 0);
     std::cout << "Launched evolve job on QPU 0\n";
     return resultFuture1;
   }();
@@ -154,7 +157,7 @@ TEST(DynamicsAsyncTester, checkInitializerArgs) {
     auto resultFuture = cudaq::evolve_async(
         hamiltonian, dimensions, schedule, psi0, integrator,
         {std::sqrt(decay_rate) * cudaq::boson_op::annihilate(0)}, {hamiltonian},
-        true, {}, 1);
+        cudaq::IntermediateResultSave::ExpectationValue, {}, 1);
     std::cout << "Launched evolve job on QPU 1\n";
     return resultFuture;
   }();

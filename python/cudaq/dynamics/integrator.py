@@ -9,7 +9,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Sequence, Mapping, Tuple
-from ..operators import Operator
+from ..operators import Operator, SuperOperator
 from .schedule import Schedule
 
 TState = TypeVar('TState')
@@ -37,6 +37,7 @@ class BaseIntegrator(ABC, Generic[TState]):
         self.hamiltonian = None
         self.stepper = None
         self.collapse_operators = None
+        self.super_op = None
         self.__post_init__()
 
     @abstractmethod
@@ -53,12 +54,22 @@ class BaseIntegrator(ABC, Generic[TState]):
     def set_system(self,
                    dimensions: Mapping[int, int],
                    schedule: Schedule,
-                   hamiltonian: Operator,
-                   collapse_operators: Sequence[Operator] = []):
-        self.dimensions = dimensions
+                   hamiltonian: Operator | SuperOperator | Sequence[Operator] |
+                   Sequence[SuperOperator],
+                   collapse_operators: Sequence[Operator] |
+                   Sequence[Sequence[Operator]] = []):
+        self.dimensions = tuple(dimensions[d] for d in range(len(dimensions)))
         self.schedule = schedule
-        self.hamiltonian = hamiltonian
+        if isinstance(
+                hamiltonian,
+                SuperOperator) or (isinstance(hamiltonian, Sequence) and
+                                   isinstance(hamiltonian[0], SuperOperator)):
+            self.super_op = hamiltonian
+        else:
+            self.hamiltonian = hamiltonian
+
         self.collapse_operators = collapse_operators
+        self.stepper = None
 
     @abstractmethod
     def integrate(self, t):
@@ -79,5 +90,11 @@ class BaseIntegrator(ABC, Generic[TState]):
     def support_distributed_state(self):
         """
         Returns true if the integrator supports distributed state else returns false. Default is set to false.
+        """
+        return False
+
+    def is_native(self):
+        """
+        Returns true if the integrator is a native C-API implementation. Default is set to false.
         """
         return False

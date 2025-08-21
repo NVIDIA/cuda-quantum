@@ -17,15 +17,13 @@
 #include "cudaq/algorithms/optimizer.h"
 #include "py_utils.h"
 #include "py_vqe.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 
 namespace cudaq {
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
 
 void *pyGetKernelArgs(const std::string &name, MlirModule module,
                       cudaq::OpaqueArguments &runtimeArgs,
@@ -37,7 +35,7 @@ mlir::func::FuncOp getKernelFuncOp(mlir::ModuleOp &mod,
                                    const std::string &kernelName) {
   mlir::func::FuncOp kernel;
   mod.walk([&](mlir::func::FuncOp func) {
-    if (func.getName().equals("__nvqpp__mlirgen__" + kernelName))
+    if (func.getName() == cudaq::runtime::cudaqGenPrefixName + kernelName)
       kernel = func;
     return mlir::WalkResult::advance();
   });
@@ -154,6 +152,7 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
     // Serialize arguments (all concrete parameters except for the first one)
     // into kernelArgs buffer space.
     auto kernelFunc = getKernelFuncOp(kernelMod, kernelName);
+    setDataLayout(kernelMod);
     cudaq::packArgs(
         args, runtimeArgs, kernelFunc,
         [](OpaqueArguments &, py::object &) { return false; }, startingArgIdx);

@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq/algorithms/draw.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
 #include <string>
@@ -17,10 +17,7 @@
 
 namespace cudaq {
 
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
-
-namespace {
+namespace details {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::len(kernel.attr("arguments")) != args.size())
@@ -38,28 +35,29 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
   return {kernelName, kernelMod, argData};
 }
-} // namespace
 
-/// @brief Run `cudaq::draw` on the provided kernel.
+} // namespace details
+
+/// @brief Run `cudaq::contrib::draw` on the provided kernel.
 std::string pyDraw(py::object &kernel, py::args args) {
   auto [kernelName, kernelMod, argData] =
-      getKernelLaunchParameters(kernel, args);
+      details::getKernelLaunchParameters(kernel, args);
 
-  return details::extractTrace([&]() mutable {
+  return contrib::extractTrace([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });
 }
 
-/// @brief Run `cudaq::draw`'s string overload on the provided kernel.
+/// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 std::string pyDraw(std::string format, py::object &kernel, py::args args) {
   if (format == "ascii") {
     return pyDraw(kernel, args);
   } else if (format == "latex") {
     auto [kernelName, kernelMod, argData] =
-        getKernelLaunchParameters(kernel, args);
+        details::getKernelLaunchParameters(kernel, args);
 
-    return details::extractTraceLatex([&]() mutable {
+    return contrib::extractTraceLatex([&]() mutable {
       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
       delete argData;
     });

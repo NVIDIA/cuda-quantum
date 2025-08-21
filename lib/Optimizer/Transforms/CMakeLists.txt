@@ -20,13 +20,16 @@ add_cudaq_library(OptTransforms
   ClassicalOptimization.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
-  ConstPropComplex.cpp
+  ConstantPropagation.cpp
+  DeadStoreRemoval.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
   DeleteStates.cpp
+  DistributedDeviceCall.cpp
   EraseNoise.cpp
   EraseNopCalls.cpp
+  EraseVectorCopyCtor.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
   FactorQuantumAlloc.cpp
@@ -51,15 +54,18 @@ add_cudaq_library(OptTransforms
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp
+  QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
+  ResourceCountPreprocess.cpp
   SROA.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
+  VariableCoalesce.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 

@@ -269,6 +269,7 @@ def test_exp_pauli():
         exp_pauli(1.0, q, "XX")
 
     counts = cudaq.sample(test)
+    print(test, counts)
     assert '00' in counts
     assert '11' in counts
     assert not '01' in counts

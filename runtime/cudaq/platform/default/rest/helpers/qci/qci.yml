@@ -1,0 +1,38 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: qci
+description: "CUDA-Q target for Quantum Circuits, Inc."
+
+config:
+
+  # Tell DefaultQuantumPlatform to use REST with QCI's endpoints.
+  platform-qpu: remote_rest
+
+  # Tell NVQ++ to generate glue code to set the target backend name.
+  gen-target-backend: true
+
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+
+  # Library mode must be off for remote backends.
+  library-mode: false
+
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+
+  # Lower the generated IR to base + feed forward.
+  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),qci-gate-set-mapping,distributed-device-call"
+  codegen-emission: qir-adaptive
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: machine
+    help-string: Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's hardware simulator.

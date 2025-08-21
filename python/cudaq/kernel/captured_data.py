@@ -7,8 +7,9 @@
 # ============================================================================ #
 
 import uuid
-import numpy as np
+import weakref
 
+import numpy as np
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import arith, cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FlatSymbolRefAttr,
@@ -34,19 +35,28 @@ class CapturedDataStorage(object):
         self.loc = kwargs['loc'] if 'loc' in kwargs else None
         self.name = kwargs['name'] if 'name' in kwargs else None
         self.module = kwargs['module'] if 'module' in kwargs else None
+        self._finalizer = weakref.finalize(self, CapturedDataStorage._cleanup,
+                                           self.cudaqStateIDs, self.arrayIDs)
+
+    @staticmethod
+    def _cleanup(state_ids, array_ids):
+        """
+        Safely clean up resources associated with captured data during garbage collection.
+        This method is to be used with `weakref.finalize()` as an alternative to `__del__`,
+        such that it handles Python interpreter shutdown gracefully, catching exceptions
+        that occur when modules are unloaded before they are cleaned up.
+        """
+        try:
+            cudaq_runtime.deletePointersToCudaqState(state_ids)
+            cudaq_runtime.deletePointersToStateData(array_ids)
+        except (ImportError, AttributeError):
+            pass
 
     def setKernelContext(self, ctx, loc, name, module):
         self.ctx = ctx
         self.loc = loc
         self.name = name
         self.module = module
-
-    def __del__(self):
-        """
-        Remove pointers to stored data for the current kernel.
-        """
-        cudaq_runtime.deletePointersToCudaqState(self.cudaqStateIDs)
-        cudaq_runtime.deletePointersToStateData(self.arrayIDs)
 
     def getIntegerAttr(self, type, value):
         """
@@ -72,7 +82,7 @@ class CapturedDataStorage(object):
         # Compute a unique ID for the state data
         stateID = self.name + str(uuid.uuid4())
         stateTy = cc.StateType.get(self.ctx)
-        statePtrTy = cc.PointerType.get(self.ctx, stateTy)
+        statePtrTy = cc.PointerType.get(stateTy, self.ctx)
 
         # Generate a function that stores the state value in a global
         globalTy = statePtrTy
@@ -90,9 +100,9 @@ class CapturedDataStorage(object):
             entry = setStateFunc.add_entry_block()
             with InsertionPoint(entry):
                 zero = self.getConstantInt(0)
-                address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+                address = cc.AddressOfOp(cc.PointerType.get(globalTy, self.ctx),
                                          FlatSymbolRefAttr.get(globalName))
-                ptr = cc.CastOp(cc.PointerType.get(self.ctx, statePtrTy),
+                ptr = cc.CastOp(cc.PointerType.get(statePtrTy, self.ctx),
                                 address)
 
                 cc.StoreOp(entry.arguments[0], ptr)
@@ -107,9 +117,9 @@ class CapturedDataStorage(object):
 
         # Return the pointer to the stored state
         zero = self.getConstantInt(0)
-        address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+        address = cc.AddressOfOp(cc.PointerType.get(globalTy, self.ctx),
                                  FlatSymbolRefAttr.get(globalName)).result
-        ptr = cc.CastOp(cc.PointerType.get(self.ctx, statePtrTy),
+        ptr = cc.CastOp(cc.PointerType.get(statePtrTy, self.ctx),
                         address).result
         statePtr = cc.LoadOp(ptr).result
         return statePtr
@@ -127,9 +137,9 @@ class CapturedDataStorage(object):
         ) if simulationPrecision == cudaq_runtime.SimulationPrecision.fp64 else F32Type.get(
             self.ctx)
         complexType = ComplexType.get(floatType)
-        ptrComplex = cc.PointerType.get(self.ctx, complexType)
+        ptrComplex = cc.PointerType.get(complexType, self.ctx)
         i32Ty = self.getIntegerType(32)
-        globalTy = cc.StructType.get(self.ctx, [ptrComplex, i32Ty])
+        globalTy = cc.StructType.get([ptrComplex, i32Ty], self.ctx)
         globalName = f'nvqpp.state.{arrayId}'
         setStateName = f'nvqpp.set.state.{arrayId}'
         with InsertionPoint.at_block_begin(self.module.body):
@@ -144,18 +154,18 @@ class CapturedDataStorage(object):
             entry = setStateFunc.add_entry_block()
             with InsertionPoint(entry):
                 zero = self.getConstantInt(0)
-                address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+                address = cc.AddressOfOp(cc.PointerType.get(globalTy, self.ctx),
                                          FlatSymbolRefAttr.get(globalName))
-                ptr = cc.CastOp(cc.PointerType.get(self.ctx, ptrComplex),
+                ptr = cc.CastOp(cc.PointerType.get(ptrComplex, self.ctx),
                                 address)
                 cc.StoreOp(entry.arguments[0], ptr)
                 func.ReturnOp([])
 
         zero = self.getConstantInt(0)
 
-        address = cc.AddressOfOp(cc.PointerType.get(self.ctx, globalTy),
+        address = cc.AddressOfOp(cc.PointerType.get(globalTy, self.ctx),
                                  FlatSymbolRefAttr.get(globalName))
-        ptr = cc.CastOp(cc.PointerType.get(self.ctx, ptrComplex), address)
+        ptr = cc.CastOp(cc.PointerType.get(ptrComplex, self.ctx), address)
 
         # Record the unique hash value
         if arrayId not in self.arrayIDs:

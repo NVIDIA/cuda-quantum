@@ -70,49 +70,41 @@ extern "C" {
 // MPI plugin API.
 int cudensitymatMpiCommSize(const cudensitymatDistributedCommunicator_t *comm,
                             int32_t *numRanks) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getNumRanks(&cudaqComm, numRanks);
 }
 
 int cudensitymatMpiCommSizeShared(
     const cudensitymatDistributedCommunicator_t *comm, int32_t *numRanks) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getCommSizeShared(&cudaqComm, numRanks);
 }
 
 int cudensitymatMpiCommRank(const cudensitymatDistributedCommunicator_t *comm,
                             int32_t *procRank) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->getProcRank(&cudaqComm, procRank);
 }
 
 int cudensitymatMpiBarrier(const cudensitymatDistributedCommunicator_t *comm) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Barrier(&cudaqComm);
 }
 
 int cudensitymatMpiCreateRequest(cudensitymatDistributedRequest_t *request) {
-  ScopedTraceWithContext(__FUNCTION__);
   return getMpiPluginInterface()->CreateRequest(request);
 }
 
 int cudensitymatMpiDestroyRequest(cudensitymatDistributedRequest_t request) {
-  ScopedTraceWithContext(__FUNCTION__);
   return getMpiPluginInterface()->DestroyRequest(request);
 }
 
 int cudensitymatMpiWaitRequest(cudensitymatDistributedRequest_t request) {
-  ScopedTraceWithContext(__FUNCTION__);
   return getMpiPluginInterface()->WaitRequest(request);
 }
 
 int cudensitymatMpiTestRequest(cudensitymatDistributedRequest_t request,
                                int32_t *completed) {
-  ScopedTraceWithContext(__FUNCTION__);
   return getMpiPluginInterface()->TestRequest(request, completed);
 }
 
@@ -120,7 +112,6 @@ int cudensitymatMpiSend(const cudensitymatDistributedCommunicator_t *comm,
                         const void *buffer, int32_t count,
                         cudaDataType_t datatype, int32_t destination,
                         int32_t tag) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Send(&cudaqComm, buffer, count,
                                        convertCudaToMpiDataType(datatype),
@@ -132,7 +123,6 @@ int cudensitymatMpiSendAsync(const cudensitymatDistributedCommunicator_t *comm,
                              cudaDataType_t datatype, int32_t destination,
                              int32_t tag,
                              cudensitymatDistributedRequest_t request) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->SendAsync(&cudaqComm, buffer, count,
                                             convertCudaToMpiDataType(datatype),
@@ -142,7 +132,6 @@ int cudensitymatMpiSendAsync(const cudensitymatDistributedCommunicator_t *comm,
 int cudensitymatMpiRecv(const cudensitymatDistributedCommunicator_t *comm,
                         void *buffer, int32_t count, cudaDataType_t datatype,
                         int32_t source, int32_t tag) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Recv(&cudaqComm, buffer, count,
                                        convertCudaToMpiDataType(datatype),
@@ -154,7 +143,6 @@ int cudensitymatMpiRecvAsync(const cudensitymatDistributedCommunicator_t *comm,
                              cudaDataType_t datatype, int32_t source,
                              int32_t tag,
                              cudensitymatDistributedRequest_t request) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->RecvAsync(&cudaqComm, buffer, count,
                                             convertCudaToMpiDataType(datatype),
@@ -164,7 +152,6 @@ int cudensitymatMpiRecvAsync(const cudensitymatDistributedCommunicator_t *comm,
 int cudensitymatMpiBcast(const cudensitymatDistributedCommunicator_t *comm,
                          void *buffer, int32_t count, cudaDataType_t datatype,
                          int32_t root) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Bcast(
       &cudaqComm, buffer, count, convertCudaToMpiDataType(datatype), root);
@@ -173,7 +160,6 @@ int cudensitymatMpiBcast(const cudensitymatDistributedCommunicator_t *comm,
 int cudensitymatMpiAllreduce(const cudensitymatDistributedCommunicator_t *comm,
                              const void *bufferIn, void *bufferOut,
                              int32_t count, cudaDataType_t datatype) {
-  ScopedTraceWithContext(__FUNCTION__);
   // cudensitymat expects MPI_SUM in this API
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allreduce(
@@ -184,7 +170,6 @@ int cudensitymatMpiAllreduce(const cudensitymatDistributedCommunicator_t *comm,
 int cudensitymatMpiAllreduceInPlace(
     const cudensitymatDistributedCommunicator_t *comm, void *buffer,
     int32_t count, cudaDataType_t datatype) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   // cudensitymat expects MPI_SUM in this API
   return getMpiPluginInterface()->AllreduceInPlace(
@@ -194,7 +179,6 @@ int cudensitymatMpiAllreduceInPlace(
 int cudensitymatMpiAllreduceInPlaceMin(
     const cudensitymatDistributedCommunicator_t *comm, void *buffer,
     int32_t count, cudaDataType_t datatype) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   // cudensitymat expects MPI_SUM in this API
   return getMpiPluginInterface()->AllreduceInPlace(
@@ -204,7 +188,6 @@ int cudensitymatMpiAllreduceInPlaceMin(
 int cudensitymatMpiAllreduceDoubleIntMinloc(
     const cudensitymatDistributedCommunicator_t *comm, const void *bufferIn,
     void *bufferOut) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allreduce(&cudaqComm, bufferIn, bufferOut, 1,
                                             FLOAT_64, MIN_LOC);
@@ -213,7 +196,6 @@ int cudensitymatMpiAllreduceDoubleIntMinloc(
 int cudensitymatMpiAllgather(const cudensitymatDistributedCommunicator_t *comm,
                              const void *bufferIn, void *bufferOut,
                              int32_t count, cudaDataType_t datatype) {
-  ScopedTraceWithContext(__FUNCTION__);
   auto cudaqComm = convertMpiCommunicator(comm);
   return getMpiPluginInterface()->Allgather(&cudaqComm, bufferIn, bufferOut,
                                             count,

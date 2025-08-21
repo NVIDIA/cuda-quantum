@@ -7,15 +7,14 @@
  ******************************************************************************/
 
 #include "cudaq.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
 #include "cudaq/algorithms/observe.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
-
 #include <fmt/core.h>
 #include <pybind11/stl.h>
 
@@ -41,7 +40,7 @@ std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
   ModuleOp mod = unwrap(kernelMod);
   func::FuncOp kernelFunc;
   mod.walk([&](func::FuncOp function) {
-    if (function.getName().equals("__nvqpp__mlirgen__" + kernelName)) {
+    if (function.getName() == cudaq::runtime::cudaqGenPrefixName + kernelName) {
       kernelFunc = function;
       return WalkResult::interrupt();
     }
@@ -66,9 +65,6 @@ std::tuple<bool, std::string> isValidObserveKernel(py::object &kernel) {
   // Valid kernel...
   return std::make_tuple(true, "");
 }
-
-void pyAltLaunchKernel(const std::string &, MlirModule, OpaqueArguments &,
-                       const std::vector<std::string> &);
 
 async_observe_result pyObserveAsync(py::object &kernel,
                                     const spin_op &spin_operator,

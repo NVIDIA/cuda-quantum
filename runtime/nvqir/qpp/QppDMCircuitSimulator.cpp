@@ -166,8 +166,8 @@ protected:
     if (krausChannels.empty())
       return;
 
-    cudaq::info("Applying {} kraus channels to qubits {}", krausChannels.size(),
-                qubits);
+    CUDAQ_INFO("Applying {} kraus channels to qubits {}", krausChannels.size(),
+               qubits);
 
     for (auto &channel : krausChannels) {
       // Map our kraus ops to the qpp::cmat
@@ -197,7 +197,7 @@ protected:
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
     flushGateQueue();
-    cudaq::info("[qpp-dm] apply kraus channel {}", channel.get_type_name());
+    CUDAQ_INFO("[qpp-dm] apply kraus channel {}", channel.get_type_name());
     std::vector<std::size_t> casted_qubits;
     for (auto index : qubits) {
       casted_qubits.push_back(convertQubitIndex(index));

@@ -879,7 +879,7 @@ The following table summarizes the required components.
     * - Operating System
       - Linux
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 38, 39; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
+      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
     * - Python versions
       - 3.10+
 
@@ -896,6 +896,11 @@ The following table summarizes the required components.
 
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
+.. note::
+
+    Tegra devices (Jetson) are not supported in CUDA-Q at this time.
+
+    For more information, please refer to `Binary Compatibility documentation <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility>`_.
 
 .. _post-installation:
 

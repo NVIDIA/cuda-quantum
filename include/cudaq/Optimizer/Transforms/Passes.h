@@ -28,14 +28,12 @@ void registerAggressiveEarlyInliningPipeline();
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
+void registerToCFGPipeline();
 
-std::unique_ptr<mlir::Pass> createApplyOpSpecializationPass();
-std::unique_ptr<mlir::Pass>
-createApplyOpSpecializationPass(bool computeActionOpt);
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
-std::unique_ptr<mlir::Pass> createLowerToCFGPass();
+void addLowerToCFG(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
 std::unique_ptr<mlir::Pass> createQuakeAddDeallocs();
@@ -44,7 +42,6 @@ std::unique_ptr<mlir::Pass>
 createQuakeSynthesizer(std::string_view, const void *,
                        std::size_t startingArgIdx = 0,
                        bool sameAddressSpace = false);
-std::unique_ptr<mlir::Pass> createUnwindLoweringPass();
 
 std::unique_ptr<mlir::Pass>
 createPySynthCallableBlockArgs(const llvm::SmallVector<llvm::StringRef> &,

@@ -12,8 +12,11 @@
 #include "common/PluginUtils.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
+// TODO: do we want to avoid including this here?
+#include "resourcecounter/ResourceCounter.h"
 #include <cmath>
 #include <complex>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -33,6 +36,7 @@
 
 // Is the library initialized?
 thread_local bool initialized = false;
+thread_local bool using_resource_counter = false;
 thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
@@ -77,6 +81,9 @@ namespace nvqir {
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
+  if (using_resource_counter)
+    return getResourceCounterSimulator();
+
   if (simulator)
     return simulator;
 
@@ -90,6 +97,15 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   cudaq::info("Creating the {} backend.", simulator->name());
   return simulator;
 }
+
+void switchToResourceCounterSimulator() { using_resource_counter = true; }
+
+void stopUsingResourceCounterSimulator() {
+  using_resource_counter = false;
+  getResourceCounterSimulator()->setToZeroState();
+}
+
+bool isUsingResourceCounterSimulator() { return using_resource_counter; }
 
 void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
@@ -206,9 +222,33 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
   return convertData;
 }
 
+// Util function to access the current QIR output.
+// Note: as the QIR output is attached to a specific simulator backend instance,
+// the QIR output must be retrieved from the same thread as each thread will
+// have a different simulator instance, e.g., async. execution.
+std::string_view getQirOutputLog() {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  return circuitSimulator->outputLog;
+}
+void clearQirOutputLog() {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  return circuitSimulator->outputLog.clear();
+}
 } // namespace nvqir
 
 using namespace nvqir;
+
+template <typename VAL>
+void quantumRTGenericRecordOutput(const char *type, VAL val,
+                                  const char *label) {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  std::ostringstream ss;
+  ss << "OUTPUT\t" << type << "\t" << val << '\t';
+  if (label)
+    ss << label;
+  ss << '\n';
+  circuitSimulator->outputLog += ss.str();
+}
 
 extern "C" {
 
@@ -405,6 +445,26 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
                                    const std::size_t *qubitIdxs) {
   std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
+}
+
+void __quantum__rt__bool_record_output(bool val, const char *label) {
+  quantumRTGenericRecordOutput("BOOL", (val ? "true" : "false"), label);
+}
+
+void __quantum__rt__int_record_output(std::int64_t val, const char *label) {
+  quantumRTGenericRecordOutput("INT", val, label);
+}
+
+void __quantum__rt__double_record_output(double val, const char *label) {
+  quantumRTGenericRecordOutput("DOUBLE", val, label);
+}
+
+void __quantum__rt__tuple_record_output(std::uint64_t len, const char *label) {
+  quantumRTGenericRecordOutput("TUPLE", len, label);
+}
+
+void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
+  quantumRTGenericRecordOutput("ARRAY", len, label);
 }
 
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
@@ -642,6 +702,8 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 void __quantum__qis__trap(std::int64_t code) {
   if (code == 0)
     throw std::runtime_error("could not autogenerate the adjoint of a kernel");
+  if (code == 1)
+    throw std::runtime_error("unsupported return type from entry-point kernel");
   throw std::runtime_error("code generation failure for target");
 }
 
@@ -655,8 +717,10 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
     return;
 
   auto *noise = ctx->noiseModel;
+  // per-spec, no noise model provided, emit warning, no application
   if (!noise)
-    return;
+    return cudaq::details::warn(
+        "apply_noise called but no noise model provided.");
 
   std::vector<double> paramVec(params, params + numParams);
   auto channel = noise->get_channel(krausChannelKey, paramVec);
@@ -674,8 +738,10 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
     return;
 
   auto *noise = ctx->noiseModel;
+  // per-spec, no noise model provided, emit warning, no application
   if (!noise)
-    return;
+    return cudaq::details::warn(
+        "apply_noise called but no noise model provided.");
 
   std::vector<float> paramVec(params, params + numParams);
   auto channel = noise->get_channel(krausChannelKey, paramVec);
@@ -853,7 +919,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto currentContext = circuitSimulator->getExecutionContext();
+  auto *currentContext = circuitSimulator->getExecutionContext();
 
   // Some backends may better handle the observe task.
   // Let's give them that opportunity.

@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
 #include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -482,6 +483,7 @@ public:
       auto builder = cudaq::IRBuilder::atBlockEnd(parentModule.getBody());
       auto pauliConst = builder.genCStringLiteralAppendNul(
           loc, parentModule, *instOp.getPauliLiteral());
+      // Create a pauli reference and make it the last operand.
       operands.push_back(rewriter.create<LLVM::AddressOfOp>(
           loc, cudaq::opt::factory::getPointerType(pauliConst.getType()),
           pauliConst.getSymName()));
@@ -1344,10 +1346,9 @@ public:
       auto globalName = generatorName.str();
       // IMPORTANT: this must match the logic to generate global data
       // globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
-      const std::string nvqppPrefix = "__nvqpp__mlirgen__";
       const std::string generatorSuffix = "_generator";
-      if (globalName.starts_with(nvqppPrefix)) {
-        globalName = globalName.substr(nvqppPrefix.size());
+      if (globalName.starts_with(cudaq::runtime::cudaqGenPrefixName)) {
+        globalName = globalName.substr(cudaq::runtime::cudaqGenPrefixLength);
         const size_t pos = globalName.find(generatorSuffix);
         if (pos != std::string::npos)
           return globalName.substr(0, pos);

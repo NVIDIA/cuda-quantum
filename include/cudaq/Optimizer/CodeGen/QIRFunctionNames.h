@@ -25,8 +25,15 @@ static constexpr const char QIRReset[] = "__quantum__qis__reset";
 static constexpr const char QIRCnot[] = "__quantum__qis__cnot__body";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
 static constexpr const char QIRCZ[] = "__quantum__qis__cz__body";
+
+namespace qir_current {
 static constexpr const char QIRReadResultBody[] =
     "__quantum__qis__read_result__body";
+}
+
+namespace qir_under_development {
+static constexpr const char QIRReadResultBody[] = "__quantum__rt__read_result";
+}
 
 static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
 static constexpr const char QIRCustomAdjOp[] =
@@ -94,6 +101,18 @@ static constexpr const char QIRRecordOutput[] =
 static constexpr const char QIRClearResultMaps[] =
     "__quantum__rt__clear_result_maps";
 
+// Output logging function names.
+static constexpr const char QIRBoolRecordOutput[] =
+    "__quantum__rt__bool_record_output";
+static constexpr const char QIRIntegerRecordOutput[] =
+    "__quantum__rt__int_record_output";
+static constexpr const char QIRDoubleRecordOutput[] =
+    "__quantum__rt__double_record_output";
+static constexpr const char QIRTupleRecordOutput[] =
+    "__quantum__rt__tuple_record_output";
+static constexpr const char QIRArrayRecordOutput[] =
+    "__quantum__rt__array_record_output";
+
 /// Used to specify the type of the data elements in the `QISApplyKrausChannel`
 /// call. (`float` or `double`)
 enum class KrausChannelDataKind { FloatKind, DoubleKind };
@@ -112,4 +131,10 @@ static constexpr const char QISConvertArrayToStdvec[] =
 static constexpr const char QISFreeConvertedStdvec[] =
     "__quantum__qis__free_converted_stdvector";
 
+// helpers
+constexpr const char *getQIRReadResultBody(bool qirVersionUnderDevelopment) {
+  return qirVersionUnderDevelopment
+             ? cudaq::opt::qir_under_development::QIRReadResultBody
+             : cudaq::opt::qir_current::QIRReadResultBody;
+}
 } // namespace cudaq::opt

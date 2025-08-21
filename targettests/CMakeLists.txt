@@ -6,6 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Add the custom target config generator test to the build, 
+# it will generate the yml file in the build directory required for a lit test.
+add_subdirectory(TargetConfig/RegressionValidation/custom_sim)
+
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
   CUDAQ_TEST_REMOTE_SIM

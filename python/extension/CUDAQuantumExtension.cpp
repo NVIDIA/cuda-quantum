@@ -16,14 +16,19 @@
 #include "runtime/common/py_ExecutionContext.h"
 #include "runtime/common/py_NoiseModel.h"
 #include "runtime/common/py_ObserveResult.h"
+#include "runtime/common/py_Resources.h"
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_evolve.h"
 #include "runtime/cudaq/algorithms/py_observe_async.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
+#include "runtime/cudaq/algorithms/py_resource_count.h"
+#include "runtime/cudaq/algorithms/py_run.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_translate.h"
+#include "runtime/cudaq/algorithms/py_unitary.h"
+#include "runtime/cudaq/algorithms/py_utils.h"
 #include "runtime/cudaq/algorithms/py_vqe.h"
 #include "runtime/cudaq/operators/py_boson_op.h"
 #include "runtime/cudaq/operators/py_fermion_op.h"
@@ -32,6 +37,7 @@
 #include "runtime/cudaq/operators/py_matrix_op.h"
 #include "runtime/cudaq/operators/py_scalar_op.h"
 #include "runtime/cudaq/operators/py_spin_op.h"
+#include "runtime/cudaq/operators/py_super_op.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "runtime/cudaq/qis/py_execution_manager.h"
 #include "runtime/cudaq/qis/py_qubit_qis.h"
@@ -96,6 +102,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
 
   cudaq::bindRuntimeTarget(cudaqRuntime, *holder.get());
   cudaq::bindMeasureCounts(cudaqRuntime);
+  cudaq::bindResources(cudaqRuntime);
   cudaq::bindObserveResult(cudaqRuntime);
   cudaq::bindComplexMatrix(cudaqRuntime);
   cudaq::bindScalarWrapper(cudaqRuntime);
@@ -104,16 +111,22 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindBosonWrapper(cudaqRuntime);
   cudaq::bindOperatorsWrapper(cudaqRuntime);
   cudaq::bindHandlersWrapper(cudaqRuntime);
+  cudaq::bindSuperOperatorWrapper(cudaqRuntime);
   cudaq::bindQIS(cudaqRuntime);
   cudaq::bindOptimizerWrapper(cudaqRuntime);
   cudaq::bindNoise(cudaqRuntime);
   cudaq::bindExecutionContext(cudaqRuntime);
   cudaq::bindExecutionManager(cudaqRuntime);
   cudaq::bindPyState(cudaqRuntime, *holder.get());
+  cudaq::bindPyDataClassRegistry(cudaqRuntime);
   cudaq::bindPyEvolve(cudaqRuntime);
   cudaq::bindEvolveResult(cudaqRuntime);
   cudaq::bindPyDraw(cudaqRuntime);
+  cudaq::bindPyUnitary(cudaqRuntime);
+  cudaq::bindPyRun(cudaqRuntime);
+  cudaq::bindPyRunAsync(cudaqRuntime);
   cudaq::bindPyTranslate(cudaqRuntime);
+  cudaq::bindCountResources(cudaqRuntime);
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
   cudaq::bindVQE(cudaqRuntime);

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include "common/KernelWrapper.h"
 #include "observe.h"
 #include <cudaq/builder.h>
 #include <cudaq/operators.h>
@@ -68,11 +69,7 @@ public:
   gradient(KernelT &kernel, ArgsMapper &&argsMapper) {
     ansatz_functor = [&](std::vector<double> x) {
       auto as_args = argsMapper(x);
-      std::apply(
-          [&](auto &&...new_args) {
-            cudaq::invokeKernel(std::forward<KernelT>(kernel), new_args...);
-          },
-          as_args);
+      std::apply([&](auto &&...new_args) { kernel(new_args...); }, as_args);
     };
   }
 
@@ -118,9 +115,7 @@ public:
             "Callable kernel from cudaq::make_kernel must "
             "have 1 std::vector<double> argument. Provide an ArgMapper if "
             "not.");
-    ansatz_functor = [&](std::vector<double> x) {
-      return cudaq::invokeKernel(std::forward<KernelT>(kernel), x);
-    };
+    ansatz_functor = [&](std::vector<double> x) { return kernel(x); };
   }
 
   /// Constructor, takes the quantum kernel with non-standard signature
@@ -130,12 +125,7 @@ public:
   gradient(QuantumKernel &&kernel, ArgsMapper &&argsMapper) {
     ansatz_functor = [&](std::vector<double> x) {
       auto as_args = argsMapper(x);
-      std::apply(
-          [&](auto &&...new_args) {
-            cudaq::invokeKernel(std::forward<QuantumKernel>(kernel),
-                                new_args...);
-          },
-          as_args);
+      std::apply([&](auto &&...new_args) { kernel(new_args...); }, as_args);
     };
   }
 

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "common/Resources.h"
+#include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
@@ -18,29 +20,15 @@
 
 namespace nvqir {
 class CircuitSimulator;
-}
+void switchToResourceCounterSimulator();
+void stopUsingResourceCounterSimulator();
+void setChoiceFunction(std::function<bool()> choice);
+cudaq::Resources *getResourceCounts();
+} // namespace nvqir
 
 namespace cudaq {
 
 class quantum_platform;
-
-/// @brief A RuntimeTarget encapsulates an available
-/// backend simulator and quantum_platform for CUDA-Q
-/// kernel execution.
-struct RuntimeTarget {
-  std::string name;
-  std::string simulatorName;
-  std::string platformName;
-  std::string description;
-  simulation_precision precision;
-  config::TargetConfig config;
-  /// @brief Return the number of QPUs this target exposes.
-  std::size_t num_qpus();
-  bool is_remote();
-  bool is_emulated();
-  simulation_precision get_precision();
-  std::string get_target_args_help_string() const;
-};
 
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
@@ -104,4 +92,12 @@ public:
   /// @brief Reset the target back to the default.
   void resetTarget();
 };
+
+namespace __internal__ {
+void switchToResourceCounterSimulator();
+void stopUsingResourceCounterSimulator();
+void setChoiceFunction(std::function<bool()> choice);
+cudaq::Resources *getResourceCounts();
+} // namespace __internal__
+
 } // namespace cudaq

@@ -72,7 +72,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
         loop.emitOpError("not a simple counted loop");
       return failure();
     }
-    if (allowBreak && !cudaq::opt::isaConstantUpperBoundLoop(loop)) {
+    if (allowBreak && !cudaq::opt::isaIndefiniteCountedLoop(loop)) {
       if (signalFailure)
         loop.emitOpError("not a constant upper bound loop");
       return failure();

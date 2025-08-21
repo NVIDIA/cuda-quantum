@@ -30,6 +30,7 @@ def assert_close(want, got, tolerance=1.0e-1) -> bool:
 
 @pytest.fixture(scope="function", autouse=True)
 def configureTarget():
+    os.environ.pop('CUDAQ_ENABLE_QUANTUM_DEVICE_RUN', None)
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
@@ -367,8 +368,9 @@ def test_3q_unitary_synthesis():
         x(q)
         toffoli(q[0], q[1], q[2])
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as e:
         cudaq.sample(test_toffoli)
+    assert "Remote rest platform Quake lowering failed." in repr(e)
 
 
 @requires_openfermion()
@@ -424,6 +426,34 @@ def test_capture_state():
             "captured states are not supported on quantum hardware or remote simulators"
     ):
         counts = cudaq.sample(kernel)
+
+
+def test_run():
+    os.environ["CUDAQ_ENABLE_QUANTUM_DEVICE_RUN"] = "1"
+
+    @cudaq.kernel
+    def simple(numQubits: int) -> int:
+        qubits = cudaq.qvector(numQubits)
+        h(qubits.front())
+        for i, qubit in enumerate(qubits.front(numQubits - 1)):
+            x.ctrl(qubit, qubits[i + 1])
+        result = 0
+        for i in range(numQubits):
+            if mz(qubits[i]):
+                result += 1
+        return result
+
+    shots = 100
+    qubitCount = 4
+    results = cudaq.run(simple, qubitCount, shots_count=shots)
+    print(results)
+    assert len(results) == shots
+    non_zero_count = 0
+    for result in results:
+        assert result == 0 or result == qubitCount  # 00..0 or 1...11
+        if result == qubitCount:
+            non_zero_count += 1
+    assert non_zero_count > 0
 
 
 # leave for gdb debugging

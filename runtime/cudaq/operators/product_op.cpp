@@ -1496,6 +1496,25 @@ csr_spmatrix product_op<HandlerTy>::to_sparse_matrix(
       matrix, 1ul << terms[0].relevant_dimensions.size());
 }
 
+template <typename HandlerTy>
+PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy,
+                                      product_op<T>::supports_inplace_mult)
+mdiag_sparse_matrix product_op<HandlerTy>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const {
+  auto terms = std::move(
+      this->transform(
+              operator_arithmetics<operator_handler::canonical_evaluation>(
+                  dimensions, parameters))
+          .terms);
+  assert(terms.size() == 1);
+  auto matrix = HandlerTy::to_diagonal_matrix(
+      terms[0].encoding, terms[0].relevant_dimensions, terms[0].coefficient,
+      invert_order);
+  return matrix;
+}
+
 template std::size_t product_op<spin_handler>::num_qubits() const;
 template std::string
 product_op<spin_handler>::get_pauli_word(std::size_t pad_identities) const;
@@ -1510,6 +1529,18 @@ template csr_spmatrix product_op<fermion_handler>::to_sparse_matrix(
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;
 template csr_spmatrix product_op<boson_handler>::to_sparse_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix product_op<spin_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix product_op<fermion_handler>::to_diagonal_matrix(
+    std::unordered_map<std::size_t, int64_t> dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool invert_order) const;
+template mdiag_sparse_matrix product_op<boson_handler>::to_diagonal_matrix(
     std::unordered_map<std::size_t, int64_t> dimensions,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     bool invert_order) const;

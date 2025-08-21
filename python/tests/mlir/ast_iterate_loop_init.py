@@ -51,7 +51,7 @@ def test_iterate_list_init():
 # CHECK:             %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_8]][%[[VAL_16]]] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
-# CHECK:             %[[VAL_21:.*]] = arith.sitofp %[[VAL_19]] : i64 to f64
+# CHECK:             %[[VAL_21:.*]] = cc.cast signed %[[VAL_19]] : (i64) -> f64
 # CHECK:             %[[VAL_22:.*]] = arith.addf %[[VAL_20]], %[[VAL_21]] : f64
 # CHECK:             cc.store %[[VAL_22]], %[[VAL_6]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_23:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>

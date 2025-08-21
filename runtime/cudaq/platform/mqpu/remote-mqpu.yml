@@ -16,15 +16,7 @@ config:
   platform-qpu: RemoteSimulatorQPU
   preprocessor-defines: ["-D CUDAQ_REMOTE_SIM"]
   link-libs: ["-lcudaq-remote-simulator-qpu"]
-  rules:
-    - if: ${LIBRARY_MODE}
-      compiler-flag: "-fembed-bitcode=all"
-      link-flag: "-rdynamic"
-    # Clang made "out of line atomics" the default on arm64 targets (https://reviews.llvm.org/D93585);
-    # requiring to link against `libclang_rt.builtins` on the server side when JIT'ing. 
-    # Hence, disable it when using the remote platform. 
-    - if: ${LIBRARY_MODE} && "$(uname -m)" == "aarch64"
-      compiler-flag: "-mno-outline-atomics" 
+  library-mode: false
 
 target-arguments:
   - key: backend

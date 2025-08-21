@@ -262,6 +262,7 @@ endif()
 # Create an executable for SpinOp UnitTests
 set(CUDAQ_SPIN_TEST_SOURCES 
    spin_op/SpinOpTester.cpp
+   operators/utils.cpp
 )
 add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
@@ -269,6 +270,7 @@ target_link_libraries(test_spin
   cudaq
   cudaq-operator
   gtest_main)
+target_include_directories(test_spin PRIVATE operators)
 gtest_discover_tests(test_spin)
 
 # Create an executable for operators UnitTests
@@ -308,6 +310,16 @@ if (CUDA_FOUND)
         ${CUTENSOR_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
   )
 
+  find_library(CUTENSORNET_LIB
+    NAMES   cutensornet libcutensornet.so.2
+    HINTS   
+        ${CUTENSORNET_ROOT}/lib64
+        ${CUTENSORNET_ROOT}/lib
+        ${CUTENSORNET_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
+        ${CUTENSORNET_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR}
+        ${CUDENSITYMAT_ROOT}/lib/
+)
+
   # Create an executable for dynamics UnitTests
   set(CUDAQ_DYNAMICS_TEST_SOURCES
     dynamics/test_RungeKuttaIntegrator.cpp
@@ -316,6 +328,9 @@ if (CUDA_FOUND)
     dynamics/test_CuDensityMatExpectation.cpp
     dynamics/test_EvolveSingle.cpp
     dynamics/test_EvolveApi.cpp
+    dynamics/test_EvolveBatchedImpl.cpp
+    dynamics/test_BatchedEvolveApi.cpp
+    dynamics/test_BatchingDetection.cpp
   )
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
@@ -331,6 +346,8 @@ if (CUDA_FOUND)
     CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
+    CUDA::cusparse
+    ${CUTENSORNET_LIB}
     gtest_main
     fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
@@ -352,6 +369,8 @@ if (CUDA_FOUND)
     CUDA::cudart
     CUDA::cublas
     ${CUTENSOR_LIB}
+    CUDA::cusparse
+    ${CUTENSORNET_LIB}
     gtest_main
     fmt::fmt-header-only)
   # Count the number of GPUs
@@ -438,6 +457,7 @@ endif()
 
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
+add_subdirectory(output_record)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)

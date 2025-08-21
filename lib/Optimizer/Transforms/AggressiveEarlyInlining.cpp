@@ -146,6 +146,7 @@ void cudaq::opt::addAggressiveEarlyInlining(OpPassManager &pm,
   llvm::StringMap<OpPassManager> opPipelines;
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
   if (fatalChecks)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
 }

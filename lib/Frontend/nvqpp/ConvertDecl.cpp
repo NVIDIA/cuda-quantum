@@ -191,7 +191,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
-    if (name == "_Bit_reference" || name == "__bit_reference") {
+    if (name == "_Bit_reference" || name == "__bit_reference" ||
+        name == "__bit_const_reference") {
       // Reference to a bit in a std::vector<bool>. Promote to a value.
       return pushType(builder.getI1Type());
     }
@@ -330,16 +331,23 @@ bool QuakeBridgeVisitor::traverseAnyRecordDecl(D *x) {
   }
   return false;
 }
+
 bool QuakeBridgeVisitor::TraverseRecordDecl(clang::RecordDecl *x) {
   if (traverseAnyRecordDecl(x))
     return true;
   return Base::TraverseRecordDecl(x);
 }
+
 bool QuakeBridgeVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl *x) {
   if (traverseAnyRecordDecl(x))
     return true;
+  if (x->isUnion()) {
+    reportClangError(x, mangler, "union types are not allowed in kernels");
+    return false;
+  }
   return Base::TraverseCXXRecordDecl(x);
 }
+
 bool QuakeBridgeVisitor::TraverseClassTemplateSpecializationDecl(
     clang::ClassTemplateSpecializationDecl *x) {
   if (traverseAnyRecordDecl(x))
@@ -487,8 +495,13 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
       db.AddSourceRange(clang::CharSourceRange::getCharRange(range));
       raisedError = false;
     }
-  if (!hasTerminator(builder.getBlock()))
-    builder.create<func::ReturnOp>(toLocation(x));
+  if (!hasTerminator(builder.getBlock())) {
+    auto loc = toLocation(x);
+    SmallVector<Value> dummyResults;
+    for (auto ty : funcTy.getResults())
+      dummyResults.push_back(builder.create<cc::UndefOp>(loc, ty));
+    builder.create<func::ReturnOp>(loc, dummyResults);
+  }
   builder.clearInsertionPoint();
   return true;
 }
@@ -523,11 +536,33 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
   auto typeFromStack = peelPointerFromFunction(popType());
   if (auto f = module.lookupSymbol<func::FuncOp>(kernSym)) {
     auto fTy = f.getFunctionType();
-    assert(typeFromStack == fTy);
     auto fSym = f.getSymNameAttr();
+    if (typeFromStack != fTy) {
+      // This may be a call to an entry-point kernel. Determine if that is the
+      // case, and convert this to a direct call. Otherwise, this an calling
+      // convention violation.
+      bool found = false;
+      for (auto pair : namesMap)
+        if (pair.second == kernName) {
+          if (auto f = module.lookupSymbol<func::FuncOp>(pair.first)) {
+            fTy = f.getFunctionType();
+            fSym = f.getSymNameAttr();
+            found = true;
+          }
+          break;
+        }
+      if (!found) {
+        reportClangError(
+            x, mangler,
+            "invalid call from kernel: calling convention violation");
+        return false;
+      }
+    }
     return pushValue(builder.create<func::ConstantOp>(loc, fTy, fSym));
   }
-  auto funcOp = getOrAddFunc(loc, kernName, typeFromStack).first;
+  auto [funcOp, alreadyAdded] = getOrAddFunc(loc, kernName, typeFromStack);
+  if (!alreadyAdded)
+    funcOp.setPrivate();
   return pushValue(builder.create<func::ConstantOp>(
       loc, funcOp.getFunctionType(), funcOp.getSymNameAttr()));
 }
@@ -576,11 +611,27 @@ bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
       "symbol table, but this parameter wasn't found.");
 }
 
+static bool isImplicitlyGlobalStorageClass(clang::StorageClass sc) {
+  switch (sc) {
+  case clang::SC_Extern:
+  case clang::SC_Static:
+  case clang::SC_PrivateExtern:
+    return true;
+  default:
+    return false;
+  }
+}
+
 // A variable declaration may or may not have an initializer. This custom
 // traversal makes sure that the type of the variable is visited and pushed so
 // that VisitVarDecl has the variable's type, whether an initialization
 // expression is present or not.
 bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
+  auto storageClass = x->getStorageClass();
+  if (isImplicitlyGlobalStorageClass(storageClass)) {
+    reportClangError(x, mangler, "variable has invalid storage class");
+    return false;
+  }
   [[maybe_unused]] auto typeStackDepth = typeStack.size();
   for (unsigned i = 0; i < x->getNumTemplateParameterLists(); i++) {
     if (auto *tpl = x->getTemplateParameterList(i)) {
@@ -622,8 +673,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return true;
   }
   Type type = popType();
-  if (x->hasInit() && !x->isCXXForRangeDecl())
+  if (x->hasInit() && !x->isCXXForRangeDecl()) {
+    LLVM_DEBUG(llvm::dbgs() << "variable " << x->getName()
+                            << " has initializer of " << peekValue() << '\n');
     type = peekValue().getType();
+  }
+  LLVM_DEBUG(llvm::dbgs() << "type for variable " << x->getName() << " is "
+                          << type << '\n');
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
   auto name = x->getName();
@@ -667,6 +723,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (isa<quake::StruqType>(type)) {
     // A pure quantum struct is just passed along by value. It cannot be stored
     // to a variable.
+    symbolTable.insert(name, peekValue());
+    return true;
+  }
+
+  if (cudaq::cc::isDevicePtr(type)) {
     symbolTable.insert(name, peekValue());
     return true;
   }
@@ -791,7 +852,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       auto *recDecl = recTy->getDecl();
       if (isInNamespace(recDecl, "std")) {
         auto name = recDecl->getNameAsString();
-        return name == "_Bit_reference" || name == "__bit_reference";
+        return name == "_Bit_reference" || name == "__bit_reference" ||
+               name == "__bit_const_reference";
       }
     }
     return false;

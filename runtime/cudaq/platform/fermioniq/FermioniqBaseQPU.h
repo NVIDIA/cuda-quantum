@@ -52,7 +52,7 @@ public:
     if (!executionContext)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), or cudaq::draw().");
+          "cudaq::observe(), or cudaq::contrib::draw().");
 
     // When the user issues an observe call, we don't want to use the default
     // cuda-quantum behaviour that splits up the circuit into several ansatz

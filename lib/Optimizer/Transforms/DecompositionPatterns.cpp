@@ -339,82 +339,86 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
     auto qubits = expPauliOp.getTarget();
     auto theta = expPauliOp.getParameter();
     auto pauliWord = expPauliOp.getPauli();
-    auto stringTy = pauliWord.getType();
-    std::string pauliWordString;
 
     if (expPauliOp.isAdj())
       theta = rewriter.create<arith::NegFOp>(loc, theta);
 
-    std::optional<StringRef> optPauliWordStr;
-
-    if (isa<cudaq::cc::PointerType>(stringTy)) {
-      if (auto defOp =
-              pauliWord.getDefiningOp<cudaq::cc::CreateStringLiteralOp>())
-        optPauliWordStr = defOp.getStringLiteral();
+    std::optional<std::string> optPauliWordStr;
+    if (!pauliWord) {
+      optPauliWordStr = expPauliOp.getPauliLiteral()->str();
     } else {
-      if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(stringTy)) {
-        if (auto load = pauliWord.getDefiningOp<cudaq::cc::LoadOp>()) {
-          // Look for a matching StoreOp for the LoadOp. This search isn't
-          // necessarily efficient or exhaustive. Instead of using dominance
-          // information, we scan the current basic block looking for the
-          // nearest StoreOp before the LoadOp. If one is found, we forward the
-          // stored value.
-          auto ptrVal = load.getPtrvalue();
-          auto storeVal = [&]() -> Value {
-            SmallVector<Operation *> stores;
-            for (auto *use : ptrVal.getUsers()) {
-              if (auto store = dyn_cast<cudaq::cc::StoreOp>(use)) {
-                if (store.getPtrvalue() == ptrVal &&
-                    store->getBlock() == load->getBlock())
-                  stores.push_back(store.getOperation());
+      Type stringTy = pauliWord.getType();
+      if (isa<cudaq::cc::PointerType>(stringTy)) {
+        if (auto defOp =
+                pauliWord.getDefiningOp<cudaq::cc::CreateStringLiteralOp>())
+          optPauliWordStr = defOp.getStringLiteral();
+      } else {
+        if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(stringTy)) {
+          if (auto load = pauliWord.getDefiningOp<cudaq::cc::LoadOp>()) {
+            // Look for a matching StoreOp for the LoadOp. This search isn't
+            // necessarily efficient or exhaustive. Instead of using dominance
+            // information, we scan the current basic block looking for the
+            // nearest StoreOp before the LoadOp. If one is found, we forward
+            // the stored value.
+            auto ptrVal = load.getPtrvalue();
+            auto storeVal = [&]() -> Value {
+              SmallVector<Operation *> stores;
+              for (auto *use : ptrVal.getUsers()) {
+                if (auto store = dyn_cast<cudaq::cc::StoreOp>(use)) {
+                  if (store.getPtrvalue() == ptrVal &&
+                      store->getBlock() == load->getBlock())
+                    stores.push_back(store.getOperation());
+                }
               }
-            }
-            if (stores.empty())
+              if (stores.empty())
+                return {};
+              for (Operation *op = load.getOperation()->getPrevNode(); op;
+                   op = op->getPrevNode()) {
+                auto iter = std::find(stores.begin(), stores.end(), op);
+                if (iter == stores.end())
+                  continue;
+                return cast<cudaq::cc::StoreOp>(*iter).getValue();
+              }
               return {};
-            for (Operation *op = load.getOperation()->getPrevNode(); op;
-                 op = op->getPrevNode()) {
-              auto iter = std::find(stores.begin(), stores.end(), op);
-              if (iter == stores.end())
-                continue;
-              return cast<cudaq::cc::StoreOp>(*iter).getValue();
-            }
-            return {};
-          }();
-          if (storeVal)
-            pauliWord = storeVal;
-        }
-        if (auto vecInit = pauliWord.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
-          auto addrOp = vecInit.getOperand(0);
-          if (auto cast = addrOp.getDefiningOp<cudaq::cc::CastOp>())
-            addrOp = cast.getOperand();
-          if (auto addr = addrOp.getDefiningOp<cudaq::cc::AddressOfOp>()) {
-            // Get the pauli word string from a constant global string generated
-            // during argument synthesis.
-            auto globalName = addr.getGlobalName();
-            auto symbol = module.lookupSymbol(globalName);
-            if (auto global = dyn_cast<LLVM::GlobalOp>(symbol)) {
-              auto attr = global.getValue();
-              auto strAttr = cast<mlir::StringAttr>(attr.value());
-              optPauliWordStr = strAttr.getValue();
-            } else if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
-              auto attr = global.getValue();
-              auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
-              auto eleTy = elementsAttr.getElementType();
-              auto values = elementsAttr.getValues<mlir::Attribute>();
+            }();
+            if (storeVal)
+              pauliWord = storeVal;
+          }
+          if (auto vecInit =
+                  pauliWord.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+            auto addrOp = vecInit.getOperand(0);
+            if (auto cast = addrOp.getDefiningOp<cudaq::cc::CastOp>())
+              addrOp = cast.getOperand();
+            if (auto addr = addrOp.getDefiningOp<cudaq::cc::AddressOfOp>()) {
+              // Get the pauli word string from a constant global string
+              // generated during argument synthesis.
+              auto globalName = addr.getGlobalName();
+              auto symbol = module.lookupSymbol(globalName);
+              if (auto global = dyn_cast<LLVM::GlobalOp>(symbol)) {
+                auto attr = global.getValue();
+                auto strAttr = cast<mlir::StringAttr>(attr.value());
+                optPauliWordStr = strAttr.getValue();
+              } else if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
+                auto attr = global.getValue();
+                auto elementsAttr = cast<mlir::ElementsAttr>(attr.value());
+                auto eleTy = elementsAttr.getElementType();
+                auto values = elementsAttr.getValues<mlir::Attribute>();
 
-              pauliWordString.reserve(values.size());
-              for (auto it = values.begin(); it != values.end(); ++it) {
-                assert(isa<IntegerType>(eleTy));
-                char v = static_cast<char>(cast<IntegerAttr>(*it).getInt());
-                pauliWordString.push_back(v);
+                std::string pauliWordString;
+                pauliWordString.reserve(values.size());
+                for (auto it = values.begin(); it != values.end(); ++it) {
+                  assert(isa<IntegerType>(eleTy));
+                  char v = static_cast<char>(cast<IntegerAttr>(*it).getInt());
+                  pauliWordString.push_back(v);
+                }
+                optPauliWordStr = StringRef(pauliWordString);
               }
-              optPauliWordStr = StringRef(pauliWordString);
+            } else if (auto lit = addrOp.getDefiningOp<
+                                  cudaq::cc::CreateStringLiteralOp>()) {
+              // Get the pauli word string if it was a literal wrapped in a
+              // stdvec structure.
+              optPauliWordStr = lit.getStringLiteral();
             }
-          } else if (auto lit = addrOp.getDefiningOp<
-                                cudaq::cc::CreateStringLiteralOp>()) {
-            // Get the pauli word string if it was a literal wrapped in a stdvec
-            // structure.
-            optPauliWordStr = lit.getStringLiteral();
           }
         }
       }
@@ -926,6 +930,42 @@ struct YToPhasedRx : public OpRewritePattern<quake::YOp> {
     qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+
+// quake.y [control] target
+// ───────────────────────────────────
+// quake.s<adj> target;
+// quake.x [control] target;
+// quake.s target;
+
+struct CYToCX : public OpRewritePattern<quake::YOp> {
+  using OpRewritePattern<quake::YOp>::OpRewritePattern;
+
+  void initialize() { setDebugName("CYToCX"); }
+
+  LogicalResult matchAndRewrite(quake::YOp op,
+                                PatternRewriter &rewriter) const override {
+    if (failed(checkNumControls(op, 1)))
+      return failure();
+    // This decomposition does not support `quake.control` types because the
+    // input controls are used as targets during this transformation.
+    if (containsControlTypes(op))
+      return failure();
+
+    // Op info
+    Location loc = op->getLoc();
+    Value target = op.getTarget();
+    SmallVector<Value> controls = op.getControls();
+
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<quake::SOp>(loc, /*isAdj=*/true, target);
+    qRewriter.create<quake::XOp>(loc, controls, target);
+    qRewriter.create<quake::SOp>(loc, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
@@ -1652,6 +1692,7 @@ void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
     XToPhasedRx,
     // YOp patterns
     YToPhasedRx,
+    CYToCX,
     // ZOp patterns
     CZToCX,
     CCZToCX,

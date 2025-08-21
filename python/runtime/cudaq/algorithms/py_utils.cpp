@@ -141,4 +141,19 @@ std::string get_var_name_for_handle(const py::handle &h) {
   return std::string();
 }
 
+std::unordered_map<std::string, std::tuple<py::object, py::dict>>
+    DataClassRegistry::classes{};
+
+/// @brief Bind the dataclass registry
+void bindPyDataClassRegistry(py::module &mod) {
+  py::class_<DataClassRegistry>(mod, "DataClassRegistry",
+                                R"#(Registry for dataclasses used in kernels)#")
+      .def_static("registerClass", &DataClassRegistry::registerClass,
+                  "Register class\n")
+      .def_static("isRegisteredClass", &DataClassRegistry::isRegisteredClass,
+                  "Is class registered\n")
+      .def_static("getClassAttributes", &DataClassRegistry::getClassAttributes,
+                  "Find registered class and its attributes\n")
+      .def_readonly_static("classes", &DataClassRegistry::classes);
+}
 } // namespace cudaq

@@ -155,7 +155,17 @@ protected:
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   /// @brief Handler for when the photonics execution context changes
-  void handleExecutionContextChanged() override {}
+  void handleExecutionContextChanged() override {
+    if (!executionContext)
+      throw std::runtime_error(
+          "Execution context is not set for the PhotonicsExecutionManager.");
+
+    if (!(executionContext->name == "sample" ||
+          executionContext->name == "extract-state" ||
+          executionContext->name == "tracer"))
+      throw std::runtime_error(executionContext->name +
+                               " is not supported on this target");
+  }
 
   /// @brief Handler for when the current execution context has ended. It
   /// returns samples to the execution context if it is "sample".

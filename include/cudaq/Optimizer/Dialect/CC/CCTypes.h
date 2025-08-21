@@ -47,4 +47,7 @@ inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
   return (thisPtr ? 1 : 0) + (sret ? 1 : 0);
 }
 
+// Checks if type is device_ptr.
+bool isDevicePtr(mlir::Type argTy);
+
 } // namespace cudaq::cc

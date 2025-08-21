@@ -9,6 +9,8 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+#include <tuple>
+#include <unordered_map>
 
 namespace py = pybind11;
 
@@ -25,5 +27,30 @@ std::string get_source_code(const py::function &func);
 /// locally first, walks up the call stack, and finally checks the global
 /// namespace. If not found, it returns an empty string.
 std::string get_var_name_for_handle(const py::handle &h);
+
+/// @brief Registry for python data classes used in kernels
+class DataClassRegistry {
+public:
+  static std::unordered_map<std::string, std::tuple<py::object, py::dict>>
+      classes;
+
+  /// @brief Register class object
+  static void registerClass(std::string &name, py::object cls) {
+    classes[name] = {cls, cls.attr("__annotations__").cast<py::dict>()};
+  }
+
+  /// @brief Is data class name registered
+  static bool isRegisteredClass(const std::string &name) {
+    return classes.contains(name);
+  }
+
+  /// @brief Find registered data class object and its attributes
+  static std::tuple<py::object, py::dict>
+  getClassAttributes(std::string &name) {
+    return classes[name];
+  }
+};
+
+void bindPyDataClassRegistry(py::module &mod);
 
 } // namespace cudaq

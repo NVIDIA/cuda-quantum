@@ -275,22 +275,4 @@ def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
 def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
 def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
 
-def IsStdvecTypePred : CPred<"isa<::cudaq::cc::StdvecType>($_self)">;
-
-class StdvecOf<list<Type> allowedTypes> : Type<
-    And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
-      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }(cast<::cudaq::cc::StdvecType>($_self).getElementType())">]>,
-    "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
-    "::cudaq::cc::StdvecType">;
-
-def IsPointerTypePred : CPred<"isa<::cudaq::cc::PointerType>($_self)">;
-
-class PointerOf<list<Type> allowedTypes> : Type<
-    And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
-      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
-        "; }(cast<::cudaq::cc::PointerType>($_self).getElementType())">]>,
-    "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
-    "::cudaq::cc::PointerType">;
-
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES

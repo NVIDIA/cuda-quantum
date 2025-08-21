@@ -39,15 +39,18 @@ able to use it without any further installation steps.
 ${{ deprecation_notice }}
 
 > **Important:** 
-> Please check if you have an existing installation of the `cuda-quantum`, `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, and uninstall it prior to installation. Different CUDA-Q binary distributions may conflict with each other causing issues.
+> Please check if you have an existing installation of the `cuda-quantum`, 
+`cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, and uninstall it prior to
+ installation. Different CUDA-Q binary distributions may conflict with each 
+ other causing issues.
 
 
-If you want to perform multi-GPU simulations, additional components must be installed. We
-recommend using [Conda](https://docs.conda.io/en/latest/) to do so. If you are
-not already using Conda, you can install a minimal version following the
-instructions [here](https://docs.anaconda.com/miniconda/). The following
-commands will create and activate a complete environment for CUDA-Q with all its
-dependencies:
+If you want to perform multi-GPU simulations, additional components must be 
+installed. We recommend using [Conda](https://docs.conda.io/en/latest/) to do 
+so. If you are not already using Conda, you can install a minimal version 
+following [miniconda instructions here](https://docs.anaconda.com/miniconda/). 
+The following commands will create and activate a complete environment for 
+CUDA-Q with all its dependencies:
 
 [//]: # (Begin conda install)
 
@@ -64,6 +67,10 @@ source $CONDA_PREFIX/lib/python3.11/site-packages/distributed_interfaces/activat
 ```
 
 [//]: # (End conda install)
+
+**Warning (conda-forge)**: Installing `cudaq` from the `conda-forge` channel on recent versions of Python can lead to segmentation faults. 
+If you see such errors, please switch to one of the Python versions 3.10.15, 3.11.10, or 3.12.7 as per the issue 
+[#2999](https://github.com/NVIDIA/cuda-quantum/issues/2999) or [#3104](https://github.com/NVIDIA/cuda-quantum/issues/3104).
 
 You must configure MPI by setting the following environment variables:
 

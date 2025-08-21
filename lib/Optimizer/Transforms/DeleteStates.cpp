@@ -76,7 +76,7 @@ public:
 
 // clang-format off
 /// Remove `quake.create_state` instructions and pass their data directly to
-/// the `quake.state_init` instruction instead.
+/// the `quake.init_state` instruction instead.
 /// ```
 /// %2 = cc.cast %1 : (!cc.ptr<!cc.array<complex<f32> x 8>>) -> !cc.ptr<i8>
 /// %3 = quake.create_state %3, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.ptr<!quake.state>

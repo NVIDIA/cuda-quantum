@@ -157,7 +157,10 @@ def testLargeProblem_kernel():
 def check_accuracy(entity):
     target = cudaq.get_target()
     numQpus = target.num_qpus()
-    assert numQpus > 0
+    if numQpus == 0:
+        pytest.skip("No QPUs available for target, skipping test")
+    else:
+        print(f"Target: {target}, NumQPUs: {numQpus}")
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)

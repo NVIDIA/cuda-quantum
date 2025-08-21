@@ -20,7 +20,7 @@ namespace cudaq {
 
 enum class pauli { I, X, Y, Z };
 
-class spin_handler : public operator_handler {
+class spin_handler : public operator_handler, mdiag_operator_handler {
   template <typename T>
   friend class product_op;
   template <typename T>
@@ -64,6 +64,13 @@ private:
                                   const std::vector<std::int64_t> &dimensions,
                                   std::complex<double> coeff = 1.,
                                   bool invert_order = false);
+
+  // helper function for multi-diagonal matrix creations
+  static mdiag_sparse_matrix
+  to_diagonal_matrix(const std::string &fermi_word,
+                     const std::vector<std::int64_t> &dimensions = {},
+                     std::complex<double> coeff = 1.,
+                     bool invert_order = false);
 
 public:
   // read-only properties
@@ -110,6 +117,16 @@ public:
             const std::unordered_map<std::string, std::complex<double>>
                 &parameters = {}) const override;
 
+  /// @brief Return the `spin_handler` as a multi-diagonal matrix.
+  /// @arg  `dimensions` : A map specifying the number of levels,
+  ///                      that is, the dimension of each degree of freedom
+  ///                      that the operator acts on. Example for two, 2-level
+  ///                      degrees of freedom: `{0 : 2, 1 : 2}`.
+  /// @param  `parameters` : A map specifying runtime parameter values.
+  virtual mdiag_sparse_matrix
+  to_diagonal_matrix(std::unordered_map<std::size_t, std::int64_t> &dimensions,
+                     const std::unordered_map<std::string, std::complex<double>>
+                         &parameters = {}) const override;
   virtual std::string to_string(bool include_degrees) const override;
 
   // comparisons
