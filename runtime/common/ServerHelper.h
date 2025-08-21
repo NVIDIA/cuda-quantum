@@ -13,6 +13,7 @@
 #include "ExecutionContext.h"
 #include "Future.h"
 #include "Registry.h"
+#include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include <filesystem>
 
@@ -87,6 +88,9 @@ protected:
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
+  /// @brief  Information about the runtime target managing this server helper.
+  RuntimeTarget runtimeTarget;
+
 public:
   ServerHelper() = default;
   virtual ~ServerHelper() = default;
@@ -147,5 +151,8 @@ public:
   /// @brief Adjust the compiler pass pipeline (if desired)
   virtual void updatePassPipeline(const std::filesystem::path &platformPath,
                                   std::string &passPipeline) {}
+
+  /// @brief Set the runtime target information
+  void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
 };
 } // namespace cudaq
