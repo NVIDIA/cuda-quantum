@@ -303,9 +303,10 @@ std::size_t getArgAsInteger(llvm::Value *arg) {
   std::size_t ret = 0; // handles the nullptr case
   // Now handle the `inttoptr (i64 1 to Ptr)` case
   auto constValue = dyn_cast<llvm::Constant>(arg);
-  if (auto constExpr = dyn_cast<llvm::ConstantExpr>(constValue))
+  if (auto constExpr = dyn_cast_if_present<llvm::ConstantExpr>(constValue))
     if (constExpr->getOpcode() == llvm::Instruction::IntToPtr)
-      if (auto constInt = dyn_cast<llvm::ConstantInt>(constExpr->getOperand(0)))
+      if (auto constInt =
+              dyn_cast_if_present<llvm::ConstantInt>(constExpr->getOperand(0)))
         ret = constInt->getZExtValue();
   return ret;
 }
