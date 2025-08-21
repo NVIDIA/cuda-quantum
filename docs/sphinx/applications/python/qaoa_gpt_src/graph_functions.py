@@ -39,7 +39,7 @@ def edgelist_to_graph(edgelist, num_vertices=0):
     return g
 
 
-def generate_random_graph(n, methods=None):
+def generate_random_graph(n, p_init, p_final, seed_g, methods=None):
     """
     Generate a connected random graph using specified methods with random parameters.
     Returns: (graph, method)
@@ -52,14 +52,14 @@ def generate_random_graph(n, methods=None):
     method = random.choice(methods)
     while True:
         if method == "erdos_renyi":
-            p = random.uniform(0.3, 0.9)
-            G = nx.erdos_renyi_graph(n, p)
+            p = random.uniform(p_init, p_final)
+            G = nx.erdos_renyi_graph(n, p, seed_g)
         elif method == "barabasi_albert":
             m = random.randint(1, n - 1)
             G = nx.barabasi_albert_graph(n, m)
         elif method == "watts_strogatz":
             k = random.randint(2, n - 1)
-            p = random.uniform(0.1, 1.0)
+            p = random.uniform(p_init, p_final)
             G = nx.watts_strogatz_graph(n, k, p)
         elif method == "random_regular":
             d = random.randint(2, n - 1)
@@ -79,11 +79,14 @@ def generate_random_graph(n, methods=None):
     return G, method
 
 
-def add_rand_weights_to_graph(g, neg_weights=False):
+def add_rand_weights_to_graph(g, seed_weight, neg_weights=False):
     """
     Add random weights to all edges in the graph.
     Returns a new weighted graph.
     """
+    if seed_weight is not None:
+        random.seed(seed_weight)
+        
     g_weighted = nx.Graph()
     g_weighted.add_nodes_from(g.nodes())
     for u, v in g.edges():

@@ -82,6 +82,11 @@ def generate_data_max_cut(output_dir='adapt_results',
                           norm_threshold=1e-3,
                           energy_threshold=1e-9,
                           multi_gamma=False,
+                          p_init=0.3, 
+                          p_final=0.9, 
+                          seed_g=None,
+                          seed_weight=None,
+                          seed_adapt=None,
                           verbose=True):
     """
     Generates data for ADAPT-QAOA on the Max-Cut problem.
@@ -108,6 +113,12 @@ def generate_data_max_cut(output_dir='adapt_results',
         energy_threshold (float): Threshold for energy convergence in ADAPT-QAOA.
         multi_gamma (bool): Whether to run multiple trials with different initial gamma values to generate multiple validated circuit. 
         Useful if you want to check for more validated circuits after approx ratio achieved with one gamma.
+        p_init (float): Initial probability for Erdos-Renyi graph generation.
+        p_final (float): Final probability for Erdos-Renyi graph generation. 
+        the probability will be randomly selected between p_init and p_final.
+        seed_g (int): Random seed for for Erdos-Renyi graph generation reproducibility.
+        seed_weight (int): Random seed for edge weight generation reproducibility.
+        seed_adapt (int): Random seed for ADAPT-QAOA reproducibility.
         verbose (bool): Whether to print detailed logs during execution.
         
     Returns:
@@ -148,10 +159,10 @@ def generate_data_max_cut(output_dir='adapt_results',
         if graphs_input_json == "N/A":
             cur_graph_name = f"Graph_{graph_num+1}"
             g_unweighted, g_method = generate_random_graph(
-                n_nodes, methods=["erdos_renyi"])
+                n_nodes, p_init=p_init, p_final=p_final, seed_g=seed_g, methods=["erdos_renyi"])
             if weighted:
                 g = add_rand_weights_to_graph(g_unweighted,
-                                              neg_weights=use_negative_weights)
+                                              seed_weight=seed_weight, neg_weights=use_negative_weights)
             else:
                 g = g_unweighted
         else:
@@ -273,6 +284,7 @@ def generate_data_max_cut(output_dir='adapt_results',
                     true_energy=true_energy,
                     optimizer=optimizer,
                     max_iter=max_iter,
+                    seed_adapt=seed_adapt,
                     verbose=verbose)
 
                 end_time = time.time()

@@ -32,6 +32,7 @@ def adapt_qaoa_run(hamiltonian,
                    optimizer='BFGS',
                    parameter_shift=False,
                    max_iter=10,
+                   seed_adapt=None,
                    verbose=False):
 
     E_prev = 0.0
@@ -183,7 +184,8 @@ def adapt_qaoa_run(hamiltonian,
             # Set the seed for the random number generator
             # This ensures that the random choices are reproducible
             # in each step of the iteration.
-            #random.seed(42)
+            if seed_adapt is not None:
+                random.seed(seed_adapt)
 
             layer.append(1)
             random_mixer = random.choice(temp_pool)
