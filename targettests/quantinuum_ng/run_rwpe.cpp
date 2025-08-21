@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 %t
+// RUN: nvq++ %cpp_std -fenable-cudaq-run --target quantinuum --emulate %s -o %t && CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 %t
 // clang-format on
 
 #include <cudaq.h>
