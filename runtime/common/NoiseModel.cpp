@@ -192,10 +192,7 @@ kraus_channel::kraus_channel(const kraus_channel &other)
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
-bool kraus_channel::empty() const {
-  return ops.empty() && noise_type != noise_model_type::global_disable &&
-         noise_type != noise_model_type::global_enable;
-}
+bool kraus_channel::empty() const { return ops.empty(); }
 
 std::size_t kraus_channel::dimension() const { return ops[0].nRows; }
 
@@ -395,8 +392,6 @@ noise_model::noise_model() {
   register_channel<pauli2>();
   register_channel<depolarization1>();
   register_channel<depolarization2>();
-  register_channel<global_disable>();
-  register_channel<global_enable>();
 }
 
 std::string get_noise_model_type_name(noise_model_type type) {

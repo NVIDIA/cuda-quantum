@@ -643,7 +643,7 @@ CUDAQ_TEST(NoiseTest, checkGlobalDisable) {
 
   auto kernel1 = [](std::vector<double> parms) __qpu__ {
     cudaq::qubit q, r;
-    cudaq::apply_noise<cudaq::global_disable>(0.0, q);
+    cudaq::disable_noise();
     cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
     mz(q);
     mz(r);
@@ -651,8 +651,8 @@ CUDAQ_TEST(NoiseTest, checkGlobalDisable) {
 
   auto kernel2 = [](std::vector<double> parms) __qpu__ {
     cudaq::qubit q, r;
-    cudaq::apply_noise<cudaq::global_disable>(0.0, q);
-    cudaq::apply_noise<cudaq::global_enable>(0.0, q);
+    cudaq::disable_noise();
+    cudaq::enable_noise();
     cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
     mz(q);
     mz(r);

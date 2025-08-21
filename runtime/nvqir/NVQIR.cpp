@@ -49,6 +49,9 @@ static thread_local std::map<Qubit *, Result *> measQB2Res;
 static thread_local std::map<Result *, Qubit *> measRes2QB;
 static thread_local std::map<Result *, Result> measRes2Val;
 
+// Saved noise model pointer.
+static thread_local void *z_saved_noise_model = nullptr;
+
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
 /// will invoke clone on the simulator when requested, which
@@ -823,6 +826,38 @@ void __quantum__qis__apply_kraus_channel_generalized(
     throw std::runtime_error("apply_noise: unknown data kind.");
   }
   va_end(args);
+}
+
+void __quantum__qis__disable_noise() {
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx) {
+    cudaq::warn("disable_noise called but no execution context provided.");
+    return;
+  }
+
+  if (z_saved_noise_model) {
+    cudaq::warn("disable_noise called twice without enable_noise.");
+    return;
+  }
+
+  z_saved_noise_model = (void *)ctx->noiseModel;
+  ctx->noiseModel = nullptr;
+}
+
+void __quantum__qis__enable_noise() {
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx) {
+    cudaq::warn("enable_noise called but no execution context provided.");
+    return;
+  }
+
+  if (z_saved_noise_model) {
+    ctx->noiseModel = (cudaq::noise_model *)z_saved_noise_model;
+    z_saved_noise_model = nullptr;
+  } else {
+    cudaq::warn("enable_noise called but prior noise model not found.");
+    ctx->noiseModel = nullptr;
+  }
 }
 
 namespace details {

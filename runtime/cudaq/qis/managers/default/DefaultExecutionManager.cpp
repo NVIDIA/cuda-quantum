@@ -223,18 +223,7 @@ protected:
 
   void applyNoise(const kraus_channel &channel,
                   const std::vector<QuditInfo> &targets) override {
-    if (isInTracerMode())
-      return;
-
-    if (channel.noise_type == cudaq::noise_model_type::global_disable) {
-      this->noiseDisabled = true;
-      return;
-    }
-    if (channel.noise_type == cudaq::noise_model_type::global_enable) {
-      this->noiseDisabled = false;
-      return;
-    }
-    if (this->noiseDisabled)
+    if (isInTracerMode() || noiseDisabled)
       return;
 
     flushGateQueue();

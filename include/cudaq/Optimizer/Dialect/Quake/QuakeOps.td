@@ -530,6 +530,28 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
   }];
 }
 
+def quake_DisableNoiseOp : QuakeOp<"disable_noise"> {
+  let summary = "Globally disable noise.";
+  let description = [{
+    This operation provides support for the `cudaq::disable_noise`
+    function. This function is only valid is simulation contexts where the
+    simulator is part of the same process as the C++ host executable itself.
+  }];
+
+  // No arguments are needed.
+}
+
+def quake_EnableNoiseOp : QuakeOp<"enable_noise"> {
+  let summary = "Globally enable noise.";
+  let description = [{
+    This operation provides support for the `cudaq::enable_noise`
+    function. This function is only valid is simulation contexts where the
+    simulator is part of the same process as the C++ host executable itself.
+  }];
+
+  // No arguments are needed.
+}
+
 //===----------------------------------------------------------------------===//
 // Memory and register conversion instructions: These operations are useful for
 // intermediate conversions between memory-SSA and value-SSA semantics and vice
