@@ -108,7 +108,7 @@ protected:
     PassManager pm(cloned.getContext());
 
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addAggressiveEarlyInlining(pm);
+    cudaq::opt::addAggressiveInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());

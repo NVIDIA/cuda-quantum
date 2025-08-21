@@ -167,13 +167,13 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir",
             [&]() {
-              cudaq::opt::addAggressiveEarlyInlining(pm);
+              cudaq::opt::addAggressiveInlining(pm);
               cudaq::opt::addPipelineConvertToQIR(
                   pm, qirVersionUnderDevelopment.getValue());
             })
       .Cases("qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addAggressiveEarlyInlining(pm);
+               cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::addPipelineConvertToQIR(
                    pm, convertTo.getValue(),
                    qirVersionUnderDevelopment.getValue());

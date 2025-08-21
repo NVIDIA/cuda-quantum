@@ -896,7 +896,7 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addPass(cudaq::opt::createApplySpecialization());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
