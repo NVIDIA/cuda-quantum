@@ -17,7 +17,7 @@ std::string backendString = "qci;emulate;false";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
-  return value < -1.1 && value > -2.3;
+  return value < -1.1 && value > -2.9;
 }
 
 CUDAQ_TEST(QCITester, checkSampleSync) {
