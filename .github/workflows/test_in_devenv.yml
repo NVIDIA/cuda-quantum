@@ -91,7 +91,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client==16.1
+            python3 -m pip install iqm-client==28.0.0
             python3 -m pytest -v build/python/tests/interop/
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then

@@ -1,6 +1,7 @@
 # ============================================================================ #
 # Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
+# Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
@@ -30,21 +31,6 @@ except:
 # Define the port for the mock server
 port = 62443
 
-# If we're in a git repo, test that we can provide a filename with spaces.
-# If we are not in a git repo, then simply test without overriding
-# mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
-# that isn't the main point of these tests.)
-with os.popen("git rev-parse --show-toplevel") as f:
-    git_top = f.read().strip()
-    if os.path.isdir(git_top):
-        target_config_origin = os.path.join(
-            f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
-        target_config_dest = os.path.join(f"{git_top}", "targettests")
-        shutil.copy(os.path.join(target_config_origin, "Crystal_5.txt"),
-                    os.path.join(target_config_dest, "Crystal_5_Variant.txt"))
-        shutil.copy(os.path.join(target_config_origin, "Crystal_20.txt"),
-                    os.path.join(target_config_dest, "Crystal_20_Variant.txt"))
-
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
     return abs(want - got) < tolerance
@@ -68,11 +54,7 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = {"qpu-architecture": "Crystal_20"}
-    if os.path.isdir(git_top):
-        mapping_file = f"{git_top}/targettests/Crystal_20_Variant.txt"
-        kwargs["mapping_file"] = mapping_file
-    cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
+    cudaq.set_target("iqm", url="http://localhost:{}".format(port))
 
     yield "Running the tests."
 
