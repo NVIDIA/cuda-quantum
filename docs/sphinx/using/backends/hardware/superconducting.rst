@@ -304,7 +304,7 @@ Examples are provided to get started.
 
 Users who wish to get started with running CUDA-Q on AquSim should visit our
 `Explore <https://quantumcircuits.com/explore/>`__ page to learn more about the Quantum Circuits
-Select Quantum Release Program.
+Strategic Quantum Release Program.
 
 Submitting
 `````````````````````````
