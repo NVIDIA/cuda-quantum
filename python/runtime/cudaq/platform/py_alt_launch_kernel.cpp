@@ -160,7 +160,16 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createReturnToOutputLog());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     std::string tl = getTransportLayer();
-    cudaq::opt::commonPipelineConvertToQIR(pm, tl, tl);
+    auto tlPair = StringRef(tl).split(':');
+    if (tlPair.first != "qir") {
+      // FIXME: this code path has numerous bugs for anything not full QIR, so
+      // do an end-around for now and pretend it was full QIR.
+      if (tlPair.second.empty())
+        tl = "qir:0.1";
+      else
+        tl = "qir:" + tlPair.second.str();
+    }
+    cudaq::opt::addPipelineConvertToQIR(pm, tl);
     pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =

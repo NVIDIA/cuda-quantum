@@ -329,10 +329,17 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
   std::size_t required_num_results = 0;
   for (llvm::Function &func : *llvmModule) {
     if (func.hasFnAttribute("entry_point")) {
+      constexpr auto NotFound = std::numeric_limits<std::uint64_t>::max();
       required_num_qubits = func.getFnAttributeAsParsedInteger(
-          "requiredQubits", required_num_qubits);
+          cudaq::opt::qir0_1::RequiredQubitsAttrName, NotFound);
+      if (required_num_qubits == NotFound)
+        required_num_qubits = func.getFnAttributeAsParsedInteger(
+            cudaq::opt::qir0_2::RequiredQubitsAttrName, 0);
       required_num_results = func.getFnAttributeAsParsedInteger(
-          "requiredResults", required_num_results);
+          cudaq::opt::qir0_1::RequiredResultsAttrName, NotFound);
+      if (required_num_results == NotFound)
+        required_num_results = func.getFnAttributeAsParsedInteger(
+            cudaq::opt::qir0_2::RequiredResultsAttrName, 0);
       break; // no need to keep looking
     }
   }
@@ -496,6 +503,8 @@ mlir::LogicalResult qirProfileTranslationFunction(
       (profileFields.size() > 2) &&
       profileFields[2].contains("float_computations");
   const bool isBaseProfile = profileFields[0] == "qir-base";
+  const bool version0_1 =
+      (profileFields.size() > 1) && (profileFields[1] == "0.1");
 
   auto context = op->getContext();
   mlir::PassManager pm(context);
@@ -536,34 +545,70 @@ mlir::LogicalResult qirProfileTranslationFunction(
 
   // Add required module flags for the Base Profile
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            "qir_major_version", qir_major_version);
+                            cudaq::opt::QIRMajorVersionFlagName,
+                            qir_major_version);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Max,
-                            "qir_minor_version", qir_minor_version);
+                            cudaq::opt::QIRMinorVersionFlagName,
+                            qir_minor_version);
   auto falseValue =
       llvm::ConstantInt::getFalse(llvm::Type::getInt1Ty(*llvmContext));
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            "dynamic_qubit_management", falseValue);
+                            cudaq::opt::QIRDynamicQubitsManagementFlagName,
+                            falseValue);
   llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                            "dynamic_result_management", falseValue);
+                            cudaq::opt::QIRDynamicResultManagementFlagName,
+                            falseValue);
   if (isAdaptiveProfile) {
     auto trueValue =
         llvm::ConstantInt::getTrue(llvm::Type::getInt1Ty(*llvmContext));
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "qubit_resetting", trueValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_ints", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_floats", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "classical_fixed_points", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "user_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "dynamic_float_args", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "extern_functions", falseValue);
-    llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                              "backwards_branching", falseValue);
+    if (version0_1) {
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::QubitResettingFlagName,
+                                trueValue);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::ClassicalIntsFlagName,
+                                falseValue);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::ClassicalFloatsFlagName,
+                                falseValue);
+      llvmModule->addModuleFlag(
+          llvm::Module::ModFlagBehavior::Error,
+          cudaq::opt::qir0_1::ClassicalFixedPointsFlagName, falseValue);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::UserFunctionsFlagName,
+                                falseValue);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::DynamicFloatArgsFlagName,
+                                falseValue);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::ExternFunctionsFlagName,
+                                falseValue);
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_1::BackwardsBranchingFlagName,
+                                falseValue);
+    } else {
+      // Note: hopefully all QIR versions after 0.1 will start to converge on
+      // using the same sets of flags and flag names.
+      if (supportIntegerComputations) {
+        llvm::Constant *intPrecisionValue =
+            llvm::ConstantDataArray::getString(*llvmContext, "i64", false);
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                  cudaq::opt::qir0_2::IntComputationsFlagName,
+                                  intPrecisionValue);
+      }
+      if (supportFloatComputations) {
+        llvm::Constant *floatPrecisionValue =
+            llvm::ConstantDataArray::getString(*llvmContext, "f64", false);
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                  cudaq::opt::qir0_2::FloatComputationsFlagName,
+                                  floatPrecisionValue);
+      }
+      auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
+          llvm::Type::getIntNTy(*llvmContext, 2), llvm::APInt(2, 0, false));
+      llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                cudaq::opt::qir0_2::BackwardsBranchingFlagName,
+                                backwardsBranchingValue);
+    }
   }
 
   // There are certain function calls that may be produced that we want to drop
