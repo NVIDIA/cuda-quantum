@@ -3,7 +3,8 @@
 // nvq++ teleport.cpp --target qci -o teleport.x
 // ```
 //
-// Make sure to export or otherwise present your user token via the environment, e.g., using export:
+// Make sure to export or otherwise present your user token via the environment,
+// e.g., using export:
 // ```
 // export QCI_AUTH_TOKEN="your token here"
 // ```

@@ -288,13 +288,13 @@ QCI
 .. _qci-backend:
 
 As part of its first phase of integration with CUDA-Q,
-`Quantum Circuits <https://quantumcircuitsinc.com/>`__ offers users the ability to simulate CUDA-Q
+`Quantum Circuits <https://quantumcircuits.com/>`__ offers users the ability to simulate CUDA-Q
 programs using its simulator, AquSim. AquSim is the first simulator that models error detection and
 real-time control of Quantum Circuits' Dual-Rail Cavity Qubit systems, and uses a Monte Carlo
 approach to do so on a shot-by-shot basis.
 
 In this first phase, the supported features include all of the single and two-qubit gates offered by
-CUDA-Q, together with real-time conditional logic enabled by feedforward capability. AquSim is
+CUDA-Q, together with real-time conditional logic enabled by feed-forward capability. AquSim is
 currently wired to support ideal simulations only and noise models will be added in future
 iterations.
 

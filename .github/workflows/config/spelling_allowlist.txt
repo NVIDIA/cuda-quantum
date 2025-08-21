@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+AquSim
 Asynchronous
 BFGS
 Bloch
