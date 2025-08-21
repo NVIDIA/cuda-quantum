@@ -829,6 +829,41 @@ def test_get_channel_with_control(target: str):
             assert channel.parameters[0] == 0.2
 
 
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_disable_noise(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+
+    @cudaq.kernel
+    def kernel1():
+        q = cudaq.qubit()
+        r = cudaq.qubit()
+
+        cudaq.disable_noise()
+        cudaq.apply_noise(cudaq.Depolarization2, 0.3, q, r)
+        mz(q)
+        mz(r)
+
+    counts = cudaq.sample(kernel1, noise_model=noise_model)
+    assert len(counts) == 1
+    print(counts)
+
+    @cudaq.kernel
+    def kernel2():
+        q = cudaq.qubit()
+        r = cudaq.qubit()
+
+        cudaq.disable_noise()
+        cudaq.enable_noise()
+        cudaq.apply_noise(cudaq.Depolarization2, 0.3, q, r)
+        mz(q)
+        mz(r)
+
+    counts = cudaq.sample(kernel2, noise_model=noise_model)
+    assert len(counts) == 4
+    print(counts)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
