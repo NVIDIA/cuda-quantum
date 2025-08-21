@@ -277,7 +277,6 @@ struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
-template <typename M>
 struct DisableNoiseOpRewrite
     : public OpConversionPattern<quake::DisableNoiseOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -291,7 +290,6 @@ struct DisableNoiseOpRewrite
   }
 };
 
-template <typename M>
 struct EnableNoiseOpRewrite : public OpConversionPattern<quake::EnableNoiseOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -1794,8 +1792,7 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
-        ApplyNoiseOpRewrite<Self>, DisableNoiseOpRewrite<Self>,
-        EnableNoiseOpRewrite<Self>,
+        ApplyNoiseOpRewrite<Self>, DisableNoiseOpRewrite, EnableNoiseOpRewrite,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
