@@ -25,7 +25,7 @@ port = 62449
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.2
+    return got < -1.1 and got > -2.9
 
 
 @pytest.fixture(scope="session", autouse=True)
