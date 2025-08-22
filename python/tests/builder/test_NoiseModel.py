@@ -647,7 +647,7 @@ def test_apply_noise_custom():
     cudaq.reset_target()
 
 
-@pytest.mark.parametrize('target', ['stim', 'density-matrix-cpu'])
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
 def test_apply_noise_builtin(target: str):
     cudaq.set_target(target)
 
@@ -862,6 +862,7 @@ def test_disable_noise(target: str):
     counts = cudaq.sample(kernel2, noise_model=noise_model)
     assert len(counts) == 4
     print(counts)
+    cudaq.reset_target()
 
 
 # leave for gdb debugging
