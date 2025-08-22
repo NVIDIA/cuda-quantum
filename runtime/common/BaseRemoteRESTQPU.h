@@ -772,7 +772,7 @@ public:
           return cudaq::getTranslation("qir-adaptive-if");
         else if (qirIntegerExtension)
           return cudaq::getTranslation("qir-adaptive-i");
-        else if (qirIntegerExtension)
+        else if (qirFloatExtension)
           return cudaq::getTranslation("qir-adaptive-f");
         else
           return cudaq::getTranslation("qir-adaptive");
@@ -988,7 +988,15 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      future = executor->execute(codes, isObserve);
+      // Cannot be observe and run at the same time
+      assert(!isObserve || !isRun);
+      const cudaq::details::ExecutionContextType execType =
+          isRun       ? cudaq::details::ExecutionContextType::run
+          : isObserve ? cudaq::details::ExecutionContextType::observe
+                      : cudaq::details::ExecutionContextType::sample;
+
+      future = executor->execute(codes, execType,
+                                 &executionContext->invocationResultBuffer);
     }
 
     // Keep this asynchronous if requested
