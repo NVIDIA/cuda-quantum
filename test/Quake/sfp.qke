@@ -1,0 +1,323 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --stack-frame-prealloc %s | FileCheck %s
+
+func.func @scc_1() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  cf.br ^bb1
+ ^bb3:
+  return
+}
+
+// CHECK-LABEL:   func.func @scc_1() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_2:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+func.func @scc_2() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = cc.alloca i32 
+  cf.br ^bb3
+ ^bb3:
+  return
+}
+
+// CHECK-LABEL:   func.func @scc_2() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_3:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           cf.br ^bb3
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+// This case is an allocation in a loop where every iteration allocates a fresh
+// memory location. It is incorrect to hoist this allocation out of the loop.
+func.func @scc_3() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = cc.alloca i32 
+  cf.br ^bb1
+ ^bb3:
+  return
+}
+
+// CHECK-LABEL:   func.func @scc_3() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_2:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_3:.*]] = cc.alloca i32
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+// This case is an allocation in a loop where every iteration allocates a fresh
+// memory location and also deallocates it at the end of the iteration. It is
+// ok to hoist this allocation out of the loop.
+func.func @scc_4() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  %4 = cc.alloca i32
+  call @llvm.stackrestore(%3) : (!cc.ptr<i8>) -> ()
+  cf.br ^bb1
+ ^bb3:
+  return
+}
+
+// CHECK-LABEL:   func.func @scc_4() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_3:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+func.func @scc_5() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  %5 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  %4 = cc.alloca i32
+  call @llvm.stackrestore(%3) : (!cc.ptr<i8>) -> ()
+  cf.br ^bb1
+ ^bb3:
+  call @llvm.stackrestore(%5) : (!cc.ptr<i8>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @scc_5() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_3:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+func.func @scc_6() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  %5 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  %4 = cc.alloca i32
+  %6 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  call @llvm.stackrestore(%6) : (!cc.ptr<i8>) -> ()
+  call @llvm.stackrestore(%3) : (!cc.ptr<i8>) -> ()
+  cf.br ^bb1
+ ^bb3:
+  call @llvm.stackrestore(%5) : (!cc.ptr<i8>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @scc_6() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_3:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+// This case has an alloca in a loop and allocation is not-constant. In this
+// particular case, we *could* hoist the alloca because the argument to the
+// alloca is a function argument. The algorithm doesn't do that for now.
+func.func @nope_7(%arg : i64) {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  %5 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  %4 = cc.alloca i32[%arg : i64]
+  %6 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  call @llvm.stackrestore(%6) : (!cc.ptr<i8>) -> ()
+  call @llvm.stackrestore(%3) : (!cc.ptr<i8>) -> ()
+  cf.br ^bb1
+ ^bb3:
+  call @llvm.stackrestore(%5) : (!cc.ptr<i8>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @nope_7(
+// CHECK-SAME:                      %[[VAL_0:.*]]: i64) {
+// CHECK:           %[[VAL_1:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_2:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_2]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_3:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_2]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_4:.*]] = call @llvm.stacksave() : () -> !cc.ptr<i8>
+// CHECK:           %[[VAL_5:.*]] = cc.alloca i32{{\[}}%[[VAL_0]] : i64]
+// CHECK:           call @llvm.stackrestore(%[[VAL_4]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+// This case adds more stack space overall, but eliminates the save and
+// restore. It's debatable which is the more preferred option, but we're going
+// with eliminating the save and restore calls for now.
+func.func @nope_8(%arg : i64, %brg : i64) {
+  %7 = call @llvm.stacksave() : () -> !cc.ptr<i8>  
+  %0 = cc.alloca i32[%brg : i64]
+  call @llvm.stackrestore(%7) : (!cc.ptr<i8>) -> ()
+  %1 = call @magnet() : () -> i1
+  %5 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %3 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  %4 = cc.alloca i32[%arg : i64]
+  %6 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  call @llvm.stackrestore(%6) : (!cc.ptr<i8>) -> ()
+  call @llvm.stackrestore(%3) : (!cc.ptr<i8>) -> ()
+  cf.br ^bb1
+ ^bb3:
+  call @llvm.stackrestore(%5) : (!cc.ptr<i8>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @nope_8(
+// CHECK-SAME:                      %[[VAL_0:.*]]: i64,
+// CHECK-SAME:                      %[[VAL_1:.*]]: i64) {
+// CHECK:           %[[VAL_2:.*]] = cc.alloca i32{{\[}}%[[VAL_1]] : i64]
+// CHECK:           %[[VAL_3:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_3]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_4:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_3]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_5:.*]] = call @llvm.stacksave() : () -> !cc.ptr<i8>
+// CHECK:           %[[VAL_6:.*]] = cc.alloca i32{{\[}}%[[VAL_0]] : i64]
+// CHECK:           call @llvm.stackrestore(%[[VAL_5]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+// This case has an alloca in a loop and allocation is loop iteration dependent.
+// In this particular case, we will never be able to hoist the alloca because
+// the argument to the alloca may change with every iteration. Furthermore, we
+// cannot erase the stack save and restore calls because it would change the
+// semantics of the function.
+func.func @nope_9() {
+  %0 = cc.alloca i32
+  %1 = call @magnet() : () -> i1
+  %5 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  cf.cond_br %1, ^bb1, ^bb2
+ ^bb1:
+  %2 = call @magnet() : () -> i1
+  cf.cond_br %1, ^bb2, ^bb3  
+ ^bb2:
+  %7 = call @rando() : () -> i32
+  %3 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  %4 = cc.alloca i32[%7 : i32]
+  %6 = call @llvm.stacksave() : () -> !cc.ptr<i8>
+  call @llvm.stackrestore(%6) : (!cc.ptr<i8>) -> ()
+  call @llvm.stackrestore(%3) : (!cc.ptr<i8>) -> ()
+  cf.br ^bb1
+ ^bb3:
+  call @llvm.stackrestore(%5) : (!cc.ptr<i8>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @nope_9() {
+// CHECK:           %[[VAL_0:.*]] = cc.alloca i32
+// CHECK:           %[[VAL_1:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_2:.*]] = call @magnet() : () -> i1
+// CHECK:           cf.cond_br %[[VAL_1]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_3:.*]] = call @rando() : () -> i32
+// CHECK:           %[[VAL_4:.*]] = call @llvm.stacksave() : () -> !cc.ptr<i8>
+// CHECK:           %[[VAL_5:.*]] = cc.alloca i32{{\[}}%[[VAL_3]] : i32]
+// CHECK:           call @llvm.stackrestore(%[[VAL_4]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb3:
+// CHECK:           return
+// CHECK:         }
+
+func.func private @llvm.stacksave() -> !cc.ptr<i8>
+func.func private @llvm.stackrestore(!cc.ptr<i8>)
+func.func private @rando() -> i32
+func.func private @magnet() -> i1
