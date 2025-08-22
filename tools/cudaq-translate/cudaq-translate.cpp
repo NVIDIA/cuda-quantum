@@ -65,6 +65,13 @@ static llvm::cl::opt<std::string> convertTo(
                          "\"qir-base\", \"openqasm2\", \"iqm\"]"),
     llvm::cl::init("qir"));
 
+static llvm::cl::opt<bool> qirVersionUnderDevelopment(
+    "qir-version-under-development",
+    llvm::cl::desc("Specify if the under development version of the "
+                   "translation output to be created. [Default: false]"),
+    llvm::cl::value_desc("qir-version-under-development"),
+    llvm::cl::init(false));
+
 static llvm::cl::opt<bool> emitLLVM(
     "emit-llvm",
     llvm::cl::desc("Emit LLVM IR as the output. If set to false, the "
@@ -157,17 +164,19 @@ int main(int argc, char **argv) {
       std::exit(1);
     }
   };
-
   llvm::StringSwitch<std::function<void()>>(convertTo)
       .Case("qir",
             [&]() {
               cudaq::opt::addAggressiveEarlyInlining(pm);
-              cudaq::opt::addPipelineConvertToQIR(pm);
+              cudaq::opt::addPipelineConvertToQIR(
+                  pm, qirVersionUnderDevelopment.getValue());
             })
       .Cases("qir-adaptive", "qir-base",
              [&]() {
                cudaq::opt::addAggressiveEarlyInlining(pm);
-               cudaq::opt::addPipelineConvertToQIR(pm, convertTo.getValue());
+               cudaq::opt::addPipelineConvertToQIR(
+                   pm, convertTo.getValue(),
+                   qirVersionUnderDevelopment.getValue());
              })
       .Case("openqasm2",
             [&]() {

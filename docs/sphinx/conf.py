@@ -65,6 +65,8 @@ extensions = [
 
 html_static_path = ['_static']
 html_js_files = ['filter.js']
+# Disable source links in the HTML output.
+html_show_sourcelink = False
 
 # Enable dynamic filtering in sphinx-needs
 needs_include_needs = True  # Enable needs processing

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"

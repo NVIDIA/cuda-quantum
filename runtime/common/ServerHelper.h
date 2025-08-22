@@ -13,6 +13,7 @@
 #include "ExecutionContext.h"
 #include "Future.h"
 #include "Registry.h"
+#include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include <filesystem>
 
@@ -45,6 +46,9 @@ using ServerMessage = nlohmann::json;
 
 /// @brief Each REST interaction will require headers
 using RestHeaders = std::map<std::string, std::string>;
+
+/// @brief Cookies are also a map of key-values
+using RestCookies = std::map<std::string, std::string>;
 
 // A Server Job Payload consists of a job post URL path, the headers,
 // and a vector of related Job JSON messages.
@@ -84,6 +88,9 @@ protected:
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
+  /// @brief  Information about the runtime target managing this server helper.
+  RuntimeTarget runtimeTarget;
+
 public:
   ServerHelper() = default;
   virtual ~ServerHelper() = default;
@@ -102,6 +109,10 @@ public:
   /// @brief Return the POST/GET required headers.
   /// @return
   virtual RestHeaders getHeaders() = 0;
+
+  /// @brief Return the cookies required for the request.
+  // By default, no cookies.
+  virtual RestCookies getCookies() { return {}; }
 
   /// @brief Given a vector of compiled quantum codes for submission
   /// create and return the Job payload that is compatible with this server.
@@ -140,5 +151,8 @@ public:
   /// @brief Adjust the compiler pass pipeline (if desired)
   virtual void updatePassPipeline(const std::filesystem::path &platformPath,
                                   std::string &passPipeline) {}
+
+  /// @brief Set the runtime target information
+  void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
 };
 } // namespace cudaq

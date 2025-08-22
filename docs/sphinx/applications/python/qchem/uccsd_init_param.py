@@ -186,7 +186,7 @@ def get_parameters(xyz:str, spin:int, charge: int, basis:str, symmetry:bool=Fals
             if verbose:
                 print('[pyscf] Total number of alpha molecular orbitals = ',
                       norb)
-            norb = myhf.mo_coeff[1].shape[1]
+            norb = myhf.mo_coeff[0].shape[0]
             if verbose:
                 print('[pyscf] Total number of beta molecular orbitals = ',
                       norb)

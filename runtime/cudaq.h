@@ -328,3 +328,5 @@ void finalize();
 #include "cudaq/algorithms/observe.h"
 // Users should get get_state by default
 #include "cudaq/algorithms/get_state.h"
+// Users should get device.h by default
+#include "cudaq/driver/device.h"

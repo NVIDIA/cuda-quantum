@@ -209,6 +209,10 @@ struct MeasureToRegisterCallConv : public OpRewritePattern<LLVM::CallOp> {
 struct LoadMeasureResult : public OpRewritePattern<LLVM::LoadOp> {
   using OpRewritePattern::OpRewritePattern;
 
+  explicit LoadMeasureResult(MLIRContext *ctx, bool qirVersionUnderDevelopment)
+      : OpRewritePattern(ctx),
+        qirVersionUnderDevelopment(qirVersionUnderDevelopment) {}
+
   LogicalResult matchAndRewrite(LLVM::LoadOp load,
                                 PatternRewriter &rewriter) const override {
     auto *ctx = rewriter.getContext();
@@ -230,9 +234,13 @@ struct LoadMeasureResult : public OpRewritePattern<LLVM::LoadOp> {
       return failure();
 
     rewriter.replaceOp(load, createReadResultCall(rewriter, load.getLoc(),
-                                                  inttoptr.getResult()));
+                                                  inttoptr.getResult(),
+                                                  qirVersionUnderDevelopment));
     return success();
   }
+
+private:
+  bool qirVersionUnderDevelopment;
 };
 
 } // namespace

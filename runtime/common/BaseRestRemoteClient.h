@@ -118,12 +118,12 @@ public:
     return cudaq::RestRequest::REST_PAYLOAD_VERSION;
   }
 
-  std::string constructKernelPayload(
-      mlir::MLIRContext &mlirContext, const std::string &name,
-      void (*kernelFunc)(void *), const void *args, std::uint64_t voidStarSize,
-      std::size_t startingArgIdx, const std::vector<void *> *rawArgs) {
-    enablePrintMLIREachPass =
-        getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
+  virtual mlir::ModuleOp
+  lowerKernel(mlir::MLIRContext &mlirContext, const std::string &name,
+              const void *args, std::uint64_t argsSize,
+              const std::size_t startingArgIdx,
+              const std::vector<void *> *rawArgs) override {
+    enablePrintMLIREachPass = getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
@@ -226,7 +226,22 @@ public:
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
 
-    opt::addPipelineConvertToQIR(pm);
+    return moduleOp;
+  }
+
+  std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
+                                     const std::string &name, const void *args,
+                                     std::uint64_t voidStarSize,
+                                     std::size_t startingArgIdx,
+                                     const std::vector<void *> *rawArgs) {
+    bool qirVersionUnderDevelopment =
+        getEnvBool("CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT", false);
+
+    auto moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
+                                startingArgIdx, rawArgs);
+
+    mlir::PassManager pm(&mlirContext);
+    opt::addPipelineConvertToQIR(pm, qirVersionUnderDevelopment);
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
@@ -260,7 +275,7 @@ public:
     request.passes = serverPasses;
     request.format = cudaq::CodeFormat::MLIR;
     request.code =
-        constructKernelPayload(mlirContext, kernelName, /*kernelFunc=*/nullptr,
+        constructKernelPayload(mlirContext, kernelName,
                                /*kernelArgs=*/kernelArgs,
                                /*argsSize=*/0, /*startingArgIdx=*/1, rawArgs);
     request.simulator = backendSimName;
@@ -316,11 +331,11 @@ public:
 
       stateIrPayload1.entryPoint = kernelName1;
       stateIrPayload1.ir =
-          constructKernelPayload(mlirContext, kernelName1, nullptr, nullptr, 0,
+          constructKernelPayload(mlirContext, kernelName1, nullptr, 0,
                                  /*startingArgIdx=*/0, &args1);
       stateIrPayload2.entryPoint = kernelName2;
       stateIrPayload2.ir =
-          constructKernelPayload(mlirContext, kernelName2, nullptr, nullptr, 0,
+          constructKernelPayload(mlirContext, kernelName2, nullptr, 0,
                                  /*startingArgIdx=*/0, &args2);
       // First kernel of the overlap calculation
       request.code = stateIrPayload1.ir;
@@ -328,9 +343,9 @@ public:
       // Second kernel of the overlap calculation
       request.overlapKernel = stateIrPayload2;
     } else if (serializedCodeContext == nullptr) {
-      request.code = constructKernelPayload(mlirContext, kernelName, kernelFunc,
-                                            kernelArgs, argsSize,
-                                            /*startingArgIdx=*/0, rawArgs);
+      request.code =
+          constructKernelPayload(mlirContext, kernelName, kernelArgs, argsSize,
+                                 /*startingArgIdx=*/0, rawArgs);
     }
     request.simulator = backendSimName;
     // Remote server seed

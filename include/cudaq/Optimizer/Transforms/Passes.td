@@ -230,6 +230,47 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   }];
 }
 
+def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
+  let summary = "Performs preprocessing to optimize for resource counter.";
+  let description = [{
+    This pass performs preprocessing to optimize the code for the resource counter
+    by removing as many invariant gates as possible during compilation, with the aim
+    of reducing the program size for further compilation, and speeding up resource
+    counting by the simulator at runtime.
+
+    For example, in the following program:
+
+    ```c++
+      cudaq::qarray<10> q;
+      h(q[0]);
+      for (size_t i = 0; i < 10; i++) {
+        y(q[i]);
+        if (mz(q[i]))
+          x(q[i]);
+      }
+    ```
+
+    The initial `h(q[0])` will always be run once, so we can pre count it and remove it.
+    Similarly, it is trivial to see that the loop will run 10 times, so we can pre count
+    `y(q[i])` ten times as well. However, because `x(q[i])` is gated by `mz(q[i])`, it is
+    not invariant, so it will remain and be counted during simulation.
+
+    Currently, the detection of "invariance" is purposefully dumb.
+
+    This preprocessing path may interfere with detecting downstream optimizations, as
+    preprocessed gates are counted and removed early in the pipeline.
+  }];
+
+  let options = [
+    Option<"countGate", "count-gate", "std::function<void(std::string,size_t,size_t)>",
+           /*default=*/"[](std::string str,size_t nControls, size_t count){}",
+           "Closure that will handle gate counts">,
+    Option<"dumpPreprocessed", "dump-preprocessed", "bool",
+           /*default=*/"false",
+           "Dump preprocessed gates instead of counting them (useful for testing)">,
+  ];
+}
+
 def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   let summary = "Move measurements as late as possible";
 
@@ -523,6 +564,13 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
                    be inlined by the JIT compiler, so this codegen kind does not
                    support any dynamic parameters.
     ```
+
+    The `generate-run-stack` option must be used whenever `cudaq::run` is being
+    used to launch kernels. This flag will enable the generation of a second
+    launch stack for entry-point kernels that duplicates the functionality of
+    the entry-point kernel's body while omitting its return value. While this
+    clearly changes the semantics of the kernel call, some transport layers
+    require that return values be dropped on the floor.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -533,7 +581,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
     Option<"codegenKind", "codegen", "std::size_t", /*default=*/"0",
-      "Set the kind of code to generate for the launches.">
+      "Set the kind of code to generate for the launches.">,
+    Option<"genRunStack", "generate-run-stack", "bool", /*default=*/"false",
+      "Generate a cudaq::run stack for the entry-point kernels.">,
+    Option<"deferToJIT", "deferred", "bool", /*default=*/"false",
+      "Defer generating kernel execution until JIT time.">
   ];
 }
 
