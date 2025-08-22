@@ -168,7 +168,6 @@ public:
     // It's a match. We have a chain of insert_values back to a undef. Let's
     // replace this store.
     Value dest = storeOp.getPtrvalue();
-    Type baseTy = dest.getType();
     for (auto insVal : stack) {
       // Each insert_value is converted to a compute_ptr and store.
       auto v = insVal.getValue();
@@ -176,8 +175,9 @@ public:
       for (std::int32_t off : insVal.getPosition())
         args.push_back(off);
       auto loc = insVal.getLoc();
+      auto vTy = cudaq::cc::PointerType::get(v.getType());
       auto toAddr =
-          rewriter.create<cudaq::cc::ComputePtrOp>(loc, baseTy, dest, args);
+          rewriter.create<cudaq::cc::ComputePtrOp>(loc, vTy, dest, args);
       rewriter.create<cudaq::cc::StoreOp>(loc, v, toAddr);
     }
     LLVM_DEBUG(llvm::dbgs() << "updated: " << storeOp << '\n');
