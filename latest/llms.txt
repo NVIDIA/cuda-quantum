@@ -1,6 +1,6 @@
 # NVIDIA CUDA-Q
 
-> CUDA-Q streamlines hybrid application development and promotes productivity and scalability in quantum computing. It offers a unified programming model designed for a hybrid setting—that is, CPUs, GPUs, and QPUs working together. CUDA-Q contains support for programming in Python and in C++.
+> CUDA-Q streamlines hybrid application development and promotes productivity and scalability in quantum computing. It offers a hybrid programming model designed for a setting where CPUs, GPUs, and QPUs work together. CUDA-Q contains support for programming in Python and in C++.
 
 ## Docs
 
