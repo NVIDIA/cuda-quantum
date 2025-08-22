@@ -31,9 +31,9 @@ using namespace mlir;
    cases where an allocation cannot be correctly moved or an llvm.stacksave,
    llvm.stackrestore call pair cannot be erased, this pass should ABSOLUTELY,
    POSITIVELY NEVER EVER do so. If a particular transport layer does not support
-   certain valid operations, it is up to the conformity and/or verifier of that
-   particular transport layer (not the core compiler) to decide what action(s)
-   to take.
+   certain valid operations, it is up to the conformity and/or verifier tools of
+   that particular transport layer (not the core compiler) to decide what
+   action(s) to take.
  */
 
 static bool hasHighLevelControlFlow(func::FuncOp func) {

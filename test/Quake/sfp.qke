@@ -191,7 +191,7 @@ func.func @scc_6() {
 // CHECK:           return
 // CHECK:         }
 
-// This case has an alloca in a loop and allocation is not-constant. In this
+// This case has an alloca in a loop and allocation is non-constant. In this
 // particular case, we *could* hoist the alloca because the argument to the
 // alloca is a function argument. The algorithm doesn't do that for now.
 func.func @nope_7(%arg : i64) {
