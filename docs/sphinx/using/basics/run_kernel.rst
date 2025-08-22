@@ -113,7 +113,7 @@ is available, for example, by choosing the target `nvidia-mqpu`:
 .. note::
 
   This kind of parallelization is most effective
-  if you actually have multiple QPU or CPU available. Otherwise, the 
+  if you actually have multiple QPU or GPU available. Otherwise, the 
   sampling will still have to execute sequentially due to resource constraints. 
 
 More information about parallelizing execution can be found at :ref:`mqpu-platform`  page.
