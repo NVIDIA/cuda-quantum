@@ -193,8 +193,8 @@ The following code illustrates how to run kernels on Quantinuum's backends.
 
 .. _quantum-circuits-examples:
 
-Quantum Circuits
-==================================
+Quantum Circuits, Inc.
+========================
 
 The following code illustrates how to run kernels on Quantum Circuits' backends.
 

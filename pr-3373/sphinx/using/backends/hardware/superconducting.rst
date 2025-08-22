@@ -282,8 +282,8 @@ Submitting
 To see a complete example, take a look at :ref:`OQC examples <oqc-examples>`.
 
 
-QCI
-++++
+Quantum Circuits, Inc.
++++++++++++++++++++++++
 
 .. _qci-backend:
 
@@ -337,7 +337,7 @@ named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program.
 .. tab:: C++
 
         When executing programs in C++, they must first be compiled using the
-        CUDA-Q nvq++ compiler, and then submitted to run AquSim.
+        CUDA-Q nvq++ compiler, and then submitted to run on AquSim.
 
         Note that your token is fetched from your environment at run time, not at compile time.
 
