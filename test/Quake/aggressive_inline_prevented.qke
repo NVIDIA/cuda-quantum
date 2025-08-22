@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --aggressive-early-inlining %s | FileCheck %s
+// RUN: cudaq-opt --aggressive-inlining %s | FileCheck %s
 
 // The purpose of this regression test is to make sure the pipeline
 // doesn't throw an error on this input.
