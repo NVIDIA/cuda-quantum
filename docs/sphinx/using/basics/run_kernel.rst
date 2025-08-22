@@ -113,28 +113,28 @@ is available, for example, by choosing the target `nvidia-mqpu`:
 .. note::
 
   This kind of parallelization is most effective
-  if you actually have multiple QPU or GPU available. Otherwise, the 
+  if you actually have multiple QPUs or GPUs available. Otherwise, the 
   sampling will still have to execute sequentially due to resource constraints. 
 
-More information about parallelizing execution can be found at :ref:`mqpu-platform`  page.
+More information about parallelizing execution can be found on the :ref:`mqpu-platform`  page.
 
 Run
 +++++++++
 
 The `run` method executes a quantum kernel multiple times and returns each individual result. Unlike `sample`, 
-which collects measurement statistics as counts, `run` preserves each individual return value from every 
-execution. This is useful when you need to analyze the distribution of returned values rather than just 
+which collects measurement statistics as counts, `run` preserves each individual return value from each 
+execution. This is useful when you need to analyze the distribution of returned values which may not be possible from just 
 aggregated measurement counts. Additionally, the `run` method also supports returning various types of values 
 from the quantum kernel, including scalar types (bool, int, float and their variants) and user-defined data structures.
 
 .. tab:: Python
 
-  The ``cudaq.run`` method takes a kernel and its arguments as inputs, and returns a list containing 
+  The ``cudaq.run`` method takes a kernel and its arguments as inputs and returns a list containing 
   the result values from each execution. The kernel must return a non-void value.
 
 .. tab:: C++
 
-  The ``cudaq::run`` method takes a kernel and its arguments as inputs, and returns a `std::vector` containing
+  The ``cudaq::run`` method takes a kernel and its arguments as inputs and returns a `std::vector` containing
   the result values from each execution. The kernel must return a non-void value.
 
 Below is an example of a quantum kernel that creates a GHZ state, measures all qubits, and returns the total 
@@ -231,7 +231,7 @@ The observe function allows us to calculate expectation values for a defined qua
 
 Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the qubit zero. 
 This is followed by the construction of a kernel with a single qubit in an equal superposition. 
-The Hamiltonian is printed to confirm it has been constructed properly.
+The Hamiltonian is printed to confirm that it has been constructed properly.
 
 .. tab:: Python
 
@@ -321,7 +321,7 @@ all of the available targets and ways to accelerate kernel execution, visit the
 
   To compare the performance, we can create a simple timing script that isolates just the call
   to `cudaq::sample`. We are still using the same GHZ kernel as earlier, but the following
-  modification made to the main function:
+  modification is made to the main function:
 
   .. literalinclude:: ../../snippets/cpp/using/time.cpp
     :language: cpp
