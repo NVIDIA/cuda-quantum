@@ -4,26 +4,26 @@
 
 ## Docs
 
-- [Quick Start](https://nvidia.github.io/cuda-quantum/latest/using/quick_start.md)
+- [Quick Start](latest/using/quick_start.md)
 
 ## API
 
-- [API Reference](https://nvidia.github.io/cuda-quantum/latest/api/api.md)
+- [API Reference](latest/api/api.md)
 
 ## Examples
 
-- [Basics](https://nvidia.github.io/cuda-quantum/latest/using/basics/basics.md)
-- [Examples](https://nvidia.github.io/cuda-quantum/latest/using/examples/examples.md)
-- [Applications](https://nvidia.github.io/cuda-quantum/latest/using/applications.md)
-- [Backends](https://nvidia.github.io/cuda-quantum/latest/using/backends/backends.md)
-- [Dynamics](https://nvidia.github.io/cuda-quantum/latest/using/dynamics.md)
-- [CUDA-QX](https://nvidia.github.io/cuda-quantum/latest/using/cudaqx/cudaqx.md)
-- [Release Notes](https://nvidia.github.io/cuda-quantum/latest/releases.md)
+- [Basics](latest/using/basics/basics.md)
+- [Examples](latest/using/examples/examples.md)
+- [Applications](latest/using/applications.md)
+- [Backends](latest/using/backends/backends.md)
+- [Dynamics](latest/using/dynamics.md)
+- [CUDA-QX](latest/using/cudaqx/cudaqx.md)
+- [Release Notes](latest/releases.md)
 
 ## Optional
 
-- [Installation](https://nvidia.github.io/cuda-quantum/latest/using/install/install.md)
-- [Integration](https://nvidia.github.io/cuda-quantum/latest/using/integration/integration.md)
-- [Extending](https://nvidia.github.io/cuda-quantum/latest/using/extending/extending.md)
-- [Specifications](https://nvidia.github.io/cuda-quantum/latest/specification/index.md)
-- [llms-full.txt](https://nvidia.github.io/cuda-quantum/latest/llms-full.txt): Full concatenated content of this documentation
+- [Installation](latest/using/install/install.md)
+- [Integration](latest/using/integration/integration.md)
+- [Extending](latest/using/extending/extending.md)
+- [Specifications](latest/specification/index.md)
+- [llms-full.txt](latest/llms-full.txt): Full concatenated content of this documentation
