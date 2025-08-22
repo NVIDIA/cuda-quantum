@@ -231,6 +231,10 @@ public:
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
 
+    if (failed(pm.run(moduleOp)))
+      throw std::runtime_error(
+          "Remote rest platform: applying IR passes failed.");
+
     return moduleOp;
   }
 

@@ -6,10 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target=remote-mqpu %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck .
+// RUN: nvq++ --target=remote-mqpu %s -o %t && CUDAQ_LOG_LEVEL=info %t
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
+#include <cudaq/algorithms/resource_estimation.h>
 #include <random>
 
 #define ASSERT_NEAR(x,y,tolerance) assert(abs(x-y) < tolerance)
@@ -41,17 +42,15 @@ void checkSimple() {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(20);
   auto state1 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(1.000000, 1)
-  // CHECK: (apply) rz(2.000000, 2)
-  // CHECK: (apply) rz(3.000000, 0)
-  // CHECK: (apply) rz(4.000000, 1)
+  auto counts1 = cudaq::estimate_resources(kernel);
+  assert(counts1.count("rz") == 4);
   // Now run with phase folding
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(20);
   auto state2 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(2.000000, 2)
-  // CHECK: (apply) rz(3.000000, 0)
-  // CHECK: (apply) rz(5.000000, 1)
+  auto counts2 = cudaq::estimate_resources(kernel);
+  // Make sure optimization is actually performed
+  assert(counts2.count("rz") == 3);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
@@ -91,17 +90,14 @@ void checkSubkernel() {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(30);
   auto state1 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(2.000000, 2)
-  // CHECK: (apply) rz(1.000000, 1)
-  // CHECK: (apply) rz(3.000000, 0)
-  // CHECK: (apply) rz(4.000000, 1)
+  auto counts1 = cudaq::estimate_resources(kernel);
+  assert(counts1.count("rz") == 4);
   // With phase folding
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(30);
   auto state2 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(2.000000, 2)
-  // CHECK: (apply) rz(3.000000, 0)
-  // CHECK: (apply) rz(5.000000, 1)
+  auto counts2 = cudaq::estimate_resources(kernel);
+  assert(counts2.count("rz") == 3);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
@@ -130,15 +126,14 @@ void checkClassical1() {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(40);
   auto state1 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(1.000000, 1)
-  // CHECK: (apply) rz(1.000000, 0)
-  // CHECK: (apply) rz(5.000000, 1)
+  auto counts1 = cudaq::estimate_resources(kernel);
+  assert(counts1.count("rz") == 3);
   // With phase folding
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(40);
   auto state2 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(1.000000, 0)
-  // CHECK: (apply) rz(6.000000, 1)
+  auto counts2 = cudaq::estimate_resources(kernel);
+  assert(counts2.count("rz") == 2);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
@@ -164,21 +159,14 @@ void checkClassical2() {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(50);
   auto state1 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
-  // CHECK: (apply) rz(2.000000, 0)
+  auto counts1 = cudaq::estimate_resources(kernel);
+  assert(counts1.count("rz") == 10);
   // With phase folding
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(50);
   auto state2 = cudaq::get_state(kernel);
-  // CHECK: (apply) rz(20.000000, 0)
+  auto counts2 = cudaq::estimate_resources(kernel);
+  assert(counts2.count("rz") == 1);
 
   assert(state1.get_num_qubits() == state2.get_num_qubits());
   auto result = state1.overlap(state2);
