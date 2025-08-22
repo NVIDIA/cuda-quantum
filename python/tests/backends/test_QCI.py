@@ -20,7 +20,7 @@ except:
     print("Mock qpu not available, skipping QCI tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
-# Define the port for the mock server
+# Define the port for the mock server 
 port = 62449
 
 
