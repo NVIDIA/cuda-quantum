@@ -1,15 +1,19 @@
 CUDA-Q Applications
 ====================
 
+This page contains a number of different applications implemented using CUDA-Q. All notebooks can be found `here. <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/applications/python>`_
+
+
 .. when adding applications
 .. 1. Add notebook to the hidden TOC list directly below
 .. 2. Add an html block along with any tags
 .. 3. Add a preview image in the _static folder
 
+.. |:spellcheck-disable:| replace:: \
+
 .. toctree::
    :maxdepth: 1
    :hidden:
-
 
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
@@ -39,7 +43,9 @@ CUDA-Q Applications
    /applications/python/quantum_pagerank
    /applications/python/uccsd_wf_ansatz
    /applications/python/mps_encoding
+   /applications/python/qm_mm_pe
 
+.. |:spellcheck-enable:| replace:: \
 
 .. raw:: html
 
@@ -298,6 +304,14 @@ CUDA-Q Applications
             Learn how to approximately prepare quantum states via MPS using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noisless">
+        <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
+        <div class="notebook-content">
+            Learn how to implement QM/MM with PE framework using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
     </div>
 
     <script>

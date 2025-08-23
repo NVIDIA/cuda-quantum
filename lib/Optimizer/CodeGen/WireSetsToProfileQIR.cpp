@@ -48,6 +48,8 @@
      - using value semantics and wire_set globals
      - decomposed into single control (at most) gate form
      - negated controls must have been erased
+
+   This pass \e only supports QIR version 0.1.
  */
 
 namespace cudaq::opt {
@@ -370,7 +372,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         loc, std::nullopt, cudaq::opt::QIRRecordOutput,
         ValueRange{adaptor.getMeasurement(), nameValCStr});
     if (isAdaptiveProfile) {
-      std::string funcName = cudaq::opt::QIRReadResultBody;
+      std::string funcName = toQisBodyName(std::string("read_result"));
       rewriter.replaceOpWithNewOp<func::CallOp>(
           disc, rewriter.getI1Type(), funcName,
           ValueRange{adaptor.getMeasurement()});
@@ -412,7 +414,7 @@ struct WireSetToProfileQIRPass
                             : op.getIdentity();
     });
     if (highestIdentity)
-      op->setAttr(cudaq::opt::QIRRequiredQubitsAttrName,
+      op->setAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName,
                   builder.getStringAttr(std::to_string(*highestIdentity + 1)));
 
     RewritePatternSet patterns(context);
@@ -451,7 +453,7 @@ struct WireSetToProfileQIRPass
     }
 
     if (highestIdentity)
-      op->setAttr(cudaq::opt::QIRRequiredResultsAttrName,
+      op->setAttr(cudaq::opt::qir0_1::RequiredResultsAttrName,
                   builder.getStringAttr(std::to_string(resultCounter)));
 
     LLVM_DEBUG(llvm::dbgs() << "Module after:\n"; op.dump());
@@ -543,7 +545,7 @@ struct WireSetToProfileQIRPrepPass
     addBodyDecl("mz", measTy);
     auto readResTy = FunctionType::get(ctx, TypeRange{resTy},
                                        TypeRange{builder.getI1Type()});
-    createNewDecl(cudaq::opt::QIRReadResultBody, readResTy);
+    createNewDecl(cudaq::opt::qir0_1::ReadResultBody, readResTy);
 
     auto i8PtrTy = cudaq::cc::PointerType::get(builder.getI8Type());
     auto recordTy =
@@ -607,7 +609,8 @@ struct WireSetToProfileQIRPostPass
                 callableRegion->getParentOfType<mlir::func::FuncOp>();
 
             if (auto reqQubits =
-                    parentFuncOp->getAttr(cudaq::opt::QIRRequiredQubitsAttrName)
+                    parentFuncOp
+                        ->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName)
                         .dyn_cast_or_null<StringAttr>()) {
               std::uint32_t thisFuncReqQubits = 0;
               if (!reqQubits.strref().getAsInteger(10, thisFuncReqQubits)) {
@@ -621,7 +624,7 @@ struct WireSetToProfileQIRPostPass
 
             if (auto reqResults =
                     parentFuncOp
-                        ->getAttr(cudaq::opt::QIRRequiredResultsAttrName)
+                        ->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName)
                         .dyn_cast_or_null<StringAttr>()) {
               std::uint32_t thisFuncReqResults = 0;
               if (!reqResults.strref().getAsInteger(10, thisFuncReqResults)) {
@@ -636,11 +639,11 @@ struct WireSetToProfileQIRPostPass
           // Apply the final attribute on the entrypoint function
           if (highestIdentity)
             funcOp->setAttr(
-                cudaq::opt::QIRRequiredQubitsAttrName,
+                cudaq::opt::qir0_1::RequiredQubitsAttrName,
                 builder.getStringAttr(std::to_string(*highestIdentity + 1)));
           if (highestResult)
             funcOp->setAttr(
-                cudaq::opt::QIRRequiredResultsAttrName,
+                cudaq::opt::qir0_1::RequiredResultsAttrName,
                 builder.getStringAttr(std::to_string(*highestResult + 1)));
         }
       }

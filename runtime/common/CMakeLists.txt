@@ -12,14 +12,17 @@ set(LIBRARY_NAME cudaq-common)
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
   CustomOp.cpp
+  DeviceCodeRegistry.cpp
   Environment.cpp
   Executor.cpp
+  ExtraPayloadProvider.cpp
   Future.cpp
   Logger.cpp
-  SampleResult.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
+  RuntimeTarget.cpp
+  SampleResult.cpp
   ServerHelper.cpp
   Trace.cpp
 )

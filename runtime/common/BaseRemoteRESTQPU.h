@@ -12,8 +12,10 @@
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
+#include "common/ExtraPayloadProvider.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq.h"
@@ -29,11 +31,12 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Plugin.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "nvqpp_config.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -60,11 +63,13 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
+cudaq::Resources *getResourceCounts();
+bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
 namespace cudaq {
 
-class BaseRemoteRESTQPU : public cudaq::QPU {
+class BaseRemoteRESTQPU : public QPU {
 protected:
   /// The number of shots
   std::optional<int> nShots;
@@ -205,6 +210,18 @@ public:
     if (!context)
       return;
 
+    // This check ensures that a kernel is not called whilst actively being
+    // used for resource counting (implying that the kernel was somehow
+    // invoked from inside the choice function). This check may want to
+    // be expanded more broadly to ensure that the execution context is
+    // always fully reset, implying the end of the invocation, being being
+    // set again, signaling a new invocation.
+    if (nvqir::isUsingResourceCounterSimulator() &&
+        context->name != "resource-count")
+      throw std::runtime_error(
+          "Illegal use of resource counter simulator! (Did you attempt to run "
+          "a kernel inside of a choice function?)");
+
     cudaq::info("Remote Rest QPU setting execution context to {}",
                 context->name);
 
@@ -297,11 +314,11 @@ public:
       if (!config.BackendConfig->CodegenEmission.empty()) {
         cudaq::info("Set codegen translation: {}",
                     config.BackendConfig->CodegenEmission);
-        auto [codeGenName, codeGenOptions] = parseCodeGenTranslationString(
-            config.BackendConfig->CodegenEmission);
-        codegenTranslation = codeGenName;
-        if (codegenTranslation == "qir-adaptive") {
-          for (const auto &option : codeGenOptions) {
+        codegenTranslation = config.BackendConfig->CodegenEmission;
+        auto [codeGenName, codeGenVersion, codeGenOptions] =
+            parseCodeGenTranslationString(codegenTranslation);
+        if (codeGenName == "qir-adaptive") {
+          for (auto option : codeGenOptions) {
             if (option == "int_computations") {
               cudaq::info("Enable int_computations extension");
               qirIntegerExtension = true;
@@ -311,7 +328,7 @@ public:
             } else {
               throw std::runtime_error(
                   fmt::format("Invalid option '{}' for '{}' codegen.", option,
-                              codegenTranslation));
+                              codeGenName));
             }
           }
         } else {
@@ -319,7 +336,7 @@ public:
             throw std::runtime_error(fmt::format(
                 "Invalid codegen-emission '{}'. Extra options are not "
                 "supported for '{}' codegen.",
-                config.BackendConfig->CodegenEmission, codegenTranslation));
+                config.BackendConfig->CodegenEmission, codeGenName));
         }
       }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
@@ -329,7 +346,7 @@ public:
       }
     }
     std::string allowEarlyExitSetting =
-        (codegenTranslation == "qir-adaptive") ? "1" : "0";
+        (codegenTranslation.starts_with("qir-adaptive")) ? "1" : "0";
 
     passPipelineConfig =
         std::string(
@@ -357,8 +374,9 @@ public:
     // Create the ServerHelper for this QPU and give it the backend config
     serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
     if (!serverHelper) {
-      throw std::runtime_error("ServerHelper not found for target");
+      throw std::runtime_error("ServerHelper not found for target: " + qpuName);
     }
+
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
     cudaq::info("Retrieving executor with name {}", qpuName);
@@ -370,6 +388,14 @@ public:
 
     // Give the server helper to the executor
     executor->setServerHelper(serverHelper.get());
+
+    // Construct the runtime target
+    RuntimeTarget runtimeTarget;
+    runtimeTarget.config = config;
+    runtimeTarget.name = mutableBackend;
+    runtimeTarget.description = config.Description;
+    runtimeTarget.runtimeConfig = backendConfig;
+    serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
   /// @brief Conditionally form an output_names JSON object if this was for QIR
@@ -444,6 +470,87 @@ public:
     auto func = m_module.lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
+    llvm::SmallVector<mlir::func::FuncOp> newFuncOpsWithDefinitions;
+    llvm::SmallSet<std::string, 4> deviceCallCallees;
+    // For every declaration without a definition, we need to try to find the
+    // function in the Quake registry and copy the functions into this module.
+    m_module.walk([&](mlir::func::FuncOp funcOp) {
+      if (!funcOp.isDeclaration()) {
+        // Skipping function because it already has a definition.
+        return mlir::WalkResult::advance();
+      }
+      // Definition doesn't exist, so we need to find it in the Quake registry.
+      mlir::StringRef fullFuncName = funcOp.getName();
+      mlir::StringRef kernelName = [fullFuncName]() {
+        mlir::StringRef retVal = fullFuncName;
+        // TODO - clean this up to not have to do this. Considering the module's
+        // map, or cudaq::details::getKernelName(). But make sure it works for
+        // standard C++ functions.
+
+        // Only get the portion before the first ".".
+        if (auto ix = fullFuncName.find("."); ix != mlir::StringRef::npos)
+          retVal = fullFuncName.substr(0, ix);
+        // Also strip out __nvqpp_mlirgen__function_ from the beginning of the
+        // function name.
+        if (retVal.starts_with(cudaq::runtime::cudaqGenPrefixName)) {
+          retVal = retVal.substr(cudaq::runtime::cudaqGenPrefixLength);
+        }
+        return retVal;
+      }();
+      std::string quakeCode =
+          kernelName.empty()
+              ? ""
+              : cudaq::get_quake_by_name(kernelName.str(),
+                                         /*throwException=*/false);
+      if (quakeCode.empty()) {
+        // Skipping function because it does not have a quake code.
+        return mlir::WalkResult::advance();
+      }
+      auto tmp_module =
+          parseSourceString<mlir::ModuleOp>(quakeCode, contextPtr);
+      auto tmpFuncOpWithDefinition =
+          tmp_module->lookupSymbol<mlir::func::FuncOp>(fullFuncName);
+      auto newNameAttr = mlir::StringAttr::get(m_module.getContext(),
+                                               fullFuncName.str() + ".stitch");
+      auto clonedFunc = tmpFuncOpWithDefinition.clone();
+      clonedFunc.setName(newNameAttr);
+      mlir::SymbolTable symTable(m_module);
+      symTable.insert(clonedFunc);
+      newFuncOpsWithDefinitions.push_back(clonedFunc);
+
+      if (failed(mlir::SymbolTable::replaceAllSymbolUses(
+              funcOp.getOperation(), newNameAttr, m_module.getOperation()))) {
+        throw std::runtime_error(
+            fmt::format("Failed to replace symbol uses for function {}",
+                        fullFuncName.str()));
+      }
+      return mlir::WalkResult::advance();
+    });
+
+    // For each one of the added functions, we need to traverse them to find
+    // device calls (in order to create declarations for them)
+    for (auto &funcOp : newFuncOpsWithDefinitions) {
+      mlir::OpBuilder builder(m_module);
+      builder.setInsertionPointToStart(m_module.getBody());
+      funcOp.walk([&](cudaq::cc::DeviceCallOp deviceCall) {
+        auto calleeName = deviceCall.getCallee();
+        // If the callee is already in the symbol table, nothing to do.
+        if (m_module.lookupSymbol<mlir::func::FuncOp>(calleeName))
+          return;
+
+        // Otherwise, we need to create a declaration for the callback function.
+        auto argTypes = deviceCall.getArgs().getTypes();
+        auto resTypes = deviceCall.getResultTypes();
+        auto funcType = builder.getFunctionType(argTypes, resTypes);
+
+        // Create a *declaration* (no body) for the callback function.
+        [[maybe_unused]] auto decl = builder.create<mlir::func::FuncOp>(
+            deviceCall.getLoc(), calleeName, funcType);
+        decl.setPrivate();
+        deviceCallCallees.insert(calleeName.str());
+      });
+    }
+
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&context, "<builder>", 1, 1);
     mlir::ImplicitLocOpBuilder builder(location, &context);
@@ -463,7 +570,7 @@ public:
       // passes.
       if (auto lfunc = dyn_cast<mlir::func::FuncOp>(op)) {
         bool skip = lfunc.getName().ends_with(".thunk");
-        if (!skip)
+        if (!skip && !deviceCallCallees.contains(lfunc.getName().str()))
           for (auto &entry : mangledNameMap)
             if (lfunc.getName() ==
                 cast<mlir::StringAttr>(entry.getValue()).getValue()) {
@@ -539,6 +646,20 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
+      if (executionContext && executionContext->name == "resource-count") {
+        // Each pass may run in a separate thread, so we have to make sure to
+        // grab this reference in this thread
+        auto resource_counts = nvqir::getResourceCounts();
+        std::function<void(std::string, size_t, size_t)> f =
+            [&](std::string gate, size_t nControls, size_t count) {
+              cudaq::info("Appending: {}", gate);
+              resource_counts->appendInstruction(gate, nControls, count);
+            };
+        cudaq::opt::ResourceCountPreprocessOptions opt{f};
+        pm.addNestedPass<mlir::func::FuncOp>(
+            opt::createResourceCountPreprocess(opt));
+        pm.addPass(mlir::createCanonicalizerPass());
+      }
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
@@ -628,7 +749,8 @@ public:
     } else
       modules.emplace_back(kernelName, moduleOp);
 
-    if (emulate) {
+    if (emulate ||
+        (executionContext && executionContext->name == "resource-count")) {
       // If we are in emulation mode, we need to first get a full QIR
       // representation of the code. Then we'll map to an LLVM Module, create a
       // JIT ExecutionEngine pointer and use that for execution
@@ -644,29 +766,22 @@ public:
         runPassPipeline("func.func(combine-measurements)", module);
 
     // Get the code gen translation
-    auto translation = [&]() {
-      if (codegenTranslation == "qir-adaptive") {
-        if (qirIntegerExtension && qirFloatExtension)
-          return cudaq::getTranslation("qir-adaptive-if");
-        else if (qirIntegerExtension)
-          return cudaq::getTranslation("qir-adaptive-i");
-        else if (qirIntegerExtension)
-          return cudaq::getTranslation("qir-adaptive-f");
-        else
-          return cudaq::getTranslation("qir-adaptive");
-      }
-
-      return cudaq::getTranslation(codegenTranslation);
-    }();
+    auto translation = cudaq::getTranslation(codegenTranslation);
 
     // Apply user-specified codegen
     std::vector<cudaq::KernelExecution> codes;
     for (auto &[name, moduleOpI] : modules) {
       std::string codeStr;
-      {
-        llvm::raw_string_ostream outStr(codeStr);
-        if (disableMLIRthreading)
-          moduleOpI.getContext()->disableMultithreading();
+      llvm::raw_string_ostream outStr(codeStr);
+      if (disableMLIRthreading)
+        moduleOpI.getContext()->disableMultithreading();
+      if (codegenTranslation.starts_with("qir")) {
+        if (failed(translation(moduleOpI, codegenTranslation, outStr,
+                               postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      } else {
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
                                enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
@@ -734,6 +849,15 @@ public:
     // After performing lowerQuakeCode, check to see if we are simply drawing
     // the circuit. If so, perform the trace here and then return.
     if (executionContext->name == "tracer" && jitEngines.size() == 1) {
+      cudaq::getExecutionManager()->setExecutionContext(executionContext);
+      invokeJITKernelAndRelease(jitEngines[0], kernelName);
+      cudaq::getExecutionManager()->resetExecutionContext();
+      jitEngines.clear();
+      return;
+    }
+
+    if (executionContext->name == "resource-count") {
+      assert(jitEngines.size() == 1);
       cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
       cudaq::getExecutionManager()->resetExecutionContext();
@@ -873,32 +997,27 @@ public:
 private:
   /// @brief Helper to parse `codegen` translation, with optional feature
   /// annotation.
-  // e.g., "qir-adaptive[int_computations, float_computations]"
-  static std::pair<std::string, std::vector<std::string>>
+  // e.g., "qir-adaptive:0.2:int_computations,float_computations"
+  static std::tuple<std::string, std::string, std::vector<std::string>>
   parseCodeGenTranslationString(const std::string &settingStr) {
-    const auto openBracketPos = settingStr.find_first_of('[');
-    if (openBracketPos == std::string::npos)
-      return std::make_pair(settingStr, std::vector<std::string>{});
-    std::string codeGenName = settingStr.substr(0, openBracketPos);
-    cudaq::trim(codeGenName);
-    std::string options = settingStr.substr(openBracketPos);
-    cudaq::trim(options);
-    // Check for closing bracket
-    if (!options.ends_with(']'))
-      throw std::runtime_error(fmt::format(
-          "Invalid codegen-emission string '{}', missing closing bracket.",
-          settingStr));
-    // pedantic check
-    assert(options.starts_with('['));
-    options = options.substr(1, options.size() - 2);
-    cudaq::trim(options);
-    if (options.empty())
-      return std::make_pair(codeGenName, std::vector<std::string>{});
-    auto splits = cudaq::split(options, ',');
-    for (auto &part : splits)
-      cudaq::trim(part);
-
-    return std::make_pair(codeGenName, splits);
+    llvm::StringRef transportTriple{settingStr};
+    llvm::SmallVector<llvm::StringRef> transportFields;
+    transportTriple.split(transportFields, ":");
+    auto size = transportFields.size();
+    if (size == 1)
+      return {transportFields[0].str(), {}, {}};
+    if (size == 2)
+      return {transportFields[0].str(), transportFields[1].str(), {}};
+    if (size == 3) {
+      llvm::SmallVector<llvm::StringRef> options;
+      transportFields[2].split(options, ",");
+      std::vector<std::string> optionsCopy;
+      for (auto o : options)
+        optionsCopy.push_back(o.str());
+      return {transportFields[0].str(), transportFields[1].str(), optionsCopy};
+    }
+    throw std::runtime_error(
+        fmt::format("Invalid codegen-emission string '{}'.", settingStr));
   }
 };
 } // namespace cudaq

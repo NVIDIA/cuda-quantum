@@ -26,11 +26,11 @@ function error_exit {
 
 function run() {
 	if $ECHO; then
-		echo "$*"
+		echo "$@"
 	fi
-	$*
+	"$@"
 	if [ $? -ne 0 ]; then
-		echo "failed: \"$*\"" >&2
+		echo "failed: \"$@\"" >&2
 		exit 1
 	fi
 }
@@ -102,7 +102,7 @@ function f_option_handling {
 		ENABLE_LOWER_TO_CFG=true
 		;;
 	-fkernel-exec-kind=*)
-		KERNEL_EXECUTION_KIND="{codegen=${1#*=}}"
+		KERNEL_EXECUTION_KIND="codegen=${1#*=}"
 		;;
 	-fno-set-target-backend)
 		SET_TARGET_BACKEND=false
@@ -118,6 +118,12 @@ function f_option_handling {
 		;;
 	-fno-array-conversion)
 		ENABLE_ARRAY_CONVERSION=false
+		;;
+	-fvariable-coalesce)
+		ENABLE_VARIABLE_COALESCE=true
+		;;
+	-fno-variable-coalesce)
+		ENABLE_VARIABLE_COALESCE=false
 		;;
 	*)
 		# Pass any unrecognized options on to the clang++ tool.
@@ -319,7 +325,7 @@ LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install
 
 LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
-LLVM_QUANTUM_TARGET="qir"
+PLATFORM_TRANSPORT_LAYER="qir:0.1"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
 LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
@@ -350,16 +356,18 @@ LLC_FLAGS=-O2
 DO_LINK=true
 SHOW_VERSION=false
 ENABLE_ARRAY_CONVERSION=true
+ENABLE_VARIABLE_COALESCE=true
 ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_KERNEL_EXECUTION=true
 KERNEL_EXECUTION_KIND=
+AUTO_GENERATE_RUN_OPTION=
 ENABLE_AGGRESSIVE_EARLY_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=true
+ENABLE_CUDAQ_RUN=
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -493,7 +501,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--codegen-assembly-spec)
-		LLVM_QUANTUM_TARGET="$2"
+		PLATFORM_TRANSPORT_LAYER="$2"
 		shift
 		;;
 	--list-targets)
@@ -705,8 +713,30 @@ if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
 	fi
 fi
 
+# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
+# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
+# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
+# at runtime. Note: this override is still required because no targets support
+# run yet.
+if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
+	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+	fi
+else
+	# we honor the user's explicit command-line request.
+	if ${ENABLE_CUDAQ_RUN}; then
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+	fi
+fi
+
 RUN_OPT=false
 OPT_PASSES=
+if ${ENABLE_VARIABLE_COALESCE}; then
+	RUN_OPT=true
+	OPT_PASSES="func.func(variable-coalesce)"
+fi
 if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
 	OPT_PASSES="func.func(unwind-lowering)"
@@ -721,7 +751,17 @@ if ${ENABLE_APPLY_SPECIALIZATION}; then
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_KIND}")
+	KERNEL_EXECUTION_OPTIONS=
+	if [[ -n "${AUTO_GENERATE_RUN_OPTION}" ]]; then
+		if [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
+			KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND} ${AUTO_GENERATE_RUN_OPTION}}"
+		else
+			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
+		fi
+	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
+		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
+	fi
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 fi
 if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
 	RUN_OPT=true
@@ -748,13 +788,8 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
-if ${ENABLE_CUDAQ_RUN}; then
-	if [[ ${CUDAQ_ENABLE_QUANTUM_DEVICE_RUN} == 1 ]] || [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-	fi
-fi
 if ${RUN_OPT}; then
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "canonicalize,cse")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call,canonicalize,cse")
 fi
 
 # If TARGET_PASS_PIPELINE is set, then use that exact pipeline (while still
@@ -805,7 +840,7 @@ for i in ${SRCS}; do
 		TMPFILES="${TMPFILES} ${QUAKELL_FILE}"
 
 		# FIXME This next step needs to be extensible... 
-		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${LLVM_QUANTUM_TARGET} ${QUAKE_IN} -o ${QUAKELL_FILE}
+		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${PLATFORM_TRANSPORT_LAYER} ${QUAKE_IN} -o ${QUAKELL_FILE}
 		if ${EMIT_QIR}; then
 			run cp ${QUAKELL_FILE} ${file}.qir.ll
 			exit 0

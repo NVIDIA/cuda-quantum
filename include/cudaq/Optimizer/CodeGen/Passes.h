@@ -66,6 +66,9 @@ mlir::LLVM::LLVMStructType lambdaAsPairOfPointers(mlir::MLIRContext *context);
 /// are `"qir"`, `"qir-base"`, and `"qir-adaptive"`. This pipeline should be run
 /// before conversion to the LLVM-IR dialect.
 void registerToQIRAPIPipeline();
+
+/// Add the convert to QIR API pipeline to \p pm. We don't use opaque pointers
+/// yet, so provide a convenient overload.
 void addConvertToQIRAPIPipeline(mlir::OpPassManager &pm, mlir::StringRef api,
                                 bool opaquePtr = false);
 

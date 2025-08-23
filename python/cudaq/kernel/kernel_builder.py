@@ -6,13 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np
 import random
 import re
 import string
+import weakref
 from functools import partialmethod
 from typing import get_origin
 
+import numpy as np
 from cudaq.mlir.ir import (
     BoolAttr,
     Block,
@@ -316,12 +317,20 @@ class PyKernel(object):
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
 
-    def __del__(self):
+        self._finalizer = weakref.finalize(self, PyKernel._cleanup,
+                                           self.capturedDataStorage)
+
+    @staticmethod
+    def _cleanup(capturedDataStorage):
         """
-        When a kernel builder is deleted we need to clean up 
-        any state data if there is any.
+        Cleanup function to be called when the `PyKernel` instance is garbage 
+        collected. This resource management method is used with `weakref.finalize()`
+        to ensure proper cleanup of resources. Note that this method is intentionally
+        empty since `CapturedDataStorage` has its own `finalizer`. However, it is still
+        included for maintaining the reference to `CapturedDataStorage` until the
+        `PyKernel` instance is garbage collected ensuring proper cleanup order.
         """
-        self.capturedDataStorage.__del__()
+        pass
 
     def __processArgType(self, ty):
         """
@@ -718,8 +727,9 @@ class PyKernel(object):
         Return a string representation of this kernels MLIR Module.
         """
         if canonicalize:
-            pm = PassManager.parse("builtin.module(canonicalize,cse)",
-                                   context=self.ctx)
+            pm = PassManager.parse(
+                "builtin.module(func.func(unwind-lowering,canonicalize,cse,quake-add-metadata),quake-propagate-metadata)",
+                context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
             pm.run(cloned)
             return str(cloned)
@@ -1478,7 +1488,6 @@ class PyKernel(object):
             emitFatalError(
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
             )
-
         # validate the argument types
         processedArgs = []
         for i, arg in enumerate(args):
@@ -1550,9 +1559,11 @@ class PyKernel(object):
         cudaq_runtime.pyAltLaunchKernel(self.name, self.module, *processedArgs)
 
     def __getattr__(self, attr_name):
-        if hasattr(self, attr_name):
-            return getattr(self, attr_name)
-        raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
+        # Search attributes in instance, class, base classes
+        try:
+            return object.__getattribute__(self, attr_name)
+        except AttributeError:
+            raise AttributeError(f"'{attr_name}' is not supported on PyKernel")
 
 
 setattr(PyKernel, 'h', partialmethod(__singleTargetOperation, 'h'))

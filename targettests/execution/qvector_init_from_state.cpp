@@ -16,10 +16,11 @@
 // RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -94,7 +95,7 @@ int main() {
     std::cout
         << "Passing large state from another kernel as argument (kernel mode)"
         << std::endl;
-    // TODO: State larger than 5 qubits fails on iqm machines with Adonis
+    // TODO: State larger than 5 qubits fails on iqm machines with Crystal_5
     // architecture
     // TODO: State larger than 8 qubits fails on oqc and anyon
     // Up to 14 bits works with quantinuum an ionq

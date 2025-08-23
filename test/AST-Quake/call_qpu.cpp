@@ -52,15 +52,15 @@ int func_shiim(cudaq::qvector<> &qv) __qpu__ {
 // CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_10]], %[[VAL_7]], %[[VAL_8]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
 // CHECK:           %[[VAL_11:.*]] = cc.undef i32
-// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
 // CHECK:           %[[VAL_13:.*]]:2 = cc.loop while ((%[[VAL_14:.*]] = %[[VAL_2]], %[[VAL_15:.*]] = %[[VAL_11]]) -> (i64, i32)) {
 // CHECK:             %[[VAL_16:.*]] = arith.cmpi slt, %[[VAL_14]], %[[VAL_8]] : i64
 // CHECK:             cc.condition %[[VAL_16]](%[[VAL_14]], %[[VAL_15]] : i64, i32)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_17:.*]]: i64, %[[VAL_18:.*]]: i32):
-// CHECK:             %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_12]]{{\[}}%[[VAL_17]]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
-// CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_19]] : !cc.ptr<i1>
-// CHECK:             %[[VAL_21:.*]] = cc.if(%[[VAL_20]]) -> i32 {
+// CHECK:             %[[VAL_19:.*]] = cc.compute_ptr %[[VAL_9]][%[[VAL_17]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_19]] : !cc.ptr<i8>
+// CHECK:             %[[VAL_12:.*]] = cc.cast %[[VAL_20]] : (i8) -> i1
+// CHECK:             %[[VAL_21:.*]] = cc.if(%[[VAL_12]]) -> i32 {
 // CHECK:               %[[VAL_22:.*]] = arith.addi %[[VAL_18]], %[[VAL_3]] : i32
 // CHECK:               cc.continue %[[VAL_22]] : i32
 // CHECK:             } else {

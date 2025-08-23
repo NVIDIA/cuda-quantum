@@ -60,7 +60,9 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
+  ResourceCountPreprocess.cpp
   SROA.cpp
+  StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp

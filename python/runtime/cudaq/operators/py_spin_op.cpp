@@ -717,7 +717,9 @@ void bindSpinOperator(py::module &mod) {
 
       .def("evaluate_coefficient", &spin_op_term::evaluate_coefficient,
            py::arg("parameters") = parameter_map(),
-           "Returns the evaluated coefficient of the product operator.")
+           "Returns the evaluated coefficient of the product operator. The "
+           "parameters is a map of parameter names to their concrete, complex "
+           "values.")
       .def(
           "to_matrix",
           [](const spin_op_term &self, dimension_map &dimensions,

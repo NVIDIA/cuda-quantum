@@ -40,7 +40,7 @@ all_models = [
     TestBatchedCavityModelTimeDependentCollapseOp,
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
-    TestBatchedCavityModelSuperOperatorWithBatchSize
+    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326
 ]
 
 

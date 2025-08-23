@@ -59,14 +59,14 @@ jobs:
     steps:
       - id: info
         run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          echo "is_versioned=$is_versioned" >> $GITHUB_OUTPUT
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu16" >> $GITHUB_OUTPUT
             echo "build_docs=${{ inputs.build_docs != 'false' }}" >> $GITHUB_OUTPUT
-            is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
             has_continuous_deployment=${{ startsWith(github.ref_name, 'experimental/') || github.ref_name == 'main' }}
             push_to_ngc=`${{ inputs.environment && secrets.NGC_CREDENTIALS != '' }} && ($is_versioned || $has_continuous_deployment) && echo true || echo`
-            echo "is_versioned=$is_versioned" >> $GITHUB_OUTPUT
             echo "push_to_ngc=$push_to_ngc" >> $GITHUB_OUTPUT
           elif [ -n "$(echo ${{ inputs.platforms }} | grep -i arm)" ]; then
             platform_tag=`echo ${{ inputs.platforms }} | sed 's/linux\///g' | tr -d ' '`
@@ -728,7 +728,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
+          image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"' | sed -E 's/^(arm64-|amd64-)//'`
           docs_version="CUDA_QUANTUM_VERSION=$(echo $image_tag | sed -re 's/^(cu[0-9]+-)?(.*)-base$/\2/')"
           docker image rm $cudaq_image
           docker image prune --force

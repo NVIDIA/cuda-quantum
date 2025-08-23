@@ -8,6 +8,17 @@
 
 // RUN: cudaq-opt -canonicalize -distributed-device-call -cse %s | FileCheck %s
 
+func.func @__nvqpp__mlirgen__function_callGpu.1(%arg0: !cc.struct<"device_ptr" {i64, i64, i64}>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %c1_i64 = arith.constant 1 : i64
+  %0 = cc.alloca !cc.struct<"device_ptr" {i64, i64, i64}>
+  cc.store %arg0, %0 : !cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>
+  %1 = quake.alloca !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = cc.resolve_device_ptr %0 : (!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i32>
+  cc.device_call @incrementInt<%c1_i64 * %c1_i64>(%2) : (i64, i64, !cc.ptr<i32>) -> ()
+  return
+}
+  
 func.func private @incrementInt(!cc.ptr<i32>) attributes {"cudaq-devicecall"}
 
 func.func @__nvqpp__mlirgen__function_callback.2(%arg0 : i64, %arg1 : i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -17,8 +28,21 @@ func.func @__nvqpp__mlirgen__function_callback.2(%arg0 : i64, %arg1 : i64) attri
   %3 = cc.device_call @addThem on %2 (%arg0, %arg1) : (i64, i64, i64) -> i64
   return
 }
-
 func.func private @addThem(i64, i64) -> i64 attributes {"cudaq-devicecall"}
+
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_callGpu.1(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.struct<"device_ptr" {i64, i64, i64}>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<"device_ptr" {i64, i64, i64}>
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp__device_extract_device_ptr(%[[VAL_1]]) : (!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           call @incrementInt(%[[VAL_4]]) : (!cc.ptr<i32>) -> ()
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @incrementInt(!cc.ptr<i32>) attributes {"cudaq-devicecall", passthrough = {{\[\[}}"cudaq-fnid", "1073101343"]]}
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_callback.2(
 // CHECK-SAME:      %[[VAL_0:.*]]: i64, %[[VAL_1:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -27,3 +51,6 @@ func.func private @addThem(i64, i64) -> i64 attributes {"cudaq-devicecall"}
 // CHECK:           %[[VAL_3:.*]] = call @addThem(%[[VAL_0]], %[[VAL_1]]) : (i64, i64) -> i64
 // CHECK:           return
 // CHECK:         }
+// CHECK:         func.func private @addThem(i64, i64) -> i64 attributes {"cudaq-devicecall", passthrough = {{\[\[}}"cudaq-fnid", "4101305171"]]}
+// CHECK:         func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
+// clang-format on

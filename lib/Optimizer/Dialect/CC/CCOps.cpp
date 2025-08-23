@@ -1228,7 +1228,9 @@ struct CollapseCastToStdvecInit
                                 PatternRewriter &rewriter) const override {
     if (auto buff = init.getBuffer().getDefiningOp<cudaq::cc::CastOp>()) {
       auto castVal = buff.getValue();
-      auto fromPtrTy = cast<cudaq::cc::PointerType>(castVal.getType());
+      auto fromPtrTy = dyn_cast<cudaq::cc::PointerType>(castVal.getType());
+      if (!fromPtrTy)
+        return failure();
       auto fromTy = fromPtrTy.getElementType();
       auto toTy = cast<cudaq::cc::PointerType>(buff.getType()).getElementType();
       if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(fromTy))
@@ -1308,8 +1310,7 @@ LogicalResult cudaq::cc::StdvecInitOp::verify() {
 namespace {
 struct ForwardStdvecInitData
     : public OpRewritePattern<cudaq::cc::StdvecDataOp> {
-  using Base = OpRewritePattern<cudaq::cc::StdvecDataOp>;
-  using Base::Base;
+  using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::StdvecDataOp data,
                                 PatternRewriter &rewriter) const override {
@@ -1320,9 +1321,8 @@ struct ForwardStdvecInitData
     // and unwrapped by stdvec_data is the same pointer value. This pattern will
     // arise after inlining, for example.
     if (auto ini = data.getStdvec().getDefiningOp<cudaq::cc::StdvecInitOp>()) {
-      Value cast = rewriter.create<cudaq::cc::CastOp>(
-          data.getLoc(), data.getType(), ini.getBuffer());
-      rewriter.replaceOp(data, cast);
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(data, data.getType(),
+                                                     ini.getBuffer());
       return success();
     }
     return failure();
@@ -1872,9 +1872,10 @@ bool hasAllocation(Region &region) {
         if (mem.hasEffect<MemoryEffects::Allocate>())
           if (quantumAllocs || !isa<quake::AllocaOp>(op))
             return true;
-      for (auto &opReg : op.getRegions())
-        if (hasAllocation<quantumAllocs>(opReg))
-          return true;
+      if (!isa<cudaq::cc::ScopeOp>(op))
+        for (auto &opReg : op.getRegions())
+          if (hasAllocation<quantumAllocs>(opReg))
+            return true;
     }
   return false;
 }

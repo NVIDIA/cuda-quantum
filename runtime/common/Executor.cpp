@@ -30,7 +30,8 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
                 jobPostPath);
 
     // Post it, get the response
-    auto response = client.post(jobPostPath, "", job, headers);
+    auto response = client.post(jobPostPath, "", job, headers, true, false,
+                                serverHelper->getCookies());
     cudaq::info("Job (name={}) posted, response was {}", codesToExecute[i].name,
                 response.dump());
 

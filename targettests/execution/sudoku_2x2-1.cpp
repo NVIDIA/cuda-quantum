@@ -11,9 +11,10 @@
 // RUN: nvq++ --target anyon                    --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target infleqtion               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <algorithm>
