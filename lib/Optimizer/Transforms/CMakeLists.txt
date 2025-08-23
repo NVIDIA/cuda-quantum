@@ -62,6 +62,7 @@ add_cudaq_library(OptTransforms
   ReplaceStateWithKernel.cpp
   ResourceCountPreprocess.cpp
   SROA.cpp
+  StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
