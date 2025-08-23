@@ -264,7 +264,7 @@ jobs:
             done
 
       - name: Run Python MPI tests
-        if: matrix.os_image == 'redhat/ubi9:9.2'
+        if: matrix.os_image == 'redhat/ubi9:9.6'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
@@ -283,6 +283,10 @@ jobs:
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
+
+            # Log in to Anaconda
+            conda install conda-token --name base --channel https://repo.anaconda.cloud/repo/anaconda-tools --override-channels -y
+            conda token set ${{ secrets.ANACONDA_TOKEN }}
 
             # Extract the setup script from Python wheel's readme
             cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl

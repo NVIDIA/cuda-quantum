@@ -39,8 +39,10 @@ __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
-while getopts ":c:f:i:p:qv:" opt; do
+while getopts ":a:c:f:i:p:qv:" opt; do
   case $opt in
+    a) anaconda_token="$OPTARG"
+    ;;
     c) cuda_version="$OPTARG"
     ;;
     f) root_folder="$OPTARG"
@@ -74,6 +76,14 @@ if [ ! -x "$(command -v conda)" ]; then
     bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
     rm -rf ~/.miniconda3/miniconda.sh
     eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+    if [ -n "$anaconda_token" ]; then
+        echo "Logging in to Anaconda with provided token..."
+        conda install conda-token --name base \
+            --channel https://repo.anaconda.cloud/repo/anaconda-tools \
+            --override-channels -y
+
+        conda token set "$anaconda_token"
+    fi
 fi
 
 # Execute instructions from the README file
