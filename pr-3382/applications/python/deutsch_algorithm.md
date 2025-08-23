@@ -680,27 +680,31 @@ pr-3382
             -   [Computational
                 Implementation](generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
-        -   [(a) Generate the molecular Hamiltonian using Hartree Fock
-            molecular
-            orbitals](generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals){.reference
-            .internal}
-            -   [Active space
-                Hamiltonian:](generate_fermionic_ham.html#Active-space-Hamiltonian:){.reference
+            -   [(a) Generate the molecular Hamiltonian using Restricted
+                Hartree Fock molecular
+                orbitals](generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
-        -   [(b) Generate the active space hamiltonian using HF
-            molecular
-            orbitals.](generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.){.reference
-            .internal}
-        -   [(c) Generate the active space Hamiltonian using the natural
-            orbitals computed from MP2
-            simulation](generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
-            .internal}
-        -   [(d) Generate the active space Hamiltonian computed from the
-            CASSCF molecular
-            orbitals](generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
-            .internal}
-            -   [Generate the electronic Hamiltonian using
-                ROHF](generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+            -   [(b) Generate the molecular Hamiltonian using
+                Unrestricted Hartree Fock molecular
+                orbitals](generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                .internal}
+            -   [(a) Generate the active space hamiltonian using RHF
+                molecular
+                orbitals.](generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                .internal}
+            -   [(b) Generate the active space Hamiltonian using the
+                natural orbitals computed from MP2
+                simulation](generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                .internal}
+            -   [(c) Generate the active space Hamiltonian computed from
+                the CASSCF molecular
+                orbitals](generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                .internal}
+            -   [(d) Generate the electronic Hamiltonian using
+                ROHF](generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                .internal}
+            -   [(e) Generate electronic Hamiltonian using
+                UHF](generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
     -   [Grover's Algorithm](grovers.html){.reference .internal}
         -   [Overview](grovers.html#Overview){.reference .internal}
@@ -1757,7 +1761,7 @@ number, the result is 0 otherwise 1.
 Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------------------------
 
-![3c985710b00440f4906f4c84f8af5cb5](../../_images/oracle.png){.no-scaled-link}
+![9b551d5c588946a6b37b9a03d0044570](../../_images/oracle.png){.no-scaled-link}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
 .notranslate .nohighlight}. We can compute this function on a quantum
@@ -1864,7 +1868,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![3f09f147a483419ea31c67fb04ec6965](../../_images/deutsch.png){.no-scaled-link}
+![f484d964ba544c268075f156690e39f3](../../_images/deutsch.png){.no-scaled-link}
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\ket{\\psi\_0} = \\ket{01} \\tag{1}\\\]

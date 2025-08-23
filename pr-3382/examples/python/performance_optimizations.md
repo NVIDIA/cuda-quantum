@@ -703,27 +703,31 @@ pr-3382
             -   [Computational
                 Implementation](../../applications/python/generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
-        -   [(a) Generate the molecular Hamiltonian using Hartree Fock
-            molecular
-            orbitals](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals){.reference
-            .internal}
-            -   [Active space
-                Hamiltonian:](../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:){.reference
+            -   [(a) Generate the molecular Hamiltonian using Restricted
+                Hartree Fock molecular
+                orbitals](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
-        -   [(b) Generate the active space hamiltonian using HF
-            molecular
-            orbitals.](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.){.reference
-            .internal}
-        -   [(c) Generate the active space Hamiltonian using the natural
-            orbitals computed from MP2
-            simulation](../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
-            .internal}
-        -   [(d) Generate the active space Hamiltonian computed from the
-            CASSCF molecular
-            orbitals](../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
-            .internal}
-            -   [Generate the electronic Hamiltonian using
-                ROHF](../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+            -   [(b) Generate the molecular Hamiltonian using
+                Unrestricted Hartree Fock molecular
+                orbitals](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                .internal}
+            -   [(a) Generate the active space hamiltonian using RHF
+                molecular
+                orbitals.](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                .internal}
+            -   [(b) Generate the active space Hamiltonian using the
+                natural orbitals computed from MP2
+                simulation](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                .internal}
+            -   [(c) Generate the active space Hamiltonian computed from
+                the CASSCF molecular
+                orbitals](../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                .internal}
+            -   [(d) Generate the electronic Hamiltonian using
+                ROHF](../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                .internal}
+            -   [(e) Generate electronic Hamiltonian using
+                UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
     -   [Grover's
         Algorithm](../../applications/python/grovers.html){.reference
@@ -1667,14 +1671,14 @@ line example would look like
 `CUDAQ_MGPU_FUSE=4 python c2h2VQE.py --target nvidia --target-option fp64,mgpu`{.docutils
 .literal .notranslate}
 
-![bc7276f093aa472fba441a35a2a2c9e7](../../_images/gate-fuse.png)
+![0395fe028057471c849103dc0488f36a](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![f55e7ad7920b444e9a6f640e800a4ea5](../../_images/gatefusion.png)
+![4403b248861f437c80b03713f58993e2](../../_images/gatefusion.png)
 :::
 :::
 :::

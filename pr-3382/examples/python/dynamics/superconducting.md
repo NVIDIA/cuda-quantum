@@ -699,27 +699,31 @@ pr-3382
             -   [Computational
                 Implementation](../../../applications/python/generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
-        -   [(a) Generate the molecular Hamiltonian using Hartree Fock
-            molecular
-            orbitals](../../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals){.reference
-            .internal}
-            -   [Active space
-                Hamiltonian:](../../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:){.reference
+            -   [(a) Generate the molecular Hamiltonian using Restricted
+                Hartree Fock molecular
+                orbitals](../../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
-        -   [(b) Generate the active space hamiltonian using HF
-            molecular
-            orbitals.](../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.){.reference
-            .internal}
-        -   [(c) Generate the active space Hamiltonian using the natural
-            orbitals computed from MP2
-            simulation](../../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
-            .internal}
-        -   [(d) Generate the active space Hamiltonian computed from the
-            CASSCF molecular
-            orbitals](../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
-            .internal}
-            -   [Generate the electronic Hamiltonian using
-                ROHF](../../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+            -   [(b) Generate the molecular Hamiltonian using
+                Unrestricted Hartree Fock molecular
+                orbitals](../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                .internal}
+            -   [(a) Generate the active space hamiltonian using RHF
+                molecular
+                orbitals.](../../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                .internal}
+            -   [(b) Generate the active space Hamiltonian using the
+                natural orbitals computed from MP2
+                simulation](../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                .internal}
+            -   [(c) Generate the active space Hamiltonian computed from
+                the CASSCF molecular
+                orbitals](../../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                .internal}
+            -   [(d) Generate the electronic Hamiltonian using
+                ROHF](../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                .internal}
+            -   [(e) Generate electronic Hamiltonian using
+                UHF](../../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
     -   [Grover's
         Algorithm](../../../applications/python/grovers.html){.reference

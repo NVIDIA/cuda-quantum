@@ -688,27 +688,31 @@ pr-3382
             -   [Computational
                 Implementation](generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
-        -   [(a) Generate the molecular Hamiltonian using Hartree Fock
-            molecular
-            orbitals](generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals){.reference
-            .internal}
-            -   [Active space
-                Hamiltonian:](generate_fermionic_ham.html#Active-space-Hamiltonian:){.reference
+            -   [(a) Generate the molecular Hamiltonian using Restricted
+                Hartree Fock molecular
+                orbitals](generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
-        -   [(b) Generate the active space hamiltonian using HF
-            molecular
-            orbitals.](generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.){.reference
-            .internal}
-        -   [(c) Generate the active space Hamiltonian using the natural
-            orbitals computed from MP2
-            simulation](generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
-            .internal}
-        -   [(d) Generate the active space Hamiltonian computed from the
-            CASSCF molecular
-            orbitals](generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
-            .internal}
-            -   [Generate the electronic Hamiltonian using
-                ROHF](generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+            -   [(b) Generate the molecular Hamiltonian using
+                Unrestricted Hartree Fock molecular
+                orbitals](generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                .internal}
+            -   [(a) Generate the active space hamiltonian using RHF
+                molecular
+                orbitals.](generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                .internal}
+            -   [(b) Generate the active space Hamiltonian using the
+                natural orbitals computed from MP2
+                simulation](generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                .internal}
+            -   [(c) Generate the active space Hamiltonian computed from
+                the CASSCF molecular
+                orbitals](generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                .internal}
+            -   [(d) Generate the electronic Hamiltonian using
+                ROHF](generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                .internal}
+            -   [(e) Generate electronic Hamiltonian using
+                UHF](generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
     -   [Grover's Algorithm](#){.current .reference .internal}
         -   [Overview](#Overview){.reference .internal}
@@ -1900,7 +1904,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![db4ed0da419345699a68cf0ad626a8fe](../../_images/grovers-2D-plane.png)
+![6955710f922a4ddda5c9aecd81fb1a37](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2116,7 +2120,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![6af792e3c34a42feafbe743cac1bb132](../../_images/grovers-steps1-3.png)
+![1075ec125afd45cdb8b0856307f46ffb](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2128,7 +2132,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![ea99467ef0d34bbdb7e785d91ef4452d](../../_images/grovers-full-rotation.png)
+![3cf4f5704a6245ffa635acfe4afa978b](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

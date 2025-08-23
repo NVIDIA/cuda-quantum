@@ -716,27 +716,31 @@ pr-3382
             -   [Computational
                 Implementation](../../applications/python/generate_fermionic_ham.html#Computational-Implementation){.reference
                 .internal}
-        -   [(a) Generate the molecular Hamiltonian using Hartree Fock
-            molecular
-            orbitals](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals){.reference
-            .internal}
-            -   [Active space
-                Hamiltonian:](../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:){.reference
+            -   [(a) Generate the molecular Hamiltonian using Restricted
+                Hartree Fock molecular
+                orbitals](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals){.reference
                 .internal}
-        -   [(b) Generate the active space hamiltonian using HF
-            molecular
-            orbitals.](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.){.reference
-            .internal}
-        -   [(c) Generate the active space Hamiltonian using the natural
-            orbitals computed from MP2
-            simulation](../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
-            .internal}
-        -   [(d) Generate the active space Hamiltonian computed from the
-            CASSCF molecular
-            orbitals](../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
-            .internal}
-            -   [Generate the electronic Hamiltonian using
-                ROHF](../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+            -   [(b) Generate the molecular Hamiltonian using
+                Unrestricted Hartree Fock molecular
+                orbitals](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals){.reference
+                .internal}
+            -   [(a) Generate the active space hamiltonian using RHF
+                molecular
+                orbitals.](../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.){.reference
+                .internal}
+            -   [(b) Generate the active space Hamiltonian using the
+                natural orbitals computed from MP2
+                simulation](../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation){.reference
+                .internal}
+            -   [(c) Generate the active space Hamiltonian computed from
+                the CASSCF molecular
+                orbitals](../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals){.reference
+                .internal}
+            -   [(d) Generate the electronic Hamiltonian using
+                ROHF](../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF){.reference
+                .internal}
+            -   [(e) Generate electronic Hamiltonian using
+                UHF](../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
     -   [Grover's
         Algorithm](../../applications/python/grovers.html){.reference
@@ -2402,7 +2406,7 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[format:]{.pre} [str]{.pre} [=]{.pre} [\'qir\']{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[format:]{.pre} [str]{.pre} [=]{.pre} [\'qir:0.1\']{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2414,11 +2418,15 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     :   -   **format**
             ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
-            .external}) -- format to translate to. Available formats:
-            `qir`{.code .docutils .literal .notranslate},
-            `qir-base`{.code .docutils .literal .notranslate},
-            `qir-adaptive`{.code .docutils .literal .notranslate},
-            `openqasm2`{.code .docutils .literal .notranslate}.
+            .external}) -- format to translate to, \<name\[:version\]\>.
+            Available format names: `qir`{.code .docutils .literal
+            .notranslate}, `qir-full`{.code .docutils .literal
+            .notranslate}, `qir-base`{.code .docutils .literal
+            .notranslate}, `qir-adaptive`{.code .docutils .literal
+            .notranslate}, `openqasm2`{.code .docutils .literal
+            .notranslate}. QIR versions: `0.1`{.code .docutils .literal
+            .notranslate} and `0.2`{.code .docutils .literal
+            .notranslate}.
 
         -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
             .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
@@ -3447,7 +3455,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3680384632]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[160576003]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
