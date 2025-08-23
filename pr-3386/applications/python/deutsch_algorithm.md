@@ -1761,7 +1761,7 @@ number, the result is 0 otherwise 1.
 Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------------------------
 
-![13fb8414835f4f6489e21e5d849106a1](../../_images/oracle.png){.no-scaled-link}
+![8d6a1a2b70c34137b8467cee5cd89e39](../../_images/oracle.png){.no-scaled-link}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
 .notranslate .nohighlight}. We can compute this function on a quantum
@@ -1868,7 +1868,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![a4bdeab81f6c426581c8ccc884d25c3d](../../_images/deutsch.png){.no-scaled-link}
+![2589e71fe3184701aacf7ad51b22b281](../../_images/deutsch.png){.no-scaled-link}
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\ket{\\psi\_0} = \\ket{01} \\tag{1}\\\]

@@ -1709,7 +1709,7 @@ explained above.
 
 <div>
 
-![1aeb07ee47e44653a171375a73c24071](../../_images/adapt-qaoa.png){.no-scaled-link}
+![080e90c11c254763a3bd85bbfcbfc142](../../_images/adapt-qaoa.png){.no-scaled-link}
 
 </div>
 
