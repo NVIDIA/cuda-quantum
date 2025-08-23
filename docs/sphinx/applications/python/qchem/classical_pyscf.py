@@ -326,7 +326,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
     if not myhf.converged:
 
         raise ValueError(
-            "[pyscf] WARNING: HF calculation did not converge! Attempting to continue anyway."
+            "[pyscf] WARNING: HF calculation did not converge!"
         )
 
     ##########################
