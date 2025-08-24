@@ -1662,9 +1662,9 @@ flow statements (`if`{.code .docutils .literal .notranslate},
 .literal .notranslate}, etc.), and classical computations such as
 additions, multiplication, etc. Conditional statements on quantum memory
 and qubit measurements can be included in quantum kernels to enable
-dynamic circuits and fast feedback, particularly useful for quantum
-error correction. To learn more about what language constructs are
-supported within quantum kernels, take a look at the CUDA-Q
+dynamic circuits and fast feedback, which are particularly useful for
+quantum error correction. To learn more about what language constructs
+are supported within quantum kernels, take a look at the CUDA-Q
 [[specification]{.doc}](../../specification/cudaq/kernels.html){.reference
 .internal}.
 
