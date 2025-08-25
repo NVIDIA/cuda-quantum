@@ -367,7 +367,7 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=
+ENABLE_CUDAQ_RUN=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -713,22 +713,36 @@ if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
 	fi
 fi
 
-# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
-# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
-# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
-# at runtime. Note: this override is still required because no targets support
-# run yet.
-if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
-	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
-	fi
-else
-	# we honor the user's explicit command-line request.
-	if ${ENABLE_CUDAQ_RUN}; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
-	fi
+# # If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
+# # so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
+# # set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
+# # at runtime. Note: this override is still required because no targets support
+# # run yet.
+# if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
+# 	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
+# 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+# 		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+# 	fi
+# else
+# 	# we honor the user's explicit command-line request.
+# 	if ${ENABLE_CUDAQ_RUN}; then
+# 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+# 		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+# 	fi
+# fi
+
+# # We only support cudaq run on some quantum devices.
+# # Eventually, we would like to support all devices that emit QIR.
+# if [ -n "${TARGET_CONFIG}" ]; then
+# 	if [ "${TARGET_CONFIG}" != "quantinuum" ]; then
+# 		# TODO: figure out the machine config, not all of them support run.
+# 		ENABLE_CUDAQ_RUN=false
+# 	fi
+# fi
+
+if ${ENABLE_CUDAQ_RUN}; then
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
+	AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
 fi
 
 RUN_OPT=false

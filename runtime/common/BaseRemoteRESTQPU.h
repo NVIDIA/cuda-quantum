@@ -111,6 +111,9 @@ protected:
   /// @brief Flag indicating the backend support QIR floating point computation
   /// extension. Applicable to `qir-adaptive` codegenTranslation only.
   bool qirFloatExtension = false;
+  
+  /// @brief Flag indicating whether the backend supports run
+  bool hasRunSupport = false;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
@@ -325,6 +328,9 @@ public:
             } else if (option == "float_computations") {
               cudaq::info("Enable float_computations extension");
               qirFloatExtension = true;
+            } else if (option == "supports_run") {
+              cudaq::info("Enable run support");
+              hasRunSupport = true;
             } else {
               throw std::runtime_error(
                   fmt::format("Invalid option '{}' for '{}' codegen.", option,

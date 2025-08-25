@@ -32,8 +32,7 @@
 
 using namespace mlir;
 
-static std::once_flag enableQuantumDeviceRunOnce;
-static bool enableQuantumDeviceRun;
+static std::once_flag initializeContextOnce;
 
 // Create a scratch context for parsing a kernel's MLIR content and cache it.
 static MLIRContext *scratchContext;
@@ -104,19 +103,17 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
-  std::call_once(enableQuantumDeviceRunOnce, []() {
+  std::call_once(initializeContextOnce, []() {
     initializeScratchContext();
-    enableQuantumDeviceRun =
-        getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
   });
 
-  bool isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
-  bool isQuantumDevice =
-      (platform.is_remote() || platform.is_emulated()) && !isRemoteSimulator;
-
+  // Some platforms do not support run yet, emit error.
+  if (!platform.supports_run())
+    throw std::runtime_error("`run` is not yet supported on this target.");
+  
   // 2. Launch the kernel on the QPU.
-  if (isRemoteSimulator || (isQuantumDevice && enableQuantumDeviceRun)) {
-    // In a remote simulator execution/hardware emulation environment, set the
+  if (platform.is_remote() || platform.is_emulated()) {
+    // In a remote simulator execution or hardware emulation environment, set the
     // `run` context name and number of iterations (shots)
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);
     platform.set_exec_ctx(ctx.get(), qpu_id);
@@ -129,8 +126,6 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else if (isQuantumDevice && !enableQuantumDeviceRun) {
-    throw std::runtime_error("`run` is not yet supported on this target.");
   } else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
     for (std::size_t i = 0; i < shots; ++i) {

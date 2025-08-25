@@ -44,4 +44,9 @@ struct RuntimeTarget {
   simulation_precision get_precision() const;
 };
 
+/// Get the config entry for the target feature
+cudaq::config::BackendEndConfigEntry getRuntimeTargetConfig(RuntimeTarget& runtimeTarget, std::string& featureName) {
+  return cudaq::config::getBackendEndConfigEntry(runtimeTarget.config, runtimeTarget.runtimeConfig[featureName]);
+}
+
 } // namespace cudaq

@@ -441,15 +441,19 @@ verifyQubitAndResultRanges(llvm::Module *llvmModule,
 /// such, the code may not function correctly nor as expected.
 static mlir::LogicalResult
 filterSpecificCodePatterns(llvm::Module *llvmModule) {
+  bool erasePatterns = true;
+  bool eraseStackBounding = true;
+  bool eraseResultRecordCalls = true;
+  
   // If CUDAQ_ENABLE_QUANTUM_DEVICE_RUN is true, erase all "offending" isns.
-  const bool erasePatterns =
-      getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
-  // If CUDAQ_QIR_ERASE_STACK_INTRINSIC is true, erase stacksave/stackrestore.
-  const bool eraseStackBounding =
-      erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_STACK_INTRINSIC", false);
-  // If CUDAQ_QIR_ERASE_RESULT_RECORD is true, erase result_record_output.
-  const bool eraseResultRecordCalls =
-      erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_RESULT_RECORD", false);
+  // const bool erasePatterns =
+  //     getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
+  // // If CUDAQ_QIR_ERASE_STACK_INTRINSIC is true, erase stacksave/stackrestore.
+  // const bool eraseStackBounding =
+  //     erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_STACK_INTRINSIC", false);
+  // // If CUDAQ_QIR_ERASE_RESULT_RECORD is true, erase result_record_output.
+  // const bool eraseResultRecordCalls =
+  //     erasePatterns || getEnvBool("CUDAQ_QIR_ERASE_RESULT_RECORD", false);
 
   if (erasePatterns || eraseStackBounding || eraseResultRecordCalls) {
     llvm::SmallVector<llvm::Instruction *> eraseInst;
