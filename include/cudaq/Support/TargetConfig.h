@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -154,7 +155,8 @@ public:
 
 public:
   // Helper to determine the configs based on CLI arguments
-  std::string getCodeGenSpec(const std::vector<std::string> &targetArgv) const;
+  std::string
+  getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
 };
 
 /// Process the target configuration into a `nvq++` compatible script according

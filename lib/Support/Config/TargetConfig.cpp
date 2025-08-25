@@ -404,8 +404,47 @@ std::string MappingTraits<cudaq::config::MachineArchitectureConfig>::validate(
 } // namespace llvm
 
 std::string cudaq::config::TargetConfig::getCodeGenSpec(
-    const std::vector<std::string> &targetArgv) const {
-  // TODO: determine the code gen config based on CLI argument
+    const std::map<std::string, std::string> &targetArgs) const {
+  // Check whether we have a per-machine config
+  const auto machineConfigIter = std::find_if(
+      TargetArguments.begin(), TargetArguments.end(),
+      [&](const cudaq::config::TargetArgument &argConfig) {
+        return argConfig.Type == cudaq::config::ArgumentType::MachineConfig;
+      });
+  if (machineConfigIter == TargetArguments.end()) {
+    // No machine specific config
+    return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+  }
 
-  return "";
+  // Get the machine name from the CLI argument
+  std::string machineName;
+  for (const auto &[argKey, argVal] : targetArgs) {
+    if (argKey == machineConfigIter->PlatformArgKey) {
+      machineName = argVal;
+      break;
+    }
+  }
+
+  if (!machineName.empty()) {
+    // Check for match
+    for (auto &archConfig : machineConfigIter->MachineConfigs) {
+      // Check names first
+      if (std::find(archConfig.MachineNames.begin(),
+                    archConfig.MachineNames.end(),
+                    machineName) != archConfig.MachineNames.end()) {
+        return archConfig.Configuration.CodegenSpec;
+      }
+      // Check pattern if provided
+      if (!archConfig.MachinePattern.empty()) {
+        llvm::Regex re(archConfig.MachinePattern);
+        if (re.match(machineName)) {
+          return archConfig.Configuration.CodegenSpec;
+        }
+      }
+    }
+  }
+
+  // No machine specific config rule matches, fallback to the default backend
+  // config
+  return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
 }
