@@ -362,6 +362,8 @@ unitaries
 unitarity
 unitary
 unitaryHACK
+unmarshal
+unmarshalling
 unoptimized
 upvote
 variadic
