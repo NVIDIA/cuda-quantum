@@ -40,9 +40,10 @@ tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
 tpls_dir="$tpls_root/tpls"
 sudo mkdir -p "$tpls_dir"
 this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+lock_file=""
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:mk-:" opt; do
+while getopts ":e:t:ml:-:" opt; do
   case $opt in
     e) exclude_prereq="${OPTARG,,}"
     ;;
@@ -50,12 +51,19 @@ while getopts ":e:t:mk-:" opt; do
     ;;
     m) install_all=false
     ;;
-    k) keep_sources=true
+    l) lock_file="$OPTARG"
     ;;
-    -) case $OPTARG in keep-sources) keep_sources=true
-    ;;
-    esac
-    ;;
+    -) case $OPTARG in
+          lock-file)
+            lock_file="${!OPTIND}"
+            OPTIND=$((OPTIND + 1))
+            ;;
+          *)
+            echo "Invalid long option --$OPTARG" >&2
+            (return 0 2>/dev/null) && return 1 || exit 1
+            ;;
+       esac
+       ;;
     :) echo "Option -$OPTARG requires an argument."
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
@@ -66,10 +74,61 @@ while getopts ":e:t:mk-:" opt; do
 done
 OPTIND=$__optind__
 
-# Check if the lock file is present when keep_sources is true
-if $keep_sources && [ ! -f /tmp/tpls_commits.lock ]; then
-  echo "Lock file /tmp/tpls_commits.lock not found."
-  exit 1
+# Check if the lock file is present and then copy it to /tmp
+if [ -n "$lock_file" ]; then
+  if [ ! -f "$lock_file" ]; then
+    echo "Lock file $lock_file not found."
+    (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+  echo "Using lock file: $lock_file"
+fi
+
+lookup_tpls_sha() {
+  local path="$1"
+
+  # Using lock file
+  if [[ -f $lock_file ]]; then
+    awk -v p="$path" '$2==p{print $1}' "$lock_file" && return 0
+  fi
+}
+
+# Clone the third-party libraries to include its source code in the NVQC docker image.
+if [ -n "$lock_file" ]; then
+  echo "Cloning additional third-party libraries into $tpls_dir..."
+  sudo mkdir -p "$tpls_dir"
+  # make sure we are at the repo root
+  cd "$this_file_dir"
+
+  # for each submodule.<name>.url in .gitmodules
+  git config --file .gitmodules --get-regexp 'submodule\..*\.url' | \
+  while read -r key url; do
+    # key = "submodule.tpls/foo.url"
+    sub=${key#submodule.}         # -> "tpls/foo.url"
+    sub=${sub%.url}               # -> "tpls/foo"
+    path=$(git config --file .gitmodules --get "submodule.$sub.path")
+    lib=$(basename "$path")       # -> "foo"
+    dest="$tpls_dir/$lib"
+
+    echo "Processing submodule $lib at path $path ..."
+    repo="$(git config --file=.gitmodules submodule.$path.url)"
+    echo "Repository URL: $repo"
+
+    echo "Adding $dest as a safe.directory..."
+    sudo git config --global --add safe.directory "$dest"
+
+    commit="$(lookup_tpls_sha "$path")" || {
+      echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
+      exit 1
+    }
+    echo "Using commit $commit for $lib."
+
+    echo "Cloning $lib@$commit from $repo into $dest ..."
+    sudo git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
+    && sudo git -C "$dest" fetch --depth 1 origin "$commit" \
+    && sudo git -C "$dest" checkout --detach FETCH_HEAD \
+    || { echo "Failed to clone $lib"; continue; }
+  done
+  (return 0 2>/dev/null) && return 0 || exit 0
 fi
 
 if $install_all; then
@@ -404,53 +463,6 @@ if [ -n "$AWS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep aws)" ]; 
   else
     echo "AWS SDK already installed in $AWS_INSTALL_PREFIX."
   fi
-fi
-
-lookup_tpls_sha() {
-  local path="$1"
-
-  # Using lock file
-  if [[ -f /tmp/tpls_commits.lock ]]; then
-    awk -v p="$path" '$2==p{print $1}' /tmp/tpls_commits.lock && return 0
-  fi
-}
-
-# Clone the third-party libraries to include its source code in the NVQC docker image.
-if [ "$keep_sources" = true ]; then
-  echo "Cloning additional third-party libraries into $tpls_dir..."
-  sudo mkdir -p "$tpls_dir"
-  # make sure we are at the repo root
-  cd "$this_file_dir"
-
-  # for each submodule.<name>.url in .gitmodules
-  git config --file .gitmodules --get-regexp 'submodule\..*\.url' | \
-  while read -r key url; do
-    # key = "submodule.tpls/foo.url"
-    sub=${key#submodule.}         # -> "tpls/foo.url"
-    sub=${sub%.url}               # -> "tpls/foo"
-    path=$(git config --file .gitmodules --get "submodule.$sub.path")
-    lib=$(basename "$path")       # -> "foo"
-    dest="$tpls_dir/$lib"
-
-    echo "Processing submodule $lib at path $path ..."
-    repo="$(git config --file=.gitmodules submodule.$path.url)"
-    echo "Repository URL: $repo"
-
-    echo "Adding $dest as a safe.directory..."
-    sudo git config --global --add safe.directory "$dest"
-
-    commit="$(lookup_tpls_sha "$path")" || {
-      echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
-      exit 1
-    }
-    echo "Using commit $commit for $lib."
-
-    echo "Cloning $lib@$commit from $repo into $dest ..."
-    sudo git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
-    && sudo git -C "$dest" fetch --depth 1 origin "$commit" \
-    && sudo git -C "$dest" checkout --detach FETCH_HEAD \
-    || { echo "Failed to clone $lib"; continue; }
-  done
 fi
 
 # [cuQuantum and cuTensor] Needed for GPU-accelerated components
