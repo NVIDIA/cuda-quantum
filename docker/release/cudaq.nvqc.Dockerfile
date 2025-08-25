@@ -43,7 +43,7 @@ COPY .gitmodules /tmp/.gitmodules
 # Copy and run the install_prerequisites script into the image
 RUN if [ "${WITH_TPLS}" = "true" ]; then \
         echo "WITH_TPLS=true; adding install_prerequisites.sh"; \
-        bash /tmp/install_prerequisites.sh -m -k; \
+        bash /tmp/install_prerequisites.sh -l /tmp/tpls_commits.lock; \
     else \
         echo "Default build without prerequisites";  \
     fi
