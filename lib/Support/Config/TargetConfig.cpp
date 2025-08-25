@@ -370,13 +370,13 @@ std::string MappingTraits<cudaq::config::TargetConfig>::validate(
 
 void MappingTraits<cudaq::config::MachineCompileConfig>::mapping(
     IO &io, cudaq::config::MachineCompileConfig &info) {
-  io.mapOptional("ir-lowering-config", info.IrLoweringConfig);
-  io.mapOptional("codegen-spec", info.CodegenSpec);
+  io.mapOptional("platform-lowering-config", info.IrLoweringConfig);
+  io.mapOptional("codegen-emission", info.CodegenSpec);
 }
 
 void MappingTraits<cudaq::config::MachineArchitectureConfig>::mapping(
     IO &io, cudaq::config::MachineArchitectureConfig &info) {
-  io.mapRequired("name", info.Name);
+  io.mapRequired("arch-name", info.Name);
   io.mapOptional("machine-names", info.MachineNames);
   io.mapOptional("pattern", info.MachinePattern);
   io.mapRequired("config", info.Configuration);
