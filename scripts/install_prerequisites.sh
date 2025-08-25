@@ -16,15 +16,15 @@
 # bash install_prerequisites.sh
 #
 # For the libraries LLVM, BLAS, ZLIB, OPENSSL, CURL, CUQUANTUM, CUTENSOR, if the
-# library is not found the location defined by the corresponding environment variable 
-# *_INSTALL_PREFIX, it will be built from source and installed that location.
+# library is not found in the location defined by the corresponding environment variable
+# *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
 # can be used to customize which projects are built, and pybind11 will be built and 
 # installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
 # The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
 # is installed. 
 # 
-# By default, all prerequisites as outlines above are installed even if the
+# By default, all prerequisites outlined above are installed even if the
 # corresponding *_INSTALL_PREFIX is not defined. The command line flag -m changes
 # that behavior to only install the libraries for which this variable is defined.
 # A compiler toolchain, cmake, and ninja will be installed unless the the -m flag 
@@ -35,9 +35,14 @@
 toolchain=''
 exclude_prereq=''
 install_all=true
+tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
+tpls_dir="$tpls_root/tpls"
+sudo mkdir -p "$tpls_dir"
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+lock_file=""
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:m" opt; do
+while getopts ":e:t:ml:-:" opt; do
   case $opt in
     e) exclude_prereq="${OPTARG,,}"
     ;;
@@ -45,6 +50,19 @@ while getopts ":e:t:m" opt; do
     ;;
     m) install_all=false
     ;;
+    l) lock_file="$OPTARG"
+    ;;
+    -) case $OPTARG in
+          lock-file)
+            lock_file="${!OPTIND}"
+            OPTIND=$((OPTIND + 1))
+            ;;
+          *)
+            echo "Invalid long option --$OPTARG" >&2
+            (return 0 2>/dev/null) && return 1 || exit 1
+            ;;
+       esac
+       ;;
     :) echo "Option -$OPTARG requires an argument."
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
@@ -54,6 +72,63 @@ while getopts ":e:t:m" opt; do
   esac
 done
 OPTIND=$__optind__
+
+# Check if the lock file is present and then copy it to /tmp
+if [ -n "$lock_file" ]; then
+  if [ ! -f "$lock_file" ]; then
+    echo "Lock file $lock_file not found."
+    (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+  echo "Using lock file: $lock_file"
+fi
+
+lookup_tpls_sha() {
+  local path="$1"
+
+  # Using lock file
+  if [[ -f $lock_file ]]; then
+    awk -v p="$path" '$2==p{print $1}' "$lock_file" && return 0
+  fi
+}
+
+# Clone the third-party libraries to include its source code in the NVQC docker image.
+if [ -n "$lock_file" ]; then
+  echo "Cloning additional third-party libraries into $tpls_dir..."
+  sudo mkdir -p "$tpls_dir"
+  # make sure we are at the repo root
+  cd "$this_file_dir"
+
+  # for each submodule.<name>.url in .gitmodules
+  git config --file .gitmodules --get-regexp 'submodule\..*\.url' | \
+  while read -r key url; do
+    # key = "submodule.tpls/foo.url"
+    sub=${key#submodule.}         # -> "tpls/foo.url"
+    sub=${sub%.url}               # -> "tpls/foo"
+    path=$(git config --file .gitmodules --get "submodule.$sub.path")
+    lib=$(basename "$path")       # -> "foo"
+    dest="$tpls_dir/$lib"
+
+    echo "Processing submodule $lib at path $path ..."
+    repo="$(git config --file=.gitmodules submodule.$path.url)"
+    echo "Repository URL: $repo"
+
+    echo "Adding $dest as a safe.directory..."
+    sudo git config --global --add safe.directory "$dest"
+
+    commit="$(lookup_tpls_sha "$path")" || {
+      echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
+      exit 1
+    }
+    echo "Using commit $commit for $lib."
+
+    echo "Cloning $lib@$commit from $repo into $dest ..."
+    sudo git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
+    && sudo git -C "$dest" fetch --depth 1 origin "$commit" \
+    && sudo git -C "$dest" checkout --detach FETCH_HEAD \
+    || { echo "Failed to clone $lib"; continue; }
+  done
+  (return 0 2>/dev/null) && return 0 || exit 0
+fi
 
 if $install_all; then
   LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
