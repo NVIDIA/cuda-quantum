@@ -280,3 +280,76 @@ Submitting
     The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
 
 To see a complete example, take a look at :ref:`OQC examples <oqc-examples>`.
+
+
+Quantum Circuits, Inc.
++++++++++++++++++++++++
+
+.. _qci-backend:
+
+As part of its first phase of integration with CUDA-Q,
+`Quantum Circuits <https://quantumcircuits.com/>`__ offers users the ability to simulate CUDA-Q
+programs using its simulator, AquSim. AquSim is the first simulator that models error detection and
+real-time control of Quantum Circuits' Dual-Rail Cavity Qubit systems, and uses a Monte Carlo
+approach to do so on a shot-by-shot basis.
+
+In this first phase, the supported features include all of the single and two-qubit gates offered by
+CUDA-Q, together with real-time conditional logic enabled by feed-forward capability. AquSim is
+currently wired to support ideal simulations only and noise models will be added in future
+iterations.
+
+With C++ and Python programming supported, users are able to prototype, test and explore quantum
+applications in CUDA-Q in preparation for upcoming releases targeting Quantum Circuits QPUs.
+Examples are provided to get started.
+
+Users who wish to get started with running CUDA-Q on AquSim should visit our
+`Explore <https://quantumcircuits.com/explore/>`__ page to learn more about the Quantum Circuits
+Strategic Quantum Release Program.
+
+Submitting
+`````````````````````````
+
+Until CUDA-Q release 0.13.0 is available, the integration with Quantum Circuits will be supported
+through the nightly build Docker images.
+
+Instructions on how to install and get started with CUDA-Q using Docker can be found :ref:`here <install-docker-image>`.
+
+You may present your user token to Quantum Circuits via CUDA-Q by setting an environment variable
+named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program.
+
+.. code:: bash
+
+    export QCI_AUTH_TOKEN="example-token"
+
+
+.. tab:: Python
+
+        To set the target to Quantum Circuits, add the following to your Python
+        program:
+
+        .. code:: python
+
+            cudaq.set_target('qci')
+            [... your Python here]
+
+        To run on AquSim, simply execute the script using your Python interpreter.
+
+.. tab:: C++
+
+        When executing programs in C++, they must first be compiled using the
+        CUDA-Q nvq++ compiler, and then submitted to run on AquSim.
+
+        Note that your token is fetched from your environment at run time, not at compile time.
+
+        In the example below, the compilation step shows two flags being passed to the nvq++
+        compiler: the Quantum Circuits target :code:`--target qci`, and the output file
+        :code:`-o example.x`.  The second line executes the program against AquSim. Here are the
+        shell commands in full:
+
+        .. code:: bash
+
+            nvq++ example.cpp --target qci -o example.x
+            ./example.x
+
+To see a complete example of using Quantum Circuits' backends, please take a look at the
+:ref:`Quantum Circuits examples <quantum-circuits-examples>`.
