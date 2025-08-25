@@ -701,12 +701,17 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
   return __internal__::evolve_async(
       [=, cOps = std::move(collapseOperators),
        obs = std::move(observableOperators)]() {
+        // This is a dummy/unused execution context.
+        // We used this to set the execution context for the QPU, which performs
+        // GPU Id selection based on the QPU Id.
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
         state localizedState = cudaq::__internal__::migrateState(initial_state);
-        return evolve(hamiltonian, dimensions, schedule, localizedState,
-                      *cloneIntegrator, cOps, obs, store_intermediate_results,
-                      shots_count);
+        const auto result = evolve(hamiltonian, dimensions, schedule,
+                                   localizedState, *cloneIntegrator, cOps, obs,
+                                   store_intermediate_results, shots_count);
+        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        return result;
       },
       qpu_id);
 
@@ -740,12 +745,17 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
   auto cloneIntegrator = integrator.clone();
   return __internal__::evolve_async(
       [=]() {
+        // This is a dummy/unused execution context.
+        // We used this to set the execution context for the QPU, which performs
+        // GPU Id selection based on the QPU Id.
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
         state localizedState = cudaq::__internal__::migrateState(initial_state);
-        return evolve(hamiltonian, dimensions, schedule, localizedState,
-                      *cloneIntegrator, collapse_operators, observables,
-                      store_intermediate_results, shots_count);
+        auto result = evolve(hamiltonian, dimensions, schedule, localizedState,
+                             *cloneIntegrator, collapse_operators, observables,
+                             store_intermediate_results, shots_count);
+        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        return result;
       },
       qpu_id);
 #else
@@ -775,12 +785,17 @@ evolve_async(const super_op &super_op, const cudaq::dimension_map &dimensions,
   auto observableOperators = cudaq::__internal__::convertOps(observables);
   return __internal__::evolve_async(
       [=, obs = std::move(observableOperators)]() {
+        // This is a dummy/unused execution context.
+        // We used this to set the execution context for the QPU, which performs
+        // GPU Id selection based on the QPU Id.
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
         state localizedState = cudaq::__internal__::migrateState(initial_state);
-        return evolve(super_op, dimensions, schedule, localizedState,
-                      *cloneIntegrator, obs, store_intermediate_results,
-                      shots_count);
+        auto result = evolve(super_op, dimensions, schedule, localizedState,
+                             *cloneIntegrator, obs, store_intermediate_results,
+                             shots_count);
+        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        return result;
       },
       qpu_id);
 
@@ -806,7 +821,9 @@ evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
       [=]() {
         ExecutionContext context("evolve");
         cudaq::get_platform().set_exec_ctx(&context, qpu_id);
-        return evolve(hamiltonian, schedule, shots_count);
+        auto result = evolve(hamiltonian, schedule, shots_count);
+        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        return result;
       },
       qpu_id);
 }

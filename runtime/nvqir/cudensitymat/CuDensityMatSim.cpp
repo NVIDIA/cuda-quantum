@@ -127,6 +127,18 @@ public:
     return std::make_unique<cudaq::CuDensityMatState>();
   }
 
+  void resetExecutionContext() override {
+    // If null, do nothing
+    if (!executionContext)
+      return;
+    // Just check that the dynamics target was not invoked in gate simulation
+    // contexts.
+    if (executionContext->name != "evolve")
+      throw std::runtime_error(fmt::format(
+          "[dynamics target] Execution context '{}' is not supported.",
+          executionContext->name));
+  }
+
   void addQubitToState() override {
     throw std::runtime_error(
         "[dynamics target] Quantum gate simulation is not supported.");
