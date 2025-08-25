@@ -16,7 +16,7 @@ Moreover, since quantum kernels are functions, there is more expressibility avai
 standard quantum circuit. We can not only parameterize the kernel, but can also contain classical control
 flow statements (`if`, `for`, `while`, etc.), and classical computations such as additions, multiplication, etc.
 Conditional statements on quantum memory and qubit measurements can be included in quantum kernels to enable 
-dynamic circuits and fast feedback, particularly useful for quantum error correction. To learn more about what
+dynamic circuits and fast feedback, which are particularly useful for quantum error correction. To learn more about what
 language constructs are supported within quantum kernels, take a look at the CUDA-Q 
 :doc:`specification <../../specification/cudaq/kernels>`.
 
