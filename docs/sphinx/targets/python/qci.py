@@ -8,7 +8,7 @@ import cudaq
 #
 # The example will run on QCI's AquSim simulator by default.
 
-cudaq.set_target('qci')
+cudaq.set_target("qci")
 
 
 @cudaq.kernel
