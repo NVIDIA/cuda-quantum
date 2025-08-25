@@ -35,7 +35,6 @@
 toolchain=''
 exclude_prereq=''
 install_all=true
-keep_sources=false
 tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
 tpls_dir="$tpls_root/tpls"
 sudo mkdir -p "$tpls_dir"
