@@ -120,6 +120,9 @@ enum class KrausChannelDataKind { FloatKind, DoubleKind };
 static constexpr const char QISApplyKrausChannel[] =
     "__quantum__qis__apply_kraus_channel_generalized";
 
+static constexpr const char QISDisableNoise[] = "__quantum__qis__disable_noise";
+static constexpr const char QISEnableNoise[] = "__quantum__qis__enable_noise";
+
 static constexpr const char QISTrap[] = "__quantum__qis__trap";
 
 /// Since apply noise is actually a call back to `C++` code, the `QIR` data type

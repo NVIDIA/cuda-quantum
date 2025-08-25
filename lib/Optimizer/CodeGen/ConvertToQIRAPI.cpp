@@ -284,6 +284,31 @@ struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+struct DisableNoiseOpRewrite
+    : public OpConversionPattern<quake::DisableNoiseOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::DisableNoiseOp noise, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        noise, TypeRange{}, cudaq::opt::QISDisableNoise, ValueRange{});
+    return success();
+  }
+};
+
+struct EnableNoiseOpRewrite : public OpConversionPattern<quake::EnableNoiseOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::EnableNoiseOp noise, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        noise, TypeRange{}, cudaq::opt::QISEnableNoise, ValueRange{});
+    return success();
+  }
+};
+
 template <typename M>
 struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1776,7 +1801,7 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
-        ApplyNoiseOpRewrite<Self>,
+        ApplyNoiseOpRewrite<Self>, DisableNoiseOpRewrite, EnableNoiseOpRewrite,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,

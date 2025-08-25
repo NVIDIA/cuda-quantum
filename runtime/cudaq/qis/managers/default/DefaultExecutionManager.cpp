@@ -223,7 +223,7 @@ protected:
 
   void applyNoise(const kraus_channel &channel,
                   const std::vector<QuditInfo> &targets) override {
-    if (isInTracerMode())
+    if (isInTracerMode() || noiseDisabled)
       return;
 
     flushGateQueue();
