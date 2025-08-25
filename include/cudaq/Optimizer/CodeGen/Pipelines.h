@@ -27,23 +27,17 @@ namespace cudaq::opt {
 /// final `codegen`, in the pipeline. Typically, \p codeGenFor and \p
 /// passConfigAs will have identical values.
 void commonPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef codeGenFor = "qir",
-                                mlir::StringRef passConfigAs = "qir",
-                                bool qirVersionUnderDevelopment = false);
-
-/// \brief Pipeline builder to convert Quake to QIR.
-/// Does not specify a particular QIR profile.
-inline void addPipelineConvertToQIR(mlir::PassManager &pm,
-                                    bool qirVersionUnderDevelopment) {
-  commonPipelineConvertToQIR(pm, "qir", "qir", qirVersionUnderDevelopment);
-}
+                                mlir::StringRef codeGenFor = "qir:0.1",
+                                mlir::StringRef passConfigAs = "qir:0.1");
 
 /// \brief Pipeline builder to convert Quake to QIR.
 /// Specifies a particular QIR profile in \p convertTo.
 /// \p pm Pass manager to append passes to
-/// \p convertTo name of QIR profile (e.g., `qir-base`, `qir-adaptive`, ...)
-void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo,
-                             bool qirVersionUnderDevelopment);
+/// \p convertTo QIR triple
+/// The QIR triple is a name indicating the selected profile (`qir`, `qir-full`,
+/// `qir-base`, or `qir-adaptive`) followed by an optional `:` and QIR version
+/// followed by an optional `:` and a list of `suboptions`.
+void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
 
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 
