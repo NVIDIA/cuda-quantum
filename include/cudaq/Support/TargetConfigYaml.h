@@ -16,6 +16,7 @@ LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::TargetFeatureFlag)
 LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::TargetArgument)
 LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::ConditionalBuildConfig)
 LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::BackendFeatureMap)
+LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::MachineArchitectureConfig)
 
 namespace llvm {
 namespace yaml {
@@ -33,6 +34,7 @@ struct ScalarEnumerationTraits<cudaq::config::ArgumentType> {
 template <>
 struct MappingTraits<cudaq::config::TargetArgument> {
   static void mapping(IO &io, cudaq::config::TargetArgument &info);
+  static std::string validate(IO &io, cudaq::config::TargetArgument &info);
 };
 
 template <>
@@ -59,7 +61,19 @@ struct MappingTraits<cudaq::config::BackendFeatureMap> {
 template <>
 struct MappingTraits<cudaq::config::TargetConfig> {
   static void mapping(IO &io, cudaq::config::TargetConfig &info);
+  static std::string validate(IO &io, cudaq::config::TargetConfig &info);
 };
 
+template <>
+struct MappingTraits<cudaq::config::MachineCompileConfig> {
+  static void mapping(IO &io, cudaq::config::MachineCompileConfig &info);
+};
+
+template <>
+struct MappingTraits<cudaq::config::MachineArchitectureConfig> {
+  static void mapping(IO &io, cudaq::config::MachineArchitectureConfig &info);
+  static std::string validate(IO &io,
+                              cudaq::config::MachineArchitectureConfig &info);
+};
 } // namespace yaml
 } // namespace llvm

@@ -261,6 +261,8 @@ void ScalarEnumerationTraits<cudaq::config::ArgumentType>::enumeration(
   io.enumCase(value, "integer", cudaq::config::ArgumentType::Int);
   io.enumCase(value, "uuid", cudaq::config::ArgumentType::UUID);
   io.enumCase(value, "option-flags", cudaq::config::ArgumentType::FeatureFlag);
+  io.enumCase(value, "machine-config",
+              cudaq::config::ArgumentType::MachineConfig);
 }
 
 void MappingTraits<cudaq::config::TargetArgument>::mapping(
@@ -270,6 +272,15 @@ void MappingTraits<cudaq::config::TargetArgument>::mapping(
   io.mapOptional("platform-arg", info.PlatformArgKey);
   io.mapOptional("help-string", info.HelpString);
   io.mapOptional("type", info.Type);
+  io.mapOptional("machine-config", info.MachineConfigs);
+}
+
+std::string MappingTraits<cudaq::config::TargetArgument>::validate(
+    IO &io, cudaq::config::TargetArgument &info) {
+  if (!info.MachineConfigs.empty() &&
+      info.Type != cudaq::config::ArgumentType::MachineConfig)
+    return "If 'machine-config' is provided, 'type' must be 'machine-config'.";
+  return "";
 }
 
 void BlockScalarTraits<cudaq::config::SimulationBackendSetting>::output(
@@ -342,5 +353,59 @@ void MappingTraits<cudaq::config::TargetConfig>::mapping(
   io.mapOptional("configuration-matrix", info.ConfigMap);
 }
 
+std::string MappingTraits<cudaq::config::TargetConfig>::validate(
+    IO &io, cudaq::config::TargetConfig &info) {
+  // There should only ever be 1 machine-configuration entry in the target
+  // arguments.
+  int count = 0;
+  for (const auto &targetArg : info.TargetArguments) {
+    if (targetArg.Type == cudaq::config::ArgumentType::MachineConfig)
+      count++;
+  }
+  if (count > 1)
+    return "There should only ever be 1 machine-configuration entry in the "
+           "target arguments.";
+  return std::string();
+}
+
+void MappingTraits<cudaq::config::MachineCompileConfig>::mapping(
+    IO &io, cudaq::config::MachineCompileConfig &info) {
+  io.mapOptional("ir-lowering-config", info.IrLoweringConfig);
+  io.mapOptional("codegen-spec", info.CodegenSpec);
+}
+
+void MappingTraits<cudaq::config::MachineArchitectureConfig>::mapping(
+    IO &io, cudaq::config::MachineArchitectureConfig &info) {
+  io.mapRequired("name", info.Name);
+  io.mapOptional("machine-names", info.MachineNames);
+  io.mapOptional("pattern", info.MachinePattern);
+  io.mapRequired("config", info.Configuration);
+}
+
+std::string MappingTraits<cudaq::config::MachineArchitectureConfig>::validate(
+    IO &io, cudaq::config::MachineArchitectureConfig &info) {
+  if (info.MachineNames.empty() && info.MachinePattern.empty())
+    return "Either 'machine-names' or 'pattern' must be specified.";
+
+  if (!info.MachinePattern.empty()) {
+    // Check if this is a valid regex
+    llvm::Regex re(info.MachinePattern);
+    std::string errorIfAny;
+    if (!re.isValid(errorIfAny)) {
+      std::stringstream ss;
+      ss << "'" << info.MachinePattern
+         << "' is not a valid regex: " << errorIfAny;
+      return ss.str();
+    }
+  }
+  return std::string();
+}
 } // namespace yaml
 } // namespace llvm
+
+std::string cudaq::config::TargetConfig::getCodeGenSpec(
+    const std::vector<std::string> &targetArgv) const {
+  // TODO: determine the code gen config based on CLI argument
+
+  return "";
+}

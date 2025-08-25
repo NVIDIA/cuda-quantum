@@ -27,9 +27,24 @@ enum TargetFeatureFlag : unsigned {
   flagsQPP = 0x0020,
 };
 
-/// @brief Configuration argument type annotation
+/// CodegenEmission Configuration argument type annotation
 // e.g., to support type validation.
-enum class ArgumentType { String, Int, UUID, FeatureFlag };
+enum class ArgumentType { String, Int, UUID, FeatureFlag, MachineConfig };
+
+/// @brief Machine-specific compilation configuration
+struct MachineCompileConfig {
+  /// IR lowering configuration, specific to a machine
+  std::string IrLoweringConfig;
+  /// Codegen emission specification
+  std::string CodegenSpec;
+};
+
+struct MachineArchitectureConfig {
+  std::string Name;
+  std::vector<std::string> MachineNames;
+  std::string MachinePattern;
+  MachineCompileConfig Configuration;
+};
 
 /// @brief Encapsulates target-specific arguments
 struct TargetArgument {
@@ -44,6 +59,9 @@ struct TargetArgument {
   std::string HelpString;
   /// Type of the expected input value.
   ArgumentType Type = ArgumentType::String;
+  /// Machine configuration (optional, valid if this argument is for a machine
+  /// configuration specification)
+  std::vector<MachineArchitectureConfig> MachineConfigs;
 };
 
 /// NVQIR simulator backend setting.
@@ -133,6 +151,10 @@ public:
   std::optional<BackendEndConfigEntry> BackendConfig;
   /// Additional configuration mapping (if this is a multi-configuration target)
   std::vector<BackendFeatureMap> ConfigMap;
+
+public:
+  // Helper to determine the configs based on CLI arguments
+  std::string getCodeGenSpec(const std::vector<std::string> &targetArgv) const;
 };
 
 /// Process the target configuration into a `nvq++` compatible script according
