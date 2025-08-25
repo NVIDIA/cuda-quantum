@@ -10,6 +10,7 @@ import os
 from multiprocessing import Process
 
 import cudaq
+from cudaq import spin
 import pytest
 from network_utils import check_server_connection
 
@@ -23,8 +24,13 @@ except:
 port = 62449
 
 
+def assert_close(got) -> bool:
+    return got < -1.1 and got > -2.9
+
+
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
+    cudaq.set_random_seed(42)
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -83,6 +89,43 @@ def test_sample():
     assert len(counts) == 2
     assert "00" in counts
     assert "11" in counts
+
+
+def test_observe():
+    # Create the parameterized ansatz
+    @cudaq.kernel
+    def ansatz(theta: float):
+        qreg = cudaq.qvector(2)
+        x(qreg[0])
+        ry(theta, qreg[1])
+        x.ctrl(qreg[1], qreg[0])
+
+    # Define its spin Hamiltonian.
+    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
+        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
+
+    # Run the observe task on synchronously
+    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100)
+    assert assert_close(res.expectation())
+
+    # Launch it asynchronously, enters the job into the queue
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    # Retrieve the results (since we're on a mock server)
+    res = future.get()
+    assert assert_close(res.expectation())
+
+    # Launch the job async, job goes in the queue, and
+    # we're free to dump the future to file
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    print(future)
+    futureAsString = str(future)
+
+    # Later you can come back and read it in
+    # You must provide the spin_op so we can reconstruct
+    # the results from the term job ids.
+    futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
+    res = futureReadIn.get()
+    assert assert_close(res.expectation())
 
 
 # leave for gdb debugging

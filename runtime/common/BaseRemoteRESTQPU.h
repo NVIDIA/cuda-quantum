@@ -69,7 +69,7 @@ bool isUsingResourceCounterSimulator();
 
 namespace cudaq {
 
-class BaseRemoteRESTQPU : public cudaq::QPU {
+class BaseRemoteRESTQPU : public QPU {
 protected:
   /// The number of shots
   std::optional<int> nShots;
@@ -317,11 +317,11 @@ public:
       if (!config.BackendConfig->CodegenEmission.empty()) {
         cudaq::info("Set codegen translation: {}",
                     config.BackendConfig->CodegenEmission);
-        auto [codeGenName, codeGenOptions] = parseCodeGenTranslationString(
-            config.BackendConfig->CodegenEmission);
-        codegenTranslation = codeGenName;
-        if (codegenTranslation == "qir-adaptive") {
-          for (const auto &option : codeGenOptions) {
+        codegenTranslation = config.BackendConfig->CodegenEmission;
+        auto [codeGenName, codeGenVersion, codeGenOptions] =
+            parseCodeGenTranslationString(codegenTranslation);
+        if (codeGenName == "qir-adaptive") {
+          for (auto option : codeGenOptions) {
             if (option == "int_computations") {
               cudaq::info("Enable int_computations extension");
               qirIntegerExtension = true;
@@ -334,7 +334,7 @@ public:
             } else {
               throw std::runtime_error(
                   fmt::format("Invalid option '{}' for '{}' codegen.", option,
-                              codegenTranslation));
+                              codeGenName));
             }
           }
         } else {
@@ -342,7 +342,7 @@ public:
             throw std::runtime_error(fmt::format(
                 "Invalid codegen-emission '{}'. Extra options are not "
                 "supported for '{}' codegen.",
-                config.BackendConfig->CodegenEmission, codegenTranslation));
+                config.BackendConfig->CodegenEmission, codeGenName));
         }
       }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
@@ -352,7 +352,7 @@ public:
       }
     }
     std::string allowEarlyExitSetting =
-        (codegenTranslation == "qir-adaptive") ? "1" : "0";
+        (codegenTranslation.starts_with("qir-adaptive")) ? "1" : "0";
 
     passPipelineConfig =
         std::string(
@@ -772,29 +772,22 @@ public:
         runPassPipeline("func.func(combine-measurements)", module);
 
     // Get the code gen translation
-    auto translation = [&]() {
-      if (codegenTranslation == "qir-adaptive") {
-        if (qirIntegerExtension && qirFloatExtension)
-          return cudaq::getTranslation("qir-adaptive-if");
-        else if (qirIntegerExtension)
-          return cudaq::getTranslation("qir-adaptive-i");
-        else if (qirIntegerExtension)
-          return cudaq::getTranslation("qir-adaptive-f");
-        else
-          return cudaq::getTranslation("qir-adaptive");
-      }
-
-      return cudaq::getTranslation(codegenTranslation);
-    }();
+    auto translation = cudaq::getTranslation(codegenTranslation);
 
     // Apply user-specified codegen
     std::vector<cudaq::KernelExecution> codes;
     for (auto &[name, moduleOpI] : modules) {
       std::string codeStr;
-      {
-        llvm::raw_string_ostream outStr(codeStr);
-        if (disableMLIRthreading)
-          moduleOpI.getContext()->disableMultithreading();
+      llvm::raw_string_ostream outStr(codeStr);
+      if (disableMLIRthreading)
+        moduleOpI.getContext()->disableMultithreading();
+      if (codegenTranslation.starts_with("qir")) {
+        if (failed(translation(moduleOpI, codegenTranslation, outStr,
+                               postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      } else {
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
                                enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
@@ -1010,32 +1003,27 @@ public:
 private:
   /// @brief Helper to parse `codegen` translation, with optional feature
   /// annotation.
-  // e.g., "qir-adaptive[int_computations, float_computations]"
-  static std::pair<std::string, std::vector<std::string>>
+  // e.g., "qir-adaptive:0.2:int_computations,float_computations"
+  static std::tuple<std::string, std::string, std::vector<std::string>>
   parseCodeGenTranslationString(const std::string &settingStr) {
-    const auto openBracketPos = settingStr.find_first_of('[');
-    if (openBracketPos == std::string::npos)
-      return std::make_pair(settingStr, std::vector<std::string>{});
-    std::string codeGenName = settingStr.substr(0, openBracketPos);
-    cudaq::trim(codeGenName);
-    std::string options = settingStr.substr(openBracketPos);
-    cudaq::trim(options);
-    // Check for closing bracket
-    if (!options.ends_with(']'))
-      throw std::runtime_error(fmt::format(
-          "Invalid codegen-emission string '{}', missing closing bracket.",
-          settingStr));
-    // pedantic check
-    assert(options.starts_with('['));
-    options = options.substr(1, options.size() - 2);
-    cudaq::trim(options);
-    if (options.empty())
-      return std::make_pair(codeGenName, std::vector<std::string>{});
-    auto splits = cudaq::split(options, ',');
-    for (auto &part : splits)
-      cudaq::trim(part);
-
-    return std::make_pair(codeGenName, splits);
+    llvm::StringRef transportTriple{settingStr};
+    llvm::SmallVector<llvm::StringRef> transportFields;
+    transportTriple.split(transportFields, ":");
+    auto size = transportFields.size();
+    if (size == 1)
+      return {transportFields[0].str(), {}, {}};
+    if (size == 2)
+      return {transportFields[0].str(), transportFields[1].str(), {}};
+    if (size == 3) {
+      llvm::SmallVector<llvm::StringRef> options;
+      transportFields[2].split(options, ",");
+      std::vector<std::string> optionsCopy;
+      for (auto o : options)
+        optionsCopy.push_back(o.str());
+      return {transportFields[0].str(), transportFields[1].str(), optionsCopy};
+    }
+    throw std::runtime_error(
+        fmt::format("Invalid codegen-emission string '{}'.", settingStr));
   }
 };
 } // namespace cudaq
