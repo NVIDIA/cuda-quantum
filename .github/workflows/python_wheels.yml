@@ -34,6 +34,8 @@ on:
         required: true
       DOCKERHUB_READONLY_TOKEN:
         required: true
+      ANACONDA_TOKEN:
+        required: true
 
 name: Python wheels
 
