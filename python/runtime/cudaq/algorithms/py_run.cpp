@@ -80,7 +80,7 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
 static details::RunResultSpan
 pyRunTheKernel(const std::string &name, const std::string &origName,
-               MlirModule module, mlir::func::FuncOp funcOp, 
+               MlirModule module, mlir::func::FuncOp funcOp,
                mlir::func::FuncOp origKernel, OpaqueArguments &runtimeArgs,
                quantum_platform &platform, std::size_t shots_count,
                std::size_t qpu_id = 0) {
