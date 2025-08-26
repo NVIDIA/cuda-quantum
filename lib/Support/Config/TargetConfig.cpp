@@ -357,7 +357,7 @@ std::string MappingTraits<cudaq::config::TargetConfig>::validate(
     IO &io, cudaq::config::TargetConfig &info) {
   // There should only ever be 1 machine-configuration entry in the target
   // arguments.
-  int count = 0;
+  unsigned count = 0;
   for (const auto &targetArg : info.TargetArguments) {
     if (targetArg.Type == cudaq::config::ArgumentType::MachineConfig)
       count++;
