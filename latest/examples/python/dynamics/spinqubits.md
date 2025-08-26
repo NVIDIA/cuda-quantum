@@ -216,6 +216,9 @@ latest
             .internal}
         -   [Quantinuum](../../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -890,6 +893,9 @@ latest
             -   [IQM](../../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../../using/backends/hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](../../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../../using/backends/hardware/neutralatom.html){.reference
