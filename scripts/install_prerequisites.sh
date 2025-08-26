@@ -70,11 +70,6 @@ while getopts ":e:t:ml:-:" opt; do
 done
 OPTIND=$__optind__
 
-if [ ! -f "$lock_file" ]; then
-  echo "Lock file $lock_file not found."
-  (return 0 2>/dev/null) && return 1 || exit 1
-fi
-
 lookup_tpls_sha() {
   local path="$1"
 
@@ -86,6 +81,11 @@ lookup_tpls_sha() {
 
 # Clone the third-party libraries to include its source code in the NVQC docker image.
 if [ -n "$lock_file" ]; then
+  if [ ! -f "$lock_file" ]; then
+    echo "Lock file $lock_file not found."
+    (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+
   echo "Using lock file: $lock_file"
 
   tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
