@@ -35,11 +35,8 @@
 toolchain=''
 exclude_prereq=''
 install_all=true
-tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
-tpls_dir="$tpls_root/tpls"
-sudo mkdir -p "$tpls_dir"
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 lock_file=""
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":e:t:ml:-:" opt; do
@@ -73,13 +70,9 @@ while getopts ":e:t:ml:-:" opt; do
 done
 OPTIND=$__optind__
 
-# Check if the lock file is present and then copy it to /tmp
-if [ -n "$lock_file" ]; then
-  if [ ! -f "$lock_file" ]; then
-    echo "Lock file $lock_file not found."
-    (return 0 2>/dev/null) && return 1 || exit 1
-  fi
-  echo "Using lock file: $lock_file"
+if [ ! -f "$lock_file" ]; then
+  echo "Lock file $lock_file not found."
+  (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
 lookup_tpls_sha() {
@@ -93,8 +86,15 @@ lookup_tpls_sha() {
 
 # Clone the third-party libraries to include its source code in the NVQC docker image.
 if [ -n "$lock_file" ]; then
+  echo "Using lock file: $lock_file"
+
+  tpls_root="${CUDAQ_INSTALL_PREFIX:-/opt/cuda}"
+  tpls_dir="$tpls_root/tpls"
+  mkdir -p "$tpls_dir"
+  this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+
   echo "Cloning additional third-party libraries into $tpls_dir..."
-  sudo mkdir -p "$tpls_dir"
+  mkdir -p "$tpls_dir"
   # make sure we are at the repo root
   cd "$this_file_dir"
 
@@ -112,9 +112,6 @@ if [ -n "$lock_file" ]; then
     repo="$(git config --file=.gitmodules submodule.$path.url)"
     echo "Repository URL: $repo"
 
-    echo "Adding $dest as a safe.directory..."
-    sudo git config --global --add safe.directory "$dest"
-
     commit="$(lookup_tpls_sha "$path")" || {
       echo "ERROR: could not resolve pinned commit for $path. Aborting $lib." >&2
       exit 1
@@ -122,9 +119,9 @@ if [ -n "$lock_file" ]; then
     echo "Using commit $commit for $lib."
 
     echo "Cloning $lib@$commit from $repo into $dest ..."
-    sudo git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
-    && sudo git -C "$dest" fetch --depth 1 origin "$commit" \
-    && sudo git -C "$dest" checkout --detach FETCH_HEAD \
+    git clone --no-checkout --filter=tree:0 "$repo" "$dest" \
+    && git -C "$dest" fetch --depth 1 origin "$commit" \
+    && git -C "$dest" checkout --detach FETCH_HEAD \
     || { echo "Failed to clone $lib"; continue; }
   done
   (return 0 2>/dev/null) && return 0 || exit 0

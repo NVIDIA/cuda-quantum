@@ -31,13 +31,12 @@ RUN echo "Build with prerequisites"
 RUN sudo mkdir -p /tmp
 COPY --chmod=0755 scripts/install_prerequisites.sh /tmp/install_prerequisites.sh
 COPY .gitmodules /tmp/.gitmodules
-# Use the following command to generate the tpls_commits.lock file which
-# contains the pinned commits for the submodules in /tpls directory. This is
-# needed to generate NVQC image with tpls source code.
-RUN git config --file .gitmodules --get-regexp '^submodule\..*\.path$' \
-        | awk '{print $2}' \
-        | while read p; do printf "%s %s\n" "$(git rev-parse HEAD:$p)" "$p"; done \
-        > /tmp/tpls_commits.lock
+# Manually run this command locally to create tpls_commits.lock file
+# git config --file .gitmodules --get-regexp '^submodule\..*\.path$' \
+#         | awk '{print $2}' \
+#         | while read p; do printf "%s %s\n" "$(git rev-parse HEAD:$p)" "$p"; done \
+#         > tpls_commits.lock
+COPY tpls_commits.lock /tmp/tpls_commits.lock
 RUN sudo bash /tmp/install_prerequisites.sh -l /tmp/tpls_commits.lock
 
 # Without prerequisites
