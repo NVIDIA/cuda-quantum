@@ -163,7 +163,6 @@ public:
   /// Additional configuration mapping (if this is a multi-configuration target)
   std::vector<BackendFeatureMap> ConfigMap;
 
-public:
   // Helper to determine the codegen config based on CLI arguments
   std::string
   getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
