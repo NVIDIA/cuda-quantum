@@ -219,6 +219,7 @@ public:
                         [](const auto &ss, const auto &s) {
                           return ss.empty() ? s : ss + "," + s;
                         });
+    // TODO: replace environment variable with runtime configuration
     if (getEnvBool("CUDAQ_PHASE_FOLDING", false))
       pipeline = pipeline +
                  "classical-optimization-pipeline,aggressive-early-inlining,"
