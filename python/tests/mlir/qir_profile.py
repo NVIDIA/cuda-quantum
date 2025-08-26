@@ -24,6 +24,7 @@ def test_qir_profile():
     cudaq.set_target('quantinuum', emulate=True, machine='H1-2E')
     result = cudaq.sample(my_kernel)
 
+
 def test_ng_qir_profile():
 
     @cudaq.kernel
@@ -35,6 +36,7 @@ def test_ng_qir_profile():
     # This device requires qir:0.2
     cudaq.set_target('quantinuum', emulate=True, machine='Helios-1E')
     result = cudaq.sample(my_kernel)
+
 
 # CHECK: requiredQubits
 # CHECK: requiredResults
