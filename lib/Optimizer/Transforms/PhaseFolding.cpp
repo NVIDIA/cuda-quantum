@@ -389,6 +389,15 @@ public:
 
   /// @brief Gets the number of RZs in the subcircuit
   size_t getNumRotations() { return num_rot_gates; }
+
+  /// @returns The percentage of operations in the subcircuit
+  /// that are `quake.rz`s.
+  float getRotationWeight() {
+    return (float)getNumRotations() / (float)getNumOps();
+  }
+
+  /// @brief Gets the number of operations in the subcircuit
+  size_t getNumOps() { return ops.size(); }
 };
 
 struct PhaseVariable {
