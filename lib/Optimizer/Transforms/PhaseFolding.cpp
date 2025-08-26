@@ -236,10 +236,7 @@ protected:
 
   public:
     NetlistWrapper(Subcircuit *subcircuit, SmallVector<Operation *> *nl,
-                   Operation *anchor_point, Value def) {
-      this->nl = nl;
-      this->subcircuit = subcircuit;
-      this->def = def;
+                   Operation *anchor_point, Value def): nl(nl), subcircuit(subcircuit), def(def) {
       processFrom(getIndexOf(anchor_point));
     }
 
@@ -464,8 +461,7 @@ public:
   /// @brief Returns a new phase equal to `p1` with the opposite inversion flag
   static Phase invert(Phase &p1) {
     auto new_phase = Phase();
-    for (auto var : p1.vars)
-      new_phase.vars.insert(var);
+    new_phase.vars.insert(p1.vars.begin(), p1.vars.end());
     new_phase.isInverted = !p1.isInverted;
     return new_phase;
   }
