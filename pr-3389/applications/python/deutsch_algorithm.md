@@ -218,6 +218,9 @@ pr-3389
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -857,6 +860,9 @@ pr-3389
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1761,7 +1767,7 @@ number, the result is 0 otherwise 1.
 Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------------------------
 
-![07be88bc1c46436b8bb9fecfb7e15110](../../_images/oracle.png){.no-scaled-link}
+![c0118edc16564441b2d4a820b00cc166](../../_images/oracle.png){.no-scaled-link}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
 .notranslate .nohighlight}. We can compute this function on a quantum
@@ -1868,7 +1874,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![4cd2208fd3294a2c8c8cb79aeaefe401](../../_images/deutsch.png){.no-scaled-link}
+![acb348762c1847ffb25c919f57d1c626](../../_images/deutsch.png){.no-scaled-link}
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\ket{\\psi\_0} = \\ket{01} \\tag{1}\\\]

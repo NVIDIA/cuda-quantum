@@ -210,6 +210,9 @@ pr-3389
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -891,6 +894,9 @@ pr-3389
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1671,14 +1677,14 @@ line example would look like
 `CUDAQ_MGPU_FUSE=4 python c2h2VQE.py --target nvidia --target-option fp64,mgpu`{.docutils
 .literal .notranslate}
 
-![ca368e3022c74acdb2b4459b617d4c1e](../../_images/gate-fuse.png)
+![50c73c3c87ca4e37b50cb83835808e54](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![0a56552b0f3045daac5f5ca4c1e555cd](../../_images/gatefusion.png)
+![fe05170befbf44929187c43ed59e747c](../../_images/gatefusion.png)
 :::
 :::
 :::

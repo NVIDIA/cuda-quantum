@@ -218,6 +218,9 @@ pr-3389
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -863,6 +866,9 @@ pr-3389
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1713,7 +1719,7 @@ each pixel with its position
 
 <div>
 
-![e83646ea87e4444e87e4160ad4c6d7be](../../_images/pixels-img.png){.no-scaled-link}
+![140f862834fb435cbdfbd12c0961c4b2](../../_images/pixels-img.png){.no-scaled-link}
 
 </div>
 

@@ -218,6 +218,9 @@ pr-3389
             .internal}
         -   [Quantinuum](../../using/examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../using/examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../using/examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -856,6 +859,9 @@ pr-3389
             -   [IQM](../../using/backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../../using/backends/hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](../../using/backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../../using/backends/hardware/neutralatom.html){.reference
@@ -1678,7 +1684,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![693447c08dd74bc8805cd867dd6cc6c9](../../_images/adapt-vqe.png){.no-scaled-link}
+![ba814662be674654b095dc0c6648f6c0](../../_images/adapt-vqe.png){.no-scaled-link}
 
 </div>
 

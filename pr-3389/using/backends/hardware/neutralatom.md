@@ -214,6 +214,9 @@ pr-3389
             .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -885,6 +888,9 @@ pr-3389
                 .internal}
             -   [IQM](superconducting.html#iqm){.reference .internal}
             -   [OQC](superconducting.html#oqc){.reference .internal}
+            -   [Quantum Circuits,
+                Inc.](superconducting.html#quantum-circuits-inc){.reference
+                .internal}
         -   [Neutral Atom QPUs](#){.current .reference .internal}
             -   [Infleqtion](#infleqtion){.reference .internal}
             -   [Pasqal](#pasqal){.reference .internal}
