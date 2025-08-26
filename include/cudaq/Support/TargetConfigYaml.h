@@ -65,8 +65,8 @@ struct MappingTraits<cudaq::config::TargetConfig> {
 };
 
 template <>
-struct MappingTraits<cudaq::config::MachineCompileConfig> {
-  static void mapping(IO &io, cudaq::config::MachineCompileConfig &info);
+struct MappingTraits<cudaq::config::TargetArchitectureSettings> {
+  static void mapping(IO &io, cudaq::config::TargetArchitectureSettings &info);
 };
 
 template <>

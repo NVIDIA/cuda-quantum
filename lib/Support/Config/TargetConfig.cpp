@@ -368,10 +368,9 @@ std::string MappingTraits<cudaq::config::TargetConfig>::validate(
   return std::string();
 }
 
-void MappingTraits<cudaq::config::MachineCompileConfig>::mapping(
-    IO &io, cudaq::config::MachineCompileConfig &info) {
-  io.mapOptional("platform-lowering-config", info.IrLoweringConfig);
-  io.mapOptional("codegen-emission", info.CodegenSpec);
+void MappingTraits<cudaq::config::TargetArchitectureSettings>::mapping(
+    IO &io, cudaq::config::TargetArchitectureSettings &info) {
+  io.mapOptional("codegen-emission", info.CodegenEmission);
 }
 
 void MappingTraits<cudaq::config::MachineArchitectureConfig>::mapping(
@@ -432,13 +431,13 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
       if (std::find(archConfig.MachineNames.begin(),
                     archConfig.MachineNames.end(),
                     machineName) != archConfig.MachineNames.end()) {
-        return archConfig.Configuration.CodegenSpec;
+        return archConfig.Configuration.CodegenEmission;
       }
       // Check pattern if provided
       if (!archConfig.MachinePattern.empty()) {
         llvm::Regex re(archConfig.MachinePattern);
         if (re.match(machineName)) {
-          return archConfig.Configuration.CodegenSpec;
+          return archConfig.Configuration.CodegenEmission;
         }
       }
     }
