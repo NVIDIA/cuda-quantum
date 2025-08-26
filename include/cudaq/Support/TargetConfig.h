@@ -28,7 +28,7 @@ enum TargetFeatureFlag : unsigned {
   flagsQPP = 0x0020,
 };
 
-/// CodegenEmission Configuration argument type annotation
+/// @brief Configuration argument type annotation
 // e.g., to support type validation.
 enum class ArgumentType { String, Int, UUID, FeatureFlag, MachineConfig };
 
