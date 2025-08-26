@@ -213,20 +213,32 @@ public:
     mlir::PassManager pm(&mlirContext);
     std::string errMsg;
     llvm::raw_string_ostream os(errMsg);
-    const std::string pipeline =
+
+    std::string pipeline =
         std::accumulate(clientPasses.begin(), clientPasses.end(), std::string(),
                         [](const auto &ss, const auto &s) {
                           return ss.empty() ? s : ss + "," + s;
                         });
+    // TODO: replace environment variable with runtime configuration
+    if (getEnvBool("CUDAQ_PHASE_FOLDING", false))
+      pipeline = pipeline +
+                 "classical-optimization-pipeline,aggressive-early-inlining,"
+                 "func.func(canonicalize,cse,phase-folding,canonicalize)";
+
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();
       pm.enableIRPrinting();
     }
-    if (failed(parsePassPipeline(pipeline, pm, os))) {
+
+    if (failed(parsePassPipeline(pipeline, pm, os)))
       throw std::runtime_error(
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
-    }
+
+    if (failed(pm.run(moduleOp)))
+      throw std::runtime_error(
+          "Remote rest platform: applying IR passes failed.");
+
     return moduleOp;
   }
 
