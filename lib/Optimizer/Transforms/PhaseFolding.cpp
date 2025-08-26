@@ -34,19 +34,19 @@ namespace {
       MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 
-bool processed(Operation *op) { return op->hasAttr("processed"); }
+inline bool processed(Operation *op) { return op->hasAttr("processed"); }
 
-void markProcessed(Operation *op) {
+inline void markProcessed(Operation *op) {
   op->setAttr("processed", OpBuilder(op).getUnitAttr());
 }
 
 // AXIS-SPECIFIC: could allow controlled y and z here
-bool isCNOT(Operation *op) {
+inline bool isCNOT(Operation *op) {
   return isa<quake::XOp>(op) && op->getNumOperands() == 2;
 }
 
 /// Currently, only `!quake.ref`s that are not block arguments are supported
-bool isSupportedValue(Value ref) {
+inline bool isSupportedValue(Value ref) {
   return isa<quake::RefType>(ref.getType()) && ref.getDefiningOp();
 }
 
@@ -86,6 +86,10 @@ inline bool isTwoQubitOp(Operation *op) {
   return quake::getQuantumOperands(op).size() == 2;
 }
 
+/// A netlist representation of a circuit is a list of lists,
+/// with each sublist holding the operations on a particular
+/// qubit in order. Multi-qubit operations will appear in the
+/// lists of each of their operands.
 class Netlist {
   SmallVector<SmallVector<Operation *>> netlists;
 
@@ -236,7 +240,8 @@ protected:
 
   public:
     NetlistWrapper(Subcircuit *subcircuit, SmallVector<Operation *> *nl,
-                   Operation *anchor_point, Value def): nl(nl), subcircuit(subcircuit), def(def) {
+                   Operation *anchor_point, Value def)
+        : nl(nl), subcircuit(subcircuit), def(def) {
       processFrom(getIndexOf(anchor_point));
     }
 
@@ -324,20 +329,20 @@ public:
   ///
   /// First, we construct an initial subcircuit:
   /// We start by walking forward and backward along the netlist from the
-  /// initial anchor point, which is the control of `cnot`, and add the
-  /// encountered gates to the subcircuit. If a CNOT or Swap gate is
-  /// encountered, an anchor point is added for the other qubit used in the
-  /// operation, which will later be walked. If a disallowed gate is
-  /// encountered, we stop walking and add a termination point.
+  /// initial anchor point, which is at `cnot` along the control qubit, and add
+  /// any allowed gates to the subcircuit. If a CNOT or Swap gate is
+  /// encountered, an anchor point is added at the gate for the other qubit,
+  /// which will later be walked. If a disallowed gate is encountered, we stop
+  /// walking and add a termination point.
   ///
   /// Then, we prune the subcircuit, starting at the earlist ending termination
   /// point (i.e., earliest termination point encountered while walking forward)
   /// along each qubit, and walk forward, adjusting the termination boundary for
-  /// any connected qubits, and removing operations after the termination
+  /// any connected qubits, and removing gates after the termination
   /// boundary from the subcircuit.
-  Subcircuit(Operation *cnot, Netlist *netlist) {
-    start = cnot;
-    this->container = netlist;
+  Subcircuit(Operation *cnot, Netlist *netlist)
+      : start(cnot), container(netlist) {
+    assert(isCNOT(cnot));
     qubits = SmallVector<NetlistWrapper *>(netlist->size(), nullptr);
     calculateInitialSubcircuit();
     pruneSubcircuit();
@@ -597,6 +602,9 @@ class PhaseFoldingPass
         setPhase(target2, target1_phase);
       }
     }
+
+    for (auto phase_var : phase_vars)
+      delete phase_var;
   }
 
 public:
