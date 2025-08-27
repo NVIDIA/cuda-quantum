@@ -460,7 +460,7 @@ jobs:
                 nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
-                  CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT=1 ./a.out
+                  ./a.out
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -478,7 +478,7 @@ jobs:
                 nvq++ -v $filename -fenable-cudaq-run --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
-                  CUDAQ_QIR_VERSION_UNDER_DEVELOPMENT=1 CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 ./a.out
+                  CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 ./a.out
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY

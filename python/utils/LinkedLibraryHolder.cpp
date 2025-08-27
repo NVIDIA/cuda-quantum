@@ -464,17 +464,31 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
-namespace __internal__ {
-void switchToResourceCounterSimulator() {
+void python::detail::switchToResourceCounterSimulator() {
   nvqir::switchToResourceCounterSimulator();
 }
-void stopUsingResourceCounterSimulator() {
+
+void python::detail::stopUsingResourceCounterSimulator() {
   nvqir::stopUsingResourceCounterSimulator();
 }
-void setChoiceFunction(std::function<bool()> choice) {
+
+void python::detail::setChoiceFunction(std::function<bool()> choice) {
   nvqir::setChoiceFunction(choice);
 }
-cudaq::Resources *getResourceCounts() { return nvqir::getResourceCounts(); }
-} // namespace __internal__
 
+Resources *python::detail::getResourceCounts() {
+  return nvqir::getResourceCounts();
+}
+
+std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
+  if (holder) {
+    auto runtimeTarget = holder->getTarget();
+    const std::string codegenEmission =
+        runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);
+    if (!codegenEmission.empty())
+      return codegenEmission;
+  }
+  // Default is full QIR.
+  return "qir:0.1";
+}
 } // namespace cudaq
