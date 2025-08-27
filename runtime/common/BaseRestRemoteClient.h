@@ -219,11 +219,10 @@ public:
                         [](const auto &ss, const auto &s) {
                           return ss.empty() ? s : ss + "," + s;
                         });
-    // TODO: replace environment variable with runtime configuration
-    if (getEnvBool("CUDAQ_PHASE_FOLDING", false))
-      pipeline = pipeline +
-                 "classical-optimization-pipeline,aggressive-early-inlining,"
-                 "func.func(canonicalize,cse,phase-folding,canonicalize)";
+    // TODO: replace environment variable with runtime
+    // Enabled by default
+    if (getEnvBool("CUDAQ_PHASE_FOLDING", true))
+      pipeline = pipeline + "func.func(phase-folding,canonicalize)";
 
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();
@@ -235,6 +234,10 @@ public:
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
 
+    mlir::DefaultTimingManager tm;
+    tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+    auto timingScope = tm.getRootScope(); // starts the timer
+    pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
           "Remote rest platform: applying IR passes failed.");
