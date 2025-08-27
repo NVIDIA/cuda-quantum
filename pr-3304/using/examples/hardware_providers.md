@@ -189,6 +189,8 @@ pr-3304
         -   [ORCA Computing](#orca-computing){.reference .internal}
         -   [Pasqal](#pasqal){.reference .internal}
         -   [Quantinuum](#quantinuum){.reference .internal}
+        -   [Quantum Circuits, Inc.](#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum Machines](#quantum-machines){.reference .internal}
         -   [QuEra Computing](#quera-computing){.reference .internal}
     -   [Dynamics Examples](dynamics_examples.html){.reference
@@ -867,6 +869,9 @@ pr-3304
             -   [IQM](../backends/hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](../backends/hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](../backends/hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom
             QPUs](../backends/hardware/neutralatom.html){.reference
@@ -3056,6 +3061,135 @@ C++
       // result to be returned before proceeding).
       auto counts = cudaq::sample(ghz{});
       counts.dump();
+    }
+:::
+:::
+:::
+:::
+:::
+
+::: {#quantum-circuits-inc .section}
+[]{#quantum-circuits-examples}
+
+Quantum Circuits, Inc.[¶](#quantum-circuits-inc "Permalink to this heading"){.headerlink}
+-----------------------------------------------------------------------------------------
+
+The following code illustrates how to run kernels on Quantum Circuits'
+backends.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: {.highlight}
+    import cudaq
+
+    # Make sure to export or otherwise present your user token via the environment,
+    # e.g., using export:
+    # ```
+    # export QCI_AUTH_TOKEN="your token here"
+    # ```
+    #
+    # The example will run on QCI's AquSim simulator by default.
+
+    cudaq.set_target("qci")
+
+
+    @cudaq.kernel
+    def teleportation():
+
+        # Initialize a three qubit quantum circuit
+        qubits = cudaq.qvector(3)
+
+        # Random quantum state on qubit 0.
+        rx(3.14, qubits[0])
+        ry(2.71, qubits[0])
+        rz(6.62, qubits[0])
+
+        # Create a maximally entangled state on qubits 1 and 2.
+        h(qubits[1])
+        cx(qubits[1], qubits[2])
+
+        cx(qubits[0], qubits[1])
+
+        h(qubits[0])
+        m1 = mz(qubits[0])
+        m2 = mz(qubits[1])
+
+        if m1 == 1:
+            z(qubits[2])
+
+        if m2 == 1:
+            x(qubits[2])
+
+        mz(qubits)
+
+
+    print(cudaq.sample(teleportation))
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: {.highlight}
+    // Compile with
+    // ```
+    // nvq++ teleport.cpp --target qci -o teleport.x
+    // ```
+    //
+    // Make sure to export or otherwise present your user token via the environment,
+    // e.g., using export:
+    // ```
+    // export QCI_AUTH_TOKEN="your token here"
+    // ```
+    //
+    // Then run against AquSim with:
+    // ```
+    // ./teleport.x
+    // ```
+
+    #include <cudaq.h>
+    #include <iostream>
+
+    struct teleportation {
+      auto operator()() __qpu__ {
+        // Initialize a three qubit quantum circuit
+        cudaq::qvector qubits(3);
+
+        // Random quantum state on qubit 0.
+        rx(3.14, qubits[0]);
+        ry(2.71, qubits[0]);
+        rz(6.62, qubits[0]);
+
+        // Create a maximally entangled state on qubits 1 and 2.
+        h(qubits[1]);
+        cx(qubits[1], qubits[2]);
+
+        cx(qubits[0], qubits[1]);
+        h(qubits[0]);
+
+        auto m1 = mz(qubits[0]);
+        auto m2 = mz(qubits[1]);
+
+        if (m1) {
+          z(qubits[2]);
+        }
+
+        if (m2) {
+          x(qubits[2]);
+        }
+
+        mz(qubits);
+      }
+    };
+
+    int main() {
+      auto result = cudaq::sample(teleportation{});
+      result.dump();
     }
 :::
 :::

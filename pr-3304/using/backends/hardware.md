@@ -211,6 +211,9 @@ pr-3304
             .internal}
         -   [Quantinuum](../examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -881,6 +884,9 @@ pr-3304
             -   [IQM](hardware/superconducting.html#iqm){.reference
                 .internal}
             -   [OQC](hardware/superconducting.html#oqc){.reference
+                .internal}
+            -   [Quantum Circuits,
+                Inc.](hardware/superconducting.html#quantum-circuits-inc){.reference
                 .internal}
         -   [Neutral Atom QPUs](hardware/neutralatom.html){.reference
             .internal}
@@ -1641,6 +1647,9 @@ a hardware backend, you need an account with the respective provider.
         .internal}
     -   [IQM](hardware/superconducting.html#iqm){.reference .internal}
     -   [OQC](hardware/superconducting.html#oqc){.reference .internal}
+    -   [Quantum Circuits,
+        Inc.](hardware/superconducting.html#quantum-circuits-inc){.reference
+        .internal}
 -   [Neutral Atom QPUs](hardware/neutralatom.html){.reference .internal}
     -   [Infleqtion](hardware/neutralatom.html#infleqtion){.reference
         .internal}

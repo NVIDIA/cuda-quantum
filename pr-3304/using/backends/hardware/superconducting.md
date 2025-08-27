@@ -214,6 +214,9 @@ pr-3304
             .internal}
         -   [Quantinuum](../../examples/hardware_providers.html#quantinuum){.reference
             .internal}
+        -   [Quantum Circuits,
+            Inc.](../../examples/hardware_providers.html#quantum-circuits-inc){.reference
+            .internal}
         -   [Quantum
             Machines](../../examples/hardware_providers.html#quantum-machines){.reference
             .internal}
@@ -884,6 +887,8 @@ pr-3304
                 .internal}
             -   [IQM](#iqm){.reference .internal}
             -   [OQC](#oqc){.reference .internal}
+            -   [Quantum Circuits,
+                Inc.](#quantum-circuits-inc){.reference .internal}
         -   [Neutral Atom QPUs](neutralatom.html){.reference .internal}
             -   [Infleqtion](neutralatom.html#infleqtion){.reference
                 .internal}
@@ -2041,6 +2046,104 @@ execute instructions can be found on github as
 
 To see a complete example, take a look at [[OQC examples]{.std
 .std-ref}](../../examples/hardware_providers.html#oqc-examples){.reference
+.internal}.
+:::
+:::
+
+::: {#quantum-circuits-inc .section}
+Quantum Circuits, Inc.[¶](#quantum-circuits-inc "Permalink to this heading"){.headerlink}
+-----------------------------------------------------------------------------------------
+
+As part of its first phase of integration with CUDA-Q, [Quantum
+Circuits](https://quantumcircuits.com/){.reference .external} offers
+users the ability to simulate CUDA-Q programs using its simulator,
+AquSim. AquSim is the first simulator that models error detection and
+real-time control of Quantum Circuits' Dual-Rail Cavity Qubit systems,
+and uses a Monte Carlo approach to do so on a shot-by-shot basis.
+
+In this first phase, the supported features include all of the single
+and two-qubit gates offered by CUDA-Q, together with real-time
+conditional logic enabled by feed-forward capability. AquSim is
+currently wired to support ideal simulations only and noise models will
+be added in future iterations.
+
+With C++ and Python programming supported, users are able to prototype,
+test and explore quantum applications in CUDA-Q in preparation for
+upcoming releases targeting Quantum Circuits QPUs. Examples are provided
+to get started.
+
+Users who wish to get started with running CUDA-Q on AquSim should visit
+our [Explore](https://quantumcircuits.com/explore/){.reference
+.external} page to learn more about the Quantum Circuits Strategic
+Quantum Release Program.
+
+::: {#id5 .section}
+### Submitting[¶](#id5 "Permalink to this heading"){.headerlink}
+
+Until CUDA-Q release 0.13.0 is available, the integration with Quantum
+Circuits will be supported through the nightly build Docker images.
+
+Instructions on how to install and get started with CUDA-Q using Docker
+can be found [[here]{.std
+.std-ref}](../../install/local_installation.html#install-docker-image){.reference
+.internal}.
+
+You may present your user token to Quantum Circuits via CUDA-Q by
+setting an environment variable named `QCI_AUTH_TOKEN`{.code .docutils
+.literal .notranslate} before running your CUDA-Q program.
+
+::: {.highlight-bash .notranslate}
+::: {.highlight}
+    export QCI_AUTH_TOKEN="example-token"
+:::
+:::
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+To set the target to Quantum Circuits, add the following to your Python
+program:
+
+::: {.highlight-python .notranslate}
+::: {.highlight}
+    cudaq.set_target('qci')
+    [... your Python here]
+:::
+:::
+
+To run on AquSim, simply execute the script using your Python
+interpreter.
+:::
+
+C++
+
+::: {.tab-content .docutils}
+When executing programs in C++, they must first be compiled using the
+CUDA-Q nvq++ compiler, and then submitted to run on AquSim.
+
+Note that your token is fetched from your environment at run time, not
+at compile time.
+
+In the example below, the compilation step shows two flags being passed
+to the nvq++ compiler: the Quantum Circuits target `--target qci`{.code
+.docutils .literal .notranslate}, and the output file
+`-o example.x`{.code .docutils .literal .notranslate}. The second line
+executes the program against AquSim. Here are the shell commands in
+full:
+
+::: {.highlight-bash .notranslate}
+::: {.highlight}
+    nvq++ example.cpp --target qci -o example.x
+    ./example.x
+:::
+:::
+:::
+:::
+
+To see a complete example of using Quantum Circuits' backends, please
+take a look at the [[Quantum Circuits examples]{.std
+.std-ref}](../../examples/hardware_providers.html#quantum-circuits-examples){.reference
 .internal}.
 :::
 :::
