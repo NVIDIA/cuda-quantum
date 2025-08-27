@@ -32,15 +32,16 @@ private:
   /// API token.
   const std::string DEFAULT_API_TOKEN =
       "eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0."
-      "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzODY0NDgxOTcsImlhdCI6MTc1NTcyODE5NywiaXNz"
-      "IjoiYXF1bWVuIiwianRpIjoiMDE5OGM5OGUtMzg4Mi03OWU1LWI4M2MtMzdmZmFmNzM3MzVl"
-      "IiwibmJmIjoxNzU1NzI4MTk3LCJzdWIiOiIwMTk4Yzk4ZS0zODdkLTdmZjctYmIzNS0zMDE4"
-      "NDZiNTA4ZDYifQ."
-      "3BzcsSX5lScDqnjd9mOxQA7o9aXIkSBhP2WbkfwiKsu40QKKwjvtGwgk0EU7vGxPwr3zF3O6"
-      "q15Y3R57CY3KCQ";
+      "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzODY5NTIxNzUsImlhdCI6MTc1NjIzMjE3NSwiaXNz"
+      "IjoiYXF1bWVuIiwianRpIjoiMDE5OGU3OTgtNGUzMS03OTNjLThkNGEtZDM5ZjI2MWFlMzY2"
+      "IiwibmJmIjoxNzU2MjMyMTc1LCJzdWIiOiIwMTk4ZTc5OC00ZTJjLTdiMmEtODgzMi0wOGI3"
+      "ZTdjZTc3OTYifQ."
+      "NKukdVRDvv51DA4hGzCiBaBl-M2Isy1kvEDPNuDA-aMuGyM5ttyrxoi-QZbCQqf4I-V9mo9R"
+      "_SRPKCpN0g9fCw";
 
   /// @brief Default base URL for QCI's service.
-  const std::string DEFAULT_API_URL = "https://aqumen.quantumcircuits.com/";
+  const std::string DEFAULT_API_URL =
+      "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
   const std::string DEFAULT_MACHINE = "simulator";
