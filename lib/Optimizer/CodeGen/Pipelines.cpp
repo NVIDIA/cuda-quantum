@@ -12,8 +12,10 @@ using namespace mlir;
 
 void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
                                             StringRef codeGenFor,
-                                            StringRef passConfigAs,
-                                            bool qirVersionUnderDevelopment) {
+                                            StringRef passConfigAs) {
+  auto codeGenFields = codeGenFor.split(':');
+  auto passConfigFields = passConfigAs.split(':');
+
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
   addAggressiveEarlyInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -43,17 +45,19 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  if (passConfigAs == "qir-base")
+
+  if (passConfigFields.first == "qir-base")
     pm.addNestedPass<func::FuncOp>(createDelayMeasurementsPass());
-  if (codeGenFor == "qir")
-    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full", false,
-                                           qirVersionUnderDevelopment);
-  else if (codeGenFor == "qir-base")
-    cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile", false,
-                                           qirVersionUnderDevelopment);
-  else if (codeGenFor == "qir-adaptive")
-    cudaq::opt::addConvertToQIRAPIPipeline(pm, "adaptive-profile", false,
-                                           qirVersionUnderDevelopment);
+
+  if (codeGenFields.first == "qir" || codeGenFields.first == "qir-full")
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
+                                                   codeGenFields.second.str());
+  else if (codeGenFields.first == "qir-base")
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
+                                                   codeGenFields.second.str());
+  else if (codeGenFields.first == "qir-adaptive")
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "adaptive-profile:" +
+                                                   codeGenFields.second.str());
   else
     emitError(UnknownLoc::get(pm.getContext()),
               "convert to QIR must be given a valid specification to use.");
@@ -85,10 +89,9 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
-void cudaq::opt::addPipelineConvertToQIR(PassManager &pm, StringRef convertTo,
-                                         bool qirVersionUnderDevelopment) {
-  commonPipelineConvertToQIR(pm, convertTo, convertTo,
-                             qirVersionUnderDevelopment);
-  if (convertTo != "qir")
+void cudaq::opt::addPipelineConvertToQIR(PassManager &pm, StringRef convertTo) {
+  commonPipelineConvertToQIR(pm, convertTo, convertTo);
+  auto targetPair = convertTo.split(':');
+  if (targetPair.first != "qir" && targetPair.first != "qir-full")
     addQIRProfileVerify(pm, convertTo);
 }
