@@ -40,7 +40,8 @@ private:
       "_SRPKCpN0g9fCw";
 
   /// @brief Default base URL for QCI's service.
-  const std::string DEFAULT_API_URL = "https://aqumen-service-dev.quantumcircuitsinc.net/";
+  const std::string DEFAULT_API_URL =
+      "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
   const std::string DEFAULT_MACHINE = "simulator";
