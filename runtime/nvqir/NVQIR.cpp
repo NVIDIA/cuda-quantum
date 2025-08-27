@@ -642,6 +642,10 @@ bool __quantum__qis__read_result__body(Result *result) {
   return ResultZeroVal;
 }
 
+bool __quantum__rt__read_result(Result *result) {
+  return __quantum__qis__read_result__body(result);
+}
+
 Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   std::string regName(name);
   auto qI = qubitToSizeT(q);
