@@ -311,10 +311,10 @@ public:
         passPipelineConfig +=
             "," + config.BackendConfig->PlatformLoweringConfig;
       }
-      if (!config.BackendConfig->CodegenEmission.empty()) {
-        cudaq::info("Set codegen translation: {}",
-                    config.BackendConfig->CodegenEmission);
-        codegenTranslation = config.BackendConfig->CodegenEmission;
+      const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
+      if (!codeGenSpec.empty()) {
+        cudaq::info("Set codegen translation: {}", codeGenSpec);
+        codegenTranslation = codeGenSpec;
         auto [codeGenName, codeGenVersion, codeGenOptions] =
             parseCodeGenTranslationString(codegenTranslation);
         if (codeGenName == "qir-adaptive") {
@@ -336,7 +336,7 @@ public:
             throw std::runtime_error(fmt::format(
                 "Invalid codegen-emission '{}'. Extra options are not "
                 "supported for '{}' codegen.",
-                config.BackendConfig->CodegenEmission, codeGenName));
+                codeGenSpec, codeGenName));
         }
       }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
