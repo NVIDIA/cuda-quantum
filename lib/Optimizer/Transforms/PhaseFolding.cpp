@@ -241,7 +241,7 @@ protected:
   public:
     NetlistWrapper(Subcircuit *subcircuit, SmallVector<Operation *> *nl,
                    Operation *anchor_point, Value def)
-        : nl(nl), subcircuit(subcircuit), def(def) {
+        : subcircuit(subcircuit), nl(nl), def(def) {
       processFrom(getIndexOf(anchor_point));
     }
 
@@ -341,7 +341,7 @@ public:
   /// any connected qubits, and removing gates after the termination
   /// boundary from the subcircuit.
   Subcircuit(Operation *cnot, Netlist *netlist)
-      : start(cnot), container(netlist) {
+      : container(netlist), start(cnot) {
     assert(isCNOT(cnot));
     qubits = SmallVector<NetlistWrapper *>(netlist->size(), nullptr);
     calculateInitialSubcircuit();
