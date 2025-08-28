@@ -141,6 +141,10 @@ void checkClassical1() {
   ASSERT_NEAR(result.imag(), 0, 0.000001);
 }
 
+// TODO: This test doesn't make sense for the simulator target
+// where we don't want to do loop unrolling, so it is not
+// currently run. For targets which do loop unrolling, it
+// should be re-enabled.
 void checkClassical2() {
   printf("Running classical check #2\n");
   // CHECK-LABEL: Running classical check #2
@@ -178,5 +182,5 @@ int main() {
   checkSimple();
   checkSubkernel();
   checkClassical1();
-  checkClassical2();
+  // checkClassical2();
 }
