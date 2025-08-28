@@ -20,7 +20,7 @@ RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
       if (std::filesystem::exists(curlCABundleStr))
         return curlCABundleStr;
       else
-        cudaq::info(
+        CUDAQ_INFO(
             "{} does not exist. Will fall back on CUDA-Q installed certs",
             curlCABundleStr);
     }
@@ -28,7 +28,7 @@ RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
     auto certPath = cudaqLibPath.parent_path().parent_path() / "cacert.pem";
     if (std::filesystem::exists(certPath))
       return certPath.string();
-    cudaq::info(
+    CUDAQ_INFO(
         "{} does not exist, so we will rely on CURL finding the correct "
         "certificate authority bundles. If this does not work, try setting "
         "the CURL_CA_BUNDLE environment variable to a valid path to a CA "
@@ -66,8 +66,7 @@ RestClient::post(const std::string_view remoteUrl, const std::string_view path,
 
   // Allow caller to disable logging for things like passwords/tokens
   if (enableLogging)
-    cudaq::info("Posting to {}/{} with data = {}", remoteUrl, path,
-                post.dump());
+    CUDAQ_INFO("Posting to {}/{} with data = {}", remoteUrl, path, post.dump());
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
@@ -102,8 +101,8 @@ void RestClient::put(const std::string_view remoteUrl,
     cprCookies.emplace_back({kv.first, kv.second});
   // Allow caller to disable logging for things like passwords/tokens
   if (enableLogging)
-    cudaq::info("Putting to {}/{} with data = {}", remoteUrl, path,
-                putData.dump());
+    CUDAQ_INFO("Putting to {}/{} with data = {}", remoteUrl, path,
+               putData.dump());
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
   auto r = cpr::Put(cpr::Url{actualPath}, cpr::Body(putData.dump()), cprHeaders,
@@ -154,7 +153,7 @@ void RestClient::del(const std::string_view remoteUrl,
   cpr::Parameters cprParams;
   auto actualPath = std::string(remoteUrl) + std::string(path);
   if (enableLogging)
-    cudaq::info("Delete resource at path {}/{}", remoteUrl, path);
+    CUDAQ_INFO("Delete resource at path {}/{}", remoteUrl, path);
   auto r = cpr::Delete(cpr::Url{actualPath}, cprHeaders, cprParams,
                        cpr::VerifySsl(enableSsl), *sslOptions, cprCookies);
 
@@ -181,8 +180,8 @@ void RestClient::download(const std::string_view remoteUrl,
                              r.error.message + ": " + r.text);
 
   if (enableLogging)
-    cudaq::info("Downloading {} bytes from {} to file {}", r.text.size(),
-                remoteUrl, filePath);
+    CUDAQ_INFO("Downloading {} bytes from {} to file {}", r.text.size(),
+               remoteUrl, filePath);
 
   try {
     // Write the downloaded content to file.
