@@ -970,12 +970,12 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
 
   let description = [{
     Multiple `quake.rz` ops can be merged into a single gate if they occur
-    at the same phase. In a circuit with only Swap, Not, CNot, and Rz gates, a
-    phase represents the state of a qubit based on the Swap, Not, and CNot
+    at the same phase. In a circuit with only Swap, NOT, CNOT, and Rz gates, a
+    phase represents the state of a qubit based on the Swap, NOT, and CNOT
     operations applied to it.
 
     First, a preprocessing step identifies each subcircuit consisting only of
-    Swap, Not, CNot, and Rz gates. Currently, we restrict this subcircuit to
+    Swap, NOT, CNOT, and Rz gates. Currently, we restrict this subcircuit to
     only working with `!quake.ref` types directly from `quake.alloca`s, as
     values extraced from `quake.veq`s via `extract_ref` may have hidden side
     effects that could cause the subcircuits to be incorrect.
@@ -985,8 +985,8 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     the current state of a qubit, calculated as follows. While walking the
     subcircuit:
     * A Swap gate swaps the phases for two qubits.
-    * A Not gate inverts the phase for a qubit by (un)setting a flag.
-    * A CNot gate sets the phase of the target to the exclusive sum of the
+    * A NOT gate inverts the phase for a qubit by (un)setting a flag.
+    * A CNOT gate sets the phase of the target to the exclusive sum of the
       phase variables in the phases for the control and target qubits.
     * If multiple `rz` ops are found at the same phase, they will be combined
       by replacing the rotation angle of the latter occuring op to the sum of

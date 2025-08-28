@@ -25,9 +25,6 @@ using namespace mlir;
 
 namespace {
 #define RAW(X) quake::X
-#define RAW_MEASURE_OPS MEASURE_OPS(RAW)
-#define RAW_GATE_OPS GATE_OPS(RAW)
-#define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
 // AXIS-SPECIFIC: Defines which operations break a circuit into subcircuits
 #define CIRCUIT_BREAKERS(MACRO)                                                \
   MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp),                \
@@ -153,6 +150,10 @@ public:
   }
 };
 
+/// A subcircuit is an connected portion of the netlist containing
+/// only RZ, NOT, CNOT, and Swap gates. Currently it only accepts
+/// `quake.ref` types produced directly by `quake.alloca`, to avoid
+/// possible issues with aliasing of `quake.veq`s.
 class Subcircuit {
 protected:
   SmallVector<std::pair<Value, Operation *>> anchor_points;
@@ -229,7 +230,7 @@ protected:
           NetlistWrapper *otherWrapper = nullptr;
           if (def == control)
             otherWrapper = subcircuit->getWrapper(target);
-          // If we are pruning along the target of a CNot, we do not
+          // If we are pruning along the target of a CNOT, we do not
           // need to prune along the control, as it will be unaffected
           else if (!isCNOT(op))
             otherWrapper = subcircuit->getWrapper(control);
@@ -429,12 +430,12 @@ public:
 };
 
 /// A `Phase` is an exclusive sum of all of the `PhaseVariable`s involved in the
-/// current state of a qubit, as well as 1, representing inversion from a Not
+/// current state of a qubit, as well as 1, representing inversion from a NOT
 /// gate. The simplest Phase contains exactly the `PhaseVariable` representing
 /// the initial state of a qubit in a subcircuit. There are two operations on
 /// `Phase`s to generate new `Phase`s: `Phase::sum` sums two Phases,
-/// corresponding to the effect of a CNot on the target qubit. `Phase::invert`
-/// inverts a Phase, corresponding to the effect of a Not a qubit.
+/// corresponding to the effect of a CNOT on the target qubit. `Phase::invert`
+/// inverts a Phase, corresponding to the effect of a NOT a qubit.
 ///
 /// Generally, a Phase is an exclusive sum of products.
 /// However, our Phases are currently only exclusive sums;
@@ -648,7 +649,7 @@ public:
           !isSupportedValue(op.getOperand(1)))
         return;
 
-      // Build a subcircuit from the CNot
+      // Build a subcircuit from the CNOT
       auto subcircuit = new Subcircuit(op, &nl);
       subcircuits.push_back(subcircuit);
     });
