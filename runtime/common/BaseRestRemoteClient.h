@@ -219,11 +219,10 @@ public:
                         [](const auto &ss, const auto &s) {
                           return ss.empty() ? s : ss + "," + s;
                         });
-    // TODO: replace environment variable with runtime
-    // Enabled by default
+    // TODO: replace environment variable with runtime configuration
     if (getEnvBool("CUDAQ_PHASE_FOLDING", true))
-      pipeline =
-          pipeline + "func.func(canonicalize,cse,phase-folding,canonicalize)";
+      pipeline = pipeline + "func.func(factor-quantum-alloc,canonicalize,cse,"
+                            "phase-folding,canonicalize)";
 
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();

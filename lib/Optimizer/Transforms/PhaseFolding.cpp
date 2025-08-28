@@ -45,9 +45,24 @@ inline bool isCNOT(Operation *op) {
   return isa<quake::XOp>(op) && op->getNumOperands() == 2;
 }
 
-/// Currently, only `!quake.ref`s that are not block arguments are supported
-inline bool isSupportedValue(Value ref) {
-  return isa<quake::RefType>(ref.getType()) && ref.getDefiningOp();
+/// Currently, only `!quake.ref`s generated directly from
+/// `quake.alloca`s are supported. This is with the assumption that
+/// the `factor-quantum-alloc` pass was run before, so any veqs, etc...
+/// with variable indices are excluded to prevent side effects from
+/// breaking a circuit without it being noticed. This does unfortunately
+/// restrict the possible optimizations, so future work to recognize
+/// these possible side effects could be beneficial.
+bool isSupportedValue(Value ref) {
+  if (!isa<quake::RefType>(ref.getType()))
+    return false;
+
+  if (!ref.getDefiningOp())
+    return false;
+
+  if (!isa<quake::AllocaOp>(ref.getDefiningOp()))
+    return false;
+
+  return true;
 }
 
 bool isCircuitBreaker(Operation *op) {

@@ -975,7 +975,10 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     operations applied to it.
 
     First, a preprocessing step identifies each subcircuit consisting only of
-    Swap, Not, CNot, and Rz gates.
+    Swap, Not, CNot, and Rz gates. Currently, we restrict this subcircuit to
+    only working with `!quake.ref` types directly from `quake.alloca`s, as
+    values extraced from `quake.veq`s via `extract_ref` may have hidden side
+    effects that could cause the subcircuits to be incorrect.
 
     At the beginning of the subcircuit, each qubit is assigned a unique phase
     variable. A phase is an exclusive sum of the phase variables determining
