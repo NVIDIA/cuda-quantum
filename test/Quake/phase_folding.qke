@@ -346,6 +346,34 @@ func.func @breakers5() {
 // CHECK:   return
 // CHECK: }
 
+func.func @breakers6() {
+  %cst = arith.constant 1.000000e+00 : f64
+  %0 = quake.alloca !quake.veq<1>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
+  %2 = quake.alloca !quake.ref
+  %3 = quake.alloca !quake.ref
+  quake.x [%3] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @breakers6() {
+// CHECK:   %cst = arith.constant 1.000000e+00 : f64
+// CHECK:   %0 = quake.alloca !quake.veq<1>
+// CHECK:   %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:   %2 = quake.alloca !quake.ref
+// CHECK:   %3 = quake.alloca !quake.ref
+// CHECK:   quake.x [%3] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   %4 = arith.addf %cst, %cst : f64
+// CHECK:   quake.rz (%4) %2 : (f64, !quake.ref) -> ()
+// CHECK:   quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+// CHECK:   quake.rz (%cst) %2 : (f64, !quake.ref) -> ()
+// CHECK:   return
+// CHECK: }
+
 // Tests for interesting/dynamic rotation values
 
 func.func @dynamic0() {
