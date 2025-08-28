@@ -71,10 +71,7 @@ bool isCircuitBreaker(Operation *op) {
   if (!isQuakeOperation(op))
     return true;
 
-  if (isa<RAW_CIRCUIT_BREAKERS>(op))
-    return true;
-
-  if (isa<quake::NullWireOp>(op))
+  if (isa<RAW_CIRCUIT_BREAKERS, quake::NullWireOp>(op))
     return true;
 
   auto opi = dyn_cast<quake::OperatorInterface>(op);
@@ -108,10 +105,7 @@ class Netlist {
 public:
   Netlist(mlir::func::FuncOp func) {
     func.walk([&](Operation *op) {
-      if (auto refop = dyn_cast<quake::ExtractRefOp>(op)) {
-        allocNetlist(refop);
-        return;
-      } else if (auto allocaop = dyn_cast<quake::AllocaOp>(op)) {
+      if (auto allocaop = dyn_cast<quake::AllocaOp>(op)) {
         if (isa<quake::RefType>(allocaop.getType()))
           allocNetlist(allocaop);
         return;
