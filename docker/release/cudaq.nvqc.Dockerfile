@@ -14,15 +14,12 @@
 #   docker build --target=without_tpls -f docker/release/cudaq.nvqc.Dockerfile .
 #
 #   # to install and clone prerequisites
-#   docker build --target=with_tpls --build-arg WITH_TPLS=true \
+#   docker build --target=with_tpls \
 #       -f docker/release/cudaq.nvqc.Dockerfile .
 
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 FROM $base_image AS nvcf_image
-
-# Flag to control whether to install/clone prerequisites
-ARG WITH_TPLS=false
 
 # With prerequisites
 FROM $base_image AS with_tpls
