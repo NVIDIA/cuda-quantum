@@ -86,8 +86,14 @@ public:
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
     CUDAQ_INFO("QCI backend machine: {}", config["machine"]);
 
+    // Authentication token not required in emulation mode
+    bool isTokenRequired = [&]() {
+      auto it = config.find("emulate");
+      return !(it != config.end() && it->second == "true");
+    }();
+
     config["authToken"] =
-        getEnvVar("QCI_AUTH_TOKEN", "QCI_AUTH_TOKEN_NOT_SET", true);
+        getEnvVar("QCI_AUTH_TOKEN", "QCI_AUTH_TOKEN_NOT_SET", isTokenRequired);
 
     if (!config["shots"].empty()) {
       this->setShots(std::stoul(config["shots"]));
