@@ -28,16 +28,8 @@ namespace {
 /// measurement operations and collects all qubit allocations.
 struct Analysis {
   Analysis() = default;
-  Analysis(const Analysis &) = delete;
-  Analysis(Analysis &&) = delete;
-  Analysis &operator=(const Analysis &) = delete;
 
-  bool hasMeasurement = false;
-  SmallVector<quake::AllocaOp> allocations;
-
-  bool hasQubitAlloca() const { return !allocations.empty(); }
-
-  LogicalResult analyze(func::FuncOp func) {
+  explicit Analysis(func::FuncOp func) {
     func.walk([&](Operation *op) {
       if (op->hasTrait<cudaq::QuantumMeasure>()) {
         hasMeasurement = true;
@@ -47,9 +39,12 @@ struct Analysis {
         allocations.emplace_back(op);
       return WalkResult::advance();
     });
-
-    return success();
   }
+
+  bool hasMeasurement = false;
+  SmallVector<quake::AllocaOp> allocations;
+
+  bool hasQubitAlloca() const { return !allocations.empty(); }
 };
 
 /// Add measurement operations for all allocated qubits in a function.
@@ -131,12 +126,7 @@ struct AddMeasurementsPass
     // if yes, then we want to add measurements to it.
     /// NOTE: Having an explicit measurement does not guarantee that all the
     /// allocated qubits are measured.
-    Analysis analysis;
-    if (failed(analysis.analyze(func))) {
-      func.emitOpError("Adding measurements failed");
-      signalPassFailure();
-    }
-
+    Analysis analysis(func);
     if (analysis.hasMeasurement || !analysis.hasQubitAlloca())
       return;
 

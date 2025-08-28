@@ -24,7 +24,7 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
     kernel, and the measurements all occur at the end of the kernel.
 
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+  let dependentDialects = ["quake::QuakeDialect", "mlir::cf::ControlFlowDialect"];
 }
 
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
