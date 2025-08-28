@@ -222,7 +222,8 @@ public:
     // TODO: replace environment variable with runtime
     // Enabled by default
     if (getEnvBool("CUDAQ_PHASE_FOLDING", true))
-      pipeline = pipeline + "func.func(phase-folding,canonicalize)";
+      pipeline =
+          pipeline + "func.func(canonicalize,cse,phase-folding,canonicalize)";
 
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();
