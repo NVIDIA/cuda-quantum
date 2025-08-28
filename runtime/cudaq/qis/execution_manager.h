@@ -88,6 +88,10 @@ protected:
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
 
+  /// Internal - whether or not noise is globally disabled in this
+  /// ExecutionManager (i.e. via cudaq::disable_noise())
+  bool noiseDisabled = false;
+
 public:
   ExecutionManager() = default;
 
@@ -100,6 +104,12 @@ public:
 
   /// Checker for qudits that were not deallocated
   bool memoryLeaked() { return !tracker.allDeallocated(); }
+
+  /// @brief Enable noise in the ExecutionManager.
+  void enableNoise() { noiseDisabled = false; }
+
+  /// @brief Disable noise in the ExecutionManager.
+  void disableNoise() { noiseDisabled = true; }
 
   /// Provide an ExecutionContext for the current cudaq kernel
   virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;

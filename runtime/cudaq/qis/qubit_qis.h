@@ -1386,6 +1386,10 @@ void apply_noise(Args &&...args) {
       details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 }
 
+inline void disable_noise() { getExecutionManager()->disableNoise(); }
+
+inline void enable_noise() { getExecutionManager()->enableNoise(); }
+
 } // namespace cudaq
 
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))
