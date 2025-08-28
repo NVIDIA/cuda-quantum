@@ -1484,38 +1484,59 @@ class PyKernel(object):
                 cc.ContinueOp([incr])
             loop.attributes.__setitem__('invariant', UnitAttr.get())
 
-    def apply_noise(self, noise_channel, *args, params=None):
+    def apply_noise(self, noise_channel, *args):
         """
         Apply a noise channel to the provided qubit or qubits.
         """
         if not issubclass(noise_channel, cudaq_runtime.KrausChannel):
             if not hasattr(noise_channel, 'num_parameters'):
-                self.emitFatalError(
+                emitFatalError(
                     'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
                 )
 
-            # Check `args` has the same length as the expected number of parameters
-            if noise_channel.num_parameters != len(args):
-                self.emitFatalError(
-                    f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}` ({len(args)} provided, {noise_channel.num_parameters} required)"
+            # We needs to have noise channel parameters + qubit arguments
+            if isinstance(args[0], list):
+                if len(args[0]) != noise_channel.num_parameters:
+                    emitFatalError(
+                        f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}`"
+                    )
+            elif len(args) <= noise_channel.num_parameters:
+                emitFatalError(
+                    f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}`"
                 )
 
         with self.insertPoint, self.loc:
+            noise_channel_params = []
             target_qubits = []
-            for arg in args:
-                if not (isinstance(arg, QuakeValue) and
-                        quake.RefType.isinstance(arg.mlirValue.type)):
-                    self.emitFatalError("Invalid qubit operand type")
-                target_qubits.append(arg.mlirValue)
+            if isinstance(args[0], list):
+                for p in args[0]:
+                    # Noise channel parameters
+                    if not isinstance(p, float):
+                        # FIXME: support MLIR value
+                        emitFatalError("Noise channel parameter must be float")
+                    noise_channel_params.append(self.getConstantFloat(p))
+                # Qubit arguments
+                for p in args[1:]:
+                    if not (isinstance(p, QuakeValue) and
+                            quake.RefType.isinstance(p.mlirValue.type)):
+                        emitFatalError("Invalid qubit operand type")
+                    target_qubits.append(p.mlirValue)
+            else:
+                for i, p in enumerate(args):
+                    if i < noise_channel.num_parameters:
+                        # Noise channel parameters
+                        if not isinstance(p, float):
+                            # FIXME: support MLIR value
+                            emitFatalError("Noise channel parameter must be float")
+                        noise_channel_params.append(self.getConstantFloat(p))
+                    else:
+                        # Qubit arguments
+                        if not (isinstance(p, QuakeValue) and
+                                quake.RefType.isinstance(p.mlirValue.type)):
+                            emitFatalError("Invalid qubit operand type")
+                        target_qubits.append(p.mlirValue)
 
-            for i, p in enumerate(params):
-                if not isinstance(p, float):
-                    self.emitFatalError("Noise channel parameter must be float")
-
-                params[i] = self.getConstantFloat(p)
-
-            params = self.__createStdvecWithKnownValues(params)
-
+            params = self.__createStdvecWithKnownValues(noise_channel_params)
             asVeq = quake.ConcatOp(quake.VeqType.get(), target_qubits).result
             channel_key = hash(noise_channel)
             quake.ApplyNoiseOp([params], [asVeq],
