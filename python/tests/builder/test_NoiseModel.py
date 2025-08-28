@@ -832,24 +832,6 @@ def test_get_channel_with_control(target: str):
 def test_builder_apply_noise_custom():
     cudaq.set_target('density-matrix-cpu')
 
-    class CustomNoiseChannelBad(cudaq.KrausChannel):
-        # NEEDS num_parameters member, but it is missing, so this is Bad
-        def __init__(self, params: list[float]):
-            cudaq.KrausChannel.__init__(self)
-            # Example: Create Kraus ops based on params
-            p = params[0]
-            k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
-                          dtype=np.complex128)
-            k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
-                          dtype=np.complex128)
-
-            # Create KrausOperators and add to channel
-            self.append(cudaq.KrausOperator(k0))
-            self.append(cudaq.KrausOperator(k1))
-
-            # Set noise type for Stim integration
-            self.noise_type = cudaq.NoiseModelType.Unknown
-
     class CustomNoiseChannel(cudaq.KrausChannel):
         num_parameters = 1
         num_targets = 1
@@ -893,7 +875,6 @@ def test_builder_apply_noise_custom():
 
     noise = cudaq.NoiseModel()
     noise.register_channel(CustomNoiseChannel)
-    noise.register_channel(CustomNoiseChannelBad)
 
     test = cudaq.make_kernel()
     q = test.qalloc()
