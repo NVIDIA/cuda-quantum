@@ -91,11 +91,6 @@ inline bool isTwoQubitOp(Operation *op) {
 }
 
 namespace {
-inline bool processed(Operation *op) { return op->hasAttr("processed"); }
-
-inline void markProcessed(Operation *op) {
-  op->setAttr("processed", OpBuilder(op).getUnitAttr());
-}
 
 /// A netlist representation of a circuit is a list of lists,
 /// with each sublist holding the operations on a particular
@@ -103,6 +98,7 @@ inline void markProcessed(Operation *op) {
 /// lists of each of their operands.
 class Netlist {
   SmallVector<SmallVector<Operation *>> netlists;
+  SmallPtrSet<Operation *, 8> processed;
 
 public:
   Netlist(mlir::func::FuncOp func) {
@@ -144,6 +140,10 @@ public:
   SmallVector<Operation *> *getNetlist(size_t index) {
     return &netlists[index];
   }
+
+  void markProcessed(Operation *op) { processed.insert(op); }
+
+  bool wasProcessed(Operation *op) { return processed.contains(op); }
 };
 
 /// A subcircuit is an connected portion of the netlist containing
@@ -153,6 +153,7 @@ public:
 class Subcircuit {
 protected:
   SmallVector<std::pair<Value, Operation *>> anchor_points;
+  Netlist *container = nullptr;
 
   void addAnchorPoint(Value qubit, Operation *op) {
     anchor_points.push_back({qubit, op});
@@ -161,8 +162,8 @@ protected:
   bool isTerminationPoint(Operation *op) {
     // Currently, each operation can only be part of one subcircuit (hence the
     // check for the processed flag)
-    return (op->getBlock() != start->getBlock()) || processed(op) ||
-           isCircuitBreaker(op);
+    return (op->getBlock() != start->getBlock()) || isCircuitBreaker(op) ||
+           container->wasProcessed(op);
   }
 
   class NetlistWrapper {
@@ -271,7 +272,6 @@ protected:
     Value getDef() { return def; }
   };
 
-  Netlist *container = nullptr;
   SmallVector<NetlistWrapper *> qubits = {};
   SetVector<Operation *> ops = {};
   SmallVector<Operation *> ordered_ops = {};
@@ -359,7 +359,7 @@ public:
     calculateInitialSubcircuit();
     pruneSubcircuit();
     for (auto op : ops)
-      markProcessed(op);
+      netlist->markProcessed(op);
   }
 
   ~Subcircuit() {
@@ -638,7 +638,7 @@ public:
     subcircuitBuild.start();
     func.walk([&](quake::XOp op) {
       // AXIS-SPECIFIC: controlled not only
-      if (!::isCNOT(op) || ::processed(op))
+      if (!::isCNOT(op) || nl.wasProcessed(op))
         return;
 
       if (!isSupportedValue(op.getOperand(0)) ||
