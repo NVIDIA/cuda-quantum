@@ -249,6 +249,7 @@ public:
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx,
                                      const std::vector<void *> *rawArgs) {
+    ScopedTraceWithContext(cudaq::TIMING_JIT, "constructKernelPayload");
     auto moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
                                 startingArgIdx, rawArgs);
 
