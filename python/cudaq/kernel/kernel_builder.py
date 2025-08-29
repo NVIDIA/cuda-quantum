@@ -9,6 +9,7 @@
 import random
 import re
 import string
+import uuid
 import weakref
 from functools import partialmethod
 from typing import get_origin
@@ -295,6 +296,8 @@ class PyKernel(object):
                                                        loc=self.loc,
                                                        name=self.name,
                                                        module=self.module)
+        # List of in-place applied noise channels (rather than pre-registered noise classes)
+        self.appliedNoiseChannels = []
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
             self.mlirArgTypes = [
@@ -466,6 +469,30 @@ class PyKernel(object):
             cc.StoreOp(value, slot)
             return slot
         return value
+
+    def __createStdvecWithKnownValues(self, listElementValues):
+        # Turn this List into a StdVec<T>
+        arrSize = self.getConstantInt(len(listElementValues))
+        elemTy = listElementValues[0].type if len(
+            listElementValues) > 0 else self.getFloatType()
+        arrTy = cc.ArrayType.get(elemTy)
+        alloca = cc.AllocaOp(cc.PointerType.get(arrTy),
+                             TypeAttr.get(elemTy),
+                             seqSize=arrSize).result
+
+        for i, v in enumerate(listElementValues):
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(elemTy), alloca, [self.getConstantInt(i)],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                      context=self.ctx)).result
+            cc.StoreOp(v, eleAddr)
+
+        vecTy = elemTy
+        if cc.PointerType.isinstance(vecTy):
+            vecTy = cc.PointerType.getElementType(vecTy)
+
+        return cc.StdvecInitOp(cc.StdvecType.get(vecTy), alloca,
+                               length=arrSize).result
 
     def promoteOperandType(self, ty, operand):
         if ComplexType.isinstance(ty):
@@ -1461,6 +1488,90 @@ class PyKernel(object):
                 cc.ContinueOp([incr])
             loop.attributes.__setitem__('invariant', UnitAttr.get())
 
+    def create_noise_channel_class(self, kraus_channel):
+        class_name = "cudaq_gen_kraus_channel_" + str(uuid.uuid4())
+
+        def initSubClass(self, *args):
+            cudaq_runtime.KrausChannel.__init__(self, kraus_channel.get_ops())
+
+        new_class = type(class_name, (cudaq_runtime.KrausChannel,), {
+            "__init__": initSubClass,
+            "num_parameters": 0
+        })
+        return new_class
+
+    def process_channel_param(self, param):
+        # Noise channel parameters
+        if isinstance(param, float):
+            return self.getConstantFloat(param)
+        # Check that it's a MLIR value of float type
+        elif isinstance(
+                param,
+                QuakeValue) and (F64Type.isinstance(param.mlirValue.type) or
+                                 F32Type.isinstance(param.mlirValue.type)):
+            return param.mlirValue
+        else:
+            emitFatalError("Noise channel parameter must be float")
+
+    def apply_noise(self, noise_channel, *args):
+        """
+        Apply a noise channel to the provided qubit or qubits.
+        """
+        if isinstance(noise_channel, cudaq_runtime.KrausChannel):
+            # If we have an instance of a KrausChannel, create a subclass
+            noise_channel = self.create_noise_channel_class(noise_channel)
+            self.appliedNoiseChannels.append(noise_channel)
+
+        if not issubclass(noise_channel, cudaq_runtime.KrausChannel):
+            if not hasattr(noise_channel, 'num_parameters'):
+                emitFatalError(
+                    'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
+                )
+
+            # We needs to have noise channel parameters + qubit arguments
+            if isinstance(args[0], list):
+                if len(args[0]) != noise_channel.num_parameters:
+                    emitFatalError(
+                        f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}`"
+                    )
+            elif len(args) <= noise_channel.num_parameters:
+                emitFatalError(
+                    f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}`"
+                )
+
+        with self.insertPoint, self.loc:
+            noise_channel_params = []
+            target_qubits = []
+
+            if isinstance(args[0], list):
+                # If the first argument is a list, assuming that it is the list of noise channel parameters.
+                noise_channel_params = [
+                    self.process_channel_param(p) for p in args[0]
+                ]
+                # Qubit arguments
+                for p in args[1:]:
+                    if not (isinstance(p, QuakeValue) and
+                            quake.RefType.isinstance(p.mlirValue.type)):
+                        emitFatalError("Invalid qubit operand type")
+                    target_qubits.append(p.mlirValue)
+            else:
+                for i, p in enumerate(args):
+                    if i < noise_channel.num_parameters:
+                        noise_channel_params.append(
+                            self.process_channel_param(p))
+                    else:
+                        # Qubit arguments
+                        if not (isinstance(p, QuakeValue) and
+                                quake.RefType.isinstance(p.mlirValue.type)):
+                            emitFatalError("Invalid qubit operand type")
+                        target_qubits.append(p.mlirValue)
+
+            params = self.__createStdvecWithKnownValues(noise_channel_params)
+            asVeq = quake.ConcatOp(quake.VeqType.get(), target_qubits).result
+            channel_key = hash(noise_channel)
+            quake.ApplyNoiseOp([params], [asVeq],
+                               key=self.getConstantInt(channel_key))
+
     def __call__(self, *args):
         """Just-In-Time (JIT) compile `self` (:class:`Kernel`), and call 
         the kernel function at the provided concrete arguments.
@@ -1484,6 +1595,14 @@ class PyKernel(object):
             kernel(5, 3.14))
         ```
         """
+        if len(self.appliedNoiseChannels) > 0:
+            noise_model = cudaq_runtime.get_noise()
+            if noise_model is not None:
+                # Note: the runtime would already warn about `apply_noise` called but no noise model provided.
+                # Here, we just ignore the registration of inline noise applications.
+                for noise_channel in self.appliedNoiseChannels:
+                    noise_model.register_channel(noise_channel)
+
         if len(args) != len(self.mlirArgTypes):
             emitFatalError(
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"
