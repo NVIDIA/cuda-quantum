@@ -23,7 +23,6 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace {
 #define RAW(X) quake::X
 // AXIS-SPECIFIC: Defines which operations break a circuit into subcircuits
 #define CIRCUIT_BREAKERS(MACRO)                                                \
@@ -31,15 +30,11 @@ namespace {
       MACRO(PhasedRxOp), MACRO(RyOp), MACRO(U2Op), MACRO(U3Op)
 #define RAW_CIRCUIT_BREAKERS CIRCUIT_BREAKERS(RAW)
 
-inline bool processed(Operation *op) { return op->hasAttr("processed"); }
-
-inline void markProcessed(Operation *op) {
-  op->setAttr("processed", OpBuilder(op).getUnitAttr());
-}
-
 // AXIS-SPECIFIC: could allow controlled y and z here
-inline bool isCNOT(Operation *op) {
-  return isa<quake::XOp>(op) && op->getNumOperands() == 2;
+static bool isCNOT(Operation *op) {
+  if (auto xop = dyn_cast<quake::XOp>(op))
+    return xop.getControls().size() == 1;
+  return false;
 }
 
 /// Currently, only `!quake.ref`s generated directly from
@@ -49,7 +44,7 @@ inline bool isCNOT(Operation *op) {
 /// breaking a circuit without it being noticed. This does unfortunately
 /// restrict the possible optimizations, so future work to recognize
 /// these possible side effects could be beneficial.
-bool isSupportedValue(Value ref) {
+static bool isSupportedValue(Value ref) {
   if (!isa<quake::RefType>(ref.getType()))
     return false;
 
@@ -62,7 +57,7 @@ bool isSupportedValue(Value ref) {
   return true;
 }
 
-bool isCircuitBreaker(Operation *op) {
+static bool isCircuitBreaker(Operation *op) {
   // TODO: it may be cleaner to only accept non-null input to
   // ensure the null case is explicitly handled by users
   if (!op)
@@ -93,6 +88,13 @@ bool isCircuitBreaker(Operation *op) {
 
 inline bool isTwoQubitOp(Operation *op) {
   return quake::getQuantumOperands(op).size() == 2;
+}
+
+namespace {
+inline bool processed(Operation *op) { return op->hasAttr("processed"); }
+
+inline void markProcessed(Operation *op) {
+  op->setAttr("processed", OpBuilder(op).getUnitAttr());
 }
 
 /// A netlist representation of a circuit is a list of lists,
@@ -164,8 +166,8 @@ protected:
   }
 
   class NetlistWrapper {
-    Subcircuit *subcircuit;
-    SmallVector<Operation *> *nl;
+    Subcircuit *subcircuit = nullptr;
+    SmallVector<Operation *> *nl = nullptr;
     Value def;
     // Inclusive
     size_t start_point;
@@ -269,11 +271,11 @@ protected:
     Value getDef() { return def; }
   };
 
-  Netlist *container;
-  SmallVector<NetlistWrapper *> qubits;
-  SetVector<Operation *> ops;
-  SmallVector<Operation *> ordered_ops;
-  Operation *start;
+  Netlist *container = nullptr;
+  SmallVector<NetlistWrapper *> qubits = {};
+  SetVector<Operation *> ops = {};
+  SmallVector<Operation *> ordered_ops = {};
+  Operation *start = nullptr;
   size_t num_rot_gates = 0;
 
   void allocWrapper(Value ref, Operation *anchor_point) {
@@ -668,3 +670,23 @@ public:
   }
 };
 } // namespace
+
+/// Add a pass pipeline to apply the requisite passes to fully unroll loops.
+/// When converting to a quantum circuit, the static control program is fully
+/// expanded to eliminate control flow. This pipeline will raise an error if any
+/// loop in the module cannot be fully unrolled and signalFailure is set.
+static void createPhaseFoldingPipeline(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
+}
+
+void cudaq::opt::registerPhaseFoldingPipeline() {
+  PassPipelineRegistration<>(
+      "phase-folding-pipeline",
+      "Performs the phase-polynomial based rotation merging optimization.",
+      [](OpPassManager &pm) { createPhaseFoldingPipeline(pm); });
+}

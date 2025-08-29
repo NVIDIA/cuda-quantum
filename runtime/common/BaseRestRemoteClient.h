@@ -221,8 +221,7 @@ public:
                         });
     // TODO: replace environment variable with runtime configuration
     if (getEnvBool("CUDAQ_PHASE_FOLDING", true))
-      pipeline = pipeline + "func.func(factor-quantum-alloc,canonicalize,cse,"
-                            "phase-folding,canonicalize,combine-quantum-alloc)";
+      pipeline = pipeline + "phase-folding-pipeline";
 
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();
