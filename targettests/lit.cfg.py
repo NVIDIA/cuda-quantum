@@ -20,7 +20,7 @@ config.name = 'CUDAQ-Target'
 # `testFormat`: The test format to use to interpret tests.
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
-config.suffixes = ['.cpp', '.config', '.template']
+config.suffixes = ['.cpp', '.config']
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.

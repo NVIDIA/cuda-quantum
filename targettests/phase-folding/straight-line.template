@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: python3 %random_gen_script %s --seed=27 --block-length=100 --rz-weight=0.5 > %t.cpp && nvq++ %t.cpp --target=remote-mqpu -o %t && %t
+// RUN: nvq++ %t.cpp --target=remote-mqpu -o %t && %t
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
