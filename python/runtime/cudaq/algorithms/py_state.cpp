@@ -240,8 +240,8 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             dataPtr = reinterpret_cast<void *>(hostData);
           }
           hostDataFromDevice.emplace_back(dataPtr, [](void *data) {
-            cudaq::info("freeing data that was copied from GPU device for "
-                        "compatibility with NumPy");
+            CUDAQ_INFO("freeing data that was copied from GPU device for "
+                       "compatibility with NumPy");
             free(data);
           });
         } else

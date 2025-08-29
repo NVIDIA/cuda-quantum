@@ -25,7 +25,7 @@ protected:
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
 
-    cudaq::info("extract quake code\n");
+    CUDAQ_INFO("extract quake code\n");
 
     auto contextPtr = cudaq::initializeMLIR();
     MLIRContext &context = *contextPtr.get();
