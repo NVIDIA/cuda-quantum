@@ -10,11 +10,35 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -f docker/release/cudaq.nvqc.Dockerfile .
+#   # to skip prerequisites (default)
+#   docker build --target=without_tpls -f docker/release/cudaq.nvqc.Dockerfile .
+#
+#   # to install and clone prerequisites
+#   docker build --target=with_tpls \
+#       -f docker/release/cudaq.nvqc.Dockerfile .
 
 # Base image is CUDA-Q image 
 ARG base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu12-latest
 FROM $base_image AS nvcf_image
+
+# With prerequisites
+FROM $base_image AS with_tpls
+RUN echo "Build with prerequisites"
+# COPY install_prerequisites into the image
+RUN sudo mkdir -p /tmp
+COPY --chmod=0755 scripts/install_prerequisites.sh /tmp/install_prerequisites.sh
+COPY .gitmodules /tmp/.gitmodules
+# Manually run this command locally to create tpls_commits.lock file
+# git config --file .gitmodules --get-regexp '^submodule\..*\.path$' \
+#         | awk '{print $2}' \
+#         | while read p; do printf "%s %s\n" "$(git rev-parse HEAD:$p)" "$p"; done \
+#         > tpls_commits.lock
+COPY tpls_commits.lock /tmp/tpls_commits.lock
+RUN sudo bash /tmp/install_prerequisites.sh -l /tmp/tpls_commits.lock
+
+# Without prerequisites
+FROM $base_image AS without_tpls
+RUN echo "Default build without prerequisites"
 
 # Run the tar command and then uncomment ADD cudaq.tar.gz ... in order to
 # override the installation.
