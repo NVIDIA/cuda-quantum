@@ -279,7 +279,8 @@ void bindNoiseChannels(py::module &mod) {
            ":class:`KrausOperator`'s.")
       .def_readwrite("parameters", &kraus_channel::parameters)
       .def_readwrite("noise_type", &kraus_channel::noise_type)
-      .def("get_ops", &kraus_channel::get_ops)
+      .def("get_ops", &kraus_channel::get_ops,
+           "Return the :class:`KrausOperator`'s in this :class:`KrausChannel`.")
       .def(
           "__getitem__",
           [](kraus_channel &self, std::size_t idx) { return self[idx]; },
