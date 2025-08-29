@@ -9,6 +9,7 @@
 import random
 import re
 import string
+import uuid
 import weakref
 from functools import partialmethod
 from typing import get_origin
@@ -295,6 +296,8 @@ class PyKernel(object):
                                                        loc=self.loc,
                                                        name=self.name,
                                                        module=self.module)
+        # List of in-place applied noise channels (rather than pre-registered noise classes)
+        self.appliedNoiseChannels = []
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
             self.mlirArgTypes = [
@@ -470,20 +473,21 @@ class PyKernel(object):
     def __createStdvecWithKnownValues(self, listElementValues):
         # Turn this List into a StdVec<T>
         arrSize = self.getConstantInt(len(listElementValues))
-        arrTy = cc.ArrayType.get(listElementValues[0].type)
+        elemTy = listElementValues[0].type if len(
+            listElementValues) > 0 else self.getFloatType()
+        arrTy = cc.ArrayType.get(elemTy)
         alloca = cc.AllocaOp(cc.PointerType.get(arrTy),
-                             TypeAttr.get(listElementValues[0].type),
+                             TypeAttr.get(elemTy),
                              seqSize=arrSize).result
 
         for i, v in enumerate(listElementValues):
             eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(listElementValues[0].type), alloca,
-                [self.getConstantInt(i)],
+                cc.PointerType.get(elemTy), alloca, [self.getConstantInt(i)],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                       context=self.ctx)).result
             cc.StoreOp(v, eleAddr)
 
-        vecTy = listElementValues[0].type
+        vecTy = elemTy
         if cc.PointerType.isinstance(vecTy):
             vecTy = cc.PointerType.getElementType(vecTy)
 
@@ -1484,10 +1488,27 @@ class PyKernel(object):
                 cc.ContinueOp([incr])
             loop.attributes.__setitem__('invariant', UnitAttr.get())
 
+    def create_noise_channel_class(self, kraus_channel):
+        class_name = "cudaq_gen_kraus_channel_" + str(uuid.uuid4())
+
+        def initSubClass(self, *args):
+            cudaq_runtime.KrausChannel.__init__(self, kraus_channel.get_ops())
+
+        new_class = type(class_name, (cudaq_runtime.KrausChannel,), {
+            "__init__": initSubClass,
+            "num_parameters": 0
+        })
+        return new_class
+
     def apply_noise(self, noise_channel, *args):
         """
         Apply a noise channel to the provided qubit or qubits.
         """
+        if isinstance(noise_channel, cudaq_runtime.KrausChannel):
+            # If we have an instance of a KrausChannel, create a subclass
+            noise_channel = self.create_noise_channel_class(noise_channel)
+            self.appliedNoiseChannels.append(noise_channel)
+
         if not issubclass(noise_channel, cudaq_runtime.KrausChannel):
             if not hasattr(noise_channel, 'num_parameters'):
                 emitFatalError(
@@ -1580,6 +1601,14 @@ class PyKernel(object):
             kernel(5, 3.14))
         ```
         """
+        if len(self.appliedNoiseChannels) > 0:
+            noise_model = cudaq_runtime.get_noise()
+            if noise_model is not None:
+                # Note: the runtime would already warn about `apply_noise` called but no noise model provided.
+                # Here, we just ignore the registration of inline noise applications.
+                for noise_channel in self.appliedNoiseChannels:
+                    noise_model.register_channel(noise_channel)
+
         if len(args) != len(self.mlirArgTypes):
             emitFatalError(
                 f"Invalid number of arguments passed to kernel `{self.funcName}` ({len(args)} provided, {len(self.mlirArgTypes)} required"

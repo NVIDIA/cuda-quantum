@@ -1003,6 +1003,40 @@ def test_builder_apply_noise_builtin(target: str):
     cudaq.reset_target()
 
 
+def test_builder_apply_noise_inplace():
+    cudaq.set_target("density-matrix-cpu")
+    cudaq.set_random_seed(13)
+
+    def kraus_mats(error_probability):
+
+        kraus_0 = np.sqrt(1 - error_probability) * np.array(
+            [[1.0, 0.0], [0.0, 1.0]], dtype=np.complex128)
+
+        kraus_1 = np.sqrt(error_probability) * np.array(
+            [[0.0, 1.0], [1.0, 0.0]], dtype=np.complex128)
+        return [kraus_0, kraus_1]
+
+    test = cudaq.make_kernel()
+    q, r = test.qalloc(), test.qalloc()
+    test.x(q)
+    test.x(r)
+    test.apply_noise(cudaq.KrausChannel(kraus_mats(0.5)), q)
+    test.apply_noise(cudaq.KrausChannel(kraus_mats(0.25)), r)
+    counts = cudaq.sample(test,
+                          noise_model=cudaq.NoiseModel(),
+                          shots_count=10000)
+    counts.dump()
+    assert np.isclose(counts.probability("00"), 0.5 * 0.25,
+                      atol=1e-2)  # both decay
+    assert np.isclose(counts.probability("11"), 0.5 * 0.75,
+                      atol=1e-2)  # both stay
+    assert np.isclose(counts.probability("10"), 0.5 * 0.25,
+                      atol=1e-2)  # q stays, r decays
+    assert np.isclose(counts.probability("01"), 0.5 * 0.75,
+                      atol=1e-2)  # q decays, r stays
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
