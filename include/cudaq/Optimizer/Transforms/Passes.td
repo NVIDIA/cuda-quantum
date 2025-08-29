@@ -993,6 +993,13 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
       the rotation angles of both ops, and removing the prior op.
   }];
 
+  let options = [
+    Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
+    "Minimumn subcircuit length to run phase folding">,
+    Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"20",
+    "Minimumn percentage of rz ops in subcircuit to run phase folding">,
+  ];
+
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 

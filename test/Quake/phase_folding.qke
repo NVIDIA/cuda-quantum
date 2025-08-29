@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --phase-folding %s | FileCheck %s
+// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
 
 // The syntactic IR checks in this file ensure that
 // optimizations are in fact applied as expected.

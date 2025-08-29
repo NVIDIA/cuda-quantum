@@ -647,6 +647,13 @@ public:
 
       // Build a subcircuit from the CNOT
       auto subcircuit = new Subcircuit(op, &nl);
+      // Ensure we're above thresholds
+      if (subcircuit->getNumOps() < minimumBlockLength ||
+          subcircuit->getRotationWeight() < minimumrzWeight) {
+        LLVM_DEBUG(llvm::dbgs() << "Subcircuit below threshold, skipping!\n");
+        delete subcircuit;
+        return;
+      }
       subcircuits.push_back(subcircuit);
     });
     subcircuitBuild.stop();
@@ -669,24 +676,44 @@ public:
     tm.setDisplayMode(mlir::DefaultTimingManager::DisplayMode::Tree);
   }
 };
+
+/// Phase folding pass pipeline command-line options.
+struct PhaseFoldingPipelineOptions
+    : public PassPipelineOptions<PhaseFoldingPipelineOptions> {
+  PassOptions::Option<unsigned> minimumBlockLength{
+      *this, "min-length",
+      llvm::cl::desc(
+          "Minimum subcircuit length to run phase folding. (default: 20)"),
+      llvm::cl::init(20)};
+  PassOptions::Option<double> minimumrzWeight{
+      *this, "min-rz-weight",
+      llvm::cl::desc("Minimumn percentage of rz ops in subcircuit to run phase "
+                     "folding. (default: 0.2)"),
+      llvm::cl::init(0.2)};
+};
 } // namespace
 
 /// Add a pass pipeline to apply the requisite passes to fully unroll loops.
 /// When converting to a quantum circuit, the static control program is fully
 /// expanded to eliminate control flow. This pipeline will raise an error if any
 /// loop in the module cannot be fully unrolled and signalFailure is set.
-static void createPhaseFoldingPipeline(OpPassManager &pm) {
+static void createPhaseFoldingPipeline(OpPassManager &pm, unsigned min_length,
+                                       double min_rz_weight) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding());
+  cudaq::opt::PhaseFoldingOptions pfo{min_length, min_rz_weight};
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPhaseFolding(pfo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
 }
 
 void cudaq::opt::registerPhaseFoldingPipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<PhaseFoldingPipelineOptions>(
       "phase-folding-pipeline",
       "Performs the phase-polynomial based rotation merging optimization.",
-      [](OpPassManager &pm) { createPhaseFoldingPipeline(pm); });
+      [](OpPassManager &pm, const PhaseFoldingPipelineOptions &pfpo) {
+        createPhaseFoldingPipeline(pm, pfpo.minimumBlockLength,
+                                   pfpo.minimumrzWeight);
+      });
 }
