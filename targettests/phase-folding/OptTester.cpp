@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target=remote-mqpu %s -o %t && %t
+// RUN: nvq++ --target=remote-mqpu %s -o %t && CUDAQ_BYPASS_PHASE_FOLDING_MINS=1 %t
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

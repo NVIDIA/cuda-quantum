@@ -220,8 +220,13 @@ public:
                           return ss.empty() ? s : ss + "," + s;
                         });
     // TODO: replace environment variable with runtime configuration
-    if (getEnvBool("CUDAQ_PHASE_FOLDING", true))
-      pipeline = pipeline + "phase-folding-pipeline";
+    if (getEnvBool("CUDAQ_PHASE_FOLDING", true)) {
+      if (getEnvBool("CUDAQ_BYPASS_PHASE_FOLDING_MINS", false))
+        pipeline =
+            pipeline + "phase-folding-pipeline{min-length=0 min-rz-weight=0}";
+      else
+        pipeline = pipeline + "phase-folding-pipeline";
+    }
 
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();
