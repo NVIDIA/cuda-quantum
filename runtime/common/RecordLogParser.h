@@ -216,7 +216,7 @@ public:
       ty.erase(std::remove(ty.begin(), ty.end(), ' '), ty.end());
   }
 
-  /// Parse string like "[0]" for array index, and ".0" for tuple index
+  /// Parse string like "[0]" for array index, and ".0" for tuple index.
   std::size_t extractIndex(const std::string &label) {
     if ((label[0] == '[') && (label[label.size() - 1] == ']'))
       return std::stoi(label.substr(1, label.size() - 2));
@@ -339,5 +339,7 @@ private:
   /// Data layout information
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};
+  /// Metadata information extracted from the log
+  std::unordered_map<std::string, std::string> metadata;
 };
 } // namespace cudaq

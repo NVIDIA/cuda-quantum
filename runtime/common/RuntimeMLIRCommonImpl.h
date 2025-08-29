@@ -154,7 +154,9 @@ static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
   };
 
   return isValidFloatBinaryInst(inst) || llvm::isa<llvm::FCmpInst>(inst) ||
-         llvm::isa<llvm::FPExtInst>(inst) || llvm::isa<llvm::FPTruncInst>(inst);
+         llvm::isa<llvm::FPExtInst>(inst) ||
+         llvm::isa<llvm::FPTruncInst>(inst) ||
+         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
 }
 
 static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
