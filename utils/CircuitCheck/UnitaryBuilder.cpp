@@ -16,7 +16,7 @@ using namespace mlir;
 LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   for (auto arg : func.getArguments()) {
     auto type = arg.getType();
-    if (isa<quake::RefType>(type) || isa<quake::VeqType>(type))
+    if (isa<quake::RefType, quake::VeqType>(type))
       if (allocateQubits(arg) == WalkResult::interrupt())
         return failure();
   }
