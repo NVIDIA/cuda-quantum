@@ -21,8 +21,7 @@ namespace cudaq::opt {
 /// Add a pass pipeline to transform call between kernels to direct calls that
 /// do not go through the runtime layers, inline all calls, and detect if calls
 /// to kernels remain in the fully inlined into entry point kernel.
-void addAggressiveInlining(mlir::OpPassManager &pm,
-                                bool fatalCheck = false);
+void addAggressiveInlining(mlir::OpPassManager &pm, bool fatalCheck = false);
 void registerAggressiveInliningPipeline();
 
 void registerUnrollingPipeline();

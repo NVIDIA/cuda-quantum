@@ -141,8 +141,7 @@ static void defaultInlinerOptPipeline(OpPassManager &pm) {
 /// Such a failure is most likely a sign that there is a cycle in the call
 /// graph. [This check is a bad idea: this should be deferred to final codegen
 /// when translating the final Quake IR.]
-void cudaq::opt::addAggressiveInlining(OpPassManager &pm,
-                                            bool fatalChecks) {
+void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   llvm::StringMap<OpPassManager> opPipelines;
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
