@@ -47,15 +47,15 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, batch size {}, value {}",
-                     context->paramNames[i], batchSize,
-                     param_map[context->paramNames[i]]);
+        CUDAQ_DBG("Callback param name {}, batch size {}, value {}",
+                  context->paramNames[i], batchSize,
+                  param_map[context->paramNames[i]]);
       }
       for (int64_t i = 0; i < batchSize; ++i) {
         scalar_operator &storedOp = context->scalarOps[i];
         tdCoef[i] = storedOp.is_constant() ? storedOp.evaluate()
                                            : storedOp.evaluate(param_map);
-        cudaq::debug("Scalar callback constant value = {}", tdCoef[i]);
+        CUDAQ_DBG("Scalar callback constant value = {}", tdCoef[i]);
       }
       return CUDENSITYMAT_STATUS_SUCCESS;
     } catch (const std::exception &e) {
@@ -121,8 +121,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Tensor callback param name {}, value {}",
-                     context->paramNames[i], param_map[context->paramNames[i]]);
+        CUDAQ_DBG("Tensor callback param name {}, value {}",
+                  context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
       cudaq::dimension_map &dimensions = context->dimensions;

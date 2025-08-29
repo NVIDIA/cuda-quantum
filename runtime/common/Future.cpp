@@ -26,11 +26,11 @@ sample_result future::get() {
   auto headers = serverHelper->getHeaders();
   std::vector<ExecutionResult> results;
   for (auto &id : jobs) {
-    cudaq::info("Future retrieving results for {}.", id.first);
+    CUDAQ_INFO("Future retrieving results for {}.", id.first);
 
     auto jobGetPath = serverHelper->constructGetJobPath(id.first);
 
-    cudaq::info("Future got job retrieval path as {}.", jobGetPath);
+    CUDAQ_INFO("Future got job retrieval path as {}.", jobGetPath);
     auto resultResponse =
         client.get(jobGetPath, "", headers, false, serverHelper->getCookies());
     while (!serverHelper->jobIsDone(resultResponse)) {
