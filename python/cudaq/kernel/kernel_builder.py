@@ -1500,6 +1500,19 @@ class PyKernel(object):
         })
         return new_class
 
+    def process_channel_param(self, param):
+        # Noise channel parameters
+        if isinstance(param, float):
+            return self.getConstantFloat(param)
+        # Check that it's a MLIR value of float type
+        elif isinstance(
+                param,
+                QuakeValue) and (F64Type.isinstance(param.mlirValue.type) or
+                                 F32Type.isinstance(param.mlirValue.type)):
+            return param.mlirValue
+        else:
+            emitFatalError("Noise channel parameter must be float")
+
     def apply_noise(self, noise_channel, *args):
         """
         Apply a noise channel to the provided qubit or qubits.
@@ -1529,20 +1542,12 @@ class PyKernel(object):
         with self.insertPoint, self.loc:
             noise_channel_params = []
             target_qubits = []
+
             if isinstance(args[0], list):
-                for p in args[0]:
-                    # Noise channel parameters
-                    if isinstance(p, float):
-                        noise_channel_params.append(self.getConstantFloat(p))
-                    else:
-                        # Check that it's a MLIR value of float type
-                        if isinstance(p, QuakeValue) and (
-                                F64Type.isinstance(p.mlirValue.type) or
-                                F32Type.isinstance(p.mlirValue.type)):
-                            noise_channel_params.append(p.mlirValue)
-                        else:
-                            emitFatalError(
-                                "Noise channel parameter must be float")
+                # If the first argument is a list, assuming that it is the list of noise channel parameters.
+                noise_channel_params = [
+                    self.process_channel_param(p) for p in args[0]
+                ]
                 # Qubit arguments
                 for p in args[1:]:
                     if not (isinstance(p, QuakeValue) and
@@ -1552,19 +1557,8 @@ class PyKernel(object):
             else:
                 for i, p in enumerate(args):
                     if i < noise_channel.num_parameters:
-                        # Noise channel parameters
-                        if isinstance(p, float):
-                            noise_channel_params.append(
-                                self.getConstantFloat(p))
-                        else:
-                            # Check that it's a MLIR value of float type
-                            if isinstance(p, QuakeValue) and (
-                                    F64Type.isinstance(p.mlirValue.type) or
-                                    F32Type.isinstance(p.mlirValue.type)):
-                                noise_channel_params.append(p.mlirValue)
-                            else:
-                                emitFatalError(
-                                    "Noise channel parameter must be float")
+                        noise_channel_params.append(
+                            self.process_channel_param(p))
                     else:
                         # Qubit arguments
                         if not (isinstance(p, QuakeValue) and
