@@ -1028,7 +1028,7 @@
 
 <span class="w">  </span><span class="c1">/// @brief Example implementation of backend initialization.</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">initialize</span><span class="p">(</span><span class="n">BackendConfig</span><span class="w"> </span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Initializing Provider Name Backend&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">CUDAQ_INFO</span><span class="p">(</span><span class="s">&quot;Initializing Provider Name Backend&quot;</span><span class="p">);</span>
 <span class="w">    </span><span class="n">backendConfig</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">config</span><span class="p">;</span>
 
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">backendConfig</span><span class="p">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;url&quot;</span><span class="p">))</span>
@@ -1088,7 +1088,7 @@
 <span class="w">  </span><span class="c1">/// This is the place to do that.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_result</span><span class="w"> </span><span class="n">processResults</span><span class="p">(</span><span class="n">ServerMessage</span><span class="w"> </span><span class="o">&amp;</span><span class="n">getJobResponse</span><span class="p">,</span>
 <span class="w">                                     </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="n">jobId</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Processing results: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">.</span><span class="n">dump</span><span class="p">());</span>
+<span class="w">    </span><span class="n">CUDAQ_INFO</span><span class="p">(</span><span class="s">&quot;Processing results: {}&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">.</span><span class="n">dump</span><span class="p">());</span>
 
 <span class="w">    </span><span class="c1">// Extract measurement results from the response</span>
 <span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">samplesJson</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getJobResponse</span><span class="p">[</span><span class="s">&quot;results&quot;</span><span class="p">][</span><span class="s">&quot;counts&quot;</span><span class="p">];</span>
