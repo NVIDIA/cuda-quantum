@@ -155,7 +155,6 @@ public:
       auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
                                             voidStarSize, 0, rawArgs);
 
-      mlir::PassManager pm(m_mlirContext.get());
       auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
 
       auto funcPtr =
