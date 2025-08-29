@@ -37,7 +37,6 @@ config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
 config.substitutions.append(('%iqm_test_src_dir', config.cudaq_src_dir + "/runtime/cudaq/platform/default/rest/helpers/iqm"))
-config.substitutions.append(('%random_gen_script', config.cudaq_src_dir + "/targettests/phase_folding/random_gen.py"))
 
 llvm_config.use_default_substitutions()
 
