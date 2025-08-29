@@ -135,9 +135,6 @@ public:
   std::vector<BackendFeatureMap> ConfigMap;
 };
 
-/// Find the backend config entry from the backend feature map with the provided name.
-BackendEndConfigEntry getBackendEndConfigEntry(const TargetConfig &config, std::string& name);
-
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,

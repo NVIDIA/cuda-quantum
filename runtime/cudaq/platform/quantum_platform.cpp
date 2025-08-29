@@ -235,6 +235,15 @@ void quantum_platform::setLogStream(std::ostream &logStream) {
   platformLogStream = &logStream;
 }
 
+cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
+  if (!codeGenConfig.has_value()) {
+    const auto &config = cudaq::getRuntimeTargetConfigBackendEntry(
+        runtimeTarget, runtimeTarget.name);
+    codeGenConfig = cudaq::parseCodeGenTranslation(config.CodegenEmission);
+  }
+  return codeGenConfig.value();
+}
+
 KernelThunkResultType altLaunchKernel(const char *kernelName,
                                       KernelThunkType kernelFunc,
                                       void *kernelArgs, std::uint64_t argsSize,

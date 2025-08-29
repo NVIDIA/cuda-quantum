@@ -8,11 +8,12 @@
 
 #pragma once
 
+#include "common/CodeGenConfig.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
-#include "common/ThunkInterface.h"
 #include "common/RuntimeTarget.h"
+#include "common/ThunkInterface.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -132,6 +133,9 @@ public:
   /// @brief Get the remote capabilities (only applicable for remote platforms)
   RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
+  /// Get code generation configuration values
+  CodeGenConfig get_codegen_config();
+
   /// @brief Turn off any noise models.
   void reset_noise();
 
@@ -189,27 +193,12 @@ public:
   /// @brief Set the info logging stream.
   void setLogStream(std::ostream &logStream);
 
-  inline config::BackendEndConfigEntry get_config_entry() {
-    return getRuntimeTargetConfig(runtimeTarget, runtimeTarget.name);
-  }
-
-  /// Helpers for codegen configuration values
-  inline bool supports_run() {
-    const auto &config = get_config_entry();
-    return config.CodegenEmission.find("supports_run") !=  config.CodegenEmission.npos;
-  }
-
-  // inline bool erase_stack_intrinsic() {
-  //   return getRuntimeTargetConfig(runtimeTarget, runtimeTarget.name).EraseStackIntrinsic.value_or(false);
-  // }
-
-  // inline bool erase_record_output() {
-  //   return getRuntimeTargetConfig(runtimeTarget, runtimeTarget.name).EraseRecordOutput.value_or(false);
-  // }
-
 protected:
   /// The runtime target settings
   RuntimeTarget runtimeTarget;
+
+  /// Code generation configuration
+  std::optional<CodeGenConfig> codeGenConfig;
 
   /// The Platform QPUs, populated by concrete subtypes
   std::vector<std::unique_ptr<QPU>> platformQPUs;

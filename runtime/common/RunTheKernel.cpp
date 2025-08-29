@@ -103,18 +103,16 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
-  std::call_once(initializeContextOnce, []() {
-    initializeScratchContext();
-  });
+  std::call_once(initializeContextOnce, []() { initializeScratchContext(); });
 
   // Some platforms do not support run yet, emit error.
-  if (!platform.supports_run())
+  if (!platform.get_codegen_config().outputLog)
     throw std::runtime_error("`run` is not yet supported on this target.");
-  
+
   // 2. Launch the kernel on the QPU.
   if (platform.is_remote() || platform.is_emulated()) {
-    // In a remote simulator execution or hardware emulation environment, set the
-    // `run` context name and number of iterations (shots)
+    // In a remote simulator execution or hardware emulation environment, set
+    // the `run` context name and number of iterations (shots)
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);
     platform.set_exec_ctx(ctx.get(), qpu_id);
     // Launch the kernel a single time to post the 'run' request to the remote

@@ -145,12 +145,6 @@ static std::string processSimBackendConfig(
   return output.str();
 }
 
-cudaq::config::BackendEndConfigEntry getBackendEndConfigEntry(const cudaq::config::TargetConfig &config, std::string& argName) {
-  const auto& configMap = config.ConfigMap;
-  const auto it = std::find_if(configMap.begin(), configMap.end(), [&](auto m) { return m.Name == argName; });
-  return it->Config;
-}
-
 std::string
 cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
                                   const std::vector<std::string> &targetArgv) {
