@@ -46,7 +46,7 @@ struct ResourceCountPreprocessPass
       return false;
 
     // Measures may affect control flow, don't remove for now
-    if (isa<quake::MzOp>(op) || isa<quake::MyOp>(op) || isa<quake::MxOp>(op))
+    if (isa<quake::MeasurementInterface>(op))
       return false;
 
     auto name = op->getName().stripDialect();

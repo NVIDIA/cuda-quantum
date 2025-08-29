@@ -75,7 +75,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def(
       "initialize_cudaq",
       [&](py::kwargs kwargs) {
-        cudaq::info("Calling initialize_cudaq.");
+        CUDAQ_INFO("Calling initialize_cudaq.");
         if (!kwargs)
           return;
 
@@ -93,7 +93,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
         for (auto &[keyPy, valuePy] : kwargs) {
           std::string key = py::str(keyPy);
           std::string value = py::str(valuePy);
-          cudaq::info("Processing Python Arg: {} - {}", key, value);
+          CUDAQ_INFO("Processing Python Arg: {} - {}", key, value);
           if (key == "target")
             holder->setTarget(value, extraConfig);
         }

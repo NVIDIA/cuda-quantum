@@ -113,7 +113,7 @@ private:
 
 // Initialize the Fermioniq server helper with a given backend configuration
 void FermioniqServerHelper::initialize(BackendConfig config) {
-  cudaq::info("Initializing Fermioniq Backend.");
+  CUDAQ_INFO("Initializing Fermioniq Backend.");
 
   parseConfigForCommonParams(config);
 
@@ -137,7 +137,7 @@ void FermioniqServerHelper::initialize(BackendConfig config) {
   if (config.find("remote_config") != config.end()) {
     backendConfig[CFG_REMOTE_CONFIG_KEY] = config["remote_config"];
   } else {
-    cudaq::info("Set default remote config {}", DEFAULT_REMOTE_CONFIG_ID);
+    CUDAQ_INFO("Set default remote config {}", DEFAULT_REMOTE_CONFIG_ID);
     backendConfig[CFG_REMOTE_CONFIG_KEY] =
         std::string(DEFAULT_REMOTE_CONFIG_ID);
   }
@@ -209,7 +209,7 @@ bool FermioniqServerHelper::keyExists(const std::string &key) const {
 
 ServerJobPayload
 FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
-  cudaq::debug("createJob");
+  CUDAQ_DBG("createJob");
 
   if (circuitCodes.size() != 1) {
     throw std::runtime_error("Fermioniq allows only one circuit codes.");
@@ -223,11 +223,11 @@ FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<std::string> circuit_names;
 
   for (auto &circuitCode : circuitCodes) {
-    cudaq::info("name: {}", circuitCode.name);
+    CUDAQ_INFO("name: {}", circuitCode.name);
 
     circuit_names.push_back(circuitCode.name);
 
-    cudaq::info("outputNames: {}", circuitCode.output_names.dump());
+    CUDAQ_INFO("outputNames: {}", circuitCode.output_names.dump());
 
     // Construct the job message (for Fermioniq backend)
     circuits.push_back(circuitCode.code);
@@ -284,12 +284,12 @@ void FermioniqServerHelper::refreshTokens(bool force_refresh) {
   if (!force_refresh) {
     auto now = std::chrono::system_clock::now();
 
-    cudaq::debug("now: {}, tokenExpTime: {}", now, tokenExpTime);
+    CUDAQ_DBG("now: {}, tokenExpTime: {}", now, tokenExpTime);
 
     auto timeLeft =
         std::chrono::duration_cast<std::chrono::minutes>(tokenExpTime - now);
 
-    cudaq::debug("timeleft minutes before token refresh: {}", timeLeft.count());
+    CUDAQ_DBG("timeleft minutes before token refresh: {}", timeLeft.count());
 
     if (timeLeft.count() <= 5) {
       force_refresh = true;
@@ -320,12 +320,12 @@ void FermioniqServerHelper::refreshTokens(bool force_refresh) {
 
   tokenExpTime = std::chrono::system_clock::from_time_t(std::mktime(&tm));
 
-  cudaq::debug("exp time: {}", tokenExpTime);
+  CUDAQ_DBG("exp time: {}", tokenExpTime);
 }
 
 bool FermioniqServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 #ifdef CUDAQ_DEBUG
-  cudaq::debug("check job status {}", getJobResponse.dump());
+  CUDAQ_DBG("check job status {}", getJobResponse.dump());
 #endif
 
   refreshTokens(false);
@@ -334,7 +334,7 @@ bool FermioniqServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   int status_code = getJobResponse.at("status_code");
 
   if (status == "finished") {
-    cudaq::debug("job is finished: {}", getJobResponse.dump());
+    CUDAQ_DBG("job is finished: {}", getJobResponse.dump());
     if (status_code == 0) {
 
       // label is where we store circuit names comma separated.
@@ -348,7 +348,7 @@ bool FermioniqServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("Job failed to execute. Status code = " +
                              std::to_string(status_code));
   } else {
-    cudaq::info("job still running. status={}", status);
+    CUDAQ_INFO("job still running. status={}", status);
   }
 
   return false;
@@ -356,7 +356,7 @@ bool FermioniqServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 // From a server message, extract the job ID
 std::string FermioniqServerHelper::extractJobId(ServerMessage &postResponse) {
-  cudaq::debug("extractJobId");
+  CUDAQ_DBG("extractJobId");
 
   return postResponse.at("id");
 }
@@ -364,7 +364,7 @@ std::string FermioniqServerHelper::extractJobId(ServerMessage &postResponse) {
 // Construct the path to get a job
 std::string
 FermioniqServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  cudaq::debug("constructGetJobPath");
+  CUDAQ_DBG("constructGetJobPath");
   std::string id = postResponse.at("id");
   // todo: Extract job-id from postResponse
 
@@ -374,7 +374,7 @@ FermioniqServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 
 // Overloaded version of constructGetJobPath for jobId input
 std::string FermioniqServerHelper::constructGetJobPath(std::string &jobId) {
-  cudaq::debug("constructGetJobPath (jobId) from {}", jobId);
+  CUDAQ_DBG("constructGetJobPath (jobId) from {}", jobId);
 
   auto ret = backendConfig.at(CFG_URL_KEY) + "/api/jobs/" + jobId;
   return ret;
@@ -384,7 +384,7 @@ std::string FermioniqServerHelper::constructGetJobPath(std::string &jobId) {
 cudaq::sample_result
 FermioniqServerHelper::processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) {
-  cudaq::debug("processResults for job: {}", jobID);
+  CUDAQ_DBG("processResults for job: {}", jobID);
 
   RestClient client;
 
@@ -396,10 +396,10 @@ FermioniqServerHelper::processResults(ServerMessage &postJobResponse,
 
   auto response_json = client.get(backendConfig.at(CFG_URL_KEY), path, headers);
 
-  cudaq::debug("got job result: {}", response_json.dump());
+  CUDAQ_DBG("got job result: {}", response_json.dump());
 
   auto metadata = response_json.at("metadata");
-  // cudaq::info("metadata: {}", metadata.dump());
+  // CUDAQ_INFO("metadata: {}", metadata.dump());
   auto output = response_json.at("emulator_output");
 
   cudaq::sample_result sample_result;

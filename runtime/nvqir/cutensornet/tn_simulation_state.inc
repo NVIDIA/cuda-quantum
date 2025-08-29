@@ -303,7 +303,7 @@ TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
 
 template <typename ScalarType>
 void TensorNetSimulationState<ScalarType>::destroyState() {
-  cudaq::info("mps-state destroying state vector handle.");
+  CUDAQ_INFO("mps-state destroying state vector handle.");
   m_state.reset();
 }
 
