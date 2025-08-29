@@ -105,7 +105,7 @@ protected:
     state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
                                        collapsed_state.size());
 
-    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    CUDAQ_INFO("Measured qubit {} -> {}", q.id, measurement_result);
     return measurement_result;
   }
 
@@ -118,7 +118,7 @@ public:
       u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
       auto &[gateName, params, controls, qudits, op] = inst;
       auto target = qudits[0];
-      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying plusGate on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
   }

@@ -82,10 +82,10 @@ void initCuTensornetComm(cutensornetHandle_t cutnHandle) {
   // If CUTENSORNET_COMM_LIB environment variable is not set,
   // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
   if (std::getenv("CUTENSORNET_COMM_LIB") == nullptr) {
-    cudaq::info("Enabling cuTensorNet MPI without environment variable "
-                "CUTENSORNET_COMM_LIB. \nUse the builtin cuTensorNet "
-                "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
-                getThisSharedLibFilePath(), getMpiPluginFilePath());
+    CUDAQ_INFO("Enabling cuTensorNet MPI without environment variable "
+               "CUTENSORNET_COMM_LIB. \nUse the builtin cuTensorNet "
+               "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
+               getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUTENSORNET_COMM_LIB", getThisSharedLibFilePath(), 0);
   }
 

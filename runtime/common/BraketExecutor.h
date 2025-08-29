@@ -39,7 +39,7 @@ protected:
 
   public:
     ScopedApi(Aws::SDKOptions &options) : options(options) {
-      cudaq::debug("Initializing AWS API");
+      CUDAQ_DBG("Initializing AWS API");
       /// FIXME: Allow setting following flag via CUDA-Q frontend
       // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
       Aws::InitAPI(options);

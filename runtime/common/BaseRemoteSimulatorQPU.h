@@ -83,7 +83,7 @@ public:
   }
 
   void enqueue(cudaq::QuantumTask &task) override {
-    cudaq::info("BaseRemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);
+    CUDAQ_INFO("BaseRemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
   }
 
@@ -132,10 +132,9 @@ public:
                    void *args, std::uint64_t voidStarSize,
                    std::uint64_t resultOffset,
                    const std::vector<void *> *rawArgs) {
-    cudaq::info(
-        "BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
-        "(simulator = {})",
-        name, qpu_id, m_simName);
+    CUDAQ_INFO("BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
 
     if (in_resource_estimation)
       throw std::runtime_error(
@@ -229,7 +228,7 @@ public:
   launchSerializedCodeExecution(const std::string &name,
                                 cudaq::SerializedCodeExecutionContext
                                     &serializeCodeExecutionObject) override {
-    cudaq::info(
+    CUDAQ_INFO(
         "BaseRemoteSimulatorQPU: Launch remote code named '{}' remote QPU {} "
         "(simulator = {})",
         name, qpu_id, m_simName);
@@ -260,13 +259,13 @@ public:
   }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    cudaq::info("BaseRemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
+    CUDAQ_INFO("BaseRemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts[std::this_thread::get_id()] = context;
   }
 
   void resetExecutionContext() override {
-    cudaq::info("BaseRemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
+    CUDAQ_INFO("BaseRemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     m_contexts.erase(std::this_thread::get_id());
   }
