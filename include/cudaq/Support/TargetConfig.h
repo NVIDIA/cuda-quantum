@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -29,7 +30,32 @@ enum TargetFeatureFlag : unsigned {
 
 /// @brief Configuration argument type annotation
 // e.g., to support type validation.
-enum class ArgumentType { String, Int, UUID, FeatureFlag };
+enum class ArgumentType { String, Int, UUID, FeatureFlag, MachineConfig };
+
+/// @brief Architecture-specific compilation settings
+// Different device architectures of a target may require customization.
+// This is a subset of `BackendEndConfigEntry` that we provide
+// architecture-specific customization.
+struct TargetArchitectureSettings {
+  /// Codegen emission specification
+  std::string CodegenEmission;
+};
+
+/// @brief Specify architecture matching and customization
+// This data can be attached to whatever CLI target argument field for
+// device/machine name.
+struct MachineArchitectureConfig {
+  // Each architecture can be given a name, e.g., gen 1, gen 2
+  std::string Name;
+  // A list of device/machine names to be matched to this architecture
+  std::vector<std::string> MachineNames;
+  // A regex pattern for matching.
+  // If both machine names and regex are provided, we match the list first
+  // before using regex pattern.
+  std::string MachinePattern;
+  // Architecture-specific settings.
+  TargetArchitectureSettings Configuration;
+};
 
 /// @brief Encapsulates target-specific arguments
 struct TargetArgument {
@@ -44,6 +70,9 @@ struct TargetArgument {
   std::string HelpString;
   /// Type of the expected input value.
   ArgumentType Type = ArgumentType::String;
+  /// Machine configuration (optional, valid if this argument is for a machine
+  /// configuration specification)
+  std::vector<MachineArchitectureConfig> MachineConfigs;
 };
 
 /// NVQIR simulator backend setting.
@@ -133,6 +162,10 @@ public:
   std::optional<BackendEndConfigEntry> BackendConfig;
   /// Additional configuration mapping (if this is a multi-configuration target)
   std::vector<BackendFeatureMap> ConfigMap;
+
+  // Helper to determine the codegen config based on CLI arguments
+  std::string
+  getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
 };
 
 /// Process the target configuration into a `nvq++` compatible script according

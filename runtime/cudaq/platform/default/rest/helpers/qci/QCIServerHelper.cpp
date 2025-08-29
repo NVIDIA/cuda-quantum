@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -32,16 +32,16 @@ private:
   /// API token.
   const std::string DEFAULT_API_TOKEN =
       "eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0."
-      "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzNjUwOTQwMDQsImlhdCI6MTczNDM3NDAwNCwiaXNz"
-      "IjoiYXF1bWVuIiwianRpIjoiMDE5M2QwYmYtMTY0OS03NTE4LWI3MTktNGJlNzU4MDRiNWNh"
-      "IiwibmJmIjoxNzM0Mzc0MDA0LCJzdWIiOiIwMTkzZDBiZi0xNjQwLTdjYzQtOTU2Ni00YjJk"
-      "M2ZjOTk2ZWYifQ._"
-      "fdj5Mcsv8BAEuaIMfnIAHqme883wWZTfWCbN3zOodxxHjIL84B0CT9ULFRN3I_"
-      "qUw4P3vmLM99f-tBu8hOKDw";
+      "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzODY5NTIxNzUsImlhdCI6MTc1NjIzMjE3NSwiaXNz"
+      "IjoiYXF1bWVuIiwianRpIjoiMDE5OGU3OTgtNGUzMS03OTNjLThkNGEtZDM5ZjI2MWFlMzY2"
+      "IiwibmJmIjoxNzU2MjMyMTc1LCJzdWIiOiIwMTk4ZTc5OC00ZTJjLTdiMmEtODgzMi0wOGI3"
+      "ZTdjZTc3OTYifQ."
+      "NKukdVRDvv51DA4hGzCiBaBl-M2Isy1kvEDPNuDA-aMuGyM5ttyrxoi-QZbCQqf4I-V9mo9R"
+      "_SRPKCpN0g9fCw";
 
   /// @brief Default base URL for QCI's service.
   const std::string DEFAULT_API_URL =
-      "https://beta-service-aqumen.sensedata.dev/";
+      "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
   const std::string DEFAULT_MACHINE = "simulator";
@@ -86,8 +86,14 @@ public:
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
     CUDAQ_INFO("QCI backend machine: {}", config["machine"]);
 
+    // Authentication token not required in emulation mode
+    bool isTokenRequired = [&]() {
+      auto it = config.find("emulate");
+      return !(it != config.end() && it->second == "true");
+    }();
+
     config["authToken"] =
-        getEnvVar("QCI_AUTH_TOKEN", "QCI_AUTH_TOKEN_NOT_SET", true);
+        getEnvVar("QCI_AUTH_TOKEN", "QCI_AUTH_TOKEN_NOT_SET", isTokenRequired);
 
     if (!config["shots"].empty()) {
       this->setShots(std::stoul(config["shots"]));

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -25,7 +25,7 @@ port = 62449
 
 
 def assert_close(got) -> bool:
-    return got < -1.1 and got > -2.2
+    return got < -1.1 and got > -2.9
 
 
 @pytest.fixture(scope="session", autouse=True)

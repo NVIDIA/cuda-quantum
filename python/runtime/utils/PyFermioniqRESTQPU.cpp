@@ -56,7 +56,7 @@ protected:
   std::tuple<ModuleOp, MLIRContext *>
   extractQuakeCodeAndContextImpl(const std::string &kernelName) {
 
-    cudaq::info("extract quake code\n");
+    CUDAQ_INFO("extract quake code\n");
 
     MLIRContext *context = createContext();
 

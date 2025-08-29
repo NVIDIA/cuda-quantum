@@ -69,7 +69,7 @@ bool isUsingResourceCounterSimulator();
 
 namespace cudaq {
 
-class BaseRemoteRESTQPU : public cudaq::QPU {
+class BaseRemoteRESTQPU : public QPU {
 protected:
   /// The number of shots
   std::optional<int> nShots;
@@ -222,8 +222,8 @@ public:
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    cudaq::info("Remote Rest QPU setting execution context to {}",
-                context->name);
+    CUDAQ_INFO("Remote Rest QPU setting execution context to {}",
+               context->name);
 
     // Execution context is valid
     executionContext = context;
@@ -240,7 +240,7 @@ public:
   /// CUDA-Q installation) and extract MLIR lowering pipelines and
   /// specific code generation output required by this backend (QIR/QASM2).
   void setTargetBackend(const std::string &backend) override {
-    cudaq::info("Remote REST platform is targeting {}.", backend);
+    CUDAQ_INFO("Remote REST platform is targeting {}.", backend);
 
     // First we see if the given backend has extra config params
     auto mutableBackend = backend;
@@ -262,8 +262,8 @@ public:
           if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
             throw std::runtime_error("DecodeBase64 error");
           std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-          cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
-                      split[i + 1], decodedStr);
+          CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", split[i],
+                     split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
         } else {
           backendConfig.insert({split[i], split[i + 1]});
@@ -297,7 +297,7 @@ public:
     /// pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
-    cudaq::info("Config file path = {}", configFilePath.string());
+    CUDAQ_INFO("Config file path = {}", configFilePath.string());
     std::ifstream configFile(configFilePath.string());
     std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
                                   std::istreambuf_iterator<char>());
@@ -306,29 +306,29 @@ public:
     Input >> config;
     if (config.BackendConfig.has_value()) {
       if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
-        cudaq::info("Appending lowering pipeline: {}",
-                    config.BackendConfig->PlatformLoweringConfig);
+        CUDAQ_INFO("Appending lowering pipeline: {}",
+                   config.BackendConfig->PlatformLoweringConfig);
         passPipelineConfig +=
             "," + config.BackendConfig->PlatformLoweringConfig;
       }
-      if (!config.BackendConfig->CodegenEmission.empty()) {
-        cudaq::info("Set codegen translation: {}",
-                    config.BackendConfig->CodegenEmission);
-        auto [codeGenName, codeGenOptions] = parseCodeGenTranslationString(
-            config.BackendConfig->CodegenEmission);
-        codegenTranslation = codeGenName;
-        if (codegenTranslation == "qir-adaptive") {
-          for (const auto &option : codeGenOptions) {
+      const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
+      if (!codeGenSpec.empty()) {
+        CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
+        codegenTranslation = codeGenSpec;
+        auto [codeGenName, codeGenVersion, codeGenOptions] =
+            parseCodeGenTranslationString(codegenTranslation);
+        if (codeGenName == "qir-adaptive") {
+          for (auto option : codeGenOptions) {
             if (option == "int_computations") {
-              cudaq::info("Enable int_computations extension");
+              CUDAQ_INFO("Enable int_computations extension");
               qirIntegerExtension = true;
             } else if (option == "float_computations") {
-              cudaq::info("Enable float_computations extension");
+              CUDAQ_INFO("Enable float_computations extension");
               qirFloatExtension = true;
             } else {
               throw std::runtime_error(
                   fmt::format("Invalid option '{}' for '{}' codegen.", option,
-                              codegenTranslation));
+                              codeGenName));
             }
           }
         } else {
@@ -336,17 +336,17 @@ public:
             throw std::runtime_error(fmt::format(
                 "Invalid codegen-emission '{}'. Extra options are not "
                 "supported for '{}' codegen.",
-                config.BackendConfig->CodegenEmission, codegenTranslation));
+                codeGenSpec, codeGenName));
         }
       }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
-        cudaq::info("Adding post-codegen lowering pipeline: {}",
-                    config.BackendConfig->PostCodeGenPasses);
+        CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
+                   config.BackendConfig->PostCodeGenPasses);
         postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
     std::string allowEarlyExitSetting =
-        (codegenTranslation == "qir-adaptive") ? "1" : "0";
+        (codegenTranslation.starts_with("qir-adaptive")) ? "1" : "0";
 
     passPipelineConfig =
         std::string(
@@ -364,9 +364,9 @@ public:
       std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, qubitMapping, replacement);
-      cudaq::info("disable_qubit_mapping option found, so updated lowering "
-                  "pipeline to {}",
-                  passPipelineConfig);
+      CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
+                 "pipeline to {}",
+                 passPipelineConfig);
     }
 
     // Set the qpu name
@@ -379,9 +379,9 @@ public:
 
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
-    cudaq::info("Retrieving executor with name {}", qpuName);
-    cudaq::info("Is this executor registered? {}",
-                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
+    CUDAQ_INFO("Retrieving executor with name {}", qpuName);
+    CUDAQ_INFO("Is this executor registered? {}",
+               cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
     executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
                    ? cudaq::registry::get<cudaq::Executor>(qpuName)
                    : std::make_unique<cudaq::Executor>();
@@ -408,7 +408,7 @@ public:
     if (codegenTranslation.starts_with("qir")) {
       // decodeBase64 will throw a runtime exception if it fails
       if (llvm::decodeBase64(codeStr, bitcode)) {
-        cudaq::info("Could not decode codeStr {}", codeStr);
+        CUDAQ_INFO("Could not decode codeStr {}", codeStr);
       } else {
         llvm::LLVMContext llvmContext;
         auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
@@ -594,7 +594,7 @@ public:
       mlir::PassManager pm(&context);
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
-      cudaq::info("Pass pipeline for {} = {}", kernelName, pipeline);
+      CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
       if (failed(parsePassPipeline(pipeline, pm, os)))
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
@@ -610,7 +610,7 @@ public:
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
-        cudaq::info("Run Argument Synth.\n");
+        CUDAQ_INFO("Run Argument Synth.\n");
         // For quantum devices, we generate a collection of `init` and
         // `num_qubits` functions and their substitutions created
         // from a kernel and arguments that generated a state argument.
@@ -642,7 +642,7 @@ public:
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
-        cudaq::info("Run Quake Synth.\n");
+        CUDAQ_INFO("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
@@ -652,7 +652,7 @@ public:
         auto resource_counts = nvqir::getResourceCounts();
         std::function<void(std::string, size_t, size_t)> f =
             [&](std::string gate, size_t nControls, size_t count) {
-              cudaq::info("Appending: {}", gate);
+              CUDAQ_INFO("Appending: {}", gate);
               resource_counts->appendInstruction(gate, nControls, count);
             };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
@@ -677,9 +677,9 @@ public:
       std::string replacement("$1$3");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, combine, replacement);
-      cudaq::info("Delaying combine-measurements pass due to emulation. "
-                  "Updating pipeline to {}",
-                  passPipelineConfig);
+      CUDAQ_INFO("Delaying combine-measurements pass due to emulation. "
+                 "Updating pipeline to {}",
+                 passPipelineConfig);
     }
 
     runPassPipeline(passPipelineConfig, moduleOp);
@@ -766,29 +766,22 @@ public:
         runPassPipeline("func.func(combine-measurements)", module);
 
     // Get the code gen translation
-    auto translation = [&]() {
-      if (codegenTranslation == "qir-adaptive") {
-        if (qirIntegerExtension && qirFloatExtension)
-          return cudaq::getTranslation("qir-adaptive-if");
-        else if (qirIntegerExtension)
-          return cudaq::getTranslation("qir-adaptive-i");
-        else if (qirIntegerExtension)
-          return cudaq::getTranslation("qir-adaptive-f");
-        else
-          return cudaq::getTranslation("qir-adaptive");
-      }
-
-      return cudaq::getTranslation(codegenTranslation);
-    }();
+    auto translation = cudaq::getTranslation(codegenTranslation);
 
     // Apply user-specified codegen
     std::vector<cudaq::KernelExecution> codes;
     for (auto &[name, moduleOpI] : modules) {
       std::string codeStr;
-      {
-        llvm::raw_string_ostream outStr(codeStr);
-        if (disableMLIRthreading)
-          moduleOpI.getContext()->disableMultithreading();
+      llvm::raw_string_ostream outStr(codeStr);
+      if (disableMLIRthreading)
+        moduleOpI.getContext()->disableMultithreading();
+      if (codegenTranslation.starts_with("qir")) {
+        if (failed(translation(moduleOpI, codegenTranslation, outStr,
+                               postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      } else {
         if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
                                enablePrintMLIREachPass, enablePassStatistics)))
           throw std::runtime_error("Could not successfully translate to " +
@@ -808,7 +801,7 @@ public:
 
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -830,7 +823,7 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -1004,32 +997,27 @@ public:
 private:
   /// @brief Helper to parse `codegen` translation, with optional feature
   /// annotation.
-  // e.g., "qir-adaptive[int_computations, float_computations]"
-  static std::pair<std::string, std::vector<std::string>>
+  // e.g., "qir-adaptive:0.2:int_computations,float_computations"
+  static std::tuple<std::string, std::string, std::vector<std::string>>
   parseCodeGenTranslationString(const std::string &settingStr) {
-    const auto openBracketPos = settingStr.find_first_of('[');
-    if (openBracketPos == std::string::npos)
-      return std::make_pair(settingStr, std::vector<std::string>{});
-    std::string codeGenName = settingStr.substr(0, openBracketPos);
-    cudaq::trim(codeGenName);
-    std::string options = settingStr.substr(openBracketPos);
-    cudaq::trim(options);
-    // Check for closing bracket
-    if (!options.ends_with(']'))
-      throw std::runtime_error(fmt::format(
-          "Invalid codegen-emission string '{}', missing closing bracket.",
-          settingStr));
-    // pedantic check
-    assert(options.starts_with('['));
-    options = options.substr(1, options.size() - 2);
-    cudaq::trim(options);
-    if (options.empty())
-      return std::make_pair(codeGenName, std::vector<std::string>{});
-    auto splits = cudaq::split(options, ',');
-    for (auto &part : splits)
-      cudaq::trim(part);
-
-    return std::make_pair(codeGenName, splits);
+    llvm::StringRef transportTriple{settingStr};
+    llvm::SmallVector<llvm::StringRef> transportFields;
+    transportTriple.split(transportFields, ":");
+    auto size = transportFields.size();
+    if (size == 1)
+      return {transportFields[0].str(), {}, {}};
+    if (size == 2)
+      return {transportFields[0].str(), transportFields[1].str(), {}};
+    if (size == 3) {
+      llvm::SmallVector<llvm::StringRef> options;
+      transportFields[2].split(options, ",");
+      std::vector<std::string> optionsCopy;
+      for (auto o : options)
+        optionsCopy.push_back(o.str());
+      return {transportFields[0].str(), transportFields[1].str(), optionsCopy};
+    }
+    throw std::runtime_error(
+        fmt::format("Invalid codegen-emission string '{}'.", settingStr));
   }
 };
 } // namespace cudaq

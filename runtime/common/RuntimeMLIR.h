@@ -32,6 +32,9 @@ namespace cudaq {
 using TranslateFromMLIRFunction = std::function<mlir::LogicalResult(
     mlir::Operation *, llvm::raw_string_ostream &, const std::string &, bool,
     bool, bool)>;
+using TranslateFromMLIRFunctionExtended = std::function<mlir::LogicalResult(
+    mlir::Operation *, const std::string &, llvm::raw_string_ostream &,
+    const std::string &, bool, bool, bool)>;
 
 /// @brief Initialize MLIR with CUDA-Q dialects and return the
 /// MLIRContext.
@@ -54,6 +57,8 @@ public:
   Translation() = default;
   Translation(TranslateFromMLIRFunction function, llvm::StringRef description)
       : function(std::move(function)), description(description) {}
+  Translation(TranslateFromMLIRFunctionExtended f, llvm::StringRef description)
+      : ext_function(std::move(f)), description(description) {}
 
   /// Return the description of this translation.
   llvm::StringRef getDescription() const { return description; }
@@ -64,13 +69,30 @@ public:
                                  const std::string &additionalPasses,
                                  bool printIR, bool printIntermediateMLIR,
                                  bool printStats) const {
-    return function(op, output, additionalPasses, printIR,
-                    printIntermediateMLIR, printStats);
+    if (function.has_value())
+      return (*function)(op, output, additionalPasses, printIR,
+                         printIntermediateMLIR, printStats);
+    return mlir::failure();
+  }
+
+  /// Translation into QIR \e requires the use of the transport triple to
+  /// specify: the profile, the version, and any profile options.
+  mlir::LogicalResult operator()(mlir::Operation *op,
+                                 const std::string &transport,
+                                 llvm::raw_string_ostream &output,
+                                 const std::string &additionalPasses,
+                                 bool printIR, bool printIntermediateMLIR,
+                                 bool printStats) const {
+    if (ext_function.has_value())
+      return (*ext_function)(op, transport, output, additionalPasses, printIR,
+                             printIntermediateMLIR, printStats);
+    return mlir::failure();
   }
 
 private:
   /// The underlying translation function.
-  TranslateFromMLIRFunction function;
+  std::optional<TranslateFromMLIRFunction> function;
+  std::optional<TranslateFromMLIRFunctionExtended> ext_function;
 
   /// The description of the translation.
   llvm::StringRef description;
@@ -82,6 +104,14 @@ struct TranslateFromMLIRRegistration {
   TranslateFromMLIRRegistration(
       llvm::StringRef name, llvm::StringRef description,
       const cudaq::TranslateFromMLIRFunction &function);
+  TranslateFromMLIRRegistration(
+      llvm::StringRef name, llvm::StringRef description,
+      const cudaq::TranslateFromMLIRFunctionExtended &function);
 };
+
+/// This is misnamed. This function returns the name of the .thunk unmarshalling
+/// function.
+std::optional<std::string>
+getEntryPointName(mlir::OwningOpRef<mlir::ModuleOp> &module);
 
 } // namespace cudaq
