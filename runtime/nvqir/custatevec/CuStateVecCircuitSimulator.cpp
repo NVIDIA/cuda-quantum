@@ -167,7 +167,7 @@ protected:
 
     int dev;
     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
-    cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
+    CUDAQ_INFO("GPU {} Allocating new qubit array of size {}.", dev, count);
 
     constexpr int32_t threads_per_block = 256;
     uint32_t n_blocks =

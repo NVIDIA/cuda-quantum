@@ -136,10 +136,9 @@ static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
            integerOps.end();
   };
 
-  return isValidIntegerBinaryInst(inst) || llvm::isa<llvm::ICmpInst>(inst) ||
-         llvm::isa<llvm::ZExtInst>(inst) || llvm::isa<llvm::SExtInst>(inst) ||
-         llvm::isa<llvm::TruncInst>(inst) ||
-         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
+  return isValidIntegerBinaryInst(inst) ||
+         llvm::isa<llvm::ICmpInst, llvm::ZExtInst, llvm::SExtInst,
+                   llvm::TruncInst, llvm::SelectInst, llvm::PHINode>(inst);
 }
 
 static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
@@ -484,9 +483,6 @@ mlir::LogicalResult qirProfileTranslationFunction(
     llvm::raw_string_ostream &output, const std::string &additionalPasses,
     bool printIR, bool printIntermediateMLIR, bool printStats) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "qirProfileTranslationFunction");
-
-  // const std::uint32_t qir_major_version = 1;
-  // const std::uint32_t qir_minor_version = 0;
 
   auto config = parseCodeGenTranslation(qirProfile);
   if (!config.isQIRProfile)

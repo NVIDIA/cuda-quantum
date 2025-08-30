@@ -68,7 +68,7 @@ extractLayout(const std::string &kernelName, const std::string &quakeCode) {
     throw std::runtime_error("module is malformed. missing data layout.");
   StringRef dataLayoutSpec = cast<StringAttr>(attr);
   auto dataLayout = llvm::DataLayout(dataLayoutSpec);
-  cudaq::info("Data Layout: {}", dataLayout.getStringRepresentation());
+  CUDAQ_INFO("Data Layout: {}", dataLayout.getStringRepresentation());
   llvm::LLVMContext context;
   LLVMTypeConverter converter(kernelFunc.getContext());
   cudaq::opt::initializeTypeConversions(converter);

@@ -60,16 +60,16 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
   // Lookup the runnable kernel.
   auto mod = unwrap(kernelMod);
-  auto runKern = mod.lookupSymbol<func::FuncOp>(
+  auto runKern = mod.lookupSymbol<mlir::func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName);
   if (!runKern) {
     if (origKern.getResultTypes().empty())
       throw std::runtime_error(
           "`cudaq.run` only supports kernels that return a value.");
-    PassManager pm(mod.getContext());
+    mlir::PassManager pm(mod.getContext());
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.genRunStack = true, .deferToJIT = true}));
-    if (failed(pm.run(mod)))
+    if (mlir::failed(pm.run(mod)))
       throw std::runtime_error(
           "failed to autogenerate the runnable variant of the kernel.");
   }
@@ -80,9 +80,10 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
 static details::RunResultSpan
 pyRunTheKernel(const std::string &name, const std::string &origName,
-               MlirModule module, func::FuncOp funcOp, func::FuncOp origKernel,
-               OpaqueArguments &runtimeArgs, quantum_platform &platform,
-               std::size_t shots_count, std::size_t qpu_id = 0) {
+               MlirModule module, mlir::func::FuncOp funcOp,
+               mlir::func::FuncOp origKernel, OpaqueArguments &runtimeArgs,
+               quantum_platform &platform, std::size_t shots_count,
+               std::size_t qpu_id = 0) {
   auto returnTypes = origKernel.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
     throw std::runtime_error(
@@ -113,8 +114,8 @@ pyRunTheKernel(const std::string &name, const std::string &origName,
 
 static std::vector<py::object> pyReadResults(details::RunResultSpan results,
                                              MlirModule module,
-                                             func::FuncOp funcOp,
-                                             func::FuncOp origKern,
+                                             mlir::func::FuncOp funcOp,
+                                             mlir::func::FuncOp origKern,
                                              std::size_t shots_count) {
   auto mod = unwrap(module);
   auto returnTy = origKern.getResultTypes()[0];

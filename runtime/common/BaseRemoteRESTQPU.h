@@ -215,8 +215,8 @@ public:
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    cudaq::info("Remote Rest QPU setting execution context to {}",
-                context->name);
+    CUDAQ_INFO("Remote Rest QPU setting execution context to {}",
+               context->name);
 
     // Execution context is valid
     executionContext = context;
@@ -233,7 +233,7 @@ public:
   /// CUDA-Q installation) and extract MLIR lowering pipelines and
   /// specific code generation output required by this backend (QIR/QASM2).
   void setTargetBackend(const std::string &backend) override {
-    cudaq::info("Remote REST platform is targeting {}.", backend);
+    CUDAQ_INFO("Remote REST platform is targeting {}.", backend);
 
     // First we see if the given backend has extra config params
     auto mutableBackend = backend;
@@ -255,8 +255,8 @@ public:
           if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
             throw std::runtime_error("DecodeBase64 error");
           std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-          cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
-                      split[i + 1], decodedStr);
+          CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", split[i],
+                     split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
         } else {
           backendConfig.insert({split[i], split[i + 1]});
@@ -290,7 +290,7 @@ public:
     /// pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
-    cudaq::info("Config file path = {}", configFilePath.string());
+    CUDAQ_INFO("Config file path = {}", configFilePath.string());
     std::ifstream configFile(configFilePath.string());
     std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
                                   std::istreambuf_iterator<char>());
@@ -299,20 +299,21 @@ public:
     Input >> config;
     if (config.BackendConfig.has_value()) {
       if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
-        cudaq::info("Appending lowering pipeline: {}",
-                    config.BackendConfig->PlatformLoweringConfig);
+        CUDAQ_INFO("Appending lowering pipeline: {}",
+                   config.BackendConfig->PlatformLoweringConfig);
         passPipelineConfig +=
             "," + config.BackendConfig->PlatformLoweringConfig;
       }
-      if (!config.BackendConfig->CodegenEmission.empty()) {
-        codegenTranslation = config.BackendConfig->CodegenEmission;
-        cudaq::info("Set codegen translation: {}", codegenTranslation);
+      const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
+      if (!codeGenSpec.empty()) {
+        CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
+        codegenTranslation = codeGenSpec;
         // Validate codegen configuration.
         parseCodeGenTranslation(codegenTranslation);
       }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
-        cudaq::info("Adding post-codegen lowering pipeline: {}",
-                    config.BackendConfig->PostCodeGenPasses);
+        CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
+                   config.BackendConfig->PostCodeGenPasses);
         postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
@@ -335,9 +336,9 @@ public:
       std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, qubitMapping, replacement);
-      cudaq::info("disable_qubit_mapping option found, so updated lowering "
-                  "pipeline to {}",
-                  passPipelineConfig);
+      CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
+                 "pipeline to {}",
+                 passPipelineConfig);
     }
 
     // Set the qpu name
@@ -350,9 +351,9 @@ public:
 
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
-    cudaq::info("Retrieving executor with name {}", qpuName);
-    cudaq::info("Is this executor registered? {}",
-                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
+    CUDAQ_INFO("Retrieving executor with name {}", qpuName);
+    CUDAQ_INFO("Is this executor registered? {}",
+               cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
     executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
                    ? cudaq::registry::get<cudaq::Executor>(qpuName)
                    : std::make_unique<cudaq::Executor>();
@@ -379,7 +380,7 @@ public:
     if (codegenTranslation.starts_with("qir")) {
       // decodeBase64 will throw a runtime exception if it fails
       if (llvm::decodeBase64(codeStr, bitcode)) {
-        cudaq::info("Could not decode codeStr {}", codeStr);
+        CUDAQ_INFO("Could not decode codeStr {}", codeStr);
       } else {
         llvm::LLVMContext llvmContext;
         auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
@@ -565,7 +566,7 @@ public:
       mlir::PassManager pm(&context);
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
-      cudaq::info("Pass pipeline for {} = {}", kernelName, pipeline);
+      CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
       if (failed(parsePassPipeline(pipeline, pm, os)))
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
@@ -581,7 +582,7 @@ public:
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
-        cudaq::info("Run Argument Synth.\n");
+        CUDAQ_INFO("Run Argument Synth.\n");
         // For quantum devices, we generate a collection of `init` and
         // `num_qubits` functions and their substitutions created
         // from a kernel and arguments that generated a state argument.
@@ -613,7 +614,7 @@ public:
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
-        cudaq::info("Run Quake Synth.\n");
+        CUDAQ_INFO("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
@@ -623,7 +624,7 @@ public:
         auto resource_counts = nvqir::getResourceCounts();
         std::function<void(std::string, size_t, size_t)> f =
             [&](std::string gate, size_t nControls, size_t count) {
-              cudaq::info("Appending: {}", gate);
+              CUDAQ_INFO("Appending: {}", gate);
               resource_counts->appendInstruction(gate, nControls, count);
             };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
@@ -648,9 +649,9 @@ public:
       std::string replacement("$1$3");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, combine, replacement);
-      cudaq::info("Delaying combine-measurements pass due to emulation. "
-                  "Updating pipeline to {}",
-                  passPipelineConfig);
+      CUDAQ_INFO("Delaying combine-measurements pass due to emulation. "
+                 "Updating pipeline to {}",
+                 passPipelineConfig);
     }
 
     runPassPipeline(passPipelineConfig, moduleOp);
@@ -772,7 +773,7 @@ public:
 
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -794,7 +795,7 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
