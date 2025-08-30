@@ -17,7 +17,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   auto passConfigFields = passConfigAs.split(':');
 
   pm.addNestedPass<func::FuncOp>(createApplyControlNegations());
-  addAggressiveEarlyInlining(pm);
+  addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -40,7 +40,7 @@ void cudaq::opt::commonPipelineConvertToQIR(PassManager &pm,
   pm.addPass(createApplySpecialization());
   // If there was any specialization, we want another round in inlining to
   // inline the apply calls properly.
-  addAggressiveEarlyInlining(pm);
+  addAggressiveInlining(pm);
   addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

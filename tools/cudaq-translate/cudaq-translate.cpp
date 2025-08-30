@@ -165,7 +165,7 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addAggressiveEarlyInlining(pm);
+               cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::addPipelineConvertToQIR(pm, convertValue);
              })
       .Case("openqasm2",
