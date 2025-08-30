@@ -8,10 +8,13 @@
 
 #pragma once
 
+#include "common/CodeGenConfig.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/RuntimeTarget.h"
 #include "common/ThunkInterface.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -130,6 +133,9 @@ public:
   /// @brief Get the remote capabilities (only applicable for remote platforms)
   RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
+  /// Get code generation configuration values
+  CodeGenConfig get_codegen_config();
+
   /// @brief Turn off any noise models.
   void reset_noise();
 
@@ -188,6 +194,12 @@ public:
   void setLogStream(std::ostream &logStream);
 
 protected:
+  /// The runtime target settings
+  RuntimeTarget runtimeTarget;
+
+  /// Code generation configuration
+  std::optional<CodeGenConfig> codeGenConfig;
+
   /// The Platform QPUs, populated by concrete subtypes
   std::vector<std::unique_ptr<QPU>> platformQPUs;
 
