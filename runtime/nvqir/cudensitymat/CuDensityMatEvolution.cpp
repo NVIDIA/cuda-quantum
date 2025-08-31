@@ -35,8 +35,8 @@ state migrateState(const state &inputState) {
   if (currentDeviceId == stateDeviceId)
     return inputState;
 
-  cudaq::info("Migrate state data from device {} to {}\n", stateDeviceId,
-              currentDeviceId);
+  CUDAQ_INFO("Migrate state data from device {} to {}\n", stateDeviceId,
+             currentDeviceId);
   const int64_t dim = inputState.get_tensor().get_num_elements();
   const int64_t arraySizeBytes = dim * sizeof(std::complex<double>);
   auto localizedState =
@@ -588,9 +588,9 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
 
     if (!batch_size.has_value()) {
       // Otherwise, just log a warning:
-      cudaq::warn("Hamiltonian operators and collapse operators are not "
-                  "compatible for batching. "
-                  "Falling back to single evolution for each Hamiltonian.");
+      CUDAQ_WARN("Hamiltonian operators and collapse operators are not "
+                 "compatible for batching. "
+                 "Falling back to single evolution for each Hamiltonian.");
     }
   }
 
@@ -706,9 +706,9 @@ evolveBatched(const std::vector<super_op> &superOps,
 
     if (!batch_size.has_value()) {
       // Otherwise, just log a warning:
-      cudaq::warn("The input super-operators are not "
-                  "compatible for batching. "
-                  "Falling back to single evolution for each Hamiltonian.");
+      CUDAQ_WARN("The input super-operators are not "
+                 "compatible for batching. "
+                 "Falling back to single evolution for each Hamiltonian.");
     }
   }
 

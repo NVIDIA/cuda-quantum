@@ -12,7 +12,7 @@
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
-  cudaq::debug("Parsing log:\n{}", outputLog);
+  CUDAQ_DBG("Parsing log:\n{}", outputLog);
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;

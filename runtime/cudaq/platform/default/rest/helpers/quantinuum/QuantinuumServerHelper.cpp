@@ -665,7 +665,7 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
   }();
 
   if (needsRefresh || force_refresh) {
-    cudaq::info("Refreshing id-token");
+    CUDAQ_INFO("Refreshing id-token");
     RestHeaders cookies{{"myqos_oat", refreshKey}};
     RestCookies headers = generateRequestHeader();
     nlohmann::json j;
@@ -699,8 +699,8 @@ cudaq::ExtraPayloadProvider *QuantinuumServerHelper::getExtraPayloadProvider() {
   if (it == extraProviders.end())
     throw std::runtime_error("ExtraPayloadProvider with name " +
                              extraPayloadProviderName + " not found.");
-  cudaq::info("[QuantinuumServerHelper] Found extra payload provider '{}'.",
-              extraPayloadProviderName);
+  CUDAQ_INFO("[QuantinuumServerHelper] Found extra payload provider '{}'.",
+             extraPayloadProviderName);
   return it->get();
 }
 
