@@ -1,7 +1,14 @@
-// Compile and run with:
-// ```
-// nvq++ random_walk_qpe.cpp -o qpe.x && ./qpe.x
-// ```
+/*******************************************************************************
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+// clang-format off
+// RUN: nvq++ %cpp_std -fenable-cudaq-run --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 %t
+// clang-format on
 
 #include <cudaq.h>
 
@@ -48,9 +55,8 @@ struct rwpe {
 };
 
 int main() {
-
   cudaq::set_random_seed(123);
-  const std::size_t shots = 100;
+  const std::size_t shots = 10; // Small number of shots
   constexpr int numIters = 24;
   constexpr double mu = 0.7951;
   constexpr double sigma = 0.6065;
@@ -58,4 +64,7 @@ int main() {
 
   for (auto &phase : phases)
     printf("Phase = %lf\n", phase);
+  assert(phases.size() == shots);
+
+  return 0;
 }

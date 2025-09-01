@@ -642,6 +642,10 @@ bool __quantum__qis__read_result__body(Result *result) {
   return ResultZeroVal;
 }
 
+bool __quantum__rt__read_result(Result *result) {
+  return __quantum__qis__read_result__body(result);
+}
+
 Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   std::string regName(name);
   auto qI = qubitToSizeT(q);
@@ -684,6 +688,16 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
 }
 
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (ctx && ctx->name == "run") {
+
+    std::string regName(reinterpret_cast<const char *>(name));
+    auto qI = qubitToSizeT(measRes2QB[r]);
+    auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
+    quantumRTGenericRecordOutput("RESULT", (b ? 1 : 0), regName.c_str());
+    return;
+  }
+
   if (name && qubitPtrIsIndex)
     __quantum__qis__mz__to__register(measRes2QB[r],
                                      reinterpret_cast<const char *>(name));
