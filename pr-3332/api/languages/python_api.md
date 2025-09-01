@@ -3461,7 +3461,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[242132048]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2731865556]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8481,6 +8481,22 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
         .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
         .internal} to this [`KrausChannel`{.xref .py .py-class .docutils
         .literal
+        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .internal}.
+
+    [[get\_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.KrausChannel.get_ops "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[get\_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Return the [`KrausOperator`{.xref .py .py-class .docutils
+        .literal
+        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        .internal}'s in this [`KrausChannel`{.xref .py .py-class
+        .docutils .literal
         .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}.
 
