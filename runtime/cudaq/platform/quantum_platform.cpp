@@ -236,12 +236,11 @@ void quantum_platform::setLogStream(std::ostream &logStream) {
 }
 
 cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
-  if (!codeGenConfig.has_value()) {
-    const auto &config = cudaq::getRuntimeTargetConfigBackendEntry(
-        runtimeTarget, runtimeTarget.name);
-    codeGenConfig = cudaq::parseCodeGenTranslation(config.CodegenEmission);
-  }
-  return codeGenConfig.value();
+  const std::string codegenSpec =
+      runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);
+  CUDAQ_INFO("Target {}: Codegen config = '{}' (target arguments: '{}')",
+             runtimeTarget.name, codegenSpec, runtimeTarget.runtimeConfig);
+  return cudaq::parseCodeGenTranslation(codegenSpec);
 }
 
 KernelThunkResultType altLaunchKernel(const char *kernelName,

@@ -117,6 +117,11 @@ public:
     llvm::yaml::Input Input(configContents.c_str());
     Input >> config;
 
+    runtimeTarget.config = config;
+    runtimeTarget.name = mutableBackend;
+    runtimeTarget.description = config.Description;
+    runtimeTarget.runtimeConfig = configMap;
+    
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
