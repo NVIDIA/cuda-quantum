@@ -14,66 +14,89 @@
 # MODIFY_ME1 - review and modify the following variables
 PACKAGE_NAME=cudaq
 ORIG_VER=0.12.0
-NEW_VER=0.12.0.post0
+NEW_VER=0.12.0.post4
 
-# Make sure that curl, jq, python3, and wget are installed.
-if ! command -v curl &> /dev/null; then
-  echo "curl could not be found"
-  exit 1
-fi
-if ! command -v jq &> /dev/null; then
-  echo "jq could not be found"
-  exit 1
-fi
-if ! command -v python3 &> /dev/null; then
-  echo "python3 could not be found"
-  exit 1
-fi
-if ! command -v wget &> /dev/null; then
-  echo "wget could not be found"
+# Ensure required commands are available
+missing=()
+
+for cmd in curl jq python3 wget; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    missing+=("$cmd")
+  fi
+done
+
+if [ ${#missing[@]} -ne 0 ]; then
+  echo "[ERROR] the following required commands are missing:"
+  echo "  - ${missing[*]}"
   exit 1
 fi
 
 # Make a temporary directory to work in
-TMP_DIR=$(mktemp -d)
+TMP_DIR="$(mktemp -d)"
 echo "Building TMP_DIR in $TMP_DIR"
 echo "Using temporary directory: $TMP_DIR"
-
-# # Be sure to clean up the temporary directory on exit
-# trap "rm -rf $TMP_DIR" EXIT
-
-echo "Downloading the original wheels into wheels_orig..."
-mkdir -p wheels_orig && \
-curl -fsSL "https://pypi.org/pypi/${PACKAGE_NAME}/${ORIG_VER}/json" \
-| jq -r '.urls[] | select(.packagetype=="sdist") | .url' \
-| xargs -n1 -P4 -I{} wget -c -P wheels_orig {}
-
 mkdir -p wheels_new
 
-echo "Placing the patched source into wheels_new..."
-tar -xvzf wheels_orig/*.tar.gz -C wheels_new
+# Be sure to clean up the temporary directory on exit
+trap "rm -rf $TMP_DIR" EXIT
 
-# at this point, we need to update the version in the setup.py or pyproject.toml
-echo ${NEW_VER} > 
+### ------------------------------------------------- ###
+# Update cudaq metapackage
+CUDAQ_METAPACKAGE_ORIG="wheels_orig_${PACKAGE_NAME}"
+echo "Downloading the original cudaq wheels into ${CUDAQ_METAPACKAGE_ORIG}..."
+mkdir -p ${CUDAQ_METAPACKAGE_ORIG} && \
+curl -fsSL "https://pypi.org/pypi/${PACKAGE_NAME}/${ORIG_VER}/json" \
+| jq -r '.urls[] | select(.packagetype=="sdist") | .url' \
+| xargs -n1 -P4 -I{} wget -c -P ${CUDAQ_METAPACKAGE_ORIG} {}
+
+tar -xvzf ${CUDAQ_METAPACKAGE_ORIG}/*.tar.gz -C ${TMP_DIR}
+cd ${TMP_DIR}
+ls -l ${TMP_DIR}
+echo ${NEW_VER} > ${TMP_DIR}/*/_version.txt
+cd ${TMP_DIR}/*/
+
+# MODIFY_ME2 - review and modify the source code here
+sed -i '' 's/elif cuda_version < 13000:/elif cuda_version <= 13000:/' setup.py
+
+CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
+mv ${TMP_DIR}/*/dist/cudaq-*.tar.gz wheels_new
+
+# upload cudaq metapackage with:
+# python3 -m twine upload --repository testpypi wheels_new/*/dist/cudaq-0.12.0.post2.tar.gz --verbose
 
 
-# python3 -m wheel unpack $f -d $TMP_DIR
+### ------------------------------------------------- ###
+# modify cuda-quantum-cu* packages
+mkdir -p wheels_new
 
-# # --- Begin modifications
-# # Update the version
-# sed -i "s/^Version: ${ORIG_VER}/Version: ${NEW_VER}/" $TMP_DIR/${PACKAGE_NAME}-${ORIG_VER}/${PACKAGE_NAME}-${ORIG_VER}.dist-info/METADATA
-# # MODIFY_ME2 - review and modify the METADATA file here
-# # ...
-# # --- End modifications
+# cuda-quantum-cu* ships actual wheels, so we need to modify them
+for package in cuda-quantum-cu12 cuda-quantum-cu11; do
+  PACKAGE_NAME_UNDER="${package//-/_}"
+  orig_dir=wheels_orig_${PACKAGE_NAME_UNDER}
 
-# # Re-package into a new whl file now
-# cd $TMP_DIR
-# mv cudaq_qec-${ORIG_VER}/${PACKAGE_NAME}-${ORIG_VER}.dist-info ${PACKAGE_NAME}-${ORIG_VER}/${PACKAGE_NAME}-${NEW_VER}.dist-info
-# python3 -m wheel pack cudaq_qec-${ORIG_VER} -d .
-# cd -
-# mv $TMP_DIR/cudaq_qec-${NEW_VER}*.whl wheels_new
-# rm -rf $TMP_DIR
+  # download wheels for this dist/version
+  curl -fsSL "https://pypi.org/pypi/${package}/${ORIG_VER}/json" \
+    | jq -r '.urls[] | select(.packagetype=="bdist_wheel") | .url' \
+    | xargs -n1 -P4 -I{} wget -c -P "$orig_dir" {}
 
-# echo "Done!"
-# echo "Your original wheels are in wheels_orig, and your patched wheels are in wheels_new."
-# echo "You can now upload the patched wheels to PyPI."
+  for f in ${orig_dir}/*.whl; do
+    python3 -m wheel unpack $f -d $TMP_DIR
+
+    # --- Begin modifications
+    # Update the version
+    sed -i '' "s/^Version: ${ORIG_VER}/Version: ${NEW_VER}/" $TMP_DIR/${PACKAGE_NAME_UNDER}-${ORIG_VER}/${PACKAGE_NAME_UNDER}-${ORIG_VER}.dist-info/METADATA
+    # MODIFY_ME2 - review and modify the METADATA file here
+    # ...
+    # --- End modifications
+
+    # Re-package into a new whl file now
+    cd $TMP_DIR
+    mv ${PACKAGE_NAME_UNDER}-${ORIG_VER}/${PACKAGE_NAME_UNDER}-${ORIG_VER}.dist-info ${PACKAGE_NAME_UNDER}-${ORIG_VER}/${PACKAGE_NAME_UNDER}-${NEW_VER}.dist-info
+    python3 -m wheel pack ${PACKAGE_NAME_UNDER}-${ORIG_VER} -d .
+    cd -
+    mv $TMP_DIR/${PACKAGE_NAME_UNDER}-${NEW_VER}*.whl wheels_new
+    rm -rf $TMP_DIR
+  done
+done
+
+# python3 -m twine upload --repository testpypi wheels_new/* --verbose
