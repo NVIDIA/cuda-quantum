@@ -1731,7 +1731,7 @@ Here's a template for implementing a server helper class:
 
       /// @brief Example implementation of backend initialization.
       void initialize(BackendConfig config) override {
-        cudaq::info("Initializing Provider Name Backend");
+        CUDAQ_INFO("Initializing Provider Name Backend");
         backendConfig = config;
 
         if (!backendConfig.count("url"))
@@ -1791,7 +1791,7 @@ Here's a template for implementing a server helper class:
       /// This is the place to do that.
       cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                          std::string &jobId) override {
-        cudaq::info("Processing results: {}", getJobResponse.dump());
+        CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
 
         // Extract measurement results from the response
         auto samplesJson = getJobResponse["results"]["counts"];

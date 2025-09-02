@@ -4461,65 +4461,70 @@ G {#G}
 -
 
 +-----------------------------------+-----------------------------------+
-| -   [get()                        | -   [get\_register\_counts()      |
-|     (cudaq.AsyncEvolveResult      |     (cudaq.SampleResult           |
-|     m                             |     method)](api                  |
-| ethod)](api/languages/python_api. | /languages/python_api.html#cudaq. |
-| html#cudaq.AsyncEvolveResult.get) | SampleResult.get_register_counts) |
-|                                   | -   [get\_sequential\_data()      |
-|    -   [(cudaq.AsyncObserveResult |     (cudaq.SampleResult           |
-|         me                        |     method)](api                  |
-| thod)](api/languages/python_api.h | /languages/python_api.html#cudaq. |
-| tml#cudaq.AsyncObserveResult.get) | SampleResult.get_sequential_data) |
-|     -   [(cudaq.AsyncSampleResult | -   [get\_spin()                  |
-|         m                         |     (cudaq.ObserveResult          |
-| ethod)](api/languages/python_api. |     me                            |
-| html#cudaq.AsyncSampleResult.get) | thod)](api/languages/python_api.h |
-|     -   [(cudaq.AsyncStateResult  | tml#cudaq.ObserveResult.get_spin) |
-|                                   | -   [get\_state() (in module      |
-| method)](api/languages/python_api |     cudaq)](api/languages         |
-| .html#cudaq.AsyncStateResult.get) | /python_api.html#cudaq.get_state) |
-| -                                 | -   [get\_state\_async() (in      |
-|  [get\_binary\_symplectic\_form() |     module                        |
-|     (cuda                         |     cudaq)](api/languages/pytho   |
-| q.operators.spin.SpinOperatorTerm | n_api.html#cudaq.get_state_async) |
-|     metho                         | -   [get\_target() (in module     |
-| d)](api/languages/python_api.html |     cudaq)](api/languages/        |
-| #cudaq.operators.spin.SpinOperato | python_api.html#cudaq.get_target) |
-| rTerm.get_binary_symplectic_form) | -   [get\_targets() (in module    |
-| -   [get\_channels()              |     cudaq)](api/languages/p       |
-|     (cudaq.NoiseModel             | ython_api.html#cudaq.get_targets) |
-|     met                           | -   [get\_term\_count()           |
-| hod)](api/languages/python_api.ht |     (                             |
-| ml#cudaq.NoiseModel.get_channels) | cudaq.operators.spin.SpinOperator |
-| -   [get\_coefficient()           |     method)](api/languages        |
-|     (                             | /python_api.html#cudaq.operators. |
-| cudaq.operators.spin.SpinOperator | spin.SpinOperator.get_term_count) |
-|     method)](api/languages/       | -   [get\_total\_shots()          |
-| python_api.html#cudaq.operators.s |     (cudaq.SampleResult           |
-| pin.SpinOperator.get_coefficient) |     method)]                      |
-|     -   [(cuda                    | (api/languages/python_api.html#cu |
-| q.operators.spin.SpinOperatorTerm | daq.SampleResult.get_total_shots) |
+| -   [get()                        | -   [get\_raw\_data()             |
+|     (cudaq.AsyncEvolveResult      |     (                             |
+|     m                             | cudaq.operators.spin.SpinOperator |
+| ethod)](api/languages/python_api. |     method)](api/languag          |
+| html#cudaq.AsyncEvolveResult.get) | es/python_api.html#cudaq.operator |
+|                                   | s.spin.SpinOperator.get_raw_data) |
+|    -   [(cudaq.AsyncObserveResult |     -   [(cuda                    |
+|         me                        | q.operators.spin.SpinOperatorTerm |
+| thod)](api/languages/python_api.h |         method)](api/languages/p  |
+| tml#cudaq.AsyncObserveResult.get) | ython_api.html#cudaq.operators.sp |
+|     -   [(cudaq.AsyncSampleResult | in.SpinOperatorTerm.get_raw_data) |
+|         m                         | -   [get\_register\_counts()      |
+| ethod)](api/languages/python_api. |     (cudaq.SampleResult           |
+| html#cudaq.AsyncSampleResult.get) |     method)](api                  |
+|     -   [(cudaq.AsyncStateResult  | /languages/python_api.html#cudaq. |
+|                                   | SampleResult.get_register_counts) |
+| method)](api/languages/python_api | -   [get\_sequential\_data()      |
+| .html#cudaq.AsyncStateResult.get) |     (cudaq.SampleResult           |
+| -                                 |     method)](api                  |
+|  [get\_binary\_symplectic\_form() | /languages/python_api.html#cudaq. |
+|     (cuda                         | SampleResult.get_sequential_data) |
+| q.operators.spin.SpinOperatorTerm | -   [get\_spin()                  |
+|     metho                         |     (cudaq.ObserveResult          |
+| d)](api/languages/python_api.html |     me                            |
+| #cudaq.operators.spin.SpinOperato | thod)](api/languages/python_api.h |
+| rTerm.get_binary_symplectic_form) | tml#cudaq.ObserveResult.get_spin) |
+| -   [get\_channels()              | -   [get\_state() (in module      |
+|     (cudaq.NoiseModel             |     cudaq)](api/languages         |
+|     met                           | /python_api.html#cudaq.get_state) |
+| hod)](api/languages/python_api.ht | -   [get\_state\_async() (in      |
+| ml#cudaq.NoiseModel.get_channels) |     module                        |
+| -   [get\_coefficient()           |     cudaq)](api/languages/pytho   |
+|     (                             | n_api.html#cudaq.get_state_async) |
+| cudaq.operators.spin.SpinOperator | -   [get\_target() (in module     |
+|     method)](api/languages/       |     cudaq)](api/languages/        |
+| python_api.html#cudaq.operators.s | python_api.html#cudaq.get_target) |
+| pin.SpinOperator.get_coefficient) | -   [get\_targets() (in module    |
+|     -   [(cuda                    |     cudaq)](api/languages/p       |
+| q.operators.spin.SpinOperatorTerm | ython_api.html#cudaq.get_targets) |
+|                                   | -   [get\_term\_count()           |
+|       method)](api/languages/pyth |     (                             |
+| on_api.html#cudaq.operators.spin. | cudaq.operators.spin.SpinOperator |
+| SpinOperatorTerm.get_coefficient) |     method)](api/languages        |
+| -   [get\_marginal\_counts()      | /python_api.html#cudaq.operators. |
+|     (cudaq.SampleResult           | spin.SpinOperator.get_term_count) |
+|     method)](api                  | -   [get\_total\_shots()          |
+| /languages/python_api.html#cudaq. |     (cudaq.SampleResult           |
+| SampleResult.get_marginal_counts) |     method)]                      |
+| -   [get\_ops()                   | (api/languages/python_api.html#cu |
+|     (cudaq.KrausChannel           | daq.SampleResult.get_total_shots) |
 |                                   | -   [getTensor() (cudaq.State     |
-|       method)](api/languages/pyth |     method)](api/languages/pytho  |
-| on_api.html#cudaq.operators.spin. | n_api.html#cudaq.State.getTensor) |
-| SpinOperatorTerm.get_coefficient) | -   [getTensors() (cudaq.State    |
-| -   [get\_marginal\_counts()      |     method)](api/languages/python |
-|     (cudaq.SampleResult           | _api.html#cudaq.State.getTensors) |
-|     method)](api                  | -   [gradient (class in           |
-| /languages/python_api.html#cudaq. |     cudaq.g                       |
-| SampleResult.get_marginal_counts) | radients)](api/languages/python_a |
-| -   [get\_pauli\_word()           | pi.html#cudaq.gradients.gradient) |
-|     (cuda                         | -   [GradientDescent (class in    |
-| q.operators.spin.SpinOperatorTerm |     cudaq.optimizers              |
-|     method)](api/languages/pyt    | )](api/languages/python_api.html# |
-| hon_api.html#cudaq.operators.spin | cudaq.optimizers.GradientDescent) |
-| .SpinOperatorTerm.get_pauli_word) |                                   |
-| -   [get\_precision()             |                                   |
-|     (cudaq.Target                 |                                   |
-|                                   |                                   |
-| method)](api/languages/python_api |                                   |
-| .html#cudaq.Target.get_precision) |                                   |
+| method)](api/languages/python_api |     method)](api/languages/pytho  |
+| .html#cudaq.KrausChannel.get_ops) | n_api.html#cudaq.State.getTensor) |
+| -   [get\_pauli\_word()           | -   [getTensors() (cudaq.State    |
+|     (cuda                         |     method)](api/languages/python |
+| q.operators.spin.SpinOperatorTerm | _api.html#cudaq.State.getTensors) |
+|     method)](api/languages/pyt    | -   [gradient (class in           |
+| hon_api.html#cudaq.operators.spin |     cudaq.g                       |
+| .SpinOperatorTerm.get_pauli_word) | radients)](api/languages/python_a |
+| -   [get\_precision()             | pi.html#cudaq.gradients.gradient) |
+|     (cudaq.Target                 | -   [GradientDescent (class in    |
+|                                   |     cudaq.optimizers              |
+| method)](api/languages/python_api | )](api/languages/python_api.html# |
+| .html#cudaq.Target.get_precision) | cudaq.optimizers.GradientDescent) |
 | -   [get\_qubit\_count()          |                                   |
 |     (                             |                                   |
 | cudaq.operators.spin.SpinOperator |                                   |
@@ -4532,17 +4537,6 @@ G {#G}
 |       method)](api/languages/pyth |                                   |
 | on_api.html#cudaq.operators.spin. |                                   |
 | SpinOperatorTerm.get_qubit_count) |                                   |
-| -   [get\_raw\_data()             |                                   |
-|     (                             |                                   |
-| cudaq.operators.spin.SpinOperator |                                   |
-|     method)](api/languag          |                                   |
-| es/python_api.html#cudaq.operator |                                   |
-| s.spin.SpinOperator.get_raw_data) |                                   |
-|     -   [(cuda                    |                                   |
-| q.operators.spin.SpinOperatorTerm |                                   |
-|         method)](api/languages/p  |                                   |
-| ython_api.html#cudaq.operators.sp |                                   |
-| in.SpinOperatorTerm.get_raw_data) |                                   |
 +-----------------------------------+-----------------------------------+
 
 H {#H}
