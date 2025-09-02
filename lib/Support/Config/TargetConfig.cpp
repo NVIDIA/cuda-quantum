@@ -50,9 +50,17 @@ static std::string processSimBackendConfig(
     output << "LIBRARY_MODE="
            << (configValue.LibraryMode.value() ? "true" : "false") << "\n";
 
-  if (!configValue.PlatformLoweringConfig.empty())
-    output << "PLATFORM_LOWERING_CONFIG=\""
-           << configValue.PlatformLoweringConfig << "\"\n";
+  if (!configValue.JITHighLevelPipeline.empty())
+    output << "JIT_HIGH_LEVEL_PIPELINE=\""
+           << configValue.JITHighLevelPipeline << "\"\n";
+  
+  if (!configValue.JITMidLevelPipeline.empty())
+    output << "JIT_MID_LEVEL_PIPELINE=\""
+           << configValue.JITMidLevelPipeline << "\"\n";
+  
+  if (!configValue.JITLowLevelPipeline.empty())
+    output << "JIT_LOW_LEVEL_PIPELINE=\""
+           << configValue.JITLowLevelPipeline << "\"\n";
 
   if (!configValue.TargetPassPipeline.empty())
     output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
@@ -318,7 +326,9 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
     IO &io, cudaq::config::BackendEndConfigEntry &info) {
   io.mapOptional("gen-target-backend", info.GenTargetBackend);
   io.mapOptional("library-mode", info.LibraryMode);
-  io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
+  io.mapOptional("jit-high-level-pipeline", info.JITHighLevelPipeline);
+  io.mapOptional("jit-mid-level-pipeline", info.JITMidLevelPipeline);
+  io.mapOptional("jit-low-level-pipeline", info.JITLowLevelPipeline);
   io.mapOptional("target-pass-pipeline", info.TargetPassPipeline);
   io.mapOptional("codegen-emission", info.CodegenEmission);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
