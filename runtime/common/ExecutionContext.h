@@ -142,5 +142,19 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  /// @brief For each possible error, this is a "flips" vector of length "num
+  /// qubits", where "num qubits" is the number of qubits known to the simulator
+  /// at the time of the error mechanism. This is populated when using the "msm"
+  /// mode (i.e. this->name == "msm")
+  std::vector<std::vector<bool>> msm_x_flips; // msm_x_flips[error_id][qubit_id]
+  std::vector<std::vector<bool>> msm_z_flips; // msm_z_flips[error_id][qubit_id]
+
+  /// @brief For each shot, this is a vector of error IDs.
+  /// This is populated when using the "sample" mode (i.e. this->name == "sample")
+  std::vector<std::vector<std::size_t>> errors_per_shot; // errors_per_shot[shot][error_id]
+
+  /// @brief Save the current simulation state in the recorded states storage.
+  void save_state(const SimulationState *state);
 };
 } // namespace cudaq

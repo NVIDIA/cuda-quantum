@@ -1516,6 +1516,20 @@ struct AllocaOpPattern : public OpConversionPattern<cudaq::cc::AllocaOp> {
   }
 };
 
+struct SaveStateOpRewrite
+    : public OpConversionPattern<quake::SaveStateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::SaveStateOp saveState, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        saveState, TypeRange{}, cudaq::opt::QISSaveState, ValueRange{});
+    return success();
+  }
+};
+
+
 /// Convert the quake types in `func::FuncOp` signatures.
 struct FuncSignaturePattern : public OpConversionPattern<func::FuncOp> {
   using OpConversionPattern::OpConversionPattern;

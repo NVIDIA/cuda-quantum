@@ -2619,6 +2619,11 @@ class PyASTBridge(ast.NodeVisitor):
                     quake.ApplyNoiseOp(params, [asVeq], key=key)
                     return
 
+
+                if node.func.attr == 'save_state':
+                    quake.SaveStateOp()
+                    return
+
                 if node.func.attr == 'compute_action':
                     # There can only be 2 arguments here.
                     action = None
