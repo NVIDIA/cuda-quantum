@@ -71,4 +71,3 @@ Conduct](./Code_of_Conduct.md) violations, please reach out to
 
 [cuda_quantum_discussions]: https://github.com/NVIDIA/cuda-quantum/discussions
 [cuda_quantum_issues]: https://github.com/NVIDIA/cuda-quantum/issues
-
