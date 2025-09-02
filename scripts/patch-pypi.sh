@@ -16,7 +16,7 @@ set -euo pipefail
 # MODIFY_ME1 - review and modify the following variables
 PACKAGE_NAME=cudaq
 ORIG_VER=0.12.0
-NEW_VER=0.12.0.post4
+NEW_VER=0.12.0.post0
 
 # Ensure required commands are available
 missing=()
