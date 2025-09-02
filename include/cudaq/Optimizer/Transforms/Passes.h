@@ -26,8 +26,15 @@ void registerAggressiveInliningPipeline();
 
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
+void createClassicalOptimizationPipeline(mlir::OpPassManager &pm);
 void registerMappingPipeline();
 void registerToCFGPipeline();
+
+void createPreDeviceCodeLoaderPipeline(mlir::OpPassManager &pm,
+                                       bool autoGenRunStack);
+void registerAOTPipelines();
+void createTargetFinalizePipeline(mlir::OpPassManager &pm);
+void registerJITPipelines();
 
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
