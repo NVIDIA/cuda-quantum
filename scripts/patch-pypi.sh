@@ -7,9 +7,9 @@
 
 set -euo pipefail
 
-# This script is used to patch the wheel metadata for a PyPI package. For now,
+# This script is used to patch the cudaq pypi published packages. For now,
 # it is anticipated that one would use this script as a reference and update the
-# MODIFY_ME1 and MODIFY_ME2 sections before using it.
+# MODIFY_ME{1,2,3} sections before using it.
 
 # Note: you may need to run "python3 -m pip install -U wheel" first.
 
@@ -70,7 +70,6 @@ mv -v ${TMP_DIR}/*/dist/cudaq-*.tar.gz wheels_new
 
 ### ------------------------------------------------- ###
 # modify cuda-quantum-cu* packages
-mkdir -p wheels_new
 
 # cuda-quantum-cu* ships actual wheels, so we need to modify them
 for package in cuda-quantum-cu12 cuda-quantum-cu11; do
@@ -88,7 +87,7 @@ for package in cuda-quantum-cu12 cuda-quantum-cu11; do
     # --- Begin modifications
     # Update the version
     sed -i "s/^Version: ${ORIG_VER}/Version: ${NEW_VER}/" $TMP_DIR/${PACKAGE_NAME_UNDER}-${ORIG_VER}/${PACKAGE_NAME_UNDER}-${ORIG_VER}.dist-info/METADATA
-    # MODIFY_ME2 - review and modify the METADATA file here
+    # MODIFY_ME3 - review and modify the METADATA file here
     # ...
     # --- End modifications
 
