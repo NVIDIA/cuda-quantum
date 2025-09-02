@@ -55,12 +55,11 @@ echo ${NEW_VER} > ${TMP_DIR}/*/_version.txt
 cd ${TMP_DIR}/*/
 
 # MODIFY_ME2 - review and modify the source code here
-sed -i '' 's/elif cuda_version < 13000:/elif cuda_version <= 13000:/' setup.py
+sed -i 's/elif cuda_version < 13000:/elif cuda_version <= 13000:/' setup.py
 
 CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
 cd -
 
-file ${TMP_DIR}/*/dist/cudaq-*.tar.gz
 mv -v ${TMP_DIR}/*/dist/cudaq-*.tar.gz wheels_new
 
 # upload cudaq metapackage with:
@@ -86,7 +85,7 @@ for package in cuda-quantum-cu12 cuda-quantum-cu11; do
 
     # --- Begin modifications
     # Update the version
-    sed -i '' "s/^Version: ${ORIG_VER}/Version: ${NEW_VER}/" $TMP_DIR/${PACKAGE_NAME_UNDER}-${ORIG_VER}/${PACKAGE_NAME_UNDER}-${ORIG_VER}.dist-info/METADATA
+    sed -i "s/^Version: ${ORIG_VER}/Version: ${NEW_VER}/" $TMP_DIR/${PACKAGE_NAME_UNDER}-${ORIG_VER}/${PACKAGE_NAME_UNDER}-${ORIG_VER}.dist-info/METADATA
     # MODIFY_ME2 - review and modify the METADATA file here
     # ...
     # --- End modifications
