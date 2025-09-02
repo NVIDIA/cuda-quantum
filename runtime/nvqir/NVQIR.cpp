@@ -840,6 +840,18 @@ void __quantum__qis__apply_kraus_channel_generalized(
   va_end(args);
 }
 
+
+static void
+__quantum__qis__save_state() {
+
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (!ctx)
+    return;
+
+  std::unique_ptr<cudaq::SimulationState> state = nvqir::getCircuitSimulatorInternal()->getCurrentSimulationState();
+  ctx->save_state(state.get());
+}
+
 namespace details {
 struct FakeQubit {
   std::int8_t *id;

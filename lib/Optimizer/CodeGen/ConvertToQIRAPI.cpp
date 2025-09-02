@@ -1524,6 +1524,18 @@ struct ReturnOpPattern : public OpConversionPattern<func::ReturnOp> {
   matchAndRewrite(func::ReturnOp op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<func::ReturnOp>(op, adaptor.getOperands());
+                  }
+};
+
+struct SaveStateOpRewrite
+    : public OpConversionPattern<quake::SaveStateOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::SaveStateOp saveState, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        saveState, TypeRange{}, cudaq::opt::QISSaveState, ValueRange{});
     return success();
   }
 };
