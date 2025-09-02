@@ -5,6 +5,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+set -eu
+
 # This script is used to patch the wheel metadata for a PyPI package. For now,
 # it is anticipated that one would use this script as a reference and update the
 # MODIFY_ME1 and MODIFY_ME2 sections before using it.
