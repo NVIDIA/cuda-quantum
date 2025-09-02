@@ -308,7 +308,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                   });
 
   if (!isMasterEquation && noCollapseOperators) {
-    cudaq::info("Construct state vector Liouvillian");
+    CUDAQ_INFO("Construct state vector Liouvillian");
     std::vector<sum_op<cudaq::matrix_handler>> liouvillians;
     liouvillians.reserve(batchSize);
     for (const auto &ham : hamOperators) {
@@ -316,7 +316,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     }
     return convertToCudensitymatOperator(parameters, liouvillians, modeExtents);
   } else {
-    cudaq::info("Construct density matrix Liouvillian");
+    CUDAQ_INFO("Construct density matrix Liouvillian");
     cudensitymatOperator_t liouvillian;
     HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
         m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),

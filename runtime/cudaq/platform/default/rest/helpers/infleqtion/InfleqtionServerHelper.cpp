@@ -107,7 +107,7 @@ private:
 
 // Initialize the Infleqtion server helper with a given backend configuration
 void InfleqtionServerHelper::initialize(BackendConfig config) {
-  cudaq::info("Initializing Infleqtion Backend.");
+  CUDAQ_INFO("Initializing Infleqtion Backend.");
 
   // Move the passed config into the member variable backendConfig
   backendConfig = config;

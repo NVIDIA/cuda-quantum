@@ -122,7 +122,7 @@ public:
                  cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
-    cudaq::info(
+    CUDAQ_INFO(
         "PyRemoteSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
         "(simulator = {})",
         name, qpu_id, m_simName);
@@ -135,9 +135,9 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
-                "(simulator = {})",
-                name, qpu_id, m_simName);
+    CUDAQ_INFO("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
     ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
                        name, make_degenerate_kernel_type(kernelFunc), args,
                        voidStarSize, resultOffset, rawArgs);
@@ -147,10 +147,10 @@ public:
 
   void launchKernel(const std::string &name,
                     const std::vector<void *> &rawArgs) override {
-    cudaq::info("PyRemoteSimulatorQPU: Streamline launch kernel named '{}' "
-                "remote QPU {} "
-                "(simulator = {})",
-                name, qpu_id, m_simName);
+    CUDAQ_INFO("PyRemoteSimulatorQPU: Streamline launch kernel named '{}' "
+               "remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
     ::launchKernelStreamlineImpl(getExecutionContextForMyThread(), m_client,
                                  m_simName, name, rawArgs);
   }
@@ -173,10 +173,9 @@ public:
                  cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
-    cudaq::info(
-        "PyNvcfSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
-        "(simulator = {})",
-        name, qpu_id, m_simName);
+    CUDAQ_INFO("PyNvcfSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
     ::launchVqeImpl(getExecutionContextForMyThread(), m_client, m_simName, name,
                     kernelArgs, gradient, H, optimizer, n_params, shots);
   }
@@ -186,9 +185,9 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("PyNvcfSimulatorQPU: Launch kernel named '{}' remote QPU {} "
-                "(simulator = {})",
-                name, qpu_id, m_simName);
+    CUDAQ_INFO("PyNvcfSimulatorQPU: Launch kernel named '{}' remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
     ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
                        name, make_degenerate_kernel_type(kernelFunc), args,
                        voidStarSize, resultOffset, rawArgs);
@@ -198,10 +197,10 @@ public:
 
   void launchKernel(const std::string &name,
                     const std::vector<void *> &rawArgs) override {
-    cudaq::info("PyNvcfSimulatorQPU: Streamline launch kernel named '{}' "
-                "remote QPU {} "
-                "(simulator = {})",
-                name, qpu_id, m_simName);
+    CUDAQ_INFO("PyNvcfSimulatorQPU: Streamline launch kernel named '{}' "
+               "remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
     ::launchKernelStreamlineImpl(getExecutionContextForMyThread(), m_client,
                                  m_simName, name, rawArgs);
   }
