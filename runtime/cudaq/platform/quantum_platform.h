@@ -12,9 +12,7 @@
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
-#include "common/RuntimeTarget.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -32,6 +30,7 @@ class QPU;
 class gradient;
 class optimizer;
 class SerializedCodeExecutionContext;
+struct RuntimeTarget;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -195,7 +194,7 @@ public:
 
 protected:
   /// The runtime target settings
-  RuntimeTarget runtimeTarget;
+  std::unique_ptr<RuntimeTarget> runtimeTarget;
 
   /// Code generation configuration
   std::optional<CodeGenConfig> codeGenConfig;

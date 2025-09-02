@@ -10,6 +10,7 @@
 #include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/qis/qudit.h"
@@ -236,11 +237,15 @@ void quantum_platform::setLogStream(std::ostream &logStream) {
 }
 
 cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
-  const std::string codegenSpec =
-      runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);
-  CUDAQ_INFO("Target {}: Codegen config = '{}' (target arguments: '{}')",
-             runtimeTarget.name, codegenSpec, runtimeTarget.runtimeConfig);
-  return cudaq::parseCodeGenTranslation(codegenSpec);
+  if (runtimeTarget) {
+    const std::string codegenSpec =
+        runtimeTarget->config.getCodeGenSpec(runtimeTarget->runtimeConfig);
+    CUDAQ_INFO("Target {}: Codegen config = '{}' (target arguments: '{}')",
+               runtimeTarget->name, codegenSpec, runtimeTarget->runtimeConfig);
+    return cudaq::parseCodeGenTranslation(codegenSpec);
+  }
+
+  return cudaq::parseCodeGenTranslation("");
 }
 
 KernelThunkResultType altLaunchKernel(const char *kernelName,

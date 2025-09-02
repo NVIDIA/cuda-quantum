@@ -113,7 +113,8 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
   }
 
   if (config.isAdaptiveProfile) {
-    if (codeGenVersion == "0.1") {
+    // If no version is specified, using the lowest version
+    if (codeGenVersion.empty() || codeGenVersion == "0.1") {
       config.version = QirVersion::version_0_1;
       config.qir_major_version = 0;
       config.qir_minor_version = 1;

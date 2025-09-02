@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
@@ -116,12 +117,12 @@ public:
     cudaq::config::TargetConfig config;
     llvm::yaml::Input Input(configContents.c_str());
     Input >> config;
+    runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
+    runtimeTarget->config = config;
+    runtimeTarget->name = mutableBackend;
+    runtimeTarget->description = config.Description;
+    runtimeTarget->runtimeConfig = configMap;
 
-    runtimeTarget.config = config;
-    runtimeTarget.name = mutableBackend;
-    runtimeTarget.description = config.Description;
-    runtimeTarget.runtimeConfig = configMap;
-    
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
