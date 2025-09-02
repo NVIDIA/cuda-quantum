@@ -50,8 +50,6 @@ curl -fsSL "https://pypi.org/pypi/${PACKAGE_NAME}/${ORIG_VER}/json" \
 | xargs -n1 -P4 -I{} wget -c -P ${CUDAQ_METAPACKAGE_ORIG} {}
 
 tar -xvzf ${CUDAQ_METAPACKAGE_ORIG}/*.tar.gz -C ${TMP_DIR}
-cd ${TMP_DIR}
-ls -l ${TMP_DIR}
 echo ${NEW_VER} > ${TMP_DIR}/*/_version.txt
 cd ${TMP_DIR}/*/
 
@@ -59,7 +57,10 @@ cd ${TMP_DIR}/*/
 sed -i '' 's/elif cuda_version < 13000:/elif cuda_version <= 13000:/' setup.py
 
 CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
-mv ${TMP_DIR}/*/dist/cudaq-*.tar.gz wheels_new
+cd -
+
+file ${TMP_DIR}/*/dist/cudaq-*.tar.gz
+mv -v ${TMP_DIR}/*/dist/cudaq-*.tar.gz wheels_new
 
 # upload cudaq metapackage with:
 # python3 -m twine upload --repository testpypi wheels_new/*/dist/cudaq-0.12.0.post2.tar.gz --verbose
