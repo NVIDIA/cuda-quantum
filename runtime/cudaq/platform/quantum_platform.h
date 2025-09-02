@@ -227,6 +227,10 @@ protected:
   // If set, the platform and its QPUs will print info log to this stream.
   // Otherwise, default output stream (std::cout) will be used.
   std::ostream *platformLogStream = nullptr;
+
+private:
+  // Helper to validate QPU Id
+  void validateQpuId(int qpuId) const;
 };
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be

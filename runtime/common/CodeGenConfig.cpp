@@ -48,24 +48,6 @@ parseCodeGenTranslationString(const std::string &settingStr) {
 
 cudaq::CodeGenConfig
 cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
-  if (codegenTranslation.empty()) {
-    // No codegen specification, e.g., local simulator.
-    // Assume the full specification.
-    CodeGenConfig config = {.profile = "qir-adaptive",
-                            .isQIRProfile = true,
-                            .isAdaptiveProfile = true,
-                            .isBaseProfile = false,
-                            .integerComputations = true,
-                            .floatComputations = true,
-                            .outputLog = true,
-                            .allowAllInstructions = true};
-    // Use the latest version
-    config.version = QirVersion::version_0_2;
-    config.qir_major_version = 0;
-    config.qir_minor_version = 2;
-    return config;
-  }
-
   auto [codeGenName, codeGenVersion, codeGenOptions] =
       parseCodeGenTranslationString(codegenTranslation);
 

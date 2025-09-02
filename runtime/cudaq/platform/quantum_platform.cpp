@@ -85,6 +85,16 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
   platformQPUs[qpu_id]->enqueue(f);
 }
 
+void quantum_platform::validateQpuId(int qpuId) const {
+  if (platformQPUs.empty())
+    throw std::runtime_error("No QPUs are available for this target.");
+  if (qpuId < 0 || qpuId >= platformNumQPUs) {
+    throw std::invalid_argument(
+        "Invalid QPU ID: " + std::to_string(qpuId) +
+        ". Number of QPUs: " + std::to_string(platformNumQPUs));
+  }
+}
+
 void quantum_platform::set_current_qpu(const std::size_t device_id) {
   if (device_id >= platformNumQPUs) {
     throw std::invalid_argument(
@@ -110,12 +120,14 @@ std::size_t quantum_platform::get_current_qpu() { return platformCurrentQPU; }
 // This delegates to the targeted QPU
 void quantum_platform::set_exec_ctx(ExecutionContext *ctx, std::size_t qid) {
   executionContext = ctx;
+  validateQpuId(qid);
   auto &platformQPU = platformQPUs[qid];
   platformQPU->setExecutionContext(ctx);
 }
 
 /// Reset the execution context for this platform.
 void quantum_platform::reset_exec_ctx(std::size_t qid) {
+  validateQpuId(qid);
   auto &platformQPU = platformQPUs[qid];
   platformQPU->resetExecutionContext();
   executionContext = nullptr;
@@ -126,24 +138,29 @@ std::optional<QubitConnectivity> quantum_platform::connectivity() {
 }
 
 bool quantum_platform::is_simulator(const std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isSimulator();
 }
 
 bool quantum_platform::is_remote(const std::size_t qpu_id) {
+  validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isRemote();
 }
 
 bool quantum_platform::is_emulated(const std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->isEmulated();
 }
 
 bool quantum_platform::supports_conditional_feedback(
     const std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->supportsConditionalFeedback();
 }
 
 bool quantum_platform::supports_explicit_measurements(
     const std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
   return platformQPUs[qpu_id]->supportsExplicitMeasurements();
 }
 
@@ -237,15 +254,30 @@ void quantum_platform::setLogStream(std::ostream &logStream) {
 }
 
 cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
-  if (runtimeTarget) {
-    const std::string codegenSpec =
-        runtimeTarget->config.getCodeGenSpec(runtimeTarget->runtimeConfig);
-    CUDAQ_INFO("Target {}: Codegen config = '{}' (target arguments: '{}')",
-               runtimeTarget->name, codegenSpec, runtimeTarget->runtimeConfig);
-    return cudaq::parseCodeGenTranslation(codegenSpec);
+  if (runtimeTarget &&
+      !runtimeTarget->config.getCodeGenSpec(runtimeTarget->runtimeConfig)
+           .empty()) {
+    auto config = cudaq::parseCodeGenTranslation(
+        runtimeTarget->config.getCodeGenSpec(runtimeTarget->runtimeConfig));
+    return config;
   }
 
-  return cudaq::parseCodeGenTranslation("");
+  // The target config doesn't specify a codegen setting
+  CodeGenConfig config = {.profile = "qir-adaptive",
+                          .isQIRProfile = true,
+                          .version = QirVersion::version_0_2,
+                          .qir_major_version = 0,
+                          .qir_minor_version = 2,
+                          .isAdaptiveProfile = true,
+                          .isBaseProfile = false,
+                          .integerComputations = true,
+                          .floatComputations = true,
+                          .outputLog = !is_remote(),
+                          .eraseStackBounding = false,
+                          .eraseRecordCalls = false,
+                          .allowAllInstructions = true};
+
+  return config;
 }
 
 KernelThunkResultType altLaunchKernel(const char *kernelName,
