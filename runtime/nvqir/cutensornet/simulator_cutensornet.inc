@@ -238,7 +238,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoise(
 
   // Apply all prior gates before applying noise.
   std::vector<int32_t> qubits{targets.begin(), targets.end()};
-  cudaq::info(
+  CUDAQ_INFO(
       "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
       cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
@@ -273,7 +273,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
   if (krausChannels.empty())
     return;
 
-  cudaq::info(
+  CUDAQ_INFO(
       "[SimulatorTensorNetBase] Applying {} kraus channels on qubits: {}",
       krausChannels.size(), qubits);
 
@@ -293,7 +293,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
-  cudaq::info("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
+  CUDAQ_INFO("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
   // If this is a zero state, no need to do anything.
   if (std::abs(1.0 - prob0) < 1e-9)
     return;
@@ -429,7 +429,7 @@ bool SimulatorTensorNetBase<ScalarType>::canHandleObserve() {
       this->executionContext->shots != ~0ull) {
     // This 'shots' mode is very slow for tensor network.
     // However, we need to respect the shots option.
-    cudaq::info("[SimulatorTensorNetBase] Shots mode expectation calculation "
+    CUDAQ_INFO("[SimulatorTensorNetBase] Shots mode expectation calculation "
                 "is requested with {} shots.",
                 this->executionContext->shots);
 

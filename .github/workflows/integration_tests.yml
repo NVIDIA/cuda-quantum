@@ -445,6 +445,61 @@ jobs:
           fi
         shell: bash
 
+      - name: QIR Output Check (Quantinuum-NG)
+        if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly')
+        run: |
+          echo "### QIR Output check (Quantinuum-NG)" >> $GITHUB_STEP_SUMMARY
+          export CUDAQ_LOG_LEVEL="info"
+          set +e # Allow script to keep going through errors
+          test_err_sum=0
+          for filename in ${{ steps.gettests.outputs.testlist }}; do
+            # TODO: merge the sample and run tests as we unified the compilation pipeline
+            case $filename in
+              targettests/quantinuum_ng/sample*)
+                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+                nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              ;;
+              targettests/quantinuum_ng/run*)
+                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+                nvq++ -v $filename -fenable-cudaq-run --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+              ;;
+            esac
+          done
+          set -e # Re-enable exit code error checking
+          if [ ! $test_err_sum -eq 0 ]; then
+            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
+            exit 1
+          fi
+        shell: bash
+
       - name: Submit to IonQ Simulator
         if: (success() || failure()) && (inputs.target == 'ionq' || github.event_name == 'schedule' || inputs.target == 'nightly')
         run: |

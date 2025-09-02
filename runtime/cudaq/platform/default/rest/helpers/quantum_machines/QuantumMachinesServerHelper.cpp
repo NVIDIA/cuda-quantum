@@ -54,7 +54,7 @@ public:
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
   void initialize(BackendConfig config) override {
-    cudaq::info("Initializing Quantum Machines Backend");
+    CUDAQ_INFO("Initializing Quantum Machines Backend");
     backendConfig = config;
     backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
     backendConfig["version"] =
@@ -70,8 +70,8 @@ public:
     }
     backendConfig["api_key"] = apiKey;
 
-    cudaq::info("Initializing Quantum Machines Backend. config: {}",
-                backendConfig);
+    CUDAQ_INFO("Initializing Quantum Machines Backend. config: {}",
+               backendConfig);
   }
 
   /// @brief Creates a quantum computation job using the provided kernel
@@ -82,7 +82,7 @@ public:
   //    std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
-    cudaq::info("In createJob. code: {}", circuitCodes[0].code);
+    CUDAQ_INFO("In createJob. code: {}", circuitCodes[0].code);
     ServerMessage job;
     job["content"] = circuitCodes[0].code;
     job["source"] = "oq2";
@@ -95,7 +95,7 @@ public:
 
   /// @brief Extracts the job ID from the server's response to a job submission.
   std::string extractJobId(ServerMessage &postResponse) override {
-    cudaq::info("In extractJobId. {}", postResponse.dump());
+    CUDAQ_INFO("In extractJobId. {}", postResponse.dump());
     if (!postResponse.contains("id"))
       return "";
 
@@ -106,14 +106,14 @@ public:
   /// @brief Constructs the URL for retrieving a job based on the server's
   /// response to a job submission.
   std::string constructGetJobPath(ServerMessage &postResponse) override {
-    // cudaq::info("In constructGetJobPath(postResponse)");
-    cudaq::info("In constructGetJobPath(postResponse={})", postResponse.dump());
+    // CUDAQ_INFO("In constructGetJobPath(postResponse)");
+    CUDAQ_INFO("In constructGetJobPath(postResponse={})", postResponse.dump());
     return extractJobId(postResponse);
   }
 
   /// @brief Constructs the URL for retrieving a job based on a job ID.
   std::string constructGetJobPath(std::string &jobId) override {
-    cudaq::info("In constructGetJobPath(std::string &jobId)");
+    CUDAQ_INFO("In constructGetJobPath(std::string &jobId)");
     std::string results_url = backendConfig["url"] + "/v1/results/" + jobId;
     return results_url;
   }
@@ -121,7 +121,7 @@ public:
   /// @brief Checks if a job is done based on the server's response to a job
   /// retrieval request.
   bool jobIsDone(ServerMessage &getJobResponse) override {
-    cudaq::info("jobIsDone");
+    CUDAQ_INFO("jobIsDone");
     std::string status = getJobResponse.at("status");
     return status == "Done" || status == "Failed";
   }
@@ -130,7 +130,7 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
-    cudaq::info("Sample results: {}", getJobResponse.dump());
+    CUDAQ_INFO("Sample results: {}", getJobResponse.dump());
     auto samplesJson = getJobResponse["samples"];
     cudaq::CountsDictionary counts;
     for (auto &item : samplesJson.items()) {
@@ -148,7 +148,7 @@ public:
   /// @brief Override the polling interval method
   std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override {
-    cudaq::info("nextResultPollingInterval");
+    CUDAQ_INFO("nextResultPollingInterval");
     return std::chrono::seconds(1);
   }
 };
