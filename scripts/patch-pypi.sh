@@ -32,7 +32,7 @@ if [ ${#missing[@]} -ne 0 ]; then
 fi
 
 # Make a temporary directory to work in
-TMP_DIR="$(/tmp/cudaq-scratch)"
+TMP_DIR="/tmp/cudaq-scratch"
 mkdir -p ${TMP_DIR}
 echo "Building TMP_DIR in $TMP_DIR"
 echo "Using temporary directory: $TMP_DIR"
