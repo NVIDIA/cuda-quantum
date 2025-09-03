@@ -7,10 +7,7 @@
  ******************************************************************************/
 
 
-// Compile and run with:
-// ```
-// RUN: nvq++ %cpp_std                   --emulate %s -o %t && %t | FileCheck %s
-// ```
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
