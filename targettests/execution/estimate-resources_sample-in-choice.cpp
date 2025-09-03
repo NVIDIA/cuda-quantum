@@ -6,12 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck
-// %s
+// clang-format off
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
+#include <cstdio>
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
-#include <cstdio>
 
 struct mykernel {
   auto operator()() __qpu__ {
