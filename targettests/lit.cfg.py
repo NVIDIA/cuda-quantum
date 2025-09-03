@@ -24,10 +24,10 @@ config.suffixes = ['.cpp', '.config']
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
-local_excludes = ['anyon', 'braket', 'ionq', 'iqm', 'oqc', 'qci', 'quantinuum',
-                  'quantum_machines', 'quantinuum_ng', 'fermioniq',
-                  'infleqtion', 'Inputs', 'CMakeLists.txt', 'README.txt',
-                   'LICENSE.txt']
+local_excludes = [
+    'anyon', 'braket', 'ionq', 'iqm', 'oqc', 'qci', 'quantinuum',
+    'quantum_machines', 'fermioniq', 'infleqtion', 'Inputs'
+]
 config.excludes = [exclude for exclude in config.excludes] + local_excludes
 
 config.substitutions.append(('%PATH%', config.environment['PATH']))
@@ -38,7 +38,9 @@ config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
-config.substitutions.append(('%iqm_test_src_dir', config.cudaq_src_dir + "/runtime/cudaq/platform/default/rest/helpers/iqm"))
+config.substitutions.append(
+    ('%iqm_test_src_dir',
+     config.cudaq_src_dir + "/runtime/cudaq/platform/default/rest/helpers/iqm"))
 
 llvm_config.use_default_substitutions()
 
@@ -68,8 +70,7 @@ config.test_source_root = os.path.dirname(__file__)
 config.test_exec_root = os.path.join(config.cudaq_obj_root, 'targettests')
 
 # Propagate some variables from the host environment.
-llvm_config.with_system_environment(
-    ['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
+llvm_config.with_system_environment(['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
 
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
