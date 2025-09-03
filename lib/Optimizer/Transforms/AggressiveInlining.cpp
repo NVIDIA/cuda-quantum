@@ -22,7 +22,7 @@ namespace cudaq::opt {
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "aggressive-early-inlining"
+#define DEBUG_TYPE "aggressive-inlining"
 
 using namespace mlir;
 
@@ -141,8 +141,7 @@ static void defaultInlinerOptPipeline(OpPassManager &pm) {
 /// Such a failure is most likely a sign that there is a cycle in the call
 /// graph. [This check is a bad idea: this should be deferred to final codegen
 /// when translating the final Quake IR.]
-void cudaq::opt::addAggressiveEarlyInlining(OpPassManager &pm,
-                                            bool fatalChecks) {
+void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   llvm::StringMap<OpPassManager> opPipelines;
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
@@ -152,8 +151,8 @@ void cudaq::opt::addAggressiveEarlyInlining(OpPassManager &pm,
 }
 
 namespace {
-struct AggressiveEarlyInliningPipelineOptions
-    : public PassPipelineOptions<AggressiveEarlyInliningPipelineOptions> {
+struct AggressiveInliningPipelineOptions
+    : public PassPipelineOptions<AggressiveInliningPipelineOptions> {
   // Running the inlining checks here defeats the compiler engineering principle
   // of having composable passes. It is therefore highly discouraged.
   PassOptions::Option<bool> runFatalChecker{
@@ -163,11 +162,11 @@ struct AggressiveEarlyInliningPipelineOptions
 };
 } // namespace
 
-void cudaq::opt::registerAggressiveEarlyInliningPipeline() {
-  PassPipelineRegistration<AggressiveEarlyInliningPipelineOptions>(
-      "aggressive-early-inlining",
+void cudaq::opt::registerAggressiveInliningPipeline() {
+  PassPipelineRegistration<AggressiveInliningPipelineOptions>(
+      "aggressive-inlining",
       "Convert calls between kernels to direct calls and inline functions.",
-      [](OpPassManager &pm, const AggressiveEarlyInliningPipelineOptions &opt) {
-        addAggressiveEarlyInlining(pm, opt.runFatalChecker);
+      [](OpPassManager &pm, const AggressiveInliningPipelineOptions &opt) {
+        addAggressiveInlining(pm, opt.runFatalChecker);
       });
 }

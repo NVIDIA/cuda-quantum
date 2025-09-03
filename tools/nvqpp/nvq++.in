@@ -77,11 +77,11 @@ function f_option_handling {
 	-fkernel-execution)
 		ENABLE_KERNEL_EXECUTION=true
 		;;
-	-fno-aggressive-early-inline)
-		ENABLE_AGGRESSIVE_EARLY_INLINE=false
+	-fno-aggressive-inline)
+		ENABLE_AGGRESSIVE_INLINE=false
 		;;
-	-faggressive-early-inline)
-		ENABLE_AGGRESSIVE_EARLY_INLINE=true
+	-faggressive-inline)
+		ENABLE_AGGRESSIVE_INLINE=true
 		;;
 	-fno-apply-specialization)
 		ENABLE_APPLY_SPECIALIZATION=false
@@ -230,8 +230,8 @@ function show_help {
 -f[no-]kernel-execution
 	Enable/disable kernel execution pass.
 
--f[no-]aggressive-early-inline
-	Enable/disable early inlining pass.
+-f[no-]aggressive-inline
+	Enable/disable inlining pass.
 
 -f[no-]apply-specialization
 	Enable/disable specialization of quake.apply ops.
@@ -362,7 +362,7 @@ ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_KERNEL_EXECUTION=true
 KERNEL_EXECUTION_KIND=
 AUTO_GENERATE_RUN_OPTION=
-ENABLE_AGGRESSIVE_EARLY_INLINE=true
+ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
@@ -763,10 +763,10 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 	fi
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 fi
-if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
+if ${ENABLE_AGGRESSIVE_INLINE}; then
 	RUN_OPT=true
 	if ${DO_LINK}; then
-		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-early-inlining")
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-inlining")
 	else
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
 	fi
