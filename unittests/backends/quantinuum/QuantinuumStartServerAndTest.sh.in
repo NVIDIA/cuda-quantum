@@ -51,6 +51,17 @@ echo "refresh: refresh" >> @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
 @CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/test_run.cpp -o test_run.x
 ./test_run.x
 
+if [ $testsPassed -ne 0 ]; then
+  echo "Test run failed with exit code $testsPassed"
+  # Clean up the config file
+  rm -f @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
+  kill -INT $pid
+  exit $testsPassed
+fi
+
+@CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/test_sample.cpp -o test_sample.x
+./test_sample.x
+
 # Did they fail?
 testsPassed=$?
 

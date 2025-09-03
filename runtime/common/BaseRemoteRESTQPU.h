@@ -654,6 +654,15 @@ public:
                  passPipelineConfig);
     }
 
+    const bool isRunContext =
+        executionContext && executionContext->name == "run";
+    if (moduleOp->hasAttr(cudaq::runtime::enableCudaqRun) && !isRunContext) {
+      // If this module was compiled (ahead of time with nvq++) with `run`
+      // enabled but this is not a `cudaq::run` context, remove the attribute.
+      // This will make sure we still have the result recording QIR functions,
+      // which are required for sampling result reconstruction from output log.
+      moduleOp->removeAttr(cudaq::runtime::enableCudaqRun);
+    }
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(

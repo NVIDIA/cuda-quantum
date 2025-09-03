@@ -8,8 +8,8 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t -fno-enable-cudaq-run --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
-// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Crystal_5.txt" "%t.dir/Crystal_5_Variant.txt" && nvq++ %cpp_std %s -o %t -fno-enable-cudaq-run --target iqm --iqm-machine Crystal_5 --mapping-file "%t.dir/Crystal_5_Variant.txt" --emulate && %t
+// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
+// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Crystal_5.txt" "%t.dir/Crystal_5_Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Crystal_5 --mapping-file "%t.dir/Crystal_5_Variant.txt" --emulate && %t
 // clang-format on
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
 // RUN: rm -rf %t.txt %t.dir
