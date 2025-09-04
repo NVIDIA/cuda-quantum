@@ -29,18 +29,18 @@ void registerSetTargetCallback(
     std::function<void(const cudaq::RuntimeTarget &)> callback,
     const std::string &id) {
   CUDAQ_INFO("Register set_target callback with id '{}'.", id);
-  std::unique_lock lock(g_callbackMutex);
+  std::unique_lock<std::shared_mutex> lock(g_callbackMutex);
   g_callbacks[id] = callback;
 }
 
 void unregisterSetTargetCallback(const std::string &id) {
   CUDAQ_INFO("Unregister set_target callback with id '{}'.", id);
-  std::unique_lock lock(g_callbackMutex);
+  std::unique_lock<std::shared_mutex> lock(g_callbackMutex);
   g_callbacks.erase(id);
 }
 
 void onTargetChange(const cudaq::RuntimeTarget &newTarget) {
-  std::shared_lock lock(g_callbackMutex);
+  std::shared_lock<std::shared_mutex> lock(g_callbackMutex);
   for (auto &[name, callback] : g_callbacks) {
     CUDAQ_INFO("Execute set target callback named '{}'", name);
     callback(newTarget);
