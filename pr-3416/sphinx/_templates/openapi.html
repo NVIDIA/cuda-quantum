@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+  <head />
+  <body>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
+    <div id="redoc-container"></div>
+	<script type="application/json" id="openapi-spec">
+    ##SPEC_JSON##
+	</script>
+  <script>
+    var spec = JSON.parse(document.getElementById("openapi-spec").innerHTML);
+    Redoc.init(spec, {
+      "expandResponses": "200"
+    }, document.getElementById('redoc-container'))
+  </script>
+  </body>
+</html>
