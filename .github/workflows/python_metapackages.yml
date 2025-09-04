@@ -8,11 +8,11 @@ on:
       python_versions:
         required: true
         type: string
-        description: Json array of the Python versions to test the packages with (e.g. ['3.10', '3.12']).
+        description: Json array of the Python versions to test the packages with (e.g. ['3.11', '3.12']).
       cuda_versions:
         required: true
         type: string
-        description: Json array of the CUDA versions to test the packages with (e.g. ['11.8', '12.0']).
+        description: Json array of the CUDA versions to test the packages with (e.g. ['12.6']).
       wheel_artifacts:
         required: true
         type: string
