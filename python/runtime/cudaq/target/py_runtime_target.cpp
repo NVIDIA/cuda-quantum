@@ -15,6 +15,7 @@
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <shared_mutex>
 
 namespace {
 using SetTargetCallbackFnTy = std::function<void(const cudaq::RuntimeTarget &)>;
@@ -22,19 +23,24 @@ using SetTargetCallbackFnTy = std::function<void(const cudaq::RuntimeTarget &)>;
 // We use a string identifier for so that the subscriber can identify itself,
 // e.g., to unsubscribe/replace the callback.
 static std::unordered_map<std::string, SetTargetCallbackFnTy> g_callbacks;
+static std::shared_mutex g_callbackMutex;
+
 void registerSetTargetCallback(
     std::function<void(const cudaq::RuntimeTarget &)> callback,
     const std::string &id) {
   CUDAQ_INFO("Register set_target callback with id '{}'.", id);
+  std::unique_lock lock(g_callbackMutex);
   g_callbacks[id] = callback;
 }
 
 void unregisterSetTargetCallback(const std::string &id) {
   CUDAQ_INFO("Unregister set_target callback with id '{}'.", id);
+  std::unique_lock lock(g_callbackMutex);
   g_callbacks.erase(id);
 }
 
 void onTargetChange(const cudaq::RuntimeTarget &newTarget) {
+  std::shared_lock lock(g_callbackMutex);
   for (auto &[name, callback] : g_callbacks) {
     CUDAQ_INFO("Execute set target callback named '{}'", name);
     callback(newTarget);
