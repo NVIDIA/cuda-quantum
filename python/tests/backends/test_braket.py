@@ -498,6 +498,7 @@ def test_exp_pauli():
 
 
 def test_toffoli():
+
     @cudaq.kernel
     def kernel():
         q = cudaq.qvector(3)
