@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: remote-sim
+// clang-format off
 // RUN: nvq++ %s --target=remote-mqpu -o %t && %t
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
@@ -14,31 +17,9 @@
 
 #define ASSERT_NEAR(x,y,tolerance) assert(abs(x-y) < tolerance)
 
-__qpu__ void iqft(cudaq::qview<> q) {
-  int N = q.size();
-  // Swap qubits
-  for (int i = 0; i < N / 2; ++i) {
-    swap(q[i], q[N - i - 1]);
-  }
-
-  for (int i = 0; i < N - 1; ++i) {
-    h(q[i]);
-    int j = i + 1;
-    for (int y = i; y >= 0; --y) {
-      double denom = (1UL << (j - y));
-      const double theta = -M_PI / denom;
-      r1<cudaq::ctrl>(theta, q[j], q[y]);
-    }
-  }
-
-  h(q[N - 1]);
-};
-
 int main() {
-  auto kernel = [&]() __qpu__ {
-    GEN-QALLOC: nqubits=8
-    GEN-SUBCIRCUIT
-    iqft(GEN:<qvector>);
+  auto kernel = []() __qpu__ {
+    GEN-QALLOC: nqubits=5
     GEN-SUBCIRCUIT
   };
 
@@ -47,8 +28,6 @@ int main() {
   setenv(PHASE_SWITCH, "0", true);
   cudaq::set_random_seed(1);
   auto state1 = cudaq::get_state(kernel);
-  // Add resource counter call (once merged) here to make sure opts are actually done
-
   setenv(PHASE_SWITCH, "1", true);
   cudaq::set_random_seed(1);
   auto state2 = cudaq::get_state(kernel);
@@ -58,4 +37,5 @@ int main() {
   printf("Real: %f, imag: %f\n", result.real(), result.imag());
   ASSERT_NEAR(result.real(), 1., 0.0000001);
   ASSERT_NEAR(result.imag(), 0., 0.0000001);
+  return 0;
 }

@@ -6,7 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// REQUIRES: remote-sim
+// clang-format off
 // RUN: nvq++ --target=remote-mqpu %s -o %t && CUDAQ_BYPASS_PHASE_FOLDING_MINS=1 %t
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithm.h>

@@ -9,8 +9,6 @@
 # Add the custom target config generator test to the build, 
 # it will generate the yml file in the build directory required for a lit test.
 add_subdirectory(TargetConfig/RegressionValidation/custom_sim)
-# Add phase folding subdirectory to randomly generate tests
-add_subdirectory(phase-folding)
 
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
