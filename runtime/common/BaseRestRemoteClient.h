@@ -213,20 +213,39 @@ public:
     mlir::PassManager pm(&mlirContext);
     std::string errMsg;
     llvm::raw_string_ostream os(errMsg);
-    const std::string pipeline =
+
+    std::string pipeline =
         std::accumulate(clientPasses.begin(), clientPasses.end(), std::string(),
                         [](const auto &ss, const auto &s) {
                           return ss.empty() ? s : ss + "," + s;
                         });
+    // TODO: replace environment variable with runtime configuration
+    if (getEnvBool("CUDAQ_PHASE_FOLDING", true)) {
+      if (getEnvBool("CUDAQ_BYPASS_PHASE_FOLDING_MINS", false))
+        pipeline =
+            pipeline + "phase-folding-pipeline{min-length=0 min-rz-weight=0}";
+      else
+        pipeline = pipeline + "phase-folding-pipeline";
+    }
+
     if (enablePrintMLIREachPass) {
       moduleOp.getContext()->disableMultithreading();
       pm.enableIRPrinting();
     }
-    if (failed(parsePassPipeline(pipeline, pm, os))) {
+
+    if (failed(parsePassPipeline(pipeline, pm, os)))
       throw std::runtime_error(
           "Remote rest platform failed to add passes to pipeline (" + errMsg +
           ").");
-    }
+
+    mlir::DefaultTimingManager tm;
+    tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+    auto timingScope = tm.getRootScope(); // starts the timer
+    pm.enableTiming(timingScope);         // do this right before pm.run
+    if (failed(pm.run(moduleOp)))
+      throw std::runtime_error(
+          "Remote rest platform: applying IR passes failed.");
+
     return moduleOp;
   }
 
@@ -235,6 +254,7 @@ public:
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx,
                                      const std::vector<void *> *rawArgs) {
+    ScopedTraceWithContext(cudaq::TIMING_JIT, "constructKernelPayload");
     auto moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
                                 startingArgIdx, rawArgs);
 
