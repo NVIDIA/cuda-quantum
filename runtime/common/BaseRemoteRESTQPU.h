@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ArgumentConversion.h"
+#include "common/CodeGenConfig.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
@@ -103,14 +104,6 @@ protected:
 
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
-
-  /// @brief Flag indicating the backend support QIR integer computation
-  /// extension. Applicable to `qir-adaptive` codegenTranslation only.
-  bool qirIntegerExtension = false;
-
-  /// @brief Flag indicating the backend support QIR floating point computation
-  /// extension. Applicable to `qir-adaptive` codegenTranslation only.
-  bool qirFloatExtension = false;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
@@ -315,29 +308,8 @@ public:
       if (!codeGenSpec.empty()) {
         CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
         codegenTranslation = codeGenSpec;
-        auto [codeGenName, codeGenVersion, codeGenOptions] =
-            parseCodeGenTranslationString(codegenTranslation);
-        if (codeGenName == "qir-adaptive") {
-          for (auto option : codeGenOptions) {
-            if (option == "int_computations") {
-              CUDAQ_INFO("Enable int_computations extension");
-              qirIntegerExtension = true;
-            } else if (option == "float_computations") {
-              CUDAQ_INFO("Enable float_computations extension");
-              qirFloatExtension = true;
-            } else {
-              throw std::runtime_error(
-                  fmt::format("Invalid option '{}' for '{}' codegen.", option,
-                              codeGenName));
-            }
-          }
-        } else {
-          if (!codeGenOptions.empty())
-            throw std::runtime_error(fmt::format(
-                "Invalid codegen-emission '{}'. Extra options are not "
-                "supported for '{}' codegen.",
-                codeGenSpec, codeGenName));
-        }
+        // Validate codegen configuration.
+        parseCodeGenTranslation(codegenTranslation);
       }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
         CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
@@ -682,6 +654,15 @@ public:
                  passPipelineConfig);
     }
 
+    const bool isRunContext =
+        executionContext && executionContext->name == "run";
+    if (moduleOp->hasAttr(cudaq::runtime::enableCudaqRun) && !isRunContext) {
+      // If this module was compiled (ahead of time with nvq++) with `run`
+      // enabled but this is not a `cudaq::run` context, remove the attribute.
+      // This will make sure we still have the result recording QIR functions,
+      // which are required for sampling result reconstruction from output log.
+      moduleOp->removeAttr(cudaq::runtime::enableCudaqRun);
+    }
     runPassPipeline(passPipelineConfig, moduleOp);
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
@@ -1000,32 +981,6 @@ public:
 
     // Otherwise make this synchronous
     executionContext->result = future.get();
-  }
-
-private:
-  /// @brief Helper to parse `codegen` translation, with optional feature
-  /// annotation.
-  // e.g., "qir-adaptive:0.2:int_computations,float_computations"
-  static std::tuple<std::string, std::string, std::vector<std::string>>
-  parseCodeGenTranslationString(const std::string &settingStr) {
-    llvm::StringRef transportTriple{settingStr};
-    llvm::SmallVector<llvm::StringRef> transportFields;
-    transportTriple.split(transportFields, ":");
-    auto size = transportFields.size();
-    if (size == 1)
-      return {transportFields[0].str(), {}, {}};
-    if (size == 2)
-      return {transportFields[0].str(), transportFields[1].str(), {}};
-    if (size == 3) {
-      llvm::SmallVector<llvm::StringRef> options;
-      transportFields[2].split(options, ",");
-      std::vector<std::string> optionsCopy;
-      for (auto o : options)
-        optionsCopy.push_back(o.str());
-      return {transportFields[0].str(), transportFields[1].str(), optionsCopy};
-    }
-    throw std::runtime_error(
-        fmt::format("Invalid codegen-emission string '{}'.", settingStr));
   }
 };
 } // namespace cudaq
