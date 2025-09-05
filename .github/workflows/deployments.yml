@@ -205,7 +205,7 @@ jobs:
         # There are currently no multi-platform manylinux images available.
         # See https://github.com/pypa/manylinux/issues/1306.
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["11.8", "12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -237,7 +237,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["11.8", "12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -268,7 +268,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["11.8", "12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -354,7 +354,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["11.8", "12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -402,7 +402,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["11.8", "12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets:
@@ -443,7 +443,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cuda: ["11.8", "12.0"]
+        cuda: ["12.6"]
 
     environment: ghcr-deployment
 
@@ -666,7 +666,7 @@ jobs:
           STITCHED_JSON='${{ needs.aggregate_stitched_images.outputs.json }}'
           echo "$STITCHED_JSON" | jq .
 
-          for cuda in 11.8 12.0; do
+          for cuda in 12.6; do
             cuda_major="${cuda%%.*}"
             artifact_name="image_cu${cuda_major}_publishing"            
             info_file="$artifact_name.txt"
@@ -718,8 +718,8 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        python_version: ['3.10', '3.11', '3.12', '3.13']
-        cuda_version: ["11.8", "12.0"]
+        python_version: ['3.11', '3.12', '3.13']
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -738,7 +738,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["11.8", "12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
