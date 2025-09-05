@@ -25,7 +25,8 @@ using namespace mlir;
 namespace {
 
 /// Analysis class that examines a function to determine whether it contains
-/// measurement operations and collects all qubit allocations.
+/// measurement operations and collects all qubit allocations. Also, gather all
+/// the returns for redirection
 struct Analysis {
   Analysis() = default;
 
@@ -37,12 +38,15 @@ struct Analysis {
       }
       if (isa<quake::AllocaOp>(op))
         allocations.emplace_back(op);
+      else if (isa<func::ReturnOp>(op))
+        returns.emplace_back(op);
       return WalkResult::advance();
     });
   }
 
   bool hasMeasurement = false;
   SmallVector<quake::AllocaOp> allocations;
+  SmallVector<func::ReturnOp> returns;
 
   bool hasQubitAlloca() const { return !allocations.empty(); }
 };
@@ -53,8 +57,9 @@ struct Analysis {
 /// measurement operations for each qubit allocation, and adds a final return.
 /// For vector allocations, the measurements are collected into a vector of
 /// measurement results.
-LogicalResult addMeasurements(func::FuncOp funcOp,
-                              SmallVector<quake::AllocaOp> allocations) {
+LogicalResult
+addMeasurements(func::FuncOp funcOp, SmallVector<quake::AllocaOp> &allocations,
+                const SmallVector<func::ReturnOp> &returnsToReplace) {
   auto loc = funcOp.getLoc();
   auto ctx = funcOp.getContext();
   OpBuilder builder(ctx);
@@ -70,10 +75,6 @@ LogicalResult addMeasurements(func::FuncOp funcOp,
   }
 
   // Replace every func.return in the function with a branch to the new block.
-  SmallVector<func::ReturnOp> returnsToReplace;
-  funcOp.walk(
-      [&](func::ReturnOp returnOp) { returnsToReplace.push_back(returnOp); });
-
   for (auto returnOp : returnsToReplace) {
     OpBuilder builder(returnOp);
     builder.create<cf::BranchOp>(returnOp.getLoc(), newBlock,
@@ -131,7 +132,7 @@ struct AddMeasurementsPass
       return;
 
     LLVM_DEBUG(llvm::dbgs() << "Before adding measurements:\n" << *func);
-    if (failed(addMeasurements(func, analysis.allocations)))
+    if (failed(addMeasurements(func, analysis.allocations, analysis.returns)))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After adding measurements:\n" << *func);
   }
