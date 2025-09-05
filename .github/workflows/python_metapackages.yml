@@ -215,16 +215,6 @@ jobs:
                 --extra-index-url http://localhost:8080 
               set -e && check_package=cuda-quantum
             ;; 
-            12.*) 
-              test_conflicting=cuda-quantum-cu11
-              $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} \
-                --extra-index-url http://localhost:8080 
-              set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
-                --extra-index-url http://localhost:8080 \
-              2>&1 | tee /tmp/install.out
-              set -e && check_package=cudaq
-            ;; 
             *) 
               set +e # continue on error
               # test that we get an error for an existing cuda-quantum installation

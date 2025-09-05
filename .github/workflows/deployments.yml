@@ -696,14 +696,6 @@ jobs:
             echo "Created $info_file"
           done
 
-      - name: Upload image_cu11_publishing
-        uses: actions/upload-artifact@v4
-        with:
-          name: image_cu11_publishing
-          path: image_cu11_publishing.txt
-          retention-days: 30
-          if-no-files-found: error
-
       - name: Upload image_cu12_publishing
         uses: actions/upload-artifact@v4
         with:
