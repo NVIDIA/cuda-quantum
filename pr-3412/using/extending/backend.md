@@ -1351,6 +1351,12 @@ pr-3412
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1889,7 +1895,7 @@ your target:
       preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
       # Define the lowering pipeline
       # This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,<provider_name>-gate-set-mapping"
+      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-inlining,classical-optimization-pipeline,lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,<provider_name>-gate-set-mapping"
       # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base
