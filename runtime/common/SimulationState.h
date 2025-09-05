@@ -21,6 +21,51 @@ class SimulationState;
 /// Enum to specify the initial quantum state.
 enum class InitialState { ZERO, UNIFORM };
 
+struct StimData {
+    struct TableauClone {
+        std::vector<std::vector<bool>> x_output;
+        std::vector<std::vector<bool>> z_output;
+        std::vector<bool> r_output;
+
+        TableauClone copy() const {
+            TableauClone t;
+            t.x_output = x_output;
+            t.z_output = z_output;
+            t.r_output = r_output;
+            return t;
+        }
+    } tableau;
+
+    struct PauliFrameClone {
+        std::vector<bool> x;
+        std::vector<bool> z;
+
+        PauliFrameClone copy() const {
+            PauliFrameClone f;
+            f.x = x;
+            f.z = z;
+            return f;
+        }
+    } frame;
+
+    std::size_t current_size = 0;
+    std::size_t msm_err_count = 0;
+    uint64_t num_qubits = 0;
+    void* data() { return nullptr; }
+
+    // Copy helper for the entire StimData
+    StimData copy() const {
+        StimData s;
+        s.tableau = tableau.copy();
+        s.frame = frame.copy();
+        s.current_size = current_size;
+        s.msm_err_count = msm_err_count;
+        s.num_qubits = num_qubits;
+        return s;
+    }
+};
+
+
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
 // Note: tensor data is expected in column-major.
 using TensorStateData =
@@ -31,7 +76,8 @@ using TensorStateData =
 using state_data = std::variant<
     std::vector<std::complex<double>>, std::vector<std::complex<float>>,
     std::pair<std::complex<double> *, std::size_t>,
-    std::pair<std::complex<float> *, std::size_t>, TensorStateData>;
+    std::pair<std::complex<float> *, std::size_t>, TensorStateData,
+    StimData>;
 
 /// @brief The `SimulationState` interface provides and extension point
 /// for concrete circuit simulation sub-types to describe their
@@ -130,6 +176,14 @@ public:
           dataCasted.size(),
           const_cast<TensorStateData::value_type *>(dataCasted.data()),
           data.index());
+    }
+    if (std::holds_alternative<StimData>(data)) {
+      if (isArrayLike())
+        throw std::runtime_error(
+            "Cannot initialize state vector/density matrix state by stim "
+            "data. Please use stabilizer simulator backends.");
+      auto &dataCasted = std::get<StimData>(data);
+      return createFromSizeAndPtr(1, const_cast<StimData*>(&dataCasted), data.index());
     }
     // Flat array state data
     // Check the precision first. Get the size and
