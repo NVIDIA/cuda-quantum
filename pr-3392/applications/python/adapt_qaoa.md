@@ -1356,6 +1356,12 @@ pr-3392
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1715,7 +1721,7 @@ explained above.
 
 <div>
 
-![0705b6bc14da430e95c4df1a534e696a](../../_images/adapt-qaoa.png){.no-scaled-link}
+![8158d15ecbaf4fff922d47000f1d70f5](../../_images/adapt-qaoa.png){.no-scaled-link}
 
 </div>
 
