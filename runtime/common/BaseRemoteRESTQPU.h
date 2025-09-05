@@ -697,9 +697,10 @@ public:
     }
 
     if (executionContext) {
-      if (executionContext->name == "sample")
+      if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
-      else
+        runPassPipeline("func.func(add-measurements)", moduleOp);
+      } else
         executionContext->reorderIdx.clear();
     }
 

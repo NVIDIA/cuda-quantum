@@ -257,6 +257,9 @@ def test_observe():
     print(res.expectation())
     assert assert_close(res.expectation())
 
+    # Can also invoke `sample` on the same kernel
+    cudaq.sample(ansatz, .59).dump()
+
 
 def test_observe_async():
 
