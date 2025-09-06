@@ -20,9 +20,33 @@
 
 namespace cudaq {
 
+struct RecordStorage{
+
+  size_t memory_limit;
+  size_t current_memory;
+  RecordStorage(size_t limit = 1e9) : memory_limit(limit), current_memory(0) {}
+
+  std::vector<std::unique_ptr<SimulationState>> recordedStates;
+    void save_state(const SimulationState *state) {
+      recordedStates.push_back(std::make_unique<SimulationState>(*state););
+    }
+    std::vector<std::unique_ptr<SimulationState>> get_recorded_states() const { return recordedStates; }
+    
+    void clear() { recordedStates.clear(); }
+    void dump_recorded_states() const {
+      for (std::size_t i = 0; i < recordedStates.size(); i++) {
+        recordedStates[i]->dump(std::cout);
+      }
+    }
+}
+
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
 class ExecutionContext {
+
+  ///@brief record storage for the states saved during execution
+  RecordStorage recordStorage;
+
 public:
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
@@ -142,5 +166,36 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  /// @brief For each possible error, this is a "flips" vector of length "num
+  /// qubits", where "num qubits" is the number of qubits known to the simulator
+  /// at the time of the error mechanism. This is populated when using the "msm"
+  /// mode (i.e. this->name == "msm")
+  std::vector<std::vector<bool>> msm_x_flips; // msm_x_flips[error_id][qubit_id]
+  std::vector<std::vector<bool>> msm_z_flips; // msm_z_flips[error_id][qubit_id]
+
+  /// @brief For each shot, this is a vector of error IDs.
+  /// This is populated when using the "sample" mode (i.e. this->name == "sample")
+  std::vector<std::vector<std::size_t>> errors_per_shot; // errors_per_shot[shot][error_id]
+
+  /// @brief Save the current simulation state in the recorded states storage.
+  void save_state(const SimulationState *state){
+    recordStorage.save_state(state);
+  }
+
+  /// @brief Get the recorded states saved during execution.
+  std::vector<std::unique_ptr<SimulationState>> get_recorded_states() const {
+    return recordStorage.get_recorded_states();
+  }
+
+  /// @brief Clear the recorded states saved during execution.
+  void clear_recorded_states(){
+    recordStorage.clear();
+  }
+
+  /// @brief Dump the recorded states saved during execution.
+  void dump_recorded_states() const{
+    recordStorage.dump_recorded_states();
+  }
 };
 } // namespace cudaq
