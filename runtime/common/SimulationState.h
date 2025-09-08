@@ -21,50 +21,16 @@ class SimulationState;
 /// Enum to specify the initial quantum state.
 enum class InitialState { ZERO, UNIFORM };
 
-struct StimData {
-    struct TableauClone {
-        std::vector<std::vector<bool>> x_output;
-        std::vector<std::vector<bool>> z_output;
-        std::vector<bool> r_output;
 
-        TableauClone copy() const {
-            TableauClone t;
-            t.x_output = x_output;
-            t.z_output = z_output;
-            t.r_output = r_output;
-            return t;
-        }
-    } tableau;
-
-    struct PauliFrameClone {
-        std::vector<bool> x;
-        std::vector<bool> z;
-
-        PauliFrameClone copy() const {
-            PauliFrameClone f;
-            f.x = x;
-            f.z = z;
-            return f;
-        }
-    } frame;
-
-    std::size_t current_size = 0;
-    std::size_t msm_err_count = 0;
-    uint64_t num_qubits = 0;
-    void* data() { return nullptr; }
-
-    // Copy helper for the entire StimData
-    StimData copy() const {
-        StimData s;
-        s.tableau = tableau.copy();
-        s.frame = frame.copy();
-        s.current_size = current_size;
-        s.msm_err_count = msm_err_count;
-        s.num_qubits = num_qubits;
-        return s;
-    }
-};
-
+/// @brief StimData now stores a list of (pointer, size) pairs
+/// according to convention:
+/// 0: pointer to num_qubits, size = 1
+/// 1: pointer to msm_err_count, size = 1
+/// 2: pointer to num_stabilizers, size = 1
+/// 3: x_output array, size = x_output_size (X stabilizers + destabilisers + phase bits)
+/// 4: z_output array, size = z_output_size (Z stabilizers + destabilisers + phase bits)
+/// 5: frame array (Pauli frame), size = 2*num_qubits
+using StimData = std::vector<std::pair<void*, std::size_t>>;
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
 // Note: tensor data is expected in column-major.
@@ -183,7 +149,7 @@ public:
             "Cannot initialize state vector/density matrix state by stim "
             "data. Please use stabilizer simulator backends.");
       auto &dataCasted = std::get<StimData>(data);
-      return createFromSizeAndPtr(1, const_cast<StimData*>(&dataCasted), data.index());
+      return createFromSizeAndPtr(dataCasted.size(), const_cast<StimData*>(&dataCasted), data.index());
     }
     // Flat array state data
     // Check the precision first. Get the size and
