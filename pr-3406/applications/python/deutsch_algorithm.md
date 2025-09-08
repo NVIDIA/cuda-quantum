@@ -1349,6 +1349,12 @@ pr-3406
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1767,7 +1773,7 @@ number, the result is 0 otherwise 1.
 Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 -----------------------------------------------------------------------------
 
-![24a78fe8de504b62acf64840c09a7f06](../../_images/oracle.png){.no-scaled-link}
+![d62de83d1a3f4f50862b3bf7746251e7](../../_images/oracle.png){.no-scaled-link}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
 .notranslate .nohighlight}. We can compute this function on a quantum
@@ -1874,7 +1880,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![f583559d6a7544e3895efe0c349ecc61](../../_images/deutsch.png){.no-scaled-link}
+![e49c2580fa224f5a887482dc3269f9c8](../../_images/deutsch.png){.no-scaled-link}
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\ket{\\psi\_0} = \\ket{01} \\tag{1}\\\]

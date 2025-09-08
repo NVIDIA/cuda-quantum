@@ -1348,6 +1348,12 @@ pr-3406
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1684,7 +1690,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![4efae75b7e92422a858a96dcff3e3b89](../../_images/adapt-vqe.png){.no-scaled-link}
+![18526da851e54e79b94ffa1703d15d69](../../_images/adapt-vqe.png){.no-scaled-link}
 
 </div>
 

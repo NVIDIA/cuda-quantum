@@ -821,6 +821,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.register_set_target_callback"><code class="docutils literal notranslate"><span class="pre">register_set_target_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unregister_set_target_callback"><code class="docutils literal notranslate"><span class="pre">unregister_set_target_callback()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
@@ -1015,7 +1017,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="98f2e7a3487e46d7b5088f293ebff949" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="3ff804b7a3cd4ed19620f4f0ccda9986" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>

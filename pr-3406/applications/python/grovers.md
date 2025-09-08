@@ -1355,6 +1355,12 @@ pr-3406
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1910,7 +1916,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![844b72adebf945ab8681bb3b769757c1](../../_images/grovers-2D-plane.png)
+![f2a06e280abf470ea68035e2b5486902](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2126,7 +2132,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![c05305aeb751427b818bdfa7a45642fc](../../_images/grovers-steps1-3.png)
+![ed2bdd4a7caf4da3b7d45d9ca1c21fa2](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2138,7 +2144,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![4307bddcc6174ac3869fcae31fd52599](../../_images/grovers-full-rotation.png)
+![07a39d2888214550b68567ea5ff0211e](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's
