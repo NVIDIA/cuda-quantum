@@ -12,7 +12,8 @@ endif()
 
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
-  AggressiveEarlyInlining.cpp
+  AddMeasurements.cpp
+  AggressiveInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
@@ -62,6 +63,7 @@ add_cudaq_library(OptTransforms
   ReplaceStateWithKernel.cpp
   ResourceCountPreprocess.cpp
   SROA.cpp
+  StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitaryDecomposition.cpp
   UnitarySynthesis.cpp

@@ -71,7 +71,7 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
     delete ptr;
   }
   externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
-  cudaq::info("[runtime] Setting the circuit simulator to {}.", sim->name());
+  CUDAQ_INFO("[runtime] Setting the circuit simulator to {}.", sim->name());
 }
 }
 
@@ -94,7 +94,7 @@ CircuitSimulator *getCircuitSimulatorInternal() {
 
   simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
       GetCircuitSimulatorSymbol);
-  cudaq::info("Creating the {} backend.", simulator->name());
+  CUDAQ_INFO("Creating the {} backend.", simulator->name());
   return simulator;
 }
 
@@ -194,8 +194,8 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
   auto size = pow(2, numQubits);
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
-  cudaq::info("copying {} complex<{}> values to complex<{}>", size, fromType,
-              toType);
+  CUDAQ_INFO("copying {} complex<{}> values to complex<{}>", size, fromType,
+             toType);
 
   auto convertData = std::make_unique<std::complex<To>[]>(size);
   for (std::size_t i = 0; i < size; ++i)
@@ -213,7 +213,7 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
   auto size = pow(2, numQubits);
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
-  cudaq::info("copying {} {} values to complex<{}>", size, fromType, toType);
+  CUDAQ_INFO("copying {} {} values to complex<{}>", size, fromType, toType);
 
   auto convertData = std::make_unique<std::complex<To>[]>(size);
   for (std::size_t i = 0; i < size; ++i)
@@ -284,9 +284,9 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
 
   if (ctx) {
     ScopedTraceWithContext("NVQIR::setExecutionContext", ctx->name);
-    cudaq::info("Setting execution context: {}{}", ctx ? ctx->name : "basic",
-                ctx->hasConditionalsOnMeasureResults ? " with conditionals"
-                                                     : "");
+    CUDAQ_INFO("Setting execution context: {}{}", ctx ? ctx->name : "basic",
+               ctx->hasConditionalsOnMeasureResults ? " with conditionals"
+                                                    : "");
     nvqir::getCircuitSimulatorInternal()->setExecutionContext(ctx);
   }
 }
@@ -294,7 +294,7 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
 /// @brief Reset the Execution Context
 void __quantum__rt__resetExecutionContext() {
   ScopedTraceWithContext("NVQIR::resetExecutionContext");
-  cudaq::info("Resetting execution context.");
+  CUDAQ_INFO("Resetting execution context.");
   nvqir::getCircuitSimulatorInternal()->resetExecutionContext();
 }
 
@@ -642,6 +642,10 @@ bool __quantum__qis__read_result__body(Result *result) {
   return ResultZeroVal;
 }
 
+bool __quantum__rt__read_result(Result *result) {
+  return __quantum__qis__read_result__body(result);
+}
+
 Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   std::string regName(name);
   auto qI = qubitToSizeT(q);
@@ -684,6 +688,16 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
 }
 
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
+  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  if (ctx && ctx->name == "run") {
+
+    std::string regName(reinterpret_cast<const char *>(name));
+    auto qI = qubitToSizeT(measRes2QB[r]);
+    auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
+    quantumRTGenericRecordOutput("RESULT", (b ? 1 : 0), regName.c_str());
+    return;
+  }
+
   if (name && qubitPtrIsIndex)
     __quantum__qis__mz__to__register(measRes2QB[r],
                                      reinterpret_cast<const char *>(name));
@@ -915,7 +929,7 @@ static std::vector<Pauli> extractPauliTermIds(Array *paulis) {
 /// @param qubits
 /// @return
 Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
-  cudaq::info("NVQIR measuring in pauli basis");
+  CUDAQ_INFO("NVQIR measuring in pauli basis");
   ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
@@ -975,7 +989,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
 
   // Reverse the measurements bases change.
   if (!reverser.empty()) {
-    cudaq::info("NVQIR reverse pauli bases change for measurement.");
+    CUDAQ_INFO("NVQIR reverse pauli bases change for measurement.");
     for (auto it = reverser.rbegin(); it != reverser.rend(); ++it) {
       if (it->first == "X") {
         circuitSimulator->h(it->second);
@@ -1014,7 +1028,7 @@ void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits) {
     // do nothing since this is the ID term
     std::string msg = "Applying exp (i theta H), where H is the identity";
     msg += "(warning, no non-identity terms in H. Not applying exp())";
-    cudaq::info(msg.c_str());
+    CUDAQ_INFO(msg.c_str());
     return;
   }
 

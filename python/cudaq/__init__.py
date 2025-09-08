@@ -125,6 +125,8 @@ mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
 set_noise = cudaq_runtime.set_noise
 unset_noise = cudaq_runtime.unset_noise
+register_set_target_callback = cudaq_runtime.register_set_target_callback
+unregister_set_target_callback = cudaq_runtime.unregister_set_target_callback
 
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel

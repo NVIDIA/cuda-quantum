@@ -93,11 +93,14 @@ public:
   void resetTarget();
 };
 
-namespace __internal__ {
+namespace python {
+namespace detail {
 void switchToResourceCounterSimulator();
 void stopUsingResourceCounterSimulator();
 void setChoiceFunction(std::function<bool()> choice);
 cudaq::Resources *getResourceCounts();
-} // namespace __internal__
+} // namespace detail
 
+std::string getTransportLayer(LinkedLibraryHolder *holder);
+} // namespace python
 } // namespace cudaq

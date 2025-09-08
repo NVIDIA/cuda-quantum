@@ -116,11 +116,11 @@ bool OrcaServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     return true;
   } else if (!status) {
     auto job_status = getJobResponse["job_status"].get<std::string>();
-    cudaq::info("job_status {}", job_status);
+    CUDAQ_INFO("job_status {}", job_status);
     return false;
   } else {
     auto error_message = getJobResponse["error_message"].get<std::string>();
-    cudaq::info("error_message {}", error_message);
+    CUDAQ_INFO("error_message {}", error_message);
     if (error_message == "Job can't be found") {
       return false;
     } else {

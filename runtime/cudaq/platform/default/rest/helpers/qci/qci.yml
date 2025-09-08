@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -27,7 +27,7 @@ config:
   link-libs: ["-lcudaq-rest-qpu"]
 
   # Lower the generated IR to base + feed forward.
-  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),qci-gate-set-mapping,distributed-device-call"
+  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(canonicalize,multicontrol-decomposition),qci-gate-set-mapping,distributed-device-call"
   codegen-emission: qir-adaptive
 
 target-arguments:

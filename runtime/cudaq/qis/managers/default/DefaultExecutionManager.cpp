@@ -149,9 +149,9 @@ protected:
 
   void handleExecutionContextEnded() override {
     if (!requestedAllocations.empty()) {
-      cudaq::info("[DefaultExecutionManager] Flushing remaining {} allocations "
-                  "at handleExecutionContextEnded.",
-                  requestedAllocations.size());
+      CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
+                 "at handleExecutionContextEnded.",
+                 requestedAllocations.size());
       // If there are pending allocations, flush them to the simulator.
       // Making sure the simulator's state is consistent with the number of
       // allocations even though the circuit might be empty.
@@ -238,7 +238,7 @@ protected:
     std::vector<std::size_t> localT;
     std::transform(targets.begin(), targets.end(), std::back_inserter(localT),
                    [](auto &&el) { return el.id; });
-    cudaq::info(
+    CUDAQ_INFO(
         "[DefaultExecutionManager] Applying fine-grain kraus channel {}.",
         channel.get_type_name());
     simulator()->applyNoise(channel, localT);
@@ -263,8 +263,8 @@ protected:
 
 public:
   DefaultExecutionManager() {
-    cudaq::info("[DefaultExecutionManager] Creating the {} backend.",
-                simulator()->name());
+    CUDAQ_INFO("[DefaultExecutionManager] Creating the {} backend.",
+               simulator()->name());
   }
   virtual ~DefaultExecutionManager() = default;
 

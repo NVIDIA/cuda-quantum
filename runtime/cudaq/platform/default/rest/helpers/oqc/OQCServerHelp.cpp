@@ -146,7 +146,7 @@ void check_machine_allowed(const std::string &machine) {
 // Initialize the OQC server helper with a given backend configuration
 void OQCServerHelper::initialize(BackendConfig config) {
 
-  cudaq::info("Initializing OQC Backend.");
+  CUDAQ_INFO("Initializing OQC Backend.");
 
   // Fetch machine info before checking emulate because we want to be able to
   // emulate specific machines.
@@ -155,8 +155,8 @@ void OQCServerHelper::initialize(BackendConfig config) {
   config["machine"] = machine;
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
-    cudaq::info("Emulation is enabled, ignore all oqc connection specific "
-                "information.");
+    CUDAQ_INFO("Emulation is enabled, ignore all oqc connection specific "
+               "information.");
     backendConfig = std::move(config);
     return;
   }
@@ -353,7 +353,7 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     throw std::runtime_error("OQC backend error message: " +
                              postJobResponse["task_error"].dump());
   }
-  cudaq::info("postJobResponse is {}", postJobResponse.dump());
+  CUDAQ_INFO("postJobResponse is {}", postJobResponse.dump());
   const auto &jsonResults = postJobResponse.at("results");
 
   cudaq::sample_result sampleResult; // value to return
@@ -376,8 +376,8 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
 
   auto &output_names = outputNames[jobId];
   for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
-                info.registerName);
+    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
+               info.registerName);
   }
 
   CountsDictionary countsDict;
@@ -386,9 +386,9 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
     // there is only 1 CountsDictionary and 1 register name in use, so throw a
     // warning if that isn't true.
     if (jsonResults.size() != 1)
-      cudaq::info("WARNING: unexpected jsonResults size ({}). Continuing to "
-                  "parse anyway.",
-                  jsonResults.size());
+      CUDAQ_INFO("WARNING: unexpected jsonResults size ({}). Continuing to "
+                 "parse anyway.",
+                 jsonResults.size());
 
     // Note: `name` contains a concatenated list of measurement names as
     // specified in the sent QIR program, separated by underscores. They are
@@ -419,9 +419,9 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
   std::sort(idx.begin(), idx.end(), [&](std::size_t i1, std::size_t i2) {
     return qirQubitMeasurements[i1] < qirQubitMeasurements[i2];
   });
-  cudaq::info("Reordering global result to map QIR result order to QIR qubit "
-              "allocation order is {}",
-              idx);
+  CUDAQ_INFO("Reordering global result to map QIR result order to QIR qubit "
+             "allocation order is {}",
+             idx);
   sampleResult.reorder(idx);
 
   // Now reorder according to reorderIdx[]. This sorts the global bitstring in

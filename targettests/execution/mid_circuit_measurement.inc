@@ -1,21 +1,13 @@
-/*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// Simulators
-// RUN: nvq++ %cpp_std --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
-
-// Quantum emulators (qir-adaptive profile only)
-// RUN: nvq++ %cpp_std --target quantinuum              --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon                   --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// clang-format on
+// This is code to be included into parallel tests. The tests shall be separate
+// files for llvm-lit.
 
 #include <cudaq.h>
 #include <iostream>
@@ -128,15 +120,3 @@ int main() {
   printf("%s", "done");
   return 0;
 }
-
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-
-// CHECK: done
