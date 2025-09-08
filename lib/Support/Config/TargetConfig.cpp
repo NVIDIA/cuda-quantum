@@ -51,16 +51,16 @@ static std::string processSimBackendConfig(
            << (configValue.LibraryMode.value() ? "true" : "false") << "\n";
 
   if (!configValue.JITHighLevelPipeline.empty())
-    output << "JIT_HIGH_LEVEL_PIPELINE=\""
-           << configValue.JITHighLevelPipeline << "\"\n";
-  
+    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << configValue.JITHighLevelPipeline
+           << "\"\n";
+
   if (!configValue.JITMidLevelPipeline.empty())
-    output << "JIT_MID_LEVEL_PIPELINE=\""
-           << configValue.JITMidLevelPipeline << "\"\n";
-  
+    output << "JIT_MID_LEVEL_PIPELINE=\"" << configValue.JITMidLevelPipeline
+           << "\"\n";
+
   if (!configValue.JITLowLevelPipeline.empty())
-    output << "JIT_LOW_LEVEL_PIPELINE=\""
-           << configValue.JITLowLevelPipeline << "\"\n";
+    output << "JIT_LOW_LEVEL_PIPELINE=\"" << configValue.JITLowLevelPipeline
+           << "\"\n";
 
   if (!configValue.TargetPassPipeline.empty())
     output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
