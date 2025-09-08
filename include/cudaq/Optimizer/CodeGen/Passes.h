@@ -105,7 +105,7 @@ void addAOTPipelineConvertToQIR(mlir::PassManager &pm,
 /// Pipeline builder to convert Quake to Open QASM 2.0
 void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 
-/// Pipeline builder to convert Quake to IQM Json.
+/// Pipeline builder to convert Quake to IQM `Json`.
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
 
 // declarative passes
