@@ -17,6 +17,9 @@
 #include "cudaq/operators.h"
 #include <optional>
 #include <string_view>
+#include <iostream>
+
+#include "nvqir/stim/StimState.h"
 
 namespace cudaq {
 
@@ -27,10 +30,11 @@ struct RecordStorage{
   RecordStorage(size_t limit = 1e9) : memory_limit(limit), current_memory(0) {}
 
   std::vector<std::unique_ptr<SimulationState>> recordedStates;
-    void save_state(const SimulationState *state) {
-      recordedStates.push_back(std::make_unique<SimulationState>(*state););
+
+    void save_state(SimulationState *state) {
+        recordedStates.push_back(clone_state(state));
     }
-    std::vector<std::unique_ptr<SimulationState>> get_recorded_states() const { return recordedStates; }
+    const std::vector<std::unique_ptr<SimulationState>>& get_recorded_states() const { return recordedStates; }
     
     void clear() { recordedStates.clear(); }
     void dump_recorded_states() const {
@@ -38,7 +42,67 @@ struct RecordStorage{
         recordedStates[i]->dump(std::cout);
       }
     }
-}
+    
+private:
+    std::unique_ptr<SimulationState> clone_state(SimulationState* state) {
+        if (state->isArrayLike()) {
+            // Handle array-like states (CusvState, etc.)
+            return clone_array_like_state(state);
+        } else {
+            // Handle specialized states (CuDensityMatState, StimState, etc.)
+            return clone_specialized_state(state);
+        }
+    }
+    
+    std::unique_ptr<SimulationState> clone_array_like_state(SimulationState* state) {
+        auto numQubits = state->getNumQubits();
+        if (numQubits > 20) {  // Prevent exponential explosion
+            throw std::runtime_error("State too large to clone via amplitudes");
+        }
+        
+        // Generate all basis states
+        auto totalStates = 1ULL << numQubits;
+        std::vector<std::vector<int>> basisStates;
+        for (size_t i = 0; i < totalStates; ++i) {
+            std::vector<int> basis(numQubits);
+            for (size_t j = 0; j < numQubits; ++j) {
+                basis[j] = (i >> j) & 1;
+            }
+            basisStates.push_back(basis);
+        }
+        
+        auto amplitudes = state->getAmplitudes(basisStates);
+        
+        // Create new state with appropriate precision
+        if (state->getPrecision() == SimulationState::precision::fp32) {
+            std::vector<std::complex<float>> floatAmps;
+            for (const auto& amp : amplitudes) {
+                floatAmps.emplace_back(static_cast<float>(amp.real()), 
+                                     static_cast<float>(amp.imag()));
+            }
+            return state->createFromData(floatAmps);
+        } else {
+            return state->createFromData(amplitudes);
+        }
+    }
+    
+    std::unique_ptr<SimulationState> clone_specialized_state(SimulationState* state) {
+        // Try dynamic_cast to known types that have clone methods
+        // this triggerd fatal error: library_types.h: No such file or directory
+        //if (auto* densityState = dynamic_cast<const CuDensityMatState*>(state)) {
+        //    return CuDensityMatState::clone(*densityState);
+        //}
+        
+        if (auto* stimState = dynamic_cast<const StimState*>(state)) {
+            return stimState->clone();
+        }
+        
+        // For unknown specialized types, try createFromSizeAndPtr as fallback
+        // This might work for some specialized states
+        // auto tensor = state->getTensor(0); 
+        // return state->createFromSizeAndPtr(tensor.get_num_elements(), tensor.data, 1);
+    }
+};
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -179,12 +243,12 @@ public:
   std::vector<std::vector<std::size_t>> errors_per_shot; // errors_per_shot[shot][error_id]
 
   /// @brief Save the current simulation state in the recorded states storage.
-  void save_state(const SimulationState *state){
+  void save_state(SimulationState *state){
     recordStorage.save_state(state);
   }
 
   /// @brief Get the recorded states saved during execution.
-  std::vector<std::unique_ptr<SimulationState>> get_recorded_states() const {
+  const std::vector<std::unique_ptr<SimulationState>>& get_recorded_states() const {
     return recordStorage.get_recorded_states();
   }
 
