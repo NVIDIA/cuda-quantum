@@ -21,11 +21,22 @@ using namespace mlir;
 // Strings that are longer than this length will be hashed to MD5 names to avoid
 // unnecessarily long symbol names. (This is a hidden command line option, so
 // that hashing issues can be easily worked around.)
-static llvm::cl::opt<std::size_t> nameLengthHashSize(
-    "length-to-hash-string-literal",
-    llvm::cl::desc("string literals that exceed this length will use a hash "
-                   "value as their symbol name"),
-    llvm::cl::init(32));
+namespace {
+struct CLOptions {
+  llvm::cl::opt<std::size_t> nameLengthHashSize{
+      "length-to-hash-string-literal",
+      llvm::cl::desc("string literals that exceed this length will use a hash "
+                     "value as their symbol name"),
+      llvm::cl::init(32)};
+};
+} // namespace
+
+static llvm::ManagedStatic<CLOptions> clOptions;
+
+void cudaq::opt::builder::registerCUDAQBuilderCLOptions() {
+  // Initialize the command-line options lazily.
+  *clOptions;
+}
 
 static constexpr std::size_t DefaultPrerequisiteSize = 4;
 
@@ -304,11 +315,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
-    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
-    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
 
     {cudaq::deleteCudaqState, {}, R"#(
@@ -665,7 +682,7 @@ LLVM::GlobalOp IRBuilder::genCStringLiteral(Location loc, ModuleOp module,
 std::string IRBuilder::hashStringByContent(StringRef sref) {
   // For shorter names just use the string content in hex. (Consider replacing
   // this with a more compact, readable base-64 encoding.)
-  if (sref.size() <= nameLengthHashSize)
+  if (sref.size() <= clOptions->nameLengthHashSize)
     return llvm::toHex(sref);
 
   // Use an MD5 hash for long cstrings. This can produce collisions between

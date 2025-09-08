@@ -110,12 +110,14 @@ struct QppDmState : public cudaq::SimulationState {
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
-    return std::make_unique<QppDmState>(
-        Eigen::Map<qpp::cmat>(reinterpret_cast<std::complex<double> *>(ptr),
-                              std::sqrt(size), std::sqrt(size)));
+    if ((size < 4) || (std::countr_zero(size) & 1))
+      throw std::runtime_error("size must be a value equal to 4**N");
+    auto s = std::sqrt(size); // 4**N -> (2**N x 2**N)
+    return std::make_unique<QppDmState>(Eigen::Map<qpp::cmat>(
+        reinterpret_cast<std::complex<double> *>(ptr), s, s));
   }
 
-  void dump(std::ostream &os) const override { os << state << "\n"; }
+  void dump(std::ostream &os) const override { os << state << std::endl; }
 
   precision getPrecision() const override {
     return cudaq::SimulationState::precision::fp64;

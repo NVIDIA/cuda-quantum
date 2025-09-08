@@ -223,6 +223,22 @@ void quantum_platform::launchKernel(const std::string &kernelName,
   qpu->launchKernel(kernelName, rawArgs);
 }
 
+KernelThunkResultType quantum_platform::launchModule(
+    const std::string &kernelName, mlir::ModuleOp module,
+    const std::vector<void *> &rawArgs, mlir::Type resTy) {
+  std::size_t qpu_id = 0;
+
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  {
+    std::shared_lock lock(threadToQpuIdMutex);
+    auto iter = threadToQpuId.find(tid);
+    if (iter != threadToQpuId.end())
+      qpu_id = iter->second;
+  }
+  auto &qpu = platformQPUs[qpu_id];
+  return qpu->launchModule(kernelName, module, rawArgs, resTy);
+}
+
 void quantum_platform::launchSerializedCodeExecution(
     const std::string &name,
     SerializedCodeExecutionContext &serializeCodeExecutionObject) {
@@ -306,6 +322,23 @@ streamlinedLaunchKernel(const char *kernelName,
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
+}
+
+KernelThunkResultType
+streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp module,
+                        const std::vector<void *> &rawArgs,
+                        mlir::Type resultTy) {
+  ScopedTraceWithContext("streamlinedLaunchModule", kernelName, rawArgs.size());
+
+  auto &platform = *getQuantumPlatformInternal();
+  std::string kernName = kernelName;
+  return platform.launchModule(kernelName, module, rawArgs, resultTy);
+}
+
+KernelThunkResultType
+streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
+                        const std::vector<void *> &rawArgs, mlir::Type resTy) {
+  return streamlinedLaunchModule(kernelName.c_str(), moduleOp, rawArgs, resTy);
 }
 
 KernelThunkResultType hybridLaunchKernel(const char *kernelName,

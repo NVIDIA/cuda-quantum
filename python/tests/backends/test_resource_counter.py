@@ -10,7 +10,7 @@ import cudaq
 import pytest
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def clean():
     cudaq.reset_target()
 
@@ -47,7 +47,7 @@ def test_basic():
     assert counts.count("t") == 1
 
 
-def test_choice_function():
+def test_choice_function_1():
 
     @cudaq.kernel
     def mykernel():
@@ -82,7 +82,7 @@ def test_choice_function():
     assert counts2.count("x") == 1
 
 
-def test_choice_function():
+def test_choice_function_2():
 
     @cudaq.kernel
     def mykernel():
@@ -137,11 +137,11 @@ def test_sample_in_choice():
         return True
 
     with pytest.raises(RuntimeError):
-        cudaq.estimate_resources(mykernel, choice)
+        cudaq.estimate_resources(mykernel, choice=choice)
 
     with pytest.raises(RuntimeError):
         cudaq.set_target("quantinuum", emulate=True)
-        cudaq.estimate_resources(mykernel, choice)
+        cudaq.estimate_resources(mykernel, choice=choice)
 
 
 def test_loop_with_args():

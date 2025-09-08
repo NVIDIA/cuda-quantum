@@ -51,8 +51,8 @@ static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
 }
 
 template <bool isJIT>
-void createTargetCodegenPipeline(PassManager &pm,
-                                 const TargetCodegenPipelineOptions &options) {
+void createCommonTargetCodegenPipeline(
+    PassManager &pm, const TargetCodegenPipelineOptions &options) {
   if constexpr (isJIT) {
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
@@ -96,6 +96,12 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
+}
+
+template <bool isJIT>
+void createTargetCodegenPipeline(PassManager &pm,
+                                 const TargetCodegenPipelineOptions &options) {
+  createCommonTargetCodegenPipeline<isJIT>(pm, options);
   ::addQIRConversionPipeline(pm, options.target);
   pm.addPass(cudaq::opt::createReturnToOutputLog());
   pm.addPass(createConvertMathToFuncs());
@@ -129,6 +135,7 @@ void cudaq::opt::addAOTPipelineConvertToQIR(PassManager &pm,
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
+  createCommonTargetCodegenPipeline</*isJIT=*/true>(pm, {});
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());

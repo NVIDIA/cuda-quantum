@@ -15,6 +15,7 @@
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nvqpp_interface.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>
@@ -22,7 +23,10 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
+
+namespace mlir {
+class ModuleOp;
+}
 
 namespace cudaq {
 
@@ -163,6 +167,12 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset, const std::vector<void *> &rawArgs);
   void launchKernel(const std::string &kernelName, const std::vector<void *> &);
+
+  // This method launches a kernel from a ModuleOp that has already been
+  // created.
+  [[nodiscard]] KernelThunkResultType
+  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs, mlir::Type resultTy);
 
   // This method is the hook for executing SerializedCodeExecutionContext
   // objects.

@@ -172,7 +172,7 @@ void findAvailableTargets(
   }
 }
 
-LinkedLibraryHolder::LinkedLibraryHolder() {
+LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
   if (!cudaq::__internal__::canModifyTarget())
@@ -279,7 +279,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
         CUDAQ_INFO("Found simulator plugin {}.", simName);
         availableSimulators.push_back(simName);
       }
-
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
       // Extract and process the platform name
@@ -289,12 +288,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       // Remove the suffix from the library
       auto idx = platformName.find_last_of(".");
       platformName = platformName.substr(0, idx);
-
       auto iter = libHandles.find(path.string());
       if (iter == libHandles.end())
         libHandles.emplace(path.string(), dlopen(path.string().c_str(),
                                                  RTLD_GLOBAL | RTLD_NOW));
-
       // Load the plugin and get the CircuitSimulator.
       availablePlatforms.push_back(platformName);
       CUDAQ_INFO("Found platform plugin {}.", platformName);
@@ -447,7 +444,7 @@ void LinkedLibraryHolder::setTarget(
       throw std::runtime_error("Default target " + defaultTarget +
                                " doesn't define a simulator. Please check your "
                                "CUDAQ_DEFAULT_SIMULATOR environment variable.");
-
+  }
   __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
   auto *platform = getPlatform(target.platformName);
 

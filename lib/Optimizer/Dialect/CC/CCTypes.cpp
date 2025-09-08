@@ -213,10 +213,6 @@ bool isDynamicType(Type ty) {
   return false;
 }
 
-CallableType CallableType::getNoSignature(MLIRContext *ctx) {
-  return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
-}
-
 void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, IndirectCallableType,
            PointerType, StdvecType, StructType>();

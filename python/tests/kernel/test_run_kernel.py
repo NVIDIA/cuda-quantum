@@ -329,198 +329,220 @@ def test_return_list_from_device_kernel():
 
 def test_return_list_bool():
 
-    @cudaq.kernel
-    def simple_list_bool_no_args() -> list[bool]:
-        return [True, False, True]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_bool_no_args() -> list[bool]:
+            return [True, False, True]
+
         cudaq.run(simple_list_bool_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_bool(n: int) -> list[bool]:
-        qubits = cudaq.qvector(n)
-        return [True, False, True]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_bool(n: int) -> list[bool]:
+            qubits = cudaq.qvector(n)
+            return [True, False, True]
+
         cudaq.run(simple_list_bool, 2, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_bool_args, 2, [True, False, True])
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
-        qubits = cudaq.qvector(2)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
+            qubits = cudaq.qvector(2)
+            return t
+
         cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True])
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_int():
 
-    @cudaq.kernel
-    def simple_list_int_no_args() -> list[int]:
-        return [-13, 5, 42]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int_no_args() -> list[int]:
+            return [-13, 5, 42]
+
         cudaq.run(simple_list_int_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_int(n: int, t: list[int]) -> list[int]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int(n: int, t: list[int]) -> list[int]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_int8():
 
-    @cudaq.kernel
-    def simple_list_int8_no_args() -> list[np.int8]:
-        return [-13, 5, 42]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int8_no_args() -> list[np.int8]:
+            return [-13, 5, 42]
+
         cudaq.run(simple_list_int8_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_int16():
 
-    @cudaq.kernel
-    def simple_list_int16_no_args() -> list[np.int16]:
-        return [-13, 5, 42]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int16_no_args() -> list[np.int16]:
+            return [-13, 5, 42]
+
         cudaq.run(simple_list_int16_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_int32():
 
-    @cudaq.kernel
-    def simple_list_int32_no_args() -> list[np.int32]:
-        return [-13, 5, 42]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int32_no_args() -> list[np.int32]:
+            return [-13, 5, 42]
+
         cudaq.run(simple_list_int32_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_int32, 2, [-13, 5, 42], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_int64():
 
-    @cudaq.kernel
-    def simple_list_int64_no_args() -> list[np.int64]:
-        return [-13, 5, 42]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int64_no_args() -> list[np.int64]:
+            return [-13, 5, 42]
+
         cudaq.run(simple_list_int64_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_int64, 2, [-13, 5, 42], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_float():
 
-    @cudaq.kernel
-    def simple_list_float_no_args() -> list[float]:
-        return [-13.2, 5., 42.99]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_float_no_args() -> list[float]:
+            return [-13.2, 5., 42.99]
+
         cudaq.run(simple_list_float_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_float(n: int, t: list[float]) -> list[float]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_float(n: int, t: list[float]) -> list[float]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_float, 2, [-13.2, 5.0, 42.99], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_float32():
 
-    @cudaq.kernel
-    def simple_list_float32_no_args() -> list[np.float32]:
-        return [-13.2, 5., 42.99]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_float32_no_args() -> list[np.float32]:
+            return [-13.2, 5., 42.99]
+
         cudaq.run(simple_list_float32_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_float32(n: int,
+                                t: list[np.float32]) -> list[np.float32]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_float32, 2, [-13.2, 5.0, 42.99], shots_count=2)
     assert list_err_msg in str(e.value)
 
 
 def test_return_list_float64():
 
-    @cudaq.kernel
-    def simple_list_float64_no_args() -> list[np.float64]:
-        return [-13.2, 5., 42.99]
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_float64_no_args() -> list[np.float64]:
+            return [-13.2, 5., 42.99]
+
         cudaq.run(simple_list_float64_no_args, shots_count=2)
     assert list_err_msg in str(e.value)
 
-    @cudaq.kernel
-    def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_list_float64(n: int,
+                                t: list[np.float64]) -> list[np.float64]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_list_float64, 2, [-13.2, 5.0, 42.99], shots_count=2)
     assert list_err_msg in str(e.value)
 
@@ -548,26 +570,28 @@ def test_return_tuple_int_float():
     result = cudaq.run(simple_tuple_int_float, 2, (-13, 42.3), shots_count=1)
     assert len(result) == 1 and result[0] == (-13, 42.3)
 
-    @cudaq.kernel
-    def simple_tuple_int_float_assign(
-            n: int, t: tuple[int, float]) -> tuple[int, float]:
-        qubits = cudaq.qvector(n)
-        t[0] = -14
-        t[1] = 11.5
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_assign(
+                n: int, t: tuple[int, float]) -> tuple[int, float]:
+            qubits = cudaq.qvector(n)
+            t[0] = -14
+            t[1] = 11.5
+            return t
+
         cudaq.run(simple_tuple_int_float_assign, 2, (-13, 11.5))
     assert 'indexing into tuple or dataclass must not modify value' in str(
         e.value)
 
-    @cudaq.kernel
-    def simple_tuple_int_float_error(
-            n: int, t: tuple[int, float]) -> tuple[bool, float]:
-        qubits = cudaq.qvector(n)
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_error(
+                n: int, t: tuple[int, float]) -> tuple[bool, float]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run(simple_tuple_int_float_error, 2, (-13, 11.5))
     assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(
         e.value)
@@ -630,11 +654,12 @@ def test_return_tuple_int_bool():
 
 def test_return_tuple_int32_bool():
 
-    @cudaq.kernel
-    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
-        return (-13, True)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+            return (-13, True)
+
         cudaq.run(simple_tuple_int32_bool_no_args)
     assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
         e.value)
@@ -841,15 +866,14 @@ def test_return_dataclass_dataclass_bool():
 
 
 def test_run_errors():
+    with pytest.raises(RuntimeError) as e:
 
-    @cudaq.kernel
-    def simple_no_return(numQubits: int):
-        qubits = cudaq.qvector(numQubits)
+        @cudaq.kernel
+        def simple_no_return(numQubits: int):
+            qubits = cudaq.qvector(numQubits)
 
-    @cudaq.kernel
-    def simple_no_args() -> int:
-        qubits = cudaq.qvector(2)
-        return 1
+        cudaq.run(simple_no_return, 2)
+    assert 'a runnable kernel must return a value.' in repr(e)
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:
@@ -857,20 +881,32 @@ def test_run_errors():
         return 1
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_no_return, 2)
-    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
+        cudaq.run(simple, [2])
+    assert 'Invalid runtime argument type' in repr(e)
 
-    with pytest.raises(TypeError) as e:
-        cudaq.run(simple, 2, shots_count=-1)
-    assert 'incompatible function arguments.' in repr(e)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple, 8, shots_count=None)
+    assert 'Invalid `shots_count`' in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple, 2, shots_count=-13)
+    assert 'Invalid `shots_count`' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple, shots_count=100)
-    assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
+    assert ('Invalid number of arguments passed to run. 0 given and 1 expected.'
+            in repr(e))
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_no_args() -> int:
+            qubits = cudaq.qvector(2)
+            return 1
+
         print(cudaq.run(simple_no_args, 2, shots_count=100))
-    assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
+    assert ('Invalid number of arguments passed to run. 1 given and 0 expected.'
+            in repr(e))
 
 
 def test_modify_struct():
@@ -955,19 +991,21 @@ def test_create_and_modify_struct():
 
 def test_unsupported_return_type():
 
-    @cudaq.kernel
-    def kernel_with_no_args() -> complex:
-        return 1 + 2j
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_no_args() -> complex:
+            return 1 + 2j
+
         cudaq.run(kernel_with_no_args, shots_count=2)
     assert 'unsupported return type' in str(e.value)
 
-    @cudaq.kernel
-    def kernel_with_args(real: float, imag: float) -> complex:
-        return complex(real, imag)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_args(real: float, imag: float) -> complex:
+            return complex(real, imag)
+
         cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
     assert 'unsupported return type' in str(e.value)
 
@@ -1148,11 +1186,12 @@ def test_dataclass_user_defined_method_raises_error():
         def doSomething(self):
             pass
 
-    @cudaq.kernel
-    def kernel_with_slots_dataclass() -> SlotsClass:
-        return SlotsClass(3, 4)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_slots_dataclass() -> SlotsClass:
+            return SlotsClass(3, 4)
+
         results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
     assert 'struct types with user specified methods are not allowed.' in str(
         e.value)
@@ -1169,11 +1208,12 @@ def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
         def doSomething(self):
             pass
 
-    @cudaq.kernel
-    def kernel_with_slots_dataclass() -> SlotsClass:
-        return SlotsClass(3, 4)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_slots_dataclass() -> SlotsClass:
+            return SlotsClass(3, 4)
+
         results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
     assert 'struct types with user specified methods are not allowed.' in str(
         e.value)
@@ -1195,12 +1235,13 @@ def test_shots_count():
 
 def test_return_from_if_loop_with_true_condition():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            return 1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return 1
+
         results = cudaq.run(kernel, True, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1208,12 +1249,13 @@ def test_return_from_if_loop_with_true_condition():
 
 def test_return_from_if_loop_with_false_condition():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            return 1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return 1
+
         results = cudaq.run(kernel, False, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1281,16 +1323,17 @@ def test_return_from_if_and_else_loop_with_true_condition_in_for_loop():
 
 def test_return_from_if_and_else_loop_having_for_with_no_return():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            for i in range(6):
-                if i == 0:
-                    return 1
-        else:
-            return -1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                for i in range(6):
+                    if i == 0:
+                        return 1
+            else:
+                return -1
+
         results = cudaq.run(kernel, True, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1336,18 +1379,19 @@ def test_return_from_if_and_else_loop_with_true_condition_in_while_loop():
 
 def test_return_from_if_and_else_loop_having_while_with_no_return():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            i = 0
-            while i < 6:
-                if i == 0:
-                    return 1
-                i = i + 1
-        else:
-            return -1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                i = 0
+                while i < 6:
+                    if i == 0:
+                        return 1
+                    i = i + 1
+            else:
+                return -1
+
         results = cudaq.run(kernel, True, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1480,4 +1524,4 @@ def test_return_with_false_condition_with_variable_defined_outside_the_loop():
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main([loc, "-srP"])

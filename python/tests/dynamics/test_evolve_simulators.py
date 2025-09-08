@@ -5,8 +5,8 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os
 
+import os
 import pytest
 import cudaq
 from cudaq.operators import *
@@ -231,7 +231,6 @@ def test_evolve(init_state):
     ]
     np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.01)
     np.testing.assert_allclose(decay_results, expected_result_decay, atol=0.01)
-
     # Test for `shots_count`
     schedule.reset()
     evolution_result_shots = cudaq.evolve(
@@ -293,7 +292,9 @@ def test_evolve_async():
     np.testing.assert_allclose(ideal_results, expected_result_ideal, atol=0.01)
 
     schedule.reset()
-    # Now, run the simulation with qubit decaying due to the presence of a collapse operator.
+
+    # Now, run the simulation with qubit decaying due to the presence of a
+    # collapse operator.
     evolution_result_decay = cudaq.evolve_async(
         hamiltonian,
         dimensions,
@@ -462,4 +463,4 @@ def test_evolve_async_no_intermediate_results():
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main([loc, "-srP"])

@@ -37,6 +37,9 @@ def test_synthesize():
     counts.dump()
     assert len(counts) == 2 and '0' * 5 in counts and '1' * 5 in counts
 
+
+def test_synthesize_2():
+
     @cudaq.kernel
     def ansatz(angle: float):
         q = cudaq.qvector(2)

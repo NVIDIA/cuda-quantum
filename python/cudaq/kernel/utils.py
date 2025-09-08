@@ -5,18 +5,23 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+
 from __future__ import annotations
 import ast
+import inspect
 import re
 import sys
 import traceback
 import numpy as np
 from typing import get_origin, Callable, List
 import types
-
+from cudaq.mlir.execution_engine import ExecutionEngine
+from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
-from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType, Context,
+                           Module)
+from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
@@ -28,10 +33,6 @@ qreg = qvector
 nvqppPrefix = '__nvqpp__mlirgen__'
 
 ahkPrefix = '__analog_hamiltonian_kernel__'
-
-# Keep a global registry of all kernel FuncOps
-# keyed on their name (without `__nvqpp__mlirgen__` prefix)
-globalKernelRegistry = {}
 
 # Keep a global registry of all kernel Python AST modules
 # keyed on their name (without `__nvqpp__mlirgen__` prefix).
@@ -46,11 +47,113 @@ globalRegisteredOperations = {}
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
 
+def getMLIRContext():
+    """
+    This code creates an MLIRContext singleton for this python process. We do
+    not want to have a brand new context every time Python does something with a
+    kernel.
+    """
+    global cudaq__global_mlir_context
+    try:
+        cudaq__global_mlir_context
+    except NameError:
+        cudaq__global_mlir_context = Context()
+        register_all_dialects(cudaq__global_mlir_context)
+        quake.register_dialect(context=cudaq__global_mlir_context)
+        cc.register_dialect(context=cudaq__global_mlir_context)
+        cudaq_runtime.registerLLVMDialectTranslation(cudaq__global_mlir_context)
+    return cudaq__global_mlir_context
+
+
+class Initializer:
+    # We need static initializers to run in the CAPI `ExecutionEngine`, so here
+    # we run a simple JIT compile at global scope.
+    def initialize(self):
+        self.context = getMLIRContext()
+        self.module = Module.parse("llvm.func @none() { llvm.return }",
+                                   context=self.context)
+        ExecutionEngine(self.module)
+
+
+try:
+    globalExecutionEngineInitialized
+except NameError:
+    globalExecutionEngineInitialized = True
+    try:
+        Initializer().initialize()
+    except Exception as e:
+        print("python failed to load the execution engine", file=sys.stderr)
+        sys.exit()
+
+
 class Color:
     YELLOW = '\033[93m'
     RED = '\033[91m'
     BOLD = '\033[1m'
     END = '\033[0m'
+
+
+# Name of module attribute to recover the name of the entry-point for the python
+# kernel decorator.  The associated StringAttr is *without* the nvqppPrefix.
+cudaq__unique_attr_name = "cc.python_uniqued"
+
+
+def recover_func_op(module, name):
+    for op in module.body:
+        if isinstance(op, func.FuncOp):
+            if op.sym_name.value == name:
+                return op
+    return None
+
+
+def recover_value_of_or_none(name):
+    """
+    Recover the Python value of the symbol `name` from the enclosing context.
+    The enclosing context is the context in which the `PyKernelDecorator`
+    object's `__init__` or `__call__` method were invoked.
+
+    Note that this need not work with a `PyKernel` object as the semantics of
+    the kernel builder presumes immediate lookup and resolution of all symbols
+    during construction.
+    """
+    from .kernel_decorator import isa_kernel_decorator
+
+    def drop_front():
+        drop = 0
+        for frameinfo in inspect.stack():
+            frame = frameinfo.frame
+            if 'self' in frame.f_locals:
+                if isa_kernel_decorator(frame.f_locals['self']):
+                    return drop
+            drop = drop + 1
+        return drop
+
+    drop = drop_front()
+    for frameinfo in inspect.stack()[drop:]:
+        frame = frameinfo.frame
+        if name in frame.f_locals:
+            return frame.f_locals[name]
+        if name in frame.f_globals:
+            return frame.f_globals[name]
+    return None
+
+
+def is_recovered_value_ok(result):
+    try:
+        if result != None:
+            return True
+    except ValueError:
+        # nd.array values raise ValueError with the above `if result` but are
+        # otherwise legit here.
+        return True
+    return False
+
+
+def recover_value_of(name):
+    result = recover_value_of_or_none(name)
+    if is_recovered_value_ok(result):
+        return result
+    raise RuntimeError("'" + name + "' is not available in this scope.")
 
 
 def emitFatalError(msg):
@@ -192,7 +295,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             argTypes = [
                 mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts
             ]
-            return cc.CallableType.get(argTypes)
+            return cc.CallableType.get(ctx, argTypes, [])
 
         if isinstance(annotation,
                       ast.Subscript) and (annotation.value.id == 'list' or
@@ -378,8 +481,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
 
         argInstance = kwargs['argInstance']
-        argTypeToCompareTo = kwargs[
-            'argTypeToCompareTo'] if 'argTypeToCompareTo' in kwargs else None
+        argTypeToCompareTo = (kwargs['argTypeToCompareTo']
+                              if 'argTypeToCompareTo' in kwargs else None)
 
         if len(argInstance) == 0:
             if argTypeToCompareTo == None:
@@ -415,21 +518,26 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         eleTypes.reverse()
         tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         if tupleTy is None:
-            emitFatalError(
-                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
-            )
+            emitFatalError("Hybrid quantum-classical data types and nested "
+                           "quantum structs are not allowed.")
         return tupleTy
 
     if (argType == tuple):
         argInstance = kwargs['argInstance']
+        argTypeToCompareTo = (kwargs['argTypeToCompareTo']
+                              if 'argTypeToCompareTo' in kwargs else None)
         if argInstance == None or (len(argInstance) == 0):
             emitFatalError(f'Cannot infer runtime argument type for {argType}')
-        eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
-        tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        if argTypeToCompareTo is None:
+            eleTypes = [
+                mlirTypeFromPyType(type(ele), ctx) for ele in argInstance
+            ]
+            tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        else:
+            tupleTy = argTypeToCompareTo
         if tupleTy is None:
-            emitFatalError(
-                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
-            )
+            emitFatalError("Hybrid quantum-classical data types and nested "
+                           "quantum structs are not allowed.")
         return tupleTy
 
     if argType == qvector or argType == qreg or argType == qview:
@@ -442,7 +550,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
-            return cc.CallableType.get(argInstance.argTypes, ctx)
+            return cc.CallableType.get(ctx, argInstance.argTypes, [])
 
     for name in globalRegisteredTypes.classes:
         customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
@@ -476,7 +584,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
 
     emitFatalError(
-        f"Can not handle conversion of python type {argType} to MLIR type.")
+        f"Cannot handle conversion of python type {argType} to MLIR type.")
 
 
 def mlirTypeToPyType(argType):

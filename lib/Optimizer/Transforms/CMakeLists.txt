@@ -13,6 +13,7 @@ endif()
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
   AddMeasurements.cpp
+  AddMetadata.cpp
   AggressiveInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
@@ -26,7 +27,6 @@ add_cudaq_library(OptTransforms
   Decomposition.cpp
   DecompositionPatterns.cpp
   DelayMeasurements.cpp
-  DeleteStates.cpp
   DistributedDeviceCall.cpp
   EraseNoise.cpp
   EraseNopCalls.cpp
@@ -56,7 +56,6 @@ add_cudaq_library(OptTransforms
   Pipelines.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
-  QuakeAddMetadata.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp

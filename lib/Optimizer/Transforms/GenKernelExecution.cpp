@@ -307,12 +307,17 @@ public:
     // the call to the kernel code.
     SmallVector<Value> args;
     const std::int32_t offset = funcTy.getNumInputs();
-    for (auto inp : llvm::enumerate(funcTy.getInputs())) {
-      auto [a, t] = cudaq::opt::marshal::processInputValue(
-          loc, builder, trailingData, castOp, inp.value(), inp.index(),
-          structTy);
-      trailingData = t;
-      args.push_back(a);
+    if (positNullary) {
+      for (auto inp : funcOp.getFunctionType().getInputs())
+        args.push_back(builder.create<cudaq::cc::UndefOp>(loc, inp));
+    } else {
+      for (auto inp : llvm::enumerate(funcTy.getInputs())) {
+        auto [a, t] = cudaq::opt::marshal::processInputValue(
+            loc, builder, trailingData, castOp, inp.value(), inp.index(),
+            structTy);
+        trailingData = t;
+        args.push_back(a);
+      }
     }
     auto call = builder.create<cudaq::cc::NoInlineCallOp>(
         loc, funcTy.getResults(), funcOp.getName(), args);
@@ -931,7 +936,11 @@ public:
           runKern->setAttr(cudaq::entryPointAttrName, unitAttr);
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
-          runKern->setAttr(cudaq::runtime::enableCudaqRun, unitAttr);
+          SmallVector<Attribute> resultTys;
+          for (auto rt : epKern.getFunctionType().getResults())
+            resultTys.emplace_back(TypeAttr::get(rt));
+          auto arrAttr = ArrayAttr::get(ctx, resultTys);
+          runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);
           Block *entry = runKern.addEntryBlock();
           builder.setInsertionPointToStart(entry);
@@ -1046,13 +1055,25 @@ public:
         func::FuncOp argsCreatorFunc;
 
         if (cudaq::opt::marshal::isCodegenPackedData(codegenKind)) {
+          auto thunkStructTy = structTy;
+          auto thunkFuncTy = funcTy;
+          if (positNullary) {
+            // The compiler posits that the entry-point kernel is nullary (no
+            // arguments) regardless of the signature. This is the case when it
+            // is known that all the arguments are (or will be) synthesized and
+            // the kernel is accordingly specialized in place.
+            thunkFuncTy =
+                FunctionType::get(ctx, ArrayRef<Type>{}, funcTy.getResults());
+            thunkStructTy =
+                cudaq::opt::factory::buildInvokeStructType(thunkFuncTy);
+          }
           // Generate the function that computes the return offset.
-          cudaq::opt::marshal::genReturnOffsetFunction(loc, builder, funcTy,
-                                                       structTy, classNameStr);
+          cudaq::opt::marshal::genReturnOffsetFunction(
+              loc, builder, thunkFuncTy, thunkStructTy, classNameStr);
 
           // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
-          thunk = genThunkFunction(loc, builder, classNameStr, structTy, funcTy,
-                                   funcOp);
+          thunk = genThunkFunction(loc, builder, classNameStr, thunkStructTy,
+                                   thunkFuncTy, funcOp);
 
           // Generate the argsCreator function used by synthesis.
           if (startingArgIdx == 0) {

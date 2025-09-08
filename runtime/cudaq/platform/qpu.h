@@ -17,7 +17,7 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <optional>
+#include "mlir/IR/BuiltinOps.h"
 
 namespace cudaq {
 class gradient;
@@ -27,15 +27,14 @@ class SerializedCodeExecutionContext;
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
 
-/// A CUDA-Q QPU is an abstraction on the quantum processing
-/// unit which executes quantum kernel expressions. The QPU exposes
-/// certain information about the QPU being targeting, such as the
-/// number of available qubits, the logical ID for this QPU in a set
-/// of available QPUs, and its qubit connectivity. The QPU keeps
-/// track of an execution queue for enqueuing asynchronous tasks
-/// that execute quantum kernel expressions. The QPU also tracks the
-/// client-provided execution context to enable quantum kernel
-/// related tasks such as sampling and observation.
+/// A CUDA-Q QPU is an abstraction on the quantum processing unit which executes
+/// quantum kernel expressions. The QPU exposes certain information about the
+/// QPU being targeting, such as the number of available qubits, the logical ID
+/// for this QPU in a set of available QPUs, and its qubit connectivity. The QPU
+/// keeps track of an execution queue for enqueuing asynchronous tasks that
+/// execute quantum kernel expressions. The QPU also tracks the client-provided
+/// execution context to enable quantum kernel related tasks such as sampling
+/// and observation.
 ///
 /// This type is meant to be subtyped by concrete quantum_platform subtypes.
 class QPU : public registry::RegisteredType<QPU> {
@@ -52,9 +51,9 @@ protected:
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
 
-  /// @brief Check if the current execution context is a `spin_op`
-  /// observation and perform state-preparation circuit measurement
-  /// based on the `spin_op` terms.
+  /// @brief Check if the current execution context is a `spin_op` observation
+  /// and perform state-preparation circuit measurement based on the `spin_op`
+  /// terms.
   void handleObservation(ExecutionContext *localContext) {
     // The reason for the 2 if checks is simply to do a flushGateQueue() before
     // initiating the trace.
@@ -76,10 +75,9 @@ protected:
       cudaq::spin_op &H = localContext->spin.value();
       assert(cudaq::spin_op::canonicalize(H) == H);
 
-      // If the backend supports the observe task,
-      // let it compute the expectation value instead of
-      // manually looping over terms, applying basis change ops,
-      // and computing <ZZ..ZZZ>
+      // If the backend supports the observe task, let it compute the
+      // expectation value instead of manually looping over terms, applying
+      // basis change ops, and computing <ZZ..ZZZ>
       if (localContext->canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
         localContext->expectationValue = exp;
@@ -193,6 +191,10 @@ public:
                                "simulated QPU. This is not supported.");
   }
 
+  [[nodiscard]] virtual KernelThunkResultType
+  launchModule(const std::string &name, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs, mlir::Type resultTy);
+
   /// Launch serialized code for remote execution. Subtypes that support this
   /// should override this function.
   virtual void launchSerializedCodeExecution(
@@ -203,4 +205,14 @@ public:
   /// By default do nothing, let subclasses override.
   virtual void onRandomSeedSet(std::size_t seed) {}
 };
+
+struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
+  virtual ~ModuleLauncher() = default;
+
+  virtual KernelThunkResultType launchModule(const std::string &name,
+                                             mlir::ModuleOp module,
+                                             const std::vector<void *> &rawArgs,
+                                             mlir::Type resultTy) = 0;
+};
+
 } // namespace cudaq

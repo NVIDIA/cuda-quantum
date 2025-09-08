@@ -432,6 +432,13 @@ public:
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
     auto newCond = newFunc.getBody().front().insertArgument(0u, veqTy, loc);
+    // Helper to check if this is a call to a function taking quantum arguments.
+    const auto isQuantumKernelCall = [](Operation *op) -> bool {
+      if (auto callOp = dyn_cast<func::CallOp>(op))
+        return !quake::getQuantumOperands(op).empty();
+      return false;
+    };
+
     newFunc.walk([&](Operation *op) {
       OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {
@@ -471,6 +478,11 @@ public:
             apply.getIsAdjAttr(), newControls, apply.getArgs());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
+      } else if (isQuantumKernelCall(op)) {
+        op->emitError("Unhandled controlled quantum kernel call in control "
+                      "variant generation. This could be a result of not "
+                      "calling inlining before the apply specialization pass.");
+        signalPassFailure();
       }
     });
     return newFunc;

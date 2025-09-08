@@ -507,8 +507,9 @@ protected:
 
   /// @brief Return the current multi-qubit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQubits) {
-    assert(numQubits < 64);
-    return 1ULL << numQubits;
+    if (numQubits < 64)
+      return 1ULL << numQubits;
+    throw std::runtime_error("number of qubits exceeds maximum (63)");
   }
 
   /// @brief Add a new qubit to the state representation.

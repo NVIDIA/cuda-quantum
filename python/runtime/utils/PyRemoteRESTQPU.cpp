@@ -72,6 +72,8 @@ cudaq::TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
   registerTranslation(name, description, function);
 }
 
+static std::once_flag onceFlag;
+
 namespace cudaq {
 
 // We cannot use the RemoteRESTQPU since we'll get LLVM / MLIR statically loaded
@@ -79,16 +81,13 @@ namespace cudaq {
 // implement some core functionality here in PyRemoteRESTQPU so we don't load
 // twice
 class PyRemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
-private:
-  /// Creates new context without mlir initialization.
-  MLIRContext *createContext() {
-    DialectRegistry registry;
-    cudaq::opt::registerCodeGenDialect(registry);
-    cudaq::registerAllDialects(registry);
-    auto context = new MLIRContext(registry);
-    context->loadAllAvailableDialects();
-    registerLLVMDialectTranslation(*context);
-    return context;
+public:
+  explicit PyRemoteRESTQPU() : BaseRemoteRESTQPU() {
+    std::call_once(onceFlag, []() {
+      registerToQIRTranslation();
+      registerToOpenQASMTranslation();
+      registerToIQMJsonTranslation();
+    });
   }
 
 protected:
@@ -106,16 +105,7 @@ protected:
 
   std::tuple<ModuleOp, MLIRContext *>
   extractQuakeCodeAndContextImpl(const std::string &kernelName) {
-
     MLIRContext *context = createContext();
-
-    static bool initOnce = [&] {
-      registerToQIRTranslation();
-      registerToOpenQASMTranslation();
-      registerToIQMJsonTranslation();
-      return true;
-    }();
-    (void)initOnce;
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
@@ -128,7 +118,7 @@ protected:
     auto cloned = m_module->clone();
     PassManager pm(cloned.getContext());
 
-    pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    pm.addPass(cudaq::opt::createLambdaLifting());
     cudaq::opt::addAggressiveInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -154,7 +144,20 @@ protected:
   }
 
   void cleanupContext(MLIRContext *context) override { delete context; }
+
+private:
+  /// Creates new context without mlir initialization.
+  MLIRContext *createContext() {
+    DialectRegistry registry;
+    cudaq::opt::registerCodeGenDialect(registry);
+    cudaq::registerAllDialects(registry);
+    auto context = new MLIRContext(registry);
+    context->loadAllAvailableDialects();
+    registerLLVMDialectTranslation(*context);
+    return context;
+  }
 };
+
 } // namespace cudaq
 
 CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::PyRemoteRESTQPU, remote_rest)

@@ -37,10 +37,9 @@ def test_builtin_controlled_gates():
     counts = cudaq.sample(control_rotation_gate)
     assert counts["01"] == 1000
 
-    # Note: u3, swap, and exp_pauli do not have a built-in
-    # c<gatename> version at the time of writing this.
 
-
+# Note: u3, swap, and exp_pauli do not have a built-in c<gatename> version at
+# the time of writing this.
 def test_ctrl_attribute():
 
     @cudaq.kernel
@@ -205,10 +204,11 @@ def test_cudaq_control():
         cudaq.control(custom_x, c, q)
 
     counts = cudaq.sample(control_kernel)
+    print(counts)
     assert counts["01"] == 1000
 
-    # Note: calling cudaq.control on a registered operation
-    # or on a built-in gate is not supported at the time of writing this
+    # Note: calling cudaq.control on a registered operation or on a built-in gate is
+    # not supported at the time of writing this
 
 
 def test_unsupported_calls():
@@ -216,63 +216,66 @@ def test_unsupported_calls():
     # If we add support for any of these, add the corresponding
     # tests above and remove the notes.
 
-    @cudaq.kernel
-    def cu3_gate():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        t, p, l = 0., 0., np.pi
-        cu3(t, p, l, ~c, q)
-        cu3(t, p, l, c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def cu3_gate():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            t, p, l = 0., 0., np.pi
+            cu3(t, p, l, ~c, q)
+            cu3(t, p, l, c, q)
+
         cudaq.sample(cu3_gate)
     assert "unhandled function call - cu3" in str(e.value)
 
-    @cudaq.kernel
-    def cswap_gate():
-        c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
-        x(q1)
-        cswap(~c, q1, q2)
-        cswap(c, q1, q2)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def cswap_gate():
+            c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
+            x(q1)
+            cswap(~c, q1, q2)
+            cswap(c, q1, q2)
+
         cudaq.sample(cswap_gate)
     assert "unhandled function call - cswap" in str(e.value)
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
-    @cudaq.kernel
-    def control_registered_operation():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        cudaq.control(custom_x, ~c, q)
-        cudaq.control(custom_x, c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_registered_operation():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            cudaq.control(custom_x, ~c, q)
+            cudaq.control(custom_x, c, q)
+
         cudaq.sample(control_registered_operation)
-    assert "calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported" in str(
-        e.value)
-
-    @cudaq.kernel
-    def control_rotation_gate():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        cudaq.control(ry, ~c, np.pi, q)
-        cudaq.control(ry, c, np.pi, q)
+    assert "unprocessed kernel reference not yet supported" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_rotation_gate():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            cudaq.control(ry, ~c, np.pi, q)
+            cudaq.control(ry, c, np.pi, q)
+
         cudaq.sample(control_rotation_gate)
-    assert "calling cudaq.control or cudaq.adjoint on a built-in gate is not supported" in str(
-        e.value)
-
-    @cudaq.kernel
-    def control_simple_gate():
-        c, q = cudaq.qvector(3), cudaq.qubit()
-        cx(~c, q)
-        x(c[0])
-        cx(c, q)
+    assert "unprocessed kernel reference not yet supported" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_simple_gate():
+            c, q = cudaq.qvector(3), cudaq.qubit()
+            cx(~c, q)
+            x(c[0])
+            cx(c, q)
+
         cudaq.sample(control_simple_gate)
-    assert "unary operator ~ is only supported for values of type qubit" in str(
-        e.value)
+    assert ("unary operator ~ is only supported for values of type qubit"
+            in str(e.value))
 
 
 # leave for gdb debugging

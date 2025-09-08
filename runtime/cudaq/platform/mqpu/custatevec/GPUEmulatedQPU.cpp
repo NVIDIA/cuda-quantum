@@ -47,6 +47,7 @@ public:
     return kernelFunc(args, /*differentMemorySpace=*/false);
   }
 
+
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaSetDevice(qpu_id);

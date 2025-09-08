@@ -80,12 +80,12 @@ struct ctrlHeisenberg {
 //===----------------------------------------------------------------------===//
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0.adj(
-// LAMBDA-SAME:      %{{[^:]*}}: !cc.ptr<i32>, %{{[^:]*}}: !quake.veq<?>, %{{[^:]*}}: i32) {{.*}}{
+// LAMBDA-SAME:      %{{[^:]*}}: !cc.ptr<i32>, %{{[^:]*}}: !quake.veq<?>) {{.*}}{
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 
 // LAMBDA2-LABEL:   func.func private @__nvqpp__lifted.lambda.1.ctrl(
-// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !cc.ptr<i32>, %{{.*}}: i32, %{{.*}}: !quake.veq<?>, %{{.*}}: f64) {{.*}}{
+// LAMBDA2-SAME:      %[[VAL_0:.*]]: !quake.veq<?>, %{{.*}}: !cc.ptr<i32>, %{{.*}}: !quake.veq<?>) {{.*}}{
 // LAMBDA2:           quake.rz (%{{.*}}) [%[[VAL_0]]] %{{.*}} : (f64, !quake.veq<?>, !quake.ref) -> ()
 // LAMBDA2:           return
 
@@ -105,10 +105,10 @@ struct ctrlHeisenberg {
 // LAMBDA:                 cc.scope {
 // LAMBDA:                   cc.loop while {
 // LAMBDA:                   } do {
-// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0(%{{.*}}, %[[VAL_1]], %{{.*}}) : (!cc.ptr<i32>, !quake.veq<?>, i32) -> ()
+// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0(%{{.*}}, %[[VAL_1]]) : (!cc.ptr<i32>, !quake.veq<?>) -> ()
 // LAMBDA:                     %[[VAL_28:.*]] = quake.concat %[[VAL_0]] : (!quake.veq<?>) -> !quake.veq<?>
-// LAMBDA:                     func.call @__nvqpp__lifted.lambda.1.ctrl(%[[VAL_28]], %{{.*}}, %{{.*}}, %[[VAL_1]], %{{.*}}) : (!quake.veq<?>, !cc.ptr<i32>, i32, !quake.veq<?>, f64) -> ()
-// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0.adj(%{{.*}}, %[[VAL_1]], %{{.*}}) : (!cc.ptr<i32>, !quake.veq<?>, i32) -> ()
+// LAMBDA:                     func.call @__nvqpp__lifted.lambda.1.ctrl(%[[VAL_28]], %{{.*}}, %[[VAL_1]]) : (!quake.veq<?>, !cc.ptr<i32>, !quake.veq<?>) -> ()
+// LAMBDA:                     func.call @__nvqpp__lifted.lambda.0.adj(%{{.*}}, %[[VAL_1]]) : (!cc.ptr<i32>, !quake.veq<?>) -> ()
 // LAMBDA:                   } step {
 // LAMBDA:                   }
 // LAMBDA:                 }
@@ -127,7 +127,7 @@ struct ctrlHeisenberg {
 // LAMBDA:         }
 
 // LAMBDA-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
-// LAMBDA-SAME:      %[[VAL_0:.*]]: !cc.ptr<i32>, %[[VAL_1:.*]]: !quake.veq<?>, %{{.*}}: i32) {{.*}}{
+// LAMBDA-SAME:      %[[VAL_0:.*]]: !cc.ptr<i32>, %[[VAL_1:.*]]: !quake.veq<?>) {{.*}}{
 // LAMBDA:           quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
 // LAMBDA:           return
 // LAMBDA:         }

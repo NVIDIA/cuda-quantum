@@ -179,13 +179,13 @@ def test_bad_attribute():
 
     cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
 
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qubit()
-        custom_s.foo(q)
-        mz(q)
-
     with pytest.raises(Exception) as error:
+        @cudaq.kernel
+        def kernel():
+            q = cudaq.qubit()
+            custom_s.foo(q)
+            mz(q)
+
         cudaq.sample(kernel)
 
 
@@ -219,12 +219,12 @@ def test_builder_mode_control():
 def test_invalid_ctrl():
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
-    @cudaq.kernel
-    def bell():
-        q = cudaq.qubit()
-        custom_x.ctrl(q)
-
     with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel
+        def bell():
+            q = cudaq.qubit()
+            custom_x.ctrl(q)
+
         bell.compile()
     assert 'controlled operation requested without any control argument(s)' in repr(
         error)
@@ -233,12 +233,12 @@ def test_invalid_ctrl():
 def test_bug_2452():
     cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
 
-    @cudaq.kernel
-    def kernel1():
-        qubits = cudaq.qvector(2)
-        custom_i(qubits)
-
     with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel
+        def kernel1():
+            qubits = cudaq.qvector(2)
+            custom_i(qubits)
+
         kernel1.compile()
     assert 'broadcasting is not supported on custom operations' in repr(error)
 
@@ -258,12 +258,12 @@ def test_bug_2452():
         "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
                                -1]))
 
-    @cudaq.kernel
-    def kernel3():
-        qubits = cudaq.qvector(2)
-        custom_cz(qubits)
-
     with pytest.raises(RuntimeError) as error:
+        @cudaq.kernel
+        def kernel3():
+            qubits = cudaq.qvector(2)
+            custom_cz(qubits)
+
         cudaq.sample(kernel3)
     assert 'invalid number of arguments (1) passed to custom_cz (requires 2 arguments)' in repr(
         error)

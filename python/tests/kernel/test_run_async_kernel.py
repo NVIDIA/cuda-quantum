@@ -327,7 +327,8 @@ def test_return_list_from_device_kernel():
             result += v
         return result
 
-    results = cudaq.run_async(caller_kernel, [4, 5, 6], shots_count=1).get()
+    res = cudaq.run_async(caller_kernel, [4, 5, 6], shots_count=1)
+    results = res.get()
     assert len(results) == 1
     assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
 
@@ -563,29 +564,31 @@ def test_return_tuple_int_float():
                              shots_count=1).get()
     assert len(result) == 1 and result[0] == (-13, 42.3)
 
-    @cudaq.kernel
-    def simple_tuple_int_float_assign(
-            n: int, t: tuple[int, float]) -> tuple[int, float]:
-        qubits = cudaq.qvector(n)
-        t[0] = -14
-        t[1] = 11.5
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_assign(
+                n: int, t: tuple[int, float]) -> tuple[int, float]:
+            qubits = cudaq.qvector(n)
+            t[0] = -14
+            t[1] = 11.5
+            return t
+
         cudaq.run_async(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'indexing into tuple or dataclass must not modify value' in str(
-        e.value)
-
-    @cudaq.kernel
-    def simple_tuple_int_float_error(
-            n: int, t: tuple[int, float]) -> tuple[bool, float]:
-        qubits = cudaq.qvector(n)
-        return t
+    assert ('indexing into tuple or dataclass must not modify value'
+            in str(e.value))
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_error(
+                n: int, t: tuple[int, float]) -> tuple[bool, float]:
+            qubits = cudaq.qvector(n)
+            return t
+
         cudaq.run_async(simple_tuple_int_float_error, 2, (-13, 11.5))
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(
-        e.value)
+    assert ('cannot convert value of type !cc.struct<"tuple" {i64, f64}> to '
+            'the requested type !cc.struct<"tuple" {i1, f64}>' in str(e.value))
 
 
 def test_return_tuple_float_int():
@@ -652,14 +655,15 @@ def test_return_tuple_int_bool():
 
 def test_return_tuple_int32_bool():
 
-    @cudaq.kernel
-    def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
-        return (-13, True)
-
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_tuple_int32_bool_no_args)
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
-        e.value)
+
+        @cudaq.kernel
+        def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
+            return (-13, True)
+
+        cudaq.run_async(simple_tuple_int32_bool_no_args).get()
+    assert ('cannot convert value of type !cc.struct<"tuple" {i64, i1}> to '
+            'the requested type !cc.struct<"tuple" {i32, i1}>' in str(e.value))
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
@@ -676,7 +680,7 @@ def test_return_tuple_int32_bool():
         return t
 
     result = cudaq.run_async(simple_tuple_int32_bool,
-                             2, (-13, True),
+                             2, (np.int32(-13), True),
                              shots_count=1).get()
     assert len(result) == 1 and result[0] == (-13, True)
 
@@ -737,23 +741,25 @@ def test_return_dataclass_int_bool():
     assert results[0].x == -16
     assert results[0].y == True
 
-    @cudaq.kernel
-    def simple_dataclass_int_bool_error() -> MyClass:
-        return MyClass(x=-16, y=True)
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_dataclass_int_bool_error() -> MyClass:
+            return MyClass(x=-16, y=True)
+
+        cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
+    assert ('invalid number of arguments passed in call to MyClass (0 vs '
+            'required 2)' in repr(e))
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments passed in call to MyClass (0 vs required 2)' in repr(
-        e)
 
-    @cudaq.kernel
-    def simple_dataclass_int_bool_error() -> MyClass:
-        return MyClass(x=0.13, y=True)
+        @cudaq.kernel
+        def simple_dataclass_int_bool_error() -> MyClass:
+            return MyClass(x=0.13, y=True)
 
-    with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments passed in call to MyClass (0 vs required 2)' in repr(
-        e)
+    assert ('invalid number of arguments passed in call to MyClass (0 vs '
+            'required 2)' in repr(e))
 
 
 def test_return_dataclass_bool_int():
@@ -889,15 +895,14 @@ def test_return_dataclass_dataclass_bool():
 
 
 def test_run_errors():
+    with pytest.raises(RuntimeError) as e:
 
-    @cudaq.kernel
-    def simple_no_return(numQubits: int):
-        qubits = cudaq.qvector(numQubits)
+        @cudaq.kernel
+        def simple_no_return(numQubits: int):
+            qubits = cudaq.qvector(numQubits)
 
-    @cudaq.kernel
-    def simple_no_args() -> int:
-        qubits = cudaq.qvector(2)
-        return 1
+        cudaq.run_async(simple_no_return, 2)
+    assert 'a runnable kernel must return a value.' in repr(e)
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:
@@ -905,20 +910,24 @@ def test_run_errors():
         return 1
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_no_return, 2)
-    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
-
-    with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple, 2, shots_count=-1)
-    assert 'Invalid `shots_count`. Must be a non-negative number.' in repr(e)
+    assert 'Invalid `shots_count`' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple, shots_count=100)
-    assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
+    assert ('Invalid number of arguments passed to run_async. 0 given and 1 '
+            'expected.' in repr(e))
 
     with pytest.raises(RuntimeError) as e:
-        print(cudaq.run_async(simple_no_args, 2, shots_count=100))
-    assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
+
+        @cudaq.kernel
+        def simple_no_args() -> int:
+            qubits = cudaq.qvector(2)
+            return 1
+
+        cudaq.run_async(simple_no_args, 2, shots_count=100)
+    assert ('Invalid number of arguments passed to run_async. 1 given and 0 '
+            'expected.' in repr(e))
 
 
 def test_modify_struct():
@@ -1018,4 +1027,4 @@ def test_shots_count():
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main([loc, "-srP"])

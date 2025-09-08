@@ -30,8 +30,7 @@ void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
 
-void createPreDeviceCodeLoaderPipeline(mlir::OpPassManager &pm,
-                                       bool autoGenRunStack);
+void createPythonAOTPipeline(mlir::OpPassManager &pm, bool autoGenRunStack);
 
 /// Create and append the common target finalization pipeline. This pipeline is
 /// run just prior to code generation for all targets and for both AOT and JIT
@@ -61,7 +60,6 @@ void createClassicalOptimizationPipeline(
 
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
-std::unique_ptr<mlir::Pass> createLambdaLiftingPass();
 void addLowerToCFG(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);
 std::unique_ptr<mlir::Pass> createQuakeAddMetadata();
@@ -81,10 +79,13 @@ inline std::unique_ptr<mlir::Pass> createPySynthCallableBlockArgs() {
 
 /// Helper function to build an argument synthesis pass. The names of the
 /// functions and the substitutions text can be built as an unzipped pair of
-/// lists.
+/// lists. \p changeSemantics ought to be `false`, but defaults to `true` for
+/// legacy reasons. When set to true, the function's original calling semantics
+/// are erased, breaking any and all calls to that function.
 std::unique_ptr<mlir::Pass>
 createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
-                            mlir::ArrayRef<mlir::StringRef> substitutions);
+                            mlir::ArrayRef<mlir::StringRef> substitutions,
+                            bool changeSemantics = true);
 
 // declarative passes
 #define GEN_PASS_DECL
