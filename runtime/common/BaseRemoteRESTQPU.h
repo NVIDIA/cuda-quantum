@@ -699,7 +699,9 @@ public:
     if (executionContext) {
       if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
-        runPassPipeline("func.func(add-measurements)", moduleOp);
+        // No need to add measurements only to remove them eventually
+        if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
+          runPassPipeline("func.func(add-measurements)", moduleOp);
       } else
         executionContext->reorderIdx.clear();
     }
