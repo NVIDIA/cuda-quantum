@@ -1355,6 +1355,12 @@ latest
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1719,7 +1725,7 @@ each pixel with its position
 
 <div>
 
-![7cc71849284d41a3a385b53cc26c5d6a](../../_images/pixels-img.png){.no-scaled-link}
+![cdc73bc77d79449faa1e4eeb631c98a8](../../_images/pixels-img.png){.no-scaled-link}
 
 </div>
 
