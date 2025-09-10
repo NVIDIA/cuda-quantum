@@ -108,6 +108,13 @@ void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 /// Pipeline builder to convert Quake to IQM `Json`.
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
 
+//===----------------------------------------------------------------------===//
+
+void commonPipelineConvertToQIR(mlir::PassManager &pm,
+                                mlir::StringRef codeGenFor = "qir:0.1",
+                                mlir::StringRef passConfigAs = "qir:0.1");
+void addPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
+
 // declarative passes
 #define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
