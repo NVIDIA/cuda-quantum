@@ -104,36 +104,43 @@ def generate_pe_spin_ham_restricted(v_pe):
     return spin_pe_op
 
 
-def a_idx(p): return 2 * p       # alpha spin-orbital index
-def b_idx(p): return 2 * p + 1   # beta  spin-orbital index
-def generate_molecular_spin_ham_ur(h1e_alpha, h1e_beta,
-                                   h2e_alpha_alpha,  # (pq|rs)
-                                   h2e_beta_beta,    # (pq|rs)
-                                   h2e_alpha_beta,   # (pq|rs)
-                                   h2e_beta_alpha,   # (pq|rs)
-                                   ecore):
+def a_idx(p):
+    return 2 * p  # alpha spin-orbital index
+
+
+def b_idx(p):
+    return 2 * p + 1  # beta  spin-orbital index
+
+
+def generate_molecular_spin_ham_ur(
+        h1e_alpha,
+        h1e_beta,
+        h2e_alpha_alpha,  # `(pq|rs)`
+        h2e_beta_beta,  # `(pq|rs)`
+        h2e_alpha_beta,  # `(pq|rs)`
+        h2e_beta_alpha,  # `(pq|rs)`
+        ecore):
     """
     Build the UHF spin-orbital Hamiltonian in chemists' notation:
 
         H = e_core
-          + sum_{pq,σ} h_{pq}^σ a†_{pσ} a_{qσ}
-          + 1/2 sum_{pqrs} sum_{σ,τ} (pq|rs) a†_{pσ} a†_{qτ} a_{sτ} a_{rσ}
+          `+ sum_{pq,σ} h_{pq}^σ a†_{pσ} a_{qσ}`
+          `+ 1/2 sum_{pqrs} sum_{σ,τ} (pq|rs) a†_{pσ} a†_{qτ} a_{sτ} a_{rσ}`
 
     Inputs:
-      h1e_alpha, h1e_beta:  (nmo, nmo) one-electron MO integrals for α and β
-      h2e_*:                (nmo, nmo, nmo, nmo) two-electron MO integrals (pq|rs)
-      ecore:                nuclear repulsion
+      `h1e_alpha, h1e_beta:  (nmo, nmo) one-electron MO integrals for α and β`
+      `h2e_*:                (nmo, nmo, nmo, nmo) two-electron MO integrals (pq|rs)`
+      `ecore:                nuclear repulsion`
 
     Returns:
-      one_body_coeff: (2nmo, 2nmo)
-      two_body_coeff: (2nmo, 2nmo, 2nmo, 2nmo)
-      ecore:          float
-      full_hamiltonian: string with fermionic operators (for inspection)
+      `one_body_coeff: (2nmo, 2nmo)`
+      `two_body_coeff: (2nmo, 2nmo, 2nmo, 2nmo)`
+      `ecore:          float`
+      `full_hamiltonian: string with fermionic operators (for inspection)`
     """
     n_mos = h1e_alpha.shape[0]
     nqubits = 2 * n_mos
 
-    
     one_body_coeff = np.zeros((nqubits, nqubits), dtype=np.complex128)
     two_body_coeff = np.zeros((nqubits, nqubits, nqubits, nqubits),
                               dtype=np.complex128)
@@ -160,14 +167,20 @@ def generate_molecular_spin_ham_ur(h1e_alpha, h1e_beta,
                 for s in range(n_mos):
                     # --- αα ---
                     val = half * h2e_alpha_alpha[p, q, r, s]
-                    two_body_coeff[a_idx(p), a_idx(q), a_idx(s), a_idx(r)] += val
+                    two_body_coeff[a_idx(p),
+                                   a_idx(q),
+                                   a_idx(s),
+                                   a_idx(r)] += val
                     ferm_ham.append(
                         f"{val} a_{a_idx(p)}^† a_{a_idx(q)}^† a_{a_idx(s)} a_{a_idx(r)}"
                     )
 
                     # --- ββ ---
                     val = half * h2e_beta_beta[p, q, r, s]
-                    two_body_coeff[b_idx(p), b_idx(q), b_idx(s), b_idx(r)] += val
+                    two_body_coeff[b_idx(p),
+                                   b_idx(q),
+                                   b_idx(s),
+                                   b_idx(r)] += val
                     ferm_ham.append(
                         f"{val} b_{b_idx(p)}^† b_{b_idx(q)}^† b_{b_idx(s)} b_{b_idx(r)}"
                     )
@@ -175,7 +188,10 @@ def generate_molecular_spin_ham_ur(h1e_alpha, h1e_beta,
                     # --- αβ ---
                     # a_{pα}† b_{qβ}† b_{sβ} a_{rα}
                     val = half * h2e_alpha_beta[p, q, r, s]
-                    two_body_coeff[a_idx(p), b_idx(q), b_idx(s), a_idx(r)] += val
+                    two_body_coeff[a_idx(p),
+                                   b_idx(q),
+                                   b_idx(s),
+                                   a_idx(r)] += val
                     ferm_ham.append(
                         f"{val} a_{a_idx(p)}^† b_{b_idx(q)}^† b_{b_idx(s)} a_{a_idx(r)}"
                     )
@@ -183,13 +199,17 @@ def generate_molecular_spin_ham_ur(h1e_alpha, h1e_beta,
                     # --- βα ---
                     # b_{pβ}† a_{qα}† a_{sα} b_{rβ}
                     val = half * h2e_beta_alpha[p, q, r, s]
-                    two_body_coeff[b_idx(p), a_idx(q), a_idx(s), b_idx(r)] += val
+                    two_body_coeff[b_idx(p),
+                                   a_idx(q),
+                                   a_idx(s),
+                                   b_idx(r)] += val
                     ferm_ham.append(
                         f"{val} b_{b_idx(p)}^† a_{a_idx(q)}^† a_{a_idx(s)} b_{b_idx(r)}"
                     )
 
     full_hamiltonian = " + ".join(ferm_ham)
     return one_body_coeff, two_body_coeff, ecore, full_hamiltonian
+
 
 def create_energy_dict():
     """
@@ -723,7 +743,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
                 # For unrestricted calculations, `nele_cas` must be a tuple (alpha, beta)
                 nelec_beta = (nele_cas - mol.spin) // 2
                 nelec_alpha = nele_cas - nelec_beta
-                
+
                 nele_cas_tuple = (nelec_alpha, nelec_beta)
                 if verbose:
                     print(
@@ -732,7 +752,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
             else:
                 # If already a tuple, use as is
                 nele_cas_tuple = nele_cas
-                
+
             mc = mcscf.UCASCI(myhf, norb_cas, nele_cas_tuple)
             (h1e_alpha_cas, h1e_beta_cas), ecore = mc.get_h1eff(myhf.mo_coeff)
 
@@ -742,7 +762,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
             ncore_b = myhf.nelec[1] - nele_cas_tuple[1]
 
             # Get two-electron integrals in AO basis
-            h2e_ao = mol.intor("int2e_sph", aosym='s1') 
+            h2e_ao = mol.intor("int2e_sph", aosym='s1')
 
             # Select the active space MOs and transform the integrals
             # The number of core orbitals
@@ -750,9 +770,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
             active_idx_b = slice(ncore_b, ncore_b + norb_cas)
             active_mo_a = myhf.mo_coeff[0][:, active_idx_a]
             active_mo_b = myhf.mo_coeff[1][:, active_idx_b]
-            
 
-            
             # Transform 2-e integrals to the active space MO basis
             eri_aa = ao2mo.incore.general(
                 h2e_ao, (active_mo_a, active_mo_a, active_mo_a, active_mo_a),
@@ -778,7 +796,7 @@ def get_mol_hamiltonian(xyz:str, spin:int, charge: int, basis:str, symmetry:bool
 
             obi, tbi, core_energy, ferm_ham = generate_molecular_spin_ham_ur(
                 h1e_alpha_cas, h1e_beta_cas, h2e_alpha_alpha, h2e_beta_beta,
-                h2e_alpha_beta, h2e_beta_alpha, ecore)            
+                h2e_alpha_beta, h2e_beta_alpha, ecore)
 
     else:
 
