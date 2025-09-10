@@ -19,6 +19,13 @@ import cudaq
 from cudaq import spin
 
 
+@pytest.fixture(autouse=True)
+def do_something():
+    cudaq.reset_target()
+    cudaq.__clearKernelRegistries()
+    yield
+
+
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
     kernel = cudaq.make_kernel()

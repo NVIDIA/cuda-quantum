@@ -15,8 +15,8 @@ import pytest
 @pytest.fixture(autouse=True)
 def do_something():
     cudaq.reset_target()
-    yield
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_draw():
