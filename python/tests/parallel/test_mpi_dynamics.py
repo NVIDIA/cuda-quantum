@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, os, pytest
-from cudaq import spin, Schedule, RungeKuttaIntegrator
+import os
+
+import cudaq
 import numpy as np
+import pytest
+from cudaq import RungeKuttaIntegrator, Schedule, spin
 
 skipIfUnsupported = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 1 and cudaq.has_target('dynamics')),
@@ -16,7 +19,8 @@ skipIfUnsupported = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.mpi.initialize()
     cudaq.set_target('dynamics')
     yield

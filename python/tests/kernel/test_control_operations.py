@@ -6,10 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
 from cudaq import spin
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_ctrl_x():

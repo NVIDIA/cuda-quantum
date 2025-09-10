@@ -6,19 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os
-
-import pytest
-import numpy as np
+import os
+import sys
 from typing import Callable, List
 
 import cudaq
+import numpy as np
+import pytest
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_simple_sampling_ghz():

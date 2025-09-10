@@ -8,10 +8,15 @@
 
 import sys
 
-import pytest
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def is_close(expected, actual) -> bool:

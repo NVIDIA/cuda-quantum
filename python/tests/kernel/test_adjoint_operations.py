@@ -7,7 +7,14 @@
 # ============================================================================ #
 
 import cudaq
+import pytest
 from cudaq import spin
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_sdg_0_state():

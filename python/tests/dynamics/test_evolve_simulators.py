@@ -7,15 +7,15 @@
 # ============================================================================ #
 import os
 
-import pytest
 import cudaq
-from cudaq.operators import *
-from cudaq.dynamics import *
 import numpy as np
+import pytest
+from cudaq.dynamics import *
+from cudaq.operators import *
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
     cudaq.set_target("density-matrix-cpu")
     yield
     cudaq.reset_target()

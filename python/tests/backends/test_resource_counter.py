@@ -13,9 +13,8 @@ import pytest
 @pytest.fixture(scope="session", autouse=True)
 def clean():
     cudaq.reset_target()
-
     yield "Running the tests."
-
+    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 

@@ -7,14 +7,19 @@
 # ============================================================================ #
 import os
 
-import pytest
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
 
 skipIfNoMQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
     reason="nvidia-mqpu backend not available")
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_simpleObserveN_QNN():

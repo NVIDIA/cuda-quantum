@@ -6,10 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
-import pytest
 import os
+
+import cudaq
 import numpy as np
+import pytest
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
@@ -17,10 +18,10 @@ skipIfBraketNotInstalled = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
     yield
-    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 

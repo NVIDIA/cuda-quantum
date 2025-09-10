@@ -6,15 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest
+import cudaq
+import pytest
 
 cudaq_test_cpp_algo = pytest.importorskip('cudaq_test_cpp_algo')
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_call_python_from_cpp():

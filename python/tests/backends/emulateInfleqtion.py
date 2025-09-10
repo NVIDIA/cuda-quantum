@@ -12,10 +12,10 @@ import numpy as np
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.set_target("infleqtion", emulate=True)
     yield "Running the tests."
-    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 

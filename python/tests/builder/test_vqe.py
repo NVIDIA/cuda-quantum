@@ -8,10 +8,15 @@
 
 import os
 
-import pytest
-
 import cudaq
+import pytest
 from cudaq import spin
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 # Helper function for asserting two values are within a

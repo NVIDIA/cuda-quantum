@@ -10,8 +10,8 @@ import os
 from multiprocessing import Process
 
 import cudaq
-from cudaq import spin
 import pytest
+from cudaq import spin
 from network_utils import check_server_connection
 
 try:

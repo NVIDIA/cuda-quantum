@@ -6,10 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
 
 ## NOTE: The random operations in this file are generated using
 #        `scipy.stats.unitary_group.rvs(2)` with `seed=13`. The synthesized
@@ -19,6 +18,12 @@ import cudaq
 
 ## TODO: Set up this test suite such that the synthesized kernel is automatically
 #        generated.
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def check_state(matrix, state):

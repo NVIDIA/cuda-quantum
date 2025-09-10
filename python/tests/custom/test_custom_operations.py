@@ -6,17 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
-import numpy as np
 import cudaq
+import numpy as np
+import pytest
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
     yield
-    ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954
-    # cudaq.__clearKernelRegistries()
 
 
 def check_bell(entity):

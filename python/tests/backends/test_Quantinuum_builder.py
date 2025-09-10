@@ -6,12 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os
-import numpy as np
-from typing import List
-from cudaq import spin
+import os
 from multiprocessing import Process
+from typing import List
+
+import cudaq
+import numpy as np
+import pytest
+from cudaq import spin
 from network_utils import check_server_connection
+
 try:
     from utils.mock_qpu.quantinuum import startServer
 except:

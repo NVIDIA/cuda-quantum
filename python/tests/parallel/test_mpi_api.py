@@ -6,12 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os, pytest, importlib
+import importlib
+import os
+
 import cudaq
+import pytest
 
 skipIfUnsupported = pytest.mark.skipif(importlib.util.find_spec('mpi4py')
                                        is None,
                                        reason="mpi4py not found")
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 @skipIfUnsupported

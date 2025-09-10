@@ -5,13 +5,18 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os
 import math
-
-import pytest
-from typing import List, Tuple, Callable
+import os
+from typing import Callable, List, Tuple
 
 import cudaq
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 # Helper function for asserting two values are within a

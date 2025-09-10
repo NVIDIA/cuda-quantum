@@ -5,10 +5,9 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
-
 import cudaq
 import numpy as np
+import pytest
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
@@ -17,6 +16,13 @@ skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
+
 
 # synthesis
 

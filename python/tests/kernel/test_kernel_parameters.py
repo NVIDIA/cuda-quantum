@@ -7,20 +7,19 @@
 # ============================================================================ #
 
 import os
-
-import pytest
-import numpy as np
-from typing import Callable, List
 import sys
+from typing import Callable, List
 
 import cudaq
+import numpy as np
+import pytest
 from cudaq import spin
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_list_bool():

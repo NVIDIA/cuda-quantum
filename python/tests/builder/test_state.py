@@ -7,10 +7,15 @@
 # ============================================================================ #
 import os
 
-import pytest
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:

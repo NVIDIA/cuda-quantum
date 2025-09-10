@@ -6,7 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, numpy as np, operator, pytest
+import operator
+
+import cudaq
+import numpy as np
+import pytest
 from cudaq import boson, fermion, operators, spin
 from op_utils import *  # test helpers
 

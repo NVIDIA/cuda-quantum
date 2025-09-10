@@ -7,12 +7,18 @@
 # ============================================================================ #
 import os
 
-import pytest
-import numpy as np
-from numpy import linalg as LA
 import cudaq
+import numpy as np
+import pytest
+from numpy import linalg as LA
 
 openfermion_pyscf = pytest.importorskip('openfermionpyscf')
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_HamiltonianGenH2Sto3g():

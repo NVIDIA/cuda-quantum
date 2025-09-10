@@ -7,10 +7,10 @@
 # ============================================================================ #
 
 import sys
-import pytest
 
 import cudaq
 import numpy as np
+import pytest
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
@@ -19,6 +19,12 @@ skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def swap(arr, index1, index2):

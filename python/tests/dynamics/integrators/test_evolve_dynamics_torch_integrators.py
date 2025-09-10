@@ -5,9 +5,10 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
-import cudaq
 import os
+
+import cudaq
+import pytest
 
 torch = pytest.importorskip("torch")
 
@@ -21,7 +22,7 @@ else:
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
     cudaq.set_target("dynamics")
     yield
     cudaq.reset_target()

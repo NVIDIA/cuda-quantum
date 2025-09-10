@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
 import cudaq
+import pytest
 
 
 # Use a snapshot of the uccsd.py to make sure we can compile

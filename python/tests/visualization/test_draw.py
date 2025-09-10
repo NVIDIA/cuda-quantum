@@ -13,10 +13,10 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
     yield
-    cudaq.__clearKernelRegistries()
 
 
 def test_draw():

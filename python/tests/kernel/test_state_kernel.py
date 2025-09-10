@@ -6,12 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
-import numpy as np
 import sys
 from typing import List
 
 import cudaq
+import numpy as np
+import pytest
 
 skipIfNoGQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
@@ -19,9 +19,9 @@ skipIfNoGQPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 @skipIfNoGQPU

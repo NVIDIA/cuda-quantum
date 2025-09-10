@@ -30,9 +30,9 @@ def is_close_array(actual, expected):
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 @cudaq.kernel

@@ -6,7 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cmath, numpy as np, pytest, random
+import cmath
+import random
+
+import numpy as np
+import pytest
 from cudaq import operators
 from cudaq.operators import *
 from op_utils import *  # test helpers
@@ -16,6 +20,7 @@ from op_utils import *  # test helpers
 def setup():
     random.seed(10)
     yield
+    cudaq.__clearKernelRegistries()
 
 
 def test_definitions():

@@ -5,20 +5,19 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
 import os
-import sys
 import subprocess
+import sys
 import time
-import numpy as np
 
 import cudaq
-from cudaq import spin
 import numpy as np
+import pytest
+from cudaq import spin
 
 try:
-    import requests
     import psutil
+    import requests
     have_requests = True
 except ImportError:
     have_requests = False
@@ -108,9 +107,9 @@ def startUpMockServer():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 @skipIfModulesNotInstalled

@@ -6,9 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
 import json
 import os
+
+import cudaq
 import pytest
 
 skipIfPasqalNotInstalled = pytest.mark.skipif(
@@ -17,7 +18,7 @@ skipIfPasqalNotInstalled = pytest.mark.skipif(
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def setup_test_environment():
     # NOTE: Credentials can be set with environment variables
     cudaq.set_target("pasqal")
     yield "Running the tests."

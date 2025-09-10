@@ -7,12 +7,17 @@
 # ============================================================================ #
 
 import os
-
-import pytest
-import numpy as np
+import random
 
 import cudaq
-import random
+import numpy as np
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])

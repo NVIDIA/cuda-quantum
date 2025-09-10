@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 import os
+import warnings
 from dataclasses import dataclass
 
 import cudaq
 import numpy as np
-import warnings
 import pytest
 
 list_err_msg = 'does not yet support returning `list` from entry-point kernels'
@@ -34,9 +34,9 @@ def is_close_array(actual, expected):
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 @cudaq.kernel

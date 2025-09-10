@@ -6,12 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
-import pytest
 import os
-from cudaq import spin
-import numpy as np
 from typing import List
+
+import cudaq
+import numpy as np
+import pytest
+from cudaq import spin
 
 
 def assert_close(got) -> bool:
