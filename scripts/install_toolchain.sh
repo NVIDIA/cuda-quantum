@@ -64,7 +64,7 @@ if [ "${toolchain#gcc}" != "$toolchain" ]; then
     if [ -x "$(command -v apt-get)" ]; then
         apt-get update && apt-get install -y --no-install-recommends \
             gcc-$gcc_version g++-$gcc_version gfortran-$gcc_version \
-            libstdc++-$gcc_version-dev
+            libstdc++-$gcc_version-dev build-essential
 
         CC="$(find_executable gcc-$gcc_version)" 
         CXX="$(find_executable g++-$gcc_version)" 

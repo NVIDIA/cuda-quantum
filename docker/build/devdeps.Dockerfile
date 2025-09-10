@@ -56,7 +56,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 ## [Build Dependencies]
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        wget git unzip build-essential \
+        wget git unzip \
         python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
