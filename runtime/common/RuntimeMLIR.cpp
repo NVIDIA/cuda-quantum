@@ -11,7 +11,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"

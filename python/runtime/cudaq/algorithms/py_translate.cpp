@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/algorithms/draw.h" // TODO  translate.h
 #include "utils/OpaqueArguments.h"
 #include "../platform/py_alt_launch_kernel.h"

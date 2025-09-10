@@ -16,7 +16,7 @@
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
