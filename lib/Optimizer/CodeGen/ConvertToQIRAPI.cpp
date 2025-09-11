@@ -1522,8 +1522,7 @@ struct SaveStateOpRewrite
   LogicalResult
   matchAndRewrite(quake::SaveStateOp saveState, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<func::CallOp>(
-        saveState, TypeRange{}, cudaq::opt::QISSaveState, ValueRange{});
+    rewriter.replaceOpWithNewOp<func::CallOp>(saveState, TypeRange{}, cudaq::opt::QISSaveState, ValueRange{});
     return success();
   }
 };
