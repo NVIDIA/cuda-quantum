@@ -24,10 +24,7 @@ config.suffixes = ['.cpp', '.config']
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
-local_excludes = [
-    'anyon', 'braket', 'ionq', 'iqm', 'oqc', 'qci', 'quantinuum',
-    'quantum_machines', 'fermioniq', 'infleqtion', 'Inputs'
-]
+local_excludes = ['Inputs']
 config.excludes = [exclude for exclude in config.excludes] + local_excludes
 
 config.substitutions.append(('%PATH%', config.environment['PATH']))
