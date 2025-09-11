@@ -12,6 +12,7 @@ endif()
 
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
+  AddMeasurements.cpp
   AggressiveInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
