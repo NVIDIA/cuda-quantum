@@ -1355,6 +1355,12 @@ pr-3417
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1719,7 +1725,7 @@ each pixel with its position
 
 <div>
 
-![c41057ba3a224070a781934ceb02c0be](../../_images/pixels-img.png){.no-scaled-link}
+![35bfe9edc96c4b15bcd3cb40c489c9b2](../../_images/pixels-img.png){.no-scaled-link}
 
 </div>
 

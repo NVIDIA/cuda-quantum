@@ -1356,6 +1356,12 @@ pr-3417
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -1715,7 +1721,7 @@ explained above.
 
 <div>
 
-![bdbd7f057a3a4dd7ae0951638ccaa9d4](../../_images/adapt-qaoa.png){.no-scaled-link}
+![ec18b5000b28450e8aaa14ea858c8b63](../../_images/adapt-qaoa.png){.no-scaled-link}
 
 </div>
 

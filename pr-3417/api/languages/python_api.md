@@ -1363,6 +1363,12 @@ pr-3417
                 .notranslate}](#cudaq.set_noise){.reference .internal}
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](#cudaq.unset_noise){.reference .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -2672,6 +2678,37 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[register\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.register_set_target_callback "Permalink to this definition"){.headerlink}
+
+:   
+
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[register\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+    :   
+
+    Register a callback function to be executed when the runtime target
+    is changed. The string `id`{.code .docutils .literal .notranslate}
+    can be used to identify the callback for replacement/removal
+    purposes.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unregister_set_target_callback "Permalink to this definition"){.headerlink}
+
+:   
+
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+    :   
+
+    Unregister a callback identified by the input identifier.
+
+```{=html}
+<!-- -->
+```
+
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[apply\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[error\_type]{.pre}]{.n}*, *[[parameters\...]{.pre}]{.n}*, *[[targets\...]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.cudaq.apply_noise "Permalink to this definition"){.headerlink}
 
 :   This function is a type-safe injection of noise into a quantum
@@ -3461,7 +3498,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1429664729]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2965392955]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 

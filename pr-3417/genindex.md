@@ -1374,6 +1374,12 @@ pr-3417
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -4960,17 +4966,23 @@ R {#R}
 |     attribute)                    |     (cudaq.KrausOperator          |
 | ](api/languages/python_api.html#c |     prope                         |
 | udaq.SampleResult.register_names) | rty)](api/languages/python_api.ht |
-| -   [requires\_gradients()        | ml#cudaq.KrausOperator.row_count) |
-|     (cudaq.optimizers.COBYLA      | -   [run() (in module             |
-|     method)](api/lan              |     cudaq)](api/lan               |
-| guages/python_api.html#cudaq.opti | guages/python_api.html#cudaq.run) |
-| mizers.COBYLA.requires_gradients) | -   [run\_async() (in module      |
-|     -   [                         |     cudaq)](api/languages         |
-| (cudaq.optimizers.GradientDescent | /python_api.html#cudaq.run_async) |
-|         method)](api/languages/py | -   [RydbergHamiltonian (class in |
-| thon_api.html#cudaq.optimizers.Gr |     cudaq.operators)]             |
-| adientDescent.requires_gradients) | (api/languages/python_api.html#cu |
-|     -   [(cudaq.optimizers.LBFGS  | daq.operators.RydbergHamiltonian) |
+| -   [                             | ml#cudaq.KrausOperator.row_count) |
+| register\_set\_target\_callback() | -   [run() (in module             |
+|     (in module                    |     cudaq)](api/lan               |
+|     cudaq)]                       | guages/python_api.html#cudaq.run) |
+| (api/languages/python_api.html#cu | -   [run\_async() (in module      |
+| daq.register_set_target_callback) |     cudaq)](api/languages         |
+| -   [requires\_gradients()        | /python_api.html#cudaq.run_async) |
+|     (cudaq.optimizers.COBYLA      | -   [RydbergHamiltonian (class in |
+|     method)](api/lan              |     cudaq.operators)]             |
+| guages/python_api.html#cudaq.opti | (api/languages/python_api.html#cu |
+| mizers.COBYLA.requires_gradients) | daq.operators.RydbergHamiltonian) |
+|     -   [                         |                                   |
+| (cudaq.optimizers.GradientDescent |                                   |
+|         method)](api/languages/py |                                   |
+| thon_api.html#cudaq.optimizers.Gr |                                   |
+| adientDescent.requires_gradients) |                                   |
+|     -   [(cudaq.optimizers.LBFGS  |                                   |
 |         method)](api/la           |                                   |
 | nguages/python_api.html#cudaq.opt |                                   |
 | imizers.LBFGS.requires_gradients) |                                   |
@@ -5225,6 +5237,9 @@ U {#U}
 -
 
 +-----------------------------------------------------------------------+
+| -   [unregister\_set\_target\_callback() (in module                   |
+|     cudaq)                                                            |
+| ](api/languages/python_api.html#cudaq.unregister_set_target_callback) |
 | -   [unset\_noise() (in module                                        |
 |     cudaq)](api/languages/python_api.html#cudaq.unset_noise)          |
 | -   [upper\_bounds (cudaq.optimizers.COBYLA                           |
