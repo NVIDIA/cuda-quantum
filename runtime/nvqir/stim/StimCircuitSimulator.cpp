@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "nvqir/CircuitSimulator.h"
+#include "StimState.h"
 #include "stim.h"
 
 using namespace cudaq;
@@ -477,6 +478,17 @@ public:
     applyOpToSims(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
   }
+
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    flushGateQueue();
+    StimData data{};
+    return std::make_unique<StimState>(data);
+  }
+
+  std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override{
+    StimData data{};
+    return std::make_unique<StimState>(data);
+  }  
 
   /// @brief Sample the multi-qubit state. If \p qubits is empty and
   /// explicitMeasurements is set, this returns all previously saved

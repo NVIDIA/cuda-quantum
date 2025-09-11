@@ -113,7 +113,7 @@ static constexpr const char QIRTupleRecordOutput[] =
 static constexpr const char QIRArrayRecordOutput[] =
     "__quantum__rt__array_record_output";
 
-/// Used to specify the type of the data elements in the `QISApplyKrausChannel`
+/// Used to specify the type of the datxa elements in the `QISApplyKrausChannel`
 /// call. (`float` or `double`)
 enum class KrausChannelDataKind { FloatKind, DoubleKind };
 
