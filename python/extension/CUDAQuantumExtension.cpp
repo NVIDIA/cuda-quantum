@@ -75,7 +75,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def(
       "initialize_cudaq",
       [&](py::kwargs kwargs) {
-        cudaq::info("Calling initialize_cudaq.");
+        CUDAQ_INFO("Calling initialize_cudaq.");
         if (!kwargs)
           return;
 
@@ -93,7 +93,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
         for (auto &[keyPy, valuePy] : kwargs) {
           std::string key = py::str(keyPy);
           std::string value = py::str(valuePy);
-          cudaq::info("Processing Python Arg: {} - {}", key, value);
+          CUDAQ_INFO("Processing Python Arg: {} - {}", key, value);
           if (key == "target")
             holder->setTarget(value, extraConfig);
         }
@@ -130,7 +130,9 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindSampleAsync(cudaqRuntime);
   cudaq::bindObserveAsync(cudaqRuntime);
   cudaq::bindVQE(cudaqRuntime);
-  cudaq::bindAltLaunchKernel(cudaqRuntime);
+  cudaq::bindAltLaunchKernel(cudaqRuntime, [holderPtr = holder.get()]() {
+    return cudaq::python::getTransportLayer(holderPtr);
+  });
   cudaq::bindTestUtils(cudaqRuntime, *holder.get());
   cudaq::bindCustomOpRegistry(cudaqRuntime);
 
@@ -307,12 +309,12 @@ PYBIND11_MODULE(_quakeDialects, m) {
         // the func op.
         auto [kName, code] = ret;
         auto ctx = unwrap(mod).getContext();
-        auto moduleB = mlir::parseSourceString<ModuleOp>(code, ctx);
+        auto moduleB = mlir::parseSourceString<mlir::ModuleOp>(code, ctx);
         auto moduleA = unwrap(mod);
-        moduleB->walk([&moduleA](func::FuncOp op) {
-          if (!moduleA.lookupSymbol<func::FuncOp>(op.getName()))
+        moduleB->walk([&moduleA](mlir::func::FuncOp op) {
+          if (!moduleA.lookupSymbol<mlir::func::FuncOp>(op.getName()))
             moduleA.push_back(op.clone());
-          return WalkResult::advance();
+          return mlir::WalkResult::advance();
         });
         return kName;
       },

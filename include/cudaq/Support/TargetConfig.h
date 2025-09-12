@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "llvm/Support/YAMLTraits.h"
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -30,7 +30,32 @@ enum TargetFeatureFlag : unsigned {
 
 /// @brief Configuration argument type annotation
 // e.g., to support type validation.
-enum class ArgumentType { String, Int, UUID, FeatureFlag };
+enum class ArgumentType { String, Int, UUID, FeatureFlag, MachineConfig };
+
+/// @brief Architecture-specific compilation settings
+// Different device architectures of a target may require customization.
+// This is a subset of `BackendEndConfigEntry` that we provide
+// architecture-specific customization.
+struct TargetArchitectureSettings {
+  /// Codegen emission specification
+  std::string CodegenEmission;
+};
+
+/// @brief Specify architecture matching and customization
+// This data can be attached to whatever CLI target argument field for
+// device/machine name.
+struct MachineArchitectureConfig {
+  // Each architecture can be given a name, e.g., gen 1, gen 2
+  std::string Name;
+  // A list of device/machine names to be matched to this architecture
+  std::vector<std::string> MachineNames;
+  // A regex pattern for matching.
+  // If both machine names and regex are provided, we match the list first
+  // before using regex pattern.
+  std::string MachinePattern;
+  // Architecture-specific settings.
+  TargetArchitectureSettings Configuration;
+};
 
 /// @brief Encapsulates target-specific arguments
 struct TargetArgument {
@@ -45,6 +70,9 @@ struct TargetArgument {
   std::string HelpString;
   /// Type of the expected input value.
   ArgumentType Type = ArgumentType::String;
+  /// Machine configuration (optional, valid if this argument is for a machine
+  /// configuration specification)
+  std::vector<MachineArchitectureConfig> MachineConfigs;
 };
 
 /// NVQIR simulator backend setting.
@@ -134,6 +162,10 @@ public:
   std::optional<BackendEndConfigEntry> BackendConfig;
   /// Additional configuration mapping (if this is a multi-configuration target)
   std::vector<BackendFeatureMap> ConfigMap;
+
+  // Helper to determine the codegen config based on CLI arguments
+  std::string
+  getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
 };
 
 /// Process the target configuration into a `nvq++` compatible script according
@@ -142,56 +174,3 @@ std::string processRuntimeArgs(const TargetConfig &config,
                                const std::vector<std::string> &targetArgv);
 } // namespace config
 } // namespace cudaq
-
-// These structs can be used in a vector.
-LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::TargetFeatureFlag)
-LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::TargetArgument)
-LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::ConditionalBuildConfig)
-LLVM_YAML_IS_SEQUENCE_VECTOR(cudaq::config::BackendFeatureMap)
-
-namespace llvm {
-namespace yaml {
-// YML serialization declarations.
-template <>
-struct ScalarBitSetTraits<cudaq::config::TargetFeatureFlag> {
-  static void bitset(IO &io, cudaq::config::TargetFeatureFlag &value);
-};
-
-template <>
-struct ScalarEnumerationTraits<cudaq::config::ArgumentType> {
-  static void enumeration(IO &io, cudaq::config::ArgumentType &value);
-};
-
-template <>
-struct MappingTraits<cudaq::config::TargetArgument> {
-  static void mapping(IO &io, cudaq::config::TargetArgument &info);
-};
-
-template <>
-struct BlockScalarTraits<cudaq::config::SimulationBackendSetting> {
-  static void output(const cudaq::config::SimulationBackendSetting &Value,
-                     void *Ctxt, llvm::raw_ostream &OS);
-  static StringRef input(StringRef Scalar, void *Ctxt,
-                         cudaq::config::SimulationBackendSetting &Value);
-};
-template <>
-struct MappingTraits<cudaq::config::ConditionalBuildConfig> {
-  static void mapping(IO &io, cudaq::config::ConditionalBuildConfig &info);
-};
-
-template <>
-struct MappingTraits<cudaq::config::BackendEndConfigEntry> {
-  static void mapping(IO &io, cudaq::config::BackendEndConfigEntry &info);
-};
-template <>
-struct MappingTraits<cudaq::config::BackendFeatureMap> {
-  static void mapping(IO &io, cudaq::config::BackendFeatureMap &info);
-};
-
-template <>
-struct MappingTraits<cudaq::config::TargetConfig> {
-  static void mapping(IO &io, cudaq::config::TargetConfig &info);
-};
-
-} // namespace yaml
-} // namespace llvm

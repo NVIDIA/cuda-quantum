@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+AquSim
 Asynchronous
 BFGS
 Bloch
@@ -95,6 +96,7 @@ Photonics
 PyPI
 Pygments
 QAOA
+QCI
 QCaaS
 QEC
 QIR
@@ -361,6 +363,8 @@ unitaries
 unitarity
 unitary
 unitaryHACK
+unmarshal
+unmarshalling
 unoptimized
 upvote
 variadic

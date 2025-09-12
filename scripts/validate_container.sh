@@ -314,7 +314,7 @@ do
     let "samples+=1"
 
     skip_example=false
-    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+    explicit_targets=`cat $ex | grep -Po "^\s*cudaq.set_target\((['\"])\K.*?(?=\1)"`
     for t in $explicit_targets; do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."

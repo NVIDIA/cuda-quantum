@@ -10,8 +10,43 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
+#include "cudaq/platform.h"
+#include <functional>
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <shared_mutex>
+
+namespace {
+using SetTargetCallbackFnTy = std::function<void(const cudaq::RuntimeTarget &)>;
+// List of `set_target` callbacks to be executed during target changes.
+// We use a string identifier for so that the subscriber can identify itself,
+// e.g., to unsubscribe/replace the callback.
+static std::unordered_map<std::string, SetTargetCallbackFnTy> g_callbacks;
+static std::shared_mutex g_callbackMutex;
+
+void registerSetTargetCallback(
+    std::function<void(const cudaq::RuntimeTarget &)> callback,
+    const std::string &id) {
+  CUDAQ_INFO("Register set_target callback with id '{}'.", id);
+  std::unique_lock<std::shared_mutex> lock(g_callbackMutex);
+  g_callbacks[id] = callback;
+}
+
+void unregisterSetTargetCallback(const std::string &id) {
+  CUDAQ_INFO("Unregister set_target callback with id '{}'.", id);
+  std::unique_lock<std::shared_mutex> lock(g_callbackMutex);
+  g_callbacks.erase(id);
+}
+
+void onTargetChange(const cudaq::RuntimeTarget &newTarget) {
+  std::shared_lock<std::shared_mutex> lock(g_callbackMutex);
+  for (auto &[name, callback] : g_callbacks) {
+    CUDAQ_INFO("Execute set target callback named '{}'", name);
+    callback(newTarget);
+  }
+}
+} // namespace
 
 namespace cudaq {
 
@@ -65,15 +100,24 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
                     "`cudaq.Target` leverages.")
       .def_readonly("description", &cudaq::RuntimeTarget::description,
                     "A string describing the features for this `cudaq.Target`.")
-      .def("num_qpus", &cudaq::RuntimeTarget::num_qpus,
-           "Return the number of QPUs available in this `cudaq.Target`.")
-      .def("is_remote", &cudaq::RuntimeTarget::is_remote,
-           "Returns true if the target consists of a remote REST QPU.")
-      .def("is_emulated", &cudaq::RuntimeTarget::is_emulated,
-           "Returns true if the emulation mode for the target has been "
-           "activated.")
       .def(
-          "is_remote_simulator", &cudaq::RuntimeTarget::is_remote_simulator,
+          "num_qpus",
+          [](cudaq::RuntimeTarget &_) { return cudaq::platform_num_qpus(); },
+          "Return the number of QPUs available in this `cudaq.Target`.")
+      .def(
+          "is_remote",
+          [](cudaq::RuntimeTarget &_) { return cudaq::is_remote_platform(); },
+          "Returns true if the target consists of a remote REST QPU.")
+      .def(
+          "is_emulated",
+          [](cudaq::RuntimeTarget &_) { return cudaq::is_emulated_platform(); },
+          "Returns true if the emulation mode for the target has been "
+          "activated.")
+      .def(
+          "is_remote_simulator",
+          [](cudaq::RuntimeTarget &_) {
+            return cudaq::is_remote_simulator_platform();
+          },
           "Returns true if the target consists of a remote REST Simulator QPU.")
       .def("get_precision", &cudaq::RuntimeTarget::get_precision,
            "Return the simulation precision for the current target.")
@@ -100,7 +144,11 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       [&](const std::string &name) { return holder.hasTarget(name); },
       "Return true if the `cudaq.Target` with the given name exists.");
   mod.def(
-      "reset_target", [&]() { return holder.resetTarget(); },
+      "reset_target",
+      [&]() {
+        holder.resetTarget();
+        onTargetChange(holder.getTarget());
+      },
       "Reset the current `cudaq.Target` to the default.");
   mod.def(
       "get_target",
@@ -119,6 +167,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
         holder.setTarget(target.name, config);
+        onTargetChange(target);
       },
       "Set the `cudaq.Target` to be used for CUDA-Q kernel execution. "
       "Can provide optional, target-specific configuration data via Python "
@@ -128,10 +177,31 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       [&](const std::string &name, py::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
         holder.setTarget(name, config);
+        onTargetChange(holder.getTarget());
       },
       "Set the `cudaq.Target` with given name to be used for CUDA-Q "
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
+  mod.def(
+      "register_set_target_callback",
+      [&](std::function<void(const cudaq::RuntimeTarget &)> callback,
+          const std::string &id) {
+        registerSetTargetCallback(callback, id);
+        // Execute the callback on the current target
+        callback(holder.getTarget());
+      },
+      "Register a callback function to be executed when the runtime target is "
+      "changed. The string `id` can be used to identify the callback for "
+      "replacement/removal purposes.");
+  mod.def(
+      "unregister_set_target_callback",
+      [](const std::string &id) { unregisterSetTargetCallback(id); },
+      "Unregister a callback identified by the input identifier.");
+
+  py::module_::import("atexit").attr("register")(py::cpp_function([]() {
+    // Perform cleanup of registered callbacks, which might be Python objects.
+    g_callbacks.clear();
+  }));
 }
 
 } // namespace cudaq
