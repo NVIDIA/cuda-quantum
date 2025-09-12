@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
 import cudaq
+import pytest
 
 skipIfNoGPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
@@ -15,10 +15,10 @@ skipIfNoGPU = pytest.mark.skipif(
 
 
 @pytest.fixture
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.set_target("nvidia", option="fp32")
     yield "Running the tests."
-    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 

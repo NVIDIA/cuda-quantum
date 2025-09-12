@@ -6,19 +6,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
-
 from typing import List
 
 import cudaq
+import pytest
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.set_target("orca-photonics")
     yield
     cudaq.reset_target()
-    cudaq.__clearKernelRegistries()
 
 
 def test_qudit():

@@ -5,11 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
-import os, math, sys
-import numpy as np
+import math
+import os
+import sys
 
 import cudaq
+import numpy as np
+import pytest
 from cudaq import spin
 
 num_qpus = 3
@@ -27,9 +29,9 @@ def startUpMockServer():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_setup():
