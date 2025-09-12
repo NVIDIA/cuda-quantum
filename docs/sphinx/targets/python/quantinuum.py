@@ -23,8 +23,6 @@ def kernel():
     qvector = cudaq.qvector(2)
     h(qvector[0])
     x.ctrl(qvector[0], qvector[1])
-    mz(qvector[0])
-    mz(qvector[1])
 
 
 # Submit to Quantinuum's endpoint and confirm the program is valid.
