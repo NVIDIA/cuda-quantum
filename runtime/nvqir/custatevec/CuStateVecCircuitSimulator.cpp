@@ -736,6 +736,16 @@ public:
                                                           deviceStateVector);
   }
 
+std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override{
+    void* copiedDeviceVector;
+    HANDLE_CUDA_ERROR(cudaMalloc(&copiedDeviceVector, stateDimension * sizeof(CudaDataType)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(copiedDeviceVector, deviceStateVector, 
+                                 stateDimension * sizeof(CudaDataType), 
+                                 cudaMemcpyDeviceToDevice));
+    
+    return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension, copiedDeviceVector);
+}
+
   bool isStateVectorSimulator() const override { return true; }
 
   std::string name() const override;
