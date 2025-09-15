@@ -91,7 +91,7 @@ if [ "$1" == "install-cutensor" ]; then
     CUTENSOR_VERSION=2.3.1.0
     CUTENSOR_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
 
-    cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
+    cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
     wget "${CUTENSOR_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cutensor_archive}"
     mkdir -p "${CUTENSOR_INSTALL_PREFIX}" && tar xf "${cutensor_archive}" --strip-components 1 -C "${CUTENSOR_INSTALL_PREFIX}"
     mv "${CUTENSOR_INSTALL_PREFIX}"/lib/$(echo ${CUDA_VERSION} | cut -d . -f1)/* ${CUTENSOR_INSTALL_PREFIX}/lib/
