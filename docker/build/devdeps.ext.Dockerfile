@@ -16,7 +16,7 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
-ARG cuda_version=11.8
+ARG cuda_version=12.0
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu12-ompi-main
 FROM $ompidev_image AS ompibuild
@@ -169,7 +169,7 @@ ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)~=25.06 && \
+    python3 -m pip install cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)~=25.09 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
         echo "expecting Python version 3.10"; \
     fi
