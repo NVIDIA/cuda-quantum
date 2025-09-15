@@ -56,13 +56,6 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
   cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::createClassicalOptimizationPipeline(pm);
-  cudaq::opt::DecompositionPassOptions opts;
-  opts.enabledPatterns = {"U3ToRotations"};
-  pm.addPass(cudaq::opt::createDecompositionPass(opts));
-  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createMultiControlDecompositionPass());
 }
 
 static void
@@ -103,8 +96,13 @@ static void registerEmulationTargetPrepPipeline() {
 }
 
 static void createTargetDeployPipeline(OpPassManager &pm) {
-  pm.addPass(cudaq::opt::createDistributedDeviceCall());
-  cudaq::opt::addAggressiveInlining(pm);
+  cudaq::opt::createClassicalOptimizationPipeline(pm);
+  cudaq::opt::DecompositionPassOptions opts;
+  opts.enabledPatterns = {"U3ToRotations"};
+  pm.addPass(cudaq::opt::createDecompositionPass(opts));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createMultiControlDecompositionPass());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
@@ -117,9 +115,11 @@ static void registerTargetDeployPipeline() {
 }
 
 void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
+  pm.addPass(cudaq::opt::createDistributedDeviceCall());
+  cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   pm.addPass(createSymbolDCEPass());
 }
 
