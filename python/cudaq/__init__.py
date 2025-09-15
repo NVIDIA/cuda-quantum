@@ -218,6 +218,9 @@ from .domains import chemistry
 from .kernels import uccsd
 from .dbg import ast
 
+# Expose the unitary decomposition API
+unitary_synthesis = cudaq_runtime.unitary_synthesis
+
 initKwargs = {}
 
 # Look for --target=<target> options
