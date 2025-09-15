@@ -46,6 +46,7 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   cudaq::opt::createClassicalOptimizationPipeline(pm);
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -102,7 +103,7 @@ static void registerEmulationTargetPrepPipeline() {
 }
 
 static void createTargetDeployPipeline(OpPassManager &pm) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  pm.addPass(cudaq::opt::createDistributedDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
 }
 
@@ -116,10 +117,10 @@ static void registerTargetDeployPipeline() {
 }
 
 void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
-  pm.addPass(createSymbolDCEPass());
-  pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  pm.addPass(createSymbolDCEPass());
 }
 
 /// Register the standard finalization pipeline run for ALL target machines.
