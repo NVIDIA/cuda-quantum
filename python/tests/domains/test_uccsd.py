@@ -28,6 +28,11 @@ def setup_test_environment():
         # Now we make a copy for running the tests
         current_dir = Path(__file__).parent  # tests/domains directory
         src_file = current_dir.parent.parent / "cudaq" / "kernels" / "uccsd.py"
+
+        if not src_file.exists():
+            pytest.skip(
+                f"Source file {src_file} not found. Skipping `uccsd` tests.")
+
         temp_file = Path("/tmp/fresh_uccsd.py")
         shutil.copy(src_file, temp_file)
 
