@@ -84,6 +84,9 @@ public:
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
+    // Override to use simulators if the name ends with 'Sim'
+    if (config["machine"].ends_with("Sim"))
+      config["machine"] = DEFAULT_MACHINE;
     CUDAQ_INFO("QCI backend machine: {}", config["machine"]);
 
     // Authentication token not required in emulation mode

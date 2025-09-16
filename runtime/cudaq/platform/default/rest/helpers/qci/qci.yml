@@ -34,6 +34,19 @@ config:
 target-arguments:
   - key: machine
     required: false
-    type: string
-    platform-arg: machine
-    help-string: Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's hardware simulator.
+    type: machine-config
+    platform-arg: machine 
+    help-string: Specify a QCI QPU identifier. Omit for QCI's hardware simulator.
+    machine-config:
+      - arch-name: gen1
+        machine-names: 
+          - AquSim
+        config: 
+          # Lower the generated IR to base + feed forward.
+          codegen-emission: qir-adaptive
+      - arch-name: gen0
+        machine-names: 
+          - Seeker
+          - SeekerSim
+        config: 
+          codegen-emission: qir-base
