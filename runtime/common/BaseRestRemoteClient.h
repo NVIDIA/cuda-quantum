@@ -240,7 +240,7 @@ public:
 
     mlir::PassManager pm(&mlirContext);
     // For now, the server side expects full-QIR.
-    opt::addAOTPipelineConvertToQIR(pm);
+    opt::deprecatedAddPipelineConvertToQIR(pm, "qir:0.1");
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(

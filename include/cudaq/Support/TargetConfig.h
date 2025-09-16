@@ -97,6 +97,7 @@ struct BackendEndConfigEntry {
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
   /// IR lowering configuration (hardware REST QPU)
+  std::string PlatformLoweringConfig; // deprecated
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;
   std::string JITLowLevelPipeline;

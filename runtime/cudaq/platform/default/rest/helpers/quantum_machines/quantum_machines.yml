@@ -18,6 +18,8 @@ config:
   gen-target-backend: true
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  # Deprecated!
+  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-inlining,classical-optimization-pipeline,lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),symbol-dce,distributed-device-call"
   # Define the JIT lowering pipeline
   jit-mid-level-pipeline: "lower-to-cfg,decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   # Tell the rest-qpu that we are generating OpenQASM 2.0.
