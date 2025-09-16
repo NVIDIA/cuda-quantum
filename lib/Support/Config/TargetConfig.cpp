@@ -385,7 +385,7 @@ void MappingTraits<cudaq::config::TargetArchitectureSettings>::mapping(
 
 void MappingTraits<cudaq::config::MachineArchitectureConfig>::mapping(
     IO &io, cudaq::config::MachineArchitectureConfig &info) {
-  io.mapRequired("arch-name", info.Name);
+  io.mapOptional("arch-name", info.Name);
   io.mapOptional("machine-names", info.MachineNames);
   io.mapOptional("pattern", info.MachinePattern);
   io.mapRequired("config", info.Configuration);
