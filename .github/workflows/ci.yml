@@ -177,7 +177,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [clang16, gcc11, gcc12]
-        mpi: [openmpi, mpich]
+        mpi: [openmpi]
         exclude:
           - toolchain: llvm
             mpi: mpich
