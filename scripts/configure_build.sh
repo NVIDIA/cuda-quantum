@@ -37,6 +37,9 @@ if [ "$1" == "install-cuda" ]; then
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-toolkit-$(echo ${CUDA_VERSION} | tr . -)
+    # custatevec is now linked to `libnvidia-ml.so.1`, which is provided in the NVIDIA driver.
+    # For build on non-GPU systems, we also need to install the driver. 
+    dnf install -y --nobest --setopt=install_weak_deps=False nvidia-driver-libs    
 # [<CUDAInstall]
 fi
 
