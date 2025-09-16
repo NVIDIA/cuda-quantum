@@ -109,11 +109,12 @@ void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
 
 // Keep these to dodge CI failures.
-void deprecatedCommonPipelineConvertToQIR(mlir::PassManager &pm,
-                                mlir::StringRef codeGenFor = "qir:0.1",
-                                mlir::StringRef passConfigAs = "qir:0.1");
+void deprecatedCommonPipelineConvertToQIR(
+    mlir::PassManager &pm, mlir::StringRef codeGenFor = "qir:0.1",
+    mlir::StringRef passConfigAs = "qir:0.1");
 
-void deprecatedAddPipelineConvertToQIR(mlir::PassManager &pm, mlir::StringRef convertTo);
+void deprecatedAddPipelineConvertToQIR(mlir::PassManager &pm,
+                                       mlir::StringRef convertTo);
 
 void deprecatedAddLowerToCCPipeline(mlir::OpPassManager &pm);
 

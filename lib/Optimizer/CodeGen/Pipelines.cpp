@@ -149,7 +149,6 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addPass(createSymbolDCEPass());
 }
 
-
 // Old pipelines preserved to dodge CI issues.
 
 void cudaq::opt::deprecatedCommonPipelineConvertToQIR(PassManager &pm,
