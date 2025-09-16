@@ -62,11 +62,14 @@ public:
               alloc.getLoc(), os.first, rewriter.getI64Type());
           Value hi = rewriter.create<arith::ConstantIntOp>(
               alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
+          // trying to print alloc after the replace gives a segfault
+          LLVM_DEBUG(llvm::dbgs()
+                     << "replace " << alloc);
           [[maybe_unused]] Value subveq =
               rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
                   alloc, alloc.getType(), analysis.newAlloc, lo, hi);
           LLVM_DEBUG(llvm::dbgs()
-                     << "replace " << alloc << " with " << subveq << '\n');
+                     << " with " << subveq << '\n');
           return success();
         }
         if (auto sty = dyn_cast<quake::StruqType>(alloc.getType())) {
