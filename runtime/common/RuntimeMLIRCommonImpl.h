@@ -523,7 +523,7 @@ mlir::LogicalResult qirProfileTranslationFunction(
   if (containsWireSet)
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileFields[0]);
   else
-    cudaq::opt::addJITPipelineConvertToQIR(pm, qirProfile);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, qirProfile);
 
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&

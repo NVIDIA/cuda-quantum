@@ -43,9 +43,9 @@ struct PreDeviceCodeLoaderOptions
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   cudaq::opt::createClassicalOptimizationPipeline(pm);
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
@@ -122,8 +122,8 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
 
 static void createJITTargetFinalizePipeline(OpPassManager &pm) {
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
-  cudaq::opt::addAggressiveInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  // cudaq::opt::addAggressiveInlining(pm);
+  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
 }
 
