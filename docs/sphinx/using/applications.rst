@@ -45,6 +45,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/uccsd_wf_ansatz
    /applications/python/mps_encoding
    /applications/python/qm_mm_pe
+   /applications/python/skqd
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -121,6 +122,13 @@ This page contains a number of different applications implemented using CUDA-Q. 
             Learn how the QSCI method uses the observe and sample primitives.
         </div>
         <img src="../_static/app_title_images/qsci_preview.png" alt="QSCI Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
+        <a href="../applications/python/skqd.html" class="notebook-title">Sample-Based Krylov Quantum Diagonalization (SKQD)</a>
+        <div class="notebook-content">
+            Learn how to implement the Sample-Based Krylov Quantum Diagonalization (SKQD) algorithm to predict the ground state energy of molecules.
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
