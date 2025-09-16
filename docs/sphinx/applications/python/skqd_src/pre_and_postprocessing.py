@@ -14,14 +14,14 @@ def transform_state_with_pauli_operator(computational_state,
     Transform a computational basis state by applying a Pauli operator string.
     
     This function computes how a Pauli string acts on a computational basis state.
-    For example, applying "XY" to |01⟩ gives i|10⟩ (bit flip + phase).
+    For example, applying "`XY`" to |01⟩ gives i|10⟩ (bit flip + phase).
     
-    Implementation follows MSB convention: pauli_operator_string[i] acts on computational_state[i]
+    Implementation follows MSB convention: `pauli_operator_string[i]` acts on computational_state[i]
     where i=0 corresponds to the most significant bit (leftmost position).
     
     Args:
         computational_state: Binary array representing |0⟩ and |1⟩ states in MSB order
-        pauli_operator_string: String of Pauli operators (I, X, Y, Z) in MSB order
+        `pauli_operator_string`: String of Pauli operators (I, X, Y, Z) in MSB order
         
     Returns:
         tuple: (transformed_state, quantum_phase) where quantum_phase is ±1 or ±1j
@@ -69,12 +69,12 @@ def construct_hamiltonian_in_subspace(pauli_operator_list,
     - Pauli operator index 0 acts on qubit 0 (leftmost bit position)
     
     Args:
-        pauli_operator_list: List of Pauli operator strings (e.g., ['IIXY', 'ZIII'])
+        `pauli_operator_list: List of Pauli operator strings (e.g., ['IIXY', 'ZIII'])`
         hamiltonian_coefficients: List of real coefficients for each Pauli operator
         subspace_basis_states: Array of computational basis states defining the subspace
         
     Returns:
-        scipy.sparse matrix representing projected Hamiltonian within the subspace
+        `scipy.sparse matrix representing projected Hamiltonian within the subspace`
     """
     subspace_dimension = subspace_basis_states.shape[0]
 
@@ -125,18 +125,18 @@ def diagonalize_subspace_hamiltonian(subspace_basis_states,
     """
     Perform eigenvalue decomposition of Hamiltonian within the computational subspace.
     
-    This function combines Hamiltonian projection and diagonalization into one step.
+    This function combines Hamiltonian projection and `diagonalization` into one step.
     It's the final piece of SKQD: finding the lowest eigenvalues in our Krylov subspace.
     
     Args:
         subspace_basis_states: Array of computational basis states defining the subspace
-        pauli_operator_list: List of Pauli operator strings (e.g., ['IIXY', 'ZIII'])
+        `pauli_operator_list: List of Pauli operator strings (e.g., ['IIXY', 'ZIII'])`
         hamiltonian_coefficients: List of real coefficients for each Pauli operator
         verbose: Enable diagnostic output
-        **solver_options: Additional arguments for scipy.sparse.linalg.eigsh
+        `**solver_options: Additional arguments for scipy.sparse.linalg.eigsh`
         
     Returns:
-        numpy array of eigenvalues from the subspace diagonalization
+        `numpy` array of eigenvalues from the subspace `diagonalization`
     """
     if subspace_basis_states.shape[0] == 0:
         return np.array([])
@@ -162,7 +162,7 @@ def diagonalize_subspace_hamiltonian(subspace_basis_states,
         if verbose:
             print(f"Sparse eigensolver failed: {solver_error}")
 
-        # Fallback: use dense diagonalization for small matrices
+        # Fallback: use dense `diagonalization` for small matrices
         if projected_hamiltonian.shape[0] <= 100:
             dense_hamiltonian = projected_hamiltonian.toarray()
             eigenvalues = np.linalg.eigvals(dense_hamiltonian)
@@ -186,7 +186,7 @@ def accumulate_krylov_measurements(measurement_results_sequence,
     
     This is a key insight of SKQD: instead of treating each Krylov state separately,
     we combine measurements from |ψ⟩, U|ψ⟩, U²|ψ⟩, ... to build increasingly
-    rich computational subspaces that better approximate the true Krylov space.
+    rich computational `subspaces` that better approximate the true Krylov space.
     
     Args:
         measurement_results_sequence: List of measurement dictionaries from each U^k|ψ⟩
@@ -220,7 +220,7 @@ def construct_xyz_spin_hamiltonian(
         external_field_strengths: tuple[float, float, float] = (0.0, 0.0, 0.0),
         topology_type: str = "ring") -> cudaq.SpinOperator:
     """
-    Construct XYZ spin model Hamiltonian using native CUDA-Q SpinOperator framework.
+    Construct `XYZ` spin model Hamiltonian using native CUDA-Q SpinOperator framework.
     
     Implements the quantum many-body Hamiltonian:
     H = sum_{(i,j) ∈ edges} [J_x σ_i^x σ_j^x + J_y σ_i^y σ_j^y + J_z σ_i^z σ_j^z] +
@@ -291,7 +291,7 @@ def extract_hamiltonian_data(spin_operator: cudaq.SpinOperator):
         spin_operator: CUDA-Q SpinOperator to decompose
         
     Returns:
-        tuple: (coefficients_list, pauli_words_list, pauli_strings_list)
+        `tuple: (coefficients_list, pauli_words_list, pauli_strings_list)`
     """
     system_size = spin_operator.qubit_count
     coefficients_list = []
@@ -342,8 +342,8 @@ def extract_basis_states_from_measurements(measurement_counts):
         measurement_counts: Dictionary mapping bitstring outcomes to their frequencies
         
     Returns:
-        numpy array of computational basis states (MSB ordering)
-        Shape: (num_unique_states, num_qubits)
+        `numpy` array of computational basis states (MSB ordering)
+        `Shape: (num_unique_states, num_qubits)`
     """
     if not measurement_counts:
         return np.array([])
