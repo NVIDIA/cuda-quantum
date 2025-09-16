@@ -32,8 +32,14 @@ void registerToCFGPipeline();
 
 void createPreDeviceCodeLoaderPipeline(mlir::OpPassManager &pm,
                                        bool autoGenRunStack);
-void registerAOTPipelines();
+
+/// Create and append the common target finalization pipeline. This pipeline is
+/// run just prior to code generation for all targets and for both AOT and JIT
+/// compilation. Primarily, it does a final round of IR canonicalization and
+/// cleanup.
 void createTargetFinalizePipeline(mlir::OpPassManager &pm);
+
+void registerAOTPipelines();
 void registerJITPipelines();
 
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();

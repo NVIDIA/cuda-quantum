@@ -115,12 +115,16 @@ static void registerTargetDeployPipeline() {
 }
 
 void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
-  pm.addPass(cudaq::opt::createDistributedDeviceCall());
-  cudaq::opt::addAggressiveInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addPass(createSymbolDCEPass());
+}
+
+static void createJITTargetFinalizePipeline(OpPassManager &pm) {
+  pm.addPass(cudaq::opt::createDistributedDeviceCall());
+  cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  cudaq::opt::createTargetFinalizePipeline(pm);
 }
 
 /// Register the standard finalization pipeline run for ALL target machines.
@@ -128,8 +132,8 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
 static void registerTargetFinalizePipeline() {
   PassPipelineRegistration<>(
       "jit-finalize-pipeline",
-      "Standard finalization pipeline for all targets.",
-      [](OpPassManager &pm) { cudaq::opt::createTargetFinalizePipeline(pm); });
+      "Standard JIT finalization pipeline for all targets.",
+      [](OpPassManager &pm) { createJITTargetFinalizePipeline(pm); });
 }
 
 void cudaq::opt::registerJITPipelines() {
