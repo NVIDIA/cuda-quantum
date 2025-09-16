@@ -6,12 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// clang-format on
 
-// Compile and run with:
-// ```
-// RUN: nvq++ %cpp_std %s -o %t && %t
-// ```
-
+#include <cstdio>
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
 
@@ -29,7 +28,7 @@ struct mykernel {
 
 int main() {
   auto kernel = mykernel{};
-  std::function<bool()> choice = [&](){
+  std::function<bool()> choice = [&]() {
     auto counts1 = cudaq::sample(5, kernel);
     counts1.dump();
     return true;
@@ -41,7 +40,12 @@ int main() {
   } catch (...) {
     exception_thrown = true;
   }
-  assert(exception_thrown);
+  if (exception_thrown)
+    printf("success\n");
+  else
+    printf("FAILED!\n");
 
   return 0;
 }
+
+// CHECK: success

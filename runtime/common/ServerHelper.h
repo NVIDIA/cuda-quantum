@@ -155,4 +155,18 @@ public:
   /// @brief Set the runtime target information
   void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
 };
+
+/// @brief Server helper interface for QIR-based output servers.
+class QirServerHelper {
+public:
+  QirServerHelper() = default;
+  virtual ~QirServerHelper() = default;
+  /// @brief Given a successful job and the success response,
+  /// retrieve the QIR output log
+  /// @param postJobResponse
+  /// @param jobId
+  /// @return QIR output log
+  virtual std::string extractOutputLog(ServerMessage &postJobResponse,
+                                       std::string &jobId) = 0;
+};
 } // namespace cudaq

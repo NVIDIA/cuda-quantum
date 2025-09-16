@@ -14,6 +14,8 @@ std::string prepareOpenQasm(std::string source) {
   source = std::regex_replace(source, includeRE, "");
   const std::regex cxToCnot{"\\scx\\s"};
   source = std::regex_replace(source, cxToCnot, " cnot ");
+  const std::regex ccxToCcnot{"\\sccx\\s"};
+  source = std::regex_replace(source, ccxToCcnot, " ccnot ");
   return source;
 }
 
