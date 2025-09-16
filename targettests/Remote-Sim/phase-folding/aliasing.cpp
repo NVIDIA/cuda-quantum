@@ -111,46 +111,45 @@ void check3() {
   ASSERT_NEAR(result.imag(), 0, 0.000001);
 }
 
-// This test won't compile currently (probably correctly so),
-// so this case isn't an issue for now.
-// void check4() {
-//   auto kernel = []() __qpu__ {
-//     cudaq::qvector q(3);
+void check4() {
+  auto kernel = []() __qpu__ {
+    cudaq::qvector q(3);
     
-//     x<cudaq::ctrl>(q[0],q[2]);
-//     rz(1.0, q[0]);
-//     rz(1.0, q[2]);
+    x<cudaq::ctrl>(q[0],q[2]);
+    rz(1.0, q[0]);
+    rz(1.0, q[2]);
 
-//     h(q[1]);
-//     if (mz(q[1]))
-//         subkernel(q.front());
-//     else
-//         subkernel(q.back());
+    h(q[1]);
+    if (mz(q[1]))
+        subkernel(q.front());
+    else
+        subkernel(q.back());
 
-//     rz(1.0, q[0]);
-//     rz(1.0, q[2]);
-//   };
+    rz(1.0, q[0]);
+    rz(1.0, q[2]);
+  };
 
-//   const auto PHASE_SWITCH = "CUDAQ_PHASE_FOLDING";
-//   // Without phase folding
-//   setenv(PHASE_SWITCH, "0", true);
-//   auto state1 = cudaq::get_state(kernel);
-//   auto counts1 = cudaq::estimate_resources(kernel);
-//   assert(counts1.count("rz") == 4);
-//   // With phase folding
-//   setenv(PHASE_SWITCH, "1", true);
-//   auto state2 = cudaq::get_state(kernel);
-//   auto counts2 = cudaq::estimate_resources(kernel);
-//   assert(counts2.count("rz") == 4);
+  const auto PHASE_SWITCH = "CUDAQ_PHASE_FOLDING";
+  // Without phase folding
+  setenv(PHASE_SWITCH, "0", true);
+  auto state1 = cudaq::get_state(kernel);
+  auto counts1 = cudaq::estimate_resources(kernel);
+  assert(counts1.count("rz") == 4);
+  // With phase folding
+  setenv(PHASE_SWITCH, "1", true);
+  auto state2 = cudaq::get_state(kernel);
+  auto counts2 = cudaq::estimate_resources(kernel);
+  assert(counts2.count("rz") == 4);
 
-//   assert(state1.get_num_qubits() == state2.get_num_qubits());
-//   auto result = state1.overlap(state2);
-//   ASSERT_NEAR(result.real(), 1, 0.000001);
-//   ASSERT_NEAR(result.imag(), 0, 0.000001);
-// }
+  assert(state1.get_num_qubits() == state2.get_num_qubits());
+  auto result = state1.overlap(state2);
+  ASSERT_NEAR(result.real(), 1, 0.000001);
+  ASSERT_NEAR(result.imag(), 0, 0.000001);
+}
 
 int main() {
   check1();
   check2();
   check3();
+  check4();
 }
