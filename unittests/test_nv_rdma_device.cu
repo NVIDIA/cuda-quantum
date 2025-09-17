@@ -1,0 +1,96 @@
+/*******************************************************************************
+ * Copyright (c) 2024 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include <gtest/gtest.h>
+
+// ------ Example of Internal Library Code for Device Functions and Devices ----
+
+
+__device__ void add_op(void *args, void *res) {
+  // printf("Test here\n");
+  int tid = threadIdx.x + blockIdx.x * blockDim.x;
+  int *a = reinterpret_cast<int *>(args);
+  int *b = reinterpret_cast<int *>((char *)args + sizeof(int));
+  if (tid == 0) {
+    *reinterpret_cast<int *>(res) = *a + *b;
+    printf("adding numbers %d + %d = %d\n", *a, *b,
+           *reinterpret_cast<int *>(res));
+  }
+
+  // All threads synchronize before returning
+  __syncthreads();
+}
+
+#include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
+
+__device__ cudaq::nvqlink::dispatch_func_t d_add_ptr = add_op;
+
+class concrete_rdma_test : public cudaq::nvqlink::cpu_gpu_rdma_device {
+protected:
+  void build_device_function_table() override {
+    host_func_table.resize(1);
+    cudaMemcpyFromSymbol(&host_func_table[0], d_add_ptr,
+                         sizeof(cudaq::nvqlink::dispatch_func_t));
+    cudaMalloc(&device_func_table, host_func_table.size() *
+                                       sizeof(cudaq::nvqlink::dispatch_func_t));
+    cudaMemcpy(device_func_table, host_func_table.data(),
+               sizeof(cudaq::nvqlink::dispatch_func_t), cudaMemcpyHostToDevice);
+  }
+};
+// ------------------------------------------------------------------------------
+
+// --- Example for user code -----
+#include "cudaq/nvqlink/nvqlink.h"
+
+using namespace cudaq::nvqlink;
+
+TEST(NVQLinkCudaChannelTester, checkChannelMemoryWorks) {
+  // Create the rdma device
+  concrete_rdma_test dev;
+  // connect to it
+  dev.connect();
+
+  // Get the internal RDMA connection details
+  auto &rdma_details = dev.get_rdma_connection_data();
+
+  // Test automatic RDMA by writing to the CPU buffer
+  // The monitoring thread should automatically detect this and transfer to GPU
+
+  // Prepare a function call message
+  rdma_message_header msg = {
+      .magic = 0xDEADBEEF,
+      .message_type = 0, // function call
+      .function_id = 0,  // add function
+      .num_args = 2,
+      .total_size = sizeof(rdma_message_header) + 2 * sizeof(int) +
+                    sizeof(int), // header + args + result
+      .result_offset = sizeof(rdma_message_header) + 2 * sizeof(int),
+      .result_size = sizeof(int),
+      .reserved = 0};
+
+  // Write function arguments
+  int arg1 = 42, arg2 = 24;
+  char *args_ptr = static_cast<char *>(rdma_details.get_raw_source()) +
+                   sizeof(rdma_message_header);
+  std::memcpy(args_ptr, &arg1, sizeof(int));
+  std::memcpy(args_ptr + sizeof(int), &arg2, sizeof(int));
+
+  // Write message to CPU buffer (this should trigger automatic RDMA)
+  std::memcpy(rdma_details.get_raw_source(), &msg, sizeof(msg));
+
+  // Give the monitoring thread time to detect and process the change
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+  // The result should be automatically computed and available in the result
+  // buffer
+  int *result_ptr = reinterpret_cast<int *>(args_ptr + 2 * sizeof(int));
+  printf("Result: %d (expected: %d)\n", *result_ptr, arg1 + arg2);
+  EXPECT_EQ(*result_ptr, arg1 + arg2);
+  dev.disconnect();
+}
+// ------------------------------
