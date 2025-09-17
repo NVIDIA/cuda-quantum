@@ -44,6 +44,10 @@ target-arguments:
           codegen-emission: qir-adaptive
       - machine-names:
           - Seeker
-          - SeekerSim
         config:
           codegen-emission: qir-base
+  - key: method
+    required: false
+    type: string
+    platform-arg: method
+    help-string: "Specify the circuit execution type - simulate (default) or execute."

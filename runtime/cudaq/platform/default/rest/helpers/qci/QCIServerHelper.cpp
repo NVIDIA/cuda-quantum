@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. * 
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,7 +44,12 @@ private:
       "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
-  const std::string DEFAULT_MACHINE = "simulator";
+  const std::string DEFAULT_MACHINE = "AquSim";
+
+  const std::vector<std::string> ALLOWED_METHODS = {"simulate", "execute"};
+
+  /// @brief Default action to perform, either 'simulate' or 'execute'.
+  const std::string DEFAULT_METHOD = "simulate";
 
   /// @brief Polling interval for job status via QCI's CUDA-Q endpoint in
   /// microseconds.
@@ -84,10 +89,18 @@ public:
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
-    // Override to use simulators if the name ends with 'Sim'
-    if (config["machine"].ends_with("Sim"))
-      config["machine"] = DEFAULT_MACHINE;
-    CUDAQ_INFO("QCI backend machine: {}", config["machine"]);
+    config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
+
+    // check if the method is valid
+    if (std::find(ALLOWED_METHODS.begin(), ALLOWED_METHODS.end(),
+                  config["method"]) == ALLOWED_METHODS.end())
+      throw std::runtime_error("Invalid method: " + config["method"]);
+    // if target is a simulator then we simulate
+    if (config["machine"] == DEFAULT_MACHINE)
+      config["method"] = DEFAULT_METHOD;
+
+    CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
+               config["method])"]);
 
     // Authentication token not required in emulation mode
     bool isTokenRequired = [&]() {
@@ -175,6 +188,7 @@ QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     ServerMessage job;
     job["code"] = circuitCode.code;
     job["machine"] = backendConfig.at("machine");
+    job["method"] = backendConfig.at("method");
     job["mappingReorderIdx"] = circuitCode.mapping_reorder_idx;
     job["name"] = circuitCode.name;
     job["outputNames"] = circuitCode.output_names;
