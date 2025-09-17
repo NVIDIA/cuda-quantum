@@ -293,8 +293,7 @@ public:
     }
 
     /// Once we know the backend, we should search for the configuration file
-    /// from there we can get the URL/PORT and the required MLIR pass
-    /// pipeline.
+    /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
@@ -305,59 +304,45 @@ public:
     llvm::yaml::Input Input(configYmlContents.c_str());
     Input >> config;
     if (config.BackendConfig.has_value()) {
-      if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
-        if (/*use deprecated path for now=*/true) {
-          CUDAQ_INFO("Appending lowering pipeline: {}",
-                     config.BackendConfig->PlatformLoweringConfig);
-          passPipelineConfig +=
-              "," + config.BackendConfig->PlatformLoweringConfig;
+      // 1. Apply all the target-agnostic high-level passes. If this is an
+      // emulation and a noise model has been set, do not erase the noise
+      // callbacks.
+      if (emulate)
+        passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
+                              std::string{noiseModel ? "false" : "true"} + "}";
+      else
+        passPipelineConfig += ",hw-jit-prep-pipeline";
 
-        } else {
-          // 1. Apply all the target-agnostic high-level passes.
-          // If this is an emulation and a noise model has been set, do not
-          // erase the noise callbacks.
-          if (emulate)
-            passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
-                                  std::string{noiseModel ? "false" : "true"} +
-                                  "}";
-          else
-            passPipelineConfig += ",hw-jit-prep-pipeline";
-
-          // 2. Apply target-specific high-level passes from the .yml file, if
-          // any.
-          if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
-            CUDAQ_INFO("Appending JIT high level pipeline: {}",
-                       config.BackendConfig->JITHighLevelPipeline);
-            passPipelineConfig +=
-                "," + config.BackendConfig->JITHighLevelPipeline;
-          }
-
-          // 3. Appply the target-agnostic deployment passes. Any additional
-          // restructuring to get ready for decomposition.
-          passPipelineConfig += ",jit-deploy-pipeline";
-
-          // 4. Apply the target-specific mid-level passes. This decomposed
-          // quantum gates for a specific target machine, etc.
-          if (!config.BackendConfig->JITMidLevelPipeline.empty()) {
-            CUDAQ_INFO("Appending JIT mid level pipeline: {}",
-                       config.BackendConfig->JITMidLevelPipeline);
-            passPipelineConfig +=
-                "," + config.BackendConfig->JITMidLevelPipeline;
-          }
-
-          // 5. Apply the target-agnostic finalization passes. This lowers the
-          // IR to CFG form.
-          passPipelineConfig += ",jit-finalize-pipeline";
-
-          // 6. Apply the target-specific low-level passes.
-          if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
-            CUDAQ_INFO("Appending JIT low level pipeline: {}",
-                       config.BackendConfig->JITLowLevelPipeline);
-            passPipelineConfig +=
-                "," + config.BackendConfig->JITLowLevelPipeline;
-          }
-        }
+      // 2. Apply target-specific high-level passes from the .yml file, if any.
+      if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT high level pipeline: {}",
+                   config.BackendConfig->JITHighLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITHighLevelPipeline;
       }
+
+      // 3. Appply the target-agnostic deployment passes. Any additional
+      // restructuring to get ready for decomposition.
+      passPipelineConfig += ",jit-deploy-pipeline";
+
+      // 4. Apply the target-specific mid-level passes. This decomposed quantum
+      // gates for a specific target machine, etc.
+      if (!config.BackendConfig->JITMidLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT mid level pipeline: {}",
+                   config.BackendConfig->JITMidLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITMidLevelPipeline;
+      }
+
+      // 5. Apply the target-agnostic finalization passes. This lowers the IR to
+      // CFG form.
+      passPipelineConfig += ",jit-finalize-pipeline";
+
+      // 6. Apply the target-specific low-level passes.
+      if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT low level pipeline: {}",
+                   config.BackendConfig->JITLowLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITLowLevelPipeline;
+      }
+
       const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
       if (!codeGenSpec.empty()) {
         CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
