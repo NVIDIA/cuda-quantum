@@ -35,7 +35,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="CUDA-Q Backends" href="../../using/backends/backends.html" />
+    <link rel="next" title="Sample-Based Krylov Quantum Diagonalization (SKQD)" href="skqd.html" />
     <link rel="prev" title="Approximate State Preparation using MPS Sequential Encoding" href="mps_encoding.html" /> 
 </head>
 
@@ -521,6 +521,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -953,7 +976,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="mps_encoding.html" class="btn btn-neutral float-left" title="Approximate State Preparation using MPS Sequential Encoding" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skqd.html" class="btn btn-neutral float-right" title="Sample-Based Krylov Quantum Diagonalization (SKQD)" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -977,7 +1000,7 @@
 </section>
 <section id="PE-VQE-SCF-Algorithm-Steps">
 <h2>PE-VQE-SCF Algorithm Steps<a class="headerlink" href="#PE-VQE-SCF-Algorithm-Steps" title="Permalink to this heading">¶</a></h2>
-<div><p><img alt="60f7f67a092c41d0b2b940edb0df6c87" class="no-scaled-link" src="../../_images/qm-mm-pe.png" style="width: 600px;" /></p>
+<div><p><img alt="80135ca0fd604d4296a9039f57a2f5bb" class="no-scaled-link" src="../../_images/qm-mm-pe.png" style="width: 600px;" /></p>
 </div><section id="Step-1:-Initialize-(Classical-pre-processing)">
 <h3>Step 1: Initialize (Classical pre-processing)<a class="headerlink" href="#Step-1:-Initialize-(Classical-pre-processing)" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">
@@ -1611,7 +1634,7 @@ CUDA-Q Version cu12-latest (https://github.com/NVIDIA/cuda-quantum 615d919103106
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="mps_encoding.html" class="btn btn-neutral float-left" title="Approximate State Preparation using MPS Sequential Encoding" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../../using/backends/backends.html" class="btn btn-neutral float-right" title="CUDA-Q Backends" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skqd.html" class="btn btn-neutral float-right" title="Sample-Based Krylov Quantum Diagonalization (SKQD)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -831,6 +831,45 @@ pr-3443
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](../../applications/python/skqd.html){.reference
+        .internal}
+        -   [Why
+            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
+            .internal}
+        -   [Setup and
+            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to
+                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](#){.current .reference .internal}
     -   [Circuit Simulation](simulators.html){.reference .internal}
         -   [State Vector Simulators](sims/svsims.html){.reference
@@ -1620,7 +1659,7 @@ pr-3443
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../applications/python/qm_mm_pe.html "QM/MM simulation: VQE within a Polarizable Embedded Framework."){.btn
+Previous](../../applications/python/skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQD)"){.btn
 .btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
 aria-hidden="true"}](simulators.html "CUDA-Q Circuit Simulation Backends"){.btn
 .btn-neutral .float-right}
@@ -1747,7 +1786,7 @@ available in CUDA-Q.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](../../applications/python/qm_mm_pe.html "QM/MM simulation: VQE within a Polarizable Embedded Framework."){.btn
+Previous](../../applications/python/skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQD)"){.btn
 .btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
 aria-hidden="true"}](simulators.html "CUDA-Q Circuit Simulation Backends"){.btn
 .btn-neutral .float-right}

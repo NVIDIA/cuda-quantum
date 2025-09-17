@@ -795,6 +795,40 @@ pr-3443
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](skqd.html){.reference .internal}
+        -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
+        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to Expect:](skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1622,7 +1656,7 @@ pr-3443
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](mps_encoding.html "Approximate State Preparation using MPS Sequential Encoding"){.btn
 .btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../using/backends/backends.html "CUDA-Q Backends"){.btn
+aria-hidden="true"}](skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQD)"){.btn
 .btn-neutral .float-right}
 :::
 
@@ -1682,7 +1716,7 @@ PE-VQE-SCF Algorithm Steps[¶](#PE-VQE-SCF-Algorithm-Steps "Permalink to this he
 
 <div>
 
-![60f7f67a092c41d0b2b940edb0df6c87](../../_images/qm-mm-pe.png){.no-scaled-link}
+![80135ca0fd604d4296a9039f57a2f5bb](../../_images/qm-mm-pe.png){.no-scaled-link}
 
 </div>
 
@@ -2423,7 +2457,7 @@ value, e.g., 1e-7.
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](mps_encoding.html "Approximate State Preparation using MPS Sequential Encoding"){.btn
 .btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../using/backends/backends.html "CUDA-Q Backends"){.btn
+aria-hidden="true"}](skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQD)"){.btn
 .btn-neutral .float-right}
 :::
 
