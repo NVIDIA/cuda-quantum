@@ -22,6 +22,11 @@ struct TargetPrepPipelineOptions
       *this, "apply-const-prop",
       llvm::cl::desc("Enable constant propagation in apply specialization."),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> allowEarlyExit{
+      *this, "allow-early-exit",
+      llvm::cl::desc(
+          "Enable loop unrolling on loops with early exit conditions."),
+      llvm::cl::init(false)};
 };
 
 struct TargetFinalizationPipelineOptions
@@ -46,7 +51,7 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
   // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   // pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  // pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   cudaq::opt::createClassicalOptimizationPipeline(pm);
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -95,11 +100,20 @@ static void registerEmulationTargetPrepPipeline() {
       });
 }
 
+void cudaq::opt::addDecompositionPass(OpPassManager &pm,
+                                      ArrayRef<std::string> enabledPats,
+                                      ArrayRef<std::string> disabledPats) {
+  // NB: Both of these ListOption *must* be set here or they may contain garbage
+  // and the compiler may crash.
+  cudaq::opt::DecompositionPassOptions opts;
+  opts.disabledPatterns = disabledPats;
+  opts.enabledPatterns = enabledPats;
+  pm.addPass(cudaq::opt::createDecompositionPass(opts));
+}
+
 static void createTargetDeployPipeline(OpPassManager &pm) {
   cudaq::opt::createClassicalOptimizationPipeline(pm);
-  cudaq::opt::DecompositionPassOptions opts;
-  opts.enabledPatterns = {"U3ToRotations"};
-  pm.addPass(cudaq::opt::createDecompositionPass(opts));
+  cudaq::opt::addDecompositionPass(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(
       cudaq::opt::createMultiControlDecompositionPass());
@@ -122,8 +136,8 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
 
 static void createJITTargetFinalizePipeline(OpPassManager &pm) {
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
-  // cudaq::opt::addAggressiveInlining(pm);
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
+  cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
 }
 
