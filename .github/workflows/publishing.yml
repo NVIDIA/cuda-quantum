@@ -924,7 +924,7 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.10', 'ubuntu:22.04']
+        os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
         cuda_version: ['12.6']
       fail-fast: false
 
@@ -1054,7 +1054,7 @@ jobs:
     runs-on: linux-${{ matrix.platform }}-latest-1
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -1152,7 +1152,7 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}

@@ -175,7 +175,7 @@ jobs:
           file: ./docker/build/devdeps.ext.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu22.04
+            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04
             cuda_version=${{ inputs.cuda_version }}
             cuda_packages=
           tags: ${{ steps.metadata.outputs.tags }}
@@ -451,7 +451,7 @@ jobs:
         id: prereqs
         run: |
           if ${{ needs.ompi_image.result == 'skipped' }}; then
-            base_image=ghcr.io/nvidia/ubuntu:22.04
+            base_image=ghcr.io/nvidia/ubuntu:24.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
