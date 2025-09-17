@@ -103,6 +103,8 @@ static void registerEmulationTargetPrepPipeline() {
 void cudaq::opt::addDecompositionPass(OpPassManager &pm,
                                       ArrayRef<std::string> enabledPats,
                                       ArrayRef<std::string> disabledPats) {
+  // NB: Both of these ListOption *must* be set here or they may contain garbage
+  // and the compiler may crash.
   cudaq::opt::DecompositionPassOptions opts;
   opts.disabledPatterns = disabledPats;
   opts.enabledPatterns = enabledPats;
