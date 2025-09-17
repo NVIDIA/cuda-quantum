@@ -1708,7 +1708,6 @@ Python
         qvector = cudaq.qvector(2)
         h(qvector[0])
         x.ctrl(qvector[0], qvector[1])
-        mz(qvector)
 
 
     # Execute and print out the results.
@@ -1980,7 +1979,6 @@ Python
         qvector = cudaq.qvector(2)
         h(qvector[0])
         x.ctrl(qvector[0], qvector[1])
-        mz(qvector)
 
 
     # Note: All measurements must be terminal when performing the sampling.
@@ -2501,7 +2499,6 @@ C++
         cudaq::qvector q(2);
         h(q[0]);
         x<cudaq::ctrl>(q[0], q[1]);
-        auto result = mz(q);
       }
     };
 
@@ -2999,8 +2996,6 @@ Python
         qvector = cudaq.qvector(2)
         h(qvector[0])
         x.ctrl(qvector[0], qvector[1])
-        mz(qvector[0])
-        mz(qvector[1])
 
 
     # Submit to Quantinuum's endpoint and confirm the program is valid.
@@ -3076,7 +3071,6 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        mz(q);
       }
     };
 
