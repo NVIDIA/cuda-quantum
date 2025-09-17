@@ -111,7 +111,7 @@ void check3() {
   ASSERT_NEAR(result.imag(), 0, 0.000001);
 }
 
-void check4() {
+void check4(int seed) {
   auto kernel = []() __qpu__ {
     cudaq::qvector q(3);
     
@@ -129,6 +129,9 @@ void check4() {
     rz(1.0, q[2]);
   };
 
+  // need to make sure each kernel execution takes the same
+  // execution path (side of the branch)
+  cudaq::set_random_seed(seed);
   const auto PHASE_SWITCH = "CUDAQ_PHASE_FOLDING";
   // Without phase folding
   setenv(PHASE_SWITCH, "0", true);
@@ -151,5 +154,8 @@ int main() {
   check1();
   check2();
   check3();
-  check4();
+  // manually validated at the time of test creation
+  // that seed 1 and 2 takes different sides of the branching
+  check4(1);
+  check4(2);
 }
