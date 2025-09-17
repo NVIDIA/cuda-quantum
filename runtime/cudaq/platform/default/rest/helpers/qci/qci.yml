@@ -32,10 +32,10 @@ config:
   codegen-emission: qir-adaptive
 
 target-arguments:
-  - key: machine
+  - key: device
     required: false
     type: machine-config
-    platform-arg: machine
+    platform-arg: device
     help-string: Specify a QCI QPU identifier. Omit for QCI's hardware simulator.
     machine-config:
       - machine-names:
