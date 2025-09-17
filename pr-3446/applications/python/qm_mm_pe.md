@@ -1716,7 +1716,7 @@ PE-VQE-SCF Algorithm Steps[¶](#PE-VQE-SCF-Algorithm-Steps "Permalink to this he
 
 <div>
 
-![058800c2b7ca4813ba822b99181222a9](../../_images/qm-mm-pe.png){.no-scaled-link}
+![1c7dd1f9c4ac41f7ad68691fa54817e6](../../_images/qm-mm-pe.png){.no-scaled-link}
 
 </div>
 
