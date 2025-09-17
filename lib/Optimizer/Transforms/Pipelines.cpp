@@ -52,6 +52,11 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   // pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   // pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  cudaq::opt::LoopUnrollOptions luo;
+  luo.allowBreak = options.allowEarlyExit;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
   cudaq::opt::createClassicalOptimizationPipeline(pm);
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
