@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. * 
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,12 +44,14 @@ private:
       "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
-  const std::string DEFAULT_MACHINE = "AquSim";
+  /// TODO: Update this to `AquSim`
+  const std::string DEFAULT_MACHINE = "simulator";
 
+  /// @brief Allowed methods
   const std::vector<std::string> ALLOWED_METHODS = {"simulate", "execute"};
 
-  /// @brief Default action to perform, either 'simulate' or 'execute'.
-  const std::string DEFAULT_METHOD = "simulate";
+  /// @brief Default action to perform
+  const std::string DEFAULT_METHOD = ALLOWED_METHODS[0];
 
   /// @brief Polling interval for job status via QCI's CUDA-Q endpoint in
   /// microseconds.
@@ -89,8 +91,11 @@ public:
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
-    config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
+    // Temporary override until service is updated
+    if (config["machine"] == "AquSim")
+      config["machine"] = DEFAULT_MACHINE;
 
+    config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
     // check if the method is valid
     if (std::find(ALLOWED_METHODS.begin(), ALLOWED_METHODS.end(),
                   config["method"]) == ALLOWED_METHODS.end())
@@ -100,7 +105,7 @@ public:
       config["method"] = DEFAULT_METHOD;
 
     CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
-               config["method])"]);
+               config["method"]);
 
     // Authentication token not required in emulation mode
     bool isTokenRequired = [&]() {
