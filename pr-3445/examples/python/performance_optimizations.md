@@ -825,6 +825,45 @@ pr-3445
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](../../applications/python/skqd.html){.reference
+        .internal}
+        -   [Why
+            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
+            .internal}
+        -   [Setup and
+            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to
+                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1683,14 +1722,14 @@ line example would look like
 `CUDAQ_MGPU_FUSE=4 python c2h2VQE.py --target nvidia --target-option fp64,mgpu`{.docutils
 .literal .notranslate}
 
-![206c251833254775b7509a34bf7e63fd](../../_images/gate-fuse.png)
+![fb4e70f43a1d4f00ae19a32cf41041da](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![e566587f0ea44823b034d833a6b18ddd](../../_images/gatefusion.png)
+![16eef34b6f1a4306880d2800ca034fc3](../../_images/gatefusion.png)
 :::
 :::
 :::
