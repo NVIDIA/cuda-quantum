@@ -306,10 +306,57 @@ public:
     Input >> config;
     if (config.BackendConfig.has_value()) {
       if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
-        CUDAQ_INFO("Appending lowering pipeline: {}",
-                   config.BackendConfig->PlatformLoweringConfig);
-        passPipelineConfig +=
-            "," + config.BackendConfig->PlatformLoweringConfig;
+        if (/*use deprecated path for now=*/true) {
+          CUDAQ_INFO("Appending lowering pipeline: {}",
+                     config.BackendConfig->PlatformLoweringConfig);
+          passPipelineConfig +=
+              "," + config.BackendConfig->PlatformLoweringConfig;
+
+        } else {
+          // 1. Apply all the target-agnostic high-level passes.
+          // If this is an emulation and a noise model has been set, do not
+          // erase the noise callbacks.
+          if (emulate)
+            passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
+                                  std::string{noiseModel ? "false" : "true"} +
+                                  "}";
+          else
+            passPipelineConfig += ",hw-jit-prep-pipeline";
+
+          // 2. Apply target-specific high-level passes from the .yml file, if
+          // any.
+          if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
+            CUDAQ_INFO("Appending JIT high level pipeline: {}",
+                       config.BackendConfig->JITHighLevelPipeline);
+            passPipelineConfig +=
+                "," + config.BackendConfig->JITHighLevelPipeline;
+          }
+
+          // 3. Appply the target-agnostic deployment passes. Any additional
+          // restructuring to get ready for decomposition.
+          passPipelineConfig += ",jit-deploy-pipeline";
+
+          // 4. Apply the target-specific mid-level passes. This decomposed
+          // quantum gates for a specific target machine, etc.
+          if (!config.BackendConfig->JITMidLevelPipeline.empty()) {
+            CUDAQ_INFO("Appending JIT mid level pipeline: {}",
+                       config.BackendConfig->JITMidLevelPipeline);
+            passPipelineConfig +=
+                "," + config.BackendConfig->JITMidLevelPipeline;
+          }
+
+          // 5. Apply the target-agnostic finalization passes. This lowers the
+          // IR to CFG form.
+          passPipelineConfig += ",jit-finalize-pipeline";
+
+          // 6. Apply the target-specific low-level passes.
+          if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
+            CUDAQ_INFO("Appending JIT low level pipeline: {}",
+                       config.BackendConfig->JITLowLevelPipeline);
+            passPipelineConfig +=
+                "," + config.BackendConfig->JITLowLevelPipeline;
+          }
+        }
       }
       const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
       if (!codeGenSpec.empty()) {
@@ -398,7 +445,7 @@ public:
     serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
-  /// @brief Conditionally form an output_names JSON object if this was for QIR
+  /// Conditionally form an output_names JSON object if this was for QIR
   nlohmann::json formOutputNames(const std::string &codegenTranslation,
                                  mlir::ModuleOp moduleOp,
                                  const std::string &codeStr) {
@@ -814,8 +861,8 @@ public:
     completeLaunchKernel(kernelName, std::move(codes));
   }
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to
-  /// the representation required by the targeted backend. Handle all pertinent
+  /// @brief Launch the kernel. Extract the Quake code and lower to the
+  /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
   KernelThunkResultType
@@ -876,8 +923,8 @@ public:
         executionContext && executionContext->name == "observe";
     const bool isRun = executionContext && executionContext->name == "run";
 
-    // If emulation requested, then just grab the function
-    // and invoke it with the simulator
+    // If emulation requested, then just grab the function and invoke it with
+    // the simulator
     cudaq::details::future future;
     if (emulate) {
 

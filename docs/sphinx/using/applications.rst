@@ -44,6 +44,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/uccsd_wf_ansatz
    /applications/python/mps_encoding
    /applications/python/qm_mm_pe
+   /applications/python/skqd
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -112,6 +113,13 @@ This page contains a number of different applications implemented using CUDA-Q. 
             Learn how the Krylov method uses the Hadamard test to predict the ground state energy of molecules. Also learn how to implement the same approach with the <code>mqpu</code> backend and simulate execution on multiple QPUs in parallel.
         </div>
         <img src="../_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
+        <a href="../applications/python/skqd.html" class="notebook-title">Sample-Based Krylov Quantum Diagonalization (SKQD)</a>
+        <div class="notebook-content">
+            Learn how to implement the Sample-Based Krylov Quantum Diagonalization (SKQD) algorithm to predict the ground state energy of molecules.
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">

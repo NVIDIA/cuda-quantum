@@ -18,7 +18,6 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -524,7 +523,7 @@ mlir::LogicalResult qirProfileTranslationFunction(
   if (containsWireSet)
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileFields[0]);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
+    cudaq::opt::deprecatedAddPipelineConvertToQIR(pm, qirProfile);
 
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
@@ -869,7 +868,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     if (containsWireSet)
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
     else
-      cudaq::opt::commonPipelineConvertToQIR(pm, "qir", convertTo);
+      cudaq::opt::deprecatedCommonPipelineConvertToQIR(pm, "qir", convertTo);
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
