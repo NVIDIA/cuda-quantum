@@ -22,7 +22,6 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -45,6 +44,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
+#include "mlir/Transforms/Passes.h"
 #include <cxxabi.h>
 #include <dlfcn.h>
 #include <fstream>
@@ -240,7 +240,7 @@ public:
 
     mlir::PassManager pm(&mlirContext);
     // For now, the server side expects full-QIR.
-    opt::addPipelineConvertToQIR(pm, "qir:0.1");
+    opt::deprecatedAddPipelineConvertToQIR(pm, "qir:0.1");
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
