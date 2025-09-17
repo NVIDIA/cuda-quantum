@@ -48,10 +48,10 @@ struct PreDeviceCodeLoaderOptions
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-  // pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   cudaq::opt::LoopUnrollOptions luo;
