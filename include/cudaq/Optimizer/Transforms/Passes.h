@@ -26,7 +26,6 @@ void registerAggressiveInliningPipeline();
 
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
-void createClassicalOptimizationPipeline(mlir::OpPassManager &pm);
 void registerMappingPipeline();
 void registerToCFGPipeline();
 
@@ -48,6 +47,16 @@ void addDecompositionPass(
 
 void registerAOTPipelines();
 void registerJITPipelines();
+
+/// Add a pass pipeline to apply the requisite passes to optimize classical
+/// code. When converting to a quantum circuit, the static control program is
+/// fully expanded to eliminate control flow.
+/// Default values are threshold = 1024, allow break = true, and allow closed
+/// interval = true.
+void createClassicalOptimizationPipeline(
+    mlir::OpPassManager &pm, std::optional<unsigned> threshold = std::nullopt,
+    std::optional<bool> allowBreak = std::nullopt,
+    std::optional<bool> allowClosedInterval = std::nullopt);
 
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
