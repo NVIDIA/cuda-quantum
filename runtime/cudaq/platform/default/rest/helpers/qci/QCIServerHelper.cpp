@@ -47,11 +47,8 @@ private:
   /// TODO: Update this to `AquSim`
   const std::string DEFAULT_MACHINE = "simulator";
 
-  /// @brief Allowed methods
-  const std::vector<std::string> ALLOWED_METHODS = {"simulate", "execute"};
-
   /// @brief Default action to perform
-  const std::string DEFAULT_METHOD = ALLOWED_METHODS[0];
+  const std::string DEFAULT_METHOD = "simulate";
 
   /// @brief Polling interval for job status via QCI's CUDA-Q endpoint in
   /// microseconds.
@@ -94,16 +91,7 @@ public:
     // Temporary override until service is updated
     if (config["machine"] == "AquSim")
       config["machine"] = DEFAULT_MACHINE;
-
     config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
-    // check if the method is valid
-    if (std::find(ALLOWED_METHODS.begin(), ALLOWED_METHODS.end(),
-                  config["method"]) == ALLOWED_METHODS.end())
-      throw std::runtime_error("Invalid method: " + config["method"]);
-    // if target is a simulator then we simulate
-    if (config["machine"] == DEFAULT_MACHINE)
-      config["method"] = DEFAULT_METHOD;
-
     CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
                config["method"]);
 
