@@ -48,11 +48,14 @@ struct PreDeviceCodeLoaderOptions
 
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-  // pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-  // pm.addPass(cudaq::opt::createQuakePropagateMetadata());
-  cudaq::opt::createClassicalOptimizationPipeline(pm);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  cudaq::opt::createClassicalOptimizationPipeline(pm, std::nullopt,
+                                                  {options.allowEarlyExit});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());

@@ -304,14 +304,50 @@ public:
     llvm::yaml::Input Input(configYmlContents.c_str());
     Input >> config;
     if (config.BackendConfig.has_value()) {
+      const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
+      if (!codeGenSpec.empty()) {
+        CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
+        codegenTranslation = codeGenSpec;
+        auto [codeGenName, codeGenVersion, codeGenOptions] =
+            parseCodeGenTranslationString(codegenTranslation);
+        if (codeGenName == "qir-adaptive") {
+          for (auto option : codeGenOptions) {
+            if (option == "int_computations") {
+              CUDAQ_INFO("Enable int_computations extension");
+              qirIntegerExtension = true;
+            } else if (option == "float_computations") {
+              CUDAQ_INFO("Enable float_computations extension");
+              qirFloatExtension = true;
+            } else {
+              throw std::runtime_error(
+                  fmt::format("Invalid option '{}' for '{}' codegen.", option,
+                              codeGenName));
+            }
+          }
+        } else {
+          if (!codeGenOptions.empty())
+            throw std::runtime_error(fmt::format(
+                "Invalid codegen-emission '{}'. Extra options are not "
+                "supported for '{}' codegen.",
+                codeGenSpec, codeGenName));
+        }
+      }
+
+      const std::string allowEarlyExitSetting =
+          codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
+
       // 1. Apply all the target-agnostic high-level passes. If this is an
       // emulation and a noise model has been set, do not erase the noise
       // callbacks.
       if (emulate)
         passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
-                              std::string{noiseModel ? "false" : "true"} + "}";
+                              std::string{noiseModel ? "false" : "true"} +
+                              " allow-early-exit=" + allowEarlyExitSetting +
+                              "}";
       else
-        passPipelineConfig += ",hw-jit-prep-pipeline";
+        passPipelineConfig +=
+            ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
+            "}";
 
       // 2. Apply target-specific high-level passes from the .yml file, if any.
       if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
@@ -343,47 +379,12 @@ public:
         passPipelineConfig += "," + config.BackendConfig->JITLowLevelPipeline;
       }
 
-      const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
-      if (!codeGenSpec.empty()) {
-        CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
-        codegenTranslation = codeGenSpec;
-        auto [codeGenName, codeGenVersion, codeGenOptions] =
-            parseCodeGenTranslationString(codegenTranslation);
-        if (codeGenName == "qir-adaptive") {
-          for (auto option : codeGenOptions) {
-            if (option == "int_computations") {
-              CUDAQ_INFO("Enable int_computations extension");
-              qirIntegerExtension = true;
-            } else if (option == "float_computations") {
-              CUDAQ_INFO("Enable float_computations extension");
-              qirFloatExtension = true;
-            } else {
-              throw std::runtime_error(
-                  fmt::format("Invalid option '{}' for '{}' codegen.", option,
-                              codeGenName));
-            }
-          }
-        } else {
-          if (!codeGenOptions.empty())
-            throw std::runtime_error(fmt::format(
-                "Invalid codegen-emission '{}'. Extra options are not "
-                "supported for '{}' codegen.",
-                codeGenSpec, codeGenName));
-        }
-      }
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
         CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
                    config.BackendConfig->PostCodeGenPasses);
         postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
-    std::string allowEarlyExitSetting =
-        (codegenTranslation.starts_with("qir-adaptive")) ? "1" : "0";
-
-    passPipelineConfig =
-        std::string(
-            "func.func(memtoreg{quantum=0},cc-loop-unroll{allow-early-exit=") +
-        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
