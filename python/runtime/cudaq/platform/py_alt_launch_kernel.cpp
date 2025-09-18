@@ -169,7 +169,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       else
         tl = "qir:" + tlPair.second.str();
     }
-    cudaq::opt::deprecatedAddPipelineConvertToQIR(pm, tl);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, tl);
     pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =
@@ -850,7 +850,7 @@ std::string getQIR(const std::string &name, MlirModule module,
   std::string profile{profile_};
   if (profile.empty())
     profile = "qir:0.1";
-  cudaq::opt::deprecatedAddPipelineConvertToQIR(pm, profile);
+  cudaq::opt::addAOTPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
