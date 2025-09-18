@@ -39,8 +39,8 @@ ENV CUDA_VERSION=${cuda_version}
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget \
-    && apt-get upgrade -y libc-bin libcap2 build-essential \
+RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget build-essential \
+    && apt-get upgrade -y libc-bin libcap2 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # We need to remove the preinstalled cuda keyring as this will conflict when installing even non-cuda packages.
