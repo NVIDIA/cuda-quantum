@@ -62,31 +62,29 @@ public:
           builder.create<quake::ResetOp>(loc, TypeRange{}, measuredQubit);
           // Insert a conditional X to initialize qubit after reset.
           auto measOut = mz.getMeasOut();
-          for (auto *out : measOut.getUsers()) {
-            // A mz should be accompanied by a store op, find that op.
-            if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
-              auto bit = disc.getResult();
-              for (auto *bitUser : bit.getUsers()) {
-                if (auto store =
-                        dyn_cast_if_present<cudaq::cc::StoreOp>(bitUser)) {
-                  builder.setInsertionPointAfter(store);
-                  auto conditionalVar = builder.create<cudaq::cc::LoadOp>(
-                      loc, store.getPtrvalue());
-                  builder.create<cudaq::cc::IfOp>(
-                      loc, TypeRange{}, conditionalVar,
-                      [&](OpBuilder &opBuilder, Location location,
-                          Region &region) {
-                        region.push_back(new Block{});
-                        auto &bodyBlock = region.front();
-                        OpBuilder::InsertionGuard guad(opBuilder);
-                        opBuilder.setInsertionPointToStart(&bodyBlock);
-                        opBuilder.create<quake::XOp>(location, measuredQubit);
-                        opBuilder.create<cudaq::cc::ContinueOp>(location);
-                      });
-                }
+          mlir::Value measBit = [&]() {
+            for (auto *out : measOut.getUsers()) {
+              // A mz may be accompanied by a store op, find that op.
+              if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
+                builder.setInsertionPointAfter(disc);
+                return disc.getResult();
               }
             }
-          }
+            // No discriminate exists - create the discriminate Op
+            auto discOp = builder.create<quake::DiscriminateOp>(
+                loc, builder.getI1Type(), measOut);
+            return discOp.getResult();
+          }();
+          builder.create<cudaq::cc::IfOp>(
+              loc, TypeRange{}, measBit,
+              [&](OpBuilder &opBuilder, Location location, Region &region) {
+                region.push_back(new Block{});
+                auto &bodyBlock = region.front();
+                OpBuilder::InsertionGuard guad(opBuilder);
+                opBuilder.setInsertionPointToStart(&bodyBlock);
+                opBuilder.create<quake::XOp>(location, measuredQubit);
+                opBuilder.create<cudaq::cc::ContinueOp>(location);
+              });
         }
       }
 
