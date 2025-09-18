@@ -17,8 +17,6 @@ config:
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
-  # Deprecated!
-  platform-lowering-config: "func.func(erase-noise),classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,func.func(canonicalize),apply-op-specialization{constant-prop=1},aggressive-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem),symbol-dce,distributed-device-call"
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "lower-to-cfg,oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
