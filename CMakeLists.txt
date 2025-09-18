@@ -24,8 +24,8 @@ set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.cudaqx" CACHE STRING
 # ==============================================================================
 
 # Check if core is built as a standalone project.
-project(cudaq-nvqlink)
-set(CUDAQ_NVQLINK_STANDALONE_BUILD TRUE)
+project(cudaq-qclink)
+set(CUDAQ_QCLINK_STANDALONE_BUILD TRUE)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -34,13 +34,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
-set(CUDAQ_NVQLINK_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR})
-set(CUDAQ_NVQLINK_INCLUDE_DIR ${CUDAQ_NVQLINK_SOURCE_DIR}/include)
+set(CUDAQ_QCLINK_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR})
+set(CUDAQ_QCLINK_INCLUDE_DIR ${CUDAQ_QCLINK_SOURCE_DIR}/include)
 
 # Options
 # ==============================================================================
 
-option(CUDAQ_NVQLINK_INCLUDE_TESTS
+option(CUDAQ_QCLINK_INCLUDE_TESTS
        "Generate build targets for the CUDA-QX QEC unit tests."
        ${CUDAQX_INCLUDE_TESTS})
 
@@ -88,15 +88,15 @@ endif()
 
 add_subdirectory(lib)
 
-if (CUDAQ_NVQLINK_INCLUDE_TESTS)
-  add_custom_target(CUDAQXNVQLINKUnitTests)
+if (CUDAQ_QCLINK_INCLUDE_TESTS)
+  add_custom_target(CUDAQXQCLINKUnitTests)
   include(CTest)
 
   add_custom_target(run_tests
     COMMAND ${CMAKE_COMMAND} -E env 
             PYTHONPATH="${CUDAQ_INSTALL_DIR}:${CMAKE_BINARY_DIR}/python"
             ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS CUDAQXNVQLINKUnitTests
+    DEPENDS CUDAQXQCLINKUnitTests
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
   )
   add_subdirectory(unittests)

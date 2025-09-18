@@ -7,11 +7,11 @@
  ******************************************************************************/
 #pragma once
 
-#include "cudaq/nvqlink/device.h"
+#include "cudaq/qclink/device.h"
 
 #include <map>
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 class cuda_device : public device_mixin<explicit_data_marshalling_trait,
                                         device_callback_trait> {
   /// CUDA device ordinal this channel is associated with.
@@ -43,4 +43,4 @@ public:
   void launch_callback(const std::string &funcName, device_ptr &result,
                        const std::vector<device_ptr> &args) override;
 };
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

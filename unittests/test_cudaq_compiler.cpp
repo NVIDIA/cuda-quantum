@@ -9,9 +9,9 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
-#include "cudaq/nvqlink/compiler.h"
-#include "cudaq/nvqlink/device.h"
-#include "cudaq/nvqlink/nvqlink.h"
+#include "cudaq/qclink/compiler.h"
+#include "cudaq/qclink/device.h"
+#include "cudaq/qclink/qclink.h"
 
 using namespace cudaq;
 
@@ -41,15 +41,15 @@ struct thunk_ret {
   std::size_t i;
 };
 
-TEST(NVQLinkQuakeSimCompilerTester, checkSimple) {
+TEST(QCLinkQuakeSimCompilerTester, checkSimple) {
 
   // Test that we can compile Quake code!
 
   // Need a device to target
-  nvqlink::nv_simulation_device device;
+  qclink::nv_simulation_device device;
 
   // Get the Quake to Simulator compiler
-  auto compiler = nvqlink::compiler::get("cudaq");
+  auto compiler = qclink::compiler::get("cudaq");
 
   // Compile, kernel name is "test", targeting one simulation device
   auto compiled = compiler->compile(quake, "function_test._Z4testii", 1);
@@ -94,13 +94,13 @@ TEST(NVQLinkQuakeSimCompilerTester, checkSimple) {
 
   std::free(thunkArgs);
 }
-TEST(NVQLinkQuakeSimCompilerTester, checkCompileAndExecuteOnDevice) {
+TEST(QCLinkQuakeSimCompilerTester, checkCompileAndExecuteOnDevice) {
 
   // Need a device to target
-  nvqlink::nv_simulation_device device;
+  qclink::nv_simulation_device device;
 
   // Get the Quake to Simulator compiler
-  auto compiler = nvqlink::compiler::get("cudaq");
+  auto compiler = qclink::compiler::get("cudaq");
 
   // Compile, kernel name is "test", targeting one simulation device
   auto compiled = compiler->compile(quake, "function_test._Z4testii", 1);
@@ -109,7 +109,7 @@ TEST(NVQLinkQuakeSimCompilerTester, checkCompileAndExecuteOnDevice) {
   auto prog = compiled->get_programs()[0];
 
   int i = 4, j = 5;
-  auto result = nvqlink::malloc(sizeof(int));
+  auto result = qclink::malloc(sizeof(int));
   // want these by value
   device_ptr<int> iPtr(&i);
   device_ptr<int> jPtr(&j);
@@ -119,5 +119,5 @@ TEST(NVQLinkQuakeSimCompilerTester, checkCompileAndExecuteOnDevice) {
 
   EXPECT_EQ(*reinterpret_cast<int *>(result.handle), 42);
 
-  nvqlink::free(result);
+  qclink::free(result);
 }

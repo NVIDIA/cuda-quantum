@@ -21,7 +21,7 @@
 /// @brief CUDA-Q quantum compiler and kernel management namespace
 /// @details Contains interfaces and implementations for compiling quantum
 /// kernels into executable control programs for quantum processing units.
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 /// @brief Internal implementation details for quantum kernel compilation
 namespace details {
@@ -161,4 +161,4 @@ public:
 //   return std::make_tuple(code, kernelName);
 // }
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

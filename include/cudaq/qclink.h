@@ -7,4 +7,4 @@
  ******************************************************************************/
 #pragma once 
 
-#include "nvqlink/nvqlink.h"
+#include "qclink/qclink.h"

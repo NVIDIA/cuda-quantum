@@ -8,12 +8,12 @@
 
 #include <gtest/gtest.h>
 
-#include "cudaq/nvqlink/nvqlink.h"
+#include "cudaq/qclink/qclink.h"
 #include "test_config.h"
 
-using namespace cudaq::nvqlink;
+using namespace cudaq::qclink;
 
-TEST(NVQLinkCudaChannelTester, checkChannelMemoryWorks) {
+TEST(QCLinkCudaChannelTester, checkChannelMemoryWorks) {
   cpu_shmem_device channel;
   channel.connect();
   int value = 42, getBack = 0;
@@ -25,7 +25,7 @@ TEST(NVQLinkCudaChannelTester, checkChannelMemoryWorks) {
   channel.disconnect();
 }
 
-TEST(NVQLinkCudaChannelTester, checkCallbacks) {
+TEST(QCLinkCudaChannelTester, checkCallbacks) {
   // Whoa, this is confusing...
   // Mapping device function library path -> vector<device_function>, where
   // the device_function is composed of a function name and

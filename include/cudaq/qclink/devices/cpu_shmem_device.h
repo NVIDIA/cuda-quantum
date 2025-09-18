@@ -7,9 +7,9 @@
  ******************************************************************************/
 #pragma once
 
-#include "cudaq/nvqlink/device.h"
+#include "cudaq/qclink/device.h"
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 class cpu_shmem_device : public device_mixin<explicit_data_marshalling_trait,
                                              device_callback_trait> {
@@ -31,4 +31,4 @@ public:
                        const std::vector<device_ptr> &args) override;
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

@@ -5,12 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "cudaq/nvqlink/compilers/cudaq.h"
+#include "cudaq/qclink/compilers/cudaq.h"
 #include "../utils/logger.h"
 #include <dlfcn.h>
 #include <cassert> 
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 bool cudaq_compiler::understands_code(const std::string &code) const {
   // FIXME make this better
@@ -80,4 +80,4 @@ public:
 
 CUDAQ_REGISTER_TYPE(default_cudaq_compiler)
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

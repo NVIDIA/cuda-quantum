@@ -20,7 +20,7 @@
 
 namespace cudaq {
 
-namespace nvqlink {
+namespace qclink {
 
 using handle = std::size_t;
 
@@ -191,16 +191,16 @@ public:
   void disconnect() override {}
 };
 
-} // namespace nvqlink
+} // namespace qclink
 
 /// @brief Alias for quantum device memory pointer handle
 template <typename T>
-struct device_ptr : public nvqlink::device_ptr {
+struct device_ptr : public qclink::device_ptr {
   operator T *();
 };
 } // namespace cudaq
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 // DEVICE TRAITS HERE ...
 
@@ -261,4 +261,4 @@ public:
   virtual RDMADataT &get_rdma_connection_data() = 0;
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

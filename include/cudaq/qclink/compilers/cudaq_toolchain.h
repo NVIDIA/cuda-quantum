@@ -12,7 +12,7 @@
 #include <sstream>
 #include <vector>
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 struct toolchain_options {
   std::string tempDir = "/tmp";
@@ -56,10 +56,10 @@ public:
   void setTempDir(const std::string &tempDir) { tempDir_ = tempDir; }
   const std::vector<std::string> &getTempFiles() const { return tempFiles_; }
 };
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink
 
 namespace cudaq {
-using namespace nvqlink;
+using namespace qclink;
 
 // cudaq-opt tool
 class opt : public command_line_tool {
@@ -97,7 +97,7 @@ public:
   }
 };
 } // namespace cudaq
-using namespace cudaq::nvqlink;
+using namespace cudaq::qclink;
 
 namespace llvm {
 // LLC tool
@@ -144,7 +144,7 @@ public:
 };
 } // namespace clang
 
-using namespace cudaq::nvqlink;
+using namespace cudaq::qclink;
 // Pipe operator overloads for chaining tools
 command_line_tool::tool_result
 operator|(const command_line_tool::tool_result &input, cudaq::opt &tool);

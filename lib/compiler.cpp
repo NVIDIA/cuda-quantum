@@ -5,17 +5,17 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "cudaq/nvqlink/compiler.h"
-#include "cudaq/nvqlink/rt_host.h"
+#include "cudaq/qclink/compiler.h"
+#include "cudaq/qclink/rt_host.h"
 
 #include <regex>
 #include <sstream>
 #include <string>
 
-INSTANTIATE_REGISTRY_NO_ARGS(cudaq::nvqlink::compiler);
-INSTANTIATE_REGISTRY(cudaq::nvqlink::rt_host, cudaq::nvqlink::lqpu&);
+INSTANTIATE_REGISTRY_NO_ARGS(cudaq::qclink::compiler);
+INSTANTIATE_REGISTRY(cudaq::qclink::rt_host, cudaq::qclink::lqpu&);
 
-namespace cudaq::nvqlink::details {
+namespace cudaq::qclink::details {
 
 std::string removeNonEntrypointFunctions(const std::string &mlirCode) {
   std::string result = mlirCode;
@@ -131,4 +131,4 @@ std::string removeNonEntrypointFunctionsManual(const std::string &mlirCode) {
   return result.str();
 }
 
-} // namespace cudaq::nvqlink::details
+} // namespace cudaq::qclink::details

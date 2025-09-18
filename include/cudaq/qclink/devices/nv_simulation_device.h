@@ -7,11 +7,11 @@
  ******************************************************************************/
 #pragma once
 
-#include "cudaq/nvqlink/device.h"
+#include "cudaq/qclink/device.h"
 
 #include <cstring>
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 class nv_simulation_device
     : public device_mixin<qcs_trait> {
@@ -58,4 +58,4 @@ public:
   }
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

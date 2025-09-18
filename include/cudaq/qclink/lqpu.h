@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 class lqpu {
 
@@ -64,4 +64,4 @@ public:
   
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

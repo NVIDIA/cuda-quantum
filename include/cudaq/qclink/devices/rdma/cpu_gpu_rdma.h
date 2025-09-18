@@ -10,13 +10,13 @@
 #include "message.h"
 #include "rdma_data.h"
 
-#include "cudaq/nvqlink/device.h"
+#include "cudaq/qclink/device.h"
 #include <condition_variable>
 #include <cstring>
 #include <memory>
 #include <thread>
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 class cpu_gpu_rdma_data : public rdma_data<cpu_gpu_rdma_data> {
 private:
@@ -153,4 +153,4 @@ public:
   }
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

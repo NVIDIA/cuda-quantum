@@ -10,7 +10,7 @@
 #pragma nv_diag_suppress = 128
 #pragma nv_diag_suppress = 2417
 
-#include "cudaq/nvqlink/devices/cuda_device.h"
+#include "cudaq/qclink/devices/cuda_device.h"
 
 #include "../utils/logger.h"
 
@@ -32,7 +32,7 @@
     }                                                                          \
   } while (0)
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 /// Array of loaded CUDA modules.
 CUmodule *loadedModules = nullptr;
@@ -163,4 +163,4 @@ void cuda_device::launch_callback(const std::string &funcName,
       cuLaunchKernel(*cuFunc, 1024, 1, 1, 1, 1, 1, 0, 0, argsVec.data(), 0));
 }
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

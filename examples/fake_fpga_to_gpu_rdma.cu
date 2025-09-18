@@ -9,8 +9,8 @@
 #include <cassert>
 #include <stdio.h>
 
-#include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
-#include "cudaq/nvqlink/nvqlink.h"
+#include "cudaq/qclink/devices/extensible_rdma_device.cuh"
+#include "cudaq/qclink/qclink.h"
 
 // Mock the FPGA on the CPU. Write to "Fake FPGA memory" to trigger RDMA
 // data transfer to persistent CUDA kernel on RDMA device
@@ -18,7 +18,7 @@
 // clang-format off
 // Compile with 
 //
-// nvcc -forward-unknown-to-host-compiler -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90 --compiler-options -fPIC -O3 -DNDEBUG fake_fpga_to_gpu_rdma.cu -I /path/to/libs/nvqlink/include/ -L /path/to/nvqlink/lib -lcudaq-nvqlink -Wl,-rpath,$PWD/lib 
+// nvcc -forward-unknown-to-host-compiler -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90 --compiler-options -fPIC -O3 -DNDEBUG fake_fpga_to_gpu_rdma.cu -I /path/to/libs/qclink/include/ -L /path/to/qclink/lib -lcudaq-qclink -Wl,-rpath,$PWD/lib 
 // ./a.out
 //
 // clang-format on
@@ -40,25 +40,27 @@ __device__ void add_op(void *args, void *res) {
   __syncthreads();
 }
 
-__device__ cudaq::nvqlink::dispatch_func_t d_add_ptr = add_op;
+using namespace cudaq::qclink;
 
-class concrete_rdma_test : public cudaq::nvqlink::cpu_gpu_rdma_device {
+__device__ dispatch_func_t d_add_ptr = add_op;
+
+class concrete_rdma_test : public cpu_gpu_rdma_device {
 protected:
   void build_device_function_table() override {
     host_func_table.resize(1);
     cudaMemcpyFromSymbol(&host_func_table[0], d_add_ptr,
-                         sizeof(cudaq::nvqlink::dispatch_func_t));
-    cudaMalloc(&device_func_table, host_func_table.size() *
-                                       sizeof(cudaq::nvqlink::dispatch_func_t));
+                         sizeof(dispatch_func_t));
+    cudaMalloc(&device_func_table,
+               host_func_table.size() * sizeof(dispatch_func_t));
     cudaMemcpy(device_func_table, host_func_table.data(),
-               sizeof(cudaq::nvqlink::dispatch_func_t), cudaMemcpyHostToDevice);
+               sizeof(dispatch_func_t), cudaMemcpyHostToDevice);
   }
 };
 // ------------------------------------------------------------------------------
 
 // --- Example for user code -----
 
-using namespace cudaq::nvqlink;
+using namespace cudaq::qclink;
 
 int main() {
   // Create the rdma device

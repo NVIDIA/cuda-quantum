@@ -8,10 +8,10 @@
 #pragma once
 
 #include "cudaq_toolchain.h"
-#include "cudaq/nvqlink/compiler.h"
-#include "cudaq/nvqlink/device.h"
+#include "cudaq/qclink/compiler.h"
+#include "cudaq/qclink/device.h"
 
-namespace cudaq::nvqlink {
+namespace cudaq::qclink {
 
 // Subclasses need to fill the passes vector at
 // construction, can also provide the -load pluginlib.so here
@@ -28,4 +28,4 @@ public:
           std::size_t num_qcs_devices) override;
 };
 
-} // namespace cudaq::nvqlink
+} // namespace cudaq::qclink

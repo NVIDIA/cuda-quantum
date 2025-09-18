@@ -14,7 +14,7 @@ namespace cudaq {
 __attribute__((constructor)) inline void set_spdlog_handler() {
   static auto logger = [] {
     auto sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto _logger = std::make_shared<spdlog::logger>("NVQLink Logger", sink);
+    auto _logger = std::make_shared<spdlog::logger>("QCLink Logger", sink);
     _logger->set_level(spdlog::level::trace);
     _logger->set_pattern("[%T] [%^%l%$] %v");
     return _logger;
