@@ -112,11 +112,11 @@ device_ptr cuda_device::malloc(std::size_t size) {
     void *ptr = nullptr;
     cudaMalloc(&ptr, size);
     cudaMemset(ptr, 0, size);
-    device_ptr devPtr{to_handle(ptr), size, device_id};
+    device_ptr devPtr{to_handle(ptr), size, get_id()};
     local_memory_pool.insert({devPtr.handle, ptr});
     cudaq::Logger::log(
         "cuda channel (device {}) allocating data of size {}, hdl {}.",
-        device_id, size, devPtr.handle);
+        get_id(), size, devPtr.handle);
     return devPtr;
   });
 }

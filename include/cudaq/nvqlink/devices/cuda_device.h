@@ -12,9 +12,8 @@
 #include <map>
 
 namespace cudaq::nvqlink {
-class cuda_device
-    : public device_mixin<explicit_data_marshalling_trait<cuda_device>,
-                          device_callback_trait<cuda_device>> {
+class cuda_device : public device_mixin<explicit_data_marshalling_trait,
+                                        device_callback_trait> {
   /// CUDA device ordinal this channel is associated with.
   int cudaDevice = 0;
 
@@ -30,18 +29,18 @@ public:
               const std::vector<std::string> &fatbinFiles)
       : device_mixin(), cudaDevice(cudaDevId), fatbinLocations(fatbinFiles) {}
 
-  using explicit_data_marshalling_trait<cuda_device>::malloc;
-  using explicit_data_marshalling_trait<cuda_device>::free;
-  using device_callback_trait<cuda_device>::launch_callback;
+  using explicit_data_marshalling_trait::free;
+  using explicit_data_marshalling_trait::malloc;
+  using device_callback_trait::launch_callback;
 
   void connect() override;
   void disconnect() override;
-  void *resolve_pointer(device_ptr &devPtr);
-  device_ptr malloc(std::size_t size);
-  void free(device_ptr &d);
-  void send(device_ptr &dest, const void *src);
-  void recv(void *dest, const device_ptr &src);
+  void *resolve_pointer(device_ptr &devPtr) override;
+  device_ptr malloc(std::size_t size) override;
+  void free(device_ptr &d) override;
+  void send(device_ptr &dest, const void *src) override;
+  void recv(void *dest, const device_ptr &src) override;
   void launch_callback(const std::string &funcName, device_ptr &result,
-                       const std::vector<device_ptr> &args);
+                       const std::vector<device_ptr> &args) override;
 };
 } // namespace cudaq::nvqlink

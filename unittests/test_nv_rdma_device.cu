@@ -6,10 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/nvqlink/nvqlink.h"
 #include <gtest/gtest.h>
 
-// ------ Example of Internal Library Code for Device Functions and Devices ----
+using namespace cudaq::nvqlink;
 
+// ------ Example of Internal Library Code for Device Functions and Devices ----
 
 __device__ void add_op(void *args, void *res) {
   // printf("Test here\n");
@@ -28,26 +30,23 @@ __device__ void add_op(void *args, void *res) {
 
 #include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
 
-__device__ cudaq::nvqlink::dispatch_func_t d_add_ptr = add_op;
+__device__ dispatch_func_t d_add_ptr = add_op;
 
-class concrete_rdma_test : public cudaq::nvqlink::cpu_gpu_rdma_device {
+class concrete_rdma_test : public cpu_gpu_rdma_device {
 protected:
   void build_device_function_table() override {
     host_func_table.resize(1);
     cudaMemcpyFromSymbol(&host_func_table[0], d_add_ptr,
-                         sizeof(cudaq::nvqlink::dispatch_func_t));
-    cudaMalloc(&device_func_table, host_func_table.size() *
-                                       sizeof(cudaq::nvqlink::dispatch_func_t));
+                         sizeof(dispatch_func_t));
+    cudaMalloc(&device_func_table,
+               host_func_table.size() * sizeof(dispatch_func_t));
     cudaMemcpy(device_func_table, host_func_table.data(),
-               sizeof(cudaq::nvqlink::dispatch_func_t), cudaMemcpyHostToDevice);
+               sizeof(dispatch_func_t), cudaMemcpyHostToDevice);
   }
 };
 // ------------------------------------------------------------------------------
 
 // --- Example for user code -----
-#include "cudaq/nvqlink/nvqlink.h"
-
-using namespace cudaq::nvqlink;
 
 TEST(NVQLinkCudaChannelTester, checkChannelMemoryWorks) {
   // Create the rdma device

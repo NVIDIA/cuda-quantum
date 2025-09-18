@@ -16,7 +16,7 @@
 
 #include "utils/extension_point.h"
 
-#include "devices/all_devices.h"
+#include "device.h"
 
 /// @brief CUDA-Q quantum compiler and kernel management namespace
 /// @details Contains interfaces and implementations for compiling quantum

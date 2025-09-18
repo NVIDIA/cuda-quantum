@@ -9,6 +9,3 @@
 
 #include "nv_simulation_rt_host.h"
 
-namespace cudaq::nvqlink {
-using any_rt_host = std::variant<nv_simulation_rt_host>;
-}

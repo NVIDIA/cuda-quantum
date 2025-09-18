@@ -11,9 +11,8 @@
 
 namespace cudaq::nvqlink {
 
-class cpu_shmem_device
-    : public device_mixin<explicit_data_marshalling_trait<cpu_shmem_device>,
-                          device_callback_trait<cpu_shmem_device>> {
+class cpu_shmem_device : public device_mixin<explicit_data_marshalling_trait,
+                                             device_callback_trait> {
 protected:
   std::vector<void *> handles;
   std::unordered_map<std::string, std::pair<void *, device_function>>
@@ -23,13 +22,13 @@ public:
   using device_mixin::device_mixin;
   void connect() override;
   void disconnect() override;
-  void *resolve_pointer(device_ptr &devPtr);
-  device_ptr malloc(std::size_t size);
-  void free(device_ptr &d);
-  void send(device_ptr &dest, const void *src);
-  void recv(void *dest, const device_ptr &src);
+  void *resolve_pointer(device_ptr &devPtr) override;
+  device_ptr malloc(std::size_t size) override;
+  void free(device_ptr &d) override;
+  void send(device_ptr &dest, const void *src) override;
+  void recv(void *dest, const device_ptr &src) override;
   void launch_callback(const std::string &funcName, device_ptr &result,
-                       const std::vector<device_ptr> &args);
+                       const std::vector<device_ptr> &args) override;
 };
 
 } // namespace cudaq::nvqlink

@@ -63,7 +63,7 @@ void *cpu_shmem_device::resolve_pointer(device_ptr &devPtr) {
 }
 
 device_ptr cpu_shmem_device::malloc(std::size_t size) {
-  return {to_handle(std::malloc(size)), size, device_id};
+  return {to_handle(std::malloc(size)), size, get_id()};
 }
 
 void cpu_shmem_device::free(device_ptr &d) { std::free(to_ptr(d)); }

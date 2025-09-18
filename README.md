@@ -5,8 +5,8 @@ CUDA-Q NVQLink is a ...
 ## Getting Started
 
 ```bash
-# Configure
-cmake -G Ninja .. -DCUDAQX_ENABLE_LIBS=nvqlink 
+# Configure, need cmake 3.28+
+cmake -G Ninja .. -DCUDAQ_NVQLINK_INCLUDE_TESTS=ON
 # Build
 ninja 
 # Test

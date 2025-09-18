@@ -9,6 +9,9 @@
 #include <cassert>
 #include <stdio.h>
 
+#include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
+#include "cudaq/nvqlink/nvqlink.h"
+
 // Mock the FPGA on the CPU. Write to "Fake FPGA memory" to trigger RDMA
 // data transfer to persistent CUDA kernel on RDMA device
 
@@ -37,8 +40,6 @@ __device__ void add_op(void *args, void *res) {
   __syncthreads();
 }
 
-#include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
-
 __device__ cudaq::nvqlink::dispatch_func_t d_add_ptr = add_op;
 
 class concrete_rdma_test : public cudaq::nvqlink::cpu_gpu_rdma_device {
@@ -56,7 +57,6 @@ protected:
 // ------------------------------------------------------------------------------
 
 // --- Example for user code -----
-#include "cudaq/nvqlink/nvqlink.h"
 
 using namespace cudaq::nvqlink;
 

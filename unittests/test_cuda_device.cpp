@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "cudaq/nvqlink.h"
+#include "test_config.h"
 
 using namespace cudaq::nvqlink;
 
@@ -30,7 +31,7 @@ TEST(NVQLinkCudaChannelTester, checkCallbacks) {
   // an optional unmarshaller (which we'll use here in this test,
   // don't have MLIR unmarshaller here)
   std::unordered_map<std::string, std::vector<device::device_function>>
-      devcallbacks{{"libs/nvqlink/unittests/CMakeFiles/vec-add.dir/"
+      devcallbacks{{CUDAQ_TEST_BINARY_DIR "/unittests/CMakeFiles/vec-add.dir/"
                     "test_device_libraries/vec_add.fatbin",
                     {{device::device_function{"vectorAdd"}}}}};
 

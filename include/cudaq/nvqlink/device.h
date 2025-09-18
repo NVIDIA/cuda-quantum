@@ -20,14 +20,6 @@
 
 namespace cudaq {
 
-#if __cplusplus >= 202002L
-template <typename A>
-using nvqlink_remove_cvref_t = std::remove_cvref_t<A>;
-#else
-template <typename A>
-using nvqlink_remove_cvref_t = std::remove_cv_t<std::remove_reference_t<A>>;
-#endif
-
 namespace nvqlink {
 
 using handle = std::size_t;
@@ -138,9 +130,10 @@ struct device_ptr {
 };
 
 class device {
-public:
+private:
   std::size_t device_id = 0;
 
+public:
   // A device function has a callback name,
   // and the user can optionally provide a function
   // that takes the device function pointer and
@@ -168,8 +161,21 @@ public:
     device_counter++;
   }
 
+  virtual ~device() = default; 
+  
   virtual void connect() = 0;
   virtual void disconnect() = 0;
+
+  std::size_t get_id() const { return device_id; }
+
+  template <typename Trait>
+  Trait *as() {
+    return dynamic_cast<Trait *>(this);
+  }
+  template <typename Trait>
+  bool isa() {
+    return as<Trait>() != nullptr;
+  }
 };
 
 template <typename... Traits>
@@ -183,9 +189,6 @@ public:
     // by default do nothing
   }
   void disconnect() override {}
-
-  // Provide non-const and const accessors.
-  std::size_t get_id() const { return device_id; }
 };
 
 } // namespace nvqlink
@@ -202,25 +205,20 @@ namespace cudaq::nvqlink {
 // DEVICE TRAITS HERE ...
 
 // RTH mediated data marshaling
-template <typename Derived>
 class explicit_data_marshalling_trait {
 public:
-  void *resolve_pointer(device_ptr &devPtr) {
-    return static_cast<Derived *>(this)->resolve_pointer(devPtr);
-  }
+  virtual void *resolve_pointer(device_ptr &devPtr) = 0;
 
-  device_ptr malloc(std::size_t size) const {
-    return static_cast<Derived *>(this)->malloc(size);
-  }
+  virtual device_ptr malloc(std::size_t size) = 0;
 
   template <typename... Sizes,
             std::enable_if_t<(std::conjunction_v<std::is_integral<Sizes>...>),
                              int> = 0>
   auto malloc(Sizes... szs) {
-    return std::make_tuple(static_cast<Derived *>(this)->malloc(szs)...);
+    return std::make_tuple(malloc(szs)...);
   }
 
-  void free(device_ptr &d) { static_cast<Derived *>(this)->free(d); }
+  virtual void free(device_ptr &d) = 0;
 
   template <typename... Ptrs,
             typename = std::enable_if_t<
@@ -231,137 +229,36 @@ public:
     (free(d), ...);
   }
 
-  void send(device_ptr &dest, const void *src) {
-    static_cast<Derived *>(this)->send(dest, src);
-  }
-
-  void recv(void *dest, const device_ptr &src) {
-    static_cast<Derived *>(this)->recv(dest, src);
-  }
+  virtual void send(device_ptr &dest, const void *src) = 0;
+  virtual void recv(void *dest, const device_ptr &src) = 0;
 };
 
 // RTH mediated device function callback invocation
-template <typename Derived>
 class device_callback_trait {
 public:
   void launch_callback(const std::string &callbackName,
                        const std::vector<device_ptr> &args) {
     device_ptr null;
-    static_cast<Derived *>(this)->launch_callback(callbackName, null, args);
+    launch_callback(callbackName, null, args);
   }
-  void launch_callback(const std::string &callbackName, device_ptr &result,
-                       const std::vector<device_ptr> &args) {
-    static_cast<Derived *>(this)->launch_callback(callbackName, result, args);
-  }
+
+  virtual void launch_callback(const std::string &callbackName,
+                               device_ptr &result,
+                               const std::vector<device_ptr> &args) = 0;
 };
 
 // QCS Device API
-template <typename Derived>
 class qcs_trait {
 public:
-  void upload_program(const std::vector<std::byte> program_data) {
-    static_cast<Derived *>(this)->upload_program(program_data);
-  }
-  void trigger(device_ptr &result, const std::vector<device_ptr> &args) {
-    static_cast<Derived *>(this)->trigger(result, args);
-  }
+  virtual void upload_program(const std::vector<std::byte> program_data) = 0;
+  virtual void trigger(device_ptr &result,
+                       const std::vector<device_ptr> &args) = 0;
 };
 
-// fpga_gpu_rdma is a channel that is asynchronous,
-// it starts an implicit event loop, it only needs connect / disconnect
-template <typename Derived, typename RDMATypeT>
+template <typename RDMADataT>
 class rdma_trait {
 public:
-  RDMATypeT &get_rdma_connection_data() {
-    return static_cast<const Derived *>(this)->get_rdma_connection_data();
-  }
+  virtual RDMADataT &get_rdma_connection_data() = 0;
 };
 
-namespace detail {
-
-// ===== explicit_data_marshalling_trait detection =====
-template <typename T, typename = void>
-struct has_data_marshalling_methods : std::false_type {};
-
-template <typename T>
-struct has_data_marshalling_methods<
-    T, std::void_t<
-           // Check for resolve_pointer method
-           decltype(std::declval<T>().resolve_pointer(
-               std::declval<device_ptr &>())),
-
-           // Check for malloc method with size_t
-           decltype(std::declval<T>().malloc(std::declval<std::size_t>())),
-
-           // Check for free method
-           decltype(std::declval<T>().free(std::declval<device_ptr &>())),
-
-           // Check for send method
-           decltype(std::declval<T>().send(std::declval<device_ptr &>(),
-                                           std::declval<const void *>())),
-
-           // Check for recv method
-           decltype(std::declval<T>().recv(
-               std::declval<void *>(), std::declval<const device_ptr &>()))>>
-    : std::true_type {};
-
-// ===== rdma_trait detection =====
-template <typename T, typename = void>
-struct has_rdma_methods : std::false_type {};
-
-template <typename T>
-struct has_rdma_methods<
-    T, std::void_t<decltype(std::declval<T>().get_rdma_connection_data())>>
-    : std::true_type {};
-
-// ===== device_callback_trait detection =====
-template <typename T, typename = void>
-struct has_callback_methods : std::false_type {};
-
-template <typename T>
-struct has_callback_methods<
-    T,
-    std::void_t<
-        // Check for launch_callback with 2 parameters (no result)
-        decltype(std::declval<T>().launch_callback(
-            std::declval<const std::string &>(),
-            std::declval<const std::vector<device_ptr> &>())),
-
-        // Check for launch_callback with 3 parameters (with result)
-        decltype(std::declval<T>().launch_callback(
-            std::declval<const std::string &>(), std::declval<device_ptr &>(),
-            std::declval<const std::vector<device_ptr> &>()))>>
-    : std::true_type {};
-
-// ===== QCS trait detection (from your original code) =====
-
-template <typename T, typename = void>
-struct has_qcs_trait : std::false_type {};
-
-template <typename T>
-struct has_qcs_trait<
-    T, std::void_t<decltype(std::declval<T>().upload_program(
-                       std::declval<std::vector<std::byte>>())),
-                   decltype(std::declval<T>().trigger(
-                       std::declval<device_ptr &>(),
-                       std::declval<const std::vector<device_ptr> &>()))>>
-    : std::true_type {};
-} // namespace detail
-
-// Public interface - these are the ones you'll use
-template <typename T>
-constexpr bool has_data_marshalling_trait_v =
-    detail::has_data_marshalling_methods<nvqlink_remove_cvref_t<T>>::value;
-
-template <typename T>
-constexpr bool has_rdma_trait_v =
-    detail::has_rdma_methods<nvqlink_remove_cvref_t<T>>::value;
-
-template <typename T>
-constexpr bool has_callback_trait_v =
-    detail::has_callback_methods<nvqlink_remove_cvref_t<T>>::value;
-
-template <typename T>
-constexpr bool has_qcs_trait_v =
-    detail::has_qcs_trait<nvqlink_remove_cvref_t<T>>::value;
 } // namespace cudaq::nvqlink

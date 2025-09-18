@@ -7,8 +7,8 @@
  ******************************************************************************/
 #pragma once
 
-#include "rdma/persistent.cuh"
 #include "rdma/cpu_gpu_rdma.h"
+#include "rdma/persistent.cuh"
 
 #include "cudaq/nvqlink/device.h"
 
@@ -29,13 +29,22 @@ namespace cudaq::nvqlink {
 
 void launch_persistent_kernel_impl(persistent_kernel_data &data,
                                    std::size_t buffer_size,
-                                   dispatch_func_t *&funcs,
-                                   std::size_t num_funcs);
+                                   dispatch_func_t *&function_table,
+                                   std::size_t num_funcs) {
+  // Launch persistent kernel
+  cudaStream_t stream;
+  CUDA_CHECK(cudaStreamCreate(&stream));
+
+  persistent_rdma_dispatcher_kernel<<<1, 32, 0, stream>>>(
+      static_cast<unsigned char *>(data.gpu_message_buffer), buffer_size,
+      data.trigger_flag, data.completion_flag, function_table, num_funcs);
+
+  CUDA_CHECK(cudaGetLastError());
+  printf("Persistent RDMA dispatcher kernel launched\n");
+}
 
 template <typename RDMADataT>
-class extensible_rdma_device
-    : public device_mixin<
-          rdma_trait<extensible_rdma_device<RDMADataT>, RDMADataT>> {
+class extensible_rdma_device : public device_mixin<rdma_trait<RDMADataT>> {
 protected:
   dispatch_func_t *device_func_table;
   std::vector<dispatch_func_t> host_func_table;
@@ -138,22 +147,6 @@ public:
 
   RDMADataT &get_rdma_connection_data() { return m_rdma_data; }
 };
-
-void launch_persistent_kernel_impl(persistent_kernel_data &data,
-                                   std::size_t buffer_size,
-                                   dispatch_func_t *&function_table,
-                                   std::size_t num_funcs) {
-  // Launch persistent kernel
-  cudaStream_t stream;
-  CUDA_CHECK(cudaStreamCreate(&stream));
-
-  persistent_rdma_dispatcher_kernel<<<1, 32, 0, stream>>>(
-      static_cast<unsigned char *>(data.gpu_message_buffer), buffer_size,
-      data.trigger_flag, data.completion_flag, function_table, num_funcs);
-
-  CUDA_CHECK(cudaGetLastError());
-  printf("Persistent RDMA dispatcher kernel launched\n");
-}
 
 using cpu_gpu_rdma_device = extensible_rdma_device<cpu_gpu_rdma_data>;
 // Add more...

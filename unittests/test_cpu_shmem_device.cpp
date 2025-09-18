@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "cudaq/nvqlink/nvqlink.h"
+#include "test_config.h"
 
 using namespace cudaq::nvqlink;
 
@@ -31,7 +32,7 @@ TEST(NVQLinkCudaChannelTester, checkCallbacks) {
   // an optional unmarshaller (which we'll use here in this test,
   // don't have MLIR unmarshaller here)
   std::unordered_map<std::string, std::vector<device::device_function>>
-      devcallbacks{{"libs/nvqlink/unittests/libshmem-add.so",
+      devcallbacks{{CUDAQ_TEST_BINARY_DIR "/unittests/libshmem-add.so",
                     {{device::device_function{
                         "add", [](void *sym, device_ptr &result,
                                   const std::vector<device_ptr> &args) {

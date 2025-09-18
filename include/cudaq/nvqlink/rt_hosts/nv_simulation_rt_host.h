@@ -11,29 +11,29 @@
 
 namespace cudaq::nvqlink {
 
-class nv_simulation_rt_host : public rt_host<nv_simulation_rt_host> {
-public:
-  using rt_host::rt_host;
+class nv_simulation_rt_host : public rt_host {
 
-  std::unique_ptr<compiler> get_compiler() const {
+protected:
+  std::unique_ptr<compiler> get_compiler() override {
     return compiler::get("cudaq");
   }
 
   void trigger_execution(device_ptr &result,
-                         const std::vector<device_ptr> &args) {
+                         const std::vector<device_ptr> &args) override {
     for (auto &[i, dev] : m_quantum_devices)
-      std::visit(
-          [&](auto &&d) {
-            using DeviceType = decltype(d);
-            if constexpr (has_qcs_trait_v<DeviceType>) {
-              d.trigger(result, args);
-            } else {
-              throw std::runtime_error("invalid device provided to "
-                                       "nv_simulation_host trigger execution.");
-            }
-          },
-          dev);
+      dev->trigger(result, args);
   }
+
+public:
+  using rt_host::rt_host;
+
+  CUDAQ_EXTENSION_CUSTOM_CREATOR_FUNCTION_WITH_NAME(
+      nv_simulation_rt_host, "nv_simulation_rt_host",
+      static std::unique_ptr<rt_host> create(lqpu &cfg) {
+        return std::make_unique<nv_simulation_rt_host>(cfg);
+      })
 };
+
+CUDAQ_REGISTER_TYPE(nv_simulation_rt_host)
 
 } // namespace cudaq::nvqlink

@@ -7,10 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "device.h"
-#include "lqpu.h"
-
-#include "cudaq/nvqlink/rt_hosts/all_rt_hosts.h"
+#include "rt_host.h"
 
 #include <cstring>
 
@@ -18,16 +15,14 @@ namespace cudaq::nvqlink {
 
 namespace details {
 static lqpu *logical_qpu_config = nullptr;
-static std::unique_ptr<any_rt_host> qpu_rt_host;
+static std::unique_ptr<rt_host> qpu_rt_host;
 static std::size_t kernelHandle = 0;
 std::unordered_map<std::size_t, std::unique_ptr<compiled_kernel>> loaded;
 
 void __set_lqpu_config(const lqpu *cfg) {
   details::logical_qpu_config = const_cast<lqpu *>(cfg);
 }
-void __set_rt_host(std::unique_ptr<any_rt_host> &&rt) {
-  details::qpu_rt_host = std::move(rt);
-}
+
 template <typename T>
 device_ptr device_ptr_from_ref(T &t) {
   return device_ptr(&t);
@@ -36,16 +31,14 @@ device_ptr device_ptr_from_ref(T &t) {
 
 void initialize(const lqpu *cfg) {
   details::logical_qpu_config = const_cast<lqpu *>(cfg);
-  details::qpu_rt_host = std::make_unique<any_rt_host>(
-      nv_simulation_rt_host{*details::logical_qpu_config});
+  details::qpu_rt_host =
+      rt_host::get("nv_simulation_rt_host", *const_cast<lqpu *>(cfg));
 }
 
 template <typename RTHostTy>
 void initialize(const lqpu *cfg) {
   details::__set_lqpu_config(cfg);
-  auto rtHost =
-      std::make_unique<any_rt_host>(RTHostTy{*const_cast<lqpu *>(cfg)});
-  details::__set_rt_host(std::move(rtHost));
+  details::qpu_rt_host = std::make_unique<RTHostTy>(*const_cast<lqpu*>(cfg));
 }
 
 device_ptr malloc(std::size_t size) {
@@ -58,17 +51,7 @@ device_ptr malloc(std::size_t size, std::size_t devId) {
   // If devId not equal to driver id, then this is a request to
   // the driver to allocate the memory on the correct device
   auto &device = details::logical_qpu_config->get_device(devId);
-  return std::visit(
-      [size, devId](auto &&dev) -> device_ptr {
-        using DeviceType = decltype(dev);
-        if constexpr (has_data_marshalling_trait_v<DeviceType>) {
-          return dev.malloc(size);
-        } else {
-          throw std::runtime_error(
-              "device does not provide explicit data marshaling");
-        }
-      },
-      device);
+  return device.as<explicit_data_marshalling_trait>()->malloc(size);
 }
 
 template <typename T>
@@ -95,17 +78,9 @@ void free(device_ptr &d) {
     return std::free(reinterpret_cast<void *>(d.handle));
 
   auto &device = details::logical_qpu_config->get_device(d.deviceId);
-  return std::visit(
-      [&d](auto &&dev) -> void {
-        using DeviceType = decltype(dev);
-        if constexpr (has_data_marshalling_trait_v<DeviceType>) {
-          return dev.free(d);
-        } else {
-          throw std::runtime_error("no free method");
-        }
-      },
-      device);
+  return device.as<explicit_data_marshalling_trait>()->free(d);
 }
+
 // Copy the given src data into the data element.
 void memcpy(device_ptr &arg, const void *src) {
   if (arg.deviceId == std::numeric_limits<std::size_t>::max()) {
@@ -114,16 +89,7 @@ void memcpy(device_ptr &arg, const void *src) {
   }
 
   auto &device = details::logical_qpu_config->get_device(arg.deviceId);
-  return std::visit(
-      [&arg, &src](auto &&dev) -> void {
-        using DeviceType = decltype(dev);
-        if constexpr (has_data_marshalling_trait_v<DeviceType>) {
-          return dev.send(arg, src);
-        } else {
-          throw std::runtime_error("no send");
-        }
-      },
-      device);
+  return device.as<explicit_data_marshalling_trait>()->send(arg, src);
 }
 
 void memcpy(void *dest, const device_ptr &src) {
@@ -133,16 +99,7 @@ void memcpy(void *dest, const device_ptr &src) {
   }
 
   auto &device = details::logical_qpu_config->get_device(src.deviceId);
-  return std::visit(
-      [&src, &dest](auto &&dev) {
-        using DeviceType = decltype(dev);
-        if constexpr (has_data_marshalling_trait_v<DeviceType>) {
-          return dev.recv(dest, src);
-        } else {
-          throw std::runtime_error("no recv\n");
-        }
-      },
-      device);
+  return device.as<explicit_data_marshalling_trait>()->recv(dest, src);
 }
 
 /// @brief Copy the data from the given device_ptr to a host-side value.
@@ -158,12 +115,8 @@ T memcpy(const device_ptr &src) {
 
 handle load_kernel(const std::string &kernel_code,
                    const std::string &kernel_name) {
-  auto compiled = std::visit(
-      [&](auto &&rt_host) { return rt_host.compile(kernel_code, kernel_name); },
-      *details::qpu_rt_host);
-
+  auto compiled = details::qpu_rt_host->compile(kernel_code, kernel_name);
   details::loaded.insert({details::kernelHandle, std::move(compiled)});
-
   // Increment the handle and return
   auto saved = details::kernelHandle;
   details::kernelHandle++;
@@ -180,9 +133,7 @@ void launch_kernel(handle kernelHandle, device_ptr &result,
 
   // Execute the ,ernelprogram
   auto &progs = iter->second;
-  std::visit(
-      [&](auto &&rt_host) { rt_host.execute(*progs.get(), args, result); },
-      *details::qpu_rt_host);
+  details::qpu_rt_host->execute(*progs.get(), args, result);
 }
 
 void launch_kernel(handle kernelHandle, const std::vector<device_ptr> &args) {
@@ -204,6 +155,15 @@ Ret launch_kernel(handle kernelHandle, Args &&...args) {
 
 /// @brief shutdown the driver API. This should
 /// kick of the disconnection of all channels.
-void shutdown() { details::logical_qpu_config = nullptr; }
+void shutdown() {
+  details::logical_qpu_config = nullptr;
+  details::qpu_rt_host.reset();
+  device_counter = 0;
+}
 
 } // namespace cudaq::nvqlink
+
+// Include all builtin extensions
+
+#include "devices/all_devices.h"
+#include "rt_hosts/all_rt_hosts.h"

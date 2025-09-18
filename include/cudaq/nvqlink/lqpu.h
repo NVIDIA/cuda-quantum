@@ -7,8 +7,9 @@
  ******************************************************************************/
 #pragma once
 
-#include "devices/all_devices.h"
+#include "device.h"
 
+#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -17,50 +18,50 @@ namespace cudaq::nvqlink {
 class lqpu {
 
 private:
-  std::vector<any_device> m_devices;
-  std::vector<any_device> m_qcs_devices;
-
+  std::vector<std::unique_ptr<device>> m_devices;
 public:
-  lqpu(const std::vector<any_device> &devices) {
-    for (auto &dev : const_cast<std::vector<any_device> &>(devices))
-      std::visit(
-          [&](auto &&x) mutable {
-            using DeviceType = decltype(x);
-            x.connect();
-            if constexpr (has_qcs_trait_v<DeviceType>) {
-              m_qcs_devices.push_back(x);
-            } else {
-              m_devices.push_back(x);
-            }
-          },
-          dev);
+  lqpu(std::vector<std::unique_ptr<device>> &&devices)
+      : m_devices(std::move(devices)) {
+    for (auto &dev : m_devices)
+      dev->connect();
   }
 
   ~lqpu() {
-    for (auto &dev : m_qcs_devices)
-      std::visit([](auto &&x) { x.disconnect(); }, dev);
     for (auto &dev : m_devices)
-      std::visit([](auto &&d) { d.disconnect(); }, dev);
+      dev->disconnect();
   }
 
   std::size_t get_num_devices() const { return m_devices.size(); }
-  std::size_t get_num_qcs_devices() const { return m_qcs_devices.size(); }
+  std::size_t get_num_qcs_devices() const {
+    std::size_t num = 0;
+    for (auto &dev : m_devices)
+      if (dev->isa<qcs_trait>())
+        num++;
+    return num;
+  }
 
   // Provides access, throws on bad index for safety.
-  any_device &get_device(std::size_t idx) {
+  device &get_device(std::size_t idx) {
     if (idx >= m_devices.size())
       throw std::out_of_range("Invalid device index");
-    return m_devices[idx];
+    return *m_devices[idx];
   }
-  const any_device &get_device(std::size_t idx) const {
+  const device &get_device(std::size_t idx) const {
     if (idx >= m_devices.size())
       throw std::out_of_range("Invalid device index");
-    return m_devices[idx];
+    return *m_devices[idx];
   }
 
-  std::vector<any_device> get_quantum_control_devices() const {
-    return m_qcs_devices;
+  const auto &get_devices() const { return m_devices; }
+
+  std::vector<qcs_trait *> get_quantum_control_devices() const {
+    std::vector<qcs_trait *> devs;
+    for (auto &dev : m_devices)
+      if (dev->isa<qcs_trait>())
+        devs.push_back(dev->as<qcs_trait>());
+    return devs;
   }
+  
 };
 
 } // namespace cudaq::nvqlink

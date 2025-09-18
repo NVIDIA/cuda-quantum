@@ -14,7 +14,7 @@
 namespace cudaq::nvqlink {
 
 class nv_simulation_device
-    : public device_mixin<qcs_trait<nv_simulation_device>> {
+    : public device_mixin<qcs_trait> {
   // Create the expected thunk args return structure
   struct thunk_ret {
     void *ptr;
@@ -33,14 +33,14 @@ public:
       std::free(thunkArgs);
   }
 
-  void upload_program(const std::vector<std::byte> program) {
+  void upload_program(const std::vector<std::byte> program) override {
     // program here is a function pointer. but to what? Need to figure out
     // the entrypoint and how to call it with arguments.
     std::memcpy(&argsCreator, program.data(), sizeof(void *));
     std::memcpy(&thunk, program.data() + sizeof(void *), sizeof(void *));
   }
 
-  void trigger(device_ptr &result, const std::vector<device_ptr> &args) {
+  void trigger(device_ptr &result, const std::vector<device_ptr> &args) override {
     std::vector<void *> concrete_args;
     concrete_args.resize(args.size());
 

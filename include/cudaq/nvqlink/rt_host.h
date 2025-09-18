@@ -8,33 +8,38 @@
 #pragma once
 
 #include "compiler.h"
-#include "devices/all_devices.h"
+#include "device.h"
 #include "lqpu.h"
+
+#include "utils/extension_point.h"
 
 #include <unordered_map>
 
 namespace cudaq::nvqlink {
 
-template <typename Derived>
-class rt_host {
+class rt_host : public cudaqx::extension_point<rt_host, lqpu&> {
 protected:
   lqpu &m_qpu;
 
   // Useful mapping of qdevice ids to the device type itself
-  std::unordered_map<std::size_t, any_device> m_quantum_devices;
+  std::unordered_map<std::size_t, qcs_trait *> m_quantum_devices;
+
+  virtual void trigger_execution(device_ptr &res,
+                                 const std::vector<device_ptr> &args) = 0;
+  virtual std::unique_ptr<compiler> get_compiler() = 0;
 
 public:
   rt_host(lqpu &cfg) : m_qpu(cfg) {
-    for (auto &qd : m_qpu.get_quantum_control_devices())
-      m_quantum_devices.insert(
-          {std::visit([](auto &&q) { return q.get_id(); }, qd), qd});
+    for (auto &qd : m_qpu.get_devices())
+      if (qd->isa<qcs_trait>())
+        m_quantum_devices.insert({qd->get_id(), qd->as<qcs_trait>()});
   }
 
   virtual ~rt_host() = default;
 
   std::unique_ptr<compiled_kernel> compile(const std::string &code,
                                            const std::string &kernel_name) {
-    auto compiler = static_cast<const Derived *>(this)->get_compiler();
+    auto compiler = get_compiler();
     auto qc_devices = m_qpu.get_quantum_control_devices();
     return compiler->compile(code, kernel_name, qc_devices.size());
   }
@@ -49,22 +54,11 @@ public:
                                  " not found.");
 
       // Launch the program on the target device.
-      std::visit(
-          [&](auto &&d) {
-            using DeviceType = decltype(d);
-            if constexpr (has_qcs_trait_v<DeviceType>) {
-              d.upload_program(prog.binary);
-            } else {
-              throw std::runtime_error("not a qcs device.");
-            }
-          },
-          it->second);
+      it->second->upload_program(prog.binary);
     }
 
-    static_cast<Derived *>(this)->trigger_execution(result, args);
+    trigger_execution(result, args);
   }
 };
 
 } // namespace cudaq::nvqlink
-
-#include "rt_hosts/all_rt_hosts.h"

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq.h"
+#include "cudaq/driver/device.h"
 #include "cudaq/nvqlink/nvqlink.h"
 
 // clang-format off
@@ -38,7 +39,9 @@ int main() {
   using namespace cudaq;
 
   // Configure you logical QPU, initialize the system
-  nvqlink::lqpu cfg({nvqlink::nv_simulation_device()});
+  std::vector<std::unique_ptr<nvqlink::device>> devices;
+  devices.emplace_back(std::make_unique<nvqlink::nv_simulation_device>());
+  nvqlink::lqpu cfg(std::move(devices));
 
   // Initialize the library
   nvqlink::initialize(&cfg);
@@ -48,6 +51,8 @@ int main() {
 
   // Get the code for the provided quantum kernel
   auto [code, name] = nvqlink::extract_code(random_bit);
+
+  // auto devPtr = nvqlink::malloc(sizeof(int), 3);
 
   // Load the kernel, kicks off rt_host specific JIT compilation
   auto kernelHandle = nvqlink::load_kernel(code, name);
