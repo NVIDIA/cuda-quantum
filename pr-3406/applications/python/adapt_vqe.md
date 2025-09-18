@@ -790,6 +790,40 @@ pr-3406
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](skqd.html){.reference .internal}
+        -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
+        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to Expect:](skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1690,7 +1724,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![6367a5b5f99e4988893df8d09e36433e](../../_images/adapt-vqe.png){.no-scaled-link}
+![ba9222866509498ab9b83fcd76027c7f](../../_images/adapt-vqe.png){.no-scaled-link}
 
 </div>
 

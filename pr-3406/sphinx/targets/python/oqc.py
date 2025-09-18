@@ -19,7 +19,7 @@ cudaq.set_target("oqc")
 def kernel():
     qvector = cudaq.qvector(2)
     h(qvector[0])
-    x.ctrl[qvector[1], qvector[1]]
+    x.ctrl(qvector[0], qvector[1])
     mz(qvector)
 
 
