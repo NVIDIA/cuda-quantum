@@ -29,7 +29,7 @@ config:
   # Lower the generated IR to base + feed forward.
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "qci-gate-set-mapping"
-  codegen-emission: qir-adaptive
+  codegen-emission: qir-adaptive:0.1:int_computations,float_computations
 
 target-arguments:
   - key: machine
@@ -41,7 +41,7 @@ target-arguments:
       - machine-names:
           - AquSim
         config:
-          codegen-emission: qir-adaptive
+          codegen-emission: qir-adaptive:0.1:int_computations,float_computations
       - machine-names:
           - Seeker
         config:
