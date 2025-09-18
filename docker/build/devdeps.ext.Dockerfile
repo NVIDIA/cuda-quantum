@@ -43,6 +43,10 @@ RUN apt update && apt-get install -y --no-install-recommends ca-certificates wge
     && apt-get upgrade -y libc-bin libcap2 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
+# We need to remove the preinstalled cuda keyring as this will conflict when installing even non-cuda packages.
+# When cuda packages are installed below, the keyring will be reinstalled.
+RUN rm -f /etc/apt/sources.list.d/cuda.list
+
 # Install Mellanox OFED runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
@@ -130,18 +134,18 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
 RUN if [ -n "$cuda_packages" ]; then \
         # Filter out libnvjitlink if CUDA version is less than 12
         if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
             cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | grep -v "libnvjitlink" | tr '\n' ' ' | sed 's/ *$//'); \
         fi \
         && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-        && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | tr . -)) \
-        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
-        && dpkg -i cuda-keyring_1.0-1_all.deb \
-        && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
-        && rm cuda-keyring_1.0-1_all.deb \
+        && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | cut -d. -f1-2 | tr . -)) \
+        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/$arch_folder/cuda-keyring_1.1-1_all.deb" \
+        && dpkg -i cuda-keyring_1.1-1_all.deb \
+        && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages \
+        && rm cuda-keyring_1.1-1_all.deb \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 
