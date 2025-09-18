@@ -50,7 +50,7 @@ ENV UCX_LOG_LEVEL=error
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates wget git sudo vim \
+        ca-certificates wget git sudo vim build-essential\
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA-Q runtime dependencies.
