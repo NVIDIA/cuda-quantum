@@ -25,6 +25,27 @@ using namespace mlir;
 
 namespace {
 
+static SmallVector<Operation *, 8> sortUsers(const Value::user_range &users,
+                                             const DominanceInfo &dom) {
+  SmallVector<Operation *, 8> orderedUsers;
+
+  for (auto *user : users) {
+    if ([&]() {
+          for (auto iter = orderedUsers.begin(), iterEnd = orderedUsers.end();
+               iter != iterEnd; ++iter) {
+            assert(*iter);
+            if (dom.dominates(user, *iter)) {
+              orderedUsers.insert(iter, user);
+              return false;
+            }
+          }
+          return true;
+        }())
+      orderedUsers.push_back(user);
+  }
+  return orderedUsers;
+}
+
 class QubitResetBeforeReusePass
     : public cudaq::opt::QubitResetBeforeReuseBase<QubitResetBeforeReusePass> {
 public:
@@ -34,16 +55,71 @@ public:
     func::FuncOp funcOp = getOperation();
     if (!funcOp || funcOp.empty())
       return;
+    DominanceInfo dom(funcOp);
 
     // Return the next use after the op
-    const auto getNextUse = [](Value qubit, Operation *op) -> Operation * {
-      Operation *result = nullptr;
-      for (auto *useOp : qubit.getUsers()) {
-        if (useOp == op)
-          return result;
-        result = useOp;
+    const auto getNextUse = [&dom](Value qubit, Operation *op) -> Operation * {
+      {
+        // Check direct use
+        const auto orderedUsers = sortUsers(qubit.getUsers(), dom);
+        assert(orderedUsers.size() > 0);
+        for (auto v : llvm::enumerate(orderedUsers)) {
+          if (v.value() == op && v.index() < (orderedUsers.size() - 1)) {
+            return orderedUsers[v.index() + 1];
+          }
+        }
       }
-      assert(false); // The anchor op is not using the qubit!
+
+      // No next use is found, check if this is an extracted qubit.
+      if (isa<quake::RefType>(qubit.getType())) {
+        if (auto extractOp = dyn_cast_if_present<quake::ExtractRefOp>(
+                qubit.getDefiningOp())) {
+          llvm::outs() << "Defining op: " << *extractOp << "\n";
+          auto reg = extractOp.getVeq();
+          std::optional<int64_t> index = extractOp.hasConstantIndex()
+                                             ? extractOp.getConstantIndex()
+                                             : std::optional<int64_t>();
+          llvm::outs() << "Reg: " << reg << "; index = " << index.value_or(-1)
+                       << "\n";
+
+          const auto orderedUsers = sortUsers(reg.getUsers(), dom);
+
+          // Find the next op on the register
+          assert(orderedUsers.size() > 0);
+          bool foundThisExtract = false;
+          for (auto v : llvm::enumerate(orderedUsers)) {
+            if (foundThisExtract) {
+              // This is after the current extract.
+              auto nextExtractOp =
+                  dyn_cast_or_null<quake::ExtractRefOp>(v.value());
+              assert(nextExtractOp);
+              assert(nextExtractOp.getVeq() == reg);
+              std::optional<int64_t> nextIndex =
+                  nextExtractOp.hasConstantIndex()
+                      ? nextExtractOp.getConstantIndex()
+                      : std::optional<int64_t>();
+              if ((!index.has_value() || !nextIndex.has_value()) ||
+                  (index == nextIndex)) {
+                // Either the previous index or this index is unknown, we assume
+                // that they may be the same.
+                const auto extractedQubit = nextExtractOp.getRef();
+                const auto extractedQubitOrderedUsers =
+                    sortUsers(extractedQubit.getUsers(), dom);
+                assert(!extractedQubitOrderedUsers.empty());
+                llvm::outs()
+                    << "Next use: " << *extractedQubitOrderedUsers[0] << "\n";
+                return extractedQubitOrderedUsers[0];
+              }
+            }
+            if (v.value() == extractOp) {
+              foundThisExtract = true;
+            }
+          }
+          assert(foundThisExtract);
+        }
+      }
+      llvm::outs() << "Hey: " << qubit.getType() << "\n";
+
       return nullptr;
     };
     OpBuilder builder(funcOp);
@@ -85,6 +161,8 @@ public:
                 opBuilder.create<quake::XOp>(location, measuredQubit);
                 opBuilder.create<cudaq::cc::ContinueOp>(location);
               });
+        } else {
+          llvm::outs() << "No next use\n";
         }
       }
 
