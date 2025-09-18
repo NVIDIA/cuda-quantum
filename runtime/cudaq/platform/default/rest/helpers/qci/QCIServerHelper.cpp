@@ -44,7 +44,11 @@ private:
       "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
+  /// TODO: Update this to `AquSim`
   const std::string DEFAULT_MACHINE = "simulator";
+
+  /// @brief Default action to perform
+  const std::string DEFAULT_METHOD = "simulate";
 
   /// @brief Polling interval for job status via QCI's CUDA-Q endpoint in
   /// microseconds.
@@ -84,7 +88,12 @@ public:
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
-    CUDAQ_INFO("QCI backend machine: {}", config["machine"]);
+    // Temporary override until service is updated
+    if (config["machine"] == "AquSim")
+      config["machine"] = DEFAULT_MACHINE;
+    config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
+    CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
+               config["method"]);
 
     // Authentication token not required in emulation mode
     bool isTokenRequired = [&]() {
@@ -172,6 +181,7 @@ QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     ServerMessage job;
     job["code"] = circuitCode.code;
     job["machine"] = backendConfig.at("machine");
+    job["method"] = backendConfig.at("method");
     job["mappingReorderIdx"] = circuitCode.mapping_reorder_idx;
     job["name"] = circuitCode.name;
     job["outputNames"] = circuitCode.output_names;

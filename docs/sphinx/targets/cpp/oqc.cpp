@@ -23,8 +23,6 @@ struct bell_state {
     cudaq::qvector q(2);
     h(q[0]);
     x<cudaq::ctrl>(q[0], q[1]);
-    auto result = mz(q);
-    return result;
   }
 };
 

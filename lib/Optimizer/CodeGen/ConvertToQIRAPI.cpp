@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -20,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
 #include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
@@ -29,6 +29,7 @@
 #include "mlir/Pass/PassOptions.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "convert-to-qir-api"
 
@@ -2040,24 +2041,27 @@ struct QuakeToQIRAPIPass
     if (apiField[0] == "full") {
       if (opaquePtr)
         processOperation<FullQIR</*opaquePtr=*/true>>(typeConverter);
-      processOperation<FullQIR</*opaquePtr=*/false>>(typeConverter);
+      else
+        processOperation<FullQIR</*opaquePtr=*/false>>(typeConverter);
     } else if (apiField[0] == "base-profile") {
       if (apiField.size() > 1 && apiField[1] == "0.2") {
         if (opaquePtr)
           processOperation<
               BaseProfileQIR</*opaquePtr=*/true, QirVersion::version_0_2>>(
               typeConverter);
-        processOperation<
-            BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
-            typeConverter);
+        else
+          processOperation<
+              BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
+              typeConverter);
       } else {
         if (opaquePtr)
           processOperation<
               BaseProfileQIR</*opaquePtr=*/true, QirVersion::version_0_1>>(
               typeConverter);
-        processOperation<
-            BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_0_1>>(
-            typeConverter);
+        else
+          processOperation<
+              BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_0_1>>(
+              typeConverter);
       }
     } else if (apiField[0] == "adaptive-profile") {
       if (apiField.size() > 1 && apiField[1] == "0.2") {
@@ -2065,17 +2069,19 @@ struct QuakeToQIRAPIPass
           processOperation<
               AdaptiveProfileQIR</*opaquePtr=*/true, QirVersion::version_0_2>>(
               typeConverter);
-        processOperation<
-            AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
-            typeConverter);
+        else
+          processOperation<
+              AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
+              typeConverter);
       } else {
         if (opaquePtr)
           processOperation<
               AdaptiveProfileQIR</*opaquePtr=*/true, QirVersion::version_0_1>>(
               typeConverter);
-        processOperation<
-            AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_0_1>>(
-            typeConverter);
+        else
+          processOperation<
+              AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_0_1>>(
+              typeConverter);
       }
     } else {
       getOperation()->emitOpError("The currently supported APIs are: 'full', "
