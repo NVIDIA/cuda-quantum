@@ -23,7 +23,7 @@ namespace cudaq {
 /// @brief The QcIServerHelper class extends the ServerHelper class to handle
 /// interactions with the QCI server for submitting and retrieving quantum
 /// computation jobs.
-class QCIServerHelper : public ServerHelper {
+class QCIServerHelper : public ServerHelper, public QirServerHelper {
 private:
   /// @brief Default API token. This is not a secret nor a credential. QCI uses
   /// these to identify the library or app and the version that is originating
@@ -44,8 +44,7 @@ private:
       "https://aqumen-service-dev.quantumcircuitsinc.net/";
 
   /// @brief Default machine, the simulator.
-  /// TODO: Update this to `AquSim`
-  const std::string DEFAULT_MACHINE = "simulator";
+  const std::string DEFAULT_MACHINE = "AquSim";
 
   /// @brief Default action to perform
   const std::string DEFAULT_METHOD = "simulate";
@@ -88,9 +87,7 @@ public:
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
-    // Temporary override until service is updated
-    if (config["machine"] == "AquSim")
-      config["machine"] = DEFAULT_MACHINE;
+
     config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
     CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
                config["method"]);
@@ -137,6 +134,9 @@ public:
   /// @brief Retrieves the results of a job using the provided path.
   ServerMessage getResults(std::string &resultsGetPath);
 
+  /// @brief Retrieve the QIR output log from the provided path.
+  std::string getOutputLog(std::string &outputLogPath);
+
   /// @brief Checks if a job is done based on the server's response to a job
   /// retrieval request.
   bool jobIsDone(ServerMessage &getJobResponse) override;
@@ -145,6 +145,10 @@ public:
   /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
+
+  // Extract QIR output data
+  std::string extractOutputLog(ServerMessage &postJobResponse,
+                               std::string &jobId) override;
 };
 
 // Retrieve an environment variable
@@ -244,6 +248,15 @@ ServerMessage QCIServerHelper::getResults(std::string &resultsGetPath) {
   return restClient.get(resultsGetPath, "", headers);
 }
 
+// Get the QIR output log from a given path
+std::string QCIServerHelper::getOutputLog(std::string &outputLogPath) {
+  // Get the headers
+  RestHeaders headers = {{"Accept", "*/*"}};
+
+  // The path returns TSV text
+  return restClient.getRawText(outputLogPath, "", headers);
+}
+
 // Process the results from a job
 cudaq::sample_result
 QCIServerHelper::processResults(ServerMessage &postJobResponse,
@@ -251,85 +264,10 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
   CUDAQ_DBG("jobId: {}", jobId);
 
-  auto resultsGetPath = postJobResponse.at("resultUrl").get<std::string>();
-  // Get the results
-  auto results = getResults(resultsGetPath);
-  CUDAQ_INFO("results: {}", results.dump());
+  auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
+  auto qirResults = getOutputLog(outputPath);
 
-  if (outputNames.find(jobId) == outputNames.end())
-    throw std::runtime_error("Could not find output names for job " + jobId);
-
-  auto const &output_names = outputNames[jobId];
-  for (auto const &[result, info] : output_names)
-    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
-               info.registerName);
-
-  auto const &index = results.at("index");
-  std::map<std::string, std::vector<std::size_t>> registerMap;
-  std::map<std::size_t, std::size_t> globalQubitMap;
-
-  for (auto const &[_, info] : output_names) {
-    for (std::size_t i = 0; auto const &entry : index) {
-      if (info.registerName == entry[0].get<std::string>() &&
-          info.qubitNum == entry[1].get<std::size_t>()) {
-        globalQubitMap[info.qubitNum] = i;
-        auto &indices = registerMap[info.registerName];
-        if (std::find(indices.begin(), indices.end(), i) == indices.end()) {
-          indices.push_back(i);
-        }
-        break;
-      }
-      ++i;
-    }
-  }
-
-  std::vector<ExecutionResult> srs;
-  std::vector<std::vector<std::size_t>> registerQubitIndicies;
-  ExecutionResult ger(GlobalRegisterName);
-
-  for (const auto &[registerName, mis] : registerMap) {
-    srs.emplace_back(registerName);
-    registerQubitIndicies.emplace_back(mis);
-  }
-
-  auto const &allMeasurements = results.at("measurements");
-  for (const auto &measurements : allMeasurements) {
-    for (std::size_t i = 0; i < registerQubitIndicies.size(); ++i) {
-      const auto &qubitIndicies = registerQubitIndicies[i];
-      std::string bitstring;
-      bitstring.reserve(qubitIndicies.size());
-
-      for (std::size_t idx : qubitIndicies) {
-        bitstring += std::to_string(static_cast<int>(measurements[idx]));
-      }
-
-      ++srs[i].counts[bitstring];
-      srs[i].sequentialData.emplace_back(std::move(bitstring));
-    }
-
-    // Global bitstring
-    std::string globalBitString;
-    globalBitString.reserve(globalQubitMap.size());
-
-    for (const auto &[_, idx] : globalQubitMap) {
-      globalBitString += std::to_string(static_cast<int>(measurements[idx]));
-    }
-
-    ++ger.counts[globalBitString];
-    ger.sequentialData.emplace_back(std::move(globalBitString));
-  }
-
-  srs.emplace_back(std::move(ger));
-
-  sample_result sampleResult(srs);
-
-  // reorder according to reorderIdx if needed
-  if (auto it = reorderIdx.find(jobId);
-      it != reorderIdx.end() && !it->second.empty()) {
-    sampleResult.reorder(it->second);
-  }
-
-  return sampleResult;
+  return createSampleResultFromQirOutput(qirResults);
 }
 
 std::map<std::string, std::string>
@@ -346,6 +284,17 @@ QCIServerHelper::generateRequestHeaders() const {
 }
 
 RestHeaders QCIServerHelper::getHeaders() { return generateRequestHeaders(); }
+
+// Extract QIR output data
+std::string QCIServerHelper::extractOutputLog(ServerMessage &postJobResponse,
+                                              std::string &jobId) {
+
+  CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
+  CUDAQ_DBG("jobId: {}", jobId);
+
+  auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
+  return getOutputLog(outputPath);
+}
 
 } // namespace cudaq
 
