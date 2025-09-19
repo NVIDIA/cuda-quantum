@@ -280,6 +280,12 @@ public:
 
 } // namespace details
 
+namespace {
+// Simplify look up of the required number of results by using a common
+// identifier instead of different QIR versions (0.1 and 0.2)
+constexpr char ResultCountMetadataName[] = "required_results";
+} // namespace
+
 //===----------------------------------------------------------------------===//
 // Main record log parser and decoder class
 //===----------------------------------------------------------------------===//
@@ -340,6 +346,7 @@ private:
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};
   /// Metadata information extracted from the log
-  std::unordered_map<std::string, std::string> metadata;
+  std::unordered_map<std::string, std::string> metadata = {
+      {ResultCountMetadataName, "1"}};
 };
 } // namespace cudaq

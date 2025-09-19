@@ -204,6 +204,6 @@ public:
     // Add the global register results
     cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
     return cudaq::sample_result({result});
-  };
+  }
 };
 } // namespace cudaq

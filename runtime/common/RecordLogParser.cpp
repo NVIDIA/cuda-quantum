@@ -62,9 +62,9 @@ void cudaq::RecordLogParser::handleMetadata(
   if (entries.size() < 2 || entries.size() > 3)
     cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
   if (entries.size() == 3) {
-    if (entries[1] == cudaq::opt::qir0_2::RequiredQubitsAttrName ||
+    if (entries[1] == cudaq::opt::qir0_2::RequiredResultsAttrName ||
         entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
-      metadata["required_results"] = entries[2];
+      metadata[ResultCountMetadataName] = entries[2];
     } else {
       metadata[entries[1]] = entries[2];
     }
@@ -117,7 +117,8 @@ void cudaq::RecordLogParser::handleOutput(
       // records, not wrapped in an ARRAY. Hence, we treat it as an array of
       // results.
       containerMeta.m_type = ContainerType::ARRAY;
-      containerMeta.elementCount = std::stoul(metadata["required_results"]);
+      containerMeta.elementCount =
+          std::stoul(metadata[ResultCountMetadataName]);
       containerMeta.arrayType = "i1";
       preallocateArray();
     }
