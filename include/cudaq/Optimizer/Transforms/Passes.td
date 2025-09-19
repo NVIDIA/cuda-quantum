@@ -17,11 +17,11 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
     This pass adds measurement operations to the kernels that have no 
     measurements.
 
-    // TODO: Determine the appropriate workflow to invoke this pass. It should 
-    be run in the sampling context, so that we comply with the spec - If no 
-    measurements appear in the kernel, then the `__global__` register is formed
-    with implicit measurements being added for all the qubits defined in the 
-    kernel, and the measurements all occur at the end of the kernel.
+    This pass should be run in the sampling context, so as to comply with the 
+    spec - If no measurements appear in the kernel, then the `__global__` 
+    register is formed with implicit measurements being added for all the 
+    qubits defined in the kernel, and the measurements all occur at the end of 
+    the kernel.
 
   }];
   let dependentDialects = ["quake::QuakeDialect", "mlir::cf::ControlFlowDialect"];

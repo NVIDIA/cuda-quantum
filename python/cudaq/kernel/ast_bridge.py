@@ -28,17 +28,10 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
 from cudaq.mlir.passmanager import PassManager
 from .analysis import FindDepKernelsVisitor, ValidateArgumentAnnotations, ValidateReturnStatements
 from .captured_data import CapturedDataStorage
-from .utils import (
-    Color,
-    globalAstRegistry,
-    globalKernelRegistry,
-    globalRegisteredOperations,
-    globalRegisteredTypes,
-    nvqppPrefix,
-    mlirTypeFromAnnotation,
-    mlirTypeFromPyType,
-    mlirTypeToPyType,
-)
+from .utils import (Color, globalAstRegistry, globalKernelRegistry,
+                    globalRegisteredOperations, globalRegisteredTypes,
+                    nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
+                    mlirTypeToPyType)
 
 State = cudaq_runtime.State
 
