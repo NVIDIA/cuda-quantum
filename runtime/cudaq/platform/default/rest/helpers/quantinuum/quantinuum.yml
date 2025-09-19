@@ -81,3 +81,8 @@ target-arguments:
     type: string
     platform-arg: extra_payload_provider
     help-string: "Specify the extra payload provider if any."
+  - key: simulator
+    required: false
+    type: string
+    platform-arg: simulator
+    help-string: "If machine is a simulator, the type of simulator to use."
