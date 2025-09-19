@@ -22,7 +22,6 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -45,6 +44,7 @@
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
+#include "mlir/Transforms/Passes.h"
 #include <cxxabi.h>
 #include <dlfcn.h>
 #include <fstream>
@@ -163,7 +163,7 @@ public:
     if (rawArgs || args) {
       mlir::PassManager pm(&mlirContext);
       if (rawArgs && !rawArgs->empty()) {
-        cudaq::info("Run Argument Synth.\n");
+        CUDAQ_INFO("Run Argument Synth.\n");
         opt::ArgumentConverter argCon(name, moduleOp);
         argCon.gen_drop_front(*rawArgs, startingArgIdx);
 
@@ -193,7 +193,7 @@ public:
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (args) {
-        cudaq::info("Run Quake Synth.\n");
+        CUDAQ_INFO("Run Quake Synth.\n");
         pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
       }
       pm.addPass(mlir::createCanonicalizerPass());
@@ -240,7 +240,7 @@ public:
 
     mlir::PassManager pm(&mlirContext);
     // For now, the server side expects full-QIR.
-    opt::addPipelineConvertToQIR(pm, "qir:0.1");
+    opt::addAOTPipelineConvertToQIR(pm);
 
     if (failed(pm.run(moduleOp)))
       throw std::runtime_error(
@@ -411,7 +411,7 @@ public:
       cudaq::RestClient restClient;
       auto resultJs =
           restClient.post(m_url, "job", requestJson, headers, false);
-      cudaq::debug("Response: {}", resultJs.dump(/*indent=*/2));
+      CUDAQ_DBG("Response: {}", resultJs.dump(/*indent=*/2));
 
       if (!resultJs.contains("executionContext")) {
         std::stringstream errorMsg;
@@ -528,7 +528,7 @@ protected:
     auto versionDataJs = m_restClient.get(
         fmt::format("https://{}/nvcf/functions/{}", m_baseUrl, m_functionId),
         "/versions", headers, /*enableSsl=*/true);
-    cudaq::info("Version data: {}", versionDataJs.dump());
+    CUDAQ_INFO("Version data: {}", versionDataJs.dump());
     std::vector<cudaq::NvcfFunctionVersionInfo> versions;
     versionDataJs["functions"].get_to(versions);
     return versions;
@@ -776,8 +776,8 @@ public:
     m_availableFuncs =
         getAllAvailableDeployments(functionOverride, versionOverride);
     for (const auto &[funcId, info] : m_availableFuncs)
-      cudaq::info("Function Id {} (API version {}.{}) has {} GPUs.", funcId,
-                  info.majorVersion, info.minorVersion, info.numGpus);
+      CUDAQ_INFO("Function Id {} (API version {}.{}) has {} GPUs.", funcId,
+                 info.majorVersion, info.minorVersion, info.numGpus);
     {
       if (funcIdIter != configs.end()) {
         // User overrides a specific function Id.
@@ -796,8 +796,8 @@ public:
               "functions tab, or try to regenerate the key.");
 
         // Determine the function Id based on the number of GPUs
-        cudaq::info("Looking for an NVQC deployment that has {} GPUs.",
-                    numGpusRequested);
+        CUDAQ_INFO("Looking for an NVQC deployment that has {} GPUs.",
+                   numGpusRequested);
         for (const auto &[funcId, info] : m_availableFuncs) {
           if (info.numGpus == numGpusRequested) {
             m_functionId = funcId;
@@ -861,8 +861,8 @@ public:
                     return a.createdAt > b.createdAt;
                   });
         for (const auto &versionInfo : versions)
-          cudaq::info("Found version Id {}, created at {}",
-                      versionInfo.versionId, versionInfo.createdAt);
+          CUDAQ_INFO("Found version Id {}, created at {}",
+                     versionInfo.versionId, versionInfo.createdAt);
 
         auto activeVersions =
             versions |
@@ -878,8 +878,8 @@ public:
                           m_functionId));
 
         m_functionVersionId = activeVersions.front().versionId;
-        cudaq::info("Selected the latest version Id {} for function Id {}",
-                    m_functionVersionId, m_functionId);
+        CUDAQ_INFO("Selected the latest version Id {} for function Id {}",
+                   m_functionVersionId, m_functionId);
       }
     }
   }
@@ -895,7 +895,7 @@ public:
     if (!m_availableFuncs.contains(m_functionId)) {
       // The user has manually overridden an NVQC function selection, but it
       // wasn't found in m_availableFuncs.
-      cudaq::info(
+      CUDAQ_INFO(
           "Function id overriden ({}) but cannot retrieve its remote "
           "capabilities because a deployment for it was not found. Will assume "
           "all optional remote capabilities are unsupported. You can set "
@@ -989,7 +989,7 @@ public:
     // `sendRequest` function exits (success or not).
     ScopeExit deleteAssetOnExit([&]() {
       if (assetId.has_value()) {
-        cudaq::info("Deleting NVQC Asset Id {}", assetId.value());
+        CUDAQ_INFO("Deleting NVQC Asset Id {}", assetId.value());
         auto headers = getHeaders();
         m_restClient.del(nvcfAssetUrl(), std::string("/") + assetId.value(),
                          headers, /*enableLogging=*/false, /*enableSsl=*/true);
@@ -1022,7 +1022,7 @@ public:
 
     try {
       // Making the request
-      cudaq::debug("Sending NVQC request to {}", nvcfInvocationUrl());
+      CUDAQ_DBG("Sending NVQC request to {}", nvcfInvocationUrl());
       auto lastQueuePos = std::numeric_limits<std::size_t>::max();
 
       if (m_logLevel > LogLevel::Info)
@@ -1030,7 +1030,7 @@ public:
       auto resultJs =
           m_restClient.post(nvcfInvocationUrl(), "", requestJson, jobHeader,
                             /*enableLogging=*/false, /*enableSsl=*/true);
-      cudaq::debug("Response: {}", resultJs.dump());
+      CUDAQ_DBG("Response: {}", resultJs.dump());
 
       // Call getQueuePosition() until we're at the front of the queue. If log
       // level is "none", then skip all this because we don't need to show the
@@ -1131,8 +1131,8 @@ public:
         // This is a large response that needs to be downloaded
         const std::string downloadUrl = resultJs["responseReference"];
         const std::string reqId = resultJs["reqId"];
-        cudaq::info("Download result for Request Id {} at {}", reqId,
-                    downloadUrl);
+        CUDAQ_INFO("Download result for Request Id {} at {}", reqId,
+                   downloadUrl);
         llvm::SmallString<32> tempDir;
         llvm::sys::path::system_temp_directory(/*ErasedOnReboot*/ true,
                                                tempDir);
@@ -1140,7 +1140,7 @@ public:
             std::filesystem::path(tempDir.c_str()) / (reqId + ".zip");
         m_restClient.download(downloadUrl, resultFilePath.string(),
                               /*enableLogging=*/false, /*enableSsl=*/true);
-        cudaq::info("Downloaded zip file {}", resultFilePath.string());
+        CUDAQ_INFO("Downloaded zip file {}", resultFilePath.string());
         std::filesystem::path unzipDir =
             std::filesystem::path(tempDir.c_str()) / reqId;
         // Unzip the response
@@ -1165,7 +1165,7 @@ public:
                             resultJsonFile.string());
           return false;
         }
-        cudaq::info(
+        CUDAQ_INFO(
             "Delete response zip file {} and its inflated contents in {}",
             resultFilePath.c_str(), unzipDir.c_str());
         std::filesystem::remove(resultFilePath);
@@ -1278,8 +1278,8 @@ public:
                             /*enableLogging=*/false, /*enableSsl=*/true);
       const std::string uploadUrl = resultJs["uploadUrl"];
       const std::string assetId = resultJs["assetId"];
-      cudaq::info("Upload NVQC job request as NVCF Asset Id {} to {}", assetId,
-                  uploadUrl);
+      CUDAQ_INFO("Upload NVQC job request as NVCF Asset Id {} to {}", assetId,
+                 uploadUrl);
       std::map<std::string, std::string> uploadHeader;
       // This must match the request to create the upload link
       uploadHeader["Content-Type"] = "application/json";

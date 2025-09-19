@@ -233,15 +233,15 @@ void noise_model::add_channel(const std::string &quantumOp,
   auto key = std::make_pair(quantumOp, qubits);
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {
-    cudaq::info("Adding new kraus_channel to noise_model ({}, {})", quantumOp,
-                qubits);
+    CUDAQ_INFO("Adding new kraus_channel to noise_model ({}, {})", quantumOp,
+               qubits);
     noiseModel.insert({key, {channel}});
     return;
   }
 
-  cudaq::info("kraus_channel existed for {}, adding new kraus_channel to "
-              "noise_model (qubits = {})",
-              quantumOp, qubits);
+  CUDAQ_INFO("kraus_channel existed for {}, adding new kraus_channel to "
+             "noise_model (qubits = {})",
+             quantumOp, qubits);
 
   iter->second.push_back(channel);
 }
@@ -274,16 +274,16 @@ void noise_model::add_all_qubit_channel(const std::string &quantumOp,
   GateIdentifier key(actualGateName, numControls);
   auto iter = defaultNoiseModel.find(key);
   if (iter == defaultNoiseModel.end()) {
-    cudaq::info("Adding new all-qubit kraus_channel to noise_model ({}, number "
-                "of control bits = {})",
-                actualGateName, numControls);
+    CUDAQ_INFO("Adding new all-qubit kraus_channel to noise_model ({}, number "
+               "of control bits = {})",
+               actualGateName, numControls);
     defaultNoiseModel.insert({key, {channel}});
     return;
   }
 
-  cudaq::info("kraus_channel existed for {}, adding new kraus_channel to "
-              "noise_model (number of control bits = {})",
-              actualGateName, numControls);
+  CUDAQ_INFO("kraus_channel existed for {}, adding new kraus_channel to "
+             "noise_model (number of control bits = {})",
+             actualGateName, numControls);
 
   iter->second.push_back(channel);
 }
@@ -297,8 +297,8 @@ void noise_model::add_channel(const std::string &quantumOp,
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
   auto iter = gatePredicates.find(quantumOp);
   if (iter == gatePredicates.end()) {
-    cudaq::info("Adding new callback kraus_channel to noise_model for {}.",
-                quantumOp);
+    CUDAQ_INFO("Adding new callback kraus_channel to noise_model for {}.",
+               quantumOp);
     gatePredicates.insert({quantumOp, pred});
     return;
   }
@@ -330,7 +330,7 @@ noise_model::get_channels(const std::string &quantumOp,
   auto iter = noiseModel.find(key);
   // Note: we've validated the channel dimension in the 'add_channel' method.
   if (iter != noiseModel.end()) {
-    cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
+    CUDAQ_INFO("Found kraus_channel for {} on {}.", quantumOp, qubits);
     const auto &krausChannel = iter->second;
     resultChannels.insert(resultChannels.end(), krausChannel.begin(),
                           krausChannel.end());
@@ -340,7 +340,7 @@ noise_model::get_channels(const std::string &quantumOp,
   auto defaultIter =
       defaultNoiseModel.find(GateIdentifier(quantumOp, controlQubits.size()));
   if (defaultIter != defaultNoiseModel.end()) {
-    cudaq::info(
+    CUDAQ_INFO(
         "Found default kraus_channel setting for {} with {} control bits.",
         quantumOp, controlQubits.size());
 
@@ -359,7 +359,7 @@ noise_model::get_channels(const std::string &quantumOp,
   // Look up predicate-specific noise settings
   auto predIter = gatePredicates.find(quantumOp);
   if (predIter != gatePredicates.end()) {
-    cudaq::info("Found callback kraus_channel setting for {}.", quantumOp);
+    CUDAQ_INFO("Found callback kraus_channel setting for {}.", quantumOp);
     const auto krausChannel = predIter->second(qubits, params);
     if (!verifyChannelDimension({krausChannel}))
       throw std::runtime_error(fmt::format(
@@ -373,7 +373,7 @@ noise_model::get_channels(const std::string &quantumOp,
   }
 
   if (resultChannels.empty())
-    cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
+    CUDAQ_INFO("No kraus_channel available for {} on {}.", quantumOp, qubits);
 
   return resultChannels;
 }

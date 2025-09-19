@@ -121,8 +121,7 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     const auto minDim =
         getIntEnvVarIfPresent("CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION");
     if (minDim.has_value()) {
-      cudaq::info("Setting multi-diagonal min dimension to {}.",
-                  minDim.value());
+      CUDAQ_INFO("Setting multi-diagonal min dimension to {}.", minDim.value());
       m_minDimensionDiag = minDim.value();
     }
   }
@@ -131,8 +130,8 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     const auto maxDiags = getIntEnvVarIfPresent(
         "CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL");
     if (maxDiags.has_value()) {
-      cudaq::info("Setting multi-diagonal max number of diagonals to {}.",
-                  maxDiags.value());
+      CUDAQ_INFO("Setting multi-diagonal max number of diagonals to {}.",
+                 maxDiags.value());
       m_maxDiagonalsDiag = maxDiags.value();
     }
   }

@@ -18,7 +18,6 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -135,10 +134,9 @@ static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
            integerOps.end();
   };
 
-  return isValidIntegerBinaryInst(inst) || llvm::isa<llvm::ICmpInst>(inst) ||
-         llvm::isa<llvm::ZExtInst>(inst) || llvm::isa<llvm::SExtInst>(inst) ||
-         llvm::isa<llvm::TruncInst>(inst) ||
-         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
+  return isValidIntegerBinaryInst(inst) ||
+         llvm::isa<llvm::ICmpInst, llvm::ZExtInst, llvm::SExtInst,
+                   llvm::TruncInst, llvm::SelectInst, llvm::PHINode>(inst);
 }
 
 static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
@@ -155,7 +153,9 @@ static bool isValidFloatingArithmeticInstruction(llvm::Instruction &inst) {
   };
 
   return isValidFloatBinaryInst(inst) || llvm::isa<llvm::FCmpInst>(inst) ||
-         llvm::isa<llvm::FPExtInst>(inst) || llvm::isa<llvm::FPTruncInst>(inst);
+         llvm::isa<llvm::FPExtInst>(inst) ||
+         llvm::isa<llvm::FPTruncInst>(inst) ||
+         llvm::isa<llvm::SelectInst>(inst) || llvm::isa<llvm::PHINode>(inst);
 }
 
 static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
@@ -523,7 +523,7 @@ mlir::LogicalResult qirProfileTranslationFunction(
   if (containsWireSet)
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileFields[0]);
   else
-    cudaq::opt::addPipelineConvertToQIR(pm, qirProfile);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, qirProfile);
 
   // Add additional passes if necessary
   if (!additionalPasses.empty() &&
@@ -868,7 +868,7 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     if (containsWireSet)
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, convertTo);
     else
-      cudaq::opt::commonPipelineConvertToQIR(pm, "qir", convertTo);
+      cudaq::opt::addAOTPipelineConvertToQIR(pm);
 
     auto enablePrintMLIREachPass =
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);

@@ -222,8 +222,8 @@ public:
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    cudaq::info("Remote Rest QPU setting execution context to {}",
-                context->name);
+    CUDAQ_INFO("Remote Rest QPU setting execution context to {}",
+               context->name);
 
     // Execution context is valid
     executionContext = context;
@@ -240,7 +240,7 @@ public:
   /// CUDA-Q installation) and extract MLIR lowering pipelines and
   /// specific code generation output required by this backend (QIR/QASM2).
   void setTargetBackend(const std::string &backend) override {
-    cudaq::info("Remote REST platform is targeting {}.", backend);
+    CUDAQ_INFO("Remote REST platform is targeting {}.", backend);
 
     // First we see if the given backend has extra config params
     auto mutableBackend = backend;
@@ -262,8 +262,8 @@ public:
           if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
             throw std::runtime_error("DecodeBase64 error");
           std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-          cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
-                      split[i + 1], decodedStr);
+          CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", split[i],
+                     split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
         } else {
           backendConfig.insert({split[i], split[i + 1]});
@@ -293,11 +293,10 @@ public:
     }
 
     /// Once we know the backend, we should search for the configuration file
-    /// from there we can get the URL/PORT and the required MLIR pass
-    /// pipeline.
+    /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
-    cudaq::info("Config file path = {}", configFilePath.string());
+    CUDAQ_INFO("Config file path = {}", configFilePath.string());
     std::ifstream configFile(configFilePath.string());
     std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
                                   std::istreambuf_iterator<char>());
@@ -305,25 +304,19 @@ public:
     llvm::yaml::Input Input(configYmlContents.c_str());
     Input >> config;
     if (config.BackendConfig.has_value()) {
-      if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
-        cudaq::info("Appending lowering pipeline: {}",
-                    config.BackendConfig->PlatformLoweringConfig);
-        passPipelineConfig +=
-            "," + config.BackendConfig->PlatformLoweringConfig;
-      }
       const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
       if (!codeGenSpec.empty()) {
-        cudaq::info("Set codegen translation: {}", codeGenSpec);
+        CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
         codegenTranslation = codeGenSpec;
         auto [codeGenName, codeGenVersion, codeGenOptions] =
             parseCodeGenTranslationString(codegenTranslation);
         if (codeGenName == "qir-adaptive") {
           for (auto option : codeGenOptions) {
             if (option == "int_computations") {
-              cudaq::info("Enable int_computations extension");
+              CUDAQ_INFO("Enable int_computations extension");
               qirIntegerExtension = true;
             } else if (option == "float_computations") {
-              cudaq::info("Enable float_computations extension");
+              CUDAQ_INFO("Enable float_computations extension");
               qirFloatExtension = true;
             } else {
               throw std::runtime_error(
@@ -339,19 +332,59 @@ public:
                 codeGenSpec, codeGenName));
         }
       }
+
+      const std::string allowEarlyExitSetting =
+          codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
+
+      // 1. Apply all the target-agnostic high-level passes. If this is an
+      // emulation and a noise model has been set, do not erase the noise
+      // callbacks.
+      if (emulate)
+        passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
+                              std::string{noiseModel ? "false" : "true"} +
+                              " allow-early-exit=" + allowEarlyExitSetting +
+                              "}";
+      else
+        passPipelineConfig +=
+            ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
+            "}";
+
+      // 2. Apply target-specific high-level passes from the .yml file, if any.
+      if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT high level pipeline: {}",
+                   config.BackendConfig->JITHighLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITHighLevelPipeline;
+      }
+
+      // 3. Appply the target-agnostic deployment passes. Any additional
+      // restructuring to get ready for decomposition.
+      passPipelineConfig += ",jit-deploy-pipeline";
+
+      // 4. Apply the target-specific mid-level passes. This decomposed quantum
+      // gates for a specific target machine, etc.
+      if (!config.BackendConfig->JITMidLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT mid level pipeline: {}",
+                   config.BackendConfig->JITMidLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITMidLevelPipeline;
+      }
+
+      // 5. Apply the target-agnostic finalization passes. This lowers the IR to
+      // CFG form.
+      passPipelineConfig += ",jit-finalize-pipeline";
+
+      // 6. Apply the target-specific low-level passes.
+      if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT low level pipeline: {}",
+                   config.BackendConfig->JITLowLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITLowLevelPipeline;
+      }
+
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
-        cudaq::info("Adding post-codegen lowering pipeline: {}",
-                    config.BackendConfig->PostCodeGenPasses);
+        CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
+                   config.BackendConfig->PostCodeGenPasses);
         postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
-    std::string allowEarlyExitSetting =
-        (codegenTranslation.starts_with("qir-adaptive")) ? "1" : "0";
-
-    passPipelineConfig =
-        std::string(
-            "func.func(memtoreg{quantum=0},cc-loop-unroll{allow-early-exit=") +
-        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
@@ -364,9 +397,9 @@ public:
       std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, qubitMapping, replacement);
-      cudaq::info("disable_qubit_mapping option found, so updated lowering "
-                  "pipeline to {}",
-                  passPipelineConfig);
+      CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
+                 "pipeline to {}",
+                 passPipelineConfig);
     }
 
     // Set the qpu name
@@ -379,9 +412,9 @@ public:
 
     serverHelper->initialize(backendConfig);
     serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
-    cudaq::info("Retrieving executor with name {}", qpuName);
-    cudaq::info("Is this executor registered? {}",
-                cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
+    CUDAQ_INFO("Retrieving executor with name {}", qpuName);
+    CUDAQ_INFO("Is this executor registered? {}",
+               cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
     executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
                    ? cudaq::registry::get<cudaq::Executor>(qpuName)
                    : std::make_unique<cudaq::Executor>();
@@ -398,7 +431,7 @@ public:
     serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
-  /// @brief Conditionally form an output_names JSON object if this was for QIR
+  /// Conditionally form an output_names JSON object if this was for QIR
   nlohmann::json formOutputNames(const std::string &codegenTranslation,
                                  mlir::ModuleOp moduleOp,
                                  const std::string &codeStr) {
@@ -408,7 +441,7 @@ public:
     if (codegenTranslation.starts_with("qir")) {
       // decodeBase64 will throw a runtime exception if it fails
       if (llvm::decodeBase64(codeStr, bitcode)) {
-        cudaq::info("Could not decode codeStr {}", codeStr);
+        CUDAQ_INFO("Could not decode codeStr {}", codeStr);
       } else {
         llvm::LLVMContext llvmContext;
         auto buffer = llvm::MemoryBuffer::getMemBufferCopy(
@@ -594,7 +627,7 @@ public:
       mlir::PassManager pm(&context);
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
-      cudaq::info("Pass pipeline for {} = {}", kernelName, pipeline);
+      CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
       if (failed(parsePassPipeline(pipeline, pm, os)))
         throw std::runtime_error(
             "Remote rest platform failed to add passes to pipeline (" + errMsg +
@@ -610,7 +643,7 @@ public:
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(&context);
       if (!rawArgs.empty()) {
-        cudaq::info("Run Argument Synth.\n");
+        CUDAQ_INFO("Run Argument Synth.\n");
         // For quantum devices, we generate a collection of `init` and
         // `num_qubits` functions and their substitutions created
         // from a kernel and arguments that generated a state argument.
@@ -642,7 +675,7 @@ public:
             opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
-        cudaq::info("Run Quake Synth.\n");
+        CUDAQ_INFO("Run Quake Synth.\n");
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
@@ -652,7 +685,7 @@ public:
         auto resource_counts = nvqir::getResourceCounts();
         std::function<void(std::string, size_t, size_t)> f =
             [&](std::string gate, size_t nControls, size_t count) {
-              cudaq::info("Appending: {}", gate);
+              CUDAQ_INFO("Appending: {}", gate);
               resource_counts->appendInstruction(gate, nControls, count);
             };
         cudaq::opt::ResourceCountPreprocessOptions opt{f};
@@ -677,9 +710,9 @@ public:
       std::string replacement("$1$3");
       passPipelineConfig =
           std::regex_replace(passPipelineConfig, combine, replacement);
-      cudaq::info("Delaying combine-measurements pass due to emulation. "
-                  "Updating pipeline to {}",
-                  passPipelineConfig);
+      CUDAQ_INFO("Delaying combine-measurements pass due to emulation. "
+                 "Updating pipeline to {}",
+                 passPipelineConfig);
     }
 
     runPassPipeline(passPipelineConfig, moduleOp);
@@ -697,9 +730,12 @@ public:
     }
 
     if (executionContext) {
-      if (executionContext->name == "sample")
+      if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
-      else
+        // No need to add measurements only to remove them eventually
+        if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
+          runPassPipeline("func.func(add-measurements)", moduleOp);
+      } else
         executionContext->reorderIdx.clear();
     }
 
@@ -801,7 +837,7 @@ public:
 
   void launchKernel(const std::string &kernelName,
                     const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -814,8 +850,8 @@ public:
     completeLaunchKernel(kernelName, std::move(codes));
   }
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to
-  /// the representation required by the targeted backend. Handle all pertinent
+  /// @brief Launch the kernel. Extract the Quake code and lower to the
+  /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
   KernelThunkResultType
@@ -823,7 +859,7 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("launching remote rest kernel ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -876,8 +912,8 @@ public:
         executionContext && executionContext->name == "observe";
     const bool isRun = executionContext && executionContext->name == "run";
 
-    // If emulation requested, then just grab the function
-    // and invoke it with the simulator
+    // If emulation requested, then just grab the function and invoke it with
+    // the simulator
     cudaq::details::future future;
     if (emulate) {
 
@@ -981,7 +1017,15 @@ public:
       // Allow developer to disable remote sending (useful for debugging IR)
       if (getEnvBool("DISABLE_REMOTE_SEND", false))
         return;
-      future = executor->execute(codes, isObserve);
+      // Cannot be observe and run at the same time
+      assert(!isObserve || !isRun);
+      const cudaq::details::ExecutionContextType execType =
+          isRun       ? cudaq::details::ExecutionContextType::run
+          : isObserve ? cudaq::details::ExecutionContextType::observe
+                      : cudaq::details::ExecutionContextType::sample;
+
+      future = executor->execute(codes, execType,
+                                 &executionContext->invocationResultBuffer);
     }
 
     // Keep this asynchronous if requested

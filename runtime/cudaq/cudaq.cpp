@@ -45,9 +45,9 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
   const char *mpiLibPath = std::getenv("CUDAQ_MPI_COMM_LIB");
   if (mpiLibPath) {
     // The user has set the environment variable.
-    cudaq::info("Load MPI comm plugin from CUDAQ_MPI_COMM_LIB environment "
-                "variable at '{}'",
-                mpiLibPath);
+    CUDAQ_INFO("Load MPI comm plugin from CUDAQ_MPI_COMM_LIB environment "
+               "variable at '{}'",
+               mpiLibPath);
     g_plugin = std::make_unique<cudaq::MPIPlugin>(mpiLibPath);
   } else {
     // Try locate MPI plugins in the install directory
@@ -63,8 +63,8 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
     const auto activatedInterfaceLibFile =
         distributedInterfacesDir / activatedInterfaceLibFilename;
     if (std::filesystem::exists(activatedInterfaceLibFile)) {
-      cudaq::info("Load MPI comm plugin from '{}'",
-                  activatedInterfaceLibFile.c_str());
+      CUDAQ_INFO("Load MPI comm plugin from '{}'",
+                 activatedInterfaceLibFile.c_str());
       g_plugin =
           std::make_unique<cudaq::MPIPlugin>(activatedInterfaceLibFile.c_str());
     } else {
@@ -79,8 +79,8 @@ cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
           pluginsPath / fmt::format("libcudaq-comm-plugin.{}", libSuffix);
       if (std::filesystem::exists(pluginLibFile) &&
           cudaq::MPIPlugin::isValidInterfaceLib(pluginLibFile.c_str())) {
-        cudaq::info("Load builtin MPI comm plugin at '{}'",
-                    pluginLibFile.c_str());
+        CUDAQ_INFO("Load builtin MPI comm plugin at '{}'",
+                   pluginLibFile.c_str());
         g_plugin = std::make_unique<cudaq::MPIPlugin>(pluginLibFile.c_str());
       }
     }
@@ -110,7 +110,7 @@ void initialize(int argc, char **argv) {
   const auto pid = commPlugin->rank();
   const auto np = commPlugin->num_ranks();
   if (pid == 0)
-    cudaq::info("MPI Initialized, nRanks = {}", np);
+    CUDAQ_INFO("MPI Initialized, nRanks = {}", np);
 }
 
 int rank() { return getMpiPlugin()->rank(); }
@@ -185,7 +185,7 @@ void finalize() {
   auto *commPlugin = getMpiPlugin();
   if (!commPlugin->is_finalized()) {
     if (rank() == 0)
-      cudaq::info("Finalizing MPI.");
+      CUDAQ_INFO("Finalizing MPI.");
     commPlugin->finalize();
   }
 }

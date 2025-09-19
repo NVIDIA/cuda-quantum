@@ -39,7 +39,6 @@ struct rwpe {
       x<cudaq::ctrl>(aux, target);
       h(aux);
       if (mz(aux)) {
-        x(aux);
         mu += sigma * .6065;
       } else {
         mu -= sigma * .6065;
@@ -47,6 +46,8 @@ struct rwpe {
 
       sigma *= .7951;
       iteration += 1;
+      // Reset qubit for reuse
+      reset(aux);
     }
 
     return 2. * mu;
