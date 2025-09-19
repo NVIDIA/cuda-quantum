@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. * 
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -43,8 +43,7 @@ private:
   const std::string DEFAULT_API_URL = "https://aqumen.quantumcircuits.com/";
 
   /// @brief Default machine, the simulator.
-  /// TODO: Update this to `AquSim`
-  const std::string DEFAULT_MACHINE = "simulator";
+  const std::string DEFAULT_MACHINE = "AquSim";
 
   /// @brief Default action to perform
   const std::string DEFAULT_METHOD = "simulate";
@@ -87,9 +86,7 @@ public:
     config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
 
     config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
-    // Temporary override until service is updated
-    if (config["machine"] == "AquSim")
-      config["machine"] = DEFAULT_MACHINE;
+
     config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
     CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
                config["method"]);
