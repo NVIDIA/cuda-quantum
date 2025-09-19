@@ -749,12 +749,12 @@ commands, for example, install the necessary packages for RHEL 8:
 
 More detailed instructions for your platform can be found in the online documentation
 linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
-Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+Please make sure to install CUDA version 12.0 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
-includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 11, 
-built against version 11.8, and for CUDA 12, built against version 12.0.
+includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
+built against version 12.0.
 
 .. _distributed-computing-with-mpi:
 
