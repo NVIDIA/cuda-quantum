@@ -15,6 +15,7 @@ target_link_libraries(OptimizerUnitTests
     MLIRParser
     QuakeDialect
     gtest_main
+    OptimBuilder
 )
 
 gtest_discover_tests(OptimizerUnitTests)

@@ -23,7 +23,7 @@ static mlir::OwningOpRef<mlir::ModuleOp> parse(MLIRContext &ctx,
   return mlir::parseSourceString<mlir::ModuleOp>(ir, &ctx);
 }
 
-TEST(FactoryMergeTest, CopiesMissingFunction) {
+TEST(FactoryMergeModuleTest, CopiesMissingFunction) {
   DialectRegistry registry;
   registry.insert<mlir::func::FuncDialect, mlir::LLVM::LLVMDialect>();
   MLIRContext ctx(registry);
@@ -56,7 +56,7 @@ TEST(FactoryMergeTest, CopiesMissingFunction) {
   EXPECT_EQ(countAlreadyThere, 1);
 }
 
-TEST(FactoryMergeTest, RetainOriginalModuleSymbols) {
+TEST(FactoryMergeModuleTest, RetainOriginalModuleSymbols) {
   DialectRegistry registry;
   registry.insert<mlir::func::FuncDialect, mlir::LLVM::LLVMDialect>();
   MLIRContext ctx(registry);

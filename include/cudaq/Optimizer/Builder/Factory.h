@@ -294,19 +294,7 @@ std::pair<mlir::func::FuncOp, /*alreadyDefined=*/bool>
 getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
              mlir::FunctionType funcTy, mlir::ModuleOp module);
 
-inline void mergeModules(mlir::ModuleOp into, mlir::ModuleOp from) {
-  for (mlir::Operation &op : *from.getBody()) {
-    auto sym = llvm::dyn_cast<mlir::SymbolOpInterface>(&op);
-    if (!sym)
-      continue; // Only merge named symbols, avoids duplicating anonymous ops.
-
-    // If `into` already has a symbol with this name, skip it.
-    if (mlir::SymbolTable::lookupSymbolIn(into, sym.getName()))
-      continue;
-
-    into.push_back(op.clone());
-  }
-}
+void mergeModules(mlir::ModuleOp into, mlir::ModuleOp from);
 } // namespace factory
 
 std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
