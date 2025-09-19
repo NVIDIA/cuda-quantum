@@ -233,14 +233,23 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            pip install iqm_client==16.1 --user -vvv
-            pip install . --user -vvv
+
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y && apt-get install -y python3-venv
+
+            VENV_DIR="$HOME/.venvs/cudaq"
+            python3 -m venv "$VENV_DIR"
+            . "$VENV_DIR/bin/activate"
+
+            pip install iqm-client -vvv
+            pip install . -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
               exit 1
             fi
-            python3 -m pytest -v --durations=0  python/tests/ \
+            python -m pip install pytest
+            python -m pytest -v --durations=0  python/tests/ \
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
@@ -248,7 +257,7 @@ jobs:
               exit 1
             fi
             for backendTest in python/tests/backends/*.py; do
-              python3 -m pytest -v --durations=0  $backendTest
+              python -m pytest -v --durations=0  $backendTest
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,

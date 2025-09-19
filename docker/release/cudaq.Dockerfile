@@ -22,7 +22,7 @@
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
 # base_image must contain the necessary CUDA-Q runtime dependencies.
 
-ARG base_image=ubuntu:22.04
+ARG base_image=ubuntu:24.04
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
 FROM $cudaqdev_image AS cudaqbuild
 
@@ -50,19 +50,19 @@ ENV UCX_LOG_LEVEL=error
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates wget git sudo vim \
+        ca-certificates wget git sudo vim build-essential\
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA-Q runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libstdc++-12-dev python3 python3-pip \
+        libstdc++-12-dev python3 python3-pip adduser \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
-    && python3 -m pip install --no-cache-dir numpy scipy \
+    && python3 -m pip install --no-cache-dir --break-system-packages numpy scipy \
     && ln -s /bin/python3 /bin/python
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
     # Ref: https://github.com/qutip/qutip/issues/2412
-    && python3 -m pip install --no-cache-dir notebook==7.3.2 "qutip<5" matplotlib \
+    && python3 -m pip install --no-cache-dir --break-system-packages notebook==7.3.2 "qutip<5" matplotlib \
     && apt-get remove -y gcc g++ python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 

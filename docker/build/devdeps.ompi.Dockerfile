@@ -15,8 +15,8 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
-ARG cuda_version=12.0
-FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu22.04
+ARG cuda_version=12.6
+FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu24.04
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ARG cuda_version
@@ -26,6 +26,7 @@ ARG TARGETARCH
 ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-${CUDA_VERSION}
 ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
 ENV COMMON_COMPILER_FLAGS_ARM="-march=armv8-a -mtune=generic -O2 -pipe"
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # 1 - Install basic tools needed for the builds
 
@@ -33,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc g++ gfortran python3 python3-pip \
         libcurl4-openssl-dev libssl-dev liblapack-dev libpython3-dev \
         bzip2 make sudo vim curl git wget \
-    && pip install --no-cache-dir numpy \
+    && pip install --no-cache-dir numpy --break-system-packages \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # 2 - Install SLURM PMI2 version 21.08.8
@@ -80,12 +81,12 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
-# 5 - Install UCX version v1.13.1
+# 5 - Install UCX version v1.16.0
 
 ENV UCX_INSTALL_PREFIX=/usr/local/ucx
 RUN mkdir -p /var/tmp && cd /var/tmp \
     && git clone https://github.com/openucx/ucx.git ucx && cd /var/tmp/ucx \
-    && git checkout v1.13.1 \
+    && git checkout v1.16.0 \
     && ./autogen.sh \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
     &&  CC=gcc CFLAGS="$common_flags" \

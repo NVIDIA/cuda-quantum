@@ -16,7 +16,7 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
-ARG cuda_version=11.8
+ARG cuda_version=12.6
 ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu12-ompi-main
 FROM $ompidev_image AS ompibuild
@@ -39,9 +39,13 @@ ENV CUDA_VERSION=${cuda_version}
 # Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget \
+RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget build-essential \
     && apt-get upgrade -y libc-bin libcap2 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
+
+# We need to remove the preinstalled cuda keyring as this will conflict when installing even non-cuda packages.
+# When cuda packages are installed below, the keyring will be reinstalled.
+RUN rm -f /etc/apt/sources.list.d/cuda.list
 
 # Install Mellanox OFED runtime dependencies.
 
@@ -130,18 +134,18 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
 RUN if [ -n "$cuda_packages" ]; then \
         # Filter out libnvjitlink if CUDA version is less than 12
         if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
             cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | grep -v "libnvjitlink" | tr '\n' ' ' | sed 's/ *$//'); \
         fi \
         && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
-        && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | tr . -)) \
-        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/$arch_folder/cuda-keyring_1.0-1_all.deb" \
-        && dpkg -i cuda-keyring_1.0-1_all.deb \
-        && apt-get update && apt-get install -y --no-install-recommends $cuda_packages \
-        && rm cuda-keyring_1.0-1_all.deb \
+        && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | cut -d. -f1-2 | tr . -)) \
+        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/$arch_folder/cuda-keyring_1.1-1_all.deb" \
+        && dpkg -i cuda-keyring_1.1-1_all.deb \
+        && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages \
+        && rm cuda-keyring_1.1-1_all.deb \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
 
@@ -163,25 +167,27 @@ ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
 ENV CUDA_ROOT="$CUDA_INSTALL_PREFIX"
 ENV CUDA_PATH="$CUDA_INSTALL_PREFIX"
 ENV PATH="${CUDA_INSTALL_PREFIX}/lib64/:${CUDA_INSTALL_PREFIX}/bin:${PATH}"
+# TODO: Eliminate the need for this
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Install cuQuantum dependencies, including cuTensor.
 # Install cupy version 13.4.1
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.06 && \
-    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.10" ]; then \
-        echo "expecting Python version 3.10"; \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.06 && \
+    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
+        echo "expecting Python version 3.12"; \
     fi
 
-ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cuquantum
+ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.12/dist-packages/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.10/dist-packages/cutensor
+ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.12/dist-packages/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
