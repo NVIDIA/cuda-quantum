@@ -83,7 +83,6 @@ public:
                        << "\n";
 
           const auto orderedUsers = sortUsers(reg.getUsers(), dom);
-
           // Find the next op on the register
           assert(orderedUsers.size() > 0);
           bool foundThisExtract = false;
@@ -118,8 +117,6 @@ public:
           assert(foundThisExtract);
         }
       }
-      llvm::outs() << "Hey: " << qubit.getType() << "\n";
-
       return nullptr;
     };
     OpBuilder builder(funcOp);
