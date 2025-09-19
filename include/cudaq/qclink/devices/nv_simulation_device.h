@@ -33,7 +33,7 @@ public:
       std::free(thunkArgs);
   }
 
-  void upload_program(const std::vector<std::byte> program) override {
+  void upload_program(const std::vector<std::byte>& program) override {
     // program here is a function pointer. but to what? Need to figure out
     // the entrypoint and how to call it with arguments.
     std::memcpy(&argsCreator, program.data(), sizeof(void *));

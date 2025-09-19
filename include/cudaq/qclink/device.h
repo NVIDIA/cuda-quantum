@@ -250,7 +250,7 @@ public:
 // QCS Device API
 class qcs_trait {
 public:
-  virtual void upload_program(const std::vector<std::byte> program_data) = 0;
+  virtual void upload_program(const std::vector<std::byte>& program_data) = 0;
   virtual void trigger(device_ptr &result,
                        const std::vector<device_ptr> &args) = 0;
 };

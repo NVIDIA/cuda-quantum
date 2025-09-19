@@ -5,8 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "cudaq/qclink/compilers/cudaq_toolchain.h"
-#include "../utils/logger.h"
+#include "cudaq/qclink/compilers/cudaq/cudaq_toolchain.h"
+#include "../../utils/logger.h"
 
 #include <cstdlib>
 #include <filesystem>
@@ -241,8 +241,8 @@ clang::linker::linkMultiple(const std::vector<std::string> &objectFiles) {
     cmd << " -shared";
   if (pic_)
     cmd << " -fPIC";
-  cmd << " " << optimizationLevel_
-      << "  -L /home/.cudaq/lib -lcudaq -Wl,-rpath,/home/.cudaq/lib";
+  cmd << " " << optimizationLevel_ << "  -L " << cudaqLibraryPath
+      << " -lcudaq -Wl,-rpath," << cudaqLibraryPath;
 
   for (const auto &objFile : objectFiles) {
     cmd << " " << objFile;

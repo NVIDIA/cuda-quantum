@@ -49,7 +49,6 @@ device_ptr malloc(std::size_t size, std::size_t devId) {
 void free(device_ptr &d) {
   if (d.deviceId == std::numeric_limits<std::size_t>::max())
     return std::free(reinterpret_cast<void *>(d.handle));
-
   auto &device = details::logical_qpu_config->get_device(d.deviceId);
   return device.as<explicit_data_marshalling_trait>()->free(d);
 }
@@ -60,7 +59,6 @@ void memcpy(device_ptr &arg, const void *src) {
     std::memcpy(reinterpret_cast<void *>(arg.handle), src, arg.size);
     return;
   }
-
   auto &device = details::logical_qpu_config->get_device(arg.deviceId);
   return device.as<explicit_data_marshalling_trait>()->send(arg, src);
 }
@@ -70,7 +68,6 @@ void memcpy(void *dest, const device_ptr &src) {
     std::memcpy(dest, reinterpret_cast<void *>(src.handle), src.size);
     return;
   }
-
   auto &device = details::logical_qpu_config->get_device(src.deviceId);
   return device.as<explicit_data_marshalling_trait>()->recv(dest, src);
 }
@@ -82,7 +79,6 @@ handle load_kernel(const std::string &kernel_code,
                    const std::string &kernel_name) {
   auto compiled = details::qpu_rt_host->compile(kernel_code, kernel_name);
   details::loaded.insert({details::kernelHandle, std::move(compiled)});
-  // Increment the handle and return
   auto saved = details::kernelHandle;
   details::kernelHandle++;
   return saved;
@@ -90,13 +86,10 @@ handle load_kernel(const std::string &kernel_code,
 
 void launch_kernel(handle kernelHandle, device_ptr &result,
                    const std::vector<device_ptr> &args) {
-
   // Launch it...
   auto iter = details::loaded.find(kernelHandle);
   if (iter == details::loaded.end())
     throw std::runtime_error("invalid kernel handle, cannot launch.");
-
-  // Execute the ,ernelprogram
   auto &progs = iter->second;
   details::qpu_rt_host->execute(*progs.get(), args, result);
 }

@@ -123,15 +123,16 @@ namespace clang {
 // Clang tool
 class linker : public command_line_tool {
 private:
+  std::string cudaqLibraryPath;
   std::string optimizationLevel_;
   bool shared_;
   bool pic_;
 
 public:
-  linker(const std::string &optimizationLevel = "-O3", bool shared = true,
-         bool pic = true)
-      : command_line_tool("clang"), optimizationLevel_(optimizationLevel),
-        shared_(shared), pic_(pic) {}
+  linker(const std::string &cudaq, const std::string &optimizationLevel = "-O3",
+         bool shared = true, bool pic = true)
+      : command_line_tool("clang"), cudaqLibraryPath(cudaq),
+        optimizationLevel_(optimizationLevel), shared_(shared), pic_(pic) {}
 
   tool_result execute(const std::string &inputFile) override;
   tool_result executeWithContent(const std::string &content) override;

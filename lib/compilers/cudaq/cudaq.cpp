@@ -5,10 +5,13 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "cudaq/qclink/compilers/cudaq.h"
-#include "../utils/logger.h"
+#include "cudaq/qclink/compilers/cudaq/cudaq.h"
+#include "../../utils/logger.h"
+
+#include "cudaq_config.h"
+
+#include <cassert>
 #include <dlfcn.h>
-#include <cassert> 
 
 namespace cudaq::qclink {
 
@@ -27,7 +30,9 @@ cudaq_compiler::compile(const std::string &code, const std::string &kernelName,
   // Use the cuda-q toolchain to compile to object code
   auto result = cudaq::pipeline(code, "/tmp") | cudaq::opt(passes) |
                 cudaq::translate("qir") | llvm::llc("x86_64-unknown-linux-gnu");
-  auto linkResult = clang::linker().linkMultiple({result.outputFile});
+
+  // FIXME Need to input where CUDA-Q libraries are...
+  auto linkResult = clang::linker(CUDAQ_LIBRARY_DIR).linkMultiple({result.outputFile});
 
   // Open the compiled result
   void *handle = dlopen(linkResult.outputFile.c_str(), RTLD_LAZY | RTLD_LOCAL);

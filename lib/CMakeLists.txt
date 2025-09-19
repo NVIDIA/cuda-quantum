@@ -22,11 +22,10 @@ add_compile_options(-Wno-attributes)
 add_library(${LIBRARY_NAME} SHARED
   qclink.cpp
   compiler.cpp
-  compilers/cudaq_toolchain.cpp
-  compilers/cudaq.cpp
   utils/logger.cpp
 )
 
+add_subdirectory(compilers)
 add_subdirectory(devices)
 
 target_include_directories(${LIBRARY_NAME}

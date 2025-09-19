@@ -71,7 +71,12 @@ auto runOnCorrectDevice(std::size_t cudaDevice, const Applicator &applicator)
 void cuda_device::connect() {
   CUDA_CHECK(cuInit(0));
   CUDA_CHECK(cuDeviceGet(&cudaGPUDevice, cudaDevice));
+#if CUDA_VERSION >= 13000
+  CUctxCreateParams ctxParams = {0};
+  CUDA_CHECK(cuCtxCreate(&context, &ctxParams, 0, cudaGPUDevice));
+#else
   CUDA_CHECK(cuCtxCreate(&context, 0, cudaGPUDevice));
+#endif
   loadedModules = new CUmodule[device_callbacks.size()];
   std::size_t i = 0;
   for (auto &[availFatBin, devFuncs] : device_callbacks) {
