@@ -6,17 +6,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
-from cudaq.operators import RydbergHamiltonian, ScalarOperator
-from cudaq.dynamics import Schedule
 import json
-import numpy as np
 import os
+
+import cudaq
+import numpy as np
 import pytest
+from cudaq.dynamics import Schedule
+from cudaq.operators import RydbergHamiltonian, ScalarOperator
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def setup_test_environment():
     cudaq.set_target("quera")
     yield "Running the tests."
     cudaq.reset_target()

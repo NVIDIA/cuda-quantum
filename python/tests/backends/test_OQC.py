@@ -7,14 +7,14 @@
 # ============================================================================ #
 
 import os
-from typing import List
-import pytest
 from multiprocessing import Process
-from network_utils import check_server_connection
+from typing import List
 
 import cudaq
-from cudaq import spin
 import numpy as np
+import pytest
+from cudaq import spin
+from network_utils import check_server_connection
 
 try:
     from utils.mock_qpu.oqc import startServer

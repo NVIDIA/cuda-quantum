@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, os, pytest
-from cudaq import spin
+import os
+
+import cudaq
 import numpy as np
+import pytest
+from cudaq import spin
 
 skipIfUnsupported = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
@@ -23,10 +26,10 @@ def mpi_init_finalize():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.set_target('nvidia-mqpu')
     yield
-    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 

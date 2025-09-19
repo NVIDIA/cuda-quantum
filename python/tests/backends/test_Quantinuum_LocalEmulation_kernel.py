@@ -6,18 +6,20 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
-import pytest
 import os
-from cudaq import spin
-import numpy as np
 from typing import List
+
+import cudaq
+import numpy as np
+import pytest
+from cudaq import spin
 
 
 def requires_openfermion():
     open_fermion_found = True
     try:
-        import openfermion, openfermionpyscf
+        import openfermion
+        import openfermionpyscf
     except:
         open_fermion_found = False
     return pytest.mark.skipif(not open_fermion_found,

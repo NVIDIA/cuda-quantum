@@ -8,11 +8,16 @@
 
 import os
 
-import pytest
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
 from cudaq import spin
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 @pytest.mark.parametrize("qubit_count", [1, 5, 9])
