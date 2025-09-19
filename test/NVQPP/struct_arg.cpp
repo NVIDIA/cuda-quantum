@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --emit-qir %s && cat struct_arg.qir.ll | \
-// RUN: FileCheck %s ; rm struct_arg.qir.ll
+// RUN: FileCheck %s && rm struct_arg.qir.ll
 
 #include <cudaq.h>
 #include <iostream>

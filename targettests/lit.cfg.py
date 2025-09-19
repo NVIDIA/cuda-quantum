@@ -6,7 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
+import os, sys
+import subprocess
 import shutil
 import bisect
 
@@ -72,3 +73,18 @@ llvm_config.with_system_environment(['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+# Generate test cases
+
+gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'phase-folding')
+os.makedirs(gen_tests_dir, exist_ok=True) # mode=0o777
+def generate_phasefolding_test(filename, seed, min_block_length, max_block_length, rz_weight):
+    test_src_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'Remote-Sim', 'phase-folding')
+    with open(os.path.join(gen_tests_dir, filename + str(seed) + '.cpp'), 'w') as fout:
+        subprocess.run([sys.executable, 'random_gen.py', filename + '.template', '--seed=' + str(seed), '--block-length=' + str(min_block_length) + '-' + str(max_block_length), '--rz-weight=' + str(rz_weight)], cwd=test_src_dir, stdout=fout)
+for seed in range(1, 11):
+    generate_phasefolding_test('branch-in-loop', seed, 30, 45, 0.5)
+for seed in range(1, 11):
+    generate_phasefolding_test('loop-with-break', seed, 20, 30, 0.5)
+generate_phasefolding_test('straight-line', 27, 100, 100, 0.5)
+generate_phasefolding_test('subkernel', 1, 20, 30, 0.5)
