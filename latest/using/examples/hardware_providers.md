@@ -803,6 +803,45 @@ latest
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](../../applications/python/skqd.html){.reference
+        .internal}
+        -   [Why
+            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
+            .internal}
+        -   [Setup and
+            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to
+                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](../backends/backends.html){.reference .internal}
     -   [Circuit Simulation](../backends/simulators.html){.reference
         .internal}
@@ -1669,7 +1708,6 @@ Python
         qvector = cudaq.qvector(2)
         h(qvector[0])
         x.ctrl(qvector[0], qvector[1])
-        mz(qvector)
 
 
     # Execute and print out the results.
@@ -1941,7 +1979,6 @@ Python
         qvector = cudaq.qvector(2)
         h(qvector[0])
         x.ctrl(qvector[0], qvector[1])
-        mz(qvector)
 
 
     # Note: All measurements must be terminal when performing the sampling.
@@ -2462,7 +2499,6 @@ C++
         cudaq::qvector q(2);
         h(q[0]);
         x<cudaq::ctrl>(q[0], q[1]);
-        auto result = mz(q);
       }
     };
 
@@ -2960,8 +2996,6 @@ Python
         qvector = cudaq.qvector(2)
         h(qvector[0])
         x.ctrl(qvector[0], qvector[1])
-        mz(qvector[0])
-        mz(qvector[1])
 
 
     # Submit to Quantinuum's endpoint and confirm the program is valid.
@@ -3037,7 +3071,6 @@ C++
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
-        mz(q);
       }
     };
 
