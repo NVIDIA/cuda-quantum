@@ -1634,8 +1634,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return false;
     }
 
-
-
     if (funcName == "save_state") {
       builder.create<quake::SaveStateOp>(loc, TypeRange{}, ValueRange{});
       return true;

@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "nvqir/CircuitSimulator.h"
 #include "StimState.h"
+#include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 
 using namespace cudaq;
@@ -485,10 +485,10 @@ public:
     return std::make_unique<StimState>(data);
   }
 
-  std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override{
+  std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override {
     StimData data{};
     return std::make_unique<StimState>(data);
-  }  
+  }
 
   /// @brief Sample the multi-qubit state. If \p qubits is empty and
   /// explicitMeasurements is set, this returns all previously saved

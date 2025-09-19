@@ -17,20 +17,21 @@
 
 namespace cudaq {
 class SimulationState;
+class ClonableState;
 
 /// Enum to specify the initial quantum state.
 enum class InitialState { ZERO, UNIFORM };
-
 
 /// @brief StimData now stores a list of (pointer, size) pairs
 /// according to convention:
 /// 0: pointer to num_qubits, size = 1
 /// 1: pointer to msm_err_count, size = 1
 /// 2: pointer to num_stabilizers, size = 1
-/// 3: x_output array, size = x_output_size (X stabilizers + destabilisers + phase bits)
-/// 4: z_output array, size = z_output_size (Z stabilizers + destabilisers + phase bits)
-/// 5: frame array (Pauli frame), size = 2*num_qubits
-using StimData = std::vector<std::pair<void*, std::size_t>>;
+/// 3: x_output array, size = x_output_size (X stabilizers + destabilisers +
+/// phase bits) 4: z_output array, size = z_output_size (Z stabilizers +
+/// destabilisers + phase bits) 5: frame array (Pauli frame), size =
+/// 2*num_qubits
+using StimData = std::vector<std::pair<void *, std::size_t>>;
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
 // Note: tensor data is expected in column-major.
@@ -42,8 +43,7 @@ using TensorStateData =
 using state_data = std::variant<
     std::vector<std::complex<double>>, std::vector<std::complex<float>>,
     std::pair<std::complex<double> *, std::size_t>,
-    std::pair<std::complex<float> *, std::size_t>, TensorStateData,
-    StimData>;
+    std::pair<std::complex<float> *, std::size_t>, TensorStateData, StimData>;
 
 /// @brief The `SimulationState` interface provides and extension point
 /// for concrete circuit simulation sub-types to describe their
@@ -149,7 +149,8 @@ public:
             "Cannot initialize state vector/density matrix state by stim "
             "data. Please use stabilizer simulator backends.");
       auto &dataCasted = std::get<StimData>(data);
-      return createFromSizeAndPtr(dataCasted.size(), const_cast<StimData*>(&dataCasted), data.index());
+      return createFromSizeAndPtr(
+          dataCasted.size(), const_cast<StimData *>(&dataCasted), data.index());
     }
     // Flat array state data
     // Check the precision first. Get the size and
@@ -269,4 +270,12 @@ public:
   /// @brief Destructor
   virtual ~SimulationState() {}
 };
+
+/// @brief Interface for SimulationState subtypes that support cloning.
+class ClonableState {
+public:
+  virtual ~ClonableState() = default;
+  virtual std::unique_ptr<SimulationState> clone() const = 0;
+};
+
 } // namespace cudaq
