@@ -34,6 +34,20 @@ config:
 target-arguments:
   - key: machine
     required: false
-    type: string
+    type: machine-config
     platform-arg: machine
-    help-string: Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's hardware simulator.
+    help-string: Specify a QCI QPU identifier. Omit for QCI's hardware simulator.
+    machine-config:
+      - machine-names:
+          - AquSim
+        config:
+          codegen-emission: qir-adaptive
+      - machine-names:
+          - Seeker
+        config:
+          codegen-emission: qir-base
+  - key: method
+    required: false
+    type: string
+    platform-arg: method
+    help-string: "Specify the circuit execution type - simulate (default) or execute."
