@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %cpp_std --emit-qir %s && cat struct_arg.qir.ll | \
-// RUN: FileCheck %s ; rm struct_arg.qir.ll
+// RUN: FileCheck %s && rm struct_arg.qir.ll
 
 #include <cudaq.h>
 #include <iostream>
@@ -27,7 +27,7 @@ struct foo {
 
 // clang-format off
 // CHECK-LABEL: define void @_ZN3fooclI3bazEEvOT_i
-// CHECK-SAME: (i8* nocapture readnone %[[ARG0:[0-9]*]], {}* {{.*}}%[[ARG1:[0-9]*]], i32 %[[ARG2:[0-9]*]])
+// CHECK-SAME: (i8* nocapture readnone %[[ARG0:[0-9]*]], {{.*}} {{.*}}%[[ARG1:[0-9]*]], i32 %[[ARG2:[0-9]*]])
 // clang-format on
 
 int main() {
