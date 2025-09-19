@@ -12,7 +12,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
- 
+
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ERASESAVESTATE
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
@@ -25,7 +25,6 @@ using namespace mlir;
 /// \file
 /// This pass exists simply to remove all the quake.save_state (and related)
 /// Ops from the IR.
-
 
 namespace {
 template <typename Op>

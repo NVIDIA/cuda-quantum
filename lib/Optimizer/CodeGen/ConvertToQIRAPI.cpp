@@ -1529,12 +1529,14 @@ struct ReturnOpPattern : public OpConversionPattern<func::ReturnOp> {
 
 struct SaveStateOpRewrite
     : public OpConversionPattern<quake::SaveStateOp> {
+struct SaveStateOpRewrite : public OpConversionPattern<quake::SaveStateOp> {
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
   matchAndRewrite(quake::SaveStateOp saveState, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<func::CallOp>(saveState, TypeRange{}, cudaq::opt::QISSaveState, ValueRange{});
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        saveState, TypeRange{}, cudaq::opt::QISSaveState, ValueRange{});
     return success();
   }
 };

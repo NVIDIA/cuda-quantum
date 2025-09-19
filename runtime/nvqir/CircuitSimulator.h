@@ -153,12 +153,13 @@ public:
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
-  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState()  = 0;
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() = 0;
 
   /// @brief Get the current simulation state.
   /// The method returns the current state of teh simulation without flushing
   /// the gate queue.
-  virtual std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState()  = 0;
+  virtual std::unique_ptr<cudaq::SimulationState>
+  getCurrentSimulationState() = 0;
 
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
@@ -555,7 +556,8 @@ protected:
   /// The method returns the current state of teh simulation without flushing
   /// the gate queue.
   virtual std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() {
-        throw std::runtime_error("Simulation data not available for this simulator backend.");
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
   }
 
   /// @brief Handle basic sampling tasks by storing the qubit index for
