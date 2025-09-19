@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "StimState.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 
@@ -476,6 +477,17 @@ public:
     flushAnySamplingTasks();
     applyOpToSims(
         "R", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
+  }
+
+  std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
+    flushGateQueue();
+    StimData data{};
+    return std::make_unique<StimState>(data);
+  }
+
+  std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override {
+    StimData data{};
+    return std::make_unique<StimState>(data);
   }
 
   /// @brief Sample the multi-qubit state. If \p qubits is empty and
