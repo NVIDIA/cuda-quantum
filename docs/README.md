@@ -59,8 +59,6 @@ defined by the value of the `extensions` configuration in
 
 Additional links that may be helpful that are not listed above:
 
-- [References and automatic link generation in
-  Doxygen](https://www.star.bnl.gov/public/comp/sofi/doxygen/autolink.html)
 - [Using Napoleon style for Python doc
   comments](https://docs.softwareheritage.org/devel/contributing/sphinx.html)
 - [Cross-referencing Python
