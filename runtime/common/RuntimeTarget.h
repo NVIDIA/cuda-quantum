@@ -43,5 +43,4 @@ struct RuntimeTarget {
   // Return target precision
   simulation_precision get_precision() const;
 };
-
 } // namespace cudaq

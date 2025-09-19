@@ -1172,8 +1172,8 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
         // here as the verifier will raise an error.
         rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
       }
-      auto mod = mz->getParentOfType<ModuleOp>();
-      if (!mod->hasAttr(cudaq::runtime::enableCudaqRun)) {
+      auto func = mz->getParentOfType<func::FuncOp>();
+      if (!func->hasAttr(cudaq::runtime::enableCudaqRun)) {
         auto recOut = rewriter.create<func::CallOp>(
             loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
             ArrayRef<Value>{res, cstringGlobal});

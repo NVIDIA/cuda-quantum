@@ -925,6 +925,7 @@ public:
           runKern->setAttr(cudaq::entryPointAttrName, unitAttr);
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
+          runKern->setAttr(cudaq::runtime::enableCudaqRun, unitAttr);
           OpBuilder::InsertionGuard guard(builder);
           Block *entry = runKern.addEntryBlock();
           builder.setInsertionPointToStart(entry);
