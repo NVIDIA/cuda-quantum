@@ -797,6 +797,40 @@ pr-3432
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](skqd.html){.reference .internal}
+        -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
+        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to Expect:](skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1916,7 +1950,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![20dbd0b9980d4208a35d9436617d346e](../../_images/grovers-2D-plane.png)
+![3737cee24c9c471e91a14de13c53e84c](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2132,7 +2166,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![e9c4a1e419ab41f682d62604d759aff6](../../_images/grovers-steps1-3.png)
+![e2ff372d7b5f436683c94a03a6646e53](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2144,7 +2178,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![256d768cbaaf4f6488cd98c424307f39](../../_images/grovers-full-rotation.png)
+![ba8aff3b11a245c2adf6992fa3ec0377](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's
