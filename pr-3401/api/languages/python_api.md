@@ -838,6 +838,45 @@ pr-3401
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
                 .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](../../applications/python/skqd.html){.reference
+        .internal}
+        -   [Why
+            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
+            .internal}
+        -   [Setup and
+            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to
+                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
+                .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1363,6 +1402,12 @@ pr-3401
                 .notranslate}](#cudaq.set_noise){.reference .internal}
             -   [`unset_noise()`{.docutils .literal
                 .notranslate}](#cudaq.unset_noise){.reference .internal}
+            -   [`register_set_target_callback()`{.docutils .literal
+                .notranslate}](#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}](#cudaq.unregister_set_target_callback){.reference
+                .internal}
             -   [`cudaq.apply_noise()`{.docutils .literal
                 .notranslate}](#cudaq.cudaq.apply_noise){.reference
                 .internal}
@@ -2672,6 +2717,37 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[register\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.register_set_target_callback "Permalink to this definition"){.headerlink}
+
+:   
+
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[register\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+    :   
+
+    Register a callback function to be executed when the runtime target
+    is changed. The string `id`{.code .docutils .literal .notranslate}
+    can be used to identify the callback for replacement/removal
+    purposes.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unregister_set_target_callback "Permalink to this definition"){.headerlink}
+
+:   
+
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+    :   
+
+    Unregister a callback identified by the input identifier.
+
+```{=html}
+<!-- -->
+```
+
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[apply\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[error\_type]{.pre}]{.n}*, *[[parameters\...]{.pre}]{.n}*, *[[targets\...]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.cudaq.apply_noise "Permalink to this definition"){.headerlink}
 
 :   This function is a type-safe injection of noise into a quantum
@@ -3461,7 +3537,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2536400995]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1702562480]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8481,6 +8557,22 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
         .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
         .internal} to this [`KrausChannel`{.xref .py .py-class .docutils
         .literal
+        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .internal}.
+
+    [[get\_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.KrausChannel.get_ops "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[get\_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Return the [`KrausOperator`{.xref .py .py-class .docutils
+        .literal
+        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        .internal}'s in this [`KrausChannel`{.xref .py .py-class
+        .docutils .literal
         .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}.
 
