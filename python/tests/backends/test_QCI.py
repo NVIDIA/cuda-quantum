@@ -109,14 +109,14 @@ def test_observe():
     assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=1000)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
     assert assert_close(res.expectation())
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=1000)
     print(future)
     futureAsString = str(future)
 
