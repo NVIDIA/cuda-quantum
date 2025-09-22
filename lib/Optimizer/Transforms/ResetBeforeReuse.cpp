@@ -19,9 +19,14 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-using namespace mlir;
+namespace cudaq::opt {
+#define GEN_PASS_DEF_QUBITRESETBEFOREREUSE
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "reset-before-reuse"
+
+using namespace mlir;
 
 namespace {
 
@@ -47,8 +52,10 @@ static SmallVector<Operation *, 8> sortUsers(const Value::user_range &users,
 }
 
 class QubitResetBeforeReusePass
-    : public cudaq::opt::QubitResetBeforeReuseBase<QubitResetBeforeReusePass> {
+    : public cudaq::opt::impl::QubitResetBeforeReuseBase<
+          QubitResetBeforeReusePass> {
 public:
+  using QubitResetBeforeReuseBase::QubitResetBeforeReuseBase;
   QubitResetBeforeReusePass() = default;
 
   void runOnOperation() override {
@@ -76,9 +83,10 @@ public:
                 qubit.getDefiningOp())) {
           llvm::outs() << "Defining op: " << *extractOp << "\n";
           auto reg = extractOp.getVeq();
-          std::optional<int64_t> index = extractOp.hasConstantIndex()
-                                             ? extractOp.getConstantIndex()
-                                             : std::optional<int64_t>();
+          std::optional<int64_t> index =
+              extractOp.hasConstantIndex()
+                  ? std::optional<int64_t>(extractOp.getConstantIndex())
+                  : std::optional<int64_t>();
           llvm::outs() << "Reg: " << reg << "; index = " << index.value_or(-1)
                        << "\n";
 
@@ -168,7 +176,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createQubitResetBeforeReuse() {
-  return std::make_unique<QubitResetBeforeReusePass>();
-}
