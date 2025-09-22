@@ -221,6 +221,16 @@ protected:
         })();
   }
 
+  void save_state() {
+    auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+    if (!ctx)
+      return;
+
+    std::unique_ptr<cudaq::SimulationState> state =
+        nvqir::getCircuitSimulatorInternal()->getCurrentSimulationState();
+    ctx->save_state(state.get());
+  }
+
   void applyNoise(const kraus_channel &channel,
                   const std::vector<QuditInfo> &targets) override {
     if (isInTracerMode())

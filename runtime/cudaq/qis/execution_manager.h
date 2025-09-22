@@ -101,6 +101,10 @@ public:
   /// Checker for qudits that were not deallocated
   bool memoryLeaked() { return !tracker.allDeallocated(); }
 
+  void save_state() {
+    printf("ExecutionManager::save_state() not implemented.\n");
+    return;
+  }
   /// Provide an ExecutionContext for the current cudaq kernel
   virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;
 

@@ -840,8 +840,8 @@ void __quantum__qis__apply_kraus_channel_generalized(
   va_end(args);
 }
 
-static void __quantum__qis__save_state() {
-
+extern "C" void __quantum__qis__save_state() {
+  printf("NVQIR: saving state\n");
   auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
   if (!ctx)
     return;

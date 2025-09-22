@@ -252,6 +252,11 @@ public:
     return;
   }
 
+  void save_state() {
+    printf("BasicExecutionManager::save_state() not implemented.\n");
+    return;
+  }
+
   void synchronize() override {
     for (auto &instruction : instructionQueue) {
       if (!isInTracerMode()) {

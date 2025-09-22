@@ -1805,7 +1805,7 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
-        ApplyNoiseOpRewrite<Self>,
+        ApplyNoiseOpRewrite<Self>, SaveStateOpRewrite,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,
