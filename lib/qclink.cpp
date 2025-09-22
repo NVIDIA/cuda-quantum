@@ -107,5 +107,47 @@ void shutdown() {
   device_counter = 0;
 }
 
-
 } // namespace cudaq::qclink
+
+extern "C" {
+
+void __qclink_device_call_dispatch(std::size_t device_id,
+                                   const char *callbackName,
+                                   std::size_t num_args, void **args_vec,
+                                   std::size_t *args_sizes, void *result,
+                                   std::size_t result_size) {
+  using namespace cudaq::qclink;
+  auto &device = details::logical_qpu_config->get_device(device_id);
+  if (!device.isa<explicit_data_marshalling_trait>())
+    throw std::runtime_error(
+        "Error, invalid device being targeted by real-time host.");
+  if (!device.isa<device_callback_trait>())
+    throw std::runtime_error(
+        "Error, invalid device being targeted by real-time host.");
+
+  printf("Calling callback with name = %s, num_args = %lu.\n", callbackName, num_args);
+  std::vector<device_ptr> ptrs;
+  {
+    auto *casted = device.as<explicit_data_marshalling_trait>();
+    for (int i = 0; i < num_args; i++) {
+      auto &arg = args_vec[i];
+      auto &arg_size = args_sizes[i];
+      auto dev_ptr = casted->malloc(arg_size);
+      casted->send(dev_ptr, arg);
+      ptrs.push_back(dev_ptr);
+    }
+  }
+
+  auto *casted = device.as<device_callback_trait>();
+  if (result == nullptr) {
+    casted->launch_callback(callbackName, ptrs);
+    return;
+  }
+
+  // have a result
+  device_ptr resPtr = cudaq::qclink::malloc(result_size);
+  casted->launch_callback(callbackName, resPtr, ptrs);
+  // memcpy is confusing, need to fix it
+  memcpy(result, resPtr);
+}
+}

@@ -51,3 +51,4 @@ install(DIRECTORY ${CUDAQ_QCLINK_INCLUDE_DIR}/cudaq
   FILES_MATCHING PATTERN "*.h"
 )
 
+add_subdirectory(plugins)

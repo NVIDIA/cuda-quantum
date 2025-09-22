@@ -38,8 +38,10 @@ void cpu_shmem_device::connect() {
   for (auto &[availLib, devFuncs] : device_callbacks) {
     // Open the library
     auto *hdl = dlopen(availLib.c_str(), RTLD_GLOBAL | RTLD_NOW);
-    if (!hdl)
-      throw std::runtime_error("could not load " + availLib);
+    if (!hdl) {
+      printf("%s\n", dlerror());
+      throw std::runtime_error("could not load " + availLib );
+    }
     handles.push_back(hdl);
 
     for (auto &devFunc : devFuncs) {

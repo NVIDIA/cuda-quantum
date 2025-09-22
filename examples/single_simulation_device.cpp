@@ -32,7 +32,7 @@ std::tuple<std::string, std::string> extract_code(QuantumKernel &&kernel) {
       cudaq::get_quake_by_name(kernelName));
   return std::make_tuple(code, kernelName);
 }
-} // namespace cudaq::qclink
+} // namespace cudaq::qclink 
 
 int main() {
 
