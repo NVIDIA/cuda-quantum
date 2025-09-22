@@ -1755,7 +1755,7 @@ explained above.
 
 <div>
 
-![4bccd126426f4cd79add9e7b18e32ee6](../../_images/adapt-qaoa.png){.no-scaled-link}
+![6e268c71c14f458e84b24a4f79c57c3e](../../_images/adapt-qaoa.png){.no-scaled-link}
 
 </div>
 
