@@ -10,3 +10,7 @@ configure_file("${CMAKE_SOURCE_DIR}/include/nvqpp_config.h.in"
                "${CUDAQ_BINARY_DIR}/include/nvqpp_config.h" 
                @ONLY)
 add_subdirectory(cudaq)
+
+# Install compiler headers
+install (DIRECTORY cudaq DESTINATION include 
+            FILES_MATCHING PATTERN "*.h" )
