@@ -53,7 +53,7 @@ public:
 
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
-    if (!funcOp || funcOp.empty())
+    if (funcOp.empty())
       return;
     DominanceInfo dom(funcOp);
 
