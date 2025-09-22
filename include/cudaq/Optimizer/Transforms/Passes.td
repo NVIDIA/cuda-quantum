@@ -1369,7 +1369,6 @@ def QubitResetBeforeReuse : Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp
    Note: if the measurement is already accompanied by a reset, we won't add any extra reset.
   }];
 
-  let constructor = "cudaq::opt::createQubitResetBeforeReuse()";
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
