@@ -85,7 +85,6 @@ std::unique_ptr<mlir::Pass>
 createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
                             mlir::ArrayRef<mlir::StringRef> substitutions);
 
-std::unique_ptr<mlir::Pass> createQubitResetBeforeReuse();
 
 // declarative passes
 #define GEN_PASS_DECL
