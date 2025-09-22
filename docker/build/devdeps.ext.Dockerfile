@@ -130,7 +130,7 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink libnvidia-ml-dev"
 RUN if [ -n "$cuda_packages" ]; then \
         # Filter out libnvjitlink if CUDA version is less than 12
         if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
