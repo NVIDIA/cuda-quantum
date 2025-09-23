@@ -1618,6 +1618,7 @@ using LoadOpPattern = OpInterfacePattern<cudaq::cc::LoadOp>;
 using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
+using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
 
 struct InstantiateCallablePattern
     : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
@@ -1731,7 +1732,8 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                   CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
                   FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
                   InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
-                  StoreOpPattern, UndefOpPattern>(typeConverter, ctx);
+                  SelectOpPattern, StoreOpPattern, UndefOpPattern>(
+      typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
@@ -1987,6 +1989,9 @@ struct QuakeToQIRAPIPass
         [&](cudaq::cc::AllocaOp op) {
           return !hasQuakeType(op.getElementType());
         });
+    target.addDynamicallyLegalOp<arith::SelectOp>([&](arith::SelectOp op) {
+      return !hasQuakeType(op.getResult().getType());
+    });
     target.addDynamicallyLegalOp<cf::BranchOp, cf::CondBranchOp>(
         [&](Operation *op) {
           for (auto opnd : op->getOperands())
