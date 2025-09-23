@@ -1878,7 +1878,7 @@ you set for the corresponding environment variable(s).
 
 Building CUDA-Q requires a full installation of the CUDA toolkit. **You
 can install the CUDA toolkit and use the CUDA compiler without having a
-GPU.** The instructions are tested using version 11.8 and 12.0, but
+GPU.** The instructions are tested using version 11.8 and 12.6, but
 other CUDA 11 or 12 versions should work, as long as the CUDA runtime
 version on the host system matches the CUDA version used for the build,
 and the installed driver on the host system supports that CUDA version.
@@ -1891,11 +1891,11 @@ version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
 online documentation linked on that page.
 
 Within the tested AlmaLinux 8 environment, for example, the following
-commands install CUDA 12.0:
+commands install CUDA 12.6:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    CUDA_VERSION=${CUDA_VERSION:-12.0}
+    CUDA_VERSION=${CUDA_VERSION:-12.6}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -2307,7 +2307,7 @@ packages for the AlmaLinux 8 environment:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    CUDA_VERSION=${CUDA_VERSION:-12.0}
+    CUDA_VERSION=${CUDA_VERSION:-12.6}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.

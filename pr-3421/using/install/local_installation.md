@@ -2778,7 +2778,7 @@ following commands, for example, install the necessary packages for RHEL
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    CUDA_VERSION=${CUDA_VERSION:-12.0}
+    CUDA_VERSION=${CUDA_VERSION:-12.6}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -2812,7 +2812,7 @@ installing the complete CUDA toolkit ([`cuda-toolkit-12-0`{.code
 .docutils .literal .notranslate}]{.pre}) that also includes the
 [`nvcc`{.code .docutils .literal .notranslate}]{.pre} compiler. A
 separate CUDA-Q installer is available for CUDA 11, built against
-version 11.8, and for CUDA 12, built against version 12.0.
+version 11.8, and for CUDA 12, built against version 12.6.
 :::
 :::
 
