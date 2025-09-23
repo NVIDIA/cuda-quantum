@@ -851,6 +851,17 @@ if ${DO_LINK}; then
 		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
 	fi
 
+	# =========== TESTING: Debug installer CI ======================
+	# If the default C++ standard lib is LLVM's libc++ (injected by clang++ automatically), 
+	# we put it in front of CUDA-Q libs when compiling the application executable.
+	# Some CUDA-Q libs may contain partial C++ standard library implementation (due to static linking).
+	# Hence, we want to prioritize the full libc++ implementation when linking the application.
+	DEFAULT_CXX_ARGS=$( ( ${CXX} -v 2>&1 || true ) )
+	if [[ $DEFAULT_CXX_ARGS == *"-lc++"* ]]; then
+		LINKLIBS="-lc++ ${LINKLIBS}"
+	fi  
+	# ==============================================================
+
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}
 else
 	# Save the object file to what the user specified
