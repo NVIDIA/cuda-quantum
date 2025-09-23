@@ -732,6 +732,7 @@ else
 fi
 
 RUN_OPT=false
+# NB: Keep this in synch with the PreDeviceCodeLoader pipeline
 OPT_PASSES=
 if ${ENABLE_VARIABLE_COALESCE}; then
 	RUN_OPT=true
