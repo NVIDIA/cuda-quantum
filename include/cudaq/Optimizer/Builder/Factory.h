@@ -294,6 +294,7 @@ std::pair<mlir::func::FuncOp, /*alreadyDefined=*/bool>
 getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
              mlir::FunctionType funcTy, mlir::ModuleOp module);
 
+void mergeModules(mlir::ModuleOp into, mlir::ModuleOp from);
 } // namespace factory
 
 std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);
