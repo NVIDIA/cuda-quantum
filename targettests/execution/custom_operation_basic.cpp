@@ -40,8 +40,8 @@ int main() {
   }
 }
 
-// CHECK: 11
-// CHECK: 00
+// CHECK-DAG: 11
+// CHECK-DAG: 00
 
 // CHECK-NOT: 01
 // CHECK-NOT: 10

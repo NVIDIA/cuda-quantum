@@ -535,7 +535,7 @@ protected:
           cudaq::opt::createVerifyNVQIRCallOpsPass(allFunctionNames));
       if (failed(pm.run(module)))
         throw std::runtime_error(
-            "Failed to IR compliance verification against NVQIR runtime.");
+            "Failed check to verify IR compliance for NVQIR runtime.");
 
       CUDAQ_INFO("- Finish IR input verification.");
     }
