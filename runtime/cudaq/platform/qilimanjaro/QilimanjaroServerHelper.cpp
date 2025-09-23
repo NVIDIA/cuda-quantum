@@ -26,8 +26,8 @@ void QilimanjaroServerHelper::initialize(BackendConfig config) {
   if (!config.contains("machine"))
     config["machine"] = MACHINE;
 
-  if (!config["shots"].empty())
-    setShots(std::stoul(config["shots"]));
+  if (!config["nshots"].empty())
+    setShots(std::stoul(config["nshots"]));
 
   parseConfigForCommonParams(config);
 
