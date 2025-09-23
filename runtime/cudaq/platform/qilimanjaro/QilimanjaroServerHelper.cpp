@@ -60,7 +60,6 @@ QilimanjaroServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     ServerMessage message;
     message["machine"] = backendConfig.at("machine");
     message["shots"] = shots;
-    message["project_id"] = backendConfig.at("project_id");
     message["sequence"] = nlohmann::json::parse(circuitCode.code);
     tasks.push_back(message);
   }
