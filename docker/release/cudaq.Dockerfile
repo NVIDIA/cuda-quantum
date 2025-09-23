@@ -50,13 +50,13 @@ ENV UCX_LOG_LEVEL=error
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ca-certificates wget git sudo vim build-essential\
+        ca-certificates wget git sudo vim \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA-Q runtime dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libstdc++-12-dev python3 python3-pip adduser \
+        libstdc++-13-dev python3 python3-pip adduser \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --break-system-packages numpy scipy \
     && ln -s /bin/python3 /bin/python
