@@ -75,9 +75,27 @@ int main() {
   assert(value_counts.size() == 2);
 
   // Now, sample the kernel
-  auto counts = cudaq::sample(num_shots, sample_ghz, 5);
-  counts.dump();
-  assert(counts.size() == 2);
-  assert((counts.count("11111") + counts.count("00000")) == num_shots);
+  {
+    auto counts = cudaq::sample(num_shots, sample_ghz, 5);
+    counts.dump();
+    assert(counts.size() == 2);
+    assert((counts.count("11111") + counts.count("00000")) == num_shots);
+  }
+
+  // Again with different arguments
+  {
+    auto counts = cudaq::sample(num_shots, sample_ghz, 7);
+    counts.dump();
+    assert(counts.size() == 2);
+    assert((counts.count("1111111") + counts.count("0000000")) == num_shots);
+  }
+
+  {
+    auto results = cudaq::run(num_shots, run_ghz, 4);
+    assert(results.size() == num_shots);
+    for (auto result : results)
+      assert(result == 0 || result == 4);
+  }
+
   return 0;
 }
