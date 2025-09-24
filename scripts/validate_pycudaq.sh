@@ -92,6 +92,7 @@ while IFS= read -r line; do
             eval "pip install pypiserver"
             eval "pypi-server run -p 8080 ${extra_packages} &"
         fi
+        export LD_LIBRARY_PATH="~/.miniconda3/envs/cudaq-env/lib/python3.11/site-packages/nvidia:~/.miniconda3/envs/cudaq-env/lib/python3.11/site-packages/cuquantum/lib:$LD_LIBRARY_PATH"
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
     fi
