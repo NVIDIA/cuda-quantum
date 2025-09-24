@@ -10,9 +10,9 @@
 # Build from the repo root with
 #   docker build -t nvidia/cuda-quantum-dev:latest -f docker/build/cudaq.dev.Dockerfile .
 #
-# If a custom base image is used, then that image (i.e. the build environment) must 
+# If a custom base image is used, then that image (i.e. the build environment) must
 # 1) have all the necessary build dependendencies installed
-# 2) define the LLVM_INSTALL_PREFIX environment variable indicating where the 
+# 2) define the LLVM_INSTALL_PREFIX environment variable indicating where the
 #    the LLVM binaries that CUDA-Q depends on are installed
 # 3) set the CC and CXX environment variable to use the same compiler toolchain
 #    as the LLVM dependencies have been built with.
@@ -41,8 +41,13 @@ RUN if [ -n "$mpi" ]; \
 		fi \
     fi
 
+# Install pre-commit
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+&& python3 -m pip install --no-cache-dir pre-commit==4.1.0 \
+&& apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Configuring a base image that contains the necessary dependencies for GPU
-# accelerated components and passing a build argument 
+# accelerated components and passing a build argument
 #   install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=latest"
 # creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
 # to create the released cuda-quantum image.
