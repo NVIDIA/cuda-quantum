@@ -209,6 +209,14 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     const char *argv[] = {"", "-fast-isel=0", nullptr};
     llvm::cl::ParseCommandLineOptions(2, argv);
 
+    //llvm::StringRef libPath1 = "/usr/local/cudaq/lib/libcudaq-qec-realtime-decoding.so";
+    llvm::StringRef libPath2 = "/usr/local/cudaq/lib/libcudaq-qec-realtime-decoding-simulation.so";
+    //ExecutionEngineOptions opts {.sharedLibPaths={std::move(libPath1), std::move(libPath2)}};
+
+    //auto lib = llvm::sys::DynamicLibrary::getPermanentLibrary(libPath1.str().c_str());
+    //llvm::sys::DynamicLibrary::LoadLibraryPermanently(libPath1.str().c_str());
+    llvm::sys::DynamicLibrary::LoadLibraryPermanently(libPath2.str().c_str());
+    std::cout << "permanently loaded library " << libPath2.str() << std::endl;
     ExecutionEngineOptions opts;
     opts.enableGDBNotificationListener = false;
     opts.enablePerfNotificationListener = false;
