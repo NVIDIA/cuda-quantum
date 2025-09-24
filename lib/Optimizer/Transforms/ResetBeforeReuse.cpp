@@ -175,24 +175,25 @@ private:
             // This is after the current extract.
             auto nextExtractOp =
                 dyn_cast_or_null<quake::ExtractRefOp>(v.value());
-            assert(nextExtractOp);
-            assert(nextExtractOp.getVeq() == reg);
-            std::optional<int64_t> nextIndex =
-                nextExtractOp.hasConstantIndex()
-                    ? nextExtractOp.getConstantIndex()
-                    : std::optional<int64_t>();
-            if ((!index.has_value() || !nextIndex.has_value()) ||
-                (index == nextIndex)) {
-              // Either the previous index or this index is unknown, we assume
-              // that they may be the same.
-              const auto extractedQubit = nextExtractOp.getRef();
-              const auto extractedQubitOrderedUsers =
-                  sortUsers(extractedQubit.getUsers(), dom);
-              assert(!extractedQubitOrderedUsers.empty());
-              LLVM_DEBUG(llvm::dbgs()
-                         << "Next use: " << *extractedQubitOrderedUsers[0]
-                         << "\n");
-              return extractedQubitOrderedUsers[0];
+            if (nextExtractOp) {
+              assert(nextExtractOp.getVeq() == reg);
+              std::optional<int64_t> nextIndex =
+                  nextExtractOp.hasConstantIndex()
+                      ? nextExtractOp.getConstantIndex()
+                      : std::optional<int64_t>();
+              if ((!index.has_value() || !nextIndex.has_value()) ||
+                  (index == nextIndex)) {
+                // Either the previous index or this index is unknown, we assume
+                // that they may be the same.
+                const auto extractedQubit = nextExtractOp.getRef();
+                const auto extractedQubitOrderedUsers =
+                    sortUsers(extractedQubit.getUsers(), dom);
+                assert(!extractedQubitOrderedUsers.empty());
+                LLVM_DEBUG(llvm::dbgs()
+                           << "Next use: " << *extractedQubitOrderedUsers[0]
+                           << "\n");
+                return extractedQubitOrderedUsers[0];
+              }
             }
           }
           if (v.value() == extractOp) {

@@ -129,6 +129,12 @@ protected:
   /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
   bool enablePassStatistics = false;
 
+  /// @brief Disable resource counting preprocessing passes, such as when we
+  /// need to count gates after further processing of other passes which depends
+  /// on the original IR.
+  // Enable preprocess by default.
+  bool disableResourceCounterPreprocessing = false;
+
   /// @brief If we are emulating locally, keep track
   /// of JIT engines for invoking the kernels.
   std::vector<mlir::ExecutionEngine *> jitEngines;
@@ -285,6 +291,10 @@ public:
         getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", enablePrintMLIREachPass);
     enablePassStatistics =
         getEnvBool("CUDAQ_MLIR_PASS_STATISTICS", enablePassStatistics);
+
+    // Disable IR proprocessing for resource counting (if requested)
+    disableResourceCounterPreprocessing =
+        getEnvBool("DISABLE_RESOURCE_COUNTER_PREPROCESSING", false);
 
     // If the very verbose enablePrintMLIREachPass flag is set, then
     // multi-threading must be disabled.
@@ -680,18 +690,20 @@ public:
       }
       pm.addPass(mlir::createCanonicalizerPass());
       if (executionContext && executionContext->name == "resource-count") {
-        // Each pass may run in a separate thread, so we have to make sure to
-        // grab this reference in this thread
-        auto resource_counts = nvqir::getResourceCounts();
-        std::function<void(std::string, size_t, size_t)> f =
-            [&](std::string gate, size_t nControls, size_t count) {
-              CUDAQ_INFO("Appending: {}", gate);
-              resource_counts->appendInstruction(gate, nControls, count);
-            };
-        cudaq::opt::ResourceCountPreprocessOptions opt{f};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createResourceCountPreprocess(opt));
-        pm.addPass(mlir::createCanonicalizerPass());
+        if (!disableResourceCounterPreprocessing) {
+          // Each pass may run in a separate thread, so we have to make sure to
+          // grab this reference in this thread
+          auto resource_counts = nvqir::getResourceCounts();
+          std::function<void(std::string, size_t, size_t)> f =
+              [&](std::string gate, size_t nControls, size_t count) {
+                CUDAQ_INFO("Appending: {}", gate);
+                resource_counts->appendInstruction(gate, nControls, count);
+              };
+          cudaq::opt::ResourceCountPreprocessOptions opt{f};
+          pm.addNestedPass<mlir::func::FuncOp>(
+              opt::createResourceCountPreprocess(opt));
+          pm.addPass(mlir::createCanonicalizerPass());
+        }
       }
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
