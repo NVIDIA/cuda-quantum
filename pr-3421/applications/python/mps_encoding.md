@@ -1789,7 +1789,7 @@ index error.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    !pip install quimb==1.11.2 numba==0.60.0 -q
+    !pip install quimb==1.11.2 numba==0.60.0 --break-system-packages -q
 :::
 :::
 :::
