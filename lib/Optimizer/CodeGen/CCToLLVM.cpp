@@ -71,6 +71,25 @@ public:
   }
 };
 
+class DeviceCallOpPattern : public ConvertOpToLLVMPattern<cudaq::cc::DeviceCallOp> {
+public:
+  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::cc::DeviceCallOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    SmallVector<Value> values;
+    for (auto r : op.getResults()) {
+      Value v = rewriter.create<cudaq::cc::PoisonOp>(loc, r.getType());
+      values.push_back(v);
+    }
+    rewriter.replaceOp(op, values);
+    return success();
+  }
+};
+
+
 class CallableClosureOpPattern
     : public ConvertOpToLLVMPattern<cudaq::cc::CallableClosureOp> {
 public:
@@ -770,5 +789,5 @@ void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
               InstantiateCallableOpPattern, LoadOpPattern, NoInlineCallPattern,
               OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
               StdvecDataOpPattern, StdvecInitOpPattern, StdvecSizeOpPattern,
-              StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
+              StoreOpPattern, UndefOpPattern, DeviceCallOpPattern, VarargCallPattern>(typeConverter);
 }

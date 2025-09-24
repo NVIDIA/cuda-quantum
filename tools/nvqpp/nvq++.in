@@ -802,6 +802,7 @@ for i in ${SRCS}; do
 
 	# If we make it here, we have CUDA-Q kernels, need
 	# to map to MLIR and output an LLVM file for the classical code
+	echo "cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke"
 	run ${TOOLBIN}cudaq-quake ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${CUDAQ_QUAKE_ARGS} --emit-llvm-file $i -o ${file}.qke
 	TMPFILES="${TMPFILES} ${file}.ll ${file}.qke"
 
@@ -811,6 +812,7 @@ for i in ${SRCS}; do
 		if ${RUN_OPT}; then
 			DCL_FILE=$(mktemp ${file}.qke.XXXXXX)
 			TMPFILES="${TMPFILES} ${DCL_FILE} ${DCL_FILE}.o"
+			echo "cudaq-opt ${CUDAQ_OPT_ARGS} --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}"
 			run ${TOOLBIN}cudaq-opt ${CUDAQ_OPT_ARGS} --pass-pipeline="${OPT_PASSES}" ${QUAKE_IN} -o ${DCL_FILE}
 			QUAKE_IN=${DCL_FILE}
 		fi
@@ -818,6 +820,7 @@ for i in ${SRCS}; do
 		TMPFILES="${TMPFILES} ${QUAKELL_FILE}"
 
 		# FIXME This next step needs to be extensible... 
+		echo "cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${PLATFORM_TRANSPORT_LAYER} ${QUAKE_IN} -o ${QUAKELL_FILE}"
 		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${PLATFORM_TRANSPORT_LAYER} ${QUAKE_IN} -o ${QUAKELL_FILE}
 		if ${EMIT_QIR}; then
 			run cp ${QUAKELL_FILE} ${file}.qir.ll
@@ -827,14 +830,18 @@ for i in ${SRCS}; do
 		# Rewrite internal linkages so we can override the function.
 		mv ${file}.ll ${file}.pre.ll
 		TMPFILES="${TMPFILES} ${file}.pre.ll"
+
+		echo "${install_dir}/bin/fixup-linkage ${file}.qke ${file}.pre.ll ${file}.ll"
 		run ${install_dir}/bin/fixup-linkage ${file}.qke ${file}.pre.ll ${file}.ll
 
 		# Lower our LLVM to object files
+		echo "${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${file}.qke.o"
 		run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${QUAKELL_FILE} -o ${file}.qke.o
 		QUAKE_OBJ="${file}.qke.o"
 	else
 		QUAKE_OBJ=
 	fi
+	echo "${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${file}.ll -o ${file}.classic.o"
 	run ${LLC} --relocation-model=pic --filetype=obj ${LLC_FLAGS} ${file}.ll -o ${file}.classic.o
 	TMPFILES="${TMPFILES} ${file}.qke.o ${file}.classic.o"
 	if ${DO_LINK}; then
@@ -842,6 +849,7 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
+	echo "${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o"
 	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done

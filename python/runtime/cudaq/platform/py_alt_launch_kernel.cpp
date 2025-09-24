@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <iostream>
 #include "py_alt_launch_kernel.h"
 #include "JITExecutionCache.h"
 #include "common/AnalogHamiltonian.h"
@@ -126,6 +127,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
                            const std::vector<std::string> &names,
                            std::size_t startingArgIdx = 0) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel", name);
+  std::cout << "JITKernel start: " << name << std::endl;
   auto mod = unwrap(module);
 
   // Do not cache the JIT if we are running with startingArgIdx > 0 because a)
@@ -143,8 +145,10 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
 
   ExecutionEngine *jit = nullptr;
   if (allowCache && jitCache->hasJITEngine(hashKey)) {
+    std::cout << "JITKernel retrieve from cache " << std::endl;
     jit = jitCache->getJITEngine(hashKey);
   } else {
+    std::cout << "JITKernel recompile " << std::endl;
     ScopedTraceWithContext(cudaq::TIMING_JIT, "jitKernel - execute passes",
                            name);
 
@@ -159,6 +163,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createReturnToOutputLog());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    pm.addPass(cudaq::opt::createDistributedDeviceCall());
     std::string tl = getTransportLayer();
     auto tlPair = StringRef(tl).split(':');
     if (tlPair.first != "qir") {
@@ -184,10 +189,13 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (failed(pm.run(cloned)))
+    if (failed(pm.run(cloned))) {
+      //cloned.dump();
       throw std::runtime_error(
           "cudaq::builder failed to JIT compile the Quake representation.");
+    }
     timingScope.stop();
+    std::cout << "JITKernel done with quake generation " << std::endl;
 
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
@@ -209,15 +217,19 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
         [](Operation *module,
            llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
       llvmContext.setOpaquePointers(false);
+      std::cout << "JITKernel translate to LLVM " << std::endl;
       auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
       if (!llvmModule) {
         llvm::errs() << "Failed to emit LLVM IR\n";
         return nullptr;
       }
       ExecutionEngine::setupTargetTriple(llvmModule.get());
+      std::cout << "LLVM Module: \n";
+      llvmModule->dump();
       return llvmModule;
     };
 
+    std::cout << "JITKernel create execution engine " << std::endl;
     auto jitOrError = ExecutionEngine::create(cloned, opts);
     assert(!!jitOrError);
 
@@ -227,6 +239,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       jitCache->cache(hashKey, jit);
   }
 
+  std::cout << "JITKernel done with " << name << std::endl;
   return jit;
 }
 

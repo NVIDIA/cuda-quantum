@@ -3095,20 +3095,29 @@ class PyASTBridge(ast.NodeVisitor):
 
         arrayEleTy = cc.ArrayType.getElementType(arrayTy)
 
+
         # If `node.elt` is `ast.List`, then we want to allocate a
         # `cc.array<cc.stdvec<i64> x len(node.elt.elts)>`
         # otherwise we just want to allocate an `array<T>`
         listValue = None
-        listComputePtrTy = arrayEleTy
+        itemTy = arrayEleTy
         if not isinstance(node.elt, ast.List):
-            listValue = cc.AllocaOp(cc.PointerType.get(arrayTy),
-                                    TypeAttr.get(arrayEleTy),
-                                    seqSize=iterableSize).result
+            if isinstance(node.elt.value, bool): # FIXME: value exists always?
+                itemTy = self.getIntegerType(1)
+                listValue = cc.AllocaOp(cc.PointerType.get(cc.ArrayType.get(itemTy)),
+                                        TypeAttr.get(itemTy),
+                                        seqSize=iterableSize).result
+            else:
+                # FIXME: INCORRECT TYPE
+                listValue = cc.AllocaOp(cc.PointerType.get(arrayTy),
+                                        TypeAttr.get(arrayEleTy),
+                                        seqSize=iterableSize).result
         else:
-            listComputePtrTy = cc.StdvecType.get(arrayEleTy)
-            arrOfStdvecTy = cc.ArrayType.get(listComputePtrTy)
+            # FIXME: INCORRECT TYPE
+            itemTy = cc.StdvecType.get(arrayEleTy)
+            arrOfStdvecTy = cc.ArrayType.get(itemTy)
             listValue = cc.AllocaOp(cc.PointerType.get(arrOfStdvecTy),
-                                    TypeAttr.get(listComputePtrTy),
+                                    TypeAttr.get(itemTy),
                                     seqSize=iterableSize).result
 
         def bodyBuilder(iterVar):
@@ -3121,14 +3130,14 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit(node.elt)
             result = self.popValue()
             listValueAddr = cc.ComputePtrOp(
-                cc.PointerType.get(listComputePtrTy), listValue, [iterVar],
+                cc.PointerType.get(itemTy), listValue, [iterVar],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             cc.StoreOp(result, listValueAddr)
             self.symbolTable.popScope()
 
         self.createInvariantForLoop(iterableSize, bodyBuilder)
         self.pushValue(
-            cc.StdvecInitOp(cc.StdvecType.get(listComputePtrTy),
+            cc.StdvecInitOp(cc.StdvecType.get(itemTy),
                             listValue,
                             length=iterableSize).result)
         return
@@ -4629,6 +4638,7 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
     try:
         pm.run(bridge.module)
     except:
+        bridge.module.dump()
         raise RuntimeError("could not compile code for '{}'.".format(
             bridge.name))
 

@@ -75,7 +75,7 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 build_dir="$working_dir/build"
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
-mkdir -p "$build_dir" && cd "$build_dir" && rm -rf * 
+mkdir -p "$build_dir" && cd "$build_dir" # && rm -rf * 
 mkdir -p logs && rm -rf logs/*
 
 if [ -n "$install_toolchain" ]; then
@@ -236,3 +236,42 @@ echo "<CUTENSOR_INSTALL_PREFIX>$CUTENSOR_INSTALL_PREFIX</CUTENSOR_INSTALL_PREFIX
 echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 
 cd "$working_dir" && echo "Installed CUDA-Q in directory: $CUDAQ_INSTALL_PREFIX"
+
+# apt-get update 
+# apt-get install -y cuda-toolkit-12-0 
+# apt-get install gfortran
+# cd /workspaces/cuda-quantum/tpls && git config --global --add safe.directory '*' && cd -
+
+# cd /workspaces
+# git clone https://$GL:$GL@gitlab-master.nvidia.com/cuda-quantum/cuda-qx.git
+# cd cuda-qx && git fetch
+# git checkout py_bindings_for_realtime_decoding
+
+# [edit libs/qec/unittests/CMakeLists.txt to fetch nlohman/json and skip decoders/nv-qldpc-decoder directory]
+# [edit test_libs_builds.sh to comment out test targets and only build if if "$lib_name" == "qec"]
+# [edit surface_code-1.py to set defaults for num_rounds and decoder_window to -1]
+
+# bash ../scripts/build_cudaq.sh -v -c Debug
+# bash scripts/test_libs_builds.sh -i --cudaq-prefix /usr/local/cudaq --install-prefix /usr/local/cudaq
+# cd libs/qec/unittests/realtime/app_examples
+
+# nvq++ surface_code-1.cpp --target stim -lcudaq-qec -lcudaq-qec-realtime-decoding -lcudaq-qec-realtime-decoding-simulation -g -o surface_code
+# ./surface_code --distance 3 --save_dem dist3.yml
+
+# nvq++ surface_code-1.cpp -lcudaq-qec -lcudaq-qec-realtime-decoding -lcudaq-qec-realtime-decoding-quantinuum --target quantinuum --quantinuum-machine Helios-1SC --emulate -fenable-cudaq-run  -g -o surface_code
+
+# [edit debugger launch config to set the program and args to match the command below]
+# CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 ./surface_code --distance 3 --load_dem dist3.yml
+
+# [currently failing]
+# CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 python3 surface_code-1.py --distance 3 --load_dem dist3.yml
+
+# Maybe useful: 
+# export CUDAQ_MLIR_PRINT_EACH_PASS=1
+
+# GDB Launch configuration:
+# "cwd": "/workspaces/cuda-qx/libs/qec/unittests/realtime/app_examples",
+# "environment": [{ "name": "CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", "value": "1" }],
+# "program": "/workspaces/cuda-qx/libs/qec/unittests/realtime/app_examples/surface_code",
+# "args": ["--distance", "3", "--load_dem", "dist3.yml"],
+
