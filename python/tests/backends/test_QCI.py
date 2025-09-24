@@ -10,8 +10,9 @@ import os
 from multiprocessing import Process
 
 import cudaq
-from cudaq import spin
+import numpy as np
 import pytest
+from cudaq import spin
 from network_utils import check_server_connection
 
 try:
@@ -64,7 +65,6 @@ def test_sample():
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
     kernel.mz(qubits)
-    print(kernel)
 
     # Run sample synchronously
     counts = cudaq.sample(kernel)
@@ -80,7 +80,6 @@ def test_sample():
     assert "11" in counts
 
     future = cudaq.sample_async(kernel)
-    print(future)
 
     # Persist the future to a file
     futureAsString = str(future)
@@ -117,7 +116,6 @@ def test_observe():
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
     future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=1000)
-    print(future)
     futureAsString = str(future)
 
     # Later you can come back and read it in
@@ -126,6 +124,129 @@ def test_observe():
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
     assert assert_close(res.expectation())
+
+
+def test_u3_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        qubit = cudaq.qubit()
+        u3(0.0, np.pi / 2, np.pi, qubit)
+        mz(qubit)
+
+    # Test here is that this runs without error
+    cudaq.sample(kernel, shots_count=10)
+
+
+def test_u3_ctrl_decomposition():
+
+    @cudaq.kernel
+    def kernel():
+        control = cudaq.qubit()
+        target = cudaq.qubit()
+        u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
+        mz(control)
+        mz(target)
+
+    # Test here is that this runs without error
+    cudaq.sample(kernel, shots_count=10)
+
+
+def test_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: list[complex]):
+        qubits = cudaq.qvector(vec)
+        mz(qubits)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
+def test_state_synthesis_from_simulator():
+
+    @cudaq.kernel
+    def kernel(state: cudaq.State):
+        qubits = cudaq.qvector(state)
+        mz(qubits)
+
+    state = cudaq.State.from_data(
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+
+    counts = cudaq.sample(kernel, state)
+    assert "00" in counts
+    assert "10" in counts
+    assert len(counts) == 2
+
+    synthesized = cudaq.synthesize(kernel, state)
+    counts = cudaq.sample(synthesized)
+    assert '00' in counts
+    assert '10' in counts
+    assert len(counts) == 2
+
+
+def test_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+        mz(q)
+
+    s = cudaq.get_state(init, 2)
+    counts = cudaq.sample(kernel, s)
+    assert '11' in counts
+    assert len(counts) == 1
+
+
+def test_exp_pauli():
+
+    @cudaq.kernel
+    def test():
+        q = cudaq.qvector(2)
+        exp_pauli(1.0, q, "XX")
+        mz(q)
+
+    counts = cudaq.sample(test)
+    assert '00' in counts
+    assert '11' in counts
+    assert not '01' in counts
+    assert not '10' in counts
+
+
+def test_run():
+
+    @cudaq.kernel
+    def simple(numQubits: int) -> int:
+        qubits = cudaq.qvector(numQubits)
+        h(qubits.front())
+        for i, qubit in enumerate(qubits.front(numQubits - 1)):
+            x.ctrl(qubit, qubits[i + 1])
+        result = 0
+        for i in range(numQubits):
+            if mz(qubits[i]):
+                result += 1
+        return result
+
+    shots = 100
+    qubitCount = 4
+    results = cudaq.run(simple, qubitCount, shots_count=shots)
+    assert len(results) == shots
+    non_zero_count = 0
+    for result in results:
+        assert result == 0 or result == qubitCount  # 00..0 or 1...11
+        if result == qubitCount:
+            non_zero_count += 1
+    assert non_zero_count > 0
 
 
 # leave for gdb debugging
