@@ -16,29 +16,47 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
+
+  // Collect log from a single shot and process it only if it is successful.
+  bool processingShot = false;
+  std::vector<std::vector<std::string>> shotData;
+
   for (const auto &line : lines) {
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
-    handleRecord(entries);
-  }
-}
 
-void cudaq::RecordLogParser::handleRecord(
-    const std::vector<std::string> &entries) {
-  const std::string &recordType = entries[0];
-  if (recordType == "HEADER")
-    handleHeader(entries);
-  else if (recordType == "METADATA")
-    handleMetadata(entries);
-  else if (recordType == "START")
-    handleStart(entries);
-  else if (recordType == "OUTPUT")
-    handleOutput(entries);
-  else if (recordType == "END")
-    handleEnd(entries);
-  else
-    throw std::runtime_error("Invalid record type: " + recordType);
+    const std::string &recordType = entries[0];
+    if (recordType == "HEADER")
+      handleHeader(entries);
+    else if (recordType == "METADATA")
+      handleMetadata(entries);
+    else if (recordType == "START") {
+      processingShot = true;
+      shotData.clear();
+    } else if (recordType == "OUTPUT") {
+      if (processingShot)
+        shotData.push_back(entries);
+      else
+        handleOutput(entries);
+    } else if (recordType == "END") {
+      if (entries.size() < 2)
+        throw std::runtime_error("Missing shot status");
+      if (entries[1] == "0") {
+        if (processingShot) {
+          // Successful shot, process the collected shot data
+          for (const auto &shotLine : shotData)
+            handleOutput(shotLine);
+        }
+      } else {
+        CUDAQ_INFO("Discarding shot data due to non-zero END status.");
+      }
+      processingShot = false;
+      shotData.clear();
+      containerMeta.reset();
+    } else
+      throw std::runtime_error("Invalid record type: " + recordType);
+  }
 }
 
 void cudaq::RecordLogParser::handleHeader(
@@ -61,22 +79,6 @@ void cudaq::RecordLogParser::handleMetadata(
   if (entries.size() < 2 || entries.size() > 3)
     cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
   metadata[entries[1]] = entries.size() == 3 ? entries[2] : "";
-}
-
-void cudaq::RecordLogParser::handleStart(
-    const std::vector<std::string> &entries) {
-  // Ignore start of a shot for now
-}
-
-void cudaq::RecordLogParser::handleEnd(
-    const std::vector<std::string> &entries) {
-  if (entries.size() < 2)
-    throw std::runtime_error("Missing shot status");
-  if ("0" != entries[1])
-    throw std::runtime_error("Cannot handle unsuccessful shot");
-
-  // Always reset the container metadata when finishing a shot
-  containerMeta.reset();
 }
 
 void cudaq::RecordLogParser::handleOutput(
