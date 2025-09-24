@@ -1941,7 +1941,6 @@ struct QuakeToQIRAPIPass
 
   template <typename A>
   void processOperation(QIRAPITypeConverter &typeConverter) {
-    std::cout << "Before QIR API conversion:\n";
     auto *op = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Before QIR API conversion:\n" << *op << '\n');
     auto *ctx = &getContext();
@@ -2017,11 +2016,10 @@ struct QuakeToQIRAPIPass
         });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      std::cout << "Partial conversion failed\n";
+      std::cout << "Partial conversion to QIR API failed\n";
       signalPassFailure();
     }
 
-    std::cout << "After QIR API conversion:\n";
     LLVM_DEBUG(llvm::dbgs() << "After QIR API conversion:\n" << *op << '\n');
   }
 

@@ -197,7 +197,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     }
     timingScope.stop();
     std::cout << "JITKernel done with quake generation " << std::endl;
-    cloned.dump();
+    //cloned.dump();
 
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
@@ -226,14 +226,16 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
         return nullptr;
       }
       ExecutionEngine::setupTargetTriple(llvmModule.get());
-      std::cout << "LLVM Module: \n";
+      //std::cout << "LLVM Module: \n";
       //llvmModule->dump();
       return llvmModule;
     };
 
     std::cout << "JITKernel create execution engine " << std::endl;
     auto jitOrError = ExecutionEngine::create(cloned, opts);
-    assert(!!jitOrError);
+    if(!jitOrError) {
+      std::cout << "Error during jit\n";
+    }
 
     auto uniqueJit = std::move(jitOrError.get());
     jit = uniqueJit.release();

@@ -2400,14 +2400,9 @@ LogicalResult cudaq::cc::DeviceCallOp::verify() {
 LogicalResult
 cudaq::cc::DeviceCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   // Check that the callee attribute was specified.
-  //LLVM_DEBUG(llvm::dbgs() << "SYMBOL_TABLE:\n" << "\n");
-  std::cout << "SYMBOL_TABLE:\n";
   auto fnAttr = (*this)->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
     return emitOpError("requires a 'callee' symbol reference attribute");
-
-  std::cout << "TRYING TO FIND: " << fnAttr.getValue().str() << std::endl;
-
   func::FuncOp fn =
       symbolTable.lookupNearestSymbolFrom<func::FuncOp>(*this, fnAttr);
   //if (!fn)
@@ -2418,8 +2413,6 @@ cudaq::cc::DeviceCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
   if (!fn) {
     return success();
   }
-
-  std::cout << "FOUND SYMBOL: " << fn.getName().str() << std::endl;
 
   // Verify that the operand and result types match the callee.
   auto fnType = fn.getFunctionType();
