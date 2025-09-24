@@ -26,11 +26,8 @@ enum class InitialState { ZERO, UNIFORM };
 /// according to convention:
 /// 0: pointer to num_qubits, size = 1
 /// 1: pointer to msm_err_count, size = 1
-/// 2: pointer to num_stabilizers, size = 1
-/// 3: x_output array, size = x_output_size (X stabilizers + destabilisers +
-/// phase bits) 4: z_output array, size = z_output_size (Z stabilizers +
-/// destabilisers + phase bits) 5: frame array (Pauli frame), size =
-/// 2*num_qubits
+/// 2: x_output array, coming from the frame simulator, size = x_output_size
+/// 3: z_output array,  coming from the frame simulator, size = z_output_size
 using StimData = std::vector<std::pair<void *, std::size_t>>;
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).

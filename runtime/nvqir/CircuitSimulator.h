@@ -154,7 +154,7 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() = 0;
 
   /// @brief Get the current simulation state.
-  /// The method returns the current state of teh simulation without flushing
+  /// The method returns the current state of the simulation without flushing
   /// the gate queue.
   virtual std::unique_ptr<cudaq::SimulationState>
   getCurrentSimulationState() = 0;
@@ -551,7 +551,7 @@ protected:
   }
 
   /// @brief Get the current simulation state.
-  /// The method returns the current state of teh simulation without flushing
+  /// The method returns the current state of the simulation without flushing
   /// the gate queue.
   virtual std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() {
     throw std::runtime_error(
