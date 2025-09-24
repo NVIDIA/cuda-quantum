@@ -20,63 +20,6 @@ namespace cudaq {
 /// @brief Provides stabilizer simulation state representation using StimData.
 class StimState : public SimulationState, public ClonableState {
 public:
-  /// @brief Helper structure to represent a tableau row with proper interface
-  struct TableauRow {
-    const void *data_ptr;
-    std::size_t num_qubits;
-    std::size_t row_size;
-
-    TableauRow(const void *ptr, std::size_t nq, std::size_t rs)
-        : data_ptr(ptr), num_qubits(nq), row_size(rs) {}
-
-    // Helper methods to access bits - assumes data is stored as bytes/bits
-    bool getBit(std::size_t index) const {
-      if (index >= row_size)
-        return false;
-      const auto *bytes = static_cast<const uint8_t *>(data_ptr);
-      return (bytes[index / 8] >> (index % 8)) & 1;
-    }
-  };
-
-  /// @brief Helper structure to represent the full tableau
-  struct TableauWrapper {
-    std::vector<TableauRow> x_output;
-    std::vector<TableauRow> z_output;
-    std::size_t num_qubits;
-
-    TableauWrapper(const StimData &data, std::size_t nq) : num_qubits(nq) {
-      // Build x_output rows
-      if (data.size() > 3 && data[3].first && data[3].second > 0) {
-        const auto *x_data = static_cast<const uint8_t *>(data[3].first);
-        std::size_t x_size = data[3].second;
-
-        // Assuming each row is stored sequentially in the x_output array
-        // Row size includes stabilizers + destabilizers + phase bits
-        std::size_t row_size =
-            (2 * nq + 1 + 7) / 8; // Round up to byte boundary
-        std::size_t num_rows = x_size / row_size;
-
-        for (std::size_t i = 0; i < num_rows; ++i) {
-          x_output.emplace_back(x_data + i * row_size, nq, row_size * 8);
-        }
-      }
-
-      // Build z_output rows
-      if (data.size() > 4 && data[4].first && data[4].second > 0) {
-        const auto *z_data = static_cast<const uint8_t *>(data[4].first);
-        std::size_t z_size = data[4].second;
-
-        std::size_t row_size =
-            (2 * nq + 1 + 7) / 8; // Round up to byte boundary
-        std::size_t num_rows = z_size / row_size;
-
-        for (std::size_t i = 0; i < num_rows; ++i) {
-          z_output.emplace_back(z_data + i * row_size, nq, row_size * 8);
-        }
-      }
-    }
-  };
-
   /// @brief Helper structure to represent Pauli frame
   struct PauliFrameWrapper {
     const void *x_data;
@@ -126,7 +69,6 @@ public:
 
 private:
   StimData data_;
-  mutable std::unique_ptr<TableauWrapper> cached_tableau_;
   mutable std::unique_ptr<PauliFrameWrapper> cached_frame_;
 
   template <typename T, typename Variant>
@@ -218,15 +160,9 @@ public:
 
     auto num_qubits = getNumQubits();
     auto msm_err_count = getMsmErrorCount();
-    auto num_stabilizers = getNumStabilizers();
 
     os << "StimState { qubits=" << num_qubits
-       << ", msm_err_count=" << msm_err_count
-       << ", num_stabilizers=" << num_stabilizers << " }";
-
-    const auto &tableau = getTableau();
-    os << "\nTableau X_output rows: " << tableau.x_output.size();
-    os << "\nTableau Z_output rows: " << tableau.z_output.size();
+       << ", msm_err_count=" << msm_err_count << " }";
 
     const auto &frame = getPauliFrame();
     os << "\nPauli frame size: " << frame.total_size;
@@ -237,10 +173,7 @@ public:
   precision getPrecision() const override { return precision::fp64; }
 
   /// @brief Destroy any resources.
-  void destroyState() override {
-    cached_tableau_.reset();
-    cached_frame_.reset();
-  }
+  void destroyState() override { cached_frame_.reset(); }
 
   /// @brief Get MSM error count.
   std::size_t getMsmErrorCount() const {
@@ -248,22 +181,6 @@ public:
       throw std::runtime_error(
           "[StimState] Invalid StimData: missing msm_err_count.");
     return *static_cast<std::size_t *>(data_[1].first);
-  }
-
-  /// @brief Get number of stabilizers.
-  std::size_t getNumStabilizers() const {
-    if (data_.size() < 3 || data_[2].second == 0)
-      throw std::runtime_error(
-          "[StimState] Invalid StimData: missing num_stabilizers.");
-    return *static_cast<std::size_t *>(data_[2].first);
-  }
-
-  /// @brief Returns a reference to the tableau (stabilizer generator).
-  const TableauWrapper &getTableau() const {
-    if (!cached_tableau_) {
-      cached_tableau_ = std::make_unique<TableauWrapper>(data_, getNumQubits());
-    }
-    return *cached_tableau_;
   }
 
   /// @brief Returns a reference to the Pauli frame.

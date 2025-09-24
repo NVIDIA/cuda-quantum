@@ -13,6 +13,7 @@ import numpy as np
 
 import cudaq
 
+
 @pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
 def test_save_state_builtin(target: str):
     cudaq.set_target(target)
@@ -24,8 +25,8 @@ def test_save_state_builtin(target: str):
         q, r = cudaq.qubit(), cudaq.qubit()
         h(q)
         cudaq.save_state()
-       
-        x.ctrl(q, r) 
+
+        x.ctrl(q, r)
         cudaq.save_state()
 
         if flag:
@@ -36,4 +37,3 @@ def test_save_state_builtin(target: str):
     counts = cudaq.sample(bell_depol2, 0.2, True, noise_model=noise)
     assert len(counts) == 4
     print(counts)
-

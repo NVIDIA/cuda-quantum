@@ -148,6 +148,33 @@ protected:
     return std::nullopt;
   }
 
+  StimData serialize_frame_simulator(stim::FrameSimulator<W> *sampleSim) {
+    StimData data;
+
+    // 0: num_qubits
+    std::size_t num_qubits = sampleSim->num_qubits;
+    data.push_back({&num_qubits, 1});
+
+    // 1: msm_err_count
+    std::size_t msm_err_count_copy = msm_err_count;
+    data.push_back({&msm_err_count_copy, 1});
+
+    // 2,3 : x_output array, z_output array
+    std::vector<uint8_t> x_output;
+    std::vector<uint8_t> z_output;
+    std::size_t shot = msm_err_count;
+    if (msm_err_count < sampleSim->batch_size) {
+      for (std::size_t q = 0; q < num_qubits; q++) {
+        x_output.push_back(sampleSim->x_table[q][shot] ? 1 : 0);
+        z_output.push_back(sampleSim->z_table[q][shot] ? 1 : 0);
+      }
+    }
+    data.push_back({x_output.data(), x_output.size()});
+    data.push_back({z_output.data(), z_output.size()});
+
+    return data;
+  }
+
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
@@ -481,12 +508,13 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     flushGateQueue();
-    StimData data{};
+    StimData data = serialize_frame_simulator(sampleSim.get());
     return std::make_unique<StimState>(data);
   }
 
   std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override {
-    StimData data{};
+    printf("Getting current simulation state from stim simulator\n");
+    StimData data = serialize_frame_simulator(sampleSim.get());
     return std::make_unique<StimState>(data);
   }
 
