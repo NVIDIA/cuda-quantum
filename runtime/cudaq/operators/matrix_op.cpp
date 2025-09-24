@@ -141,6 +141,10 @@ const std::vector<int64_t> &matrix_handler::get_expected_dimensions() const {
 
 // private helpers
 
+std::string matrix_handler::format_op_code() const {
+  return this->is_adjoint ? std::string(this->op_code + "_d") : this->op_code;
+}
+
 std::string matrix_handler::canonical_form(
     std::unordered_map<std::size_t, std::int64_t> &dimensions,
     std::vector<std::int64_t> &relevant_dims) const {
@@ -166,16 +170,16 @@ std::string matrix_handler::canonical_form(
       relevant_dims.push_back(expected_dim);
     }
   }
-  return this->op_code;
+  return this->format_op_code();
 }
 
 // read-only properties
 
 std::string matrix_handler::unique_id() const {
   if (this->targets.size() == 0)
-    return this->op_code;
+    return this->format_op_code();
   auto it = this->targets.cbegin();
-  std::string str = this->op_code + "(" + std::to_string(*it);
+  std::string str = this->format_op_code() + "(" + std::to_string(*it);
   while (++it != this->targets.cend())
     str += "," + std::to_string(*it);
   return str + ")";
@@ -189,7 +193,8 @@ std::vector<std::size_t> matrix_handler::degrees() const {
 
 matrix_handler::matrix_handler(std::size_t degree)
     : op_code("I"), commutes(true),
-      group(operator_handler::default_commutation_relations) {
+      group(operator_handler::default_commutation_relations),
+      is_adjoint(false) {
   this->targets.push_back(degree);
   if (matrix_handler::defined_ops.find(this->op_code) ==
       matrix_handler::defined_ops.end()) {
@@ -214,7 +219,7 @@ matrix_handler::matrix_handler(std::string operator_id,
                                const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
-      group(commutation_behavior.group), targets(degrees) {
+      group(commutation_behavior.group), targets(degrees), is_adjoint(false) {
   if (!commutation_behavior.commutes_across_degrees && this->targets.size() > 1)
     // We cannot support this with the current mechanism for achieving
     // non-trivial commutation relations for operators acting on different
@@ -236,7 +241,8 @@ matrix_handler::matrix_handler(std::string operator_id,
                                const commutation_behavior &commutation_behavior)
     : op_code(operator_id),
       commutes(commutation_behavior.commutes_across_degrees),
-      group(commutation_behavior.group), targets(std::move(degrees)) {
+      group(commutation_behavior.group), targets(std::move(degrees)),
+      is_adjoint(false) {
   if (!commutation_behavior.commutes_across_degrees && this->targets.size() > 1)
     // We cannot support this with the current mechanism for achieving
     // non-trivial commutation relations for operators acting on different
@@ -266,7 +272,7 @@ matrix_handler::matrix_handler(const T &other,
                                const commutation_behavior &behavior)
     : op_code(matrix_handler::type_prefix<T>() + other.to_string(false)),
       commutes(behavior.commutes_across_degrees), group(behavior.group),
-      targets(other.degrees()) {
+      targets(other.degrees()), is_adjoint(false) {
   if (matrix_handler::defined_ops.find(this->op_code) ==
       matrix_handler::defined_ops.end()) {
     auto func = [other](const std::vector<std::int64_t> &dimensions,
@@ -315,11 +321,12 @@ template matrix_handler::matrix_handler(const fermion_handler &other,
 
 matrix_handler::matrix_handler(const matrix_handler &other)
     : op_code(other.op_code), commutes(other.commutes), group(other.group),
-      targets(other.targets) {}
+      targets(other.targets), is_adjoint(other.is_adjoint) {}
 
 matrix_handler::matrix_handler(matrix_handler &&other)
     : op_code(other.op_code), commutes(other.commutes),
-      group(std::move(other.group)), targets(std::move(other.targets)) {}
+      group(std::move(other.group)), targets(std::move(other.targets)),
+      is_adjoint(other.is_adjoint) {}
 
 // assignments
 
@@ -329,6 +336,7 @@ matrix_handler &matrix_handler::operator=(matrix_handler &&other) {
     this->commutes = other.commutes;
     this->group = std::move(other.group);
     this->targets = std::move(other.targets);
+    this->is_adjoint = other.is_adjoint;
   }
   return *this;
 }
@@ -339,6 +347,7 @@ matrix_handler &matrix_handler::operator=(const matrix_handler &other) {
     this->commutes = other.commutes;
     this->group = other.group;
     this->targets = other.targets;
+    this->is_adjoint = other.is_adjoint;
   }
   return *this;
 }
@@ -388,7 +397,24 @@ complex_matrix matrix_handler::to_matrix(
     }
   }
 
-  return it->second.generate_matrix(relevant_dimensions, parameters);
+  return this->is_adjoint
+             ? it->second.generate_matrix(relevant_dimensions, parameters)
+                   .adjoint()
+             : it->second.generate_matrix(relevant_dimensions, parameters);
+}
+
+// Helper to return the adjoint of a multi-diagonal matrix.
+static mdiag_sparse_matrix dagger(const mdiag_sparse_matrix &mat) {
+  // Minus the offsets (row to column) and conjugate the values.
+  mdiag_sparse_matrix dagger(mat);
+  auto &data = dagger.first;
+  for (auto &entry : data)
+    entry = std::conj(entry); // conjugate the value
+
+  auto &offsets = dagger.second;
+  for (auto &entry : offsets)
+    entry = -entry; // negate the offset
+  return dagger;
 }
 
 mdiag_sparse_matrix matrix_handler::to_diagonal_matrix(
@@ -422,7 +448,10 @@ mdiag_sparse_matrix matrix_handler::to_diagonal_matrix(
     }
   }
 
-  return it->second.generate_dia_matrix(relevant_dimensions, parameters);
+  return this->is_adjoint
+             ? dagger(it->second.generate_dia_matrix(relevant_dimensions,
+                                                     parameters))
+             : it->second.generate_dia_matrix(relevant_dimensions, parameters);
 }
 
 std::string matrix_handler::to_string(bool include_degrees) const {
@@ -430,7 +459,18 @@ std::string matrix_handler::to_string(bool include_degrees) const {
     return this->unique_id(); // unique id for consistency with keys in some
                               // user facing maps
   else
-    return this->op_code;
+    return this->format_op_code();
+}
+
+matrix_handler matrix_handler::adjoint() const {
+  matrix_handler adjoint_op(*this);
+  adjoint_op.is_adjoint = !this->is_adjoint; // toggle the adjoint flag
+  return adjoint_op;
+}
+
+matrix_handler &matrix_handler::adjoint_in_place() {
+  this->is_adjoint = !this->is_adjoint; // toggle the adjoint flag
+  return *this;
 }
 
 // comparisons
@@ -439,7 +479,7 @@ bool matrix_handler::operator==(const matrix_handler &other) const {
   return this->op_code == other.op_code && this->group == other.group &&
          // no need to compare commutes (should be determined by op_code and
          // commutation group)
-         this->targets == other.targets;
+         this->targets == other.targets && this->is_adjoint == other.is_adjoint;
 }
 
 // predefined operators
