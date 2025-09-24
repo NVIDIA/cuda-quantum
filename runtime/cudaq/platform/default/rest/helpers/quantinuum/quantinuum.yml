@@ -56,7 +56,7 @@ target-arguments:
       - arch-name: Helios
         pattern: Helios.*
         config: 
-          codegen-emission: qir-adaptive:0.2:int_computations,float_computations
+          codegen-emission: qir-adaptive:0.2:int_computations,float_computations,output_log
   - key: project
     required: true
     type: string
@@ -82,3 +82,8 @@ target-arguments:
     type: string
     platform-arg: extra_payload_provider
     help-string: "Specify the extra payload provider if any."
+  - key: simulator
+    required: false
+    type: string
+    platform-arg: simulator
+    help-string: "If machine is a simulator, the type of simulator to use."
