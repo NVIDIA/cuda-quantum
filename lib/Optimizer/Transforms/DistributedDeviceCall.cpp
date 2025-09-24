@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include <iostream>
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
@@ -41,9 +42,29 @@ public:
     auto devFuncName = devcall.getCallee();
     auto devFunc = module.lookupSymbol<func::FuncOp>(devFuncName);
     if (!devFunc) {
+      std::cout << "cannot find the function " << devFuncName.str() << std::endl;
       LLVM_DEBUG(llvm::dbgs() << "cannot find the function " << devFuncName
                               << " in module\n");
-      return failure();
+      //return failure();
+
+      // create the declaration
+      // FIXME: SHOULD NOT BE DOING THAT?
+      std::cout << "creating it... " << std::endl;
+      auto argTys = devcall.getArgOperands().getTypes(); // FIXME: vectors?
+      auto retTys = TypeRange{};
+      auto fType = FunctionType::get(module.getContext(), argTys, retTys);
+      auto insPt = rewriter.saveInsertionPoint();
+      rewriter.setInsertionPointToStart(module.getBody());
+      auto func = rewriter.create<func::FuncOp>(module->getLoc(), devFuncName, fType);
+      func.setPrivate();
+      rewriter.restoreInsertionPoint(insPt);
+      std::cout << "done creating it... " << std::endl;
+
+      rewriter.replaceOpWithNewOp<func::CallOp>(
+          devcall, mlir::TypeRange{}, devFuncName,
+          devcall.getArgs());
+      std::cout << "replaced dev call with direct call " << std::endl;
+      return success();
     }
 
     llvm::MD5 hash;

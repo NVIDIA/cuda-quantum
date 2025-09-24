@@ -155,6 +155,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     auto cloned = mod.clone();
     auto context = cloned.getContext();
     PassManager pm(context);
+    //pm.enableVerifier(false);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
@@ -196,6 +197,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     }
     timingScope.stop();
     std::cout << "JITKernel done with quake generation " << std::endl;
+    cloned.dump();
 
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
@@ -225,7 +227,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       }
       ExecutionEngine::setupTargetTriple(llvmModule.get());
       std::cout << "LLVM Module: \n";
-      llvmModule->dump();
+      //llvmModule->dump();
       return llvmModule;
     };
 
