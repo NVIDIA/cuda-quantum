@@ -260,7 +260,7 @@ jobs:
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
+            build_cache="type=registry,compression=zstd,force-compression=true,oci-mediatypes=true,compression-level=15,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
             cache_to="${build_cache},mode=max,ignore-error=false"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
@@ -268,7 +268,7 @@ jobs:
             build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
           else 
-            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
+            build_cache="type=registry,compression=zstd,force-compression=true,oci-mediatypes=true,compression-level=15,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
 
           # Registry caches pull from a separate cache for each platform
@@ -284,10 +284,10 @@ jobs:
             echo 'cache_from_registry<<multiline'
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
-                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+                echo "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true,compression-level=15,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
               fi
-              echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
-              echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+              echo "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true,compression-level=15,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+              echo "type=registry,compression=zstd,force-compression=true,oci-mediatypes=true,compression-level=15,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
             done
             echo multiline
           } >> $GITHUB_OUTPUT
