@@ -10,10 +10,6 @@ import pytest
 import cudaq
 import numpy as np
 
-skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
-    reason='Could not find nvidia-fp64 in installation')
-
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
@@ -47,7 +43,7 @@ def test_kernel_synthesis_complex():
 # float
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_float_params_f64():
 
     cudaq.reset_target()
@@ -61,7 +57,7 @@ def test_kernel_float_params_f64():
         e)
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_float_params_f32():
 
     cudaq.reset_target()
@@ -78,7 +74,7 @@ def test_kernel_float_params_f32():
 # complex
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -97,7 +93,7 @@ def test_kernel_complex_params_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_complex128_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -116,7 +112,7 @@ def test_kernel_complex128_params_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_complex64_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -174,7 +170,7 @@ def test_kernel_complex_params_f32():
     assert '[sim-state] invalid data precision.' in repr(e)
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_complex_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -193,7 +189,7 @@ def test_kernel_complex_capture_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_complex128_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -212,7 +208,7 @@ def test_kernel_complex128_capture_f64():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_complex128_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -273,7 +269,7 @@ def test_kernel_complex_capture_f32():
 # simulation dtype
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_simulation_dtype_complex_params_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -311,7 +307,7 @@ def test_kernel_simulation_dtype_complex_params_f32():
     assert '00' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_kernel_simulation_dtype_capture_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -352,7 +348,7 @@ def test_kernel_simulation_dtype_capture_f32():
 # Initializing from state from another kernel
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_init_from_other_kernel_state_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
@@ -381,7 +377,7 @@ def test_init_from_other_kernel_state_f64():
     assert not '01' in counts
 
 
-@skipIfNvidiaFP64NotInstalled
+@skipIfNvidiaNotInstalled
 def test_init_from_other_kernel_state_f32():
     cudaq.reset_target()
     cudaq.set_target('nvidia')

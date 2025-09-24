@@ -129,7 +129,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 
 
 .. deprecated:: 0.8
-    The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
+    The :code:`nvidia-fp64` targets, which is equivalent to setting the `fp64` option on the :code:`nvidia` target, 
     is deprecated and will be removed in a future release.
 
 .. note:: 

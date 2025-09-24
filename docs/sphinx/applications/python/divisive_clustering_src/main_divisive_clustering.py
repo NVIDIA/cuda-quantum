@@ -25,7 +25,7 @@ argparser.add_argument(
     "-t",
     "--target",
     type=str,
-    choices=["qpp-cpu", "nvidia", "nvidia-mgpu"],
+    choices=["qpp-cpu", "nvidia"],
     help=
     "Quantum simulator backend. Default is qpp-cpu. See https://nvidia.github.io/cuda-quantum for more options.",
 )
