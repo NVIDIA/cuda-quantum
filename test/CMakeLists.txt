@@ -24,6 +24,23 @@ configure_lit_site_cfg(
   ${PATHS_FOR_PLUGINS}
   )
 
+configure_lit_site_cfg(
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.site.cfg.py.in
+  ${CMAKE_CURRENT_BINARY_DIR}/Unit/lit.site.cfg.py
+  MAIN_CONFIG
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.cfg.py
+  PATHS
+  ${PATHS_FOR_PLUGINS}
+  )
+
+configure_lit_site_cfg(
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.site.cfg.py.in
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.site.cfg.py
+  MAIN_CONFIG
+  ${CMAKE_CURRENT_SOURCE_DIR}/Unit/lit.cfg.py
+)
+
+
 set(NVQPP_TEST_PARAMS
   nvqpp_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
 
