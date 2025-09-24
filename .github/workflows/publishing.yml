@@ -1001,6 +1001,11 @@ jobs:
           bash ~/.miniconda3/miniconda.sh -b -u -p ~/.miniconda3
           rm -rf ~/.miniconda3/miniconda.sh
           eval "$(~/.miniconda3/bin/conda shell.bash hook)"
+
+          # Log in to Anaconda
+          conda install conda-token --name base --channel https://repo.anaconda.cloud/repo/anaconda-tools --override-channels -y
+          conda token set ${{ secrets.ANACONDA_TOKEN }}
+
           conda install -y -c conda-forge openmpi">=5.0.7"
 
           echo 'eval "$(~/.miniconda3/bin/conda shell.bash hook)"' >> ~/.bashrc
@@ -1203,7 +1208,8 @@ jobs:
           source validate_pycudaq.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
-            -c ${{ matrix.cuda_version }} -p 3.10
+            -c ${{ matrix.cuda_version }} -p 3.10 \
+            -a ${{ secrets.ANACONDA_TOKEN }}
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
