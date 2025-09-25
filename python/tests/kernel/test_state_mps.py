@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 import os
-import pytest
-import numpy as np
 import sys
 
 import cudaq
+import numpy as np
+import pytest
 
 cp = pytest.importorskip('cupy')
 
@@ -21,9 +21,9 @@ skipIfNoGPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 @skipIfNoGPU

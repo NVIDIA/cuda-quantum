@@ -6,13 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import pytest
 import sys
 from typing import List
 
 import cudaq
-from cudaq import spin
 import numpy as np
+import pytest
+from cudaq import spin
 
 
 # Helper function for asserting two values are within a
@@ -23,9 +23,9 @@ def assert_close(want, got, tolerance=1.e-4) -> bool:
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_two_qubit_vqe_float():

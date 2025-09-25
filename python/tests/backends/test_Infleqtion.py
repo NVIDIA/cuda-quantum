@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os
-from cudaq import spin
+import os
+
+import cudaq
 import numpy as np
+import pytest
+from cudaq import spin
 
 ## NOTE: Comment the following line which skips these tests in order to run in
 # local dev environment after setting the API key
@@ -17,10 +20,10 @@ pytestmark = pytest.mark.skip("Infleqtion / Superstaq API key required")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.set_target("infleqtion")
     yield "Running the tests."
-    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 
