@@ -6,9 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, os, pytest, random, timeit
-from cudaq import spin
+import os
+import random
+import time
+import timeit
+
+import cudaq
 import numpy as np
+import pytest
+from cudaq import spin
 
 skipIfNoMQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
@@ -17,7 +23,17 @@ skipIfNoMQPU = pytest.mark.skipif(
 
 @pytest.fixture(autouse=True)
 def do_something():
+    # Force complete reset of platform state
+    cudaq.reset_target()
+    # Add delay to ensure cleanup completes
+    time.sleep(0.1)
+    # Set target and verify QPUs are available
     cudaq.set_target('nvidia-mqpu')
+    try:
+        assert cudaq.get_target().num_qpus(
+        ) > 0, "No QPUs available after target set"
+    except Exception as e:
+        pytest.skip(f"MQPU setup failed: {str(e)}")
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
@@ -155,12 +171,6 @@ def testLargeProblem_kernel():
 
 
 def check_accuracy(entity):
-    target = cudaq.get_target()
-    numQpus = target.num_qpus()
-    if numQpus == 0:
-        pytest.skip("No QPUs available for target, skipping test")
-    else:
-        print(f"Target: {target}, NumQPUs: {numQpus}")
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
