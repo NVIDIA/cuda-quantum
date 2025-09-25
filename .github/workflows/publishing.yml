@@ -1203,7 +1203,7 @@ jobs:
           source validate_pycudaq.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
-            -c ${{ matrix.cuda_version }} -p 3.11
+            -c ${{ matrix.cuda_version }} -p 3.10
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
