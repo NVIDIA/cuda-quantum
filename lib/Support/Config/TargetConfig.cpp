@@ -50,11 +50,6 @@ static std::string processSimBackendConfig(
     output << "LIBRARY_MODE="
            << (configValue.LibraryMode.value() ? "true" : "false") << "\n";
 
-  // deprecated: platform lowering pipeline
-  if (!configValue.PlatformLoweringConfig.empty())
-    output << "PLATFORM_LOWERING_CONFIG=\""
-           << configValue.PlatformLoweringConfig << "\"\n";
-
   if (!configValue.JITHighLevelPipeline.empty())
     output << "JIT_HIGH_LEVEL_PIPELINE=\"" << configValue.JITHighLevelPipeline
            << "\"\n";
@@ -331,7 +326,6 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
     IO &io, cudaq::config::BackendEndConfigEntry &info) {
   io.mapOptional("gen-target-backend", info.GenTargetBackend);
   io.mapOptional("library-mode", info.LibraryMode);
-  io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
   io.mapOptional("jit-high-level-pipeline", info.JITHighLevelPipeline);
   io.mapOptional("jit-mid-level-pipeline", info.JITMidLevelPipeline);
   io.mapOptional("jit-low-level-pipeline", info.JITLowLevelPipeline);
@@ -391,7 +385,7 @@ void MappingTraits<cudaq::config::TargetArchitectureSettings>::mapping(
 
 void MappingTraits<cudaq::config::MachineArchitectureConfig>::mapping(
     IO &io, cudaq::config::MachineArchitectureConfig &info) {
-  io.mapRequired("arch-name", info.Name);
+  io.mapOptional("arch-name", info.Name);
   io.mapOptional("machine-names", info.MachineNames);
   io.mapOptional("pattern", info.MachinePattern);
   io.mapRequired("config", info.Configuration);

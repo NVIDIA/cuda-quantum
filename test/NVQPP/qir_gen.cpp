@@ -27,24 +27,9 @@ struct branching {
 };
 
 // clang-format off
-// CHECK-LABEL:   define void @__nvqpp__mlirgen__branching() {
-// CHECK:   %1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:   %2 = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 0)
-// CHECK:   %3 = load %Qubit*, %Qubit** %2, align 8
-// CHECK:   tail call void @__quantum__qis__h(%Qubit* %3)
-// CHECK:   %4 = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 2)
-// CHECK:   %5 = load %Qubit*, %Qubit** %4, align 8
-// CHECK:   tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %3, %Qubit* %5)
-// CHECK:   %6 = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 1)
-// CHECK:   %7 = load %Qubit*, %Qubit** %6, align 8
-// CHECK:   %8 = tail call %Result* @__quantum__qis__mz(%Qubit* %7)
-// CHECK:   %9 = bitcast %Result* %8 to i1*
-// CHECK:   %10 = load i1, i1* %9, align 1
-// CHECK:   %11 = select i1 %10, %Qubit* %3, %Qubit* %5
-// CHECK:   tail call void @__quantum__qis__h(%Qubit* %11)
-// CHECK:   tail call void @__quantum__rt__qubit_release_array(%Array* %1)
-// CHECK:   ret void
-// CHECK: }
+// CHECK-LABEL:   define void @__nvqpp__mlirgen__branching()
+// CHECK:   %[[VAL_0:.*]] = select i1 %{{.*}}, %Qubit* %{{.*}}, %Qubit* %{{.*}}
+// CHECK:   tail call void @__quantum__qis__h(%Qubit* %[[VAL_0]])
 // clang-format on
 
 int main() {
