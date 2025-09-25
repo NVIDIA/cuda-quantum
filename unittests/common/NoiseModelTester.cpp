@@ -83,7 +83,6 @@ CUDAQ_TEST(NoiseModelTester, checkUnitaryDetection) {
   EXPECT_FALSE(depolarization1(1e-6).unitary_ops.empty());
   EXPECT_EQ(depolarization1(1e-6).unitary_ops.size(), 4);
   EXPECT_EQ(depolarization1(1e-6).probabilities.size(), 4);
-  EXPECT_EQ(depolarization1(1e-6).probabilities.size(), 4);
   EXPECT_NEAR(depolarization1(1e-6).probabilities[0], 1.0 - 1e-6, 1e-8);
   EXPECT_NEAR(depolarization1(1e-6).probabilities[1], 1e-6 / 3.0, 1e-8);
   EXPECT_NEAR(depolarization1(1e-6).probabilities[2], 1e-6 / 3.0, 1e-8);
