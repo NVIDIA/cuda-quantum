@@ -74,3 +74,23 @@ CUDAQ_TEST(NoiseModelTester, checkConstruction) {
   // Can only add channels for ops we know about.
   EXPECT_ANY_THROW({ noise.add_channel("invalid_op", {0}, simpleChannel); });
 }
+
+#if defined(CUDAQ_SIMULATION_SCALAR_FP64)
+CUDAQ_TEST(NoiseModelTester, checkUnitaryDetection) {
+  EXPECT_TRUE(amplitude_damping(0.5).unitary_ops.empty());
+  EXPECT_FALSE(depolarization1(0.1).unitary_ops.empty());
+  // Small probability depolarization
+  EXPECT_FALSE(depolarization1(1e-6).unitary_ops.empty());
+  EXPECT_EQ(depolarization1(1e-6).unitary_ops.size(), 4);
+  EXPECT_EQ(depolarization1(1e-6).probabilities.size(), 4);
+  EXPECT_EQ(depolarization1(1e-6).probabilities.size(), 4);
+  EXPECT_NEAR(depolarization1(1e-6).probabilities[0], 1.0 - 1e-6, 1e-8);
+  EXPECT_NEAR(depolarization1(1e-6).probabilities[1], 1e-6 / 3.0, 1e-8);
+  EXPECT_NEAR(depolarization1(1e-6).probabilities[2], 1e-6 / 3.0, 1e-8);
+  EXPECT_NEAR(depolarization1(1e-6).probabilities[3], 1e-6 / 3.0, 1e-8);
+
+  // Depolarization 2-qubit
+  EXPECT_FALSE(depolarization2(0.1).unitary_ops.empty());
+  EXPECT_FALSE(depolarization2(1e-4).unitary_ops.empty());
+}
+#endif
