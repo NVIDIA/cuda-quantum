@@ -21,14 +21,42 @@ namespace cudaq::opt {
 /// Add a pass pipeline to transform call between kernels to direct calls that
 /// do not go through the runtime layers, inline all calls, and detect if calls
 /// to kernels remain in the fully inlined into entry point kernel.
-void addAggressiveEarlyInlining(mlir::OpPassManager &pm,
-                                bool fatalCheck = false);
-void registerAggressiveEarlyInliningPipeline();
+void addAggressiveInlining(mlir::OpPassManager &pm, bool fatalCheck = false);
+void registerAggressiveInliningPipeline();
 
 void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
+
+void createPreDeviceCodeLoaderPipeline(mlir::OpPassManager &pm,
+                                       bool autoGenRunStack);
+
+/// Create and append the common target finalization pipeline. This pipeline is
+/// run just prior to code generation for all targets and for both AOT and JIT
+/// compilation. Primarily, it does a final round of IR canonicalization and
+/// cleanup.
+void createTargetFinalizePipeline(mlir::OpPassManager &pm);
+
+/// Helper function for adding the `decompositon` pass as pass options of type
+/// ListOption may not always be initialized properly resulting in mystery
+/// crashes.
+void addDecompositionPass(
+    mlir::OpPassManager &pm, mlir::ArrayRef<std::string> enabledPats,
+    mlir::ArrayRef<std::string> disabledPats = std::nullopt);
+
+void registerAOTPipelines();
+void registerJITPipelines();
+
+/// Add a pass pipeline to apply the requisite passes to optimize classical
+/// code. When converting to a quantum circuit, the static control program is
+/// fully expanded to eliminate control flow.
+/// Default values are threshold = 1024, allow break = true, and allow closed
+/// interval = true.
+void createClassicalOptimizationPipeline(
+    mlir::OpPassManager &pm, std::optional<unsigned> threshold = std::nullopt,
+    std::optional<bool> allowBreak = std::nullopt,
+    std::optional<bool> allowClosedInterval = std::nullopt);
 
 std::unique_ptr<mlir::Pass> createDelayMeasurementsPass();
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();

@@ -13,8 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace cudaq {
-namespace config {
+namespace cudaq::config {
 /// Flag to enable feature(s) of the unified NVIDIA target.
 // Use bitset so that we can combine different options, e.g., multi-gpu with
 // fp32/64.
@@ -98,7 +97,10 @@ struct BackendEndConfigEntry {
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
   /// IR lowering configuration (hardware REST QPU)
-  std::string PlatformLoweringConfig;
+  std::string PlatformLoweringConfig; // deprecated
+  std::string JITHighLevelPipeline;
+  std::string JITMidLevelPipeline;
+  std::string JITLowLevelPipeline;
   /// Exact cudaq-opt passes for pseudo-targets
   std::string TargetPassPipeline;
   /// Codegen emission configuration (hardware REST QPU)
@@ -172,5 +174,5 @@ public:
 /// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,
                                const std::vector<std::string> &targetArgv);
-} // namespace config
-} // namespace cudaq
+
+} // namespace cudaq::config

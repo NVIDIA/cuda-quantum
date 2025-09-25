@@ -9,10 +9,11 @@
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
 #include "llvm/IR/Module.h"
@@ -28,6 +29,7 @@
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -165,18 +167,21 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addAggressiveEarlyInlining(pm);
-               cudaq::opt::addPipelineConvertToQIR(pm, convertValue);
+               cudaq::opt::addAggressiveInlining(pm);
+               cudaq::opt::createTargetFinalizePipeline(pm);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue);
              })
       .Case("openqasm2",
             [&]() {
               targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
               cudaq::opt::addPipelineTranslateToOpenQASM(pm);
               targetAction = qasmAction;
             })
       .Case("iqm",
             [&]() {
               targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
               cudaq::opt::addPipelineTranslateToIQMJson(pm);
               targetAction = iqmAction;
             })
