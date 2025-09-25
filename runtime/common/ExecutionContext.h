@@ -239,10 +239,9 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  /// @brief For each possible error, this is a "flips" vector of length "num
-  /// qubits", where "num qubits" is the number of qubits known to the simulator
-  /// at the time of the error mechanism. This is populated when using the "msm"
-  /// mode (i.e. this->name == "msm")
+  /// @brief For each possible error, this is a "flips" vector of length number
+  /// of qubits known to the simulator at the time of the error mechanism. This
+  /// is populated when using the measurement syndrome matrix mode
   std::vector<std::vector<bool>> msm_x_flips; // msm_x_flips[error_id][qubit_id]
   std::vector<std::vector<bool>> msm_z_flips; // msm_z_flips[error_id][qubit_id]
 

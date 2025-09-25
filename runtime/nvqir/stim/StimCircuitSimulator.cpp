@@ -153,18 +153,26 @@ protected:
 
     // 0: num_qubits
     std::size_t num_qubits = sampleSim->num_qubits;
+    printf("num_qubits = %zu\n", num_qubits);
     data.push_back({&num_qubits, 1});
 
     // 1: msm_err_count
     std::size_t msm_err_count_copy = msm_err_count;
+    printf("msm_err_count = %zu\n", msm_err_count_copy);
     data.push_back({&msm_err_count_copy, 1});
 
     // 2,3 : x_output array, z_output array
     std::vector<uint8_t> x_output;
     std::vector<uint8_t> z_output;
-    std::size_t shot = msm_err_count;
-    if (msm_err_count < sampleSim->batch_size) {
+
+    auto *executionContext = getExecutionContext();
+    auto batch_size = executionContext->shots;
+    for (int shot = 0; shot < batch_size; shot++) {
       for (std::size_t q = 0; q < num_qubits; q++) {
+        printf("q %zu: x = %d, z = %d\n", q,
+               static_cast<int>(sampleSim->x_table[q][shot]),
+               static_cast<int>(sampleSim->z_table[q][shot]));
+
         x_output.push_back(sampleSim->x_table[q][shot] ? 1 : 0);
         z_output.push_back(sampleSim->z_table[q][shot] ? 1 : 0);
       }
@@ -514,6 +522,7 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override {
     printf("Getting current simulation state from stim simulator\n");
+    flushGateQueue();
     StimData data = serialize_frame_simulator(sampleSim.get());
     return std::make_unique<StimState>(data);
   }
