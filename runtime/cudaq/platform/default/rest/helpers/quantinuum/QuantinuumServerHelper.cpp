@@ -46,6 +46,8 @@ protected:
   std::optional<int> maxCost;
   /// @brief Enable/disable noisy simulation on emulator.
   std::optional<bool> noisySim;
+  /// @brief The type of simulator to use if machine is a simulator.
+  std::string simulator;
   /// @brief The Nexus project ID
   std::string projectId = "";
   /// @brief Time string, when the last tokens were retrieved
@@ -125,6 +127,11 @@ public:
         throw std::runtime_error("noisy_simulation must be true or false.");
       noisySim = (iter->second == "true");
     }
+
+    // Simulator name
+    iter = backendConfig.find("simulator");
+    if (iter != backendConfig.end())
+      simulator = iter->second;
 
     // Set an alternate base URL if provided
     iter = backendConfig.find("url");
@@ -374,6 +381,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     if (noisySim.has_value() && machine.ends_with("E"))
       j["data"]["attributes"]["definition"]["backend_config"]
        ["noisy_simulation"] = noisySim.value() ? "true" : "false";
+
+    if (!simulator.empty())
+      j["data"]["attributes"]["definition"]["backend_config"]["simulator"] =
+          simulator;
 
     // Add program items
     j["data"]["attributes"]["definition"]["items"] = ServerMessage::array();

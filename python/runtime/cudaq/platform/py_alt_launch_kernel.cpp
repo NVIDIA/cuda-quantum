@@ -16,7 +16,7 @@
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
@@ -169,7 +169,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       else
         tl = "qir:" + tlPair.second.str();
     }
-    cudaq::opt::addPipelineConvertToQIR(pm, tl);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, tl);
     pm.addPass(createSymbolDCEPass());
 
     auto enablePrintMLIREachPass =
@@ -850,7 +850,7 @@ std::string getQIR(const std::string &name, MlirModule module,
   std::string profile{profile_};
   if (profile.empty())
     profile = "qir:0.1";
-  cudaq::opt::addPipelineConvertToQIR(pm, profile);
+  cudaq::opt::addAOTPipelineConvertToQIR(pm, profile);
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
@@ -907,7 +907,7 @@ std::string getASM(const std::string &name, MlirModule module,
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addPass(cudaq::opt::createApplySpecialization());
-  cudaq::opt::addAggressiveEarlyInlining(pm);
+  cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());

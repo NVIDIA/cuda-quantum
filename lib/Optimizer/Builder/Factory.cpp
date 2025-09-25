@@ -774,4 +774,17 @@ factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
   return {func, /*defined=*/false};
 }
 
+void factory::mergeModules(ModuleOp into, ModuleOp from) {
+  for (Operation &op : *from.getBody()) {
+    auto sym = dyn_cast<SymbolOpInterface>(op);
+    if (!sym)
+      continue; // Only merge named symbols, avoids duplicating anonymous ops.
+
+    // If `into` already has a symbol with this name, skip it.
+    if (SymbolTable::lookupSymbolIn(into, sym.getName()))
+      continue;
+
+    into.push_back(op.clone());
+  }
+}
 } // namespace cudaq::opt

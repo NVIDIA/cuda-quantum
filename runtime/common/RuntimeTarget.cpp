@@ -24,5 +24,4 @@ std::string RuntimeTarget::get_target_args_help_string() const {
   }
   return ss.str();
 }
-
 } // namespace cudaq

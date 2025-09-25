@@ -354,6 +354,8 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelThunkType
 
+.. doxygenstruct:: cudaq::CodeGenConfig
+
 Utilities
 =========
 
