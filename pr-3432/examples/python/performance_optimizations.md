@@ -1722,14 +1722,14 @@ line example would look like
 `CUDAQ_MGPU_FUSE=4 python c2h2VQE.py --target nvidia --target-option fp64,mgpu`{.docutils
 .literal .notranslate}
 
-![fd9f243996d7459b952ab8f64c973a6c](../../_images/gate-fuse.png)
+![8d67240663514e8c9577b0d5913d7487](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![17a37d1d317b4a18b2677f9068065dc9](../../_images/gatefusion.png)
+![cc06544573624033b70fe807c8093a7a](../../_images/gatefusion.png)
 :::
 :::
 :::

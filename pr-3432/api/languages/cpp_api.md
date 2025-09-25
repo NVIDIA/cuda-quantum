@@ -12354,6 +12354,14 @@ Platform[¶](#platform "Permalink to this heading"){.headerlink}
     <!-- -->
     ```
 
+    []{#classcudaq_1_1quantum__platform_1aa40fb381af70556167aa88d6b01e506d .target}[[[CodeGenConfig]{.pre}]{.n}](#_CPPv4N5cudaq13CodeGenConfigE "cudaq::CodeGenConfig"){.reference .internal}[ ]{.w}[[[get\_codegen\_config]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv "Permalink to this definition"){.headerlink}\
+
+    :   Get code generation configuration values.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1quantum__platform_1a39b49eb99f389ffbf2d6aa64698e6110 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset\_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11reset_noiseEv "Permalink to this definition"){.headerlink}\
 
     :   Turn off any noise models.
@@ -12557,6 +12565,16 @@ Platform[¶](#platform "Permalink to this heading"){.headerlink}
 []{#ThunkInterface_8h_1a94674b30c58e63bc8a5ad3d9f24c3f71 .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[KernelThunkType]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[KernelThunkResultType]{.pre}]{.n}](#_CPPv4N5cudaq21KernelThunkResultTypeE "cudaq::KernelThunkResultType"){.reference .internal}[ ]{.w}[[(]{.pre}]{.p}[[\*]{.pre}]{.p}[[)]{.pre}]{.p}[[(]{.pre}]{.p}[[void]{.pre}]{.kt}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[)]{.pre}]{.p}[¶](#_CPPv4N5cudaq15KernelThunkTypeE "Permalink to this definition"){.headerlink}\
 
 :   The universal signature of a kernel thunk.
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1CodeGenConfig .target}[[struct]{.pre}]{.k}[ ]{.w}[[[CodeGenConfig]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13CodeGenConfigE "Permalink to this definition"){.headerlink}\
+
+:   `Codegen`{.docutils .literal .notranslate} configuration. Note: it
+    is currently flattened to contain all possible options for all
+    possible platforms.
 :::
 
 ::: {#utilities .section}
