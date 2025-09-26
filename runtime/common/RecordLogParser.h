@@ -41,9 +41,9 @@ public:
 class BooleanConverter : public TypeConverterBase<bool> {
 public:
   bool convert(const std::string &value) const override {
-    if (value == "true" || value == "1")
+    if (value == "true" || value == "True" || value == "1")
       return true;
-    if (value == "false" || value == "0")
+    if (value == "false" || value == "False" || value == "0")
       return false;
     throw std::runtime_error("Invalid boolean value");
   }
@@ -280,6 +280,12 @@ public:
 
 } // namespace details
 
+namespace {
+// Simplify look up of the required number of results by using a common
+// identifier instead of different QIR versions (0.1 and 0.2)
+constexpr char ResultCountMetadataName[] = "required_results";
+} // namespace
+
 //===----------------------------------------------------------------------===//
 // Main record log parser and decoder class
 //===----------------------------------------------------------------------===//
@@ -340,6 +346,7 @@ private:
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};
   /// Metadata information extracted from the log
-  std::unordered_map<std::string, std::string> metadata;
+  std::unordered_map<std::string, std::string> metadata = {
+      {ResultCountMetadataName, "1"}};
 };
 } // namespace cudaq

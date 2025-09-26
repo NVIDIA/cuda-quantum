@@ -49,7 +49,12 @@ public:
                       bool enableLogging = true, bool enableSsl = false,
                       const std::map<std::string, std::string> &cookies = {},
                       std::map<std::string, std::string> *cookiesOut = nullptr);
-
+  /// Get the raw text contents of the remote server at the given URL and path.
+  std::string
+  getRawText(const std::string_view remoteUrl, const std::string_view path,
+             std::map<std::string, std::string> &headers,
+             bool enableSsl = false,
+             const std::map<std::string, std::string> &cookies = {});
   /// Get the contents of the remote server at the given URL and path.
   nlohmann::json get(const std::string_view remoteUrl,
                      const std::string_view path,

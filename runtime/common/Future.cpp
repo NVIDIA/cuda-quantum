@@ -46,7 +46,7 @@ sample_result future::get() {
           dynamic_cast<QirServerHelper *>(serverHelper.get());
       if (!qirServerHelper)
         throw std::runtime_error("To support `run` API, " + qpuName +
-                                 "must inherit `QirServerHelper` class");
+                                 " must inherit `QirServerHelper` class");
       if (!inFutureRawOutput)
         throw std::runtime_error(
             "cudaq::details::future::get() for 'run' requires a raw output "

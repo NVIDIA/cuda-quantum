@@ -14,6 +14,7 @@ from typing import Any, List, Optional, Union
 import cudaq
 import uvicorn
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import PlainTextResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
 
@@ -64,9 +65,25 @@ def getKernelFunction(module):
 
 def getNumRequiredQubits(function):
     for a in function.attributes:
-        if "requiredQubits" in str(a):
+        if "required_num_qubits" in str(a):
             return int(
-                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
+                str(a).split(f'required_num_qubits\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredQubits" in str(a):
+            return int(
+                str(a).split(f'requiredQubits\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
+def getNumRequiredResults(function):
+    for a in function.attributes:
+        if "required_num_results" in str(a):
+            return int(
+                str(a).split(f'required_num_results\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredResults" in str(a):
+            return int(
+                str(a).split(f'requiredResults\"=')[-1].split(" ")[0].replace(
                     "\"", "").replace("'", ""))
 
 
@@ -97,6 +114,7 @@ async def postJob(job: JobRequest,
     if function == None:
         raise Exception("Could not find kernel function")
     numQubitsRequired = getNumRequiredQubits(function)
+    numResultsRequired = getNumRequiredResults(function)
     kernelFunctionName = function.name
 
     print("Kernel name = ", kernelFunctionName)
@@ -110,12 +128,21 @@ async def postJob(job: JobRequest,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.shots)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
-    results.dump()
-    createdJobs[jobId] = (jobName, results)
+    # NOTE: This uses QIR v0.2
+    qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
+    for i in range(shots):
+        cudaq.testing.toggleDynamicQubitManagement()
+        qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
+        kernel()
+        _ = cudaq.testing.finalize(qubits, context)
+
+        shot_log = cudaq.testing.getAndClearOutputLog()
+        if i > 0:
+            qir_log += "START\n"
+        qir_log += shot_log
+        qir_log += "END\t0\n"
+
+    createdJobs[jobId] = (jobName, qir_log)
 
     engine.remove_module(m)
 
@@ -141,7 +168,7 @@ async def get_job_status(job_id: str):
             "id": job_id,
             "status": "completed",
             "exited": True,
-            "resultUrl": f"http://localhost:{port}/cudaq/v1/results/{job_id}"
+            "outputUrl": f"http://localhost:{port}/cudaq/v1/results/{job_id}"
         }
 
     # Job still running
@@ -156,27 +183,11 @@ async def get_job_results(job_id: str):
 
     if job_id not in jobResults:
         # Prepare and store results
-        _, counts = createdJobs[job_id]
+        _, qir_log = createdJobs[job_id]
+        jobResults[job_id] = qir_log
 
-        # Convert counts to measurements which is a list of length shots with the results of each shot
-        measurements = []
-        for r in counts:
-            for _ in range(counts[r]):
-                measurements.append([int(bit) for bit in r])
-
-        # Create a list of indices like - "index":[["r00000",0],["r00001",1]]
-        indices = [[f"r{i:05d}", i] for i in range(len(counts))]
-
-        jobResults[job_id] = {
-            "id": str(uuid.uuid4()),
-            "job": {
-                "id": job_id
-            },
-            "measurements": measurements,
-            "index": indices
-        }
-
-    return jobResults[job_id]
+    return PlainTextResponse(content=jobResults[job_id],
+                             media_type="text/tab-separated-values")
 
 
 def startServer(port=port):
