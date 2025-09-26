@@ -76,6 +76,15 @@ for more information on this programming pattern.)#")
       "sample_async",
       [&](py::object kernel, py::args args, std::size_t shots,
           bool explicitMeasurements, std::size_t qpu_id) {
+        // Check if the kernel has void return type
+        if (py::hasattr(kernel, "returnType")) {
+          py::object returnType = kernel.attr("returnType");
+          if (!returnType.is_none())
+            throw std::runtime_error(fmt::format(
+                "The `sample_async` API only supports kernels that return None "
+                "(void). Consider using `run_async` for kernels that return "
+                "values."));
+        }
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
