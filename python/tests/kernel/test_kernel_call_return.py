@@ -44,8 +44,8 @@ def test_call_with_return_bool():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.sample(caller)
-    assert "The `sample` API only supports kernels that return None (void)" in repr(
-        error)
+    assert ("The `sample` API only supports kernels that return None (void)" in repr(
+        error))
 
 
 def test_call_with_return_bool2():
