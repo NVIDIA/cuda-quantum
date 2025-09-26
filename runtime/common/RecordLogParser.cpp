@@ -54,8 +54,9 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
       processingShot = false;
       shotData.clear();
       containerMeta.reset();
-    } else
+    } else {
       throw std::runtime_error("Invalid record type: " + recordType);
+    }
   }
 }
 
