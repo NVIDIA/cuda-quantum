@@ -76,8 +76,8 @@ def __generalOperation(self,
                        isAdj=False,
                        context=None):
     """
-    This is a utility function that applies a general quantum 
-    operation to the internal PyKernel MLIR ModuleOp.
+    This is a utility function that applies a general quantum operation to the
+    internal PyKernel MLIR ModuleOp.
     """
     opCtor = getattr(quake, '{}Op'.format(opName.title()))
 
@@ -110,8 +110,8 @@ def get_parameter_value(self, parameter):
 
 def __singleTargetOperation(self, opName, target, isAdj=False):
     """
-    Utility function for adding a single target quantum operation to the 
-    MLIR representation for the PyKernel.
+    Utility function for adding a single target quantum operation to the MLIR
+    representation for the PyKernel.
     """
     with self.insertPoint, self.loc:
         __generalOperation(self,
@@ -123,8 +123,8 @@ def __singleTargetOperation(self, opName, target, isAdj=False):
 
 def __singleTargetControlOperation(self, opName, control, target, isAdj=False):
     """
-    Utility function for adding a single target controlled quantum operation to the 
-    MLIR representation for the PyKernel.
+    Utility function for adding a single target controlled quantum operation to
+    the MLIR representation for the PyKernel.
     """
     with self.insertPoint, self.loc:
         fwdControls = None
@@ -151,8 +151,8 @@ def __singleTargetSingleParameterOperation(self,
                                            target,
                                            isAdj=False):
     """
-    Utility function for adding a single target, one parameter quantum operation to the 
-    MLIR representation for the PyKernel.
+    Utility function for adding a single target, one parameter quantum operation
+    to the MLIR representation for the PyKernel.
     """
     with self.insertPoint, self.loc:
         __generalOperation(self,
@@ -169,8 +169,8 @@ def __singleTargetSingleParameterControlOperation(self,
                                                   target,
                                                   isAdj=False):
     """
-    Utility function for adding a single target, one parameter, controlled quantum operation to the 
-    MLIR representation for the PyKernel.
+    Utility function for adding a single target, one parameter, controlled
+    quantum operation to the MLIR representation for the PyKernel.
     """
     with self.insertPoint, self.loc:
         fwdControls = None
@@ -201,12 +201,12 @@ def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
 
 def __generalCustomOperation(self, opName, *args):
     """
-    Utility function for adding a generic quantum operation to the MLIR 
+    Utility function for adding a generic quantum operation to the MLIR
     representation for the PyKernel.
 
-    A controlled version can be invoked by passing additional arguments 
-    to the operation. For an N-qubit operation, the last N arguments are 
-    treated as `targets` and excess arguments as `controls`.
+    A controlled version can be invoked by passing additional arguments to the
+    operation. For an N-qubit operation, the last N arguments are treated as
+    `targets` and excess arguments as `controls`.
     """
 
     global globalRegisteredOperations
@@ -254,9 +254,9 @@ def __generalCustomOperation(self, opName, *args):
 
 class PyKernel(object):
     """
-    The :class:`Kernel` provides an API for dynamically constructing quantum 
-    circuits. The :class:`Kernel` programmatically represents the circuit as an MLIR 
-    function using the Quake dialect.
+    The :class:`Kernel` provides an API for dynamically constructing quantum
+    circuits.  The :class:`Kernel` programmatically represents the circuit as an
+    MLIR function using the Quake dialect.
 
     Attributes:
         name (:obj:`str`): The name of the :class:`Kernel` function. Read-only.
@@ -296,7 +296,8 @@ class PyKernel(object):
                                                        loc=self.loc,
                                                        name=self.name,
                                                        module=self.module)
-        # List of in-place applied noise channels (rather than pre-registered noise classes)
+        # List of in-place applied noise channels (rather than pre-registered
+        # noise classes)
         self.appliedNoiseChannels = []
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
@@ -326,19 +327,20 @@ class PyKernel(object):
     @staticmethod
     def _cleanup(capturedDataStorage):
         """
-        Cleanup function to be called when the `PyKernel` instance is garbage 
-        collected. This resource management method is used with `weakref.finalize()`
-        to ensure proper cleanup of resources. Note that this method is intentionally
-        empty since `CapturedDataStorage` has its own `finalizer`. However, it is still
-        included for maintaining the reference to `CapturedDataStorage` until the
-        `PyKernel` instance is garbage collected ensuring proper cleanup order.
+        Cleanup function to be called when the `PyKernel` instance is garbage
+        collected. This resource management method is used with
+        `weakref.finalize()` to ensure proper cleanup of resources. Note that
+        this method is intentionally empty since `CapturedDataStorage` has its
+        own `finalizer`. However, it is still included for maintaining the
+        reference to `CapturedDataStorage` until the `PyKernel` instance is
+        garbage collected ensuring proper cleanup order.
         """
         pass
 
     def __processArgType(self, ty):
         """
-        Process input argument type. Specifically, try to infer the 
-        element type for a list, e.g. list[float]. 
+        Process input argument type. Specifically, try to infer the element type
+        for a list, e.g. list[float].
         """
         if ty in [cudaq_runtime.qvector, cudaq_runtime.qubit]:
             return ty, None
@@ -372,14 +374,16 @@ class PyKernel(object):
 
     def getIntegerType(self, width=64):
         """
-        Return an MLIR `IntegerType` of the given bit width (defaults to 64 bits).
+        Return an MLIR `IntegerType` of the given bit width (defaults to 64
+        bits).
         """
         return IntegerType.get_signless(width)
 
     def getConstantInt(self, value, width=64):
         """
         Create a constant integer operation and return its MLIR result Value.
-        Takes as input the concrete integer value. Can specify the integer bit width.
+        Takes as input the concrete integer value. Can specify the integer bit
+        width.
         """
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
@@ -433,16 +437,16 @@ class PyKernel(object):
 
     def simulationPrecision(self):
         """
-        Return precision for the current simulation backend,
-        see `cudaq_runtime.SimulationPrecision`.
+        Return precision for the current simulation backend, see
+        `cudaq_runtime.SimulationPrecision`.
         """
         target = cudaq_runtime.get_target()
         return target.get_precision()
 
     def simulationDType(self):
         """
-        Return the data type for the current simulation backend,
-        either `numpy.complex128` or `numpy.complex64`.
+        Return the data type for the current simulation backend, either
+        `numpy.complex128` or `numpy.complex64`.
         """
         if self.simulationPrecision() == cudaq_runtime.SimulationPrecision.fp64:
             return self.getComplexType(width=64)
@@ -450,8 +454,8 @@ class PyKernel(object):
 
     def ifPointerThenLoad(self, value):
         """
-        If the given value is of pointer type, load the pointer
-        and return that new value.
+        If the given value is of pointer type, load the pointer and return that
+        new value.
         """
         if cc.PointerType.isinstance(value.type):
             return cc.LoadOp(value).result
@@ -459,9 +463,8 @@ class PyKernel(object):
 
     def ifNotPointerThenStore(self, value):
         """
-        If the given value is not of a pointer type, allocate a
-        slot on the stack, store the the value in the slot, and
-        return the slot address.
+        If the given value is not of a pointer type, allocate a slot on the
+        stack, store the the value in the slot, and return the slot address.
         """
         if not cc.PointerType.isinstance(value.type):
             slot = cc.AllocaOp(cc.PointerType.get(value.type, self.ctx),
@@ -532,7 +535,8 @@ class PyKernel(object):
 
     def __getMLIRValueFromPythonArg(self, arg, argTy):
         """
-        Given a python runtime argument, create and return an equivalent constant MLIR Value.
+        Given a python runtime argument, create and return an equivalent
+        constant MLIR Value.
         """
         pyType = type(arg)
         mlirType = mlirTypeFromPyType(pyType,
@@ -590,7 +594,7 @@ class PyKernel(object):
                                    length=size).result
 
         emitFatalError(
-            "CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."
+            f"CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."
         )
 
     def createInvariantForLoop(self,
@@ -637,10 +641,11 @@ class PyKernel(object):
 
     def __cloneOrGetFunction(self, name, currentModule, otherModule):
         """
-        Get a the function with the given name. First look in the
-        current `ModuleOp` for this `kernel_builder`, if found return it as is. If
-        not found, find it in the other `kernel_builder` `ModuleOp` and return a
-        clone of it. Throw an exception if no kernel with the given name is found
+        Get a the function with the given name. First look in the current
+        `ModuleOp` for this `kernel_builder`, if found return it as is. If not
+        found, find it in the other `kernel_builder` `ModuleOp` and return a
+        clone of it. Throw an exception if no kernel with the given name is
+        found.
         """
         thisSymbolTable = SymbolTable(currentModule.operation)
         if name in thisSymbolTable:
@@ -708,9 +713,9 @@ class PyKernel(object):
 
     def __applyControlOrAdjoint(self, target, isAdjoint, controls, *args):
         """
-        Utility method for adding a Quake `ApplyOp` in the case of cudaq.control or 
-        cudaq.adjoint. This function will search recursively for all required function 
-        operations and add them tot he module. 
+        Utility method for adding a Quake `ApplyOp` in the case of
+        cudaq.control or cudaq.adjoint. This function will search recursively
+        for all required function operations and add them tot he module.
         """
         with self.insertPoint, self.loc:
             otherModule = Module.parse(str(target.module), self.ctx)
@@ -764,8 +769,8 @@ class PyKernel(object):
 
     def qalloc(self, initializer=None):
         """
-        Allocate a register of qubits of size `qubit_count` and return a 
-        handle to them as a :class:`QuakeValue`.
+        Allocate a register of qubits of size `qubit_count` and return a handle
+        to them as a :class:`QuakeValue`.
 
         Args:
             initializer (Union[`int`,`QuakeValue`, `list[T]`): The number of qubits to allocate or a concrete state to allocate and initialize the qubits.
@@ -894,17 +899,17 @@ class PyKernel(object):
 
     def __isPauliWordType(self, ty):
         """
-        A Pauli word type in our MLIR dialects is a `cc.charspan`. Return 
-        True if the provided type is equivalent to this, False otherwise.
+        A Pauli word type in our MLIR dialects is a `cc.charspan`. Return True
+        if the provided type is equivalent to this, False otherwise.
         """
         return cc.CharspanType.isinstance(ty)
 
     def exp_pauli(self, theta, *args):
         """
-        Apply a general Pauli tensor product rotation, `exp(i theta P)`, on 
-        the specified qubit register. The Pauli tensor product is provided 
-        as a string, e.g. `XXYX` for a 4-qubit term. The angle parameter 
-        can be provided as a concrete float or a `QuakeValue`.
+        Apply a general Pauli tensor product rotation, `exp(i theta P)`, on the
+        specified qubit register. The Pauli tensor product is provided as a
+        string, e.g. `XXYX` for a 4-qubit term. The angle parameter can be
+        provided as a concrete float or a `QuakeValue`.
         """
         with self.ctx, self.insertPoint, self.loc:
             quantumVal = None
@@ -954,15 +959,15 @@ class PyKernel(object):
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
-        Add Givens rotation kernel (theta angle as a QuakeValue) to the
-        kernel builder object
+        Add Givens rotation kernel (theta angle as a QuakeValue) to the kernel
+        builder object.
         """
         givens_builder(self, angle, qubitA, qubitB)
 
     def fermionic_swap(self, angle, qubitA, qubitB):
         """
         Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
-        kernel builder object
+        kernel builder object.
         """
         fermionic_swap_builder(self, angle, qubitA, qubitB)
 
@@ -971,8 +976,8 @@ class PyKernel(object):
 
     def u3(self, theta, phi, delta, target):
         """
-        Apply the universal three-parameters operator to target qubit.
-        The three parameters are Euler angles - θ, φ, and λ.
+        Apply the universal three-parameters operator to target qubit.  The
+        three parameters are Euler angles - θ, φ, and λ.
 
         ```python
             # Example
@@ -1004,8 +1009,8 @@ class PyKernel(object):
 
     def cu3(self, theta, phi, delta, controls, target):
         """
-        Controlled u3 operation.
-        The controls parameter is expected to be a list of QuakeValue.
+        Controlled u3 operation.  The controls parameter is expected to be a
+        list of QuakeValue.
 
         ```python
             # Example:
@@ -1031,8 +1036,8 @@ class PyKernel(object):
 
     def cswap(self, controls, qubitA, qubitB):
         """
-        Controlled swap of the states of the provided qubits. 
-        The controls parameter is expected to be a list of QuakeValue.
+        Controlled swap of the states of the provided qubits.  The controls
+        parameter is expected to be a list of QuakeValue.
 
         ```python
             # Example:
@@ -1102,10 +1107,11 @@ class PyKernel(object):
 
     def mz(self, target, regName=None):
         """
-        Measure the given qubit or qubits in the Z-basis. The optional 
-        `register_name` may be used to retrieve results of this measurement after 
-        execution on the QPU. If the measurement call is saved as a variable, it will 
-        return a :class:`QuakeValue` handle to the measurement instruction.
+        Measure the given qubit or qubits in the Z-basis. The optional
+        `register_name` may be used to retrieve results of this measurement
+        after execution on the QPU. If the measurement call is saved as a
+        variable, it will return a :class:`QuakeValue` handle to the measurement
+        instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
@@ -1149,10 +1155,11 @@ class PyKernel(object):
 
     def mx(self, target, regName=None):
         """
-        Measure the given qubit or qubits in the X-basis. The optional 
-        `register_name` may be used to retrieve results of this measurement after 
-        execution on the QPU. If the measurement call is saved as a variable, it will 
-        return a :class:`QuakeValue` handle to the measurement instruction.
+        Measure the given qubit or qubits in the X-basis. The optional
+        `register_name` may be used to retrieve results of this measurement
+        after execution on the QPU. If the measurement call is saved as a
+        variable, it will return a :class:`QuakeValue` handle to the measurement
+        instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
@@ -1195,10 +1202,11 @@ class PyKernel(object):
 
     def my(self, target, regName=None):
         """
-        Measure the given qubit or qubits in the Y-basis. The optional 
-        `register_name` may be used to retrieve results of this measurement after 
-        execution on the QPU. If the measurement call is saved as a variable, it will
-        return a :class:`QuakeValue` handle to the measurement instruction.
+        Measure the given qubit or qubits in the Y-basis. The optional
+        `register_name` may be used to retrieve results of this measurement
+        after execution on the QPU. If the measurement call is saved as a
+        variable, it will return a :class:`QuakeValue` handle to the measurement
+        instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
@@ -1251,8 +1259,8 @@ class PyKernel(object):
             any arguments.
 
         Raises:
-        RuntimeError: if the `*target_arguments` passed to the adjoint call don't 
-            match the argument signature of `target`.
+        RuntimeError: if the `*target_arguments` passed to the adjoint call
+            don't match the argument signature of `target`.
 
         ```python
             # Example:
@@ -1269,8 +1277,8 @@ class PyKernel(object):
 
     def control(self, target, control, *target_arguments):
         """
-        Apply the `target` kernel as a controlled operation in-place to 
-        `self`.Uses the provided `control` as control qubit/s for the operation.
+        Apply the `target` kernel as a controlled operation in-place to `self`.
+        Uses the provided `control` as control qubit/s for the operation.
 
         Args:
         target (:class:`Kernel`): The kernel to apply as a controlled 
@@ -1307,8 +1315,8 @@ class PyKernel(object):
 
     def apply_call(self, target, *target_arguments):
         """
-        Apply a call to the given `target` kernel within the function-body 
-        of `self` at the provided target arguments.
+        Apply a call to the given `target` kernel within the function-body of
+        `self` at the provided target arguments.
 
         Args:
         target (:class:`Kernel`): The kernel to call from within `self`.
@@ -1340,8 +1348,8 @@ class PyKernel(object):
 
     def c_if(self, measurement, function):
         """
-        Apply the `function` to the :class:`Kernel` if the provided 
-        single-qubit `measurement` returns the 1-state. 
+        Apply the `function` to the :class:`Kernel` if the provided single-qubit
+        `measurement` returns the 1-state.
 
         Args:
         measurement (:class:`QuakeValue`): The handle to the single qubit 
@@ -1405,16 +1413,19 @@ class PyKernel(object):
             self.conditionalOnMeasure = True
 
     def for_loop(self, start, stop, function):
-        """Add a for loop that starts from the given `start` index, 
-        ends at the given `stop` index (non inclusive), applying the 
-        provided `function` within `self` at each iteration. The step 
-        value is provided to mutate the iteration variable after every iteration.
+        """
+        Add a for loop that starts from the given `start` index, ends at the
+        given `stop` index (non inclusive), applying the provided `function`
+        within `self` at each iteration. The step value is provided to mutate
+        the iteration variable after every iteration.
 
         Args:
-        start (int or :class:`QuakeValue`): The beginning iterator value for the for loop.
-        stop (int or :class:`QuakeValue`): The final iterator value (non-inclusive) for the for loop.
-        function (Callable): The callable function to apply within the `kernel` at
-            each iteration.
+        start (int or :class:`QuakeValue`): The beginning iterator value for
+            the for loop.
+        stop (int or :class:`QuakeValue`): The final iterator value
+            (non-inclusive) for the for loop.
+        function (Callable): The callable function to apply within the `kernel`
+            at each iteration.
 
         ```python
             # Example:
@@ -1437,6 +1448,7 @@ class PyKernel(object):
             counts = cudaq.sample(kernel, 5)
             print(counts)
         ```
+
         """
         with self.insertPoint, self.loc:
             iTy = mlirTypeFromPyType(int, self.ctx)
@@ -1573,8 +1585,9 @@ class PyKernel(object):
                                key=self.getConstantInt(channel_key))
 
     def __call__(self, *args):
-        """Just-In-Time (JIT) compile `self` (:class:`Kernel`), and call 
-        the kernel function at the provided concrete arguments.
+        """
+        Just-In-Time (JIT) compile `self` (:class:`Kernel`), and call the kernel
+        function at the provided concrete arguments.
 
         Args:
             *arguments (Optional[Any]): The concrete values to evaluate the 
@@ -1740,7 +1753,6 @@ def make_kernel(*args):
     # Example:
     # Parameterized kernel that accepts an `int` and `float` as arguments.
     kernel, int_value, float_value = cudaq.make_kernel(int, float)
-
     """
 
     kernel = PyKernel([*args])

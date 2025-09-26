@@ -259,7 +259,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def isMeasureResultType(self, ty, value):
         """
-        Return true if the given type is a qubit measurement result type (an i1 type).
+        Return true if the given type is a qubit measurement result type (an i1
+        type).
         """
         if hasattr(value, 'owner') and hasattr(
                 value.owner,
@@ -269,7 +270,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def getIntegerType(self, width=64):
         """
-        Return an MLIR `IntegerType` of the given bit width (defaults to 64 bits).
+        Return an MLIR `IntegerType` of the given bit width (defaults to 64
+        bits).
         """
         return IntegerType.get_signless(width)
 
@@ -351,16 +353,18 @@ class PyASTBridge(ast.NodeVisitor):
     def getConstantInt(self, value, width=64):
         """
         Create a constant integer operation and return its MLIR result Value.
-        Takes as input the concrete integer value. Can specify the integer bit width.
+        Takes as input the concrete integer value. Can specify the integer bit
+        width.
         """
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
     def changeOperandToType(self, ty, operand, allowDemotion=True):
         """
-        Change the type of an operand to a specified type. This function primarily 
-        handles type conversions and promotions to higher types (complex > float > int). 
-        Demotion of floating type to integer is allowed by default.
+        Change the type of an operand to a specified type. This function
+        primarily handles type conversions and promotions to higher types
+        (complex > float > int). Demotion of floating type to integer is allowed
+        by default.
         """
         if ty == operand.type:
             return operand
@@ -423,16 +427,16 @@ class PyASTBridge(ast.NodeVisitor):
 
     def simulationPrecision(self):
         """
-        Return precision for the current simulation backend,
-        see `cudaq_runtime.SimulationPrecision`.
+        Return precision for the current simulation backend, see
+        `cudaq_runtime.SimulationPrecision`.
         """
         target = cudaq_runtime.get_target()
         return target.get_precision()
 
     def simulationDType(self):
         """
-        Return the data type for the current simulation backend,
-        either `numpy.complex128` or `numpy.complex64`.
+        Return the data type for the current simulation backend, either
+        `numpy.complex128` or `numpy.complex64`.
         """
         if self.simulationPrecision() == cudaq_runtime.SimulationPrecision.fp64:
             return self.getComplexType(width=64)
@@ -440,7 +444,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def pushValue(self, value):
         """
-        Push an MLIR Value onto the stack for usage in a subsequent AST node visit method.
+        Push an MLIR Value onto the stack for usage in a subsequent AST node
+        visit method.
         """
         self.debug_msg(lambda: f'push {value}')
         self.valueStack.append(value)
@@ -473,22 +478,20 @@ class PyASTBridge(ast.NodeVisitor):
 
     def popIfStmtBlockStack(self):
         """
-        Indicate that we have just left an if statement then 
-        or else block.
+        Indicate that we have just left an if statement then or else block.
         """
         self.inIfStmtBlockStack.pop()
 
     def isInForBody(self):
         """
-        Return True if the current insertion point is within 
-        a for body block. 
+        Return True if the current insertion point is within a for body block. 
         """
         return len(self.inForBodyStack) > 0
 
     def isInIfStmtBlock(self):
         """
-        Return True if the current insertion point is within 
-        an if statement then or else block.
+        Return True if the current insertion point is within an if statement
+        then or else block.
         """
         return len(self.inIfStmtBlockStack) > 0
 
@@ -510,8 +513,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def ifPointerThenLoad(self, value):
         """
-        If the given value is of pointer type, load the pointer
-        and return that new value.
+        If the given value is of pointer type, load the pointer and return that
+        new value.
         """
         if cc.PointerType.isinstance(value.type):
             return cc.LoadOp(value).result
@@ -519,9 +522,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def ifNotPointerThenStore(self, value):
         """
-        If the given value is not of a pointer type, allocate a
-        slot on the stack, store the the value in the slot, and
-        return the slot address.
+        If the given value is not of a pointer type, allocate a slot on the
+        stack, store the the value in the slot, and return the slot address.
         """
         if not cc.PointerType.isinstance(value.type):
             slot = cc.AllocaOp(cc.PointerType.get(value.type),
@@ -555,9 +557,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def getStructMemberIdx(self, memberName, structTy):
         """
-        For the given struct type and member variable name, return 
-        the index of the variable in the struct and the specific 
-        MLIR type for the variable.
+        For the given struct type and member variable name, return the index of
+        the variable in the struct and the specific MLIR type for the variable.
         """
         if cc.StructType.isinstance(structTy):
             structName = cc.StructType.getName(structTy)
@@ -578,7 +579,8 @@ class PyASTBridge(ast.NodeVisitor):
             )
         return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
 
-    # Create a new vector with source elements converted to the target element type if needed.
+    # Create a new vector with source elements converted to the target element
+    # type if needed.
     def __copyVectorAndCastElements(self, source, targetEleType):
         if not cc.PointerType.isinstance(source.type):
             if cc.StdvecType.isinstance(source.type):
@@ -647,8 +649,8 @@ class PyASTBridge(ast.NodeVisitor):
 
             currentST = SymbolTable(self.module.operation)
             argsTy += [self.getIntegerType()]
-            # If `printf` is not in the module, or if it is but the last argument type is not an integer
-            # then we have to add it
+            # If `printf` is not in the module, or if it is but the last
+            # argument type is not an integer then we have to add it.
             if not 'print_i64' in currentST or not IntegerType.isinstance(
                     currentST['print_i64'].type.inputs[-1]):
                 with InsertionPoint(self.module.body):
@@ -666,8 +668,8 @@ class PyASTBridge(ast.NodeVisitor):
 
             currentST = SymbolTable(self.module.operation)
             argsTy += [self.getFloatType()]
-            # If `printf` is not in the module, or if it is but the last argument type is not an float
-            # then we have to add it
+            # If `printf` is not in the module, or if it is but the last
+            # argument type is not an float then we have to add it
             if not 'print_f64' in currentST or not F64Type.isinstance(
                     currentST['print_f64'].type.inputs[-1]):
                 with InsertionPoint(self.module.body):
@@ -755,10 +757,10 @@ class PyASTBridge(ast.NodeVisitor):
 
     def convertArithmeticToSuperiorType(self, values, type):
         """
-        Assuming all values provided are arithmetic, convert each one to the 
-        provided superior type. Float is superior to integer and complex is 
-        superior to float (superior implies the inferior type can can be converted to the 
-        superior type)
+        Assuming all values provided are arithmetic, convert each one to the
+        provided superior type. Float is superior to integer and complex is
+        superior to float (superior implies the inferior type can can be
+        converted to the superior type)
         """
         retValues = []
         for v in values:
@@ -775,8 +777,9 @@ class PyASTBridge(ast.NodeVisitor):
 
     def mlirTypeFromAnnotation(self, annotation):
         """
-        Return the MLIR Type corresponding to the given kernel function argument type annotation.
-        Throws an exception if the programmer did not annotate function argument types. 
+        Return the MLIR Type corresponding to the given kernel function argument
+        type annotation.  Throws an exception if the programmer did not annotate
+        function argument types.
         """
         msg = None
         try:
@@ -795,8 +798,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def checkControlAndTargetTypes(self, controls, targets):
         """
-        Loop through the provided control and target qubit values and 
-        assert that they are of quantum type. Emit a fatal error if not. 
+        Loop through the provided control and target qubit values and assert
+        that they are of quantum type. Emit a fatal error if not.
         """
         [
             self.emitFatalError(f'control operand {i} is not of quantum type.')
@@ -889,17 +892,16 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __processRangeLoopIterationBounds(self, argumentNodes):
         """
-        Analyze `range(...)` bounds and return the start, end, 
-        and step values, as well as whether or not this a decrementing range.
+        Analyze `range(...)` bounds and return the start, end, and step values,
+        as well as whether or not this a decrementing range.
         """
         iTy = self.getIntegerType(64)
         zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
         one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
         isDecrementing = False
         if len(argumentNodes) == 3:
-            # Find the step val and we need to
-            # know if its decrementing
-            # can be incrementing or decrementing
+            # Find the step val and we need to know if its decrementing can be
+            # incrementing or decrementing
             stepVal = self.popValue()
             if isinstance(argumentNodes[2], ast.UnaryOp):
                 self.debug_msg(lambda: f'[(Inline) Visit UnaryOp]',
@@ -948,8 +950,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __visitStructAttribute(self, node, structValue):
         """
-        Handle struct member extraction from either a pointer to struct or direct struct value.
-        Uses the most efficient approach for each case.
+        Handle struct member extraction from either a pointer to struct or
+        direct struct value.  Uses the most efficient approach for each case.
         """
         if cc.PointerType.isinstance(structValue.type):
             # Handle pointer to struct - use ComputePtrOp
@@ -1022,15 +1024,16 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         """
-        Create an MLIR `func.FuncOp` for the given FunctionDef AST node. For the top-level
-        FunctionDef, this will add the `FuncOp` to the `ModuleOp` body, annotate the `FuncOp` with 
-        `cudaq-entrypoint` if it is an Entry Point CUDA-Q kernel, and visit the rest of the 
-        FunctionDef body. If this is an inner FunctionDef, this will treat the function as a CC 
-        lambda function and add the cc.callable-typed value to the symbol table, keyed on the 
-        FunctionDef name. 
+        Create an MLIR `func.FuncOp` for the given FunctionDef AST node. For the
+        top-level FunctionDef, this will add the `FuncOp` to the `ModuleOp`
+        body, annotate the `FuncOp` with `cudaq-entrypoint` if it is an Entry
+        Point CUDA-Q kernel, and visit the rest of the FunctionDef body. If this
+        is an inner FunctionDef, this will treat the function as a CC lambda
+        function and add the cc.callable-typed value to the symbol table, keyed
+        on the FunctionDef name.
 
-        We keep track of the top-level function name as well as its internal MLIR name, prefixed 
-        with the __nvqpp__mlirgen__ prefix. 
+        We keep track of the top-level function name as well as its internal
+        MLIR name, prefixed with the __nvqpp__mlirgen__ prefix.
         """
         if self.buildingEntryPoint:
             # This is an inner function def, we will
@@ -1090,7 +1093,8 @@ class PyASTBridge(ast.NodeVisitor):
                             loc=self.loc)
             self.kernelFuncOp = f
 
-            # Set this kernel as an entry point if the argument types are classical only
+            # Set this kernel as an entry point if the argument types are
+            # classical only
             def isQuantumTy(ty):
                 return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
                     ty) or quake.StruqType.isinstance(ty)
@@ -1107,8 +1111,8 @@ class PyASTBridge(ast.NodeVisitor):
             with InsertionPoint(self.entry):
                 self.buildingEntryPoint = True
                 self.symbolTable.pushScope()
-                # Add the block arguments to the symbol table,
-                # create a stack slot for value arguments
+                # Add the block arguments to the symbol table, create a stack
+                # slot for value arguments
                 blockArgs = self.entry.arguments
                 for i, b in enumerate(blockArgs):
                     if self.needsStackSlot(b.type):
@@ -1167,11 +1171,11 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Expr(self, node):
         """
-        Implement `ast.Expr` visitation to screen out all
-        multi-line `docstrings`. These are differentiated from other strings
-        at the node-type level. Strings we may care about will have been
-        assigned to a variable (hence `ast.Assign` nodes), while other strings will exist
-        as standalone expressions with no uses.
+        Implement `ast.Expr` visitation to screen out all multi-line
+        `docstrings`. These are differentiated from other strings at the
+        node-type level. Strings we may care about will have been assigned to a
+        variable (hence `ast.Assign` nodes), while other strings will exist as
+        standalone expressions with no uses.
         """
         if hasattr(node, 'value') and isinstance(node.value, ast.Constant):
             self.debug_msg(lambda: f'[(Inline) Visit Constant]', node.value)
@@ -1183,10 +1187,12 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Lambda(self, node):
         """
-        Map a lambda expression in a CUDA-Q kernel to a CC Lambda (a Value of `cc.callable` type 
-        using the `cc.create_lambda` operation). Note that we extend Python with a novel 
-        syntax to specify a list of independent statements (Python lambdas must have a single statement) by 
-        allowing programmers to return a Tuple where each element is an independent statement. 
+        Map a lambda expression in a CUDA-Q kernel to a CC Lambda (a Value of
+        `cc.callable` type using the `cc.create_lambda` operation). Note that we
+        extend Python with a novel syntax to specify a list of independent
+        statements (Python lambdas must have a single statement) by allowing
+        programmers to return a Tuple where each element is an independent
+        statement.
 
         ```python
             functor = lambda : (h(qubits), x(qubits), ry(np.pi, qubits))  # qubits captured from parent region
@@ -1208,8 +1214,8 @@ class PyASTBridge(ast.NodeVisitor):
         initBlock = Block.create_at_start(createLambda.initRegion, [])
         with InsertionPoint(initBlock):
             # Python lambdas can only have a single statement.
-            # Here we will enhance our language by processing a single Tuple statement
-            # as a set of statements for each element of the tuple
+            # Here we will enhance our language by processing a single Tuple
+            # statement as a set of statements for each element of the tuple
             if isinstance(node.body, ast.Tuple):
                 self.debug_msg(lambda: f'[(Inline) Visit Tuple]', node.body)
                 [self.visit(element) for element in node.body.elts]
@@ -1222,15 +1228,17 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         """
-        Map an assign operation in the AST to an equivalent variable value assignment 
-        in the MLIR. This method will first see if this is a tuple assignment, enabling one 
-        to assign multiple values in a single statement.
+        Map an assign operation in the AST to an equivalent variable value
+        assignment in the MLIR. This method will first see if this is a tuple
+        assignment, enabling one to assign multiple values in a single
+        statement.
 
-        For all assignments, the variable name will be used as a key for the symbol table, 
-        mapping to the corresponding MLIR Value. For values of `ref` / `veq`, `i1`, or `cc.callable`, 
-        the values will be stored directly in the table. For all other values, the variable 
-        will be allocated with a `cc.alloca` op, and the loaded value will be stored in the 
-        symbol table.
+        For all assignments, the variable name will be used as a key for the
+        symbol table, mapping to the corresponding MLIR Value. For values of
+        `ref` / `veq`, `i1`, or `cc.callable`, the values will be stored
+        directly in the table. For all other values, the variable will be
+        allocated with a `cc.alloca` op, and the loaded value will be stored in
+        the symbol table.
         """
         self.currentNode = node
 
@@ -1365,9 +1373,9 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Attribute(self, node):
         """
-        Visit an attribute node and map to valid MLIR code. This method specifically 
-        looks for attributes like method calls, or common attributes we'll 
-        see from ubiquitous external modules like `numpy`.
+        Visit an attribute node and map to valid MLIR code. This method
+        specifically looks for attributes like method calls, or common
+        attributes we'll see from ubiquitous external modules like `numpy`.
         """
         self.currentNode = node
         # Disallow list.append since we don't do dynamic memory allocation
@@ -1390,7 +1398,8 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.PointerType.isinstance(value.type):
                 eleType = cc.PointerType.getElementType(value.type)
                 if cc.StructType.isinstance(eleType):
-                    # Handle the case where we have a struct member extraction, memory semantics
+                    # Handle the case where we have a struct member extraction,
+                    # memory semantics
                     self.__visitStructAttribute(node, value)
                     return
 
@@ -1482,31 +1491,39 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Call(self, node):
         """
-        Map a Python Call operation to equivalent MLIR. This method will first check 
-        for call operations that are `ast.Name` nodes in the tree (the name of a function to call). 
-        It will handle the Python `range(start, stop, step)` function by creating an array of 
-        integers to loop through via an invariant CC loop operation. Subsequent users of the 
-        `range()` result can iterate through the elements of the returned `cc.array`. It will handle the 
-        Python `enumerate(iterable)` function by constructing another invariant loop that builds up and 
-        array of `cc.struct<i64, T>`, representing the counter and the element. 
+        Map a Python Call operation to equivalent MLIR. This method will first
+        check for call operations that are `ast.Name` nodes in the tree (the
+        name of a function to call).  It will handle the Python `range(start,
+        stop, step)` function by creating an array of integers to loop through
+        via an invariant CC loop operation. Subsequent users of the `range()`
+        result can iterate through the elements of the returned `cc.array`. It
+        will handle the Python `enumerate(iterable)` function by constructing
+        another invariant loop that builds up and array of `cc.struct<i64, T>`,
+        representing the counter and the element.
 
-        It will next handle any quantum operation (optionally with a rotation parameter). 
-        Single target operations can be represented that take a single qubit reference,
-        multiple single qubits, or a vector of qubits, where the latter two 
-        will apply the operation to every qubit in the vector: 
+        It will next handle any quantum operation (optionally with a rotation
+        parameter).  Single target operations can be represented that take a
+        single qubit reference, multiple single qubits, or a vector of qubits,
+        where the latter two will apply the operation to every qubit in the
+        vector:
 
-        Valid single qubit operations are `h`, `x`, `y`, `z`, `s`, `t`, `rx`, `ry`, `rz`, `r1`. 
+        Valid single qubit operations are `h`, `x`, `y`, `z`, `s`, `t`, `rx`,
+        `ry`, `rz`, `r1`.
 
-        Measurements `mx`, `my`, `mz` are mapped to corresponding quake operations and the return i1 
-        value is added to the value stack. Measurements of single qubit reference and registers of 
-        qubits are supported. 
+        Measurements `mx`, `my`, `mz` are mapped to corresponding quake
+        operations and the return i1 value is added to the value
+        stack. Measurements of single qubit reference and registers of qubits
+        are supported.
 
-        General calls to previously seen CUDA-Q kernels are supported. By this we mean that 
-        an kernel can not be invoked from a kernel unless it was defined before the current kernel.
-        Kernels can also be reversed or controlled with `cudaq.adjoint(kernel, ...)` and `cudaq.control(kernel, ...)`.
+        General calls to previously seen CUDA-Q kernels are supported. By this
+        we mean that an kernel can not be invoked from a kernel unless it was
+        defined before the current kernel.  Kernels can also be reversed or
+        controlled with `cudaq.adjoint(kernel, ...)` and `cudaq.control(kernel,
+        ...)`.
 
-        Finally, general operation modifiers are supported, specifically `OPERATION.adj` and `OPERATION.ctrl` 
-        for adjoint and control synthesis of the operation.  
+        Finally, general operation modifiers are supported, specifically
+        `OPERATION.adj` and `OPERATION.ctrl` for adjoint and control synthesis
+        of the operation.
 
         ```python
             q, r = cudaq.qubit(), cudaq.qubit()
@@ -1530,11 +1547,12 @@ class PyASTBridge(ast.NodeVisitor):
             ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
                 return
 
-            # If we have a `func = ast.Attribute``, then it could be that
-            # we have a previously defined kernel function call with manually specified module names
-            # e.g. `cudaq.lib.test.hello.fermionic_swap``. In this case, we assume
-            # FindDepKernels has found something like this, loaded it, and now we just
-            # want to get the function name and call it.
+            # If we have a `func = ast.Attribute``, then it could be that we
+            # have a previously defined kernel function call with manually
+            # specified module names.
+            # e.g. `cudaq.lib.test.hello.fermionic_swap``. In this case, we
+            # assume FindDepKernels has found something like this, loaded it,
+            # and now we just want to get the function name and call it.
 
             # First let's check for registered C++ kernels
             cppDevModNames = []
@@ -2249,7 +2267,6 @@ class PyASTBridge(ast.NodeVisitor):
                         node)
 
                 # loop over each type and `compute_ptr` / store
-
                 for i, ty in enumerate(structTys):
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(ty), stackSlot, [],
@@ -2330,7 +2347,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(value)
                     return
 
-                # Promote argument's types for `numpy.func` calls to match python's semantics
+                # Promote argument's types for `numpy.func` calls to match
+                # python's semantics.
                 if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil', 'exp']:
                     if ComplexType.isinstance(value.type):
                         value = self.changeOperandToType(
@@ -2713,10 +2731,10 @@ class PyASTBridge(ast.NodeVisitor):
 
             def maybeProposeOpAttrFix(opName, attrName):
                 """
-                Check the quantum operation attribute name and 
-                propose a smart fix message if possible. For example, 
-                if we have `x.control(...)` then remind the programmer the 
-                correct attribute is `x.ctrl(...)`.
+                Check the quantum operation attribute name and propose a smart
+                fix message if possible. For example, if we have
+                `x.control(...)` then remind the programmer the correct
+                attribute is `x.ctrl(...)`.
                 """
                 # TODO Add more possibilities in the future...
                 if attrName in ['control'
@@ -3008,10 +3026,9 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_ListComp(self, node):
         """
-        This method currently supports lowering simple list comprehensions 
-        to the MLIR. By simple, we mean expressions like 
-        `[expr(iter) for iter in iterable]` or 
-        `myList = [exprThatReturns(iter) for iter in iterable]`.
+        This method currently supports lowering simple list comprehensions to
+        the MLIR. By simple, we mean expressions like `[expr(iter) for iter in
+        iterable]` or `myList = [exprThatReturns(iter) for iter in iterable]`.
         """
         self.currentNode = node
 
@@ -3430,10 +3447,10 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_For(self, node):
         """
-        Visit the For node. This node represents the typical 
-        Python for statement, `for VAR in ITERABLE`. Currently supported 
-        ITERABLEs are the `veq` type, the `stdvec` type, and the result of 
-        range() and enumerate(). 
+        Visit the For node. This node represents the typical Python for
+        statement, `for VAR in ITERABLE`. Currently supported ITERABLEs are the
+        `veq` type, the `stdvec` type, and the result of range() and
+        enumerate().
         """
         self.currentNode = node
 
@@ -3702,8 +3719,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_BoolOp(self, node):
         """
-        Convert boolean operations into equivalent MLIR operations using 
-        the Arith Dialect.
+        Convert boolean operations into equivalent MLIR operations using the
+        Arith Dialect.
         """
         self.currentNode = node
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
@@ -3970,7 +3987,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_If(self, node):
         """
-        Map a Python `ast.If` node to an if statement operation in the CC dialect. 
+        Map a Python `ast.If` node to an if statement operation in the CC
+        dialect.
         """
 
         self.currentNode = node
@@ -4185,8 +4203,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_BinOp(self, node):
         """
-        Visit binary operation nodes in the AST and map them to equivalents in the 
-        MLIR. This method handles arithmetic operations between values. 
+        Visit binary operation nodes in the AST and map them to equivalents in
+        the MLIR. This method handles arithmetic operations between values.
         """
 
         self.currentNode = node
@@ -4371,7 +4389,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Name(self, node):
         """
-        Visit `ast.Name` nodes and extract the correct value from the symbol table.
+        Visit `ast.Name` nodes and extract the correct value from the symbol
+        table.
         """
         self.currentNode = node
 
@@ -4491,10 +4510,10 @@ class PyASTBridge(ast.NodeVisitor):
 
             try:
                 if issubclass(value, cudaq_runtime.KrausChannel):
-                    # Here we have a KrausChannel as part of the AST
-                    # We want to create a hash value from it, and
-                    # we then want to push the number of parameters and
-                    # that hash value. This can only be used with apply_noise
+                    # Here we have a KrausChannel as part of the AST.  We want
+                    # to create a hash value from it, and we then want to push
+                    # the number of parameters and that hash value. This can
+                    # only be used with apply_noise.
                     if not hasattr(value, 'num_parameters'):
                         self.emitFatalError(
                             'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
