@@ -1448,7 +1448,6 @@ class PyKernel(object):
             counts = cudaq.sample(kernel, 5)
             print(counts)
         ```
-
         """
         with self.insertPoint, self.loc:
             iTy = mlirTypeFromPyType(int, self.ctx)

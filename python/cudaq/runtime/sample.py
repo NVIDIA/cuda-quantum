@@ -74,6 +74,7 @@ Returns:
     has_conditionals_on_measure_result = False
 
     if isinstance(kernel, PyKernelDecorator):
+        kernel.compile()
         if kernel.module is not None:
             for operation in kernel.module.body.operations:
                 if not hasattr(operation, 'name'):
