@@ -15,7 +15,7 @@ namespace cudaq {
 /// @cond
 // This is an internal class, no API documentation.
 // Simulation state implementation for `CuDensityMatState`.
-class CuDensityMatState : public cudaq::SimulationState {
+class CuDensityMatState : public cudaq::SimulationState, public ClonableState {
 private:
   bool isDensityMatrix = false;
   std::size_t dimension = 0;
@@ -114,6 +114,10 @@ public:
   // Clone a state
   static std::unique_ptr<CuDensityMatState>
   clone(const CuDensityMatState &other);
+
+  // Clone a state
+  std::unique_ptr<SimulationState> clone() const override;
+
   // Prevent copies (avoids double free issues)
   CuDensityMatState(const CuDensityMatState &) = delete;
   CuDensityMatState &operator=(const CuDensityMatState &) = delete;

@@ -15,14 +15,110 @@
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
+#include <iostream>
 #include <optional>
 #include <string_view>
 
+#include "nvqir/stim/StimState.h"
+
 namespace cudaq {
+
+struct RecordStorage {
+
+  size_t memory_limit;
+  size_t current_memory;
+  RecordStorage(size_t limit = 1e9) : memory_limit(limit), current_memory(0) {}
+
+  std::vector<std::unique_ptr<SimulationState>> recordedStates;
+
+  void save_state(SimulationState *state) {
+    recordedStates.push_back(clone_state(state));
+  }
+  const std::vector<std::unique_ptr<SimulationState>> &
+  get_recorded_states() const {
+    return recordedStates;
+  }
+
+  void clear() { recordedStates.clear(); }
+  void dump_recorded_states() const {
+    for (std::size_t i = 0; i < recordedStates.size(); i++) {
+      recordedStates[i]->dump(std::cout);
+    }
+  }
+
+private:
+  std::unique_ptr<SimulationState> clone_state(SimulationState *state) {
+    if (state->isArrayLike()) {
+      // Handle array-like states (CusvState, etc.)
+      return clone_array_like_state(state);
+    } else {
+      // Handle specialized states (CuDensityMatState, StimState, etc.)
+      return clone_specialized_state(state);
+    }
+  }
+
+  std::unique_ptr<SimulationState>
+  clone_array_like_state(SimulationState *state) {
+    auto numQubits = state->getNumQubits();
+    if (numQubits > 20) { // Prevent exponential explosion
+      throw std::runtime_error("State too large to clone via amplitudes");
+    }
+
+    // Generate all basis states
+    auto totalStates = 1ULL << numQubits;
+    std::vector<std::vector<int>> basisStates;
+    for (size_t i = 0; i < totalStates; ++i) {
+      std::vector<int> basis(numQubits);
+      for (size_t j = 0; j < numQubits; ++j) {
+        basis[j] = (i >> j) & 1;
+      }
+      basisStates.push_back(basis);
+    }
+
+    auto amplitudes = state->getAmplitudes(basisStates);
+
+    // Create new state with appropriate precision
+    if (state->getPrecision() == SimulationState::precision::fp32) {
+      std::vector<std::complex<float>> floatAmps;
+      for (const auto &amp : amplitudes) {
+        floatAmps.emplace_back(static_cast<float>(amp.real()),
+                               static_cast<float>(amp.imag()));
+      }
+      return state->createFromData(floatAmps);
+    } else {
+      return state->createFromData(amplitudes);
+    }
+  }
+
+  std::unique_ptr<SimulationState>
+  clone_specialized_state(SimulationState *state) {
+    // Try dynamic_cast to known types that have clone methods
+    // this triggerd fatal error: library_types.h: No such file or directory
+    // if (auto* densityState = dynamic_cast<const CuDensityMatState*>(state)) {
+    //    return CuDensityMatState::clone(*densityState);
+    //}
+
+    if (auto *cloneable = dynamic_cast<ClonableState *>(state)) {
+      return cloneable->clone();
+    }
+
+    // Fallback for non-cloneable specialized states
+    throw std::runtime_error("Specialized state type does not support cloning");
+    // For unknown specialized types, try createFromSizeAndPtr as fallback
+    // This might work for some specialized states
+    // auto tensor = state->getTensor(0);
+    // return state->createFromSizeAndPtr(tensor.get_num_elements(),
+    // tensor.data, 1);
+  }
+};
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
 class ExecutionContext {
+
+  ///@brief record storage for the states saved during execution
+  RecordStorage recordStorage;
+
 public:
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
@@ -142,5 +238,32 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  /// @brief For each possible error, this is a "flips" vector of length number
+  /// of qubits known to the simulator at the time of the error mechanism. This
+  /// is populated when using the measurement syndrome matrix mode
+  std::vector<std::vector<bool>> msm_x_flips; // msm_x_flips[error_id][qubit_id]
+  std::vector<std::vector<bool>> msm_z_flips; // msm_z_flips[error_id][qubit_id]
+
+  /// @brief For each shot, this is a vector of error IDs.
+  /// This is populated when using the "sample" mode (i.e. this->name ==
+  /// "sample")
+  std::vector<std::vector<std::size_t>>
+      errors_per_shot; // errors_per_shot[shot][error_id]
+
+  /// @brief Save the current simulation state in the recorded states storage.
+  void save_state(SimulationState *state) { recordStorage.save_state(state); }
+
+  /// @brief Get the recorded states saved during execution.
+  const std::vector<std::unique_ptr<SimulationState>> &
+  get_recorded_states() const {
+    return recordStorage.get_recorded_states();
+  }
+
+  /// @brief Clear the recorded states saved during execution.
+  void clear_recorded_states() { recordStorage.clear(); }
+
+  /// @brief Dump the recorded states saved during execution.
+  void dump_recorded_states() const { recordStorage.dump_recorded_states(); }
 };
 } // namespace cudaq
