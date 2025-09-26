@@ -297,7 +297,6 @@ prepend
 preprocessor
 probability
 programmatically
-prx
 pybind
 qaoa
 qed

@@ -338,7 +338,7 @@ async def get_quantum_architecture(
 
 
 # Note: in this dynamic quantum architecture 2 qubits are deliberately
-# excluded from the list of calibrated prx gates. This simulates a QPU
+# excluded from the list of calibrated `prx` gates. This simulates a QPU
 # with an imperfect calibration.
 @app.get("/calibration-sets/default/dynamic-quantum-architecture")
 async def get_dynamic_quantum_architecture(

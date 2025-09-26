@@ -381,8 +381,8 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     implementation = measure["default_implementation"];
     auto &measure_loci = measure["implementations"][implementation]["loci"];
 
-    // For each qubit set flags to indicate whether they can be used in cz,
-    // prx or measurement operations. Then crop all qubits which are not
+    // For each qubit set flags to indicate whether they can be used in `cz`,
+    // `prx` or `measurement` operations. Then crop all qubits which are not
     // capable of all three operations and enumerate the remaining ones.
 
     for (auto qubit : dynamicQuantumArchitecture["qubits"]) {
