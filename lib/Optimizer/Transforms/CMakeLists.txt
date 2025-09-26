@@ -71,6 +71,7 @@ add_cudaq_library(OptTransforms
   VariableCoalesce.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
+  ResetBeforeReuse.cpp
 
   DEPENDS
     OptTransformsPassIncGen

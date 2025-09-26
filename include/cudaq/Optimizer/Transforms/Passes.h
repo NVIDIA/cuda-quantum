@@ -85,6 +85,7 @@ std::unique_ptr<mlir::Pass>
 createArgumentSynthesisPass(mlir::ArrayRef<mlir::StringRef> funcNames,
                             mlir::ArrayRef<mlir::StringRef> substitutions);
 
+
 // declarative passes
 #define GEN_PASS_DECL
 #define GEN_PASS_REGISTRATION
