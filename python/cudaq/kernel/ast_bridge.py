@@ -3027,8 +3027,9 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_ListComp(self, node):
         """
         This method currently supports lowering simple list comprehensions to
-        the MLIR. By simple, we mean expressions like `[expr(iter) for iter in
-        iterable]` or `myList = [exprThatReturns(iter) for iter in iterable]`.
+        the MLIR. By simple, we mean expressions like
+        `[expr(iter) for iter in iterable]` or
+        `myList = [exprThatReturns(iter) for iter in iterable]`.
         """
         self.currentNode = node
 
