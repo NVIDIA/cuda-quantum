@@ -9,7 +9,6 @@
 #include "QuantinuumHelper.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/Logger.h"
-#include "common/RecordLogParser.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -551,37 +550,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
         resultResponse["data"]["attributes"]["results"];
     CUDAQ_DBG("Count result data: {}", qirResults);
 
-    cudaq::RecordLogParser parser;
-    parser.parse(qirResults);
-
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    std::size_t bufferSize = parser.getBufferSize();
-    char *buffer = static_cast<char *>(malloc(bufferSize));
-    std::memcpy(buffer, origBuffer, bufferSize);
-
-    std::vector<std::vector<bool>> results = {
-        reinterpret_cast<std::vector<bool> *>(buffer),
-        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
-    const auto numShots = results.size();
-    // Get the result
-    cudaq::CountsDictionary globalCounts;
-    std::vector<std::string> globalSequentialData;
-    globalSequentialData.reserve(numShots);
-    for (const auto &shotResult : results) {
-      // Each QSYS shot is an array of tagged results
-      std::string bitString;
-      for (const auto &bitVal : shotResult) {
-        bitString.append(bitVal ? "1" : "0");
-      }
-      // Global register results
-      globalCounts[bitString]++;
-      globalSequentialData.push_back(bitString);
-    }
-
-    // Add the global register results
-    cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
-    return cudaq::sample_result({result});
+    return createSampleResultFromQirOutput(qirResults);
   }
 }
 
