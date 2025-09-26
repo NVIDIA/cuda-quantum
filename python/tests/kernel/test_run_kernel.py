@@ -997,8 +997,8 @@ def test_run_and_sample_and_direct_call():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.sample_async(bell_pair, shots_count=10)
-    assert "The `sample_async` API only supports kernels that return None (void)" in repr(
-        error)
+    assert ("The `sample_async` API only supports kernels that return None (void)" in repr(
+        error))
 
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
