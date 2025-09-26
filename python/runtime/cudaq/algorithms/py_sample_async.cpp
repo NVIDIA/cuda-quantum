@@ -81,8 +81,8 @@ for more information on this programming pattern.)#")
           py::object returnType = kernel.attr("returnType");
           if (!returnType.is_none())
             throw std::runtime_error(fmt::format(
-                "The `sample_async` API only supports kernels with void return "
-                "type. Consider using `run_async` for kernels that return "
+                "The `sample_async` API only supports kernels that return None "
+                "(void). Consider using `run_async` for kernels that return "
                 "values."));
         }
         auto &platform = cudaq::get_platform();

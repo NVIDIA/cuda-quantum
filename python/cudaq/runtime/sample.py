@@ -73,7 +73,7 @@ Returns:
     if isinstance(kernel, PyKernelDecorator):
         if kernel.returnType is not None:
             raise RuntimeError(
-                f"The `sample` API only supports kernels with void return type. "
+                f"The `sample` API only supports kernels that return None (void). "
                 f"Kernel '{kernel.name}' has return type '{kernel.returnType}'. "
                 f"Consider using `run` for kernels that return values.")
         kernel.compile()
