@@ -19,9 +19,11 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
 
   // Collect log from a single shot and process it only if it is successful.
   bool processingShot = false;
-  std::vector<std::vector<std::string>> shotData;
+  // Maintain the starting index of each shot's data
+  std::size_t shotStart = 0;
 
-  for (const auto &line : lines) {
+  for (std::size_t idx = 0; idx < lines.size(); ++idx) {
+    const auto &line = lines[idx];
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
@@ -33,10 +35,10 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
       handleMetadata(entries);
     else if (recordType == "START") {
       processingShot = true;
-      shotData.clear();
+      shotStart = 0;
     } else if (recordType == "OUTPUT") {
       if (processingShot)
-        shotData.push_back(entries);
+        shotStart = shotStart == 0 ? idx : shotStart;
       else
         handleOutput(entries);
     } else if (recordType == "END") {
@@ -44,15 +46,15 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
         throw std::runtime_error("Missing shot status");
       if (entries[1] == "0") {
         if (processingShot) {
-          // Successful shot, process the collected shot data
-          for (const auto &shotLine : shotData)
-            handleOutput(shotLine);
+          // Successful shot, process it
+          for (std::size_t j = shotStart; j < idx; ++j)
+            handleOutput(cudaq::split(lines[j], '\t'));
         }
       } else {
         CUDAQ_INFO("Discarding shot data due to non-zero END status.");
       }
       processingShot = false;
-      shotData.clear();
+      shotStart = 0;
       containerMeta.reset();
     } else {
       throw std::runtime_error("Invalid record type: " + recordType);
