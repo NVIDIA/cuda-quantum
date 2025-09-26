@@ -41,9 +41,9 @@ public:
 class BooleanConverter : public TypeConverterBase<bool> {
 public:
   bool convert(const std::string &value) const override {
-    if (value == "true" || value == "1")
+    if (value == "true" || value == "True" || value == "1")
       return true;
-    if (value == "false" || value == "0")
+    if (value == "false" || value == "False" || value == "0")
       return false;
     throw std::runtime_error("Invalid boolean value");
   }

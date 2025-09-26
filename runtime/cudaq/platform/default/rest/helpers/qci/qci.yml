@@ -45,7 +45,7 @@ target-arguments:
       - machine-names:
           - Seeker
         config:
-          codegen-emission: qir-base
+          codegen-emission: qir-base:1.0:output_log
   - key: method
     required: false
     type: string

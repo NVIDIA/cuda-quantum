@@ -61,7 +61,17 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       .isBaseProfile = codeGenName == "qir-base",
   };
 
-  if (config.isAdaptiveProfile) {
+  if (config.isBaseProfile) {
+    for (auto option : codeGenOptions) {
+      if (option == "output_log") {
+        cudaq::info("Enable output log support");
+        config.outputLog = true;
+      } else {
+        throw std::runtime_error(fmt::format(
+            "Invalid option '{}' for '{}' codegen.", option, codeGenName));
+      }
+    }
+  } else if (config.isAdaptiveProfile) {
     for (auto option : codeGenOptions) {
       if (option == "int_computations") {
         cudaq::info("Enable int_computations extension");
@@ -86,21 +96,15 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
             "Invalid option '{}' for '{}' codegen.", option, codeGenName));
       }
     }
-  } else {
-    if (!codeGenOptions.empty())
-      throw std::runtime_error(
-          fmt::format("Invalid codegen-emission '{}'. Extra options are not "
-                      "supported for '{}' codegen.",
-                      codegenTranslation, codeGenName));
   }
 
-  if (config.isAdaptiveProfile) {
+  if (config.isBaseProfile || config.isAdaptiveProfile) {
     // If no version is specified, using the lowest version
     if (codeGenVersion.empty() || codeGenVersion == "0.1") {
       config.version = QirVersion::version_0_1;
       config.qir_major_version = 0;
       config.qir_minor_version = 1;
-    } else if (codeGenVersion == "0.2") {
+    } else if (codeGenVersion == "0.2" || codeGenVersion == "1.0") {
       config.version = QirVersion::version_0_2;
       config.qir_major_version = 0;
       config.qir_minor_version = 2;
