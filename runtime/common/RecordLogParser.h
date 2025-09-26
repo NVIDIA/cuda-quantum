@@ -309,11 +309,8 @@ public:
 
 private:
   /// Process different types of records
-  void handleRecord(const std::vector<std::string> &);
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
-  void handleStart(const std::vector<std::string> &);
-  void handleEnd(const std::vector<std::string> &);
   /// Central dispatcher that handles different output types including scalar
   /// values, arrays, and tuples.
   void handleOutput(const std::vector<std::string> &);
