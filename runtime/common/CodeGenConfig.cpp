@@ -104,7 +104,7 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       config.version = QirVersion::version_0_1;
       config.qir_major_version = 0;
       config.qir_minor_version = 1;
-    } else if (codeGenVersion == "0.2" || codeGenVersion == "1.0") {
+    } else if (codeGenVersion == "0.2") {
       config.version = QirVersion::version_0_2;
       config.qir_major_version = 0;
       config.qir_minor_version = 2;

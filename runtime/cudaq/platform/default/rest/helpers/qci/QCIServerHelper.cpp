@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. * 
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -130,9 +130,6 @@ public:
   std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
-  /// @brief Retrieves the results of a job using the provided path.
-  ServerMessage getResults(std::string &resultsGetPath);
-
   /// @brief Retrieve the QIR output log from the provided path.
   std::string getOutputLog(std::string &outputLogPath);
 
@@ -238,20 +235,9 @@ QCIServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
   return std::chrono::microseconds(QCI_CUDAQ_ENDPOINT_POLL_MICRO);
 }
 
-// Get the results from a given path
-ServerMessage QCIServerHelper::getResults(std::string &resultsGetPath) {
-  // Get the headers
-  RestHeaders headers = {{"Accept", "*/*"}};
-
-  // Return the results from the client
-  return restClient.get(resultsGetPath, "", headers);
-}
-
 // Get the QIR output log from a given path
 std::string QCIServerHelper::getOutputLog(std::string &outputLogPath) {
-  // Get the headers
   RestHeaders headers = {{"Accept", "*/*"}};
-
   // The path returns TSV text
   return restClient.getRawText(outputLogPath, "", headers);
 }
@@ -262,10 +248,8 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobId) {
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
   CUDAQ_DBG("jobId: {}", jobId);
-
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   auto qirResults = getOutputLog(outputPath);
-
   return createSampleResultFromQirOutput(qirResults);
 }
 
@@ -287,10 +271,8 @@ RestHeaders QCIServerHelper::getHeaders() { return generateRequestHeaders(); }
 // Extract QIR output data
 std::string QCIServerHelper::extractOutputLog(ServerMessage &postJobResponse,
                                               std::string &jobId) {
-
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
   CUDAQ_DBG("jobId: {}", jobId);
-
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   return getOutputLog(outputPath);
 }
