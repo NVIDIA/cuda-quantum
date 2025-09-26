@@ -213,7 +213,6 @@ class PyKernelDecorator(object):
         # Caches the module and stores captured data into
         # `self.capturedDataStorage`.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
-            id(self),
             self.astModule,
             self.capturedDataStorage,
             verbose=self.verbose,
