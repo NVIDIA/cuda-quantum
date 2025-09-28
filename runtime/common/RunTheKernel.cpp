@@ -11,7 +11,7 @@
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/algorithms/run.h"
@@ -19,52 +19,37 @@
 #include "nvqir/CircuitSimulator.h"
 #include "llvm/IR/DataLayout.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/DialectRegistry.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Types.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
-#include <mlir/IR/BuiltinOps.h>
 #include <string>
 #include <utility>
 #include <vector>
 
 using namespace mlir;
 
-namespace cudaq {
-namespace details {
-/// Extracts data layout information from MLIR modules
-class LayoutExtractor {
-public:
-  static std::pair<std::size_t, std::vector<std::size_t>>
-  extractLayout(const std::string &, const std::string &);
+static std::once_flag initializeContextOnce;
 
-private:
-  static MLIRContext *createContext();
-};
-} // namespace details
-} // namespace cudaq
+// Create a scratch context for parsing a kernel's MLIR content and cache it.
+static MLIRContext *scratchContext;
 
-static std::once_flag enableQuantumDeviceRunOnce;
-static bool enableQuantumDeviceRun = false;
-
-MLIRContext *cudaq::details::LayoutExtractor::createContext() {
+static void initializeScratchContext() {
   DialectRegistry registry;
-  cudaq::opt::registerCodeGenDialect(registry);
   cudaq::registerAllDialects(registry);
-  auto context = new MLIRContext(registry);
-  context->loadAllAvailableDialects();
-  registerLLVMDialectTranslation(*context);
-  return context;
+  scratchContext = new MLIRContext(registry);
+  scratchContext->loadAllAvailableDialects();
 }
 
-std::pair<std::size_t, std::vector<std::size_t>>
-cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
-                                               const std::string &quakeCode) {
-  std::unique_ptr<MLIRContext> mlirContext(createContext());
+static std::pair<std::size_t, std::vector<std::size_t>>
+extractLayout(const std::string &kernelName, const std::string &quakeCode) {
+  if (!scratchContext)
+    throw std::runtime_error("must have a scratch context");
   auto m_module =
-      parseSourceString<ModuleOp>(StringRef(quakeCode), mlirContext.get());
+      parseSourceString<ModuleOp>(StringRef(quakeCode), scratchContext);
   if (!m_module)
     throw std::runtime_error("module cannot be parsed");
   func::FuncOp kernelFunc = m_module->lookupSymbol<func::FuncOp>(
@@ -72,59 +57,63 @@ cudaq::details::LayoutExtractor::extractLayout(const std::string &kernelName,
   if (!kernelFunc)
     throw std::runtime_error("Could not find " + kernelName +
                              " function in the module.");
-  // Extract layout information from the function's return type
-  std::size_t totalSize = 0;
-  std::vector<std::size_t> fieldOffsets;
-  if (kernelFunc.getNumResults() > 0) {
-    Type returnType = kernelFunc.getResultTypes()[0];
-    auto mod = kernelFunc->getParentOfType<ModuleOp>();
-    StringRef dataLayoutSpec = "";
-    if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-      dataLayoutSpec = cast<StringAttr>(attr);
-    auto dataLayout = llvm::DataLayout(dataLayoutSpec);
-    cudaq::info("Data Layout: {}", dataLayout.getStringRepresentation());
-    llvm::LLVMContext context;
-    LLVMTypeConverter converter(kernelFunc.getContext());
-    cudaq::opt::initializeTypeConversions(converter);
-    // Handle structure types
-    if (auto structType = dyn_cast<cudaq::cc::StructType>(returnType)) {
-      auto llvmDialectTy = converter.convertType(structType);
-      LLVM::TypeToLLVMIRTranslator translator(context);
-      auto *llvmStructTy =
-          cast<llvm::StructType>(translator.translateType(llvmDialectTy));
-      auto *layout = dataLayout.getStructLayout(llvmStructTy);
-      totalSize = layout->getSizeInBytes();
-      std::size_t numElements = structType.getMembers().size();
-      for (std::size_t i = 0; i < numElements; ++i)
-        fieldOffsets.emplace_back(layout->getElementOffset(i));
-    } else {
-      totalSize = cudaq::opt::getDataSize(dataLayout, returnType);
-    }
+  if (kernelFunc.getNumResults() == 0)
+    return {0, {}};
+
+  // Extract layout information from the function's return type.
+  Type returnTy = kernelFunc.getResultTypes()[0];
+  auto mod = kernelFunc->getParentOfType<ModuleOp>();
+  auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName);
+  if (!attr)
+    throw std::runtime_error("module is malformed. missing data layout.");
+  StringRef dataLayoutSpec = cast<StringAttr>(attr);
+  auto dataLayout = llvm::DataLayout(dataLayoutSpec);
+  CUDAQ_INFO("Data Layout: {}", dataLayout.getStringRepresentation());
+  llvm::LLVMContext context;
+  LLVMTypeConverter converter(kernelFunc.getContext());
+  cudaq::opt::initializeTypeConversions(converter);
+  auto structTy = dyn_cast<cudaq::cc::StructType>(returnTy);
+  if (!structTy) {
+    std::size_t totalSize = cudaq::opt::getDataSize(dataLayout, returnTy);
+    if (totalSize == 0)
+      throw std::runtime_error("size of result must not be 0.");
+    return {totalSize, {}};
   }
+
+  // Handle structure types
+  auto llvmDialectTy = converter.convertType(structTy);
+  LLVM::TypeToLLVMIRTranslator translator(context);
+  auto *llvmStructTy =
+      cast<llvm::StructType>(translator.translateType(llvmDialectTy));
+  auto *layout = dataLayout.getStructLayout(llvmStructTy);
+  std::size_t totalSize = layout->getSizeInBytes();
+  std::size_t numElements = structTy.getMembers().size();
+  std::vector<std::size_t> fieldOffsets;
+  for (std::size_t i = 0; i < numElements; ++i)
+    fieldOffsets.emplace_back(layout->getElementOffset(i));
   return {totalSize, fieldOffsets};
 }
 
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
-    const std::string &kernel_name, std::size_t shots, std::size_t qpu_id) {
+    const std::string &kernel_name, const std::string &original_name,
+    std::size_t shots, std::size_t qpu_id) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   circuitSimulator->outputLog.clear();
 
-  std::call_once(enableQuantumDeviceRunOnce, []() {
-    enableQuantumDeviceRun =
-        getEnvBool("CUDAQ_ENABLE_QUANTUM_DEVICE_RUN", false);
-  });
+  std::call_once(initializeContextOnce, []() { initializeScratchContext(); });
 
-  bool isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
-  bool isQuantumDevice =
-      (platform.is_remote() || platform.is_emulated()) && !isRemoteSimulator;
+  // Some platforms do not support run yet, emit error.
+  if (!platform.get_codegen_config().outputLog)
+    throw std::runtime_error("`run` is not yet supported on this target.");
 
   // 2. Launch the kernel on the QPU.
-  if (isRemoteSimulator || (isQuantumDevice && enableQuantumDeviceRun)) {
-    // In a remote simulator execution/hardware emulation environment, set the
-    // `run` context name and number of iterations (shots)
+  if (platform.is_remote() || platform.is_emulated() ||
+      platform.get_remote_capabilities().isRemoteSimulator) {
+    // In a remote simulator execution or hardware emulation environment, set
+    // the `run` context name and number of iterations (shots)
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", shots);
     platform.set_exec_ctx(ctx.get(), qpu_id);
     // Launch the kernel a single time to post the 'run' request to the remote
@@ -136,8 +125,6 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::string remoteOutputLog(ctx->invocationResultBuffer.begin(),
                                 ctx->invocationResultBuffer.end());
     circuitSimulator->outputLog.swap(remoteOutputLog);
-  } else if (isQuantumDevice && !enableQuantumDeviceRun) {
-    throw std::runtime_error("`run` is not yet supported on this target.");
   } else {
     auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
     for (std::size_t i = 0; i < shots; ++i) {
@@ -150,13 +137,13 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     }
   }
 
-  // 3a. Get the data layout information
+  // 3a. Get the data layout information. Use the original kernel, since it has
+  // the information while the kernel being called dropped it on the floor.
   std::pair<std::size_t, std::vector<std::size_t>> layoutInfo = {0, {}};
   auto quakeCode =
-      cudaq::get_quake_by_name(kernel_name, /*throwException=*/false);
+      cudaq::get_quake_by_name(original_name, /*throwException=*/false);
   if (!quakeCode.empty())
-    layoutInfo =
-        cudaq::details::LayoutExtractor::extractLayout(kernel_name, quakeCode);
+    layoutInfo = extractLayout(original_name, quakeCode);
 
   // 3b. Pass the outputLog to the parser (target-specific?)
   cudaq::RecordLogParser parser(layoutInfo);

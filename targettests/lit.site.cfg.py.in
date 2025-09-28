@@ -1,7 +1,7 @@
 @LIT_SITE_CFG_IN_HEADER@
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -56,6 +56,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_pasqal):
   config.substitutions.append(('%pasqal_avail', 'true'))
 else:
   config.substitutions.append(('%pasqal_avail', 'false'))
+
+config.cudaq_backends_qci = "@CUDAQ_ENABLE_QCI_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qci):
+  config.available_features.add('qci')
+  config.substitutions.append(('%qci_avail', 'true'))
+else:
+  config.substitutions.append(('%qci_avail', 'false'))
 
 config.cudaq_backends_quantum_machines = "@CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND@"
 if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):

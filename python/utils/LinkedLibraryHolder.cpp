@@ -42,14 +42,14 @@ static constexpr const char IS_FP64_SIMULATION[] =
 int countGPUs() {
   int retCode = std::system("nvidia-smi >/dev/null 2>&1");
   if (0 != retCode) {
-    cudaq::info("nvidia-smi: command not found");
+    CUDAQ_INFO("nvidia-smi: command not found");
     return -1;
   }
 
   char tmpFile[] = "/tmp/.cmd.capture.XXXXXX";
   int fileDescriptor = mkstemp(tmpFile);
   if (-1 == fileDescriptor) {
-    cudaq::info("Failed to create a temporary file to capture output");
+    CUDAQ_INFO("Failed to create a temporary file to capture output");
     return -1;
   }
 
@@ -57,7 +57,7 @@ int countGPUs() {
   command.append(tmpFile);
   retCode = std::system(command.c_str());
   if (0 != retCode) {
-    cudaq::info("Encountered error while invoking 'nvidia-smi'");
+    CUDAQ_INFO("Encountered error while invoking 'nvidia-smi'");
     return -1;
   }
 
@@ -97,18 +97,18 @@ void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
 #else
       const std::string libSuffix = "so";
 #endif
-      cudaq::info("CUDA-Q Library Path is {}.", cudaqLibPath.string());
+      CUDAQ_INFO("CUDA-Q Library Path is {}.", cudaqLibPath.string());
       const auto libName =
           fmt::format("libnvqir-{}.{}", simulatorName, libSuffix);
 
       if (std::filesystem::exists(cudaqLibPath / libName)) {
-        cudaq::info("Use {} simulator for target {}", simulatorName,
-                    target.name);
+        CUDAQ_INFO("Use {} simulator for target {}", simulatorName,
+                   target.name);
         foundSimulatorName =
             std::regex_replace(simulatorName, std::regex("-"), "_");
       } else {
-        cudaq::info("Skip {} simulator for target {} since it is not available",
-                    simulatorName, target.name);
+        CUDAQ_INFO("Skip {} simulator for target {} since it is not available",
+                   simulatorName, target.name);
       }
     } else if (line.find(IS_FP64_SIMULATION) != std::string::npos) {
       precision = simulation_precision::fp64;
@@ -153,7 +153,7 @@ void findAvailableTargets(
       cudaq::config::TargetConfig config;
       llvm::yaml::Input Input(configFileContent.c_str());
       Input >> config;
-      cudaq::info("Found Target {} with config file {}", targetName, fileName);
+      CUDAQ_INFO("Found Target {} with config file {}", targetName, fileName);
       const std::string defaultTargetConfigStr =
           cudaq::config::processRuntimeArgs(config, {});
       RuntimeTarget target;
@@ -162,8 +162,8 @@ void findAvailableTargets(
       target.description = config.Description;
       auto cudaqLibPath = targetPath.parent_path() / "lib";
       parseRuntimeTarget(cudaqLibPath, target, defaultTargetConfigStr);
-      cudaq::info("Found Target: {} -> (sim={}, platform={})", targetName,
-                  target.simulatorName, target.platformName);
+      CUDAQ_INFO("Found Target: {} -> (sim={}, platform={})", targetName,
+                 target.simulatorName, target.platformName);
       // Add the target.
       targets.emplace(targetName, target);
 
@@ -173,7 +173,7 @@ void findAvailableTargets(
 }
 
 LinkedLibraryHolder::LinkedLibraryHolder() {
-  cudaq::info("Init infrastructure for pythonic builder.");
+  CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
   if (!cudaq::__internal__::canModifyTarget())
     return;
@@ -198,7 +198,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   auto targetPath = cudaqLibPath.parent_path() / "targets";
   findAvailableTargets(targetPath, targets, simulationTargets);
 
-  cudaq::info("Init: Library Path is {}.", cudaqLibPath.string());
+  CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
   // We have to ensure that nvqir and cudaq are loaded
   std::vector<std::filesystem::path> libPaths{
@@ -210,7 +210,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
     std::string dynlib;
     std::stringstream ss((std::string(dynlibs_var)));
     while (std::getline(ss, dynlib, ':')) {
-      cudaq::info("Init: add dynamic library path {}.", dynlib);
+      CUDAQ_INFO("Init: add dynamic library path {}.", dynlib);
       libPaths.push_back(dynlib);
     }
   }
@@ -259,9 +259,9 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
           loadFailed = true;
           // Retrieve the error message
           char *error_msg = dlerror();
-          cudaq::info("Failed to load NVQIR backend '{}' from {}. Error: {}",
-                      simName, path.string(),
-                      (error_msg ? std::string(error_msg) : "unknown."));
+          CUDAQ_INFO("Failed to load NVQIR backend '{}' from {}. Error: {}",
+                     simName, path.string(),
+                     (error_msg ? std::string(error_msg) : "unknown."));
         }
       }
 
@@ -269,7 +269,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
         // Load the plugin and get the CircuitSimulator.
         // Skip adding simulator name to the availableSimulators list if failed
         // to load.
-        cudaq::info("Found simulator plugin {}.", simName);
+        CUDAQ_INFO("Found simulator plugin {}.", simName);
         availableSimulators.push_back(simName);
       }
 
@@ -290,7 +290,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
       // Load the plugin and get the CircuitSimulator.
       availablePlatforms.push_back(platformName);
-      cudaq::info("Found platform plugin {}.", platformName);
+      CUDAQ_INFO("Found platform plugin {}.", platformName);
     }
   }
 
@@ -310,20 +310,20 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
                     target.simulatorName) != availableSimulators.end())
         defaultTarget = nvidiaTarget;
       else
-        cudaq::info(
+        CUDAQ_INFO(
             "GPU(s) found but cannot select nvidia target because simulator "
             "is not available. Are all dependencies installed?");
     } else {
-      cudaq::info("GPU(s) found but cannot select nvidia target because nvidia "
-                  "target not found.");
+      CUDAQ_INFO("GPU(s) found but cannot select nvidia target because nvidia "
+                 "target not found.");
     }
   }
   auto env = std::getenv("CUDAQ_DEFAULT_SIMULATOR");
   if (env) {
-    cudaq::info("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
+    CUDAQ_INFO("'CUDAQ_DEFAULT_SIMULATOR' = {}", env);
     auto iter = simulationTargets.find(env);
     if (iter != simulationTargets.end()) {
-      cudaq::info("Valid target");
+      CUDAQ_INFO("Valid target");
       defaultTarget = iter->second.name;
     }
   }
@@ -420,8 +420,8 @@ void LinkedLibraryHolder::setTarget(
       cudaq::config::processRuntimeArgs(target.config, argv);
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
 
-  cudaq::info("Setting target={} (sim={}, platform={})", targetName,
-              target.simulatorName, target.platformName);
+  CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
+             target.simulatorName, target.platformName);
 
   __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
   auto *platform = getPlatform(target.platformName);
@@ -464,17 +464,31 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
-namespace __internal__ {
-void switchToResourceCounterSimulator() {
+void python::detail::switchToResourceCounterSimulator() {
   nvqir::switchToResourceCounterSimulator();
 }
-void stopUsingResourceCounterSimulator() {
+
+void python::detail::stopUsingResourceCounterSimulator() {
   nvqir::stopUsingResourceCounterSimulator();
 }
-void setChoiceFunction(std::function<bool()> choice) {
+
+void python::detail::setChoiceFunction(std::function<bool()> choice) {
   nvqir::setChoiceFunction(choice);
 }
-cudaq::Resources *getResourceCounts() { return nvqir::getResourceCounts(); }
-} // namespace __internal__
 
+Resources *python::detail::getResourceCounts() {
+  return nvqir::getResourceCounts();
+}
+
+std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
+  if (holder) {
+    auto runtimeTarget = holder->getTarget();
+    const std::string codegenEmission =
+        runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);
+    if (!codegenEmission.empty())
+      return codegenEmission;
+  }
+  // Default is full QIR.
+  return "qir:0.1";
+}
 } // namespace cudaq

@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
@@ -85,7 +86,7 @@ public:
     threadToQpuId.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
-    cudaq::info("Backend string is {}", backend);
+    CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
@@ -102,7 +103,7 @@ public:
     /// Once we know the backend, we should search for the config file
     /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     auto configFilePath = platformPath / fileName;
-    cudaq::info("Config file path = {}", configFilePath.string());
+    CUDAQ_INFO("Config file path = {}", configFilePath.string());
 
     // Don't try to load something that doesn't exist.
     if (!std::filesystem::exists(configFilePath)) {
@@ -116,11 +117,16 @@ public:
     cudaq::config::TargetConfig config;
     llvm::yaml::Input Input(configContents.c_str());
     Input >> config;
+    runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
+    runtimeTarget->config = config;
+    runtimeTarget->name = mutableBackend;
+    runtimeTarget->description = config.Description;
+    runtimeTarget->runtimeConfig = configMap;
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
-      cudaq::info("Default platform QPU subtype name: {}", qpuName);
+      CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
       threadToQpuId.clear();
       platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));

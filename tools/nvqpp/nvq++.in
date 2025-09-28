@@ -26,11 +26,11 @@ function error_exit {
 
 function run() {
 	if $ECHO; then
-		echo "$*"
+		echo "$@"
 	fi
-	$*
+	"$@"
 	if [ $? -ne 0 ]; then
-		echo "failed: \"$*\"" >&2
+		echo "failed: \"$@\"" >&2
 		exit 1
 	fi
 }
@@ -77,11 +77,11 @@ function f_option_handling {
 	-fkernel-execution)
 		ENABLE_KERNEL_EXECUTION=true
 		;;
-	-fno-aggressive-early-inline)
-		ENABLE_AGGRESSIVE_EARLY_INLINE=false
+	-fno-aggressive-inline)
+		ENABLE_AGGRESSIVE_INLINE=false
 		;;
-	-faggressive-early-inline)
-		ENABLE_AGGRESSIVE_EARLY_INLINE=true
+	-faggressive-inline)
+		ENABLE_AGGRESSIVE_INLINE=true
 		;;
 	-fno-apply-specialization)
 		ENABLE_APPLY_SPECIALIZATION=false
@@ -102,16 +102,10 @@ function f_option_handling {
 		ENABLE_LOWER_TO_CFG=true
 		;;
 	-fkernel-exec-kind=*)
-		KERNEL_EXECUTION_KIND="{codegen=${1#*=}}"
+		KERNEL_EXECUTION_KIND="codegen=${1#*=}"
 		;;
 	-fno-set-target-backend)
 		SET_TARGET_BACKEND=false
-		;;
-	-fenable-cudaq-run)
-		ENABLE_CUDAQ_RUN=true
-		;;
-	-fno-enable-cudaq-run)
-		ENABLE_CUDAQ_RUN=false
 		;;
 	-farray-conversion)
 		ENABLE_ARRAY_CONVERSION=true
@@ -230,8 +224,8 @@ function show_help {
 -f[no-]kernel-execution
 	Enable/disable kernel execution pass.
 
--f[no-]aggressive-early-inline
-	Enable/disable early inlining pass.
+-f[no-]aggressive-inline
+	Enable/disable inlining pass.
 
 -f[no-]apply-specialization
 	Enable/disable specialization of quake.apply ops.
@@ -325,7 +319,7 @@ LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install
 
 LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
-LLVM_QUANTUM_TARGET="qir"
+PLATFORM_TRANSPORT_LAYER="qir:0.1"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
 LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
@@ -361,12 +355,12 @@ ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADER=true
 ENABLE_KERNEL_EXECUTION=true
 KERNEL_EXECUTION_KIND=
-ENABLE_AGGRESSIVE_EARLY_INLINE=true
+AUTO_GENERATE_RUN_OPTION=
+ENABLE_AGGRESSIVE_INLINE=true
 ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -500,7 +494,7 @@ while [ $# -ne 0 ]; do
 		shift
 		;;
 	--codegen-assembly-spec)
-		LLVM_QUANTUM_TARGET="$2"
+		PLATFORM_TRANSPORT_LAYER="$2"
 		shift
 		;;
 	--list-targets)
@@ -712,7 +706,10 @@ if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
 	fi
 fi
 
+AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
+
 RUN_OPT=false
+# NB: Keep this in synch with the PreDeviceCodeLoader pipeline
 OPT_PASSES=
 if ${ENABLE_VARIABLE_COALESCE}; then
 	RUN_OPT=true
@@ -720,7 +717,7 @@ if ${ENABLE_VARIABLE_COALESCE}; then
 fi
 if ${ENABLE_UNWIND_LOWERING}; then
 	RUN_OPT=true
-	OPT_PASSES="func.func(unwind-lowering)"
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "func.func(unwind-lowering)")
 fi
 if ${ENABLE_LAMBDA_LIFTING}; then
 	RUN_OPT=true
@@ -732,12 +729,22 @@ if ${ENABLE_APPLY_SPECIALIZATION}; then
 fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_KIND}")
+	KERNEL_EXECUTION_OPTIONS=
+	if [[ -n "${AUTO_GENERATE_RUN_OPTION}" ]]; then
+		if [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
+			KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND} ${AUTO_GENERATE_RUN_OPTION}}"
+		else
+			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
+		fi
+	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
+		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
+	fi
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 fi
-if ${ENABLE_AGGRESSIVE_EARLY_INLINE}; then
+if ${ENABLE_AGGRESSIVE_INLINE}; then
 	RUN_OPT=true
 	if ${DO_LINK}; then
-		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-early-inlining")
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "aggressive-inlining")
 	else
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "indirect-to-direct-calls,inline")
 	fi
@@ -758,20 +765,6 @@ fi
 if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
-fi
-# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
-# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
-# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
-# at runtime. Note: this override is still required because no targets support
-# run yet.
-if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
-	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-	fi
-else # we honor the user's explicit command-line request.
-	if ${ENABLE_CUDAQ_RUN}; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-	fi
 fi
 if ${RUN_OPT}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call,canonicalize,cse")
@@ -825,7 +818,7 @@ for i in ${SRCS}; do
 		TMPFILES="${TMPFILES} ${QUAKELL_FILE}"
 
 		# FIXME This next step needs to be extensible... 
-		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${LLVM_QUANTUM_TARGET} ${QUAKE_IN} -o ${QUAKELL_FILE}
+		run ${TOOLBIN}cudaq-translate ${CUDAQ_TRANSLATE_ARGS} --convert-to=${PLATFORM_TRANSPORT_LAYER} ${QUAKE_IN} -o ${QUAKELL_FILE}
 		if ${EMIT_QIR}; then
 			run cp ${QUAKELL_FILE} ${file}.qir.ll
 			exit 0
@@ -856,6 +849,15 @@ done
 if ${DO_LINK}; then
 	if ${LIBRARY_MODE}; then
 		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
+	fi
+
+	# If the default C++ standard lib is LLVM's libc++ (injected by clang++ automatically), 
+	# we put it in front of CUDA-Q libs when compiling the application executable.
+	# Some CUDA-Q libs may contain partial C++ standard library implementation (due to static linking).
+	# Hence, we want to prioritize the full libc++ implementation when linking the application.
+	DEFAULT_CXX_ARGS=$( ( ${CXX} -v 2>&1 || true ) )
+	if [[ $DEFAULT_CXX_ARGS == *"-lc++"* ]]; then
+		LINKLIBS="-lc++ ${LINKLIBS}"
 	fi
 
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}

@@ -11,6 +11,22 @@
 
 include "mlir/Pass/PassBase.td"
 
+def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
+  let summary = "Add measurement operations.";
+  let description = [{
+    This pass adds measurement operations to the kernels that have no 
+    measurements.
+
+    This pass should be run in the sampling context, so as to comply with the 
+    spec - If no measurements appear in the kernel, then the `__global__` 
+    register is formed with implicit measurements being added for all the 
+    qubits defined in the kernel, and the measurements all occur at the end of 
+    the kernel.
+
+  }];
+  let dependentDialects = ["quake::QuakeDialect", "mlir::cf::ControlFlowDialect"];
+}
+
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
   let summary = "Adds a topology-less `quake.wire_set` to the module.";
   let description = [{
@@ -564,6 +580,13 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
                    be inlined by the JIT compiler, so this codegen kind does not
                    support any dynamic parameters.
     ```
+
+    The `generate-run-stack` option must be used whenever `cudaq::run` is being
+    used to launch kernels. This flag will enable the generation of a second
+    launch stack for entry-point kernels that duplicates the functionality of
+    the entry-point kernel's body while omitting its return value. While this
+    clearly changes the semantics of the kernel call, some transport layers
+    require that return values be dropped on the floor.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -574,7 +597,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
     Option<"codegenKind", "codegen", "std::size_t", /*default=*/"0",
-      "Set the kind of code to generate for the launches.">
+      "Set the kind of code to generate for the launches.">,
+    Option<"genRunStack", "generate-run-stack", "bool", /*default=*/"false",
+      "Generate a cudaq::run stack for the entry-point kernels.">,
+    Option<"deferToJIT", "deferred", "bool", /*default=*/"false",
+      "Defer generating kernel execution until JIT time.">
   ];
 }
 
@@ -1153,6 +1180,33 @@ def SROA : Pass<"cc-sroa"> {
     To be implemented: handling recursive compositions of aggregate types.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
+  let summary = "Stack frame preallocation.";
+  let description = [{
+    This pass is intended to be run on the CFG (low-level semantics) level.
+
+    Stack slots may end up being allocated across the body of a function. It
+    is generally beneficial however to collect them in the function preamble
+    (or entry block).
+
+    This pass is similar to variable coalescing, which can merge allocations
+    based on their scopes, but works at a lower semantic level of the IR. This
+    pass aims to optimize patterns such as
+    ```mlir
+      %10 = call @llvm.stacksave()
+      %24 = cc.alloca !T
+      call @llvm.stackrestore(%10)
+    ```
+    such that the allocation, %24, is moved to the entry block and the two
+    stack guards, if they guard no allocations, can be correctly removed.
+
+    Not all allocations can be moved in this way, which implies that not all
+    stack guards can be safely removed.  Transport layer conformity tools may
+    unsafely remove operations, but the compiler should never do so, as it
+    would mean the compiler is generating incorrect code.
+  }];
 }
 
 def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {

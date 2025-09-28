@@ -754,7 +754,7 @@ Please make sure to install CUDA version 11.8 or newer, and confirm that your
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
 includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 11, 
-built against version 11.8, and for CUDA 12, built against version 12.0.
+built against version 11.8, and for CUDA 12, built against version 12.6.
 
 .. _distributed-computing-with-mpi:
 
@@ -896,6 +896,11 @@ The following table summarizes the required components.
 
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 
+.. note::
+
+    Tegra devices (Jetson) are not supported in CUDA-Q at this time.
+
+    For more information, please refer to `Binary Compatibility documentation <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility>`_.
 
 .. _post-installation:
 

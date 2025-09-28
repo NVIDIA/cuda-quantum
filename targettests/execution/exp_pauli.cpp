@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,7 +16,8 @@
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target ionq       --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target oqc        --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target anyon      --emulate %s -o %t && %t | FileCheck %s
-
+// RUN: if %qci_avail; then nvq++ %cpp_std -fkernel-exec-kind=2 -target qci --emulate %s -o %t && %t | FileCheck %s; fi
+//
 // 2 different IQM machines for 2 different topologies
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std -fkernel-exec-kind=2 -target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
