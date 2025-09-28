@@ -753,8 +753,8 @@ Please make sure to install CUDA version 12.0 or newer, and confirm that your
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
-includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
-built against version 12.0.
+includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 11, 
+built against version 11.8, and for CUDA 12, built against version 12.6.
 
 .. _distributed-computing-with-mpi:
 

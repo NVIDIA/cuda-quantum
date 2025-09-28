@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/ArgumentConversion.h"
+#include "common/CodeGenConfig.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
@@ -103,14 +104,6 @@ protected:
 
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
-
-  /// @brief Flag indicating the backend support QIR integer computation
-  /// extension. Applicable to `qir-adaptive` codegenTranslation only.
-  bool qirIntegerExtension = false;
-
-  /// @brief Flag indicating the backend support QIR floating point computation
-  /// extension. Applicable to `qir-adaptive` codegenTranslation only.
-  bool qirFloatExtension = false;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
@@ -293,8 +286,7 @@ public:
     }
 
     /// Once we know the backend, we should search for the configuration file
-    /// from there we can get the URL/PORT and the required MLIR pass
-    /// pipeline.
+    /// from there we can get the URL/PORT and the required MLIR pass pipeline.
     std::string fileName = mutableBackend + std::string(".yml");
     auto configFilePath = platformPath / fileName;
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
@@ -305,53 +297,66 @@ public:
     llvm::yaml::Input Input(configYmlContents.c_str());
     Input >> config;
     if (config.BackendConfig.has_value()) {
-      if (!config.BackendConfig->PlatformLoweringConfig.empty()) {
-        CUDAQ_INFO("Appending lowering pipeline: {}",
-                   config.BackendConfig->PlatformLoweringConfig);
-        passPipelineConfig +=
-            "," + config.BackendConfig->PlatformLoweringConfig;
-      }
       const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
       if (!codeGenSpec.empty()) {
         CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
         codegenTranslation = codeGenSpec;
-        auto [codeGenName, codeGenVersion, codeGenOptions] =
-            parseCodeGenTranslationString(codegenTranslation);
-        if (codeGenName == "qir-adaptive") {
-          for (auto option : codeGenOptions) {
-            if (option == "int_computations") {
-              CUDAQ_INFO("Enable int_computations extension");
-              qirIntegerExtension = true;
-            } else if (option == "float_computations") {
-              CUDAQ_INFO("Enable float_computations extension");
-              qirFloatExtension = true;
-            } else {
-              throw std::runtime_error(
-                  fmt::format("Invalid option '{}' for '{}' codegen.", option,
-                              codeGenName));
-            }
-          }
-        } else {
-          if (!codeGenOptions.empty())
-            throw std::runtime_error(fmt::format(
-                "Invalid codegen-emission '{}'. Extra options are not "
-                "supported for '{}' codegen.",
-                codeGenSpec, codeGenName));
-        }
+        // Validate codegen configuration.
+        parseCodeGenTranslation(codegenTranslation);
       }
+
+      const std::string allowEarlyExitSetting =
+          codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
+
+      // 1. Apply all the target-agnostic high-level passes. If this is an
+      // emulation and a noise model has been set, do not erase the noise
+      // callbacks.
+      if (emulate)
+        passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=" +
+                              std::string{noiseModel ? "false" : "true"} +
+                              " allow-early-exit=" + allowEarlyExitSetting +
+                              "}";
+      else
+        passPipelineConfig +=
+            ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
+            "}";
+
+      // 2. Apply target-specific high-level passes from the .yml file, if any.
+      if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT high level pipeline: {}",
+                   config.BackendConfig->JITHighLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITHighLevelPipeline;
+      }
+
+      // 3. Appply the target-agnostic deployment passes. Any additional
+      // restructuring to get ready for decomposition.
+      passPipelineConfig += ",jit-deploy-pipeline";
+
+      // 4. Apply the target-specific mid-level passes. This decomposed quantum
+      // gates for a specific target machine, etc.
+      if (!config.BackendConfig->JITMidLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT mid level pipeline: {}",
+                   config.BackendConfig->JITMidLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITMidLevelPipeline;
+      }
+
+      // 5. Apply the target-agnostic finalization passes. This lowers the IR to
+      // CFG form.
+      passPipelineConfig += ",jit-finalize-pipeline";
+
+      // 6. Apply the target-specific low-level passes.
+      if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
+        CUDAQ_INFO("Appending JIT low level pipeline: {}",
+                   config.BackendConfig->JITLowLevelPipeline);
+        passPipelineConfig += "," + config.BackendConfig->JITLowLevelPipeline;
+      }
+
       if (!config.BackendConfig->PostCodeGenPasses.empty()) {
         CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
                    config.BackendConfig->PostCodeGenPasses);
         postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
       }
     }
-    std::string allowEarlyExitSetting =
-        (codegenTranslation.starts_with("qir-adaptive")) ? "1" : "0";
-
-    passPipelineConfig =
-        std::string(
-            "func.func(memtoreg{quantum=0},cc-loop-unroll{allow-early-exit=") +
-        allowEarlyExitSetting + "})," + passPipelineConfig;
 
     auto disableQM = backendConfig.find("disable_qubit_mapping");
     if (disableQM != backendConfig.end() && disableQM->second == "true") {
@@ -398,7 +403,7 @@ public:
     serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
-  /// @brief Conditionally form an output_names JSON object if this was for QIR
+  /// Conditionally form an output_names JSON object if this was for QIR
   nlohmann::json formOutputNames(const std::string &codegenTranslation,
                                  mlir::ModuleOp moduleOp,
                                  const std::string &codeStr) {
@@ -697,9 +702,12 @@ public:
     }
 
     if (executionContext) {
-      if (executionContext->name == "sample")
+      if (executionContext->name == "sample") {
         executionContext->reorderIdx = mapping_reorder_idx;
-      else
+        // No need to add measurements only to remove them eventually
+        if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
+          runPassPipeline("func.func(add-measurements)", moduleOp);
+      } else
         executionContext->reorderIdx.clear();
     }
 
@@ -814,8 +822,8 @@ public:
     completeLaunchKernel(kernelName, std::move(codes));
   }
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to
-  /// the representation required by the targeted backend. Handle all pertinent
+  /// @brief Launch the kernel. Extract the Quake code and lower to the
+  /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
   KernelThunkResultType
@@ -876,8 +884,8 @@ public:
         executionContext && executionContext->name == "observe";
     const bool isRun = executionContext && executionContext->name == "run";
 
-    // If emulation requested, then just grab the function
-    // and invoke it with the simulator
+    // If emulation requested, then just grab the function and invoke it with
+    // the simulator
     cudaq::details::future future;
     if (emulate) {
 
@@ -1000,32 +1008,6 @@ public:
 
     // Otherwise make this synchronous
     executionContext->result = future.get();
-  }
-
-private:
-  /// @brief Helper to parse `codegen` translation, with optional feature
-  /// annotation.
-  // e.g., "qir-adaptive:0.2:int_computations,float_computations"
-  static std::tuple<std::string, std::string, std::vector<std::string>>
-  parseCodeGenTranslationString(const std::string &settingStr) {
-    llvm::StringRef transportTriple{settingStr};
-    llvm::SmallVector<llvm::StringRef> transportFields;
-    transportTriple.split(transportFields, ":");
-    auto size = transportFields.size();
-    if (size == 1)
-      return {transportFields[0].str(), {}, {}};
-    if (size == 2)
-      return {transportFields[0].str(), transportFields[1].str(), {}};
-    if (size == 3) {
-      llvm::SmallVector<llvm::StringRef> options;
-      transportFields[2].split(options, ",");
-      std::vector<std::string> optionsCopy;
-      for (auto o : options)
-        optionsCopy.push_back(o.str());
-      return {transportFields[0].str(), transportFields[1].str(), optionsCopy};
-    }
-    throw std::runtime_error(
-        fmt::format("Invalid codegen-emission string '{}'.", settingStr));
   }
 };
 } // namespace cudaq

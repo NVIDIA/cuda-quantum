@@ -8,12 +8,14 @@
 
 include(HandleLLVMOptions)
 
-add_executable(OptimizerUnitTests HermitianTrait.cpp)
+add_executable(OptimizerUnitTests HermitianTrait.cpp FactoryMergeModuleTest.cpp)
 
 target_link_libraries(OptimizerUnitTests
   PRIVATE
+    MLIRParser
     QuakeDialect
     gtest_main
+    OptimBuilder
 )
 
 gtest_discover_tests(OptimizerUnitTests)

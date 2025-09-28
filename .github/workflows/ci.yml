@@ -105,7 +105,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ["12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -132,7 +132,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ["12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -177,7 +177,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [clang16, gcc11, gcc12]
-        mpi: [openmpi, mpich]
+        mpi: [openmpi]
         exclude:
           - toolchain: llvm
             mpi: mpich
@@ -235,7 +235,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         python_version: ['3.11', '3.13']
-        cuda_version: ["12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -256,7 +256,7 @@ jobs:
     with:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
       python_versions: "['3.11', '3.13']"
-      cuda_versions: "['', '12.0']"
+      cuda_versions: "['', '12.6']"
       wheel_artifacts: 'pycudaq-*'
 
   binaries:
@@ -265,7 +265,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ["12.0"]
+        cuda_version: ["12.6"]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:

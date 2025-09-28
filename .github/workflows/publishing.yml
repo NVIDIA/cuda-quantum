@@ -650,7 +650,7 @@ jobs:
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
-        python_version: ['3.10', '3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
 
     runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
@@ -733,10 +733,10 @@ jobs:
       - name: Set retention days
         id: set_retention_days
         run: |
-          # Save the x86_64-py3.10-wheels for longer because our some of our
+          # Save the x86_64-py3.12-wheels for longer because our some of our
           # nightly jobs rely on them being present, even if we haven't done a
           # fresh publishing in the last 24 hours.
-          if [ "${{ steps.release_info.outputs.platform_arch }}" == "x86_64" ] && [ "${{ matrix.python_version }}" == "3.10" ]; then
+          if [ "${{ steps.release_info.outputs.platform_arch }}" == "x86_64" ] && [ "${{ matrix.python_version }}" == "3.12" ]; then
             echo "retention_days=7" >> $GITHUB_OUTPUT
           else
             echo "retention_days=1" >> $GITHUB_OUTPUT
@@ -782,8 +782,8 @@ jobs:
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.assets.outputs.cudaq_version }}
-      python_versions: "['3.10', '3.11', '3.12', '3.13']"
-      cuda_versions: "['', '12.0']"
+      python_versions: "['3.11', '3.12', '3.13']"
+      cuda_versions: "['', '12.6']"
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -924,8 +924,8 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.10', 'ubuntu:22.04']
-        cuda_version: ['12.0']
+        os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
+        cuda_version: ['12.6']
       fail-fast: false
 
     container:
@@ -1054,7 +1054,7 @@ jobs:
     runs-on: linux-${{ matrix.platform }}-latest-1
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -1152,7 +1152,7 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -1203,7 +1203,7 @@ jobs:
           source validate_pycudaq.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
-            -c ${{ matrix.cuda_version }} -p 3.10
+            -c ${{ matrix.cuda_version }} -p 3.12
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
