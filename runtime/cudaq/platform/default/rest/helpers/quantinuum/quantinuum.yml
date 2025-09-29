@@ -57,7 +57,7 @@ target-arguments:
       - arch-name: Helios
         pattern: Helios.*
         config: 
-          codegen-emission: qir-adaptive:0.2:int_computations,float_computations
+          codegen-emission: qir-adaptive:0.2:int_computations,float_computations,output_log
   - key: project
     required: true
     type: string
