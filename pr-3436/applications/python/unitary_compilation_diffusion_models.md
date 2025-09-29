@@ -1,9 +1,9 @@
-::: {.wy-grid-for-nav}
-::: {.wy-side-scroll}
+::: wy-grid-for-nav
+::: wy-side-scroll
 ::: {.wy-side-nav-search style="background: #76b900"}
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
-::: {.version}
+::: version
 pr-3436
 :::
 
@@ -146,13 +146,13 @@ pr-3436
         -   [From CPU to
             GPU](../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
-        -   [Pooling the memory of multiple GPUs (`mgpu`{.code .docutils
-            .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
-            .internal}
-        -   [Parallel execution over multiple QPUs (`mqpu`{.code
+        -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .internal}
+        -   [Parallel execution over multiple QPUs ([`mqpu`{.code
+            .docutils .literal
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
                 Terms](../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
@@ -160,9 +160,9 @@ pr-3436
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends (`remote-mqpu`{.code .docutils
+        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -247,11 +247,11 @@ pr-3436
                 Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Section 2 - Simulating open quantum systems with the
-                `collapse_operators`{.docutils .literal
-                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
             -   [Exercise 2 - Adding additional jump operators
-                [\\(L\_i\\)]{.math .notranslate
+                [\\(L_i\\)]{.math .notranslate
                 .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
                 .internal}
             -   [Section 3 - Many qubits coupled to the
@@ -332,7 +332,7 @@ pr-3436
         -   [CUDA-Q
             Implementation](digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
-    -   [Multi-reference Quantum Krylov Algorithm - [\\(H\_2\\)]{.math
+    -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight} Molecule](krylov.html){.reference
         .internal}
         -   [Setup](krylov.html#Setup){.reference .internal}
@@ -398,8 +398,8 @@ pr-3436
         -   [Numerical result as a
             reference:](hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
-        -   [Using `Sample`{.docutils .literal .notranslate} to perform
-            the Hadamard
+        -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
+            perform the Hadamard
             test](hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
@@ -415,8 +415,8 @@ pr-3436
             with
             CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
-        -   [Constructing circuits in the `[[4,2,2]]`{.docutils .literal
-            .notranslate}
+        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
+            .literal .notranslate}]{.pre}
             encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
@@ -450,8 +450,10 @@ pr-3436
             -   [2. Hamiltonian
                 Trotterization](hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
-            -   [3. `Compute overlap`{.docutils .literal
-                .notranslate}](hamiltonian_simulation.html#3.-Compute-overlap){.reference
+            -   [3. [`Compute`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`overlap`{.docutils .literal
+                .notranslate}]{.pre}](hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
                 Hamiltonian](hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
@@ -594,14 +596,14 @@ pr-3436
         -   [Simulation
             input:](adapt_qaoa.html#Simulation-input:){.reference
             .internal}
-        -   [The problem Hamiltonian [\\(H\_C\\)]{.math .notranslate
+        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
             graph:](adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
-        -   [Th operator pool [\\(A\_j\\)]{.math .notranslate
+        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
             .nohighlight}:](adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
-        -   [The commutator [\\(\[H\_C,A\_j\]\\)]{.math .notranslate
+        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
             .nohighlight}:](adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
@@ -623,7 +625,7 @@ pr-3436
                 excitation](adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A\_i\\)]{.math .notranslate
+            [\\(A_i\\)]{.math .notranslate
             .nohighlight}\]](adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
@@ -1117,14 +1119,14 @@ pr-3436
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [`CMakeLists.txt`{.docutils .literal
-                .notranslate}](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [[`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
             Configuration](../../using/extending/backend.html#target-configuration){.reference
             .internal}
-            -   [Update Parent `CMakeLists.txt`{.docutils .literal
-                .notranslate}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
+            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
         -   [Testing](../../using/extending/backend.html#testing){.reference
             .internal}
@@ -1156,8 +1158,8 @@ pr-3436
     -   [Create a new NVQIR
         Simulator](../../using/extending/nvqir_simulator.html){.reference
         .internal}
-        -   [`CircuitSimulator`{.code .docutils .literal
-            .notranslate}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
+        -   [[`CircuitSimulator`{.code .docutils .literal
+            .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
             action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
@@ -1181,11 +1183,11 @@ pr-3436
         -   [3. Quantum
             Types](../../specification/cudaq/types.html){.reference
             .internal}
-            -   [3.1. `cudaq::qudit<Levels>`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
+            -   [3.1. [`cudaq::qudit<Levels>`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
                 .internal}
-            -   [3.2. `cudaq::qubit`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qubit){.reference
+            -   [3.2. [`cudaq::qubit`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qubit){.reference
                 .internal}
             -   [3.3. Quantum
                 Containers](../../specification/cudaq/types.html#quantum-containers){.reference
@@ -1193,15 +1195,15 @@ pr-3436
         -   [4. Quantum
             Operators](../../specification/cudaq/operators.html){.reference
             .internal}
-            -   [4.1. `cudaq::spin_op`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
+            -   [4.1. [`cudaq::spin_op`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
                 .internal}
         -   [5. Quantum
             Operations](../../specification/cudaq/operations.html){.reference
             .internal}
-            -   [5.1. Operations on `cudaq::qubit`{.code .docutils
+            -   [5.1. Operations on [`cudaq::qubit`{.code .docutils
                 .literal
-                .notranslate}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
@@ -1227,21 +1229,23 @@ pr-3436
         -   [12. Algorithmic
             Primitives](../../specification/cudaq/algorithmic_primitives.html){.reference
             .internal}
-            -   [12.1. `cudaq::sample`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
+            -   [12.1. [`cudaq::sample`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
                 .internal}
-            -   [12.2. `cudaq::run`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
+            -   [12.2. [`cudaq::run`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
                 .internal}
-            -   [12.3. `cudaq::observe`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
+            -   [12.3. [`cudaq::observe`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
                 .internal}
-            -   [12.4. `cudaq::optimizer`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.4. [`cudaq::optimizer`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
-            -   [12.5. `cudaq::gradient`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.5. [`cudaq::gradient`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
         -   [13. Example
@@ -1301,150 +1305,150 @@ pr-3436
         -   [Program
             Construction](../../api/languages/python_api.html#program-construction){.reference
             .internal}
-            -   [`make_kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
+            -   [[`make_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
                 .internal}
-            -   [`PyKernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
+            -   [[`PyKernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
                 .internal}
-            -   [`Kernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Kernel){.reference
+            -   [[`Kernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Kernel){.reference
                 .internal}
-            -   [`PyKernelDecorator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
+            -   [[`PyKernelDecorator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
                 .internal}
-            -   [`kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.kernel){.reference
+            -   [[`kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.kernel){.reference
                 .internal}
         -   [Kernel
             Execution](../../api/languages/python_api.html#kernel-execution){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample){.reference
                 .internal}
-            -   [`sample_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample_async){.reference
+            -   [[`sample_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample_async){.reference
                 .internal}
-            -   [`run()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run){.reference
+            -   [[`run()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run){.reference
                 .internal}
-            -   [`run_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run_async){.reference
+            -   [[`run_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run_async){.reference
                 .internal}
-            -   [`observe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe){.reference
+            -   [[`observe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe){.reference
                 .internal}
-            -   [`observe_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe_async){.reference
+            -   [[`observe_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe_async){.reference
                 .internal}
-            -   [`get_state()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state){.reference
+            -   [[`get_state()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state){.reference
                 .internal}
-            -   [`get_state_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
+            -   [[`get_state_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
                 .internal}
-            -   [`vqe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.vqe){.reference
+            -   [[`vqe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.vqe){.reference
                 .internal}
-            -   [`draw()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.draw){.reference
+            -   [[`draw()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.draw){.reference
                 .internal}
-            -   [`translate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
+            -   [[`translate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
-            -   [`estimate_resources()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+            -   [[`estimate_resources()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
-            -   [`has_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.has_target){.reference
+            -   [[`has_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
-            -   [`get_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_target){.reference
+            -   [[`get_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_target){.reference
                 .internal}
-            -   [`get_targets()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_targets){.reference
+            -   [[`get_targets()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_targets){.reference
                 .internal}
-            -   [`set_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_target){.reference
+            -   [[`set_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_target){.reference
                 .internal}
-            -   [`reset_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.reset_target){.reference
+            -   [[`reset_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.reset_target){.reference
                 .internal}
-            -   [`set_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_noise){.reference
+            -   [[`set_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_noise){.reference
                 .internal}
-            -   [`unset_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
+            -   [[`unset_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
-            -   [`register_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+            -   [[`register_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
                 .internal}
-            -   [`unregister_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+            -   [[`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
                 .internal}
-            -   [`cudaq.apply_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
+            -   [[`cudaq.apply_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
-            -   [`initialize_cudaq()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
+            -   [[`initialize_cudaq()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
                 .internal}
-            -   [`num_available_gpus()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
+            -   [[`num_available_gpus()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
                 .internal}
-            -   [`set_random_seed()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
+            -   [[`set_random_seed()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
                 .internal}
         -   [Dynamics](../../api/languages/python_api.html#dynamics){.reference
             .internal}
-            -   [`evolve()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve){.reference
+            -   [[`evolve()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve){.reference
                 .internal}
-            -   [`evolve_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
+            -   [[`evolve_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
                 .internal}
-            -   [`Schedule`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Schedule){.reference
+            -   [[`Schedule`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Schedule){.reference
                 .internal}
-            -   [`BaseIntegrator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
+            -   [[`BaseIntegrator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
                 .internal}
-            -   [`InitialState`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
+            -   [[`InitialState`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
                 .internal}
-            -   [`InitialStateType`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
+            -   [[`InitialStateType`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
                 .internal}
-            -   [`IntermediateResultSave`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
+            -   [[`IntermediateResultSave`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
                 .internal}
         -   [Operators](../../api/languages/python_api.html#operators){.reference
             .internal}
-            -   [`OperatorSum`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
+            -   [[`OperatorSum`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
                 .internal}
-            -   [`ProductOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
+            -   [[`ProductOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
                 .internal}
-            -   [`ElementaryOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
+            -   [[`ElementaryOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
                 .internal}
-            -   [`ScalarOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
+            -   [[`ScalarOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
                 .internal}
-            -   [`RydbergHamiltonian`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
+            -   [[`RydbergHamiltonian`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
                 .internal}
-            -   [`SuperOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
+            -   [[`SuperOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
                 .internal}
-            -   [`operators.define()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.define){.reference
+            -   [[`operators.define()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.define){.reference
                 .internal}
-            -   [`operators.instantiate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
+            -   [[`operators.instantiate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
                 .internal}
             -   [Spin
                 Operators](../../api/languages/python_api.html#spin-operators){.reference
@@ -1461,59 +1465,59 @@ pr-3436
         -   [Data
             Types](../../api/languages/python_api.html#data-types){.reference
             .internal}
-            -   [`SimulationPrecision`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
+            -   [[`SimulationPrecision`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
                 .internal}
-            -   [`Target`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Target){.reference
+            -   [[`Target`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Target){.reference
                 .internal}
-            -   [`State`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.State){.reference
+            -   [[`State`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.State){.reference
                 .internal}
-            -   [`Tensor`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Tensor){.reference
+            -   [[`Tensor`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Tensor){.reference
                 .internal}
-            -   [`QuakeValue`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
+            -   [[`QuakeValue`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
                 .internal}
-            -   [`qubit`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qubit){.reference
+            -   [[`qubit`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qubit){.reference
                 .internal}
-            -   [`qreg`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qreg){.reference
+            -   [[`qreg`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qreg){.reference
                 .internal}
-            -   [`qvector`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qvector){.reference
+            -   [[`qvector`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
                 .internal}
-            -   [`ComplexMatrix`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
+            -   [[`ComplexMatrix`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
                 .internal}
-            -   [`SampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
+            -   [[`SampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
                 .internal}
-            -   [`AsyncSampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
+            -   [[`AsyncSampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
-            -   [`ObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
+            -   [[`ObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
-            -   [`AsyncObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
+            -   [[`AsyncObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
                 .internal}
-            -   [`AsyncStateResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
+            -   [[`AsyncStateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
                 .internal}
-            -   [`OptimizationResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
+            -   [[`OptimizationResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
                 .internal}
-            -   [`EvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
+            -   [[`EvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
                 .internal}
-            -   [`AsyncEvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+            -   [[`AsyncEvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
                 .internal}
-            -   [`Resources`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
+            -   [[`Resources`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1525,73 +1529,73 @@ pr-3436
         -   [MPI
             Submodule](../../api/languages/python_api.html#mpi-submodule){.reference
             .internal}
-            -   [`initialize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
+            -   [[`initialize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
                 .internal}
-            -   [`rank()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
+            -   [[`rank()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
                 .internal}
-            -   [`num_ranks()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
+            -   [[`num_ranks()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
                 .internal}
-            -   [`all_gather()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
+            -   [[`all_gather()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
                 .internal}
-            -   [`broadcast()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
+            -   [[`broadcast()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
                 .internal}
-            -   [`is_initialized()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
+            -   [[`is_initialized()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
-            -   [`finalize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
+            -   [[`finalize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
         -   [ORCA
             Submodule](../../api/languages/python_api.html#orca-submodule){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
             Qubits](../../api/default_ops.html#unitary-operations-on-qubits){.reference
             .internal}
-            -   [`x`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#x){.reference
+            -   [[`x`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#x){.reference
                 .internal}
-            -   [`y`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#y){.reference
+            -   [[`y`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#y){.reference
                 .internal}
-            -   [`z`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#z){.reference
+            -   [[`z`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#z){.reference
                 .internal}
-            -   [`h`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#h){.reference
+            -   [[`h`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#h){.reference
                 .internal}
-            -   [`r1`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#r1){.reference
+            -   [[`r1`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#r1){.reference
                 .internal}
-            -   [`rx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rx){.reference
+            -   [[`rx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rx){.reference
                 .internal}
-            -   [`ry`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#ry){.reference
+            -   [[`ry`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#ry){.reference
                 .internal}
-            -   [`rz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rz){.reference
+            -   [[`rz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rz){.reference
                 .internal}
-            -   [`s`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#s){.reference
+            -   [[`s`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#s){.reference
                 .internal}
-            -   [`t`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#t){.reference
+            -   [[`t`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#t){.reference
                 .internal}
-            -   [`swap`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#swap){.reference
+            -   [[`swap`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#swap){.reference
                 .internal}
-            -   [`u3`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#u3){.reference
+            -   [[`u3`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
@@ -1599,14 +1603,14 @@ pr-3436
         -   [Measurements on
             Qubits](../../api/default_ops.html#measurements-on-qubits){.reference
             .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mz){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mz){.reference
                 .internal}
-            -   [`mx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mx){.reference
+            -   [[`mx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mx){.reference
                 .internal}
-            -   [`my`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#my){.reference
+            -   [[`my`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#my){.reference
                 .internal}
         -   [User-Defined Custom
             Operations](../../api/default_ops.html#user-defined-custom-operations){.reference
@@ -1614,20 +1618,20 @@ pr-3436
         -   [Photonic Operations on
             Qudits](../../api/default_ops.html#photonic-operations-on-qudits){.reference
             .internal}
-            -   [`create`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#create){.reference
+            -   [[`create`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#create){.reference
                 .internal}
-            -   [`annihilate`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#annihilate){.reference
+            -   [[`annihilate`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#annihilate){.reference
                 .internal}
-            -   [`phase_shift`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#phase-shift){.reference
+            -   [[`phase_shift`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#phase-shift){.reference
                 .internal}
-            -   [`beam_splitter`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#beam-splitter){.reference
+            -   [[`beam_splitter`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#beam-splitter){.reference
                 .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#id1){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
 :::
@@ -1636,10 +1640,10 @@ pr-3436
 ::: {.section .wy-nav-content-wrap toggle="wy-nav-shift"}
 [NVIDIA CUDA-Q](../../index.html)
 
-::: {.wy-nav-content}
-::: {.rst-content}
+::: wy-nav-content
+::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
--   [](../../index.html){.icon .icon-home}
+-   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q Applications](../../using/applications.html)
 -   Compiling Unitaries Using Diffusion Models
 -   
@@ -1647,9 +1651,10 @@ pr-3436
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](readout_error_mitigation.html "Readout Error Mitigation"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](vqe_advanced.html "VQE with gradients, active spaces, and gate fusion"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1658,8 +1663,7 @@ aria-hidden="true"}](vqe_advanced.html "VQE with gradients, active spaces, and g
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
 ::: {#Compiling-Unitaries-Using-Diffusion-Models .section}
-Compiling Unitaries Using Diffusion Models[¶](#Compiling-Unitaries-Using-Diffusion-Models "Permalink to this heading"){.headerlink}
-===================================================================================================================================
+# Compiling Unitaries Using Diffusion Models[¶](#Compiling-Unitaries-Using-Diffusion-Models "Permalink to this heading"){.headerlink}
 
 This tutorial is based on the work presented in
 
@@ -1685,9 +1689,9 @@ machine learning --- have demonstrated exceptional performance on this
 task.
 
 In this tutorial notebook, we will demonstrate how to use this method to
-synthesize arbitrary unitaries into a `cudaq.kernel`{.docutils .literal
-.notranslate}, effectively decomposing them into sequences of quantum
-gates, a process commonly known as unitary compilation.
+synthesize arbitrary unitaries into a [`cudaq.kernel`{.docutils .literal
+.notranslate}]{.pre}, effectively decomposing them into sequences of
+quantum gates, a process commonly known as unitary compilation.
 
 Our focus will be on generating circuits using a pre-trained diffusion
 model. Specifically, we will illustrate how to compile different
@@ -1698,8 +1702,7 @@ unitaries into discrete quantum gates, based on the methods presented in
 2025)](https://doi.org/10.48550/arXiv.2506.01666){.reference .external}.
 
 ::: {#Diffusion-model-pipeline .section}
-Diffusion model pipeline[¶](#Diffusion-model-pipeline "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------------------
+## Diffusion model pipeline[¶](#Diffusion-model-pipeline "Permalink to this heading"){.headerlink}
 
 Generative diffusion models (DMs) have recently delivered remarkable
 results across a wide range of applications, from image generation to
@@ -1711,8 +1714,13 @@ al., 2024)](https://doi.org/10.1038/s42256-024-00831-9){.reference
 .external}. The following figure provides an overview of the proposed
 circuit generation pipeline:
 
-![Quantum circuit generation pipeline. Figure adapted from (Fürrutter et
-al., 2024)](../../_images/pipeline_simplified.png){.no-scaled-link}
+<figure>
+<p><img src="../../_images/pipeline_simplified.png"
+class="no-scaled-link" style="width: 70%;"
+alt="Quantum circuit generation pipeline overview" /></p>
+<figcaption><p>Quantum circuit generation pipeline. Figure adapted from
+(Fürrutter et al., 2024)</p></figcaption>
+</figure>
 
 The pipeline consists of 3 main components:
 
@@ -1726,8 +1734,12 @@ invertible: when the DM generates continuous tensors, we can apply the
 inverse map to convert them back into the circuit form. An overview of
 these steps is provided in the figure below:
 
-![Quantum circuit encoding. Figure adapted from (Fürrutter et al.,
-2024)](../../_images/circuit_encoding.png){.no-scaled-link}
+<figure>
+<p><img src="../../_images/circuit_encoding.png" class="no-scaled-link"
+style="width: 60%;" alt="Quantum circuit encoding" /></p>
+<figcaption><p>Quantum circuit encoding. Figure adapted from (Fürrutter
+et al., 2024)</p></figcaption>
+</figure>
 
 **2) Conditioning:** The user's input (the set of available gates and
 the unitary to compile) is also transformed into a continuous tensor by
@@ -1745,12 +1757,13 @@ more about the practical implementation of diffusion models we recommend
 [this tutorial](https://course.fast.ai/Lessons/lesson9.html){.reference
 .external}.
 
-In the following, we will use `cudaq`{.docutils .literal .notranslate}
-and `` `genQC ``{.docutils .literal .notranslate}
-\<<https://github.com/FlorianFuerrutter/genQC>\>\`\_\_ to perform all
-these steps and go from a desired unitary matrix [\\(U\\)]{.math
-.notranslate .nohighlight} to a quantum circuit that we can execute
-using CUDA-Q.
+In the following, we will use [`cudaq`{.docutils .literal
+.notranslate}]{.pre} and [`` `genQC ``{.docutils .literal
+.notranslate}]{.pre}
+\<[https://github.com/FlorianFuerrutter/genQC](https://github.com/FlorianFuerrutter/genQC){.reference
+.external}\>\`\_\_ to perform all these steps and go from a desired
+unitary matrix [\\(U\\)]{.math .notranslate .nohighlight} to a quantum
+circuit that we can execute using CUDA-Q.
 
 > <div>
 >
@@ -1767,37 +1780,36 @@ using CUDA-Q.
 :::
 
 ::: {#Setup-and-load-models .section}
-Setup and load models[¶](#Setup-and-load-models "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------------
+## Setup and load models[¶](#Setup-and-load-models "Permalink to this heading"){.headerlink}
 
-First, we make sure we have a compatible version of `genQC`{.docutils
-.literal .notranslate}
+First, we make sure we have a compatible version of [`genQC`{.docutils
+.literal .notranslate}]{.pre}
 ([github.com/FlorianFuerrutter/genQC](https://github.com/FlorianFuerrutter/genQC){.reference
 .external}) installed.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
-    !pip install genQC==0.2.3 -q
+::: highlight
+    !pip install genQC==0.2.3 torch --break-system-packages -q
 :::
 :::
 :::
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     import cudaq
     import torch
     import numpy as np
@@ -1822,13 +1834,13 @@ First, we make sure we have a compatible version of `genQC`{.docutils
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     device = util.infer_torch_device() # Use CUDA if we have a GPU
     print(device)
 :::
@@ -1840,7 +1852,7 @@ First, we make sure we have a compatible version of `genQC`{.docutils
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: Cuda device has a capability of 8.6 (>= 8), allowing tf32 matmul.
     cuda
 :::
@@ -1854,13 +1866,13 @@ notebook for CPU-only machines.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # Flag to only run large model if GPU available
     RUN_LARGE_MODEL = ( device == torch.device("cuda") )
     print(RUN_LARGE_MODEL)
@@ -1873,7 +1885,7 @@ notebook for CPU-only machines.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     True
 :::
 :::
@@ -1883,13 +1895,13 @@ We set a fixed seed for reproducibility.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # We set a seed to pytorch, numpy and python.
     # Note: This will also set deterministic cuda algorithms, possibly at the cost of reduced performance!
     util.set_seed(0)
@@ -1897,18 +1909,18 @@ We set a fixed seed for reproducibility.
 :::
 :::
 
-For evaluation, we also need to specify the `cudaq`{.docutils .literal
-.notranslate} circuit simulator backend.
+For evaluation, we also need to specify the [`cudaq`{.docutils .literal
+.notranslate}]{.pre} circuit simulator backend.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     simulator = Simulator(CircuitBackendType.CUDAQ,
                           target='qpp-cpu')  # Target for cudaq, note that cpu is faster for low qubit kernels
 :::
@@ -1920,7 +1932,7 @@ For evaluation, we also need to specify the `cudaq`{.docutils .literal
 
 First, we load pre-trained model weights for a discrete model directly
 from [Hugging Face:
-Floki00/qc\_unitary\_3qubit](https://huggingface.co/Floki00/qc_unitary_3qubit){.reference
+Floki00/qc_unitary_3qubit](https://huggingface.co/Floki00/qc_unitary_3qubit){.reference
 .external} and setup the DM pipeline. For details of the model we refer
 to the paper [Fürrutter et al.,
 2024](https://doi.org/10.1038/s42256-024-00831-9){.reference .external}.
@@ -1929,13 +1941,13 @@ gates.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     discrete_pipeline = DiffusionPipeline.from_pretrained(
                 repo_id="Floki00/qc_unitary_3qubit", # Download model from Hugging Face
                 device=device)
@@ -1947,13 +1959,13 @@ The loaded discrete model is trained with the discrete gate set:
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     discrete_pipeline.gate_pool
 :::
 :::
@@ -1964,26 +1976,26 @@ The loaded discrete model is trained with the discrete gate set:
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     ['h', 'cx', 'z', 'x', 'ccx', 'swap']
 :::
 :::
 :::
 
-which we need in order to define the `discrete_vocabulary`{.docutils
-.literal .notranslate} and create a `CircuitTokenizer`{.docutils
-.literal .notranslate}, allowing us to decode tokenized circuits
+which we need in order to define the [`discrete_vocabulary`{.docutils
+.literal .notranslate}]{.pre} and create a [`CircuitTokenizer`{.docutils
+.literal .notranslate}]{.pre}, allowing us to decode tokenized circuits
 generated by the model.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     discrete_vocabulary = {g:i+1 for i, g in enumerate(discrete_pipeline.gate_pool)}
     discrete_tokenizer  = CircuitTokenizer(discrete_vocabulary)
     discrete_tokenizer.vocabulary
@@ -1996,7 +2008,7 @@ generated by the model.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     {'h': 1, 'cx': 2, 'z': 3, 'x': 4, 'ccx': 5, 'swap': 6}
 :::
 :::
@@ -2007,13 +2019,13 @@ depend on the pre-trained model.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # These parameters are specific to our pre-trained model.
     discrete_system_size   = 3
     discrete_max_gates     = 12
@@ -2028,13 +2040,13 @@ changed in principle, as they are sample hyperparameters.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     timesteps = 40
     discrete_pipeline.scheduler.set_timesteps(timesteps)
 :::
@@ -2047,7 +2059,7 @@ changed in principle, as they are sample hyperparameters.
 
 Next, we load pre-trained model weights for a discrete-continuous model
 directly from [Hugging Face:
-Floki00/cirdit\_multimodal\_compile\_3to5qubit](https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit){.reference
+Floki00/cirdit_multimodal_compile_3to5qubit](https://huggingface.co/Floki00/cirdit_multimodal_compile_3to5qubit){.reference
 .external} and setup the DM pipeline. For details of the model, we refer
 to the paper [Fürrutter et al.,
 2025](https://doi.org/10.48550/arXiv.2506.01666){.reference .external}.
@@ -2056,13 +2068,13 @@ gates.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     cont_pipeline = MultimodalDiffusionPipeline_ParametrizedCompilation.from_pretrained(
         repo_id="Floki00/cirdit_multimodal_compile_3to5qubit", # Download model from Hugging Face
         device=device)
@@ -2075,13 +2087,13 @@ gate set:
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     cont_pipeline.gate_pool
 :::
 :::
@@ -2092,26 +2104,26 @@ gate set:
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']
 :::
 :::
 :::
 
-which we then use in order to define the `cont_vocabulary`{.docutils
-.literal .notranslate} and create a `CircuitTokenizer`{.docutils
-.literal .notranslate}, allowing us to decode tokenized circuits
+which we then use in order to define the [`cont_vocabulary`{.docutils
+.literal .notranslate}]{.pre} and create a [`CircuitTokenizer`{.docutils
+.literal .notranslate}]{.pre}, allowing us to decode tokenized circuits
 generated by the model.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     cont_vocabulary = {g:i+1 for i, g in enumerate(cont_pipeline.gate_pool)}
     cont_tokenizer  = CircuitTokenizer(cont_vocabulary)
     cont_tokenizer.vocabulary
@@ -2124,7 +2136,7 @@ generated by the model.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     {'h': 1, 'cx': 2, 'ccx': 3, 'swap': 4, 'rx': 5, 'ry': 6, 'rz': 7, 'cp': 8}
 :::
 :::
@@ -2135,13 +2147,13 @@ fixed and depend on the pre-trained model.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # These parameters are specific to our pre-trained model.
     cont_system_size   = 5
     cont_max_gates     = 32
@@ -2157,13 +2169,13 @@ performed from the trained model.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     cont_pipeline.scheduler   = DPMScheduler.from_scheduler(cont_pipeline.scheduler)
     cont_pipeline.scheduler_w = DPMScheduler.from_scheduler(cont_pipeline.scheduler_w)
 
@@ -2186,19 +2198,19 @@ performed from the trained model.
 To facilitate the sampling, evaluating and plotting multiple circuits
 for different unitaries, we create some helper functions here.
 
-1.  A function to check that a matrix `U`{.docutils .literal
-    .notranslate} is indeed unitary, i.e. [\\(U\^{\\dagger} U = U
+1.  A function to check that a matrix [`U`{.docutils .literal
+    .notranslate}]{.pre} is indeed unitary, i.e. [\\(U\^{\\dagger} U = U
     U\^{\\dagger} = I\\)]{.math .notranslate .nohighlight}.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     def verify_unitary(U: torch.Tensor):
         """Check if unitary."""
         assert torch.allclose(U.adjoint() @ U, torch.eye(2**num_of_qubits, dtype=U.dtype))
@@ -2212,13 +2224,13 @@ for different unitaries, we create some helper functions here.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     def sample_kernels_and_evaluate(U: torch.Tensor,
                                     prompt: str,
                                     num_of_qubits: int,
@@ -2295,18 +2307,18 @@ for different unitaries, we create some helper functions here.
 :::
 :::
 
-3.  A function to plot the `topk`{.docutils .literal .notranslate} best
-    generated kernels.
+3.  A function to plot the [`topk`{.docutils .literal
+    .notranslate}]{.pre} best generated kernels.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     def plot_topk_kernels(generated_kernels: list,
                           infidelities: torch.Tensor,
                           num_of_qubits:int,
@@ -2335,21 +2347,20 @@ for different unitaries, we create some helper functions here.
 :::
 
 ::: {#Unitary-compilation .section}
-Unitary compilation[¶](#Unitary-compilation "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------------------
+## Unitary compilation[¶](#Unitary-compilation "Permalink to this heading"){.headerlink}
 
 We start by defining the unitaries we want to compile and then sample
 the corresponding DM. Note that these models have been trained to
 compile unitaries that arise from circuits composed of the gates
-contained in their `vocabulary`{.docutils .literal .notranslate}. While
-these are universal gate sets, i.e. they can perform universal
-computation, they can only do so with an arbitrary-precision for an
-infinite number of gates. Because the number of gates in the models are
-restricted to some `max_gates`{.docutils .literal .notranslate} (12 for
-the discrete model and 32 for the continuous one), we can only expect
-the models to generate unitaries under this constraint. We will consider
-here the compilation of such unitaries. Nonetheless, stay tuned for
-bigger and better models!
+contained in their [`vocabulary`{.docutils .literal
+.notranslate}]{.pre}. While these are universal gate sets, i.e. they can
+perform universal computation, they can only do so with an
+arbitrary-precision for an infinite number of gates. Because the number
+of gates in the models are restricted to some [`max_gates`{.docutils
+.literal .notranslate}]{.pre} (12 for the discrete model and 32 for the
+continuous one), we can only expect the models to generate unitaries
+under this constraint. We will consider here the compilation of such
+unitaries. Nonetheless, stay tuned for bigger and better models!
 
 ::: {#Random-unitary .section}
 ### Random unitary[¶](#Random-unitary "Permalink to this heading"){.headerlink}
@@ -2358,30 +2369,31 @@ Let's start with a random 3-qubit unitary.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     num_of_qubits = 3
 :::
 :::
 :::
 
-We can define our arbitrary unitary `U`{.docutils .literal .notranslate}
-directly as a complex `torch.tensor`{.docutils .literal .notranslate}:
+We can define our arbitrary unitary [`U`{.docutils .literal
+.notranslate}]{.pre} directly as a complex [`torch.tensor`{.docutils
+.literal .notranslate}]{.pre}:
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     U = torch.tensor([[0.70710678, 0., 0., 0., 0.70710678, 0., 0., 0.],
                    [0., -0.70710678, 0., 0., 0., -0.70710678, 0., 0.],
                    [-0.70710678, 0., 0., 0., 0.70710678, 0., 0., 0.],
@@ -2399,27 +2411,39 @@ directly as a complex `torch.tensor`{.docutils .literal .notranslate}:
 ::: {#Discrete-model .section}
 ### Discrete model[¶](#Discrete-model "Permalink to this heading"){.headerlink}
 
-The loaded discrete model was trained on the gate set
-`['h', 'cx', 'z', 'x', 'ccx', 'swap']`{.docutils .literal .notranslate}.
+The loaded discrete model was trained on the gate set [`['h',`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'cx',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'z',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'x',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'ccx',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'swap']`{.docutils .literal .notranslate}]{.pre}.
 Specifically, it was trained to generate circuits using any arbitrary
 subset of this gate set. Therefore, during inference, we can instruct
 the model to compile the unitary using any of these subsets. However, it
-is crucial to follow the prompt structure
-`Compile using [...]`{.docutils .literal .notranslate}, as the model was
-trained with this specific format.
+is crucial to follow the prompt structure [`Compile`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`using`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`[...]`{.docutils .literal .notranslate}]{.pre}, as the
+model was trained with this specific format.
 
 For example, let's consider a scenario where we compile the unitary
-without using the `x`{.docutils .literal .notranslate} gate:
+without using the [`x`{.docutils .literal .notranslate}]{.pre} gate:
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # Notice how the x gate is missing from the prompt since this is a restriction we set
     prompt = "Compile using: ['h', 'cx', 'z', 'ccx', 'swap']"
 :::
@@ -2427,18 +2451,18 @@ without using the `x`{.docutils .literal .notranslate} gate:
 :::
 
 Now, we call the diffusion model pipeline to generate encoded circuits
-based on the specified conditions: `prompt`{.docutils .literal
-.notranslate} and `U`{.docutils .literal .notranslate}.
+based on the specified conditions: [`prompt`{.docutils .literal
+.notranslate}]{.pre} and [`U`{.docutils .literal .notranslate}]{.pre}.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
@@ -2462,7 +2486,7 @@ based on the specified conditions: `prompt`{.docutils .literal
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: (generate_comp_tensors) Generated 128 tensors
 :::
 :::
@@ -2472,13 +2496,13 @@ Next, we plot the best three circuits in the following cell.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
 :::
@@ -2489,7 +2513,7 @@ Next, we plot the best three circuits in the following cell.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Circuit has an infidelity of 3.4e-08.
          ╭───╮╭───╮        ╭───╮╭───╮
     q0 : ┤ x ├┤ z ├─────●──┤ z ├┤ z ├──●──
@@ -2524,29 +2548,49 @@ Next, we plot the best three circuits in the following cell.
 ::: {#Continuous-model .section}
 ### Continuous model[¶](#Continuous-model "Permalink to this heading"){.headerlink}
 
-Now we want to compile the same `U`{.docutils .literal .notranslate}
-with the continuous model.
+Now we want to compile the same [`U`{.docutils .literal
+.notranslate}]{.pre} with the continuous model.
 
-The continuous model was trained on the gate set
-`['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']`{.docutils .literal
-.notranslate}. As the discrete model, it was trained to generate
-circuits using any arbitrary subset of this gate set. However, it is
-crucial to follow the prompt structure
-`Compile {num_of_qubits} qubits using: [...]`{.docutils .literal
-.notranslate}, as the model was trained with this specific format.
+The continuous model was trained on the gate set [`['h',`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'cx',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'ccx',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'swap',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'rx',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'ry',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'rz',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`'cp']`{.docutils .literal .notranslate}]{.pre}. As the
+discrete model, it was trained to generate circuits using any arbitrary
+subset of this gate set. However, it is crucial to follow the prompt
+structure [`Compile`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`{num_of_qubits}`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`qubits`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`using:`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`[...]`{.docutils .literal .notranslate}]{.pre}, as the
+model was trained with this specific format.
 
 For example, let's consider a scenario where we compile the unitary
-without using the `h`{.docutils .literal .notranslate} gate.
+without using the [`h`{.docutils .literal .notranslate}]{.pre} gate.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # Notice how the h gate is missing from the prompt since this is a restriction we set
     prompt = f"Compile {num_of_qubits} qubits using: ['cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
 :::
@@ -2554,18 +2598,18 @@ without using the `h`{.docutils .literal .notranslate} gate.
 :::
 
 Now, we call the diffusion model pipeline to generate encoded circuits
-based on the specified conditions: `prompt`{.docutils .literal
-.notranslate} and `U`{.docutils .literal .notranslate}.
+based on the specified conditions: [`prompt`{.docutils .literal
+.notranslate}]{.pre} and [`U`{.docutils .literal .notranslate}]{.pre}.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
@@ -2589,7 +2633,7 @@ based on the specified conditions: `prompt`{.docutils .literal
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: (generate_comp_tensors) Generated 64 tensors
 :::
 :::
@@ -2599,13 +2643,13 @@ Next, we plot the best three circuits in the following cell.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
 :::
@@ -2616,7 +2660,7 @@ Next, we plot the best three circuits in the following cell.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Circuit has an infidelity of 2.6e-05.
          ╭───╮
     q0 : ┤ x ├────●─────────────●────────●────●────●──
@@ -2648,17 +2692,18 @@ Next, we plot the best three circuits in the following cell.
 :::
 
 Now consider a scenario where we compile the unitary without using the
-`swap`{.docutils .literal .notranslate} gate and see what changes.
+[`swap`{.docutils .literal .notranslate}]{.pre} gate and see what
+changes.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # Notice how the swap gate is missing from the prompt since this is a restriction we set
     prompt = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'rx', 'ry', 'rz', 'cp']"
 :::
@@ -2667,13 +2712,13 @@ Now consider a scenario where we compile the unitary without using the
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
@@ -2697,7 +2742,7 @@ Now consider a scenario where we compile the unitary without using the
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: (generate_comp_tensors) Generated 64 tensors
 :::
 :::
@@ -2705,13 +2750,13 @@ Now consider a scenario where we compile the unitary without using the
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
 :::
@@ -2722,7 +2767,7 @@ Now consider a scenario where we compile the unitary without using the
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Circuit has an infidelity of 1.2e-04.
          ╭───╮
     q0 : ┤ x ├──────●───────────────────────────●────────●──
@@ -2754,8 +2799,8 @@ Now consider a scenario where we compile the unitary without using the
 :::
 
 Interestingly, we can see that the model correctly uses the replacement
-of a `swap`{.docutils .literal .notranslate} operation with 3
-`cx`{.docutils .literal .notranslate} gates!
+of a [`swap`{.docutils .literal .notranslate}]{.pre} operation with 3
+[`cx`{.docutils .literal .notranslate}]{.pre} gates!
 :::
 
 ::: {#Quantum-Fourier-transform .section}
@@ -2766,14 +2811,14 @@ compile the 4-qubit Quantum Fourier transform (QFT) unitary, defined as
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\begin{equation} \\mathrm{QFT}: \|x\\rangle \\mapsto
-\\frac{1}{\\sqrt{N}} \\sum\_{k=0}\^{N-1} \\omega\_N\^{xk}\\;\|k\\rangle,
+\\frac{1}{\\sqrt{N}} \\sum\_{k=0}\^{N-1} \\omega_N\^{xk}\\;\|k\\rangle,
 \\end{equation}\\\]
 :::
 
 where
 
 ::: {.math .notranslate .nohighlight}
-\\\[\\begin{equation} \\omega\_N=\\exp{\\frac{2\\pi i}{N}}
+\\\[\\begin{equation} \\omega_N=\\exp{\\frac{2\\pi i}{N}}
 \\quad\\text{and}\\quad N=2\^{\\text{qubits}}. \\end{equation}\\\]
 :::
 
@@ -2781,31 +2826,31 @@ For this task, we use the continuous model.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     num_of_qubits = 4
     prompt        = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
 :::
 :::
 :::
 
-We can get the QFT unitary from `genqc`{.docutils .literal
-.notranslate}:
+We can get the QFT unitary from [`genqc`{.docutils .literal
+.notranslate}]{.pre}:
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     from genQC.benchmark.bench_compilation import SpecialUnitaries
     U = SpecialUnitaries.QFT(num_of_qubits)
 :::
@@ -2816,13 +2861,13 @@ As before, we sample and plot the best circuits
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
@@ -2846,7 +2891,7 @@ As before, we sample and plot the best circuits
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: (generate_comp_tensors) Generated 64 tensors
 :::
 :::
@@ -2854,13 +2899,13 @@ As before, we sample and plot the best circuits
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=2)
 :::
 :::
@@ -2871,7 +2916,7 @@ As before, we sample and plot the best circuits
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Circuit has an infidelity of 1.6e-02.
             ╭───╮                                                            »
     q0 : ─╳─┤ h ├──────●────────────●────────────●───────────────────────────»
@@ -2931,8 +2976,8 @@ evolution unitary [\\(U(\\tau)=\\exp(-i \\tau H)\\)]{.math .notranslate
 .nohighlight} of the XXZ-Hamiltonian, defined as
 
 ::: {.math .notranslate .nohighlight}
-\\\[H\_\\text{xxz} = -J \\sum\_{\\langle i, j \\rangle} ( X\_i X\_j +
-Y\_i Y\_j + \\Delta Z\_i Z\_j ) - h \\sum\_{i=0}\^{n-1} X\_i,\\\]
+\\\[H\_\\text{xxz} = -J \\sum\_{\\langle i, j \\rangle} ( X_i X_j + Y_i
+Y_j + \\Delta Z_i Z_j ) - h \\sum\_{i=0}\^{n-1} X_i,\\\]
 :::
 
 where [\\(J\\)]{.math .notranslate .nohighlight} is the coupling
@@ -2956,31 +3001,31 @@ For this task, we use the continuous model.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     num_of_qubits = 3
     prompt        = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
 :::
 :::
 :::
 
-We can get the XXZ-Hamiltonian evolution unitary from `genqc`{.docutils
-.literal .notranslate}:
+We can get the XXZ-Hamiltonian evolution unitary from [`genqc`{.docutils
+.literal .notranslate}]{.pre}:
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     from genQC.benchmark.bench_compilation import XXZHamiltonian
 
     hamiltonian = XXZHamiltonian(h=0.2,
@@ -2998,13 +3043,13 @@ As before, we sample and plot the best circuits
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     generated_kernels, infidelities = sample_kernels_and_evaluate(
                                               U=U,
                                               prompt=prompt,
@@ -3028,7 +3073,7 @@ As before, we sample and plot the best circuits
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: (generate_comp_tensors) Generated 64 tensors
 :::
 :::
@@ -3036,13 +3081,13 @@ As before, we sample and plot the best circuits
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     plot_topk_kernels(generated_kernels, infidelities, num_of_qubits, topk=3)
 :::
 :::
@@ -3053,7 +3098,7 @@ As before, we sample and plot the best circuits
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Circuit has an infidelity of 3.5e-02.
          ╭───────────╮
     q0 : ┤ rx(12.43) ├────────────────────────────────────────────
@@ -3087,8 +3132,7 @@ As before, we sample and plot the best circuits
 :::
 
 ::: {#Choosing-the-circuit-you-need .section}
-Choosing the circuit you need[¶](#Choosing-the-circuit-you-need "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------------------------------------
+## Choosing the circuit you need[¶](#Choosing-the-circuit-you-need "Permalink to this heading"){.headerlink}
 
 As mentioned earlier, one of the key advantages of using diffusion
 models (DMs) as a unitary compiler is the ability to rapidly sample many
@@ -3104,13 +3148,13 @@ inspect what the model generates.
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     num_of_qubits = 3
     prompt = f"Compile {num_of_qubits} qubits using: ['h', 'cx', 'ccx', 'swap', 'rx', 'ry', 'rz', 'cp']"
 
@@ -3129,13 +3173,13 @@ inspect what the model generates.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     generated_kernels, infidelities, generated_tensors = \
                     sample_kernels_and_evaluate(
                                   U=U,
@@ -3161,7 +3205,7 @@ inspect what the model generates.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [INFO]: (generate_comp_tensors) Generated 128 tensors
 :::
 :::
@@ -3172,13 +3216,13 @@ circuits.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=(7, 4))
@@ -3206,21 +3250,21 @@ As we see above, we now have around 15 kernels that compile the desired
 unitary! This is particularly valuable when dealing with hardware
 constraints, where, for instance, we might want to avoid using certain
 qubits or specific gates. One practical example is finding the circuit
-with the fewest CNOT gates (also known as `cx`{.docutils .literal
-.notranslate}). In our `cont_vocabulary`{.docutils .literal
-.notranslate} definition above, we identified that `cx`{.docutils
-.literal .notranslate} corresponds to the label 2 in our tokenized
-tensors.
+with the fewest CNOT gates (also known as [`cx`{.docutils .literal
+.notranslate}]{.pre}). In our [`cont_vocabulary`{.docutils .literal
+.notranslate}]{.pre} definition above, we identified that
+[`cx`{.docutils .literal .notranslate}]{.pre} corresponds to the label 2
+in our tokenized tensors.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     cx_token = cont_vocabulary["cx"]
     cx_token
 :::
@@ -3232,24 +3276,24 @@ tensors.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     2
 :::
 :::
 :::
 
 Let's use this information to search for the circuit that minimizes the
-number of `cx`{.docutils .literal .notranslate} gates:
+number of [`cx`{.docutils .literal .notranslate}]{.pre} gates:
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # First, we remove possible duplicates and only pick distinct circuits
     _, idx_unique = torch.unique(generated_tensors, dim=0, return_inverse=True)
     unique_tensors = generated_tensors[idx_unique]
@@ -3275,7 +3319,7 @@ number of `cx`{.docutils .literal .notranslate} gates:
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     The model generated 14 distinct circuits with infidelity < 0.01.
     These circuits have this number of cx gates: [0, 2, 1, 0, 2, 2, 3, 2, 2, 1, 2, 1, 1, 1]
 :::
@@ -3287,18 +3331,18 @@ compile the unitary. We can now print a few of these circuits to select
 the one that best suits our needs, or to study whether there are any
 interesting patterns the model employs for this specific unitary.
 
-For instance, we can sort the circuits by their `cx`{.docutils .literal
-.notranslate} count and plot them.
+For instance, we can sort the circuits by their [`cx`{.docutils .literal
+.notranslate}]{.pre} count and plot them.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     # Get the correct kernels
     correct_kernels = [unique_kernels[idx] for idx in idx_correct]
 
@@ -3326,7 +3370,7 @@ For instance, we can sort the circuits by their `cx`{.docutils .literal
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Generated circuit with 0 cx:
          ╭───╮                     ╭───────────╮
     q0 : ┤ x ├──────────────●──────┤ rz(3.132) ├
@@ -3359,13 +3403,13 @@ For instance, we can sort the circuits by their `cx`{.docutils .literal
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     print(cudaq.__version__)
     print("genQC Version", genQC.__version__)
 :::
@@ -3377,7 +3421,7 @@ For instance, we can sort the circuits by their `cx`{.docutils .literal
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     CUDA-Q Version 0.11.0 (https://github.com/NVIDIA/cuda-quantum f5cc3bb1d85abcf1f642f4ddd20ad08bc1d4d200)
     genQC Version 0.2.3
 :::
@@ -3391,9 +3435,10 @@ For instance, we can sort the circuits by their `cx`{.docutils .literal
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](readout_error_mitigation.html "Readout Error Mitigation"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](vqe_advanced.html "VQE with gradients, active spaces, and gate fusion"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

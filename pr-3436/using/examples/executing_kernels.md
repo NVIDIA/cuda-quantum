@@ -1,9 +1,9 @@
-::: {.wy-grid-for-nav}
-::: {.wy-side-scroll}
+::: wy-grid-for-nav
+::: wy-side-scroll
 ::: {.wy-side-nav-search style="background: #76b900"}
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
-::: {.version}
+::: version
 pr-3436
 :::
 
@@ -123,13 +123,13 @@ pr-3436
         -   [From CPU to
             GPU](multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
-        -   [Pooling the memory of multiple GPUs (`mgpu`{.code .docutils
-            .literal
-            .notranslate})](multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
-            .internal}
-        -   [Parallel execution over multiple QPUs (`mqpu`{.code
+        -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate})](multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .internal}
+        -   [Parallel execution over multiple QPUs ([`mqpu`{.code
+            .docutils .literal
+            .notranslate}]{.pre})](multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
                 Terms](multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
@@ -137,9 +137,9 @@ pr-3436
             -   [Circuit
                 Batching](multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends (`remote-mqpu`{.code .docutils
+        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate})](multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -217,11 +217,11 @@ pr-3436
                 Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Section 2 - Simulating open quantum systems with the
-                `collapse_operators`{.docutils .literal
-                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
             -   [Exercise 2 - Adding additional jump operators
-                [\\(L\_i\\)]{.math .notranslate
+                [\\(L_i\\)]{.math .notranslate
                 .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
                 .internal}
             -   [Section 3 - Many qubits coupled to the
@@ -303,7 +303,7 @@ pr-3436
         -   [CUDA-Q
             Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
-    -   [Multi-reference Quantum Krylov Algorithm - [\\(H\_2\\)]{.math
+    -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
         .internal}
@@ -376,8 +376,8 @@ pr-3436
         -   [Numerical result as a
             reference:](../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
-        -   [Using `Sample`{.docutils .literal .notranslate} to perform
-            the Hadamard
+        -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
+            perform the Hadamard
             test](../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
@@ -394,8 +394,8 @@ pr-3436
             with
             CUDA-QX](../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
-        -   [Constructing circuits in the `[[4,2,2]]`{.docutils .literal
-            .notranslate}
+        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
+            .literal .notranslate}]{.pre}
             encoding](../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
@@ -430,8 +430,10 @@ pr-3436
             -   [2. Hamiltonian
                 Trotterization](../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
-            -   [3. `Compute overlap`{.docutils .literal
-                .notranslate}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
+            -   [3. [`Compute`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`overlap`{.docutils .literal
+                .notranslate}]{.pre}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
                 Hamiltonian](../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
@@ -596,14 +598,14 @@ pr-3436
         -   [Simulation
             input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
             .internal}
-        -   [The problem Hamiltonian [\\(H\_C\\)]{.math .notranslate
+        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
             graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
-        -   [Th operator pool [\\(A\_j\\)]{.math .notranslate
+        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
             .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
-        -   [The commutator [\\(\[H\_C,A\_j\]\\)]{.math .notranslate
+        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
             .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
@@ -628,7 +630,7 @@ pr-3436
                 excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A\_i\\)]{.math .notranslate
+            [\\(A_i\\)]{.math .notranslate
             .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
@@ -1129,14 +1131,14 @@ pr-3436
             -   [Server Helper
                 Class](../extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [`CMakeLists.txt`{.docutils .literal
-                .notranslate}](../extending/backend.html#cmakelists-txt){.reference
+            -   [[`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
             Configuration](../extending/backend.html#target-configuration){.reference
             .internal}
-            -   [Update Parent `CMakeLists.txt`{.docutils .literal
-                .notranslate}](../extending/backend.html#update-parent-cmakelists-txt){.reference
+            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
         -   [Testing](../extending/backend.html#testing){.reference
             .internal}
@@ -1168,8 +1170,8 @@ pr-3436
     -   [Create a new NVQIR
         Simulator](../extending/nvqir_simulator.html){.reference
         .internal}
-        -   [`CircuitSimulator`{.code .docutils .literal
-            .notranslate}](../extending/nvqir_simulator.html#circuitsimulator){.reference
+        -   [[`CircuitSimulator`{.code .docutils .literal
+            .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
             action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
@@ -1192,11 +1194,11 @@ pr-3436
         -   [3. Quantum
             Types](../../specification/cudaq/types.html){.reference
             .internal}
-            -   [3.1. `cudaq::qudit<Levels>`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
+            -   [3.1. [`cudaq::qudit<Levels>`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
                 .internal}
-            -   [3.2. `cudaq::qubit`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qubit){.reference
+            -   [3.2. [`cudaq::qubit`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qubit){.reference
                 .internal}
             -   [3.3. Quantum
                 Containers](../../specification/cudaq/types.html#quantum-containers){.reference
@@ -1204,15 +1206,15 @@ pr-3436
         -   [4. Quantum
             Operators](../../specification/cudaq/operators.html){.reference
             .internal}
-            -   [4.1. `cudaq::spin_op`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
+            -   [4.1. [`cudaq::spin_op`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
                 .internal}
         -   [5. Quantum
             Operations](../../specification/cudaq/operations.html){.reference
             .internal}
-            -   [5.1. Operations on `cudaq::qubit`{.code .docutils
+            -   [5.1. Operations on [`cudaq::qubit`{.code .docutils
                 .literal
-                .notranslate}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
@@ -1238,21 +1240,23 @@ pr-3436
         -   [12. Algorithmic
             Primitives](../../specification/cudaq/algorithmic_primitives.html){.reference
             .internal}
-            -   [12.1. `cudaq::sample`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
+            -   [12.1. [`cudaq::sample`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
                 .internal}
-            -   [12.2. `cudaq::run`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
+            -   [12.2. [`cudaq::run`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
                 .internal}
-            -   [12.3. `cudaq::observe`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
+            -   [12.3. [`cudaq::observe`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
                 .internal}
-            -   [12.4. `cudaq::optimizer`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.4. [`cudaq::optimizer`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
-            -   [12.5. `cudaq::gradient`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.5. [`cudaq::gradient`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
         -   [13. Example
@@ -1312,150 +1316,150 @@ pr-3436
         -   [Program
             Construction](../../api/languages/python_api.html#program-construction){.reference
             .internal}
-            -   [`make_kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
+            -   [[`make_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
                 .internal}
-            -   [`PyKernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
+            -   [[`PyKernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
                 .internal}
-            -   [`Kernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Kernel){.reference
+            -   [[`Kernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Kernel){.reference
                 .internal}
-            -   [`PyKernelDecorator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
+            -   [[`PyKernelDecorator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
                 .internal}
-            -   [`kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.kernel){.reference
+            -   [[`kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.kernel){.reference
                 .internal}
         -   [Kernel
             Execution](../../api/languages/python_api.html#kernel-execution){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample){.reference
                 .internal}
-            -   [`sample_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample_async){.reference
+            -   [[`sample_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample_async){.reference
                 .internal}
-            -   [`run()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run){.reference
+            -   [[`run()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run){.reference
                 .internal}
-            -   [`run_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run_async){.reference
+            -   [[`run_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run_async){.reference
                 .internal}
-            -   [`observe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe){.reference
+            -   [[`observe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe){.reference
                 .internal}
-            -   [`observe_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe_async){.reference
+            -   [[`observe_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe_async){.reference
                 .internal}
-            -   [`get_state()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state){.reference
+            -   [[`get_state()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state){.reference
                 .internal}
-            -   [`get_state_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
+            -   [[`get_state_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
                 .internal}
-            -   [`vqe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.vqe){.reference
+            -   [[`vqe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.vqe){.reference
                 .internal}
-            -   [`draw()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.draw){.reference
+            -   [[`draw()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.draw){.reference
                 .internal}
-            -   [`translate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
+            -   [[`translate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
-            -   [`estimate_resources()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+            -   [[`estimate_resources()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
-            -   [`has_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.has_target){.reference
+            -   [[`has_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
-            -   [`get_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_target){.reference
+            -   [[`get_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_target){.reference
                 .internal}
-            -   [`get_targets()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_targets){.reference
+            -   [[`get_targets()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_targets){.reference
                 .internal}
-            -   [`set_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_target){.reference
+            -   [[`set_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_target){.reference
                 .internal}
-            -   [`reset_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.reset_target){.reference
+            -   [[`reset_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.reset_target){.reference
                 .internal}
-            -   [`set_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_noise){.reference
+            -   [[`set_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_noise){.reference
                 .internal}
-            -   [`unset_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
+            -   [[`unset_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
-            -   [`register_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+            -   [[`register_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
                 .internal}
-            -   [`unregister_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+            -   [[`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
                 .internal}
-            -   [`cudaq.apply_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
+            -   [[`cudaq.apply_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
-            -   [`initialize_cudaq()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
+            -   [[`initialize_cudaq()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
                 .internal}
-            -   [`num_available_gpus()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
+            -   [[`num_available_gpus()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
                 .internal}
-            -   [`set_random_seed()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
+            -   [[`set_random_seed()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
                 .internal}
         -   [Dynamics](../../api/languages/python_api.html#dynamics){.reference
             .internal}
-            -   [`evolve()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve){.reference
+            -   [[`evolve()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve){.reference
                 .internal}
-            -   [`evolve_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
+            -   [[`evolve_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
                 .internal}
-            -   [`Schedule`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Schedule){.reference
+            -   [[`Schedule`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Schedule){.reference
                 .internal}
-            -   [`BaseIntegrator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
+            -   [[`BaseIntegrator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
                 .internal}
-            -   [`InitialState`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
+            -   [[`InitialState`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
                 .internal}
-            -   [`InitialStateType`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
+            -   [[`InitialStateType`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
                 .internal}
-            -   [`IntermediateResultSave`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
+            -   [[`IntermediateResultSave`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
                 .internal}
         -   [Operators](../../api/languages/python_api.html#operators){.reference
             .internal}
-            -   [`OperatorSum`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
+            -   [[`OperatorSum`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
                 .internal}
-            -   [`ProductOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
+            -   [[`ProductOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
                 .internal}
-            -   [`ElementaryOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
+            -   [[`ElementaryOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
                 .internal}
-            -   [`ScalarOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
+            -   [[`ScalarOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
                 .internal}
-            -   [`RydbergHamiltonian`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
+            -   [[`RydbergHamiltonian`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
                 .internal}
-            -   [`SuperOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
+            -   [[`SuperOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
                 .internal}
-            -   [`operators.define()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.define){.reference
+            -   [[`operators.define()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.define){.reference
                 .internal}
-            -   [`operators.instantiate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
+            -   [[`operators.instantiate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
                 .internal}
             -   [Spin
                 Operators](../../api/languages/python_api.html#spin-operators){.reference
@@ -1472,59 +1476,59 @@ pr-3436
         -   [Data
             Types](../../api/languages/python_api.html#data-types){.reference
             .internal}
-            -   [`SimulationPrecision`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
+            -   [[`SimulationPrecision`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
                 .internal}
-            -   [`Target`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Target){.reference
+            -   [[`Target`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Target){.reference
                 .internal}
-            -   [`State`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.State){.reference
+            -   [[`State`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.State){.reference
                 .internal}
-            -   [`Tensor`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Tensor){.reference
+            -   [[`Tensor`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Tensor){.reference
                 .internal}
-            -   [`QuakeValue`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
+            -   [[`QuakeValue`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
                 .internal}
-            -   [`qubit`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qubit){.reference
+            -   [[`qubit`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qubit){.reference
                 .internal}
-            -   [`qreg`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qreg){.reference
+            -   [[`qreg`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qreg){.reference
                 .internal}
-            -   [`qvector`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qvector){.reference
+            -   [[`qvector`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
                 .internal}
-            -   [`ComplexMatrix`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
+            -   [[`ComplexMatrix`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
                 .internal}
-            -   [`SampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
+            -   [[`SampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
                 .internal}
-            -   [`AsyncSampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
+            -   [[`AsyncSampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
-            -   [`ObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
+            -   [[`ObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
-            -   [`AsyncObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
+            -   [[`AsyncObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
                 .internal}
-            -   [`AsyncStateResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
+            -   [[`AsyncStateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
                 .internal}
-            -   [`OptimizationResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
+            -   [[`OptimizationResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
                 .internal}
-            -   [`EvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
+            -   [[`EvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
                 .internal}
-            -   [`AsyncEvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+            -   [[`AsyncEvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
                 .internal}
-            -   [`Resources`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
+            -   [[`Resources`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1536,73 +1540,73 @@ pr-3436
         -   [MPI
             Submodule](../../api/languages/python_api.html#mpi-submodule){.reference
             .internal}
-            -   [`initialize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
+            -   [[`initialize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
                 .internal}
-            -   [`rank()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
+            -   [[`rank()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
                 .internal}
-            -   [`num_ranks()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
+            -   [[`num_ranks()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
                 .internal}
-            -   [`all_gather()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
+            -   [[`all_gather()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
                 .internal}
-            -   [`broadcast()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
+            -   [[`broadcast()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
                 .internal}
-            -   [`is_initialized()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
+            -   [[`is_initialized()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
-            -   [`finalize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
+            -   [[`finalize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
         -   [ORCA
             Submodule](../../api/languages/python_api.html#orca-submodule){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
             Qubits](../../api/default_ops.html#unitary-operations-on-qubits){.reference
             .internal}
-            -   [`x`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#x){.reference
+            -   [[`x`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#x){.reference
                 .internal}
-            -   [`y`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#y){.reference
+            -   [[`y`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#y){.reference
                 .internal}
-            -   [`z`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#z){.reference
+            -   [[`z`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#z){.reference
                 .internal}
-            -   [`h`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#h){.reference
+            -   [[`h`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#h){.reference
                 .internal}
-            -   [`r1`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#r1){.reference
+            -   [[`r1`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#r1){.reference
                 .internal}
-            -   [`rx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rx){.reference
+            -   [[`rx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rx){.reference
                 .internal}
-            -   [`ry`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#ry){.reference
+            -   [[`ry`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#ry){.reference
                 .internal}
-            -   [`rz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rz){.reference
+            -   [[`rz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rz){.reference
                 .internal}
-            -   [`s`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#s){.reference
+            -   [[`s`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#s){.reference
                 .internal}
-            -   [`t`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#t){.reference
+            -   [[`t`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#t){.reference
                 .internal}
-            -   [`swap`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#swap){.reference
+            -   [[`swap`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#swap){.reference
                 .internal}
-            -   [`u3`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#u3){.reference
+            -   [[`u3`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
@@ -1610,14 +1614,14 @@ pr-3436
         -   [Measurements on
             Qubits](../../api/default_ops.html#measurements-on-qubits){.reference
             .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mz){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mz){.reference
                 .internal}
-            -   [`mx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mx){.reference
+            -   [[`mx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mx){.reference
                 .internal}
-            -   [`my`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#my){.reference
+            -   [[`my`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#my){.reference
                 .internal}
         -   [User-Defined Custom
             Operations](../../api/default_ops.html#user-defined-custom-operations){.reference
@@ -1625,20 +1629,20 @@ pr-3436
         -   [Photonic Operations on
             Qudits](../../api/default_ops.html#photonic-operations-on-qudits){.reference
             .internal}
-            -   [`create`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#create){.reference
+            -   [[`create`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#create){.reference
                 .internal}
-            -   [`annihilate`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#annihilate){.reference
+            -   [[`annihilate`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#annihilate){.reference
                 .internal}
-            -   [`phase_shift`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#phase-shift){.reference
+            -   [[`phase_shift`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#phase-shift){.reference
                 .internal}
-            -   [`beam_splitter`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#beam-splitter){.reference
+            -   [[`beam_splitter`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#beam-splitter){.reference
                 .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#id1){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
 :::
@@ -1647,10 +1651,10 @@ pr-3436
 ::: {.section .wy-nav-content-wrap toggle="wy-nav-shift"}
 [NVIDIA CUDA-Q](../../index.html)
 
-::: {.wy-nav-content}
-::: {.rst-content}
+::: wy-nav-content
+::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
--   [](../../index.html){.icon .icon-home}
+-   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q by Example](examples.html)
 -   Executing Kernels
 -   
@@ -1658,9 +1662,10 @@ pr-3436
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../../examples/python/visualization.html "Visualization"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](expectation_values.html "Computing Expectation Values"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1669,22 +1674,21 @@ aria-hidden="true"}](expectation_values.html "Computing Expectation Values"){.bt
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
 ::: {#executing-kernels .section}
-Executing Kernels[¶](#executing-kernels "Permalink to this heading"){.headerlink}
-=================================================================================
+# Executing Kernels[¶](#executing-kernels "Permalink to this heading"){.headerlink}
 
 In CUDA-Q, there are 4 ways in which one can execute quantum kernels:
 
-1.  `sample`{.code .docutils .literal .notranslate}: yields measurement
-    counts
+1.  [`sample`{.code .docutils .literal .notranslate}]{.pre}: yields
+    measurement counts
 
-2.  `run`{.code .docutils .literal .notranslate}: yields individual
-    return values from multiple executions
+2.  [`run`{.code .docutils .literal .notranslate}]{.pre}: yields
+    individual return values from multiple executions
 
-3.  `observe`{.code .docutils .literal .notranslate}: yields expectation
-    values
+3.  [`observe`{.code .docutils .literal .notranslate}]{.pre}: yields
+    expectation values
 
-4.  `get_state`{.code .docutils .literal .notranslate}: yields the
-    quantum statevector of the computation
+4.  [`get_state`{.code .docutils .literal .notranslate}]{.pre}: yields
+    the quantum statevector of the computation
 
 Asynchronous programming is a technique that enables your program to
 start a potentially long-running task and still be able to be responsive
@@ -1693,28 +1697,28 @@ that task has finished. Once that task has finished, your program is
 presented with the result. The most intensive task in the computation is
 the execution of the quantum kernel hence each execution function can be
 parallelized given access to multiple quantum processing units
-(multi-QPU) using: `sample_async`{.code .docutils .literal
-.notranslate}, `run_async`{.code .docutils .literal .notranslate},
-`observe_async`{.code .docutils .literal .notranslate} and
-`get_state_async`{.code .docutils .literal .notranslate}.
+(multi-QPU) using: [`sample_async`{.code .docutils .literal
+.notranslate}]{.pre}, [`run_async`{.code .docutils .literal
+.notranslate}]{.pre}, [`observe_async`{.code .docutils .literal
+.notranslate}]{.pre} and [`get_state_async`{.code .docutils .literal
+.notranslate}]{.pre}.
 
 Since multi-QPU platforms are not yet feasible, we emulate each QPU with
 a GPU.
 
 ::: {#sample .section}
-Sample[¶](#sample "Permalink to this heading"){.headerlink}
------------------------------------------------------------
+## Sample[¶](#sample "Permalink to this heading"){.headerlink}
 
 Quantum states collapse upon measurement and hence need to be sampled
-many times to gather statistics. The CUDA-Q `sample`{.code .docutils
-.literal .notranslate} call enables this:
+many times to gather statistics. The CUDA-Q [`sample`{.code .docutils
+.literal .notranslate}]{.pre} call enables this:
 
 ::: {.tab-set .docutils}
 Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     import cudaq
     import numpy as np
 
@@ -1752,7 +1756,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
     #include <cudaq/algorithms/draw.h>
@@ -1784,7 +1788,7 @@ C++
 :::
 
 ::: {.highlight-default .notranslate}
-::: {.highlight}
+::: highlight
          ╭───╮     
     q0 : ┤ h ├──●──
          ╰───╯╭─┴─╮
@@ -1795,26 +1799,27 @@ C++
 :::
 :::
 
-Note that there is a subtle difference between how `sample`{.code
-.docutils .literal .notranslate} is executed with the target device set
-to a simulator or with the target device set to a QPU. In simulation
-mode, the quantum state is built once and then sampled [\\(s\\)]{.math
-.notranslate .nohighlight} times where [\\(s\\)]{.math .notranslate
-.nohighlight} equals the `shots_count`{.code .docutils .literal
-.notranslate}. In hardware execution mode, the quantum state collapses
-upon measurement and hence needs to be rebuilt over and over again.
+Note that there is a subtle difference between how [`sample`{.code
+.docutils .literal .notranslate}]{.pre} is executed with the target
+device set to a simulator or with the target device set to a QPU. In
+simulation mode, the quantum state is built once and then sampled
+[\\(s\\)]{.math .notranslate .nohighlight} times where [\\(s\\)]{.math
+.notranslate .nohighlight} equals the [`shots_count`{.code .docutils
+.literal .notranslate}]{.pre}. In hardware execution mode, the quantum
+state collapses upon measurement and hence needs to be rebuilt over and
+over again.
 
 There are a number of helpful tools that can be found in the [API
 docs](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api){.reference
-.external} to process the `Sample_Result`{.code .docutils .literal
-.notranslate} object produced by `sample`{.code .docutils .literal
-.notranslate}.
+.external} to process the [`Sample_Result`{.code .docutils .literal
+.notranslate}]{.pre} object produced by [`sample`{.code .docutils
+.literal .notranslate}]{.pre}.
 
 ::: {#sample-asynchronous .section}
 ### Sample Asynchronous[¶](#sample-asynchronous "Permalink to this heading"){.headerlink}
 
-`sample`{.code .docutils .literal .notranslate} also supports
-asynchronous execution for the [sample\_async arguments it
+[`sample`{.code .docutils .literal .notranslate}]{.pre} also supports
+asynchronous execution for the [sample_async arguments it
 accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.sample_async){.reference
 .external}. One can parallelize over various kernels, variational
 parameters or even distribute shots counts over multiple QPUs.
@@ -1824,7 +1829,7 @@ Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     result_async = cudaq.sample_async(kernel, qubit_count, shots_count=1000)
 
     print(result_async.get())
@@ -1836,7 +1841,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
     #include <cudaq/algorithms/draw.h>
@@ -1866,7 +1871,7 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     { 00:498 11:502 }
 :::
 :::
@@ -1874,18 +1879,17 @@ C++
 :::
 
 ::: {#run .section}
-Run[¶](#run "Permalink to this heading"){.headerlink}
------------------------------------------------------
+## Run[¶](#run "Permalink to this heading"){.headerlink}
 
-The `run`{.code .docutils .literal .notranslate} API executes a quantum
-kernel multiple times and returns each individual result. Unlike
-`sample`{.code .docutils .literal .notranslate}, which collects
-measurement statistics as counts, `run`{.code .docutils .literal
-.notranslate} preserves each individual return value from every
+The [`run`{.code .docutils .literal .notranslate}]{.pre} API executes a
+quantum kernel multiple times and returns each individual result. Unlike
+[`sample`{.code .docutils .literal .notranslate}]{.pre}, which collects
+measurement statistics as counts, [`run`{.code .docutils .literal
+.notranslate}]{.pre} preserves each individual return value from every
 execution. This is useful when you need to analyze the distribution of
 returned values rather than just aggregated measurement counts.
 
-Key points about `run`{.code .docutils .literal .notranslate}:
+Key points about [`run`{.code .docutils .literal .notranslate}]{.pre}:
 
 -   Requires a kernel that returns a non-void value
 
@@ -1899,7 +1903,7 @@ Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     # Define a quantum kernel that returns an integer
     @cudaq.kernel
     def simple_ghz(num_qubits: int) -> int:
@@ -1944,7 +1948,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
 
@@ -1998,7 +2002,7 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     Executed 20 shots
     Results: [0, 3, 0, 3, 3, 3, 0, 3, 3, 3, 0, 0, 3, 0, 3, 3, 0, 3, 3, 3]
     Possible values: Either 0 or 3 due to GHZ state properties
@@ -2012,17 +2016,17 @@ C++
 ::: {#return-custom-data-types .section}
 ### Return Custom Data Types[¶](#return-custom-data-types "Permalink to this heading"){.headerlink}
 
-The `run`{.code .docutils .literal .notranslate} API also supports
-returning custom data types using Python's data classes. This allows
-returning multiple values from your quantum computation in a structured
-way.
+The [`run`{.code .docutils .literal .notranslate}]{.pre} API also
+supports returning custom data types using Python's data classes. This
+allows returning multiple values from your quantum computation in a
+structured way.
 
 ::: {.tab-set .docutils}
 Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     from dataclasses import dataclass
 
 
@@ -2079,7 +2083,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
 
@@ -2127,7 +2131,7 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     Individual measurement results:
     Shot 0: {True, True} total ones=2
     Shot 1: {False, False}   total ones=0
@@ -2148,9 +2152,10 @@ C++
 ::: {#run-asynchronous .section}
 ### Run Asynchronous[¶](#run-asynchronous "Permalink to this heading"){.headerlink}
 
-Similar to `sample_async`{.code .docutils .literal .notranslate},
-`run`{.code .docutils .literal .notranslate} also supports asynchronous
-execution for the [run\_async arguments it
+Similar to [`sample_async`{.code .docutils .literal
+.notranslate}]{.pre}, [`run`{.code .docutils .literal
+.notranslate}]{.pre} also supports asynchronous execution for the
+[run_async arguments it
 accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.run_async){.reference
 .external}.
 
@@ -2159,7 +2164,7 @@ Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     # Example of `run_async` with a simple integer return type
     # Define a quantum kernel that returns an integer
     @cudaq.kernel
@@ -2189,7 +2194,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
     #include <vector>
@@ -2221,7 +2226,7 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     Angle 0.0: 0/10 ones measured
     Angle 0.2: 0/10 ones measured
     Angle 0.4: 0/10 ones measured
@@ -2236,21 +2241,20 @@ C++
 ::: {.admonition .note}
 Note
 
-Currently, `run`{.code .docutils .literal .notranslate} and
-`run_async`{.code .docutils .literal .notranslate} are only supported on
-simulator targets.
+Currently, [`run`{.code .docutils .literal .notranslate}]{.pre} and
+[`run_async`{.code .docutils .literal .notranslate}]{.pre} are only
+supported on simulator targets.
 :::
 :::
 :::
 
 ::: {#observe .section}
-Observe[¶](#observe "Permalink to this heading"){.headerlink}
--------------------------------------------------------------
+## Observe[¶](#observe "Permalink to this heading"){.headerlink}
 
-The `observe`{.code .docutils .literal .notranslate} function allows us
-to calculate expectation values. We must supply a spin operator in the
-form of a Hamiltonian, [\\(H\\)]{.math .notranslate .nohighlight}, from
-which we would like to calculate
+The [`observe`{.code .docutils .literal .notranslate}]{.pre} function
+allows us to calculate expectation values. We must supply a spin
+operator in the form of a Hamiltonian, [\\(H\\)]{.math .notranslate
+.nohighlight}, from which we would like to calculate
 [\\(\\langle\\psi\|H\|\\psi\\rangle\\)]{.math .notranslate
 .nohighlight}.
 
@@ -2259,7 +2263,7 @@ Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     from cudaq import spin
 
     # Define a Hamiltonian in terms of Pauli Spin operators.
@@ -2286,7 +2290,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
     #include <cudaq/algorithms/draw.h>
@@ -2319,7 +2323,7 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     <H> = 0.0
 :::
 :::
@@ -2327,16 +2331,16 @@ C++
 ::: {#observe-asynchronous .section}
 ### Observe Asynchronous[¶](#observe-asynchronous "Permalink to this heading"){.headerlink}
 
-`observe`{.code .docutils .literal .notranslate} can be a time intensive
-task. We can parallelize the execution of `observe`{.code .docutils
-.literal .notranslate} via the arguments it accepts.
+[`observe`{.code .docutils .literal .notranslate}]{.pre} can be a time
+intensive task. We can parallelize the execution of [`observe`{.code
+.docutils .literal .notranslate}]{.pre} via the arguments it accepts.
 
 ::: {.tab-set .docutils}
 Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     # Define a quantum kernel function.
     @cudaq.kernel
     def kernel1(qubit_count: int):
@@ -2364,7 +2368,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
     #include <cudaq/algorithms/draw.h>
@@ -2400,33 +2404,32 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     1.1102230246251565e-16
 :::
 :::
 
-Above we parallelized the `observe`{.code .docutils .literal
-.notranslate} call over the `hamiltonian`{.code .docutils .literal
-.notranslate} parameter; however, we can parallelize over any of the
-arguments it accepts by just iterating over the `qpu_id`{.code .docutils
-.literal .notranslate}.
+Above we parallelized the [`observe`{.code .docutils .literal
+.notranslate}]{.pre} call over the [`hamiltonian`{.code .docutils
+.literal .notranslate}]{.pre} parameter; however, we can parallelize
+over any of the arguments it accepts by just iterating over the
+[`qpu_id`{.code .docutils .literal .notranslate}]{.pre}.
 :::
 :::
 
 ::: {#get-state .section}
-Get State[¶](#get-state "Permalink to this heading"){.headerlink}
------------------------------------------------------------------
+## Get State[¶](#get-state "Permalink to this heading"){.headerlink}
 
-The `get_state`{.code .docutils .literal .notranslate} function gives us
-access to the quantum statevector of the computation. Remember, that
-this is only feasible in simulation mode.
+The [`get_state`{.code .docutils .literal .notranslate}]{.pre} function
+gives us access to the quantum statevector of the computation. Remember,
+that this is only feasible in simulation mode.
 
 ::: {.tab-set .docutils}
 Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     # Compute the statevector of the kernel
     result = cudaq.get_state(kernel, qubit_count)
 
@@ -2439,7 +2442,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
     #include <cudaq/algorithms/draw.h>
@@ -2468,16 +2471,16 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     [0.+0.j 0.+0.j 0.+0.j 1.+0.j]
 :::
 :::
 
-The statevector generated by the `get_state`{.code .docutils .literal
-.notranslate} command follows Big-endian convention for associating
-numbers with their binary representations, which places the least
-significant bit on the left. That is, for the example of a 2-bit system,
-we have the following translation between integers and bits:
+The statevector generated by the [`get_state`{.code .docutils .literal
+.notranslate}]{.pre} command follows Big-endian convention for
+associating numbers with their binary representations, which places the
+least significant bit on the left. That is, for the example of a 2-bit
+system, we have the following translation between integers and bits:
 
 ::: {.math .notranslate .nohighlight}
 \\\[\\begin{split}\\begin{matrix} \\text{Integer} & \\text{Binary
@@ -2495,9 +2498,10 @@ representation}\\\\ & \\text{least signinificant bit on left}\\\\ 0 =
 ::: {#get-state-asynchronous .section}
 ### Get State Asynchronous[¶](#get-state-asynchronous "Permalink to this heading"){.headerlink}
 
-Similar to `observe_async`{.code .docutils .literal .notranslate} above,
-`get_state`{.code .docutils .literal .notranslate} also supports
-asynchronous execution for the [arguments it
+Similar to [`observe_async`{.code .docutils .literal
+.notranslate}]{.pre} above, [`get_state`{.code .docutils .literal
+.notranslate}]{.pre} also supports asynchronous execution for the
+[arguments it
 accepts](https://nvidia.github.io/cuda-quantum/latest/api/languages/python_api.html#cudaq.get_state_async){.reference
 .external}.
 
@@ -2506,7 +2510,7 @@ Python
 
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     import numpy as np
 
 
@@ -2535,7 +2539,7 @@ C++
 
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     #include <cstdio>
     #include <cudaq.h>
 
@@ -2561,7 +2565,7 @@ C++
 :::
 
 ::: {.highlight-python .notranslate}
-::: {.highlight}
+::: highlight
     Computing state asynchronously...
     Bell state vector:
     [0.70710678+0.j 0.        +0.j 0.        +0.j 0.70710678+0.j]
@@ -2576,9 +2580,10 @@ C++
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../../examples/python/visualization.html "Visualization"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](expectation_values.html "Computing Expectation Values"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

@@ -1565,7 +1565,7 @@ After installing the <code class="code docutils literal notranslate"><span class
 the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.0</span><span class="si">}</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.6</span><span class="si">}</span>
 <span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
 <span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
@@ -1592,8 +1592,8 @@ Please make sure to install CUDA version 12.0 or newer, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-12-0</span></code>) that also
-includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 12,
-built against version 12.0.</p>
+includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 11,
+built against version 11.8, and for CUDA 12, built against version 12.6.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
