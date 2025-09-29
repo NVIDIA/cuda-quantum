@@ -144,7 +144,7 @@ RUN if [ -n "$cuda_packages" ]; then \
         && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | cut -d. -f1-2 | tr . -)) \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/$arch_folder/cuda-keyring_1.1-1_all.deb" \
         && dpkg -i cuda-keyring_1.1-1_all.deb \
-        && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages \
+        && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages libnvidia-ml-dev \
         && rm cuda-keyring_1.1-1_all.deb \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
