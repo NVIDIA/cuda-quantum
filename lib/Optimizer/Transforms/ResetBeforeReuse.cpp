@@ -102,6 +102,12 @@ public:
         if (isa<quake::ResetOp>(nextOp)) {
           continue;
         }
+
+        // If this is a dealloc op, nothing to do.
+        if (isa<quake::DeallocOp>(nextOp)) {
+          continue;
+        }
+
         // Insert reset
         Location loc = mz->getLoc();
         rewriter.setInsertionPointAfter(mz);
@@ -147,7 +153,8 @@ private:
       const auto orderedUsers = sortUsers(qubit.getUsers(), dom);
       assert(orderedUsers.size() > 0);
       for (auto v : llvm::enumerate(orderedUsers)) {
-        if (v.value() == op && v.index() < (orderedUsers.size() - 1)) {
+        if (v.value() == op && v.index() < (orderedUsers.size() - 1) &&
+            dom.dominates(op, orderedUsers[v.index() + 1])) {
           return orderedUsers[v.index() + 1];
         }
       }
@@ -165,42 +172,43 @@ private:
                 : std::optional<int64_t>();
         LLVM_DEBUG(llvm::dbgs() << "Reg: " << reg
                                 << "; index = " << index.value_or(-1) << "\n");
-
-        const auto orderedUsers = tracker.getUsers(reg);
-        // Find the next op on the register
-        assert(orderedUsers.size() > 0);
-        bool foundThisExtract = false;
-        for (auto v : llvm::enumerate(orderedUsers)) {
-          if (foundThisExtract) {
-            // This is after the current extract.
-            auto nextExtractOp =
-                dyn_cast_or_null<quake::ExtractRefOp>(v.value());
-            if (nextExtractOp) {
-              assert(nextExtractOp.getVeq() == reg);
-              std::optional<int64_t> nextIndex =
-                  nextExtractOp.hasConstantIndex()
-                      ? nextExtractOp.getConstantIndex()
-                      : std::optional<int64_t>();
-              if ((!index.has_value() || !nextIndex.has_value()) ||
-                  (index == nextIndex)) {
-                // Either the previous index or this index is unknown, we assume
-                // that they may be the same.
-                const auto extractedQubit = nextExtractOp.getRef();
-                const auto extractedQubitOrderedUsers =
-                    sortUsers(extractedQubit.getUsers(), dom);
-                assert(!extractedQubitOrderedUsers.empty());
-                LLVM_DEBUG(llvm::dbgs()
-                           << "Next use: " << *extractedQubitOrderedUsers[0]
-                           << "\n");
-                return extractedQubitOrderedUsers[0];
+        if (isa<quake::AllocaOp>(reg.getDefiningOp())) {
+          const auto orderedUsers = tracker.getUsers(reg);
+          // Find the next op on the register
+          assert(orderedUsers.size() > 0);
+          bool foundThisExtract = false;
+          for (auto v : llvm::enumerate(orderedUsers)) {
+            if (foundThisExtract) {
+              // This is after the current extract.
+              auto nextExtractOp =
+                  dyn_cast_or_null<quake::ExtractRefOp>(v.value());
+              if (nextExtractOp) {
+                assert(nextExtractOp.getVeq() == reg);
+                std::optional<int64_t> nextIndex =
+                    nextExtractOp.hasConstantIndex()
+                        ? nextExtractOp.getConstantIndex()
+                        : std::optional<int64_t>();
+                if ((!index.has_value() || !nextIndex.has_value()) ||
+                    (index == nextIndex)) {
+                  // Either the previous index or this index is unknown, we
+                  // assume that they may be the same.
+                  const auto extractedQubit = nextExtractOp.getRef();
+                  const auto extractedQubitOrderedUsers =
+                      sortUsers(extractedQubit.getUsers(), dom);
+                  assert(!extractedQubitOrderedUsers.empty());
+                  LLVM_DEBUG(llvm::dbgs()
+                             << "Next use: " << *extractedQubitOrderedUsers[0]
+                             << "\n");
+                  return extractedQubitOrderedUsers[0];
+                }
               }
             }
+            if (v.value() == extractOp) {
+              foundThisExtract = true;
+            }
           }
-          if (v.value() == extractOp) {
-            foundThisExtract = true;
-          }
+          assert(foundThisExtract);
         }
-        assert(foundThisExtract);
       }
     }
     return nullptr;
