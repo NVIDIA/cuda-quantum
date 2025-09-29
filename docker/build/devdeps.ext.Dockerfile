@@ -134,7 +134,7 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink cuda-nvml-dev"
 RUN if [ -n "$cuda_packages" ]; then \
         # Filter out libnvjitlink if CUDA version is less than 12
         if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
@@ -144,7 +144,7 @@ RUN if [ -n "$cuda_packages" ]; then \
         && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | cut -d. -f1-2 | tr . -)) \
         && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/$arch_folder/cuda-keyring_1.1-1_all.deb" \
         && dpkg -i cuda-keyring_1.1-1_all.deb \
-        && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages libnvidia-ml-dev \
+        && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages \
         && rm cuda-keyring_1.1-1_all.deb \
         && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
