@@ -121,6 +121,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   if (TARGET CUDA::nvml)
     get_property(NVIDIA_ML TARGET CUDA::nvml PROPERTY LOCATION)
   else()
+    find_package(CUDAToolkit REQUIRED)
     # make sure CUDA_TOOLKIT_ROOT_DIR is set
     if(NOT DEFINED CUDA_TOOLKIT_ROOT_DIR)
       set(CUDA_TOOLKIT_ROOT_DIR ${CUDAToolkit_BIN_DIR}/..)
