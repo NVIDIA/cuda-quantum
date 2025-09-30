@@ -11,13 +11,13 @@ from cudaq import spin
 import numpy as np
 
 skipIfNoMQPU = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
-    reason="nvidia-mqpu backend not available")
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason="nvidia backend not available")
 
 
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.set_target('nvidia-mqpu')
+    cudaq.set_target('nvidia', option="mqpu")
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()

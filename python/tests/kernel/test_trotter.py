@@ -10,10 +10,6 @@ import pytest
 import cudaq
 import numpy as np
 
-skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
-    reason='Could not find nvidia-fp64 in installation')
-
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
     reason='Could not find nvidia in installation')
@@ -101,11 +97,6 @@ def trotter():
     run_steps(10, 11)
 
 
-@skipIfNvidiaFP64NotInstalled
-def test_trotter_f64():
-    trotter()
-
-
 @skipIfNvidiaNotInstalled
-def test_trotter_f32():
+def test_trotter():
     trotter()

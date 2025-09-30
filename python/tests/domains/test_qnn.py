@@ -13,8 +13,8 @@ import numpy as np
 import cudaq
 
 skipIfNoMQPU = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
-    reason="nvidia-mqpu backend not available")
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    reason="nvidia backend not available")
 
 
 def test_simpleObserveN_QNN():
@@ -56,7 +56,7 @@ def test_simpleObserveN_QNN():
 
 @skipIfNoMQPU
 def test_observeAsync_QNN():
-    target = cudaq.get_target('nvidia-mqpu')
+    target = cudaq.get_target('nvidia', option='mqpu')
 
     cudaq.set_target(target)
     # The number of parameters can only be split between a maximum of 2 QPUs.
