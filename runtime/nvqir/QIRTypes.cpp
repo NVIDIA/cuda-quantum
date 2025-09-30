@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "QIRTypes.h"
-#include "common/FmtCore.h"
+#include "common/Logger.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -18,6 +18,42 @@ extern "C" {
 extern bool initialized;
 extern bool verbose;
 }
+
+namespace {
+// Singleton struct to track allocated arrays
+struct ArrayTracker {
+  // Get the singleton instance of ArrayTracker
+  static ArrayTracker &getInstance() {
+    static ArrayTracker instance;
+    return instance;
+  }
+
+  // Track the given array
+  void track(Array *arr) { allocated_arrays.push_back(arr); }
+  // Untrack the given array (manually delete outside)
+  void untrack(Array *arr) {
+    auto it = std::find(allocated_arrays.begin(), allocated_arrays.end(), arr);
+    if (it != allocated_arrays.end())
+      allocated_arrays.erase(it);
+  }
+
+  // Clean up all tracked arrays
+  void clear() {
+    CUDAQ_INFO("Cleaning up {} allocated arrays", allocated_arrays.size());
+
+    for (auto arr : allocated_arrays)
+      delete arr;
+    allocated_arrays.clear();
+  }
+
+private:
+  ArrayTracker() = default;
+  ArrayTracker(const ArrayTracker &) = delete;
+  ArrayTracker &operator=(const ArrayTracker &) = delete;
+  // The tracked arrays
+  std::vector<Array *> allocated_arrays;
+};
+} // namespace
 
 int8_t *Array::operator[](std::size_t index) {
   if (static_cast<uint64_t>(index * element_size_bytes) >= storage.size())
@@ -109,7 +145,9 @@ extern "C" {
 
 Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
                                       int64_t count_items) {
-  return new Array(count_items, itemSizeInBytes);
+  auto *array = new Array(count_items, itemSizeInBytes);
+  ArrayTracker::getInstance().track(array);
+  return array;
 }
 
 int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx) {
@@ -148,7 +186,8 @@ Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range) {
 
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail) {
   if (head && tail) {
-    auto resultArray = new Array(*head);
+    auto *resultArray = new Array(*head);
+    ArrayTracker::getInstance().track(resultArray);
     resultArray->append(*tail);
     return resultArray;
   }
@@ -157,7 +196,9 @@ Array *__quantum__rt__array_concatenate(Array *head, Array *tail) {
 }
 Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance) {
   if (array && forceNewInstance) {
-    return new Array(*array);
+    auto *newArray = new Array(*array);
+    ArrayTracker::getInstance().track(newArray);
+    return newArray;
   }
 
   if (!array) {
@@ -166,5 +207,10 @@ Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance) {
 
   return array;
 }
-void __quantum__rt__array_release(Array *a) { delete a; }
+void __quantum__rt__array_release(Array *a) {
+  ArrayTracker::getInstance().untrack(a);
+  delete a;
+}
+
+void __nvqpp_cleanup_arrays() { ArrayTracker::getInstance().clear(); }
 }

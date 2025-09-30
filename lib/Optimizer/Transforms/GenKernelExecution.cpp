@@ -630,6 +630,11 @@ public:
       return;
     }
 
+    // After kernel launch, we clean up any dangling arrays that are allocated
+    // during kernel execution.
+    builder.create<func::CallOp>(loc, std::nullopt,
+                                 cudaq::runtime::cleanupArrays, ValueRange{});
+
     // If and only if this kernel returns a value, unpack and load the
     // result value(s) from the struct returned by `launchKernel` and return
     // them to our caller.
@@ -845,6 +850,8 @@ public:
             irBuilder.loadIntrinsic(module, cudaq::runtime::getPauliWordSize)))
       return module.emitError(
           "could not load cudaq::pauli_word::_nvqpp_size or _nvqpp_data");
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::runtime::cleanupArrays)))
+      return module.emitError("could not load __nvqpp_cleanup_arrays");
     return success();
   }
 

@@ -46,6 +46,9 @@ class Array {
 private:
   const int element_size_bytes;
   std::vector<int8_t> storage;
+  // Note: this currently is unused.
+  // We should use this to track array references and clean arrays appropriately
+  // (e.g., `__quantum__rt__array_update_reference_count`).
   std::atomic<int> ref_count;
 
 public:
@@ -83,6 +86,9 @@ Array *__quantum__rt__array_slice(Array *array, int32_t dim,
 Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
                                      int64_t range_step, int64_t range_end);
 Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range);
+
+// Internal method to clean up any dangling arrays
+void __nvqpp_cleanup_arrays();
 }
 
 // Results
