@@ -19,7 +19,7 @@ src="https://github.com/NVIDIA/cuda-quantum/actions/workflows/documentation.yml/
 <a href="https://zenodo.org/badge/latestdoi/614026597"><img align="left"
 src="https://zenodo.org/badge/614026597.svg" alt="DOI"></a><br/>
 
-The CUDA-Q Platform for hybrid quantum-classical computers enables integration
+The CUDA-Q Platform for hybrid quantum-classical computers enables the integration
 and programming of quantum processing units (QPUs), GPUs, and CPUs in one
 system. This repository contains the source code for all C++ and Python tools
 provided by the CUDA-Q toolkit, including the `nvq++` compiler, the CUDA-Q
@@ -46,7 +46,7 @@ instructions](./Building.md).
 ## Contributing
 
 There are many ways in which you can get involved with CUDA-Q. If you are
-interested in developing quantum applications with CUDA-Q, this repository is a
+interested in developing quantum applications with CUDA-Q, then this repository is a
 great place to get started! For more information about contributing to the
 CUDA-Q platform, please take a look at [Contributing.md](./Contributing.md).
 
