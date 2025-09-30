@@ -21,9 +21,7 @@ struct mykernel {
     h(q);
     for (size_t i = 0; i < 100; i++) {
       x(q);
-      auto bit = mz(q);
-      reset(q);
-      if (bit)
+      if (mz(q))
         break;
     }
   }
@@ -34,10 +32,13 @@ int main() {
   int i = 0;
   auto counts = cudaq::estimate_resources([&]() { return ++i >= 10; }, kernel);
   counts.dump();
+  // 10 reset as we break out of the loop after 10 iterations (one for each
+  // measurement). One additional x gate for the last one that breaks out of the
+  // loop (as mz returns 1, hence need an x to flip back to 0).
 
-  // CHECK: Total # of gates: 21
+  // CHECK: Total # of gates: 22
   // CHECK-DAG: h :  1
-  // CHECK-DAG: x :  10
+  // CHECK-DAG: x :  11
   // CHECK-DAG: reset :  10
 
   return 0;

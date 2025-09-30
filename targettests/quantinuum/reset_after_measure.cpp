@@ -8,7 +8,7 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && DISABLE_RESOURCE_COUNTER_PREPROCESSING=1 %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
