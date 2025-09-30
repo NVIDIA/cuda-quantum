@@ -3056,120 +3056,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if not isinstance(node.generators[0].target, ast.Name):
             self.emitFatalError(
-                "only support named targets in list comprehension", node)
-
-        def process_void_list():
-            # NOTE: This does not actually a create a valid value, and will fail is something
-            # tries to use the value that this was supposed to create later on. 
-            # Keeping this to keep existing functionality, but this is questionable imo.
-            # Aside from no list being produced, this should work regardless of what we
-            # iterate over or what the expression is we evaluate.
-            self.emitWarning("produced elements in list comprehension contain None - expression will be evaluated but no list is generated", node)
-            forNode = ast.For()
-            forNode.iter = node.generators[0].iter
-            forNode.target = node.generators[0].target
-            forNode.body = [node.elt]
-            forNode.orelse = []
-            self.visit_For(forNode)
-
-        # We need to know the element type of the list we are creating.
-        # Unfortunately, dynamic typing makes this a bit painful.
-        # We hence limit what kinds of expressions may be used.
-        def get_item_type(pyval):
-            if isinstance(pyval, ast.Name):
-                self.visit(pyval)
-                item = self.popValue()
-                return item.type
-            elif isinstance(pyval, ast.Constant):
-                return mlirTypeFromPyType(type(pyval.value), self.ctx)
-            elif isinstance(pyval, ast.List):
-                # FIXME: CHECK FOR EMPTY LIST (same in visit_List)
-                elts = [get_item_type(v) for v in pyval.elts]
-                if None in elts: return None
-                base_elTy = elts[0]
-                isHomogeneous = False not in [base_elTy == t for t in elts]
-                if not isHomogeneous:
-                    isArithmetic = False not in [self.isArithmeticType(t) for t in elts]
-                    if not isArithmetic:
-                        self.emitFatalError(
-                            "non-homogenous list not allowed - must all be same type: {}".
-                            format(elts), node)
-                    for t in elts[1:]:
-                        base_elTy = self.__get_superior_type(base_elTy, t)
-                return cc.StdvecType.get(base_elTy)
-            elif isinstance(pyval, ast.Call) and isinstance(pyval.func, ast.Name):
-                # supported for calls but not here:
-                # 'range', 'enumerate', 'list'
-                if pyval.func.id == 'len' or pyval.func.id == 'int': 
-                    return IntegerType.get_signless(64)
-                elif pyval.func.id == 'complex': 
-                    return self.getComplexType()
-                elif self.__isUnitaryGate(pyval.func.id) or pyval.func.id == 'reset': 
-                    process_void_list(pyval)
-                    return None
-                elif self.__isMeasurementGate(pyval.func.id):
-                    # It's tricky to know if we are calling a measurement on a single qubit, 
-                    # or on a vector of qubits, e.g. consider the case [mz(qs[i:]) for i in range(n)], 
-                    # or [mz(qs) for _ in range(n)], or [mz(qs) for _ in qs].
-                    # We hence limit support to iterating over a vector of qubits, and check that the
-                    # iteration variable is passed directly to the measurement.
-                    isIterOverVeq = isinstance(node.generators[0].iter, ast.Name) and \
-                                    node.generators[0].iter.id in self.symbolTable and \
-                                    quake.VeqType.isinstance(
-                                    self.symbolTable[node.generators[0].iter.id].type)
-                    if not isIterOverVeq:
-                        self.emitFatalError(
-                            "performing measurements in list comprehension expressions is only supported when iterating over a vector of qubits", node)
-                    iterVarPassedAsArg = len(pyval.args) == 1 and \
-                            isinstance(pyval.args[0], ast.Name) and \
-                            isinstance(node.generators[0].target, ast.Name) and \
-                            pyval.args[0].id == node.generators[0].target.id
-                    if not iterVarPassedAsArg:
-                        self.emitFatalError(
-                            "unsupported argument to measurement in list comprehension", node)
-                    return IntegerType.get_signless(1)
-                elif pyval.func.id in globalKernelRegistry:
-                    # Not necessarily unitary
-                    resTypes = globalKernelRegistry[pyval.func.id].type.results
-                    if len(resTypes) == 0:
-                        process_void_list(pyval)
-                        return None
-                    if len(resTypes) != 1 or cc.StructType.isinstance(resTypes[0]):
-                        # TODO: support...
-                        self.emitFatalError(
-                            "Only variables, constants, and calls to built-ins can be used to populate values in list comprehension expressions",
-                            node)
-                    return resTypes[0]
-                    
-                elif pyval.func.id in globalRegisteredTypes.classes:
-                    _, annotations = globalRegisteredTypes.getClassAttributes(
-                        pyval.func.id)
-                    structTys = [
-                        mlirTypeFromPyType(v, self.ctx)
-                        for _, v in annotations.items()
-                    ]
-                    # no need to do much verification on the validity of the type here -
-                    # this will be handled when we build the body
-                    isStruq = any((self.isQuantumType(t) for t in structTys))
-                    if isStruq:
-                        return quake.StruqType.getNamed(pyval.func.id, structTys)
-                    else:
-                        return cc.PointerType.get(cc.StructType.getNamed(pyval.func.id, structTys))
-            else:
-                self.emitFatalError(
-                    "Only variables, constants, and calls to built-ins can be used to populate values in list comprehension expressions",
-                    node)
-
-        listElemTy = get_item_type(node.elt)
-        if listElemTy is None: return
-        listTy = cc.ArrayType.get(listElemTy)
-
-        # General case of
-        # `listVar = [expr(i) for i in iterable]`
-        # Need to think of this as
-        # `listVar = stdvec(iterable.size)`
-        # `for i, r in enumerate(listVar):`
-        # `   listVar[i] = expr(r)`
+                "CUDA-Q only support a single named targets in list comprehension", node)
 
         # Let's handle the following `listVar` types
         # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
@@ -3178,12 +3065,12 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.generators[0].iter)
 
         if len(self.valueStack) == 1:
-            iterable = self.popValue()
+            iterable = self.ifPointerThenLoad(self.popValue())
             iterableSize = None
             if cc.StdvecType.isinstance(iterable.type):
                 iterableSize = cc.StdvecSizeOp(self.getIntegerType(), iterable).result
                 iterTy = cc.StdvecType.getElementType(iterable.type)
-                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(cc.PointerType.get(iterTy)))
+                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
                 iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
             elif quake.VeqType.isinstance(iterable.type):
                 iterableSize = quake.VeqSizeOp(self.getIntegerType(), iterable).result
@@ -3210,10 +3097,152 @@ class PyASTBridge(ast.NodeVisitor):
                 "CUDA-Q only supports list comprehension on ranges and arrays",
                 node)
 
+        def process_void_list():
+            # NOTE: This does not actually a create a valid value, and will fail is something
+            # tries to use the value that this was supposed to create later on. 
+            # Keeping this to keep existing functionality, but this is questionable imo.
+            # Aside from no list being produced, this should work regardless of what we
+            # iterate over or what the expression is we evaluate.
+            self.emitWarning("produced elements in list comprehension contain None - expression will be evaluated but no list is generated", node)
+            forNode = ast.For()
+            forNode.iter = node.generators[0].iter
+            forNode.target = node.generators[0].target
+            forNode.body = [node.elt]
+            forNode.orelse = []
+            self.visit_For(forNode)
+
+        # We need to know the element type of the list we are creating.
+        # Unfortunately, dynamic typing makes this a bit painful.
+        # I didn't find a good way to fill in the type only once we 
+        # have processed the expression as part of the loop body, unfortunately.
+        def get_item_type(pyval):
+            if isinstance(pyval, ast.Name):
+                if isinstance(node.generators[0].target, ast.Name) and \
+                    pyval.id == node.generators[0].target.id:
+                    return iterTy
+                self.visit(pyval)
+                item = self.popValue()
+                return item.type
+            elif isinstance(pyval, ast.Constant):
+                return mlirTypeFromPyType(type(pyval.value), self.ctx)
+            elif isinstance(pyval, ast.Tuple):
+                # FIXME: TESTS PENDING
+                elts = [get_item_type(v) for v in pyval.elts]
+                if None in elts: return None
+                return cc.StructType.getNamed("tuple", elts)
+            elif isinstance(pyval, ast.Subscript) and \
+                # FIXME: TESTS PENDING
+                IntegerType.isinstance(get_item_type(pyval.slice)):
+                parentType = get_item_type(pyval.value)
+                if cc.PointerType.isinstance(parentType):
+                    parentType = cc.PointerType.getElementType(parentType)
+                if cc.StdvecType.isinstance(parentType):
+                    return cc.StdvecType.getElementType(parentType)
+                elif quake.VeqType.isinstance(parentType):
+                    return quake.RefType.get()
+                self.emitFatalError(
+                    "unsupported data type for subscript in list comprehension", node)
+            elif isinstance(pyval, ast.List):
+                # FIXME: CHECK FOR EMPTY LIST (same in visit_List)
+                elts = [get_item_type(v) for v in pyval.elts]
+                if None in elts: return None
+                base_elTy = elts[0]
+                isHomogeneous = False not in [base_elTy == t for t in elts]
+                if not isHomogeneous:
+                    isArithmetic = False not in [self.isArithmeticType(t) for t in elts]
+                    if not isArithmetic:
+                        self.emitFatalError(
+                            "non-homogenous list not allowed - must all be same type: {}".
+                            format(elts), node)
+                    for t in elts[1:]:
+                        base_elTy = self.__get_superior_type(base_elTy, t)
+                return cc.StdvecType.get(base_elTy)
+            elif isinstance(pyval, ast.Call) and isinstance(pyval.func, ast.Name):
+                # supported for calls but not here:
+                # 'range', 'enumerate', 'list'
+                if pyval.func.id == 'len' or pyval.func.id == 'int': 
+                    return IntegerType.get_signless(64)
+                elif pyval.func.id == 'complex': 
+                    return self.getComplexType()
+                elif self.__isUnitaryGate(pyval.func.id) or pyval.func.id == 'reset': 
+                    process_void_list()
+                    return None
+                elif self.__isMeasurementGate(pyval.func.id):
+                    # It's tricky to know if we are calling a measurement on a single qubit, 
+                    # or on a vector of qubits, e.g. consider the case [mz(qs[i:]) for i in range(n)], 
+                    # or [mz(qs) for _ in range(n)], or [mz(qs) for _ in qs].
+                    # We hence limit support to iterating over a vector of qubits, and check that the
+                    # iteration variable is passed directly to the measurement.
+                    iterSymName = None
+                    if isinstance(node.generators[0].iter, ast.Name): 
+                        iterSymName = node.generators[0].iter.id
+                    elif isinstance(node.generators[0].iter, ast.Subscript) and \
+                        isinstance(node.generators[0].iter.slice, ast.Slice) and \
+                        isinstance(node.generators[0].iter.value, ast.Name):
+                        iterSymName = node.generators[0].iter.value.id
+                    isIterOverVeq = iterSymName is not None and \
+                                    iterSymName in self.symbolTable and \
+                                    quake.VeqType.isinstance(self.symbolTable[iterSymName].type)
+                    if not isIterOverVeq:
+                        self.emitFatalError(
+                            "performing measurements in list comprehension expressions is only supported when iterating over a vector of qubits", node)
+                    iterVarPassedAsArg = len(pyval.args) == 1 and \
+                            isinstance(pyval.args[0], ast.Name) and \
+                            isinstance(node.generators[0].target, ast.Name) and \
+                            pyval.args[0].id == node.generators[0].target.id
+                    if not iterVarPassedAsArg:
+                        self.emitFatalError(
+                            "unsupported argument to measurement in list comprehension", node)
+                    return IntegerType.get_signless(1)
+                elif pyval.func.id in globalKernelRegistry:
+                    # Not necessarily unitary
+                    resTypes = globalKernelRegistry[pyval.func.id].type.results
+                    if len(resTypes) == 0:
+                        process_void_list()
+                        return None
+                    if len(resTypes) != 1 or cc.StructType.isinstance(resTypes[0]):
+                        # TODO: support...
+                        self.emitFatalError(
+                            "Only variables, constants, and calls to built-ins can be used to populate values in list comprehension expressions",
+                            node)
+                    return resTypes[0]
+                    
+                elif pyval.func.id in globalRegisteredTypes.classes:
+                    _, annotations = globalRegisteredTypes.getClassAttributes(
+                        pyval.func.id)
+                    structTys = [
+                        mlirTypeFromPyType(v, self.ctx)
+                        for _, v in annotations.items()
+                    ]
+                    # no need to do much verification on the validity of the type here -
+                    # this will be handled when we build the body
+                    isStruq = any((self.isQuantumType(t) for t in structTys))
+                    if isStruq:
+                        return quake.StruqType.getNamed(pyval.func.id, structTys)
+                    else:
+                        return cc.PointerType.get(cc.StructType.getNamed(pyval.func.id, structTys))
+                    
+            elif isinstance(pyval, ast.UnaryOp) and \
+                isinstance(pyval.op, ast.Not):
+                return IntegerType.get_signless(1)
+            else:
+                self.emitFatalError(
+                    "Only variables, constants, and some calls can be used to populate values in list comprehension expressions",
+                    node)
+
+        listElemTy = get_item_type(node.elt)
+        if listElemTy is None: return
+        listTy = cc.ArrayType.get(listElemTy)
         listValue = cc.AllocaOp(cc.PointerType.get(listTy),
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
 
+        # General case of
+        # `listVar = [expr(i) for i in iterable]`
+        # Need to think of this as
+        # `listVar = stdvec(iterable.size)`
+        # `for i, r in enumerate(listVar):`
+        # `   listVar[i] = expr(r)`
         def bodyBuilder(iterVar):
             self.symbolTable.pushScope()
             if quake.VeqType.isinstance(iterable.type):
@@ -3361,40 +3390,43 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
 
+        def get_size(val):
+            if quake.VeqType.isinstance(val.type):
+                return quake.VeqSizeOp(self.getIntegerType(), val).result
+            elif cc.StdvecType.isinstance(val.type):
+                return cc.StdvecSizeOp(self.getIntegerType(), val).result
+            return None
+
+        def fix_negative_idx(idx, get_size):
+            if IntegerType.isinstance(idx.type) and \
+                hasattr(idx.owner, 'opview') and \
+                isinstance(idx.owner.opview, arith.ConstantOp) and \
+                'value' in idx.owner.attributes:
+                    concreteIdx = IntegerAttr(idx.owner.attributes['value']).value
+                    if concreteIdx < 0:
+                        size = get_size()
+                        if size is not None:
+                            return arith.AddIOp(
+                                size,
+                                self.getConstantInt(concreteIdx)).result
+            return idx
+
         # handle complex slice, VAR[lower:upper]
         if isinstance(node.slice, ast.Slice):
             self.debug_msg(lambda: f'[(Inline) Visit Slice]', node.slice)
             self.visit(node.value)
             var = self.ifPointerThenLoad(self.popValue())
-
-            vectorSize = None
-            if quake.VeqType.isinstance(var.type):
-                vectorSize = quake.VeqSizeOp(self.getIntegerType(64),
-                                             var).result
-            elif cc.StdvecType.isinstance(var.type):
-                vectorSize = cc.StdvecSizeOp(self.getIntegerType(), var).result
-
-            def fix_negative(val):
-                if hasattr(val.owner, 'opview') and isinstance(
-                        val.owner.opview, arith.ConstantOp):
-                    if 'value' in val.owner.attributes:
-                        attr = IntegerAttr(val.owner.attributes['value'])
-                        upperInt = attr.value
-                        if upperInt < 0:
-                            return arith.AddIOp(
-                                vectorSize,
-                                self.getConstantInt(upperInt)).result
-                return val
+            vectorSize = get_size(var)
 
             lowerVal, upperVal, stepVal = (None, None, None)
             if node.slice.lower is not None:
                 self.visit(node.slice.lower)
-                lowerVal = fix_negative(self.popValue())
+                lowerVal = fix_negative_idx(self.popValue(), lambda: vectorSize)
             else:
                 lowerVal = self.getConstantInt(0)
             if node.slice.upper is not None:
                 self.visit(node.slice.upper)
-                upperVal = fix_negative(self.popValue())
+                upperVal = fix_negative_idx(self.popValue(), lambda: vectorSize)
             else:
                 if not quake.VeqType.isinstance(
                         var.type) and not cc.StdvecType.isinstance(var.type):
@@ -3451,35 +3483,17 @@ class PyASTBridge(ast.NodeVisitor):
 
         # Support `VAR[-1]` as the last element of `VAR`
         if quake.VeqType.isinstance(var.type):
-            if hasattr(idx.owner, 'opview') and isinstance(
-                    idx.owner.opview, arith.ConstantOp):
-                if 'value' in idx.owner.attributes:
-                    concreteIntAttr = IntegerAttr(idx.owner.attributes['value'])
-                    idxConcrete = concreteIntAttr.value
-                    if idxConcrete == -1:
-                        qrSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                 var).result
-                        one = self.getConstantInt(1)
-                        endOff = arith.SubIOp(qrSize, one)
-                        self.pushValue(
-                            quake.ExtractRefOp(self.getRefType(),
-                                               var,
-                                               -1,
-                                               index=endOff).result)
-                        return
-
-            # Made it here, general VAR[idx], handle `veq` and `stdvec`
-            qrefTy = self.getRefType()
             if not IntegerType.isinstance(idx.type):
                 self.emitFatalError(
                     f'invalid index variable type used for qvector extraction ({idx.type})',
                     node)
-
+            idx = fix_negative_idx(idx, lambda: get_size(var))
             self.pushValue(
-                quake.ExtractRefOp(qrefTy, var, -1, index=idx).result)
+                quake.ExtractRefOp(self.getRefType(), var, -1, index=idx).result)
             return
 
         if cc.StdvecType.isinstance(var.type):
+            idx = fix_negative_idx(idx, lambda: get_size(var))
             eleTy = cc.StdvecType.getElementType(var.type)
             elePtrTy = cc.PointerType.get(eleTy)
             arrTy = cc.ArrayType.get(eleTy)

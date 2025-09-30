@@ -206,252 +206,290 @@ def test_list_comprehension_capture():
 # CHECK:            %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][{{.*}}] : (!cc.ptr<!cc.array<complex<f64> x 5>>, i64) -> !cc.ptr<complex<f64>>
 # CHECK:            cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<complex<f64>>
 
-
-def test_failures():
-    @cudaq.kernel
-    def kernel() -> float:
-        combined = [1.0 for _ in range(5)]
-        res = 0 # FIXME: CREATE TEST THAT CHECKS WE GET AN ERROR IF THIS WAS INT
-        for v in combined:
-            res += v
-        return res
-
-
-'''
-def test_list_comprehension():
-    test_list_comprehension_constant()
-    #test_list_comprehension_slice()
-    return
-
-
-
-def test_list_comprehension_gate_invocation():
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(6)
-        [h(r) for r in q]
-        x(q[0])
-        x.ctrl(q[1], q[2])
-
-    print(kernel)
-
 def test_list_comprehension_list_of_constant():
 
     @cudaq.kernel
-    def kernel() -> bool:
-        combined = [[False] for _ in range(5)]
-        res = [True for _ in range(5)]
+    def kernel1() -> bool:
+        combined = [[True] for _ in range(5)]
+        res = [False for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[-1]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel2() -> float:
         combined = [[1.0] for _ in range(5)]
         res = [0. for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
-    
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+            idx += 1
+        return res[-1]
+
+    out = cudaq.run(kernel2, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel3() -> float:
         combined = [[1.j] for _ in range(5)]
         res = [0j for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0].imag
+            idx += 1
+        return res[-1].imag
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK:            %[[VAL_1:.*]] = arith.constant true
+# CHECK:            %[[VAL_2:.*]] = cc.alloca !cc.array<!cc.stdvec<i1> x 5>
+# CHECK:            %[[VAL_3:.*]] = cc.alloca !cc.array<i1 x 1>
+# CHECK:            %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i1 x 1>>) -> !cc.ptr<!cc.array<i1 x ?>>
+# CHECK:            %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i1 x 1>>) -> !cc.ptr<i1>
+# CHECK:            cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<i1>
+# CHECK:            %[[VAL_6:.*]] = cc.stdvec_init %[[VAL_4]], %[[VAL_0]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+# CHECK:            %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][{{.*}}] : (!cc.ptr<!cc.array<!cc.stdvec<i1> x 5>>, i64) -> !cc.ptr<!cc.stdvec<i1>>
+# CHECK:            cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.stdvec<i1>>
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK:            %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK:            %[[VAL_2:.*]] = cc.alloca !cc.array<!cc.stdvec<f64> x 5>
+# CHECK:            %[[VAL_3:.*]] = cc.alloca !cc.array<f64 x 1>
+# CHECK:            %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 1>>) -> !cc.ptr<!cc.array<f64 x ?>>
+# CHECK:            %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 1>>) -> !cc.ptr<f64>
+# CHECK:            cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<f64>
+# CHECK:            %[[VAL_6:.*]] = cc.stdvec_init %[[VAL_4]], %[[VAL_0]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.stdvec<f64>
+# CHECK:            %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][{{.*}}] : (!cc.ptr<!cc.array<!cc.stdvec<f64> x 5>>, i64) -> !cc.ptr<!cc.stdvec<f64>>
+# CHECK:            cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.stdvec<f64>>
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK:            %[[VAL_1:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
+# CHECK:            %[[VAL_2:.*]] = cc.alloca !cc.array<!cc.stdvec<complex<f64>> x 5>
+# CHECK:            %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 1>
+# CHECK:            %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 1>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
+# CHECK:            %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 1>>) -> !cc.ptr<complex<f64>>
+# CHECK:            cc.store %[[VAL_1]], %[[VAL_5]] : !cc.ptr<complex<f64>>
+# CHECK:            %[[VAL_6:.*]] = cc.stdvec_init %[[VAL_4]], %[[VAL_0]] : (!cc.ptr<!cc.array<complex<f64> x ?>>, i64) -> !cc.stdvec<complex<f64>>
+# CHECK:            %[[VAL_7:.*]] = cc.compute_ptr %[[VAL_2]][{{.*}}] : (!cc.ptr<!cc.array<!cc.stdvec<complex<f64>> x 5>>, i64) -> !cc.ptr<!cc.stdvec<complex<f64>>>
+# CHECK:            cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.stdvec<complex<f64>>>
 
 def test_list_comprehension_list_of_variable():
 
     @cudaq.kernel
-    def kernel() -> bool:
-        c = False
+    def kernel1() -> bool:
+        c = True
         combined = [[c] for _ in range(5)]
-        res = [True for _ in range(5)]
+        res = [False for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[2]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel2() -> float:
         c = 1.0
         combined = [[c] for _ in range(5)]
         res = [0. for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[2]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel2, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel3() -> float:
         c = 1j
         combined = [[c] for _ in range(5)]
         res = [0j for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0].imag
+            idx += 1
+        return res[2].imag
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+
 
 def test_list_comprehension_list_of_capture():
 
-    c = False
+    c = True
     @cudaq.kernel
-    def kernel() -> bool:
+    def kernel1() -> bool:
         combined = [[c] for _ in range(5)]
-        res = [True for _ in range(5)]
+        res = [False for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[3]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
 
     c = 1.0
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel2() -> float:
         combined = [[c] for _ in range(5)]
         res = [0. for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[3]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel2, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
 
     c = 1j
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel3() -> float:
         combined = [[c] for _ in range(5)]
         res = [0j for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0].imag
+            idx += 1
+        return res[3].imag
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 def test_list_comprehension_variable_list():
 
     @cudaq.kernel
-    def kernel() -> bool:
-        c = [False]
+    def kernel1() -> bool:
+        c = [True]
         combined = [c for _ in range(5)]
-        res = [True for _ in range(5)]
+        res = [False for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[1]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel2() -> float:
         c = [1.0]
         combined = [c for _ in range(5)]
         res = [0. for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[1]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel2, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel3() -> float:
         c = [1j]
         combined = [c for _ in range(5)]
         res = [0j for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0].imag
+            idx += 1
+        return res[1].imag
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 def test_list_comprehension_capture_list():
 
-    c = [False]
+    c = [True]
     @cudaq.kernel
-    def kernel() -> bool:
+    def kernel1() -> bool:
         combined = [c for _ in range(5)]
-        res = [True for _ in range(5)]
+        res = [False for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[1]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
 
     c = [1.0]
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel2() -> float:
         combined = [c for _ in range(5)]
         res = [0. for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0]
+            idx += 1
+        return res[1]
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel2, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
 
     c = [1j]
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel3() -> float:
         combined = [c for _ in range(5)]
         res = [0j for _ in range(5)]
         idx = 0
         for v in combined:
             res[idx] = v[0]
-        return res[0].imag
+            idx += 1
+        return res[1].imag
     
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == 1.)
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 def test_list_comprehension_call():
 
@@ -461,19 +499,19 @@ def test_list_comprehension_call():
         second: float
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel1() -> float:
         combined = [complex(0, 1) for _ in range(5)]
         res = 0.j
         for v in combined:
             res += v
         return res.imag
 
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == 5.)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> int:
+    def kernel2() -> int:
         c = 1.0
         combined = [int(c) for _ in range(5)]
         res = 0
@@ -481,53 +519,251 @@ def test_list_comprehension_call():
             res += v
         return res
 
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel2, shots_count=1)
+    assert(len(out) == 1 and out[0] == 5)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def kernel() -> MyTuple:
+    def kernel3() -> MyTuple:
         combined = [MyTuple(0., 1.) for _ in range(5)]
         res = MyTuple(0., 0.)
         for v in combined:
             res = MyTuple(res.first + v.first, res.second + v.second)
         return res
 
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == MyTuple(0., 5.))
+    print(kernel3) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
     def get_float() -> float:
         return 1.
 
     @cudaq.kernel
-    def kernel() -> float:
+    def kernel4() -> float:
         combined = [get_float() for _ in range(5)]
         res = 0.
         for v in combined:
             res += v
         return res
 
+    out = cudaq.run(kernel4, shots_count=1)
+    assert(len(out) == 1 and out[0] == 5.)
+    print(kernel4) # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def kernel5() -> bool:
+        q = cudaq.qvector(6)
+        x(q)
+        res = [mz(r) for r in q]
+        return res[3]
+
     #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
+    out = cudaq.run(kernel5, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel5) # keep after assert, such that we have no output if assert fails
 
     @cudaq.kernel
-    def apply_h(q : cudaq.qubit) -> None:
-        return h(q)
+    def kernel6() -> int:
+        q = cudaq.qvector(6)
+        x(q[0:3])
+        res = [mz(r) for r in q]
+        ires = 0
+        for idx, v in enumerate(res):
+            ires = ires | (int(v) << idx)
+        return ires
+
+    out = cudaq.run(kernel6, shots_count=1)
+    assert(len(out) == 1 and out[0] == 7)
+    print(kernel6) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel6() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true}
+
+def test_list_comprehension_void():
 
     @cudaq.kernel
-    def kernel():
+    def kernel1():
+        q = cudaq.qvector(6)
+        [h(r) for r in q]
+        x(q[0])
+        x.ctrl(q[1], q[2])
+
+    print(kernel1)
+
+    @cudaq.kernel
+    def apply_x(q : cudaq.qubit) -> None:
+        return x(q)
+
+    @cudaq.kernel
+    def kernel2():
         q1 = cudaq.qvector(3)
         q2 = cudaq.qvector(3)
-        [apply_h(r) for r in q1]
+        [apply_x(r) for r in q1]
         for i in range(3):
             x.ctrl(q1[i], q2[i])
 
-    #print(kernel)
-    out = cudaq.sample(kernel)
-    print(out)
+    out = cudaq.sample(kernel2)
+    assert(len(out) == 1 and '111111' in out)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-DAG:           %[[VAL_0:.*]] = arith.constant 6 : i64
+# CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<6>
+# CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_2]]) -> (i64)) {
+# CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_0]] : i64
+# CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i64)
+# CHECK:           } do {
+# CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
+# CHECK:             %[[VAL_8:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_7]]] : (!quake.veq<6>, i64) -> !quake.ref
+# CHECK:             quake.h %[[VAL_8]] : (!quake.ref) -> ()
+# CHECK:             cc.continue %[[VAL_7]] : i64
+# CHECK:           } step {
+# CHECK:           ^bb0(%[[VAL_9:.*]]: i64):
+# CHECK:             %[[VAL_10:.*]] = arith.addi %[[VAL_9]], %[[VAL_1]] : i64
+# CHECK:             cc.continue %[[VAL_10]] : i64
+# CHECK:           } {invariant}
+# CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<6>) -> !quake.ref
+# CHECK:           quake.x %[[VAL_11]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_3]][1] : (!quake.veq<6>) -> !quake.ref
+# CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_3]][2] : (!quake.veq<6>) -> !quake.ref
+# CHECK:           quake.x {{\[}}%[[VAL_12]]] %[[VAL_13]] : (!quake.ref, !quake.ref) -> ()
+# CHECK:           return
+# CHECK:         }
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
+
+def test_list_comprehension_iterables():
+
+    @cudaq.kernel
+    def kernel1():
+        orig = [True, False, True, False]
+        # Sanity check to make sure we correctly process the type of i
+        negated = [i for i in orig] 
+        qs = cudaq.qvector(8)
+        for idx, v in enumerate(orig):
+            if v: x(qs[idx])
+        for idx, v in enumerate(negated):
+            if v: x(qs[idx + len(orig)])
+
+    out = cudaq.sample(kernel1)
+    assert(len(out) == 1 and '10101010' in out)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def kernel2():
+        orig = [True, False, True, False]
+        negated = [not i for i in orig] 
+        qs = cudaq.qvector(8)
+        for idx, v in enumerate(orig):
+            if v: x(qs[idx])
+        for idx, v in enumerate(negated):
+            if v: x(qs[idx + len(orig)])
+
+    out = cudaq.sample(kernel2)
+    assert(len(out) == 1 and '10100101' in out)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def kernel3():
+        orig = [True, False, True, False]
+        # Sanity check to make sure we correctly process the type of i
+        negated = [i for i in orig[1:3]] 
+        qs = cudaq.qvector(8)
+        for idx, v in enumerate(orig):
+            if v: x(qs[idx])
+        for idx, v in enumerate(negated):
+            if v: x(qs[idx + len(orig)])
+
+    out = cudaq.sample(kernel3)
+    assert(len(out) == 1 and '10100100' in out)
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def kernel4() -> int:
+        q = cudaq.qvector(6)
+        res = [mz(r) for r in q[0:3]]
+        return len(res)
+
+    out = cudaq.run(kernel4, shots_count=1)
+    assert(len(out) == 1 and out[0] == 3)
+    print(kernel4) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+
+def test_list_comprehension_failures():
+
+    @cudaq.kernel
+    def kernel1() -> float:
+        combined = [1.0 for _ in range(5)]
+        res = 0
+        for v in combined:
+            res += v
+        return res
+
+    try:
+        print(kernel1)
+    except Exception as e:
+        print(e)
+
+    @cudaq.kernel
+    def kernel2():
+        pairs = [(0, 3), (1, 4), (2, 5)]
+        qs = cudaq.qvector(6)
+        [x.ctrl(qs[c], qs[q]) for c, q in pairs]
+
+    try:
+        print(kernel2)
+    except Exception as e:
+        print(e)
+
+
+    @cudaq.kernel
+    def kernel3() -> int:
+        q = cudaq.qvector(6)
+        x(q)
+        # not supported, otherwise we would need to check for things like mz(q[i:])
+        res = [mz(q[i]) for i in range(3)]
+        return len(res)
+
+    try:
+        print(kernel3)
+    except Exception as e:
+        print(e)
+
+    @cudaq.kernel
+    def kernel4() -> bool:
+        q = cudaq.qvector(6)
+        x(q)
+        res = [mz([r]) for r in q]
+        return len(res)
+        # also check that [mz(q) for _ in q] fails...
+        #res = [mz(q) for _ in q]
+
+    try:
+        print(kernel4)
+    except Exception as e:
+        print(e)
+
+    @cudaq.kernel
+    def kernel5() -> bool:
+        q = cudaq.qvector(6)
+        x(q)
+        res = [mz(q) for r in q]
+        return len(res)
+
+    try:
+        print(kernel5)
+    except Exception as e:
+        print(e)
 
     """
     @cudaq.kernel
@@ -541,98 +777,49 @@ def test_list_comprehension_call():
         for v in combined:
             res = MyTuple(res.first + v.first, res.second + v.second)
         return res
-
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)    
-
-    @cudaq.kernel
-    def kernel() -> bool:
-        q = cudaq.qvector(6)
-        h(q)
-        res = [mz(q[i]) for i in range(3)] # FIXME: cannot be supported, otherwise we would need to check for mz(q[i:])
-        return res[0]
-
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
-
-    @cudaq.kernel
-    def kernel() -> bool:
-        q = cudaq.qvector(6)
-        h(q)
-        # also check that [mz(q) for _ in q] fails...
-        #res = [mz([r]) for r in q] # FIXME: SHOULD FAIL
-        #res = [mz(q) for _ in q]
-        res = [mz(q[i:]) for i in range(3)]
-        return res[0][0]
-
-    #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
     """
 
+# CHECK-LABEL:  augment-assign must not change the variable type
+# CHECK-NEXT:   (offending source -> res += v)
+# CHECK-NOT:    __nvqpp__mlirgen__kernel1
+
+# CHECK-LABEL:  CUDA-Q only support a single named targets in list comprehension
+# CHECK-NEXT:   (offending source -> [x.ctrl(qs[c], qs[q]) for (c, q) in pairs])
+# CHECK-NOT:    __nvqpp__mlirgen__kernel2
+
+# CHECK-LABEL:  measurements in list comprehension expressions {{.*}} only supported when iterating over a vector of qubits
+# CHECK-NEXT:   (offending source -> [mz(q[i]) for i in range(3)])
+# CHECK-NOT:    __nvqpp__mlirgen__kernel3
+
+# CHECK-LABEL:  unsupported argument to measurement in list comprehension
+# CHECK-NEXT:   (offending source -> [mz([r]) for r in q])
+# CHECK-NOT:    __nvqpp__mlirgen__kernel4
+
+# CHECK-LABEL:  unsupported argument to measurement in list comprehension
+# CHECK-NEXT:   (offending source -> [mz(q) for r in q])
+# CHECK-NOT:    __nvqpp__mlirgen__kernel5
+
+'''
+FIXME:
+def test_list_comprehension_tuple():
     @cudaq.kernel
     def kernel() -> bool:
-        q = cudaq.qvector(6)
-        h(q)
-        res = [mz(r) for r in q]
-        return res[0]
+        first_idx = [i for i in range(3)]
+        snd_idx = [i for i in range(3, 6)]
+        # [(i, i + 3) for i in range(3)] is currently not supported
+        # since inferring the type of an expression i + 3 is not implemented
+        pairs = [(first_idx[i], snd_idx[i]) for i in range(3)]
+        correct = True
+        for v in pairs:
+            correct = correct and (v[0] - v[1] == 3)
+        #for v1, v2 in pairs: # FIXME: v2 is not processed properly...
+            #correct = correct and (v2 - v1 == 3)
+        return correct
 
-    #print(kernel)
-    out = cudaq.run(kernel)
+    out = cudaq.run(kernel, shots_count=1)
     print(out)
-
-
-def test_list_comprehension_slice():
-
-    @cudaq.kernel
-    def kernel() -> bool:
-        orig = [True, False, True, False]
-        # orig[0::2] -> step value in slice not supported
-        # orig[0:2] -> valid iterable not detected
-        combined = [i for i in orig] 
-        res = False
-        for v in combined:
-            res = res or v
-        return res
     #print(kernel)
-    out = cudaq.run(kernel)
-    print(out)
-
-
-def test_list_comprehension_data_types():
-
-    @cudaq.kernel
-    def kernel() -> complex:
-        q1 = cudaq.qvector(3)
-        q2 = cudaq.qvector(2)
-        h(q1)
-        h(q2)
-        res1 = mz(q1)
-        res2 = mz(q2)
-        c0 = complex(0, 0)
-        combined = [False for _ in range(5)]
-        #combined = [c0 for _ in range(5)]
-        # combined = [complex(0, 0) for _ in range(5)] # FIXME: add test that this fails properly
-        idx = 0
-        for r in res1:
-            combined[idx] = r
-            idx += 1
-        for r in res2:
-            combined[idx] = r
-        sum = complex(0, 0)
-        for v in combined:
-            sum = sum # + v
-            # not supported
-            # sum.real += v.real
-            # sum.imag += v.imag
-            # sum += v # FIXME: NOT SUPPORTED...
-        return sum
-
-    print(kernel)
-    cudaq.run(kernel)
+'''
 
 if __name__ == '__main__':
-    test_list_comprehension()
-'''
+    test_list_comprehension_failures()
