@@ -5,10 +5,18 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
-import numpy as np
-from scipy.linalg import block_diag
+
 import cudaq
+import numpy as np
+import pytest
+from scipy.linalg import block_diag
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
+
 
 H = (1 / np.sqrt(2)) * np.array([[1, 1], [1, -1]], dtype=np.complex128)
 X = np.array([[0, 1], [1, 0]], dtype=np.complex128)

@@ -7,20 +7,19 @@
 # ============================================================================ #
 
 import os
-
-import pytest
-import numpy as np
-from typing import Callable, List
 import sys
+from typing import Callable, List
 
 import cudaq
+import numpy as np
+import pytest
 from cudaq import spin
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_argument_int():
@@ -2025,6 +2024,7 @@ def test_custom_quantum_type():
 
 def test_disallow_hybrid_types():
     from dataclasses import dataclass
+
     # Ensure we don't allow hybrid type s
     @dataclass(slots=True)
     class hybrid:
@@ -2051,6 +2051,7 @@ def test_disallow_hybrid_types():
 
 def test_disallow_quantum_struct_return():
     from dataclasses import dataclass
+
     # Ensure we don't allow hybrid type s
     @dataclass(slots=True)
     class T:

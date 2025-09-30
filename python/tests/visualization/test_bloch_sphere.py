@@ -7,10 +7,10 @@
 # ============================================================================ #
 
 import os
-import pytest
-import numpy as np
 
 import cudaq
+import numpy as np
+import pytest
 
 qutip = pytest.importorskip("qutip")
 
@@ -19,9 +19,9 @@ from contextlib import redirect_stdout
 
 
 @pytest.fixture(autouse=True)
-def do_something():
-    yield
+def setup_test_environment():
     cudaq.__clearKernelRegistries()
+    yield
 
 
 # write sample kernels

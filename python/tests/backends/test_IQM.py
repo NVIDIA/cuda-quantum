@@ -9,14 +9,14 @@
 import os
 import shutil
 import tempfile
-from typing import List
 from multiprocessing import Process
-import numpy as np
-from network_utils import check_server_connection
+from typing import List
 
 import cudaq
-from cudaq import spin
+import numpy as np
 import pytest
+from cudaq import spin
+from network_utils import check_server_connection
 
 iqm_client = pytest.importorskip("iqm.iqm_client")
 

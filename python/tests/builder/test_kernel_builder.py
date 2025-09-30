@@ -9,14 +9,20 @@
 # This file is responsible for testing the accuracy of gates within
 # the kernel builder.
 
-import pytest
-import random
-import numpy as np
 import os
+import random
 from typing import List
 
 import cudaq
+import numpy as np
+import pytest
 from cudaq import spin
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_sdg_0_state():
