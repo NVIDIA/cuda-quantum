@@ -1143,7 +1143,7 @@ jobs:
 
     strategy:
       matrix:
-        cuda_version: ['12.4']
+        cuda_version: ['11.8', '12.4']
       fail-fast: false
 
     # Must have environment to access environment secreats
