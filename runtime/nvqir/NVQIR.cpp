@@ -130,6 +130,14 @@ thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
 thread_local static std::vector<std::unique_ptr<Qubit>> allocatedSingleQubits;
 
 /// @brief Utility function mapping qubit ids to a QIR Array pointer
+// Qubits are newly constructed in the returned array. Hence, the caller must
+// manage their lifetime.
+// For example, this can be used for allocating qubit arrays whereby the
+// corresponding deallocation (`__quantum__rt__qubit_release_array`) would clean
+// up the qubits.
+//
+// IMPORTANT: don't use this for borrowed qubit indices as that
+// will result in leak.
 Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
   auto newArray = std::make_unique<Array>(idxs.size(), sizeof(std::size_t));
   for (std::size_t i = 0; i < idxs.size(); i++) {

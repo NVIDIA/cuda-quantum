@@ -137,6 +137,59 @@ std::vector<int64_t> getRangeValues(Array *in_array, const Range &in_range) {
   return result;
 }
 
+// Slice a range of qubits from an array.
+// Note: the qubits are referenced (copy pointers), not created new ones.
+Array *sliceArrayRange(Array *in_array, const Range &in_range) {
+  const bool is_fwd_range = in_range.step > 0;
+
+  const auto convertIndex = [&](int64_t in_rawIdx) -> int64_t {
+    if (in_rawIdx >= 0) {
+      return in_rawIdx;
+    }
+    // Negative-based index:
+    // in_rawIdx = -1 => size - 1 (last element)
+    int64_t result = in_array->size() + in_rawIdx;
+    if (result < 0) {
+      throw std::invalid_argument("range");
+    }
+    return result;
+  };
+
+  // Convert to absolute index.
+  const auto start_idx = convertIndex(in_range.start);
+  const auto end_idx = convertIndex(in_range.end);
+  Array *result = new Array(0, sizeof(Qubit *));
+  ArrayTracker::getInstance().track(result);
+  if (is_fwd_range) {
+    if (start_idx > end_idx) {
+      return result;
+    }
+
+    assert(in_range.step > 0);
+
+    for (int64_t i = start_idx; i <= end_idx; i += in_range.step) {
+      Qubit *qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
+      result->add_element();
+      auto arrayPtr = (*result)[result->size() - 1];
+      *reinterpret_cast<Qubit **>(arrayPtr) = qubit;
+    }
+    return result;
+  }
+
+  if (start_idx < end_idx) {
+    return result;
+  }
+
+  assert(in_range.step < 0);
+  for (int64_t i = start_idx; i >= end_idx; i += in_range.step) {
+    auto qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
+    result->add_element();
+    auto arrayPtr = (*result)[result->size() - 1];
+    *reinterpret_cast<Qubit **>(arrayPtr) = qubit;
+  }
+  return result;
+}
+
 namespace nvqir {
 Array *vectorSizetToArray(std::vector<std::size_t> &);
 }
@@ -176,12 +229,7 @@ Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
 }
 
 Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range) {
-  const std::vector<int64_t> range_idxs = getRangeValues(array, range);
-  std::vector<std::size_t> sliceIdxs;
-  for (const auto &idx : range_idxs) {
-    sliceIdxs.push_back(idx);
-  }
-  return nvqir::vectorSizetToArray(sliceIdxs);
+  return sliceArrayRange(array, range);
 }
 
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail) {
