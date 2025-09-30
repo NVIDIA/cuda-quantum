@@ -48,3 +48,6 @@
 [submodule "tpls/Stim"]
 	path = tpls/Stim
 	url = https://github.com/quantumlib/Stim
+[submodule "docs/sphinx/applications/python/qaoa_gpt_src/FEATHER"]
+	path = docs/sphinx/applications/python/qaoa_gpt_src/FEATHER
+	url = https://github.com/benedekrozemberczki/FEATHER.git
