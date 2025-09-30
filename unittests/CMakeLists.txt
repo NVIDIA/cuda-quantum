@@ -108,7 +108,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   if ("${TEST_LABELS}" STREQUAL "")
     gtest_discover_tests(${TEST_EXE_NAME})
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" DISCOVERY_MODE PRE_TEST)
   endif()
 endmacro()
 
@@ -118,9 +118,15 @@ create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim "")
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
-  if (TARGET CUDA::nvml)
-    get_property(NVIDIA_ML TARGET CUDA::nvml PROPERTY LOCATION)
-  else()
+  find_program(NVIDIA_SMI "nvidia-smi")
+  if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
+    # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
+    # On a build system without NVIDIA GPUs, this lib cannot be resolved;
+    # hence, linking these test executables will fail.
+    # On these CPU-only build systems, we directly link the nvidia-ml-dev library, which provides
+    # stub symbols for the actual driver library, to these test executables.
+    # Running these tests will ultimately requires a system with GPUs, i.e., the proper nvidia-ml lib
+    # will be loaded by the runtime linker/loader.
     find_package(CUDAToolkit REQUIRED)
     # make sure CUDA_TOOLKIT_ROOT_DIR is set
     if(NOT DEFINED CUDA_TOOLKIT_ROOT_DIR)
@@ -135,20 +141,12 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     endif()
     # Find nvidia-ml manually
     find_library(NVIDIA_ML NAMES nvidia-ml PATHS ${NVIDIA_ML_PATH})
+    message(STATUS "NVIDIA ML lib: ${NVIDIA_ML}")
+    file(CREATE_LINK ${NVIDIA_ML} ${NVIDIA_ML_PATH}/libnvidia-ml.so.1)
+    link_directories(${NVIDIA_ML_PATH})
   endif()
-  message(STATUS "NVIDIA ML lib: ${NVIDIA_ML}")  
-  find_program(NVIDIA_SMI "nvidia-smi")
+
   create_tests_with_backend(custatevec-fp32 "")
-  if(NVIDIA_SMI-NOTFOUND)
-    # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
-    # On a build system without NVIDIA GPUs, this lib cannot be resolved; 
-    # hence, linking these test executables will fail.
-    # On these CPU-only build systems, we directly link the nvidia-ml-dev library, which provides
-    # stub symbols for the actual driver library, to these test executables.  
-    # Running these tests will ultimately requires a system with GPUs, i.e., the proper nvidia-ml lib
-    # will be loaded by the runtime linker/loader.
-    target_link_libraries(test_runtime_custatevec-fp32 PRIVATE ${NVIDIA_ML})
-  endif()
   # Given that the fp32 and fp64 difference is largely inherited
   # from a dependency, we omit fp64 tests here and rely on the
   # dependency to to validate that functionality.
@@ -166,10 +164,8 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
-  if(NVIDIA_SMI-NOTFOUND)
-    target_link_libraries(test_mqpu PRIVATE ${NVIDIA_ML})
-  endif()
+  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" DISCOVERY_MODE PRE_TEST)
+
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
   # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
   add_executable(test_custatevec_observe_from_sampling
@@ -192,10 +188,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
-  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
-  if(NVIDIA_SMI-NOTFOUND)
-    target_link_libraries(test_custatevec_observe_from_sampling PRIVATE ${NVIDIA_ML})
-  endif()
+  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required" DISCOVERY_MODE PRE_TEST)
 
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
@@ -235,10 +228,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
       cudaq-platform-mqpu
       nvqir-custatevec-fp64
       gtest_main)
-      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required")
-    if(NVIDIA_SMI-NOTFOUND)
-      target_link_libraries(test_custatevec_observe_from_sampling PRIVATE ${NVIDIA_ML})
-    endif()
+      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required" DISCOVERY_MODE PRE_TEST)
   endif()
 endif()
 
