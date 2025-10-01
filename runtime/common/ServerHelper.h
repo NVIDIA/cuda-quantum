@@ -203,6 +203,7 @@ public:
 
     // Add the global register results
     cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
+    result.sequentialData = globalSequentialData;
     return cudaq::sample_result({result});
   }
 };
