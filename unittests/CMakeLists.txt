@@ -108,7 +108,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
   if ("${TEST_LABELS}" STREQUAL "")
     gtest_discover_tests(${TEST_EXE_NAME})
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" DISCOVERY_MODE PRE_TEST)
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}")
   endif()
 endmacro()
 
@@ -142,8 +142,9 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     # Find nvidia-ml manually
     find_library(NVIDIA_ML NAMES nvidia-ml PATHS ${NVIDIA_ML_PATH})
     message(STATUS "NVIDIA ML lib: ${NVIDIA_ML}")
-    file(CREATE_LINK ${NVIDIA_ML} ${NVIDIA_ML_PATH}/libnvidia-ml.so.1)
-    link_directories(${NVIDIA_ML_PATH})
+    # Inject the file during build and remove it after build (install)
+    file(CREATE_LINK ${NVIDIA_ML} ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)
+    install(CODE "file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)")
   endif()
 
   create_tests_with_backend(custatevec-fp32 "")
@@ -164,7 +165,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     cudaq-platform-mqpu
     nvqir-custatevec-fp64
     gtest_main)
-  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required" DISCOVERY_MODE PRE_TEST)
+  gtest_discover_tests(test_mqpu PROPERTIES LABELS "gpu_required")
 
   # Test CUDAQ_OBSERVE_FROM_SAMPLING=ON mode.
   # (term-by-term expectation value calculation by applying change-of-basis gates then reverting them)
@@ -188,7 +189,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     nvqir-custatevec-fp32
     gtest_main)
   # Run this test with "CUDAQ_OBSERVE_FROM_SAMPLING=1"
-  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required" DISCOVERY_MODE PRE_TEST)
+  gtest_discover_tests(test_custatevec_observe_from_sampling TEST_SUFFIX _DirectObserve PROPERTIES ENVIRONMENT "CUDAQ_OBSERVE_FROM_SAMPLING=1" PROPERTIES LABELS "gpu_required")
 
   if (MPI_CXX_FOUND)
     # Count the number of GPUs
@@ -228,7 +229,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
       cudaq-platform-mqpu
       nvqir-custatevec-fp64
       gtest_main)
-      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required" DISCOVERY_MODE PRE_TEST)
+      gtest_discover_tests(test_gpu_get_state PROPERTIES LABELS "gpu_required")
   endif()
 endif()
 
