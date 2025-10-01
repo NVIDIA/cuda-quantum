@@ -95,7 +95,7 @@ CUDAQ_TEST(QCITester, checkObserveSync) {
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto result = cudaq::observe(1000, kernel, h, .59);
+  auto result = cudaq::observe(200, kernel, h, .59);
   result.dump();
 
   printf("ENERGY: %lf\n", result.expectation());
@@ -116,7 +116,7 @@ CUDAQ_TEST(QCITester, checkObserveAsync) {
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto future = cudaq::observe_async(1000, 0, kernel, h, .59);
+  auto future = cudaq::observe_async(100, 0, kernel, h, .59);
 
   auto result = future.get();
   result.dump();
@@ -140,7 +140,7 @@ CUDAQ_TEST(QCITester, checkObserveAsyncLoadFromFile) {
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto future = cudaq::observe_async(1000, 0, kernel, h, .59);
+  auto future = cudaq::observe_async(100, 0, kernel, h, .59);
 
   {
     std::ofstream out("saveMeObserve.json");

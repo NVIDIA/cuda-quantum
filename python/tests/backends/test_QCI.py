@@ -104,18 +104,18 @@ def test_observe():
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
     # Run the observe task on synchronously
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100)
+    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=200)
     assert assert_close(res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=1000)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
     # Retrieve the results (since we're on a mock server)
     res = future.get()
     assert assert_close(res.expectation())
 
     # Launch the job async, job goes in the queue, and
     # we're free to dump the future to file
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=1000)
+    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100)
     futureAsString = str(future)
 
     # Later you can come back and read it in
