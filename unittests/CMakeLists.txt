@@ -144,6 +144,7 @@ if (CUSTATEVEC_ROOT AND CUDA_FOUND)
     message(STATUS "NVIDIA ML lib: ${NVIDIA_ML}")
     # Inject the file during build and remove it after build (install)
     file(CREATE_LINK ${NVIDIA_ML} ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)
+    link_directories(${CMAKE_CURRENT_BINARY_DIR})
     install(CODE "file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)")
   endif()
 
