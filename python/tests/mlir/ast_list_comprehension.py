@@ -491,6 +491,92 @@ def test_list_comprehension_capture_list():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
+def test_list_comprehension_tuple():
+
+    @dataclass(slots=True)
+    class MyTuple:
+        first: float
+        second: float
+
+    @cudaq.kernel
+    def kernel1() -> bool:
+        first_idx = [i for i in range(3)]
+        snd_idx = [i for i in range(3, 6)]
+        # [(i, i + 3) for i in range(3)] is currently not supported
+        # since inferring the type of an expression i + 3 is not implemented
+        pairs = [(first_idx[i], snd_idx[i]) for i in range(3)]
+        correct = True
+        for v1, v2 in pairs:
+            correct = correct and (v2 - v1 == 3)
+        return correct
+
+    out = cudaq.run(kernel1, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel1) # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def kernel2():
+        first_idx = [i for i in range(3)]
+        snd_idx = [i for i in range(3, 6)]
+        pairs = [(first_idx[i], snd_idx[i]) for i in range(3)]
+        qs = cudaq.qvector(6)
+        x(qs[0:len(first_idx)])
+        [x.ctrl(qs[i1], qs[i2]) for i1, i2 in pairs]
+
+    out = cudaq.sample(kernel2)
+    assert(len(out) == 1 and '111111' in out)
+    print(kernel2) # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def get_MyTuple() -> MyTuple:
+        return MyTuple(0., 1.)
+
+    @cudaq.kernel
+    def kernel3() -> MyTuple:
+        combined = [get_MyTuple() for _ in range(5)]
+        res = MyTuple(0., 0.)
+        for v in combined:
+            res = MyTuple(res.first + v.first, res.second + v.second)
+        return res
+
+    # For reasons that are entirely unclear to me, using cudaq.run here
+    # leads to an error in in RecordLogParser.cpp:
+    # "Tuple size mismatch in kernel and label."
+    # This only occurs when run with pytest, and the same exact case in
+    # a separate tests below works just fine. No idea what's going on.
+    out = kernel3()
+    assert(out == MyTuple(0., 5.))
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+
+def test_list_comprehension_indirect_tuple():
+
+    @dataclass(slots=True)
+    class MyTuple:
+        first: float
+        second: float
+
+    @cudaq.kernel
+    def get_MyTuple() -> MyTuple:
+        return MyTuple(0., 1.)
+
+    @cudaq.kernel
+    def kernel3() -> MyTuple:
+        combined = [get_MyTuple() for _ in range(5)]
+        res = MyTuple(0., 0.)
+        for v in combined:
+            res = MyTuple(res.first + v.first, res.second + v.second)
+        return res
+
+    out = cudaq.run(kernel3, shots_count=1)
+    assert(len(out) == 1 and out[0] == MyTuple(0., 5.))
+    print(kernel3) # keep after assert, such that we have no output if assert fails
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+
 def test_list_comprehension_call():
 
     @dataclass(slots=True)
@@ -715,24 +801,26 @@ def test_list_comprehension_failures():
         print(e)
 
     @cudaq.kernel
-    def kernel2():
-        pairs = [(0, 3), (1, 4), (2, 5)]
-        qs = cudaq.qvector(6)
-        [x.ctrl(qs[c], qs[q]) for c, q in pairs]
+    def kernel2() -> int:
+        q = cudaq.qvector(6)
+        x(q)
+        # not supported, otherwise we would need to check for things like mz(q[i:])
+        res = [mz(q[i]) for i in range(3)]
+        return len(res)
 
     try:
         print(kernel2)
     except Exception as e:
         print(e)
 
-
     @cudaq.kernel
-    def kernel3() -> int:
+    def kernel3() -> bool:
         q = cudaq.qvector(6)
         x(q)
-        # not supported, otherwise we would need to check for things like mz(q[i:])
-        res = [mz(q[i]) for i in range(3)]
+        res = [mz([r]) for r in q]
         return len(res)
+        # also check that [mz(q) for _ in q] fails...
+        #res = [mz(q) for _ in q]
 
     try:
         print(kernel3)
@@ -743,83 +831,34 @@ def test_list_comprehension_failures():
     def kernel4() -> bool:
         q = cudaq.qvector(6)
         x(q)
-        res = [mz([r]) for r in q]
+        res = [mz(q) for r in q]
         return len(res)
-        # also check that [mz(q) for _ in q] fails...
-        #res = [mz(q) for _ in q]
 
     try:
         print(kernel4)
     except Exception as e:
         print(e)
 
-    @cudaq.kernel
-    def kernel5() -> bool:
-        q = cudaq.qvector(6)
-        x(q)
-        res = [mz(q) for r in q]
-        return len(res)
-
-    try:
-        print(kernel5)
-    except Exception as e:
-        print(e)
-
-    """
-    @cudaq.kernel
-    def get_MyTuple() -> MyTuple:
-        return MyTuple(0., 1.)
-
-    @cudaq.kernel
-    def kernel() -> MyTuple:
-        combined = [get_MyTuple() for _ in range(5)] # FIXME: assert that this gives a nice error for now
-        res = MyTuple(0., 0.)
-        for v in combined:
-            res = MyTuple(res.first + v.first, res.second + v.second)
-        return res
-    """
-
 # CHECK-LABEL:  augment-assign must not change the variable type
 # CHECK-NEXT:   (offending source -> res += v)
 # CHECK-NOT:    __nvqpp__mlirgen__kernel1
 
-# CHECK-LABEL:  CUDA-Q only support a single named targets in list comprehension
-# CHECK-NEXT:   (offending source -> [x.ctrl(qs[c], qs[q]) for (c, q) in pairs])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel2
-
 # CHECK-LABEL:  measurements in list comprehension expressions {{.*}} only supported when iterating over a vector of qubits
 # CHECK-NEXT:   (offending source -> [mz(q[i]) for i in range(3)])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel3
+# CHECK-NOT:    __nvqpp__mlirgen__kernel2
 
 # CHECK-LABEL:  unsupported argument to measurement in list comprehension
 # CHECK-NEXT:   (offending source -> [mz([r]) for r in q])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel4
+# CHECK-NOT:    __nvqpp__mlirgen__kernel3
 
 # CHECK-LABEL:  unsupported argument to measurement in list comprehension
 # CHECK-NEXT:   (offending source -> [mz(q) for r in q])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel5
+# CHECK-NOT:    __nvqpp__mlirgen__kernel4
 
-'''
-FIXME:
-def test_list_comprehension_tuple():
-    @cudaq.kernel
-    def kernel() -> bool:
-        first_idx = [i for i in range(3)]
-        snd_idx = [i for i in range(3, 6)]
-        # [(i, i + 3) for i in range(3)] is currently not supported
-        # since inferring the type of an expression i + 3 is not implemented
-        pairs = [(first_idx[i], snd_idx[i]) for i in range(3)]
-        correct = True
-        for v in pairs:
-            correct = correct and (v[0] - v[1] == 3)
-        #for v1, v2 in pairs: # FIXME: v2 is not processed properly...
-            #correct = correct and (v2 - v1 == 3)
-        return correct
-
-    out = cudaq.run(kernel, shots_count=1)
-    print(out)
-    #print(kernel)
-'''
 
 if __name__ == '__main__':
-    test_list_comprehension_failures()
+    test_list_comprehension_indirect_tuple()
+
+    # FIXME: WRITE FOR LOOP TEST FOR 
+    # for i, (t1, t2) in enumerate([t]): ...
+    # WHERE T IS TUPLE

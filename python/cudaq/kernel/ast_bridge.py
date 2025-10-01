@@ -920,6 +920,34 @@ class PyASTBridge(ast.NodeVisitor):
                 )
         return
 
+    def __deconstructTuple(self, target, value, process = None):
+        if process is not None:
+            target, value = process(target, value)
+        if isinstance(target, ast.Name):
+            if value is not None:
+                self.symbolTable[target.id] = value
+        elif isinstance(target, ast.Tuple):
+            args = []                
+            if isinstance(value, ast.Tuple):
+                args = value.elts
+                getItem = lambda v, _: v
+            else:
+                value = self.ifPointerThenLoad(value)
+                if cc.StructType.isinstance(value.type):
+                    args = cc.StructType.getTypes(value.type)
+                    getItem = lambda ty, idx: cc.ExtractValueOp(ty, value, [], DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+                elif quake.StruqType.isinstance(value.type):
+                    args = quake.StruqType.getTypes(value.type)
+                    getItem = lambda ty, idx: quake.GetMemberOp(ty, value, IntegerAttr.get(self.getIntegerType(32), idx)).result
+            if len(args) != len(target.elts):
+                return "shape mismatch in tuple deconstruction"
+            for i, arg in enumerate(args):
+                msg = self.__deconstructTuple(target.elts[i], getItem(arg, i), process=process)
+                if msg is not None:
+                    return msg
+        else:
+            return "unsupported target in tuple deconstruction"
+
     def __processRangeLoopIterationBounds(self, argumentNodes):
         """
         Analyze `range(...)` bounds and return the start, end, 
@@ -1267,134 +1295,139 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
 
+        # FIXME: PREVENT CREATION OF SUCH LISTS IN THE FIRST PLACE AND REMOVE THIS
         # CUDA-Q does not yet support dynamic memory allocation
         if isinstance(node.value, ast.List) and len(node.value.elts) == 0:
             self.emitFatalError(
                 "CUDA-Q does not support allocating lists of zero size",
                 node)
 
-        # Retain the variable name for potential children (like `mz(q, registerName=...)`)
-        if len(node.targets) == 1 and not isinstance(node.targets[0],
-                                                     ast.Tuple):
+        def check_not_captured(name):
+            if name in self.capturedVars:
+                self.emitFatalError(
+                    "CUDA-Q does not allow assignment to variable {} captured from parent scope.".format(
+                        name), node)
+
+        def process_assignment(target, value):
+            if isinstance(target, ast.Tuple):
+
+                if isinstance(value, ast.Tuple):
+                    return target, value
+                
+                self.visit(value)
+                if len(self.valueStack) == 0:
+                    self.emitFatalError("invalid assignment detected.", node)
+                return target, self.popValue() # FIXME: more than one??
+
             # Handle simple `var = expr`
-            if isinstance(node.targets[0], ast.Name):
-                self.debug_msg(lambda: f'[(Inline) Visit Name]',
-                               node.targets[0])
-                self.currentAssignVariableName = str(node.targets[0].id)
-                self.visit(node.value)
-                self.currentAssignVariableName = None
-            # Handle assignments like `listVar[IDX] = VALUE`, or `classVar.attr = VALUE`
-            # `listVar`, `classVar` must be in the symbol table
-            elif isinstance(
-                    node.targets[0].value,
-                    ast.Name) and node.targets[0].value.id in self.symbolTable:
-                if isinstance(node.targets[0], ast.Subscript):
-                    # Visit_Subscript will try to load any pointer and return it
-                    # but here we want the pointer, so flip that flag
-                    # FIXME: move loading from Visit_Subscript to the user instead.
-                    self.subscriptPushPointerValue = True
-                    # Visit the subscript node, get the pointer value
-                    self.visit(node.targets[0])
-                    # Reset the push pointer value flag
-                    self.subscriptPushPointerValue = False
-                    ptrVal = self.popValue()
-                    if not cc.PointerType.isinstance(ptrVal.type):
-                        self.emitFatalError(
-                            "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
-                            node)
-                    # See if this is a pointer to an array, if so cast it
-                    # to a pointer on the array type
-                    ptrEleType = cc.PointerType.getElementType(ptrVal.type)
-                    if cc.ArrayType.isinstance(ptrEleType):
-                        ptrVal = cc.CastOp(
-                            cc.PointerType.get(
-                                cc.ArrayType.getElementType(ptrEleType)),
-                            ptrVal).result
+            elif isinstance(target, ast.Name):
+                check_not_captured(target.id)
 
-                    # Visit the value being assigned
-                    self.visit(node.value)
-                    valueToStore = self.popValue()
-                    # Store the value
-                    cc.StoreOp(valueToStore, ptrVal)
-                    return
+                if type(value).__module__ == 'ast':
+                    # Retain the variable name for potential children (like `mz(q, registerName=...)`)
+                    self.currentAssignVariableName = target.id
+                    self.visit(value)
+                    self.currentAssignVariableName = None
+                    if len(self.valueStack) == 0:
+                        self.emitFatalError("invalid assignment detected.", node)
+                    value = self.popValue() # FIXME: VALUE STACK COULD BE MORE THAN ONE...
 
-                elif isinstance(node.targets[0], ast.Attribute):
-                    self.attributePushPointerValue = True
-                    # Visit the attribute node, get the pointer value
-                    self.visit(node.targets[0])
-                    # Reset the push pointer value flag
-                    self.attributePushPointerValue = False
-                    ptrVal = self.popValue()
-                    if not cc.PointerType.isinstance(ptrVal.type):
-                        self.emitFatalError(
-                            "Invalid CUDA-Q attribute assignment, variable must be a pointer.",
-                            node)
-                    # Visit the value being assigned
-                    self.visit(node.value)
-                    valueToStore = self.popValue()
-                    # Store the value
-                    cc.StoreOp(valueToStore, ptrVal)
-                    return
-        else:
-            if isinstance(node.value, ast.Tuple):
-                for ele in node.value.elts:
-                    self.visit(ele)
-            else:
-                self.visit(node.value)
+                if self.isQuantumType(value.type) or cc.CallableType.isinstance(
+                        value.type):
+                    return target, value
+                elif self.isMeasureResultType(value.type, value):
+                    value = self.ifPointerThenLoad(value)
+                    if target.id in self.symbolTable:
+                        addr = self.ifNotPointerThenStore(self.symbolTable[target.id])
+                        cc.StoreOp(value, addr)
+                    return target, value
+                elif target.id in self.symbolTable:
+                    value = self.ifPointerThenLoad(value)
+                    cc.StoreOp(value, self.symbolTable[target.id])
+                    return target, None
+                elif cc.PointerType.isinstance(value.type):
+                    return target, value
+                elif cc.StructType.isinstance(value.type) and isinstance(
+                        value.owner.opview, cc.InsertValueOp):
+                    # If we have a new struct from `cc.undef` and `cc.insert_value`, we don't
+                    # want to allocate new memory.
+                    return target, value
+                else:
+                    # We should allocate and store
+                    alloca = cc.AllocaOp(cc.PointerType.get(value.type),
+                                        TypeAttr.get(value.type)).result
+                    cc.StoreOp(value, alloca)
+                    return target, alloca
 
-        if len(self.valueStack) == 0:
-            self.emitFatalError("invalid assignment detected.", node)
+            # Handle assignments like `listVar[IDX] = expr`
+            elif isinstance(target, ast.Subscript) and \
+                isinstance(target.value, ast.Name) and \
+                target.value.id in self.symbolTable:
+                check_not_captured(target.value.id)
 
-        varNames = []
-        varValues = []
-
-        # Can assign a, b, c, = Tuple...
-        # or single assign a = something
-        if isinstance(node.targets[0], ast.Tuple):
-            self.debug_msg(lambda: f'[(Inline) Visit Tuple]', node.targets[0])
-            assert len(self.valueStack) == len(node.targets[0].elts)
-            varValues = [
-                self.popValue() for _ in range(len(node.targets[0].elts))
-            ]
-            varValues.reverse()
-            varNames = [name.id for name in node.targets[0].elts]
-        else:
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.targets[0])
-            varValues = [self.popValue()]
-            varNames = [node.targets[0].id]
-
-        for i, value in enumerate(varValues):
-            if self.isQuantumType(value.type) or cc.CallableType.isinstance(
-                    value.type):
-                self.symbolTable[varNames[i]] = value
-            elif self.isMeasureResultType(value.type, value):
-                value = self.ifPointerThenLoad(value)
-                if varNames[i] in self.symbolTable:
-                    cc.StoreOp(
-                        value,
-                        self.ifNotPointerThenStore(
-                            self.symbolTable[varNames[i]]))
-                self.symbolTable[varNames[i]] = value
-            elif varNames[i] in self.symbolTable:
-                if varNames[i] in self.capturedVars:
+                # Visit_Subscript will try to load any pointer and return it
+                # but here we want the pointer, so flip that flag
+                # FIXME: move loading from Visit_Subscript to the user instead.
+                self.subscriptPushPointerValue = True
+                # Visit the subscript node, get the pointer value
+                self.visit(target)
+                # Reset the push pointer value flag
+                self.subscriptPushPointerValue = False
+                ptrVal = self.popValue()
+                if not cc.PointerType.isinstance(ptrVal.type):
                     self.emitFatalError(
-                        f"CUDA-Q does not allow assignment to variables captured from parent scope.",
+                        "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
                         node)
-                value = self.ifPointerThenLoad(value)
-                cc.StoreOp(value, self.symbolTable[varNames[i]])
-            elif cc.PointerType.isinstance(value.type):
-                self.symbolTable[varNames[i]] = value
-            elif cc.StructType.isinstance(value.type) and isinstance(
-                    value.owner.opview, cc.InsertValueOp):
-                # If we have a new struct from `cc.undef` and `cc.insert_value`, we don't
-                # want to allocate new memory.
-                self.symbolTable[varNames[i]] = value
+                # See if this is a pointer to an array, if so cast it
+                # to a pointer on the array type
+                ptrEleType = cc.PointerType.getElementType(ptrVal.type)
+                if cc.ArrayType.isinstance(ptrEleType):
+                    ptrVal = cc.CastOp(
+                        cc.PointerType.get(
+                            cc.ArrayType.getElementType(ptrEleType)),
+                        ptrVal).result
+
+                # Visit the value being assigned
+                self.visit(node.value)
+                valueToStore = self.popValue()
+                # Store the value
+                cc.StoreOp(valueToStore, ptrVal)
+                return target.value, None
+
+            # Handle assignments like `classVar.attr = expr`
+            elif isinstance(target, ast.Attribute) and \
+                isinstance(target.value, ast.Name) and \
+                target.value.id in self.symbolTable:
+                check_not_captured(target.value.id)
+
+                self.attributePushPointerValue = True
+                # Visit the attribute node, get the pointer value
+                self.visit(target)
+                # Reset the push pointer value flag
+                self.attributePushPointerValue = False
+                ptrVal = self.popValue()
+                if not cc.PointerType.isinstance(ptrVal.type):
+                    self.emitFatalError(
+                        "Invalid CUDA-Q attribute assignment, variable must be a pointer.",
+                        node)
+                # Visit the value being assigned
+                self.visit(node.value)
+                valueToStore = self.popValue()
+                # Store the value
+                cc.StoreOp(valueToStore, ptrVal)
+                return target.value, None
+
             else:
-                # We should allocate and store
-                alloca = cc.AllocaOp(cc.PointerType.get(value.type),
-                                     TypeAttr.get(value.type)).result
-                cc.StoreOp(value, alloca)
-                self.symbolTable[varNames[i]] = alloca
+                self.emitFatalError("Invalid target for assignment", node)
+
+        if len(node.targets) > 1:
+            # I am not entirely sure what kinds of Python language constructs would
+            # result in having more than 1 target here, hence erroring on it for now.
+            # (It would be easy to process this as target tuple, but it may not be correct to do so.)
+            self.emitFatalError("CUDA-Q does not allow multiple targets in assignment", node)
+        msg = self.__deconstructTuple(node.targets[0], node.value, process=process_assignment)
+        if msg is not None:
+            self.emitFatalError(msg, node)
 
     def visit_Attribute(self, node):
         """
@@ -1420,24 +1453,23 @@ class PyASTBridge(ast.NodeVisitor):
                                         structIdx)).result)
                 return
 
+            valType = value.type
             if cc.PointerType.isinstance(value.type):
-                eleType = cc.PointerType.getElementType(value.type)
-                if cc.StructType.isinstance(eleType):
-                    # Handle the case where we have a struct member extraction, memory semantics
-                    self.__visitStructAttribute(node, value)
-                    return
+                valType = cc.PointerType.getElementType(valType)
+
+            if cc.StructType.isinstance(valType):
+                # Handle the case where we have a struct member extraction, memory semantics
+                self.__visitStructAttribute(node, value)
+                return
 
             if node.attr == 'append':
-                type = value.type
-                if cc.PointerType.isinstance(type):
-                    type = cc.PointerType.getElementType(type)
-                if cc.StdvecType.isinstance(type) or cc.ArrayType.isinstance(
-                        type):
+                if cc.StdvecType.isinstance(valType) or cc.ArrayType.isinstance(
+                        valType):
                     self.emitFatalError(
                         "CUDA-Q does not allow dynamic list resizing.", node)
                 return
 
-            if node.attr == 'size' and quake.VeqType.isinstance(value.type):
+            if node.attr == 'size' and quake.VeqType.isinstance(valType):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(64),
                                     self.symbolTable[node.value.id]).result)
@@ -1512,6 +1544,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Handle attribute access on the call result
             self.__visitStructAttribute(node, call_result)
+            return
 
     def visit_Call(self, node):
         """
@@ -2228,26 +2261,17 @@ class PyASTBridge(ast.NodeVisitor):
                     for _, v in annotations.items()
                 ]
                 # Ensure we don't use hybrid data types
-                numQuantumMemberTys = sum(
-                    [1 if self.isQuantumType(ty) else 0 for ty in structTys])
-                if numQuantumMemberTys != 0:  # we have quantum member types
-                    if numQuantumMemberTys != len(structTys):
-                        self.emitFatalError(
-                            f'hybrid quantum-classical data types not allowed in kernel code',
-                            node)
+                numQuantumMemberTys = sum((self.isQuantumType(ty) for ty in structTys))
+                if numQuantumMemberTys != 0 and numQuantumMemberTys != len(structTys):
+                    self.emitFatalError(
+                        f'hybrid quantum-classical data types are not allowed',
+                        node)
 
-                isStruq = not (not structTys)
-                for fieldTy in structTys:
-                    if not self.isQuantumType(fieldTy):
-                        isStruq = False
+                isStruq = numQuantumMemberTys != 0
                 if isStruq:
+                    if any((self.isQuantumStructType(t) for t in structTys)):
+                        self.emitFatalError('recursive quantum struct types not allowed.', node)                    
                     structTy = quake.StruqType.getNamed(node.func.id, structTys)
-                    # Disallow recursive quantum struct types.
-                    for fieldTy in structTys:
-                        if self.isQuantumStructType(fieldTy):
-                            self.emitFatalError(
-                                'recursive quantum struct types not allowed.',
-                                node)
                 else:
                     structTy = cc.StructType.getNamed(node.func.id, structTys)
                 # Disallow user specified methods on structs
@@ -3054,10 +3078,6 @@ class PyASTBridge(ast.NodeVisitor):
                 "CUDA-Q only supports single generators for list comprehension.",
                 node)
 
-        if not isinstance(node.generators[0].target, ast.Name):
-            self.emitFatalError(
-                "CUDA-Q only support a single named targets in list comprehension", node)
-
         # Let's handle the following `listVar` types
         # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
         # or
@@ -3111,27 +3131,45 @@ class PyASTBridge(ast.NodeVisitor):
             forNode.orelse = []
             self.visit_For(forNode)
 
+        target_types = {}
+        def get_item_type(target, targetType):
+            if isinstance(target, ast.Name):
+                if target.id in target_types:
+                    self.emitFatalError("multiple definitions of target " + target.id, node)
+                target_types[target.id] = targetType
+            elif isinstance(target, ast.Tuple):
+                if cc.PointerType.isinstance(targetType):
+                    targetType = cc.PointerType.getElementType(targetType)
+                if not cc.StructType.isinstance(targetType):
+                    self.emitFatalError("shape mismatch in tuple deconstruction", node)
+                types = cc.StructType.getTypes(targetType)
+                if len(types) != len(target.elts):
+                    self.emitFatalError("shape mismatch in tuple deconstruction", node)
+                for i, ty in enumerate(types):
+                    get_item_type(target.elts[i], ty)
+            else:
+                self.emitFatalError("unsupported target in tuple deconstruction", node)
+        get_item_type(node.generators[0].target, iterTy)
+
         # We need to know the element type of the list we are creating.
         # Unfortunately, dynamic typing makes this a bit painful.
         # I didn't find a good way to fill in the type only once we 
-        # have processed the expression as part of the loop body, unfortunately.
+        # have processed the expression as part of the loop body,
+        # but it would probably be nicer and cleaner to do that instead.
         def get_item_type(pyval):
             if isinstance(pyval, ast.Name):
-                if isinstance(node.generators[0].target, ast.Name) and \
-                    pyval.id == node.generators[0].target.id:
-                    return iterTy
+                if pyval.id in target_types:
+                    return target_types[pyval.id]
                 self.visit(pyval)
                 item = self.popValue()
                 return item.type
             elif isinstance(pyval, ast.Constant):
                 return mlirTypeFromPyType(type(pyval.value), self.ctx)
             elif isinstance(pyval, ast.Tuple):
-                # FIXME: TESTS PENDING
                 elts = [get_item_type(v) for v in pyval.elts]
                 if None in elts: return None
-                return cc.StructType.getNamed("tuple", elts)
+                return cc.PointerType.get(cc.StructType.getNamed("tuple", elts))
             elif isinstance(pyval, ast.Subscript) and \
-                # FIXME: TESTS PENDING
                 IntegerType.isinstance(get_item_type(pyval.slice)):
                 parentType = get_item_type(pyval.value)
                 if cc.PointerType.isinstance(parentType):
@@ -3157,71 +3195,74 @@ class PyASTBridge(ast.NodeVisitor):
                     for t in elts[1:]:
                         base_elTy = self.__get_superior_type(base_elTy, t)
                 return cc.StdvecType.get(base_elTy)
-            elif isinstance(pyval, ast.Call) and isinstance(pyval.func, ast.Name):
-                # supported for calls but not here:
-                # 'range', 'enumerate', 'list'
-                if pyval.func.id == 'len' or pyval.func.id == 'int': 
-                    return IntegerType.get_signless(64)
-                elif pyval.func.id == 'complex': 
-                    return self.getComplexType()
-                elif self.__isUnitaryGate(pyval.func.id) or pyval.func.id == 'reset': 
-                    process_void_list()
-                    return None
-                elif self.__isMeasurementGate(pyval.func.id):
-                    # It's tricky to know if we are calling a measurement on a single qubit, 
-                    # or on a vector of qubits, e.g. consider the case [mz(qs[i:]) for i in range(n)], 
-                    # or [mz(qs) for _ in range(n)], or [mz(qs) for _ in qs].
-                    # We hence limit support to iterating over a vector of qubits, and check that the
-                    # iteration variable is passed directly to the measurement.
-                    iterSymName = None
-                    if isinstance(node.generators[0].iter, ast.Name): 
-                        iterSymName = node.generators[0].iter.id
-                    elif isinstance(node.generators[0].iter, ast.Subscript) and \
-                        isinstance(node.generators[0].iter.slice, ast.Slice) and \
-                        isinstance(node.generators[0].iter.value, ast.Name):
-                        iterSymName = node.generators[0].iter.value.id
-                    isIterOverVeq = iterSymName is not None and \
-                                    iterSymName in self.symbolTable and \
-                                    quake.VeqType.isinstance(self.symbolTable[iterSymName].type)
-                    if not isIterOverVeq:
-                        self.emitFatalError(
-                            "performing measurements in list comprehension expressions is only supported when iterating over a vector of qubits", node)
-                    iterVarPassedAsArg = len(pyval.args) == 1 and \
-                            isinstance(pyval.args[0], ast.Name) and \
-                            isinstance(node.generators[0].target, ast.Name) and \
-                            pyval.args[0].id == node.generators[0].target.id
-                    if not iterVarPassedAsArg:
-                        self.emitFatalError(
-                            "unsupported argument to measurement in list comprehension", node)
-                    return IntegerType.get_signless(1)
-                elif pyval.func.id in globalKernelRegistry:
-                    # Not necessarily unitary
-                    resTypes = globalKernelRegistry[pyval.func.id].type.results
-                    if len(resTypes) == 0:
+            elif isinstance(pyval, ast.Call):
+                if isinstance(pyval.func, ast.Name):
+                    # supported for calls but not here:
+                    # 'range', 'enumerate', 'list'
+                    if pyval.func.id == 'len' or pyval.func.id == 'int': 
+                        return IntegerType.get_signless(64)
+                    elif pyval.func.id == 'complex': 
+                        return self.getComplexType()
+                    elif self.__isUnitaryGate(pyval.func.id) or pyval.func.id == 'reset': 
                         process_void_list()
                         return None
-                    if len(resTypes) != 1 or cc.StructType.isinstance(resTypes[0]):
-                        # TODO: support...
-                        self.emitFatalError(
-                            "Only variables, constants, and calls to built-ins can be used to populate values in list comprehension expressions",
-                            node)
-                    return resTypes[0]
-                    
-                elif pyval.func.id in globalRegisteredTypes.classes:
-                    _, annotations = globalRegisteredTypes.getClassAttributes(
-                        pyval.func.id)
-                    structTys = [
-                        mlirTypeFromPyType(v, self.ctx)
-                        for _, v in annotations.items()
-                    ]
-                    # no need to do much verification on the validity of the type here -
-                    # this will be handled when we build the body
-                    isStruq = any((self.isQuantumType(t) for t in structTys))
-                    if isStruq:
-                        return quake.StruqType.getNamed(pyval.func.id, structTys)
-                    else:
-                        return cc.PointerType.get(cc.StructType.getNamed(pyval.func.id, structTys))
-                    
+                    elif self.__isMeasurementGate(pyval.func.id):
+                        # It's tricky to know if we are calling a measurement on a single qubit, 
+                        # or on a vector of qubits, e.g. consider the case [mz(qs[i:]) for i in range(n)], 
+                        # or [mz(qs) for _ in range(n)], or [mz(qs) for _ in qs].
+                        # We hence limit support to iterating over a vector of qubits, and check that the
+                        # iteration variable is passed directly to the measurement.
+                        iterSymName = None
+                        if isinstance(node.generators[0].iter, ast.Name): 
+                            iterSymName = node.generators[0].iter.id
+                        elif isinstance(node.generators[0].iter, ast.Subscript) and \
+                            isinstance(node.generators[0].iter.slice, ast.Slice) and \
+                            isinstance(node.generators[0].iter.value, ast.Name):
+                            iterSymName = node.generators[0].iter.value.id
+                        isIterOverVeq = iterSymName is not None and \
+                                        iterSymName in self.symbolTable and \
+                                        quake.VeqType.isinstance(self.symbolTable[iterSymName].type)
+                        if not isIterOverVeq:
+                            self.emitFatalError(
+                                "performing measurements in list comprehension expressions is only supported when iterating over a vector of qubits", node)
+                        iterVarPassedAsArg = len(pyval.args) == 1 and \
+                                isinstance(pyval.args[0], ast.Name) and \
+                                isinstance(node.generators[0].target, ast.Name) and \
+                                pyval.args[0].id == node.generators[0].target.id
+                        if not iterVarPassedAsArg:
+                            self.emitFatalError(
+                                "unsupported argument to measurement in list comprehension", node)
+                        return IntegerType.get_signless(1)
+                    elif pyval.func.id in globalKernelRegistry:
+                        # Not necessarily unitary
+                        resTypes = globalKernelRegistry[pyval.func.id].type.results
+                        if len(resTypes) == 0:
+                            process_void_list()
+                            return None
+                        if len(resTypes) != 1:
+                            self.emitFatalError(
+                                "unsupported function call in list comprehension - function must return a single value",
+                                node)
+                        return resTypes[0]
+                    elif pyval.func.id in globalRegisteredTypes.classes:
+                        _, annotations = globalRegisteredTypes.getClassAttributes(
+                            pyval.func.id)
+                        structTys = [
+                            mlirTypeFromPyType(v, self.ctx)
+                            for _, v in annotations.items()
+                        ]
+                        # no need to do much verification on the validity of the type here -
+                        # this will be handled when we build the body
+                        isStruq = any((self.isQuantumType(t) for t in structTys))
+                        if isStruq:
+                            return quake.StruqType.getNamed(pyval.func.id, structTys)
+                        else:
+                            return cc.PointerType.get(cc.StructType.getNamed(pyval.func.id, structTys))
+                elif isinstance(pyval.func, ast.Attribute) and \
+                    (pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj'):
+                    process_void_list()
+                    return None
+                self.emitFatalError("unsupported call in list comprehension", node)
             elif isinstance(pyval, ast.UnaryOp) and \
                 isinstance(pyval.op, ast.Not):
                 return IntegerType.get_signless(1)
@@ -3252,7 +3293,7 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.PointerType.get(iterTy), iterable, [iterVar],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
                 loadedEle = cc.LoadOp(eleAddr).result
-            self.symbolTable[node.generators[0].target.id] = loadedEle
+            self.__deconstructTuple(node.generators[0].target, loadedEle)
             self.visit(node.elt)
             result = self.popValue()
             listValueAddr = cc.ComputePtrOp(
@@ -3527,8 +3568,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(cc.LoadOp(eleAddr).result)
                 return
 
-        if cc.StructType.isinstance(var.type):
-            # Handle the case where we have a tuple member extraction, memory semantics
+        def get_idx_value(upper_bound):
             idxValue = None
             if hasattr(idx.owner, 'opview') and isinstance(
                     idx.owner.opview, arith.ConstantOp):
@@ -3541,10 +3581,15 @@ class PyASTBridge(ast.NodeVisitor):
                     "non-constant subscript value on a tuple is not supported",
                     node)
 
-            memberTys = cc.StructType.getTypes(var.type)
-            if idxValue >= len(memberTys):
+            if idxValue < 0 or idxValue >= upper_bound:
                 self.emitFatalError(f'tuple index is out of range: {idxValue}',
                                     node)
+            return idxValue
+
+        if cc.StructType.isinstance(var.type):
+            # Handle the case where we have a tuple member extraction, memory semantics
+            memberTys = cc.StructType.getTypes(var.type)
+            idxValue = get_idx_value(len(memberTys))
 
             structPtr = self.ifNotPointerThenStore(var)
             eleAddr = cc.ComputePtrOp(
@@ -3556,6 +3601,19 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(eleAddr)
                 return
             self.pushValue(cc.LoadOp(eleAddr).result)
+            return
+        
+        # Let's allow subscripting into Struqs, but only if we don't need a pointer
+        # (i.e. no updating of Struqs).
+        if not self.subscriptPushPointerValue and \
+            quake.StruqType.isinstance(var.type):
+            memberTys = quake.StruqType.getTypes(var.type)
+            idxValue = get_idx_value(len(memberTys))
+            
+            member = quake.GetMemberOp(memberTys[idxValue], 
+                                       var, 
+                                       IntegerAttr.get(self.getIntegerType(32), idxValue)).result
+            self.pushValue(member)
             return
 
         self.emitFatalError("unhandled subscript", node)
@@ -3569,17 +3627,21 @@ class PyASTBridge(ast.NodeVisitor):
         """
         self.currentNode = node
 
-        # We can simplify `for i in range(N)` MLIR code immensely
-        # by just building a for loop with N as the upper value,
-        # no need to generate an array from the `range` call.
         if isinstance(node.iter, ast.Call):
             self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
+
+            # We can simplify `for i in range(N)` MLIR code immensely
+            # by just building a for loop with N as the upper value,
+            # no need to generate an array from the `range` call.
             if node.iter.func.id == 'range':
                 # This is a range(N) for loop, we just need
                 # the upper bound N for this loop
                 [self.visit(arg) for arg in node.iter.args]
                 startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.iter.args)
+
+                if not isinstance(node.target, ast.Name):
+                    self.emitFatalError("iteration variable must be a single name", node)
 
                 def bodyBuilder(iterVar):
                     self.symbolTable.pushScope()
@@ -3596,11 +3658,9 @@ class PyASTBridge(ast.NodeVisitor):
 
                 return
 
-        # We can simplify `for i,j in enumerate(L)` MLIR code immensely
-        # by just building a for loop over the iterable object L and using
-        # the index into that iterable and the element.
-        if isinstance(node.iter, ast.Call):
-            self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
+            # We can simplify `for i,j in enumerate(L)` MLIR code immensely
+            # by just building a for loop over the iterable object L and using
+            # the index into that iterable and the element.
             if node.iter.func.id == 'enumerate':
                 [self.visit(arg) for arg in node.iter.args]
                 if len(self.valueStack) == 2:
@@ -3612,9 +3672,6 @@ class PyASTBridge(ast.NodeVisitor):
                 iterable = self.ifPointerThenLoad(iterable)
                 totalSize = None
                 extractFunctor = None
-                varNames = []
-                for elt in node.target.elts:
-                    varNames.append(elt.id)
 
                 beEfficient = False
                 if quake.VeqType.isinstance(iterable.type):
@@ -3653,11 +3710,18 @@ class PyASTBridge(ast.NodeVisitor):
 
                 if beEfficient:
 
+                    if not isinstance(node.target, ast.Tuple) or \
+                        len(node.target.elts) != 2:
+                        self.emitFatalError("iteration variable must be a tuple of two items", node)
+
                     def bodyBuilder(iterVar):
                         self.symbolTable.pushScope()
                         values = extractFunctor(iterable, iterVar)
+                        assert(len(values) == 2)
                         for i, v in enumerate(values):
-                            self.symbolTable[varNames[i]] = v
+                            msg = self.__deconstructTuple(node.target.elts[i], v)
+                            if msg is not None:
+                                self.emitFatalError(msg, node)
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
@@ -3690,12 +3754,11 @@ class PyASTBridge(ast.NodeVisitor):
                                                 iterable).result
 
                 def functor(iter, idx):
-                    return [
-                        quake.ExtractRefOp(self.getRefType(),
-                                           iter,
-                                           -1,
-                                           index=idx).result
-                    ]
+                    return quake.ExtractRefOp(self.getRefType(),
+                                              iter,
+                                              -1,
+                                              index=idx).result
+
 
                 extractFunctor = functor
             elif cc.StdvecType.isinstance(iterable.type):
@@ -3712,7 +3775,7 @@ class PyASTBridge(ast.NodeVisitor):
                         elePtrTy, vecPtr, [idxVal],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx)).result
-                    return [cc.LoadOp(eleAddr).result]
+                    return cc.LoadOp(eleAddr).result
 
                 extractFunctor = functor
 
@@ -3738,41 +3801,17 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.PointerType.get(elementType), iter, [idx],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
-                loaded = cc.LoadOp(eleAddr).result
-                if IntegerType.isinstance(elementType):
-                    return [loaded]
-                elif cc.StructType.isinstance(elementType):
-                    # Get struct types
-                    types = cc.StructType.getTypes(elementType)
-                    ret = []
-                    for i, ty in enumerate(types):
-                        ret.append(
-                            cc.ExtractValueOp(
-                                ty, loaded, [],
-                                DenseI32ArrayAttr.get([i],
-                                                      context=self.ctx)).result)
-                    return ret
+                return cc.LoadOp(eleAddr).result
 
             extractFunctor = functor
-
-        # Get the name of the variable, VAR in for VAR in range(...),
-        # could be a tuple of names too
-        varNames = []
-        if isinstance(node.target, ast.Name):
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.target)
-            varNames.append(node.target.id)
-        else:
-            # has to be a `ast.Tuple`
-            self.debug_msg(lambda: f'[(Inline) Visit Tuple]', node.target)
-            for elt in node.target.elts:
-                varNames.append(elt.id)
 
         def bodyBuilder(iterVar):
             self.symbolTable.pushScope()
             # we set the extract functor above, use it here
-            values = extractFunctor(iterable, iterVar)
-            for i, v in enumerate(values):
-                self.symbolTable[varNames[i]] = v
+            value = extractFunctor(iterable, iterVar)
+            msg = self.__deconstructTuple(node.target, value)
+            if msg is not None:
+                self.emitFatalError(msg, node)
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
@@ -4059,8 +4098,15 @@ class PyASTBridge(ast.NodeVisitor):
         if self.getIntegerType(1) != condition.type:
             # not equal to 0, then compare with 1
             condPred = IntegerAttr.get(self.getIntegerType(), 1)
-            condition = arith.CmpIOp(condPred, condition,
-                                     self.getConstantInt(0)).result
+            if IntegerType.isinstance(condition.type):
+                condition = arith.CmpIOp(condPred, condition,
+                                        self.getConstantInt(0)).result
+                
+            elif F64Type.isinstance(condition.type):
+                condition = arith.CmpFOp(condPred, condition,
+                                        self.getConstantFloat(0)).result
+            else:
+                self.emitFatalError("condition cannot be converted to bool", node)
 
         ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
@@ -4142,8 +4188,12 @@ class PyASTBridge(ast.NodeVisitor):
         self.generic_visit(node)
         self.currentNode = node
 
-        elementValues = [self.popValue() for _ in range(len(node.elts))]
+        nArgs = len(self.valueStack)
+        elementValues = [self.popValue() for _ in range(nArgs)]
         elementValues.reverse()
+
+        if len(elementValues) != len(node.elts):
+            self.emitFatalError("unsupported expression in tuple construction", node)
 
         # We do not store structs of pointers
         elementValues = [
@@ -4153,25 +4203,31 @@ class PyASTBridge(ast.NodeVisitor):
         ]
 
         structTys = [v.type for v in elementValues]
+        numQuantumMembers = sum((self.isQuantumType(t) for t in structTys))
+        if numQuantumMembers != 0 and numQuantumMembers != len(structTys):
+            self.emitFatalError("hybrid quantum-classical data types are not allowed", node)
+        isStruq = numQuantumMembers != 0
 
-        if len(elementValues) != len(structTys):
-            self.emitFatalError(
-                f'tuple constructor requires {len(structTys)} arguments, '
-                f'but was given {len(elementValues)}.', node)
+        if isStruq:
+            if any((self.isQuantumStructType(t) for t in structTys)):
+                self.emitFatalError('recursive quantum struct types not allowed.', node)
+            structTy = quake.StruqType.getNamed("tuple", structTys)
+            self.pushValue(quake.MakeStruqOp(structTy, elementValues).result)
 
-        structTy = cc.StructType.getNamed("tuple", structTys)
-        stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
-                                TypeAttr.get(structTy)).result
+        else:
+            structTy = cc.StructType.getNamed("tuple", structTys)
+            stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
+                                    TypeAttr.get(structTy)).result
 
-        # loop over each type and `compute_ptr` / store
+            # loop over each type and `compute_ptr` / store
+            for i, ty in enumerate(structTys):
+                eleAddr = cc.ComputePtrOp(
+                    cc.PointerType.get(ty), stackSlot, [],
+                    DenseI32ArrayAttr.get([i], context=self.ctx)).result
+                cc.StoreOp(elementValues[i], eleAddr)
 
-        for i, ty in enumerate(structTys):
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(ty), stackSlot, [],
-                DenseI32ArrayAttr.get([i], context=self.ctx)).result
-            cc.StoreOp(elementValues[i], eleAddr)
-        self.pushValue(stackSlot)
-        return
+            self.pushValue(stackSlot)
+            return
 
     def visit_UnaryOp(self, node):
         """
@@ -4292,7 +4348,8 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.AddIOp(left, right).result)
                 return
-            elif F64Type.isinstance(left.type):
+            elif F64Type.isinstance(left.type) or \
+                F32Type.isinstance(left.type):
                 self.pushValue(arith.AddFOp(left, right).result)
                 return
             elif ComplexType.isinstance(left.type):
@@ -4305,7 +4362,8 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.SubIOp(left, right).result)
                 return
-            if F64Type.isinstance(left.type):
+            elif F64Type.isinstance(left.type) or \
+                F32Type.isinstance(left.type):
                 self.pushValue(arith.SubFOp(left, right).result)
                 return
             if ComplexType.isinstance(left.type):
@@ -4326,7 +4384,8 @@ class PyASTBridge(ast.NodeVisitor):
                 left = arith.SIToFPOp(self.getFloatType(), left).result
             if IntegerType.isinstance(right.type):
                 right = arith.SIToFPOp(self.getFloatType(), right).result
-            if F64Type.isinstance(left.type):
+            elif F64Type.isinstance(left.type) or \
+                F32Type.isinstance(left.type):
                 self.pushValue(arith.DivFOp(left, right).result)
                 return
             if ComplexType.isinstance(left.type):
@@ -4339,7 +4398,8 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.MulIOp(left, right).result)
                 return
-            if F64Type.isinstance(left.type):
+            elif F64Type.isinstance(left.type) or \
+                F32Type.isinstance(left.type):
                 self.pushValue(arith.MulFOp(left, right).result)
                 return
             if ComplexType.isinstance(left.type):
@@ -4355,8 +4415,8 @@ class PyASTBridge(ast.NodeVisitor):
                 # workaround, use math to function conversion
                 self.pushValue(math.IPowIOp(left, right).result)
                 return
-            if F64Type.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
+            if (F64Type.isinstance(left.type) or F32Type.isinstance(left.type)) and \
+                IntegerType.isinstance(right.type):
                 self.pushValue(math.FPowIOp(left, right).result)
                 return
             if IntegerType.isinstance(left.type):
@@ -4369,10 +4429,24 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 return "unhandled BinOp.Pow types."
             
-        if issubclass(nodeType, ast.Mod):
+        if issubclass(nodeType, ast.Mod):            
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
                 self.pushValue(arith.RemUIOp(left, right).result)
+                return
+            if IntegerType.isinstance(right.type):
+                if F32Type.isinstance(left.type):
+                    right = arith.SIToFPOp(self.getFloatType(32), right).result
+                if F64Type.isinstance(left.type):
+                    right = arith.SIToFPOp(self.getFloatType(), right).result
+            if IntegerType.isinstance(left.type):
+                if F32Type.isinstance(right.type):
+                    left = arith.SIToFPOp(self.getFloatType(32), left).result
+                if F64Type.isinstance(right.type):
+                    left = arith.SIToFPOp(self.getFloatType(), left).result
+            if F64Type.isinstance(left.type) or \
+                F32Type.isinstance(left.type):
+                self.pushValue(arith.RemFOp(left, right).result)
                 return
             else:
                 return "unhandled BinOp.Mod types; only integers are supported."
