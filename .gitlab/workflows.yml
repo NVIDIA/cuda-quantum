@@ -116,7 +116,7 @@ Python Wheels:
       set +x
   script:
     - export PROJECT_SRCS_DIR=$PWD/..
-    - export python=python3.10 
+    - export python=python3.11
     # Install CUDA Quantum wheel for a particular Python version (could be any version) 
     - cuda_major=$(echo $CUDA_VERSION | cut -d . -f1)
     - wheel=$(ls /tmp/wheels/cuda_quantum_cu${cuda_major}-*-cp311-cp311-manylinux_*_$(uname -m)*.whl)
