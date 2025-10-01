@@ -521,6 +521,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -967,7 +990,7 @@
 <h2>The Basics of VQE<a class="headerlink" href="#The-Basics-of-VQE" title="Permalink to this heading">¶</a></h2>
 <p>The VQE algorithm is hybrid quantum-classical algorithm, meaning some subroutines run on a quantum computer or quantum simulator and others run on a traditional (super)computer.</p>
 <p>The goal is to take a parameterized quantum circuit and a qubit form of the molecular Hamiltonian, measure an expectation value that corresponds to the ground state energy of the molecule, and then repeat the process to variationally minimize the energy with respect to the parameters in the quantum circuit. The optimization is performed on a classical device while the expectation values are determined on a quantum device. See the figure below.</p>
-<p><img alt="VQE.png" src="../../_images/VQE.png" /></p>
+<img alt="VQE.png" src="../../_images/VQE.png" />
 <p>The next few cells will elaborate on each part of the VQE procedure and show you how to build a VQE simulation to compute the ground state energy of the water molecule.</p>
 </section>
 <section id="Installing/Loading-Relevant-Packages">
@@ -1168,7 +1191,7 @@ Total elapsed time (s) =  21.523745890706778
 <h2>Parallel Parameter Shift Gradients<a class="headerlink" href="#Parallel-Parameter-Shift-Gradients" title="Permalink to this heading">¶</a></h2>
 <p>One way to accelerate VQE is to use an optimizer that accepts a gradient. This can drastically lower the number of VQE iterations required at the cost of computing the gradient on the quantum side of the algorithm.</p>
 <p>The parameter shift rule is a common technique to compute the gradient for parameterized circuits. It is obtained by computing two expectation values for each parameter corresponding to a small forward and backward shift in the ith parameter. These results are used to estimate finite difference contribution to the gradient.</p>
-<p><img alt="parametershift.png" src="../../_images/parametershift.png" /></p>
+<img alt="parametershift.png" src="../../_images/parametershift.png" />
 <p>This procedure can become cost prohibitive as the number of parameters becomes large.</p>
 <p>Each of the expectation values needed to evaluate a parameter shift gradient can be computed independently. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">nvidia-mqpu</span></code> backend is designed for parallel computations across multiple simulated QPUs. The function below uses <code class="docutils literal notranslate"><span class="pre">cudaq.observe_asynch</span></code> to distribute all of the expectation values evaluations across as many GPUs that are available. First, try it with <code class="docutils literal notranslate"><span class="pre">num_qpus</span></code> set to 1.</p>
 <div class="nbinput nblast docutils container">
@@ -1305,7 +1328,7 @@ Total elapsed time (s) =  72.83047100389376
 <h2>Using an Active Space<a class="headerlink" href="#Using-an-Active-Space" title="Permalink to this heading">¶</a></h2>
 <p>Performing electronic structure computations with all electrons and orbitals is often prohibitively expensive and unnecessary. Most of the interesting chemistry can be modeled by restricting simulations to the highest energy occupied molecular orbitals and lowest energy unoccupied molecular orbitals. This is known as the active space approximation.</p>
 <p>Below is an example of STO-3G water modeled with a 4 electron 3 orbital active space simulated with UCCSD-VQE. Using an active space means you can run VQE for the same molecule using fewer qubits and a more shallow circuit.</p>
-<p><img alt="cas.png" src="../../_images/cas.png" /></p>
+<img alt="cas.png" src="../../_images/cas.png" />
 <p>The molecule is defined the same way, expect for you now include variables <code class="docutils literal notranslate"><span class="pre">nele_cas</span></code> and <code class="docutils literal notranslate"><span class="pre">norb_cas</span></code> to define the active space. The <code class="docutils literal notranslate"><span class="pre">ncore</span></code></p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
@@ -1463,7 +1486,7 @@ Total elapsed time (s) =  3.2149466909468174
 <h2>Gate Fusion for Larger Circuits<a class="headerlink" href="#Gate-Fusion-for-Larger-Circuits" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q simulations take advantage of a technique called gate fusion. Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> or <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_FUSION_MAX_QUBITS</span></code> or <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable respectively, you can select the degree of fusion that takes place, see
 <a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/using/backends/sims/svsims.html#single-gpu">link</a> for more details.</p>
-<p><img alt="gate-fuse.png" src="../../_images/gate-fuse1.png" /></p>
+<img alt="gate-fuse.png" src="../../_images/gate-fuse1.png" />
 <p>This is particularly important for larger circuits and can have a significant impact on the performance of the simulation. Each system is different, so you should test different gate fusion levels to find out what is best for your system. You can find more information <a class="reference external" href="https://developer.nvidia.com/blog/new-nvidia-cuda-q-features-boost-quantum-application-performance/">here</a>.</p>
 </section>
 </section>

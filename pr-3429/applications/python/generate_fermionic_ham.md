@@ -1,9 +1,9 @@
-::: {.wy-grid-for-nav}
-::: {.wy-side-scroll}
+::: wy-grid-for-nav
+::: wy-side-scroll
 ::: {.wy-side-nav-search style="background: #76b900"}
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
-::: {.version}
+::: version
 pr-3429
 :::
 
@@ -146,13 +146,13 @@ pr-3429
         -   [From CPU to
             GPU](../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
-        -   [Pooling the memory of multiple GPUs (`mgpu`{.code .docutils
-            .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
-            .internal}
-        -   [Parallel execution over multiple QPUs (`mqpu`{.code
+        -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .internal}
+        -   [Parallel execution over multiple QPUs ([`mqpu`{.code
+            .docutils .literal
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
                 Terms](../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
@@ -160,9 +160,9 @@ pr-3429
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends (`remote-mqpu`{.code .docutils
+        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -247,11 +247,11 @@ pr-3429
                 Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Section 2 - Simulating open quantum systems with the
-                `collapse_operators`{.docutils .literal
-                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
             -   [Exercise 2 - Adding additional jump operators
-                [\\(L\_i\\)]{.math .notranslate
+                [\\(L_i\\)]{.math .notranslate
                 .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
                 .internal}
             -   [Section 3 - Many qubits coupled to the
@@ -332,7 +332,7 @@ pr-3429
         -   [CUDA-Q
             Implementation](digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
-    -   [Multi-reference Quantum Krylov Algorithm - [\\(H\_2\\)]{.math
+    -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight} Molecule](krylov.html){.reference
         .internal}
         -   [Setup](krylov.html#Setup){.reference .internal}
@@ -398,8 +398,8 @@ pr-3429
         -   [Numerical result as a
             reference:](hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
-        -   [Using `Sample`{.docutils .literal .notranslate} to perform
-            the Hadamard
+        -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
+            perform the Hadamard
             test](hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
@@ -415,8 +415,8 @@ pr-3429
             with
             CUDA-QX](logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
-        -   [Constructing circuits in the `[[4,2,2]]`{.docutils .literal
-            .notranslate}
+        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
+            .literal .notranslate}]{.pre}
             encoding](logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
@@ -450,8 +450,10 @@ pr-3429
             -   [2. Hamiltonian
                 Trotterization](hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
-            -   [3. `Compute overlap`{.docutils .literal
-                .notranslate}](hamiltonian_simulation.html#3.-Compute-overlap){.reference
+            -   [3. [`Compute`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`overlap`{.docutils .literal
+                .notranslate}]{.pre}](hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
                 Hamiltonian](hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
@@ -606,14 +608,14 @@ pr-3429
         -   [Simulation
             input:](adapt_qaoa.html#Simulation-input:){.reference
             .internal}
-        -   [The problem Hamiltonian [\\(H\_C\\)]{.math .notranslate
+        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
             graph:](adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
-        -   [Th operator pool [\\(A\_j\\)]{.math .notranslate
+        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
             .nohighlight}:](adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
-        -   [The commutator [\\(\[H\_C,A\_j\]\\)]{.math .notranslate
+        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
             .nohighlight}:](adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
@@ -635,7 +637,7 @@ pr-3429
                 excitation](adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A\_i\\)]{.math .notranslate
+            [\\(A_i\\)]{.math .notranslate
             .nohighlight}\]](adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
@@ -798,6 +800,40 @@ pr-3429
                 .internal}
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
+                .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](skqd.html){.reference .internal}
+        -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
+        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1095,14 +1131,14 @@ pr-3429
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [`CMakeLists.txt`{.docutils .literal
-                .notranslate}](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [[`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
             Configuration](../../using/extending/backend.html#target-configuration){.reference
             .internal}
-            -   [Update Parent `CMakeLists.txt`{.docutils .literal
-                .notranslate}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
+            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
         -   [Testing](../../using/extending/backend.html#testing){.reference
             .internal}
@@ -1134,8 +1170,8 @@ pr-3429
     -   [Create a new NVQIR
         Simulator](../../using/extending/nvqir_simulator.html){.reference
         .internal}
-        -   [`CircuitSimulator`{.code .docutils .literal
-            .notranslate}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
+        -   [[`CircuitSimulator`{.code .docutils .literal
+            .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
             action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
@@ -1159,11 +1195,11 @@ pr-3429
         -   [3. Quantum
             Types](../../specification/cudaq/types.html){.reference
             .internal}
-            -   [3.1. `cudaq::qudit<Levels>`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
+            -   [3.1. [`cudaq::qudit<Levels>`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
                 .internal}
-            -   [3.2. `cudaq::qubit`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qubit){.reference
+            -   [3.2. [`cudaq::qubit`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qubit){.reference
                 .internal}
             -   [3.3. Quantum
                 Containers](../../specification/cudaq/types.html#quantum-containers){.reference
@@ -1171,15 +1207,15 @@ pr-3429
         -   [4. Quantum
             Operators](../../specification/cudaq/operators.html){.reference
             .internal}
-            -   [4.1. `cudaq::spin_op`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
+            -   [4.1. [`cudaq::spin_op`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
                 .internal}
         -   [5. Quantum
             Operations](../../specification/cudaq/operations.html){.reference
             .internal}
-            -   [5.1. Operations on `cudaq::qubit`{.code .docutils
+            -   [5.1. Operations on [`cudaq::qubit`{.code .docutils
                 .literal
-                .notranslate}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
@@ -1205,21 +1241,23 @@ pr-3429
         -   [12. Algorithmic
             Primitives](../../specification/cudaq/algorithmic_primitives.html){.reference
             .internal}
-            -   [12.1. `cudaq::sample`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
+            -   [12.1. [`cudaq::sample`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
                 .internal}
-            -   [12.2. `cudaq::run`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
+            -   [12.2. [`cudaq::run`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
                 .internal}
-            -   [12.3. `cudaq::observe`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
+            -   [12.3. [`cudaq::observe`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
                 .internal}
-            -   [12.4. `cudaq::optimizer`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.4. [`cudaq::optimizer`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
-            -   [12.5. `cudaq::gradient`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.5. [`cudaq::gradient`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
         -   [13. Example
@@ -1279,150 +1317,150 @@ pr-3429
         -   [Program
             Construction](../../api/languages/python_api.html#program-construction){.reference
             .internal}
-            -   [`make_kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
+            -   [[`make_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
                 .internal}
-            -   [`PyKernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
+            -   [[`PyKernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
                 .internal}
-            -   [`Kernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Kernel){.reference
+            -   [[`Kernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Kernel){.reference
                 .internal}
-            -   [`PyKernelDecorator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
+            -   [[`PyKernelDecorator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
                 .internal}
-            -   [`kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.kernel){.reference
+            -   [[`kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.kernel){.reference
                 .internal}
         -   [Kernel
             Execution](../../api/languages/python_api.html#kernel-execution){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample){.reference
                 .internal}
-            -   [`sample_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample_async){.reference
+            -   [[`sample_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample_async){.reference
                 .internal}
-            -   [`run()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run){.reference
+            -   [[`run()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run){.reference
                 .internal}
-            -   [`run_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run_async){.reference
+            -   [[`run_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run_async){.reference
                 .internal}
-            -   [`observe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe){.reference
+            -   [[`observe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe){.reference
                 .internal}
-            -   [`observe_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe_async){.reference
+            -   [[`observe_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe_async){.reference
                 .internal}
-            -   [`get_state()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state){.reference
+            -   [[`get_state()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state){.reference
                 .internal}
-            -   [`get_state_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
+            -   [[`get_state_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
                 .internal}
-            -   [`vqe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.vqe){.reference
+            -   [[`vqe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.vqe){.reference
                 .internal}
-            -   [`draw()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.draw){.reference
+            -   [[`draw()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.draw){.reference
                 .internal}
-            -   [`translate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
+            -   [[`translate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
-            -   [`estimate_resources()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+            -   [[`estimate_resources()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
-            -   [`has_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.has_target){.reference
+            -   [[`has_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
-            -   [`get_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_target){.reference
+            -   [[`get_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_target){.reference
                 .internal}
-            -   [`get_targets()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_targets){.reference
+            -   [[`get_targets()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_targets){.reference
                 .internal}
-            -   [`set_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_target){.reference
+            -   [[`set_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_target){.reference
                 .internal}
-            -   [`reset_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.reset_target){.reference
+            -   [[`reset_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.reset_target){.reference
                 .internal}
-            -   [`set_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_noise){.reference
+            -   [[`set_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_noise){.reference
                 .internal}
-            -   [`unset_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
+            -   [[`unset_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
-            -   [`register_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+            -   [[`register_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
                 .internal}
-            -   [`unregister_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+            -   [[`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
                 .internal}
-            -   [`cudaq.apply_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
+            -   [[`cudaq.apply_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
-            -   [`initialize_cudaq()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
+            -   [[`initialize_cudaq()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
                 .internal}
-            -   [`num_available_gpus()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
+            -   [[`num_available_gpus()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
                 .internal}
-            -   [`set_random_seed()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
+            -   [[`set_random_seed()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
                 .internal}
         -   [Dynamics](../../api/languages/python_api.html#dynamics){.reference
             .internal}
-            -   [`evolve()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve){.reference
+            -   [[`evolve()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve){.reference
                 .internal}
-            -   [`evolve_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
+            -   [[`evolve_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
                 .internal}
-            -   [`Schedule`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Schedule){.reference
+            -   [[`Schedule`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Schedule){.reference
                 .internal}
-            -   [`BaseIntegrator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
+            -   [[`BaseIntegrator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
                 .internal}
-            -   [`InitialState`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
+            -   [[`InitialState`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
                 .internal}
-            -   [`InitialStateType`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
+            -   [[`InitialStateType`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
                 .internal}
-            -   [`IntermediateResultSave`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
+            -   [[`IntermediateResultSave`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
                 .internal}
         -   [Operators](../../api/languages/python_api.html#operators){.reference
             .internal}
-            -   [`OperatorSum`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
+            -   [[`OperatorSum`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
                 .internal}
-            -   [`ProductOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
+            -   [[`ProductOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
                 .internal}
-            -   [`ElementaryOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
+            -   [[`ElementaryOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
                 .internal}
-            -   [`ScalarOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
+            -   [[`ScalarOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
                 .internal}
-            -   [`RydbergHamiltonian`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
+            -   [[`RydbergHamiltonian`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
                 .internal}
-            -   [`SuperOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
+            -   [[`SuperOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
                 .internal}
-            -   [`operators.define()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.define){.reference
+            -   [[`operators.define()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.define){.reference
                 .internal}
-            -   [`operators.instantiate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
+            -   [[`operators.instantiate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
                 .internal}
             -   [Spin
                 Operators](../../api/languages/python_api.html#spin-operators){.reference
@@ -1439,59 +1477,59 @@ pr-3429
         -   [Data
             Types](../../api/languages/python_api.html#data-types){.reference
             .internal}
-            -   [`SimulationPrecision`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
+            -   [[`SimulationPrecision`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
                 .internal}
-            -   [`Target`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Target){.reference
+            -   [[`Target`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Target){.reference
                 .internal}
-            -   [`State`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.State){.reference
+            -   [[`State`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.State){.reference
                 .internal}
-            -   [`Tensor`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Tensor){.reference
+            -   [[`Tensor`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Tensor){.reference
                 .internal}
-            -   [`QuakeValue`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
+            -   [[`QuakeValue`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
                 .internal}
-            -   [`qubit`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qubit){.reference
+            -   [[`qubit`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qubit){.reference
                 .internal}
-            -   [`qreg`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qreg){.reference
+            -   [[`qreg`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qreg){.reference
                 .internal}
-            -   [`qvector`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qvector){.reference
+            -   [[`qvector`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
                 .internal}
-            -   [`ComplexMatrix`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
+            -   [[`ComplexMatrix`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
                 .internal}
-            -   [`SampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
+            -   [[`SampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
                 .internal}
-            -   [`AsyncSampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
+            -   [[`AsyncSampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
-            -   [`ObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
+            -   [[`ObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
-            -   [`AsyncObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
+            -   [[`AsyncObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
                 .internal}
-            -   [`AsyncStateResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
+            -   [[`AsyncStateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
                 .internal}
-            -   [`OptimizationResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
+            -   [[`OptimizationResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
                 .internal}
-            -   [`EvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
+            -   [[`EvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
                 .internal}
-            -   [`AsyncEvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+            -   [[`AsyncEvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
                 .internal}
-            -   [`Resources`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
+            -   [[`Resources`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1503,73 +1541,73 @@ pr-3429
         -   [MPI
             Submodule](../../api/languages/python_api.html#mpi-submodule){.reference
             .internal}
-            -   [`initialize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
+            -   [[`initialize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
                 .internal}
-            -   [`rank()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
+            -   [[`rank()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
                 .internal}
-            -   [`num_ranks()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
+            -   [[`num_ranks()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
                 .internal}
-            -   [`all_gather()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
+            -   [[`all_gather()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
                 .internal}
-            -   [`broadcast()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
+            -   [[`broadcast()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
                 .internal}
-            -   [`is_initialized()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
+            -   [[`is_initialized()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
-            -   [`finalize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
+            -   [[`finalize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
         -   [ORCA
             Submodule](../../api/languages/python_api.html#orca-submodule){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
             Qubits](../../api/default_ops.html#unitary-operations-on-qubits){.reference
             .internal}
-            -   [`x`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#x){.reference
+            -   [[`x`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#x){.reference
                 .internal}
-            -   [`y`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#y){.reference
+            -   [[`y`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#y){.reference
                 .internal}
-            -   [`z`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#z){.reference
+            -   [[`z`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#z){.reference
                 .internal}
-            -   [`h`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#h){.reference
+            -   [[`h`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#h){.reference
                 .internal}
-            -   [`r1`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#r1){.reference
+            -   [[`r1`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#r1){.reference
                 .internal}
-            -   [`rx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rx){.reference
+            -   [[`rx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rx){.reference
                 .internal}
-            -   [`ry`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#ry){.reference
+            -   [[`ry`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#ry){.reference
                 .internal}
-            -   [`rz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rz){.reference
+            -   [[`rz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rz){.reference
                 .internal}
-            -   [`s`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#s){.reference
+            -   [[`s`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#s){.reference
                 .internal}
-            -   [`t`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#t){.reference
+            -   [[`t`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#t){.reference
                 .internal}
-            -   [`swap`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#swap){.reference
+            -   [[`swap`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#swap){.reference
                 .internal}
-            -   [`u3`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#u3){.reference
+            -   [[`u3`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
@@ -1577,14 +1615,14 @@ pr-3429
         -   [Measurements on
             Qubits](../../api/default_ops.html#measurements-on-qubits){.reference
             .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mz){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mz){.reference
                 .internal}
-            -   [`mx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mx){.reference
+            -   [[`mx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mx){.reference
                 .internal}
-            -   [`my`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#my){.reference
+            -   [[`my`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#my){.reference
                 .internal}
         -   [User-Defined Custom
             Operations](../../api/default_ops.html#user-defined-custom-operations){.reference
@@ -1592,20 +1630,20 @@ pr-3429
         -   [Photonic Operations on
             Qudits](../../api/default_ops.html#photonic-operations-on-qudits){.reference
             .internal}
-            -   [`create`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#create){.reference
+            -   [[`create`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#create){.reference
                 .internal}
-            -   [`annihilate`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#annihilate){.reference
+            -   [[`annihilate`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#annihilate){.reference
                 .internal}
-            -   [`phase_shift`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#phase-shift){.reference
+            -   [[`phase_shift`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#phase-shift){.reference
                 .internal}
-            -   [`beam_splitter`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#beam-splitter){.reference
+            -   [[`beam_splitter`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#beam-splitter){.reference
                 .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#id1){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
 :::
@@ -1614,10 +1652,10 @@ pr-3429
 ::: {.section .wy-nav-content-wrap toggle="wy-nav-shift"}
 [NVIDIA CUDA-Q](../../index.html)
 
-::: {.wy-nav-content}
-::: {.rst-content}
+::: wy-nav-content
+::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
--   [](../../index.html){.icon .icon-home}
+-   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q Applications](../../using/applications.html)
 -   Generating the electronic Hamiltonian
 -   
@@ -1625,9 +1663,10 @@ pr-3429
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](shors.html "Factoring Integers With Shor’s Algorithm"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](grovers.html "Grover’s Algorithm"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1636,8 +1675,7 @@ aria-hidden="true"}](grovers.html "Grover’s Algorithm"){.btn
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
 ::: {#Generating-the-electronic-Hamiltonian .section}
-Generating the electronic Hamiltonian[¶](#Generating-the-electronic-Hamiltonian "Permalink to this heading"){.headerlink}
-=========================================================================================================================
+# Generating the electronic Hamiltonian[¶](#Generating-the-electronic-Hamiltonian "Permalink to this heading"){.headerlink}
 
 For chemistry applications in quantum computing, one needs first to
 design the electronic Hamiltonian and convert it to qubit Hamiltonian.
@@ -1659,8 +1697,7 @@ components. The electronic Hamiltonian specifically focuses on the
 electronic component of this energy within molecular systems.
 
 ::: {#Second-Quantized-formulation. .section}
-Second Quantized formulation.[¶](#Second-Quantized-formulation. "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------------------------------------
+## Second Quantized formulation.[¶](#Second-Quantized-formulation. "Permalink to this heading"){.headerlink}
 
 The second quantized formulation expresses the Hamiltonian in terms of
 creation and annihilation operators that automatically preserve the
@@ -1669,15 +1706,15 @@ particularly useful for implementing computational methods in quantum
 chemistry.
 
 ::: {.math .notranslate .nohighlight}
-\\\[H = \\sum\_{pq} h\_{pq} a\_p\^\\dagger a\_q + \\frac{1}{2}
-\\sum\_{pqrs} g\_{pqrs} a\_p\^\\dagger a\_q\^\\dagger a\_r a\_s\\\]
+\\\[H = \\sum\_{pq} h\_{pq} a_p\^\\dagger a_q + \\frac{1}{2}
+\\sum\_{pqrs} g\_{pqrs} a_p\^\\dagger a_q\^\\dagger a_r a_s\\\]
 :::
 
 where: - [\\(h\_{pq}\\)]{.math .notranslate .nohighlight} are the
 one-electron integrals - [\\(g\_{pqrs}\\)]{.math .notranslate
 .nohighlight} are the two-electron integrals -
-[\\(a\_p\^\\dagger\\)]{.math .notranslate .nohighlight} and
-[\\(a\_p\\)]{.math .notranslate .nohighlight} are the fermion creation
+[\\(a_p\^\\dagger\\)]{.math .notranslate .nohighlight} and
+[\\(a_p\\)]{.math .notranslate .nohighlight} are the fermion creation
 and annihilation operators
 
 This formulation provides significant advantages for computational
@@ -1719,13 +1756,13 @@ these calculations of electron integrals.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
+::: highlight
     [1]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     # Requires pyscf to be installed
     %pip install pyscf
 :::
@@ -1737,7 +1774,7 @@ these calculations of electron integrals.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     Requirement already satisfied: pyscf in /usr/local/lib/python3.10/dist-packages (2.10.0)
     Requirement already satisfied: scipy>=1.6.0 in /usr/local/lib/python3.10/dist-packages (from pyscf) (1.10.1)
     Requirement already satisfied: setuptools in /usr/lib/python3/dist-packages (from pyscf) (59.6.0)
@@ -1754,13 +1791,13 @@ Hamiltonian, import the following
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [2]:
+::: highlight
+    [1]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     from qchem.classical_pyscf import get_mol_hamiltonian
 :::
 :::
@@ -1771,13 +1808,13 @@ following
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [3]:
+::: highlight
+    [2]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     from qchem.hamiltonian import jordan_wigner_fermion
 :::
 :::
@@ -1785,13 +1822,13 @@ following
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [4]:
+::: highlight
+    [3]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     # Import the cudaq module
     import cudaq
 
@@ -1812,13 +1849,13 @@ following
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [5]:
+::: highlight
+    [4]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     H2_mol = "qchem/H2.xyz"
 
     # Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.
@@ -1859,12 +1896,12 @@ following
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     output file: qchem/H2-pyscf.log
     [pyscf] Total number of orbitals =  2
     [pyscf] Total number of electrons =  2
-    [pyscf] HF energy =  -1.1166512474115224
-    [pyscf] Total R-CCSD energy =  -1.137263505145682
+    [pyscf] HF energy =  -1.116651247411522
+    [pyscf] Total R-CCSD energy =  -1.1372635051456803
     -------------------------------
     Molecular data
     -------------------------------
@@ -1872,8 +1909,8 @@ following
     Total number of spatial orbitals:  2
     Number of spin molecular orbitals:  4
     Nuclear repulsion energy:  0.7131768341239892
-    Fermionic hamiltonian:  -1.2521011771187975 a_0^† a_0 + -1.2521011771187975 b_1^† b_1 + 0.16859356817552074 a_0^† a_0^† a_0 a_0 + 0.16859356817552074 b_1^† b_1^† b_1 b_1 + 0.16859356817552074 a_0^† b_1^† b_1 a_0 + 0.16859356817552074 b_1^† a_0^† a_0 b_1 + 3.469446951953614e-18 a_0^† a_0^† a_0 a_2 + 3.469446951953614e-18 b_1^† b_1^† b_1 b_3 + 3.469446951953614e-18 a_0^† b_1^† b_1 a_2 + 3.469446951953614e-18 b_1^† a_0^† a_0 b_3 + 2.7755575615628914e-17 a_0^† a_0^† a_2 a_0 + 2.7755575615628914e-17 b_1^† b_1^† b_3 b_1 + 2.7755575615628914e-17 a_0^† b_1^† b_3 a_0 + 2.7755575615628914e-17 b_1^† a_0^† a_2 b_1 + 0.045330601391148286 a_0^† a_0^† a_2 a_2 + 0.045330601391148286 b_1^† b_1^† b_3 b_3 + 0.045330601391148286 a_0^† b_1^† b_3 a_2 + 0.045330601391148286 b_1^† a_0^† a_2 b_3 + -2.220446049250313e-16 a_0^† a_2 + -2.220446049250313e-16 b_1^† b_3 + -6.938893903907228e-18 a_0^† a_2^† a_0 a_0 + -6.938893903907228e-18 b_1^† b_3^† b_1 b_1 + -6.938893903907228e-18 a_0^† b_3^† b_1 a_0 + -6.938893903907228e-18 b_1^† a_2^† a_0 b_1 + 0.04533060139114836 a_0^† a_2^† a_0 a_2 + 0.04533060139114836 b_1^† b_3^† b_1 b_3 + 0.04533060139114836 a_0^† b_3^† b_1 a_2 + 0.04533060139114836 b_1^† a_2^† a_0 b_3 + 0.1658409687410311 a_0^† a_2^† a_2 a_0 + 0.1658409687410311 b_1^† b_3^† b_3 b_1 + 0.1658409687410311 a_0^† b_3^† b_3 a_0 + 0.1658409687410311 b_1^† a_2^† a_2 b_1 + 0.0 a_0^† a_2^† a_2 a_2 + 0.0 b_1^† b_3^† b_3 b_3 + 0.0 a_0^† b_3^† b_3 a_2 + 0.0 b_1^† a_2^† a_2 b_3 + 9.71445146547012e-17 a_2^† a_0 + 9.71445146547012e-17 b_3^† b_1 + 8.673617379884035e-18 a_2^† a_0^† a_0 a_0 + 8.673617379884035e-18 b_3^† b_1^† b_1 b_1 + 8.673617379884035e-18 a_2^† b_1^† b_1 a_0 + 8.673617379884035e-18 b_3^† a_0^† a_0 b_1 + 0.16584096874103113 a_2^† a_0^† a_0 a_2 + 0.16584096874103113 b_3^† b_1^† b_1 b_3 + 0.16584096874103113 a_2^† b_1^† b_1 a_2 + 0.16584096874103113 b_3^† a_0^† a_0 b_3 + 0.04533060139114828 a_2^† a_0^† a_2 a_0 + 0.04533060139114828 b_3^† b_1^† b_3 b_1 + 0.04533060139114828 a_2^† b_1^† b_3 a_0 + 0.04533060139114828 b_3^† a_0^† a_2 b_1 + 2.7755575615628914e-17 a_2^† a_0^† a_2 a_2 + 2.7755575615628914e-17 b_3^† b_1^† b_3 b_3 + 2.7755575615628914e-17 a_2^† b_1^† b_3 a_2 + 2.7755575615628914e-17 b_3^† a_0^† a_2 b_3 + -0.47632466628305836 a_2^† a_2 + -0.47632466628305836 b_3^† b_3 + 0.045330601391148355 a_2^† a_2^† a_0 a_0 + 0.045330601391148355 b_3^† b_3^† b_1 b_1 + 0.045330601391148355 a_2^† b_3^† b_1 a_0 + 0.045330601391148355 b_3^† a_2^† a_0 b_1 + 6.938893903907228e-18 a_2^† a_2^† a_0 a_2 + 6.938893903907228e-18 b_3^† b_3^† b_1 b_3 + 6.938893903907228e-18 a_2^† b_3^† b_1 a_2 + 6.938893903907228e-18 b_3^† a_2^† a_0 b_3 + 6.938893903907228e-18 a_2^† a_2^† a_2 a_0 + 6.938893903907228e-18 b_3^† b_3^† b_3 b_1 + 6.938893903907228e-18 a_2^† b_3^† b_3 a_0 + 6.938893903907228e-18 b_3^† a_2^† a_2 b_1 + 0.17432084334442566 a_2^† a_2^† a_2 a_2 + 0.17432084334442566 b_3^† b_3^† b_3 b_3 + 0.17432084334442566 a_2^† b_3^† b_3 a_2 + 0.17432084334442566 b_3^† a_2^† a_2 b_3
-    Energies:  {'hf': -1.1166512474115224, 'mp2': None, 'casci': None, 'casscf': None, 'ccsd': -1.137263505145682, 'fci': None}
+    Fermionic hamiltonian:  -1.252101177118797 a_0^† a_0 + -1.252101177118797 b_1^† b_1 + 0.33718713635104136 a_0^† a_0^† a_0 a_0 + 0.33718713635104136 b_1^† b_1^† b_1 b_1 + 0.33718713635104136 a_0^† b_1^† b_1 a_0 + 0.33718713635104136 b_1^† a_0^† a_0 b_1 + 3.469446951953614e-18 a_0^† a_0^† a_0 a_2 + 3.469446951953614e-18 b_1^† b_1^† b_1 b_3 + 3.469446951953614e-18 a_0^† b_1^† b_1 a_2 + 3.469446951953614e-18 b_1^† a_0^† a_0 b_3 + 5.551115123125783e-17 a_0^† a_0^† a_2 a_0 + 5.551115123125783e-17 b_1^† b_1^† b_3 b_1 + 5.551115123125783e-17 a_0^† b_1^† b_3 a_0 + 5.551115123125783e-17 b_1^† a_0^† a_2 b_1 + 0.09066120278229642 a_0^† a_0^† a_2 a_2 + 0.09066120278229642 b_1^† b_1^† b_3 b_3 + 0.09066120278229642 a_0^† b_1^† b_3 a_2 + 0.09066120278229642 b_1^† a_0^† a_2 b_3 + -2.518543302583089e-16 a_0^† a_2 + -2.518543302583089e-16 b_1^† b_3 + 2.7755575615628914e-17 a_0^† a_2^† a_0 a_0 + 2.7755575615628914e-17 b_1^† b_3^† b_1 b_1 + 2.7755575615628914e-17 a_0^† b_3^† b_1 a_0 + 2.7755575615628914e-17 b_1^† a_2^† a_0 b_1 + 0.09066120278229657 a_0^† a_2^† a_0 a_2 + 0.09066120278229657 b_1^† b_3^† b_1 b_3 + 0.09066120278229657 a_0^† b_3^† b_1 a_2 + 0.09066120278229657 b_1^† a_2^† a_0 b_3 + 0.33168193748206176 a_0^† a_2^† a_2 a_0 + 0.33168193748206176 b_1^† b_3^† b_3 b_1 + 0.33168193748206176 a_0^† b_3^† b_3 a_0 + 0.33168193748206176 b_1^† a_2^† a_2 b_1 + 1.249000902703301e-16 a_0^† a_2^† a_2 a_2 + 1.249000902703301e-16 b_1^† b_3^† b_3 b_3 + 1.249000902703301e-16 a_0^† b_3^† b_3 a_2 + 1.249000902703301e-16 b_1^† a_2^† a_2 b_3 + -1.3184012795569792e-18 a_2^† a_0 + -1.3184012795569792e-18 b_3^† b_1 + 3.469446951953614e-17 a_2^† a_0^† a_0 a_0 + 3.469446951953614e-17 b_3^† b_1^† b_1 b_1 + 3.469446951953614e-17 a_2^† b_1^† b_1 a_0 + 3.469446951953614e-17 b_3^† a_0^† a_0 b_1 + 0.331681937482062 a_2^† a_0^† a_0 a_2 + 0.331681937482062 b_3^† b_1^† b_1 b_3 + 0.331681937482062 a_2^† b_1^† b_1 a_2 + 0.331681937482062 b_3^† a_0^† a_0 b_3 + 0.0906612027822965 a_2^† a_0^† a_2 a_0 + 0.0906612027822965 b_3^† b_1^† b_3 b_1 + 0.0906612027822965 a_2^† b_1^† b_3 a_0 + 0.0906612027822965 b_3^† a_0^† a_2 b_1 + 1.1102230246251565e-16 a_2^† a_0^† a_2 a_2 + 1.1102230246251565e-16 b_3^† b_1^† b_3 b_3 + 1.1102230246251565e-16 a_2^† b_1^† b_3 a_2 + 1.1102230246251565e-16 b_3^† a_0^† a_2 b_3 + -0.4763246662830581 a_2^† a_2 + -0.4763246662830581 b_3^† b_3 + 0.09066120278229667 a_2^† a_2^† a_0 a_0 + 0.09066120278229667 b_3^† b_3^† b_1 b_1 + 0.09066120278229667 a_2^† b_3^† b_1 a_0 + 0.09066120278229667 b_3^† a_2^† a_0 b_1 + 5.551115123125783e-17 a_2^† a_2^† a_0 a_2 + 5.551115123125783e-17 b_3^† b_3^† b_1 b_3 + 5.551115123125783e-17 a_2^† b_3^† b_1 a_2 + 5.551115123125783e-17 b_3^† a_2^† a_0 b_3 + 1.6653345369377348e-16 a_2^† a_2^† a_2 a_0 + 1.6653345369377348e-16 b_3^† b_3^† b_3 b_1 + 1.6653345369377348e-16 a_2^† b_3^† b_3 a_0 + 1.6653345369377348e-16 b_3^† a_2^† a_2 b_1 + 0.348641686688851 a_2^† a_2^† a_2 a_2 + 0.348641686688851 b_3^† b_3^† b_3 b_3 + 0.348641686688851 a_2^† b_3^† b_3 a_2 + 0.348641686688851 b_3^† a_2^† a_2 b_3
+    Energies:  {'hf': -1.116651247411522, 'mp2': None, 'casci': None, 'casscf': None, 'ccsd': -1.1372635051456803, 'fci': None, 'nuclear_repulsion': 0.7131768341239892}
     -------------------------------
     Jordan-Wigner transformation
     -------------------------------
@@ -1889,13 +1926,13 @@ following
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [6]:
+::: highlight
+    [5]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     H2_mol = "qchem/H2.xyz"
 
     # Run HF, ccsd and compute the spin molecular hamiltonian using the HF molecular orbitals.
@@ -1936,13 +1973,13 @@ following
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     overwrite output file: qchem/H2-pyscf.log
     [pyscf] Total number of alpha molecular orbitals =  2
     [pyscf] Total number of beta molecular orbitals =  2
     [pyscf] Total number of electrons =  2
-    [pyscf] HF energy =  -1.1166512474115224
-    [pyscf] Total UR-CCSD energy =  -1.137263505145682
+    [pyscf] HF energy =  -1.1166512474115222
+    [pyscf] Total UR-CCSD energy =  -1.1372635051456819
     -------------------------------
     Molecular data
     -------------------------------
@@ -1950,8 +1987,8 @@ following
     Total number of spatial orbitals:  2
     Number of spin molecular orbitals:  4
     Nuclear repulsion energy:  0.7131768341239892
-    Fermionic hamiltonian:  (-1.2521011771187975+0j) a_0^† a_0 + (-1.2521011771187975+0j) b_1^† b_1 + (-2.220446049250313e-16+0j) a_0^† a_2 + (-2.220446049250313e-16+0j) b_1^† b_3 + (9.71445146547012e-17+0j) a_2^† a_0 + (9.71445146547012e-17+0j) b_3^† b_1 + (-0.47632466628305836+0j) a_2^† a_2 + (-0.47632466628305836+0j) b_3^† b_3 + (0.16859356817552074+0j) a_0^† a_0^† a_0 a_0 + (0.16859356817552074+0j) b_1^† b_1^† b_1 b_1 + (0.16859356817552074+0j) a_0^† b_1^† b_1 a_0 + (0.16859356817552074+0j) b_1^† a_0^† a_0 b_1 + (3.469446951953614e-18+0j) a_0^† a_0^† a_0 a_2 + (3.469446951953614e-18+0j) b_1^† b_1^† b_1 b_3 + (3.469446951953614e-18+0j) a_0^† b_1^† b_1 a_2 + (3.469446951953614e-18+0j) b_1^† a_0^† a_0 b_3 + (2.7755575615628914e-17+0j) a_0^† a_0^† a_2 a_0 + (2.7755575615628914e-17+0j) b_1^† b_1^† b_3 b_1 + (2.7755575615628914e-17+0j) a_0^† b_1^† b_3 a_0 + (2.7755575615628914e-17+0j) b_1^† a_0^† a_2 b_1 + (0.045330601391148286+0j) a_0^† a_0^† a_2 a_2 + (0.045330601391148286+0j) b_1^† b_1^† b_3 b_3 + (0.045330601391148286+0j) a_0^† b_1^† b_3 a_2 + (0.045330601391148286+0j) b_1^† a_0^† a_2 b_3 + (-6.938893903907228e-18+0j) a_0^† a_2^† a_0 a_0 + (-6.938893903907228e-18+0j) b_1^† b_3^† b_1 b_1 + (-6.938893903907228e-18+0j) a_0^† b_3^† b_1 a_0 + (-6.938893903907228e-18+0j) b_1^† a_2^† a_0 b_1 + (0.04533060139114836+0j) a_0^† a_2^† a_0 a_2 + (0.04533060139114836+0j) b_1^† b_3^† b_1 b_3 + (0.04533060139114836+0j) a_0^† b_3^† b_1 a_2 + (0.04533060139114836+0j) b_1^† a_2^† a_0 b_3 + (0.1658409687410311+0j) a_0^† a_2^† a_2 a_0 + (0.1658409687410311+0j) b_1^† b_3^† b_3 b_1 + (0.1658409687410311+0j) a_0^† b_3^† b_3 a_0 + (0.1658409687410311+0j) b_1^† a_2^† a_2 b_1 + 0j a_0^† a_2^† a_2 a_2 + 0j b_1^† b_3^† b_3 b_3 + 0j a_0^† b_3^† b_3 a_2 + 0j b_1^† a_2^† a_2 b_3 + (8.673617379884035e-18+0j) a_2^† a_0^† a_0 a_0 + (8.673617379884035e-18+0j) b_3^† b_1^† b_1 b_1 + (8.673617379884035e-18+0j) a_2^† b_1^† b_1 a_0 + (8.673617379884035e-18+0j) b_3^† a_0^† a_0 b_1 + (0.16584096874103113+0j) a_2^† a_0^† a_0 a_2 + (0.16584096874103113+0j) b_3^† b_1^† b_1 b_3 + (0.16584096874103113+0j) a_2^† b_1^† b_1 a_2 + (0.16584096874103113+0j) b_3^† a_0^† a_0 b_3 + (0.04533060139114828+0j) a_2^† a_0^† a_2 a_0 + (0.04533060139114828+0j) b_3^† b_1^† b_3 b_1 + (0.04533060139114828+0j) a_2^† b_1^† b_3 a_0 + (0.04533060139114828+0j) b_3^† a_0^† a_2 b_1 + (2.7755575615628914e-17+0j) a_2^† a_0^† a_2 a_2 + (2.7755575615628914e-17+0j) b_3^† b_1^† b_3 b_3 + (2.7755575615628914e-17+0j) a_2^† b_1^† b_3 a_2 + (2.7755575615628914e-17+0j) b_3^† a_0^† a_2 b_3 + (0.045330601391148355+0j) a_2^† a_2^† a_0 a_0 + (0.045330601391148355+0j) b_3^† b_3^† b_1 b_1 + (0.045330601391148355+0j) a_2^† b_3^† b_1 a_0 + (0.045330601391148355+0j) b_3^† a_2^† a_0 b_1 + (6.938893903907228e-18+0j) a_2^† a_2^† a_0 a_2 + (6.938893903907228e-18+0j) b_3^† b_3^† b_1 b_3 + (6.938893903907228e-18+0j) a_2^† b_3^† b_1 a_2 + (6.938893903907228e-18+0j) b_3^† a_2^† a_0 b_3 + (6.938893903907228e-18+0j) a_2^† a_2^† a_2 a_0 + (6.938893903907228e-18+0j) b_3^† b_3^† b_3 b_1 + (6.938893903907228e-18+0j) a_2^† b_3^† b_3 a_0 + (6.938893903907228e-18+0j) b_3^† a_2^† a_2 b_1 + (0.17432084334442566+0j) a_2^† a_2^† a_2 a_2 + (0.17432084334442566+0j) b_3^† b_3^† b_3 b_3 + (0.17432084334442566+0j) a_2^† b_3^† b_3 a_2 + (0.17432084334442566+0j) b_3^† a_2^† a_2 b_3
-    Energies:  {'hf': -1.1166512474115224, 'mp2': None, 'casci': None, 'casscf': None, 'ccsd': -1.137263505145682, 'fci': None}
+    Fermionic hamiltonian:  -1.252101177118797 a_0^† a_0 + -1.252101177118797 b_1^† b_1 + -4.738989351833402e-16 a_0^† a_2 + -4.738989351833402e-16 b_1^† b_3 + -1.9852838903630502e-16 a_2^† a_0 + -1.9852838903630502e-16 b_3^† b_1 + -0.47632466628305814 a_2^† a_2 + -0.47632466628305814 b_3^† b_3 + 0.3371871363510414 a_0^† a_0^† a_0 a_0 + 0.3371871363510414 b_1^† b_1^† b_1 b_1 + 0.3371871363510414 a_0^† b_1^† b_1 a_0 + 0.3371871363510414 b_1^† a_0^† a_0 b_1 + 5.551115123125783e-17 a_0^† a_0^† a_2 a_0 + 5.551115123125783e-17 b_1^† b_1^† b_3 b_1 + 5.551115123125783e-17 a_0^† b_1^† b_3 a_0 + 5.551115123125783e-17 b_1^† a_0^† a_2 b_1 + 1.734723475976807e-17 a_0^† a_0^† a_0 a_2 + 1.734723475976807e-17 b_1^† b_1^† b_1 b_3 + 1.734723475976807e-17 a_0^† b_1^† b_1 a_2 + 1.734723475976807e-17 b_1^† a_0^† a_0 b_3 + 0.09066120278229645 a_0^† a_0^† a_2 a_2 + 0.09066120278229645 b_1^† b_1^† b_3 b_3 + 0.09066120278229645 a_0^† b_1^† b_3 a_2 + 0.09066120278229645 b_1^† a_0^† a_2 b_3 + 0.0 a_0^† a_2^† a_0 a_0 + 0.0 b_1^† b_3^† b_1 b_1 + 0.0 a_0^† b_3^† b_1 a_0 + 0.0 b_1^† a_2^† a_0 b_1 + 0.331681937482062 a_0^† a_2^† a_2 a_0 + 0.331681937482062 b_1^† b_3^† b_3 b_1 + 0.331681937482062 a_0^† b_3^† b_3 a_0 + 0.331681937482062 b_1^† a_2^† a_2 b_1 + 0.09066120278229658 a_0^† a_2^† a_0 a_2 + 0.09066120278229658 b_1^† b_3^† b_1 b_3 + 0.09066120278229658 a_0^† b_3^† b_1 a_2 + 0.09066120278229658 b_1^† a_2^† a_0 b_3 + -1.3877787807814457e-17 a_0^† a_2^† a_2 a_2 + -1.3877787807814457e-17 b_1^† b_3^† b_3 b_3 + -1.3877787807814457e-17 a_0^† b_3^† b_3 a_2 + -1.3877787807814457e-17 b_1^† a_2^† a_2 b_3 + 5.551115123125783e-17 a_2^† a_0^† a_0 a_0 + 5.551115123125783e-17 b_3^† b_1^† b_1 b_1 + 5.551115123125783e-17 a_2^† b_1^† b_1 a_0 + 5.551115123125783e-17 b_3^† a_0^† a_0 b_1 + 0.09066120278229653 a_2^† a_0^† a_2 a_0 + 0.09066120278229653 b_3^† b_1^† b_3 b_1 + 0.09066120278229653 a_2^† b_1^† b_3 a_0 + 0.09066120278229653 b_3^† a_0^† a_2 b_1 + 0.33168193748206204 a_2^† a_0^† a_0 a_2 + 0.33168193748206204 b_3^† b_1^† b_1 b_3 + 0.33168193748206204 a_2^† b_1^† b_1 a_2 + 0.33168193748206204 b_3^† a_0^† a_0 b_3 + 5.551115123125783e-17 a_2^† a_0^† a_2 a_2 + 5.551115123125783e-17 b_3^† b_1^† b_3 b_3 + 5.551115123125783e-17 a_2^† b_1^† b_3 a_2 + 5.551115123125783e-17 b_3^† a_0^† a_2 b_3 + 0.09066120278229668 a_2^† a_2^† a_0 a_0 + 0.09066120278229668 b_3^† b_3^† b_1 b_1 + 0.09066120278229668 a_2^† b_3^† b_1 a_0 + 0.09066120278229668 b_3^† a_2^† a_0 b_1 + 2.0816681711721685e-16 a_2^† a_2^† a_2 a_0 + 2.0816681711721685e-16 b_3^† b_3^† b_3 b_1 + 2.0816681711721685e-16 a_2^† b_3^† b_3 a_0 + 2.0816681711721685e-16 b_3^† a_2^† a_2 b_1 + 1.1102230246251565e-16 a_2^† a_2^† a_0 a_2 + 1.1102230246251565e-16 b_3^† b_3^† b_1 b_3 + 1.1102230246251565e-16 a_2^† b_3^† b_1 a_2 + 1.1102230246251565e-16 b_3^† a_2^† a_0 b_3 + 0.3486416866888511 a_2^† a_2^† a_2 a_2 + 0.3486416866888511 b_3^† b_3^† b_3 b_3 + 0.3486416866888511 a_2^† b_3^† b_3 a_2 + 0.3486416866888511 b_3^† a_2^† a_2 b_3
+    Energies:  {'hf': -1.1166512474115222, 'mp2': None, 'casci': None, 'casscf': None, 'ccsd': -1.1372635051456819, 'fci': None, 'nuclear_repulsion': 0.7131768341239892}
     -------------------------------
     Jordan-Wigner transformation
     -------------------------------
@@ -2003,13 +2040,13 @@ frozen core contributions
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [7]:
+::: highlight
+    [6]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     H2O_mol = "qchem/H2O.xyz"
 
     # Run HF, ccsd, casci and compute the active space spin molecular hamiltonian
@@ -2051,21 +2088,21 @@ frozen core contributions
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     output file: qchem/H2O-pyscf.log
     [pyscf] Total number of orbitals =  13
     [pyscf] Total number of electrons =  10
-    [pyscf] HF energy =  -75.9839755372789
-    [pyscf] R-CASCI energy using molecular orbitals=  -75.98508981028924
-    [pyscf] R-CCSD energy of the active space using molecular orbitals=  -75.98508980454677
+    [pyscf] HF energy =  -75.98397553727895
+    [pyscf] R-CASCI energy using molecular orbitals=  -75.98508981028928
+    [pyscf] R-CCSD energy of the active space using molecular orbitals=  -75.98508980454683
     -------------------------------
     Molecular data
     -------------------------------
     Number of electrons in the active space:  4
     Number of spatial orbitals in the active space:  4
     Number of spin molecular orbitals:  8
-    Core energy:  -69.78937499839162
-    CASCI Energy:  -75.98508981028924
+    Core energy:  -69.78937499839189
+    CASCI Energy:  -75.98508981028928
     -------------------------------
     Jordan-Wigner transformation
     -------------------------------
@@ -2081,13 +2118,13 @@ frozen core contributions
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [8]:
+::: highlight
+    [7]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     H2O_mol = "qchem/H2O.xyz"
 
     # Run HF, MP2, ccsd, casci and compute the active space spin molecular hamiltonian.
@@ -2130,26 +2167,26 @@ frozen core contributions
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     overwrite output file: qchem/H2O-pyscf.log
     [pyscf] Total number of orbitals =  13
     [pyscf] Total number of electrons =  10
-    [pyscf] HF energy =  -75.98397553727888
-    [pyscf] R-MP2 energy=  -76.11280670065035
+    [pyscf] HF energy =  -75.9839755372789
+    [pyscf] R-MP2 energy=  -76.11280670065037
     [pyscf] Natural orbital occupation number from R-MP2:
     [1.99995663e+00 1.99012740e+00 1.98197049e+00 1.97722983e+00
      1.97515174e+00 2.23585706e-02 2.09527832e-02 1.73621504e-02
      1.00838241e-02 2.32351484e-03 1.74875097e-03 4.27482714e-04
      3.06831462e-04]
-    [pyscf] R-CASCI energy using natural orbitals=  -76.0330421260011
-    [pyscf] R-CCSD energy of the active space using natural orbitals=  -76.03293564805283
+    [pyscf] R-CASCI energy using natural orbitals=  -76.03304212600104
+    [pyscf] R-CCSD energy of the active space using natural orbitals=  -76.03293564805286
     -------------------------------
     Molecular data
     -------------------------------
     Number of electrons in the active space:  4
     Number of spatial orbitals in the active space:  4
     Number of spin molecular orbitals:  8
-    Core energy:  -69.59209064078028
+    Core energy:  -69.59209064078001
     -------------------------------
     Jordan-Wigner transformation
     -------------------------------
@@ -2165,13 +2202,13 @@ frozen core contributions
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [9]:
+::: highlight
+    [8]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     H2O_mol = "qchem/H2O.xyz"
 
     # Run HF, MP2, casscf and compute the active space spin molecular hamiltonian.
@@ -2219,30 +2256,30 @@ frozen core contributions
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     overwrite output file: qchem/H2O-pyscf.log
     [pyscf] Total number of orbitals =  13
     [pyscf] Total number of electrons =  10
-    [pyscf] HF energy =  -75.98397553727882
-    [pyscf] R-MP2 energy=  -76.1128067006503
+    [pyscf] HF energy =  -75.98397553727898
+    [pyscf] R-MP2 energy=  -76.11280670065045
     [pyscf] Natural orbital occupation number from R-MP2:
     [1.99995663e+00 1.99012740e+00 1.98197049e+00 1.97722983e+00
      1.97515174e+00 2.23585706e-02 2.09527832e-02 1.73621504e-02
      1.00838241e-02 2.32351484e-03 1.74875097e-03 4.27482714e-04
      3.06831462e-04]
-    [pyscf] R-CASSCF energy using natural orbitals=  -76.03702384069327
+    [pyscf] R-CASSCF energy using natural orbitals=  -76.03702384069334
     -------------------------------
     Molecular data
     -------------------------------
     Number of electrons in the active space:  4
     Number of spatial orbitals in the active space:  4
     Number of spin molecular orbitals:  8
-    Core energy:  -69.14810818510908
+    Core energy:  -69.14810818513212
     -------------------------------
     Jordan-Wigner transformation
     -------------------------------
-    [Cudaq] Qubit hamiltonian:  (-73.4246+0i) + (0.286+0i) * Z0 + (0.286+0i) * Z1 + (0.232955+0i) * Z2 + (0.232955+0i) * Z3 + (-0.262533+0i) * Z4 + (-0.262533+0i) * Z5 + (-0.24543+0i) * Z6 + (-0.24543+0i) * Z7 + (0.181709+0i) * Z0Z1 + (-3.7135e-10+0i) * X0Z1X2 + (-3.7135e-10+0i) * Y0Z1Y2 + (0.135721+0i) * Z0Z2 + (0.158846+0i) * Z0Z3 + (-3.13622e-11+0i) * X0Z1Z2Z3X4 + (-3.13622e-11+0i) * Y0Z1Z2Z3Y4 + (0.147141+0i) * Z0Z4 + (0.159353+0i) * Z0Z5 + (0.00801359+0i) * X0Z1Z2Z3Z4Z5X6 + (0.00801359+0i) * Y0Z1Z2Z3Z4Z5Y6 + (0.130427+0i) * Z0Z6 + (0.173887+0i) * Z0Z7 + (0.158846+0i) * Z1Z2 + (-3.7135e-10+0i) * X1Z2X3 + (-3.7135e-10+0i) * Y1Z2Y3 + (0.135721+0i) * Z1Z3 + (0.159353+0i) * Z1Z4 + (-3.13622e-11+0i) * X1Z2Z3Z4X5 + (-3.13622e-11+0i) * Y1Z2Z3Z4Y5 + (0.147141+0i) * Z1Z5 + (0.173887+0i) * Z1Z6 + (0.00801359+0i) * X1Z2Z3Z4Z5Z6X7 + (0.00801359+0i) * Y1Z2Z3Z4Z5Z6Y7 + (0.130427+0i) * Z1Z7 + (0.163669+0i) * Z2Z3 + (-0.005669+0i) * X2Z3X4 + (-0.005669+0i) * Y2Z3Y4 + (0.119773+0i) * Z2Z4 + (0.163692+0i) * Z2Z5 + (-7.23282e-12+0i) * X2Z3Z4Z5X6 + (-7.23282e-12+0i) * Y2Z3Z4Z5Y6 + (0.139625+0i) * Z2Z6 + (0.155968+0i) * Z2Z7 + (0.163692+0i) * Z3Z4 + (-0.005669+0i) * X3Z4X5 + (-0.005669+0i) * Y3Z4Y5 + (0.119773+0i) * Z3Z5 + (0.155968+0i) * Z3Z6 + (-7.23282e-12+0i) * X3Z4Z5Z6X7 + (-7.23282e-12+0i) * Y3Z4Z5Z6Y7 + (0.139625+0i) * Z3Z7 + (0.173287+0i) * Z4Z5 + (1.25993e-10+0i) * X4Z5X6 + (1.25993e-10+0i) * Y4Z5Y6 + (0.133367+0i) * Z4Z6 + (0.16168+0i) * Z4Z7 + (0.16168+0i) * Z5Z6 + (1.25993e-10+0i) * X5Z6X7 + (1.25993e-10+0i) * Y5Z6Y7 + (0.133367+0i) * Z5Z7 + (0.176899+0i) * Z6Z7 + (-2.86907e-11+0i) * Z0X1Z2X3 + (-2.86907e-11+0i) * Z0Y1Z2Y3 + (9.78476e-12+0i) * Z0X1Z2Z3Z4X5 + (9.78476e-12+0i) * Z0Y1Z2Z3Z4Y5 + (-0.0405626+0i) * Z0X1Z2Z3Z4Z5Z6X7 + (-0.0405626+0i) * Z0Y1Z2Z3Z4Z5Z6Y7 + (-2.86907e-11+0i) * X0X2 + (-2.86907e-11+0i) * Y0Y2 + (9.78476e-12+0i) * X0Z2Z3X4 + (9.78476e-12+0i) * Y0Z2Z3Y4 + (-0.0405626+0i) * X0Z2Z3Z4Z5X6 + (-0.0405626+0i) * Y0Z2Z3Z4Z5Y6 + (-0.0231244+0i) * X0X1Y2Y3 + (0.0231244+0i) * X0Y1Y2X3 + (0.0231244+0i) * Y0X1X2Y3 + (-0.0231244+0i) * Y0Y1X2X3 + (-0.00729609+0i) * X0X1Y2Z3Z4Y5 + (0.00729609+0i) * X0Y1Y2Z3Z4X5 + (0.00729609+0i) * Y0X1X2Z3Z4Y5 + (-0.00729609+0i) * Y0Y1X2Z3Z4X5 + (-0.00729609+0i) * X0X1X3X4 + (-0.00729609+0i) * X0Y1Y3X4 + (-0.00729609+0i) * Y0X1X3Y4 + (-0.00729609+0i) * Y0Y1Y3Y4 + (-0.0122114+0i) * X0X1Y4Y5 + (0.0122114+0i) * X0Y1Y4X5 + (0.0122114+0i) * Y0X1X4Y5 + (-0.0122114+0i) * Y0Y1X4X5 + (6.39823e-12+0i) * X0X1Y4Z5Z6Y7 + (-6.39823e-12+0i) * X0Y1Y4Z5Z6X7 + (-6.39823e-12+0i) * Y0X1X4Z5Z6Y7 + (6.39823e-12+0i) * Y0Y1X4Z5Z6X7 + (6.39823e-12+0i) * X0X1X5X6 + (6.39823e-12+0i) * X0Y1Y5X6 + (6.39823e-12+0i) * Y0X1X5Y6 + (6.39823e-12+0i) * Y0Y1Y5Y6 + (-0.0434604+0i) * X0X1Y6Y7 + (0.0434604+0i) * X0Y1Y6X7 + (0.0434604+0i) * Y0X1X6Y7 + (-0.0434604+0i) * Y0Y1X6X7 + (0.0337551+0i) * Z0X2Z3X4 + (0.0337551+0i) * Z0Y2Z3Y4 + (-6.08535e-12+0i) * Z0X2Z3Z4Z5X6 + (-6.08535e-12+0i) * Z0Y2Z3Z4Z5Y6 + (-0.0362638+0i) * X0Z1Z3Z4Z5X6 + (-0.0362638+0i) * Y0Z1Z3Z4Z5Y6 + (0.0108497+0i) * X0Z1X2X4Z5X6 + (-0.00966188+0i) * X0Z1X2Y4Z5Y6 + (0.0205116+0i) * X0Z1Y2Y4Z5X6 + (0.0205116+0i) * Y0Z1X2X4Z5Y6 + (-0.00966188+0i) * Y0Z1Y2X4Z5X6 + (0.0108497+0i) * Y0Z1Y2Y4Z5Y6 + (0.026459+0i) * Z0X3Z4X5 + (0.026459+0i) * Z0Y3Z4Y5 + (-5.18267e-12+0i) * Z0X3Z4Z5Z6X7 + (-5.18267e-12+0i) * Z0Y3Z4Z5Z6Y7 + (-5.82122e-11+0i) * X0Z1X2Z3 + (-5.82122e-11+0i) * Y0Z1Y2Z3 + (1.42428e-12+0i) * X0Z1X2X3Z4X5 + (1.42428e-12+0i) * X0Z1X2Y3Z4Y5 + (1.42428e-12+0i) * Y0Z1Y2X3Z4X5 + (1.42428e-12+0i) * Y0Z1Y2Y3Z4Y5 + (-0.0092937+0i) * X0Z1X2X3Z4Z5Z6X7 + (-0.0092937+0i) * X0Z1X2Y3Z4Z5Z6Y7 + (-0.0092937+0i) * Y0Z1Y2X3Z4Z5Z6X7 + (-0.0092937+0i) * Y0Z1Y2Y3Z4Z5Z6Y7 + (-0.0269701+0i) * X0Z1Z2Z4Z5X6 + (-0.0269701+0i) * Y0Z1Z2Z4Z5Y6 + (-5.07403e-12+0i) * X0Z1Z2X3Y4Y5 + (5.07403e-12+0i) * X0Z1Z2Y3Y4X5 + (5.07403e-12+0i) * Y0Z1Z2X3X4Y5 + (-5.07403e-12+0i) * Y0Z1Z2Y3X4X5 + (0.0137791+0i) * X0Z1Z2X3Y4Z5Z6Y7 + (-0.0137791+0i) * X0Z1Z2Y3Y4Z5Z6X7 + (-0.0137791+0i) * Y0Z1Z2X3X4Z5Z6Y7 + (0.0137791+0i) * Y0Z1Z2Y3X4Z5Z6X7 + (0.0342907+0i) * X0Z1Z2X3X5X6 + (0.0342907+0i) * X0Z1Z2Y3Y5X6 + (0.0342907+0i) * Y0Z1Z2X3X5Y6 + (0.0342907+0i) * Y0Z1Z2Y3Y5Y6 + (-8.71301e-12+0i) * X0Z1Z2X3Y6Y7 + (8.71301e-12+0i) * X0Z1Z2Y3Y6X7 + (8.71301e-12+0i) * Y0Z1Z2X3X6Y7 + (-8.71301e-12+0i) * Y0Z1Z2Y3X6X7 + (-1.33319e-11+0i) * Z0X4Z5X6 + (-1.33319e-11+0i) * Z0Y4Z5Y6 + (4.32968e-12+0i) * X0Z1X2Z4 + (4.32968e-12+0i) * Y0Z1Y2Z4 + (-0.0405248+0i) * X0Z1Z2Z3Z5X6 + (-0.0405248+0i) * Y0Z1Z2Z3Z5Y6 + (-6.9337e-12+0i) * Z0X5Z6X7 + (-6.9337e-12+0i) * Z0Y5Z6Y7 + (-0.023441+0i) * X0Z1X2X5Z6X7 + (-0.023441+0i) * X0Z1X2Y5Z6Y7 + (-0.023441+0i) * Y0Z1Y2X5Z6X7 + (-0.023441+0i) * Y0Z1Y2Y5Z6Y7 + (1.16495e-11+0i) * X0Z1Z2Z3X4Z5 + (1.16495e-11+0i) * Y0Z1Z2Z3Y4Z5 + (-0.010417+0i) * X0Z1Z2Z3X4X5Z6X7 + (-0.010417+0i) * X0Z1Z2Z3X4Y5Z6Y7 + (-0.010417+0i) * Y0Z1Z2Z3Y4X5Z6X7 + (-0.010417+0i) * Y0Z1Z2Z3Y4Y5Z6Y7 + (-0.0301078+0i) * X0Z1Z2Z3Z4X6 + (-0.0301078+0i) * Y0Z1Z2Z3Z4Y6 + (-9.07003e-12+0i) * X0Z1Z2Z3Z4X5Y6Y7 + (9.07003e-12+0i) * X0Z1Z2Z3Z4Y5Y6X7 + (9.07003e-12+0i) * Y0Z1Z2Z3Z4X5X6Y7 + (-9.07003e-12+0i) * Y0Z1Z2Z3Z4Y5X6X7 + (-1.69022e-11+0i) * X0Z1X2Z6 + (-1.69022e-11+0i) * Y0Z1Y2Z6 + (1.7283e-11+0i) * X0Z1Z2Z3X4Z6 + (1.7283e-11+0i) * Y0Z1Z2Z3Y4Z6 + (-2.56152e-11+0i) * X0Z1X2Z7 + (-2.56152e-11+0i) * Y0Z1Y2Z7 + (8.21296e-12+0i) * X0Z1Z2Z3X4Z7 + (8.21296e-12+0i) * Y0Z1Z2Z3Y4Z7 + (-0.0379837+0i) * X0Z1Z2Z3Z4Z5X6Z7 + (-0.0379837+0i) * Y0Z1Z2Z3Z4Z5Y6Z7 + (0.026459+0i) * Z1X2Z3X4 + (0.026459+0i) * Z1Y2Z3Y4 + (-5.18267e-12+0i) * Z1X2Z3Z4Z5X6 + (-5.18267e-12+0i) * Z1Y2Z3Z4Z5Y6 + (-5.82122e-11+0i) * X1X3 + (-5.82122e-11+0i) * Y1Y3 + (-0.0269701+0i) * X1Z3Z4Z5Z6X7 + (-0.0269701+0i) * Y1Z3Z4Z5Z6Y7 + (-1.42428e-12+0i) * X1X2Y3Y4 + (1.42428e-12+0i) * X1Y2Y3X4 + (1.42428e-12+0i) * Y1X2X3Y4 + (-1.42428e-12+0i) * Y1Y2X3X4 + (0.0092937+0i) * X1X2Y3Z4Z5Y6 + (-0.0092937+0i) * X1Y2Y3Z4Z5X6 + (-0.0092937+0i) * Y1X2X3Z4Z5Y6 + (0.0092937+0i) * Y1Y2X3Z4Z5X6 + (-5.07403e-12+0i) * X1X2X4X5 + (-5.07403e-12+0i) * X1Y2Y4X5 + (-5.07403e-12+0i) * Y1X2X4Y5 + (-5.07403e-12+0i) * Y1Y2Y4Y5 + (0.0342907+0i) * X1X2X4Z5Z6X7 + (0.0342907+0i) * X1Y2Y4Z5Z6X7 + (0.0342907+0i) * Y1X2X4Z5Z6Y7 + (0.0342907+0i) * Y1Y2Y4Z5Z6Y7 + (0.0137791+0i) * X1X2Y5Y6 + (-0.0137791+0i) * X1Y2Y5X6 + (-0.0137791+0i) * Y1X2X5Y6 + (0.0137791+0i) * Y1Y2X5X6 + (-8.71301e-12+0i) * X1X2X6X7 + (-8.71301e-12+0i) * X1Y2Y6X7 + (-8.71301e-12+0i) * Y1X2X6Y7 + (-8.71301e-12+0i) * Y1Y2Y6Y7 + (0.0337551+0i) * Z1X3Z4X5 + (0.0337551+0i) * Z1Y3Z4Y5 + (-6.08535e-12+0i) * Z1X3Z4Z5Z6X7 + (-6.08535e-12+0i) * Z1Y3Z4Z5Z6Y7 + (-0.0362638+0i) * X1Z2Z4Z5Z6X7 + (-0.0362638+0i) * Y1Z2Z4Z5Z6Y7 + (0.0108497+0i) * X1Z2X3X5Z6X7 + (-0.00966188+0i) * X1Z2X3Y5Z6Y7 + (0.0205116+0i) * X1Z2Y3Y5Z6X7 + (0.0205116+0i) * Y1Z2X3X5Z6Y7 + (-0.00966188+0i) * Y1Z2Y3X5Z6X7 + (0.0108497+0i) * Y1Z2Y3Y5Z6Y7 + (-6.9337e-12+0i) * Z1X4Z5X6 + (-6.9337e-12+0i) * Z1Y4Z5Y6 + (-0.023441+0i) * X1Z2X3X4Z5X6 + (-0.023441+0i) * X1Z2X3Y4Z5Y6 + (-0.023441+0i) * Y1Z2Y3X4Z5X6 + (-0.023441+0i) * Y1Z2Y3Y4Z5Y6 + (1.16495e-11+0i) * X1Z2Z3X5 + (1.16495e-11+0i) * Y1Z2Z3Y5 + (-0.0301078+0i) * X1Z2Z3Z5Z6X7 + (-0.0301078+0i) * Y1Z2Z3Z5Z6Y7 + (0.010417+0i) * X1Z2Z3X4Y5Y6 + (-0.010417+0i) * X1Z2Z3Y4Y5X6 + (-0.010417+0i) * Y1Z2Z3X4X5Y6 + (0.010417+0i) * Y1Z2Z3Y4X5X6 + (-9.07003e-12+0i) * X1Z2Z3X4X6X7 + (-9.07003e-12+0i) * X1Z2Z3Y4Y6X7 + (-9.07003e-12+0i) * Y1Z2Z3X4X6Y7 + (-9.07003e-12+0i) * Y1Z2Z3Y4Y6Y7 + (-1.33319e-11+0i) * Z1X5Z6X7 + (-1.33319e-11+0i) * Z1Y5Z6Y7 + (4.32968e-12+0i) * X1Z2X3Z5 + (4.32968e-12+0i) * Y1Z2Y3Z5 + (-0.0405248+0i) * X1Z2Z3Z4Z6X7 + (-0.0405248+0i) * Y1Z2Z3Z4Z6Y7 + (-2.56152e-11+0i) * X1Z2X3Z6 + (-2.56152e-11+0i) * Y1Z2Y3Z6 + (8.21296e-12+0i) * X1Z2Z3Z4X5Z6 + (8.21296e-12+0i) * Y1Z2Z3Z4Y5Z6 + (-0.0379837+0i) * X1Z2Z3Z4Z5X7 + (-0.0379837+0i) * Y1Z2Z3Z4Z5Y7 + (-1.69022e-11+0i) * X1Z2X3Z7 + (-1.69022e-11+0i) * Y1Z2Y3Z7 + (1.7283e-11+0i) * X1Z2Z3Z4X5Z7 + (1.7283e-11+0i) * Y1Z2Z3Z4Y5Z7 + (0.0306081+0i) * Z2X3Z4X5 + (0.0306081+0i) * Z2Y3Z4Y5 + (1.03373e-11+0i) * Z2X3Z4Z5Z6X7 + (1.03373e-11+0i) * Z2Y3Z4Z5Z6Y7 + (0.0306081+0i) * X2X4 + (0.0306081+0i) * Y2Y4 + (1.03373e-11+0i) * X2Z4Z5X6 + (1.03373e-11+0i) * Y2Z4Z5Y6 + (-0.043919+0i) * X2X3Y4Y5 + (0.043919+0i) * X2Y3Y4X5 + (0.043919+0i) * Y2X3X4Y5 + (-0.043919+0i) * Y2Y3X4X5 + (-0.0163427+0i) * X2X3Y6Y7 + (0.0163427+0i) * X2Y3Y6X7 + (0.0163427+0i) * Y2X3X6Y7 + (-0.0163427+0i) * Y2Y3X6X7 + (3.24115e-11+0i) * Z2X4Z5X6 + (3.24115e-11+0i) * Z2Y4Z5Y6 + (8.06134e-12+0i) * X2Z3Z5X6 + (8.06134e-12+0i) * Y2Z3Z5Y6 + (3.1488e-11+0i) * Z2X5Z6X7 + (3.1488e-11+0i) * Z2Y5Z6Y7 + (0.0360254+0i) * X2Z3X4Z5 + (0.0360254+0i) * Y2Z3Y4Z5 + (4.35124e-12+0i) * X2Z3X4X5Z6X7 + (4.35124e-12+0i) * X2Z3X4Y5Z6Y7 + (4.35124e-12+0i) * Y2Z3Y4X5Z6X7 + (4.35124e-12+0i) * Y2Z3Y4Y5Z6Y7 + (3.71009e-12+0i) * X2Z3Z4X6 + (3.71009e-12+0i) * Y2Z3Z4Y6 + (-0.013094+0i) * X2Z3Z4X5Y6Y7 + (0.013094+0i) * X2Z3Z4Y5Y6X7 + (0.013094+0i) * Y2Z3Z4X5X6Y7 + (-0.013094+0i) * Y2Z3Z4Y5X6X7 + (0.0358977+0i) * X2Z3X4Z6 + (0.0358977+0i) * Y2Z3Y4Z6 + (0.0228038+0i) * X2Z3X4Z7 + (0.0228038+0i) * Y2Z3Y4Z7 + (-8.74286e-12+0i) * X2Z3Z4Z5X6Z7 + (-8.74286e-12+0i) * Y2Z3Z4Z5Y6Z7 + (3.1488e-11+0i) * Z3X4Z5X6 + (3.1488e-11+0i) * Z3Y4Z5Y6 + (0.0360254+0i) * X3X5 + (0.0360254+0i) * Y3Y5 + (3.71009e-12+0i) * X3Z5Z6X7 + (3.71009e-12+0i) * Y3Z5Z6Y7 + (-4.35124e-12+0i) * X3X4Y5Y6 + (4.35124e-12+0i) * X3Y4Y5X6 + (4.35124e-12+0i) * Y3X4X5Y6 + (-4.35124e-12+0i) * Y3Y4X5X6 + (-0.013094+0i) * X3X4X6X7 + (-0.013094+0i) * X3Y4Y6X7 + (-0.013094+0i) * Y3X4X6Y7 + (-0.013094+0i) * Y3Y4Y6Y7 + (3.24115e-11+0i) * Z3X5Z6X7 + (3.24115e-11+0i) * Z3Y5Z6Y7 + (8.06134e-12+0i) * X3Z4Z6X7 + (8.06134e-12+0i) * Y3Z4Z6Y7 + (0.0228038+0i) * X3Z4X5Z6 + (0.0228038+0i) * Y3Z4Y5Z6 + (-8.74286e-12+0i) * X3Z4Z5X7 + (-8.74286e-12+0i) * Y3Z4Z5Y7 + (0.0358977+0i) * X3Z4X5Z7 + (0.0358977+0i) * Y3Z4Y5Z7 + (-1.71946e-11+0i) * Z4X5Z6X7 + (-1.71946e-11+0i) * Z4Y5Z6Y7 + (-1.71946e-11+0i) * X4X6 + (-1.71946e-11+0i) * Y4Y6 + (-0.0283132+0i) * X4X5Y6Y7 + (0.0283132+0i) * X4Y5Y6X7 + (0.0283132+0i) * Y4X5X6Y7 + (-0.0283132+0i) * Y4Y5X6X7 + (-1.29035e-11+0i) * X4Z5X6Z7 + (-1.29035e-11+0i) * Y4Z5Y6Z7 + (-1.29035e-11+0i) * X5X7 + (-1.29035e-11+0i) * Y5Y7
-    [Cudaq] Number of terms in the Qubit hamiltonian:  333
+    [Cudaq] Qubit hamiltonian:  (-73.4246+0i) + (0.286+0i) * Z0 + (0.286+0i) * Z1 + (0.232955+0i) * Z2 + (0.232955+0i) * Z3 + (-0.262533+0i) * Z4 + (-0.262533+0i) * Z5 + (-0.24543+0i) * Z6 + (-0.24543+0i) * Z7 + (0.181709+0i) * Z0Z1 + (9.44339e-10+0i) * X0Z1X2 + (9.44339e-10+0i) * Y0Z1Y2 + (0.135721+0i) * Z0Z2 + (0.158846+0i) * Z0Z3 + (7.97384e-11+0i) * X0Z1Z2Z3X4 + (7.97384e-11+0i) * Y0Z1Z2Z3Y4 + (0.147141+0i) * Z0Z4 + (0.159353+0i) * Z0Z5 + (-0.00801359+0i) * X0Z1Z2Z3Z4Z5X6 + (-0.00801359+0i) * Y0Z1Z2Z3Z4Z5Y6 + (0.130427+0i) * Z0Z6 + (0.173887+0i) * Z0Z7 + (0.158846+0i) * Z1Z2 + (9.44339e-10+0i) * X1Z2X3 + (9.44339e-10+0i) * Y1Z2Y3 + (0.135721+0i) * Z1Z3 + (0.159353+0i) * Z1Z4 + (7.97384e-11+0i) * X1Z2Z3Z4X5 + (7.97384e-11+0i) * Y1Z2Z3Z4Y5 + (0.147141+0i) * Z1Z5 + (0.173887+0i) * Z1Z6 + (-0.00801359+0i) * X1Z2Z3Z4Z5Z6X7 + (-0.00801359+0i) * Y1Z2Z3Z4Z5Z6Y7 + (0.130427+0i) * Z1Z7 + (0.163669+0i) * Z2Z3 + (-0.005669+0i) * X2Z3X4 + (-0.005669+0i) * Y2Z3Y4 + (0.119773+0i) * Z2Z4 + (0.163692+0i) * Z2Z5 + (-1.83834e-11+0i) * X2Z3Z4Z5X6 + (-1.83834e-11+0i) * Y2Z3Z4Z5Y6 + (0.139625+0i) * Z2Z6 + (0.155968+0i) * Z2Z7 + (0.163692+0i) * Z3Z4 + (-0.005669+0i) * X3Z4X5 + (-0.005669+0i) * Y3Z4Y5 + (0.119773+0i) * Z3Z5 + (0.155968+0i) * Z3Z6 + (-1.83834e-11+0i) * X3Z4Z5Z6X7 + (-1.83834e-11+0i) * Y3Z4Z5Z6Y7 + (0.139625+0i) * Z3Z7 + (0.173287+0i) * Z4Z5 + (3.20355e-10+0i) * X4Z5X6 + (3.20355e-10+0i) * Y4Z5Y6 + (0.133367+0i) * Z4Z6 + (0.16168+0i) * Z4Z7 + (0.16168+0i) * Z5Z6 + (3.20355e-10+0i) * X5Z6X7 + (3.20355e-10+0i) * Y5Z6Y7 + (0.133367+0i) * Z5Z7 + (0.176899+0i) * Z6Z7 + (7.2938e-11+0i) * Z0X1Z2X3 + (7.2938e-11+0i) * Z0Y1Z2Y3 + (-2.48794e-11+0i) * Z0X1Z2Z3Z4X5 + (-2.48794e-11+0i) * Z0Y1Z2Z3Z4Y5 + (0.0405626+0i) * Z0X1Z2Z3Z4Z5Z6X7 + (0.0405626+0i) * Z0Y1Z2Z3Z4Z5Z6Y7 + (7.2938e-11+0i) * X0X2 + (7.2938e-11+0i) * Y0Y2 + (-2.48794e-11+0i) * X0Z2Z3X4 + (-2.48794e-11+0i) * Y0Z2Z3Y4 + (0.0405626+0i) * X0Z2Z3Z4Z5X6 + (0.0405626+0i) * Y0Z2Z3Z4Z5Y6 + (-0.0231244+0i) * X0X1Y2Y3 + (0.0231244+0i) * X0Y1Y2X3 + (0.0231244+0i) * Y0X1X2Y3 + (-0.0231244+0i) * Y0Y1X2X3 + (-0.00729609+0i) * X0X1Y2Z3Z4Y5 + (0.00729609+0i) * X0Y1Y2Z3Z4X5 + (0.00729609+0i) * Y0X1X2Z3Z4Y5 + (-0.00729609+0i) * Y0Y1X2Z3Z4X5 + (2.27614e-12+0i) * X0X1Y2Z3Z4Z5Z6Y7 + (-2.27614e-12+0i) * X0Y1Y2Z3Z4Z5Z6X7 + (-2.27614e-12+0i) * Y0X1X2Z3Z4Z5Z6Y7 + (2.27614e-12+0i) * Y0Y1X2Z3Z4Z5Z6X7 + (-0.00729609+0i) * X0X1X3X4 + (-0.00729609+0i) * X0Y1Y3X4 + (-0.00729609+0i) * Y0X1X3Y4 + (-0.00729609+0i) * Y0Y1Y3Y4 + (2.27614e-12+0i) * X0X1X3Z4Z5X6 + (2.27614e-12+0i) * X0Y1Y3Z4Z5X6 + (2.27614e-12+0i) * Y0X1X3Z4Z5Y6 + (2.27614e-12+0i) * Y0Y1Y3Z4Z5Y6 + (-0.0122114+0i) * X0X1Y4Y5 + (0.0122114+0i) * X0Y1Y4X5 + (0.0122114+0i) * Y0X1X4Y5 + (-0.0122114+0i) * Y0Y1X4X5 + (1.62381e-11+0i) * X0X1Y4Z5Z6Y7 + (-1.62381e-11+0i) * X0Y1Y4Z5Z6X7 + (-1.62381e-11+0i) * Y0X1X4Z5Z6Y7 + (1.62381e-11+0i) * Y0Y1X4Z5Z6X7 + (1.62381e-11+0i) * X0X1X5X6 + (1.62381e-11+0i) * X0Y1Y5X6 + (1.62381e-11+0i) * Y0X1X5Y6 + (1.62381e-11+0i) * Y0Y1Y5Y6 + (-0.0434604+0i) * X0X1Y6Y7 + (0.0434604+0i) * X0Y1Y6X7 + (0.0434604+0i) * Y0X1X6Y7 + (-0.0434604+0i) * Y0Y1X6X7 + (0.0337551+0i) * Z0X2Z3X4 + (0.0337551+0i) * Z0Y2Z3Y4 + (-1.54976e-11+0i) * Z0X2Z3Z4Z5X6 + (-1.54976e-11+0i) * Z0Y2Z3Z4Z5Y6 + (-1.90296e-12+0i) * X0Z1Z3X4 + (-1.90296e-12+0i) * Y0Z1Z3Y4 + (0.0362638+0i) * X0Z1Z3Z4Z5X6 + (0.0362638+0i) * Y0Z1Z3Z4Z5Y6 + (-0.0108497+0i) * X0Z1X2X4Z5X6 + (0.00966188+0i) * X0Z1X2Y4Z5Y6 + (-0.0205116+0i) * X0Z1Y2Y4Z5X6 + (-0.0205116+0i) * Y0Z1X2X4Z5Y6 + (0.00966188+0i) * Y0Z1Y2X4Z5X6 + (-0.0108497+0i) * Y0Z1Y2Y4Z5Y6 + (0.026459+0i) * Z0X3Z4X5 + (0.026459+0i) * Z0Y3Z4Y5 + (-1.32215e-11+0i) * Z0X3Z4Z5Z6X7 + (-1.32215e-11+0i) * Z0Y3Z4Z5Z6Y7 + (1.48061e-10+0i) * X0Z1X2Z3 + (1.48061e-10+0i) * Y0Z1Y2Z3 + (-3.63229e-12+0i) * X0Z1X2X3Z4X5 + (-3.63229e-12+0i) * X0Z1X2Y3Z4Y5 + (-3.63229e-12+0i) * Y0Z1Y2X3Z4X5 + (-3.63229e-12+0i) * Y0Z1Y2Y3Z4Y5 + (0.0092937+0i) * X0Z1X2X3Z4Z5Z6X7 + (0.0092937+0i) * X0Z1X2Y3Z4Z5Z6Y7 + (0.0092937+0i) * Y0Z1Y2X3Z4Z5Z6X7 + (0.0092937+0i) * Y0Z1Y2Y3Z4Z5Z6Y7 + (1.72934e-12+0i) * X0Z1Z2X4 + (1.72934e-12+0i) * Y0Z1Z2Y4 + (0.0269701+0i) * X0Z1Z2Z4Z5X6 + (0.0269701+0i) * Y0Z1Z2Z4Z5Y6 + (1.28862e-11+0i) * X0Z1Z2X3Y4Y5 + (-1.28862e-11+0i) * X0Z1Z2Y3Y4X5 + (-1.28862e-11+0i) * Y0Z1Z2X3X4Y5 + (1.28862e-11+0i) * Y0Z1Z2Y3X4X5 + (-0.0137791+0i) * X0Z1Z2X3Y4Z5Z6Y7 + (0.0137791+0i) * X0Z1Z2Y3Y4Z5Z6X7 + (0.0137791+0i) * Y0Z1Z2X3X4Z5Z6Y7 + (-0.0137791+0i) * Y0Z1Z2Y3X4Z5Z6X7 + (-0.0342907+0i) * X0Z1Z2X3X5X6 + (-0.0342907+0i) * X0Z1Z2Y3Y5X6 + (-0.0342907+0i) * Y0Z1Z2X3X5Y6 + (-0.0342907+0i) * Y0Z1Z2Y3Y5Y6 + (2.21699e-11+0i) * X0Z1Z2X3Y6Y7 + (-2.21699e-11+0i) * X0Z1Z2Y3Y6X7 + (-2.21699e-11+0i) * Y0Z1Z2X3X6Y7 + (2.21699e-11+0i) * Y0Z1Z2Y3X6X7 + (-3.38986e-11+0i) * Z0X4Z5X6 + (-3.38986e-11+0i) * Z0Y4Z5Y6 + (-1.09876e-11+0i) * X0Z1X2Z4 + (-1.09876e-11+0i) * Y0Z1Y2Z4 + (0.0405248+0i) * X0Z1Z2Z3Z5X6 + (0.0405248+0i) * Y0Z1Z2Z3Z5Y6 + (-1.76605e-11+0i) * Z0X5Z6X7 + (-1.76605e-11+0i) * Z0Y5Z6Y7 + (1.89864e-12+0i) * X0Z1X2Z5 + (1.89864e-12+0i) * Y0Z1Y2Z5 + (0.023441+0i) * X0Z1X2X5Z6X7 + (0.023441+0i) * X0Z1X2Y5Z6Y7 + (0.023441+0i) * Y0Z1Y2X5Z6X7 + (0.023441+0i) * Y0Z1Y2Y5Z6Y7 + (-2.95981e-11+0i) * X0Z1Z2Z3X4Z5 + (-2.95981e-11+0i) * Y0Z1Z2Z3Y4Z5 + (0.010417+0i) * X0Z1Z2Z3X4X5Z6X7 + (0.010417+0i) * X0Z1Z2Z3X4Y5Z6Y7 + (0.010417+0i) * Y0Z1Z2Z3Y4X5Z6X7 + (0.010417+0i) * Y0Z1Z2Z3Y4Y5Z6Y7 + (0.0301078+0i) * X0Z1Z2Z3Z4X6 + (0.0301078+0i) * Y0Z1Z2Z3Z4Y6 + (2.30462e-11+0i) * X0Z1Z2Z3Z4X5Y6Y7 + (-2.30462e-11+0i) * X0Z1Z2Z3Z4Y5Y6X7 + (-2.30462e-11+0i) * Y0Z1Z2Z3Z4X5X6Y7 + (2.30462e-11+0i) * Y0Z1Z2Z3Z4Y5X6X7 + (4.29729e-11+0i) * X0Z1X2Z6 + (4.29729e-11+0i) * Y0Z1Y2Z6 + (-4.39242e-11+0i) * X0Z1Z2Z3X4Z6 + (-4.39242e-11+0i) * Y0Z1Z2Z3Y4Z6 + (6.51428e-11+0i) * X0Z1X2Z7 + (6.51428e-11+0i) * Y0Z1Y2Z7 + (-2.0878e-11+0i) * X0Z1Z2Z3X4Z7 + (-2.0878e-11+0i) * Y0Z1Z2Z3Y4Z7 + (0.0379837+0i) * X0Z1Z2Z3Z4Z5X6Z7 + (0.0379837+0i) * Y0Z1Z2Z3Z4Z5Y6Z7 + (0.026459+0i) * Z1X2Z3X4 + (0.026459+0i) * Z1Y2Z3Y4 + (-1.32215e-11+0i) * Z1X2Z3Z4Z5X6 + (-1.32215e-11+0i) * Z1Y2Z3Z4Z5Y6 + (1.48061e-10+0i) * X1X3 + (1.48061e-10+0i) * Y1Y3 + (1.72934e-12+0i) * X1Z3Z4X5 + (1.72934e-12+0i) * Y1Z3Z4Y5 + (0.0269701+0i) * X1Z3Z4Z5Z6X7 + (0.0269701+0i) * Y1Z3Z4Z5Z6Y7 + (3.63229e-12+0i) * X1X2Y3Y4 + (-3.63229e-12+0i) * X1Y2Y3X4 + (-3.63229e-12+0i) * Y1X2X3Y4 + (3.63229e-12+0i) * Y1Y2X3X4 + (-0.0092937+0i) * X1X2Y3Z4Z5Y6 + (0.0092937+0i) * X1Y2Y3Z4Z5X6 + (0.0092937+0i) * Y1X2X3Z4Z5Y6 + (-0.0092937+0i) * Y1Y2X3Z4Z5X6 + (1.28862e-11+0i) * X1X2X4X5 + (1.28862e-11+0i) * X1Y2Y4X5 + (1.28862e-11+0i) * Y1X2X4Y5 + (1.28862e-11+0i) * Y1Y2Y4Y5 + (-0.0342907+0i) * X1X2X4Z5Z6X7 + (-0.0342907+0i) * X1Y2Y4Z5Z6X7 + (-0.0342907+0i) * Y1X2X4Z5Z6Y7 + (-0.0342907+0i) * Y1Y2Y4Z5Z6Y7 + (-0.0137791+0i) * X1X2Y5Y6 + (0.0137791+0i) * X1Y2Y5X6 + (0.0137791+0i) * Y1X2X5Y6 + (-0.0137791+0i) * Y1Y2X5X6 + (2.21699e-11+0i) * X1X2X6X7 + (2.21699e-11+0i) * X1Y2Y6X7 + (2.21699e-11+0i) * Y1X2X6Y7 + (2.21699e-11+0i) * Y1Y2Y6Y7 + (0.0337551+0i) * Z1X3Z4X5 + (0.0337551+0i) * Z1Y3Z4Y5 + (-1.54976e-11+0i) * Z1X3Z4Z5Z6X7 + (-1.54976e-11+0i) * Z1Y3Z4Z5Z6Y7 + (-1.90296e-12+0i) * X1Z2Z4X5 + (-1.90296e-12+0i) * Y1Z2Z4Y5 + (0.0362638+0i) * X1Z2Z4Z5Z6X7 + (0.0362638+0i) * Y1Z2Z4Z5Z6Y7 + (-0.0108497+0i) * X1Z2X3X5Z6X7 + (0.00966188+0i) * X1Z2X3Y5Z6Y7 + (-0.0205116+0i) * X1Z2Y3Y5Z6X7 + (-0.0205116+0i) * Y1Z2X3X5Z6Y7 + (0.00966188+0i) * Y1Z2Y3X5Z6X7 + (-0.0108497+0i) * Y1Z2Y3Y5Z6Y7 + (-1.76605e-11+0i) * Z1X4Z5X6 + (-1.76605e-11+0i) * Z1Y4Z5Y6 + (1.89864e-12+0i) * X1Z2X3Z4 + (1.89864e-12+0i) * Y1Z2Y3Z4 + (0.023441+0i) * X1Z2X3X4Z5X6 + (0.023441+0i) * X1Z2X3Y4Z5Y6 + (0.023441+0i) * Y1Z2Y3X4Z5X6 + (0.023441+0i) * Y1Z2Y3Y4Z5Y6 + (-2.95981e-11+0i) * X1Z2Z3X5 + (-2.95981e-11+0i) * Y1Z2Z3Y5 + (0.0301078+0i) * X1Z2Z3Z5Z6X7 + (0.0301078+0i) * Y1Z2Z3Z5Z6Y7 + (-0.010417+0i) * X1Z2Z3X4Y5Y6 + (0.010417+0i) * X1Z2Z3Y4Y5X6 + (0.010417+0i) * Y1Z2Z3X4X5Y6 + (-0.010417+0i) * Y1Z2Z3Y4X5X6 + (2.30462e-11+0i) * X1Z2Z3X4X6X7 + (2.30462e-11+0i) * X1Z2Z3Y4Y6X7 + (2.30462e-11+0i) * Y1Z2Z3X4X6Y7 + (2.30462e-11+0i) * Y1Z2Z3Y4Y6Y7 + (-3.38986e-11+0i) * Z1X5Z6X7 + (-3.38986e-11+0i) * Z1Y5Z6Y7 + (-1.09876e-11+0i) * X1Z2X3Z5 + (-1.09876e-11+0i) * Y1Z2Y3Z5 + (0.0405248+0i) * X1Z2Z3Z4Z6X7 + (0.0405248+0i) * Y1Z2Z3Z4Z6Y7 + (6.51428e-11+0i) * X1Z2X3Z6 + (6.51428e-11+0i) * Y1Z2Y3Z6 + (-2.0878e-11+0i) * X1Z2Z3Z4X5Z6 + (-2.0878e-11+0i) * Y1Z2Z3Z4Y5Z6 + (0.0379837+0i) * X1Z2Z3Z4Z5X7 + (0.0379837+0i) * Y1Z2Z3Z4Z5Y7 + (4.29729e-11+0i) * X1Z2X3Z7 + (4.29729e-11+0i) * Y1Z2Y3Z7 + (-4.39242e-11+0i) * X1Z2Z3Z4X5Z7 + (-4.39242e-11+0i) * Y1Z2Z3Z4Y5Z7 + (0.0306081+0i) * Z2X3Z4X5 + (0.0306081+0i) * Z2Y3Z4Y5 + (2.62864e-11+0i) * Z2X3Z4Z5Z6X7 + (2.62864e-11+0i) * Z2Y3Z4Z5Z6Y7 + (0.0306081+0i) * X2X4 + (0.0306081+0i) * Y2Y4 + (2.62864e-11+0i) * X2Z4Z5X6 + (2.62864e-11+0i) * Y2Z4Z5Y6 + (-0.043919+0i) * X2X3Y4Y5 + (0.043919+0i) * X2Y3Y4X5 + (0.043919+0i) * Y2X3X4Y5 + (-0.043919+0i) * Y2Y3X4X5 + (-2.31362e-12+0i) * X2X3Y4Z5Z6Y7 + (2.31362e-12+0i) * X2Y3Y4Z5Z6X7 + (2.31362e-12+0i) * Y2X3X4Z5Z6Y7 + (-2.31362e-12+0i) * Y2Y3X4Z5Z6X7 + (-2.31362e-12+0i) * X2X3X5X6 + (-2.31362e-12+0i) * X2Y3Y5X6 + (-2.31362e-12+0i) * Y2X3X5Y6 + (-2.31362e-12+0i) * Y2Y3Y5Y6 + (-0.0163427+0i) * X2X3Y6Y7 + (0.0163427+0i) * X2Y3Y6X7 + (0.0163427+0i) * Y2X3X6Y7 + (-0.0163427+0i) * Y2Y3X6X7 + (8.2426e-11+0i) * Z2X4Z5X6 + (8.2426e-11+0i) * Z2Y4Z5Y6 + (2.04748e-11+0i) * X2Z3Z5X6 + (2.04748e-11+0i) * Y2Z3Z5Y6 + (8.01124e-11+0i) * Z2X5Z6X7 + (8.01124e-11+0i) * Z2Y5Z6Y7 + (0.0360254+0i) * X2Z3X4Z5 + (0.0360254+0i) * Y2Z3Y4Z5 + (1.10555e-11+0i) * X2Z3X4X5Z6X7 + (1.10555e-11+0i) * X2Z3X4Y5Z6Y7 + (1.10555e-11+0i) * Y2Z3Y4X5Z6X7 + (1.10555e-11+0i) * Y2Z3Y4Y5Z6Y7 + (9.4193e-12+0i) * X2Z3Z4X6 + (9.4193e-12+0i) * Y2Z3Z4Y6 + (-0.013094+0i) * X2Z3Z4X5Y6Y7 + (0.013094+0i) * X2Z3Z4Y5Y6X7 + (0.013094+0i) * Y2Z3Z4X5X6Y7 + (-0.013094+0i) * Y2Z3Z4Y5X6X7 + (0.0358977+0i) * X2Z3X4Z6 + (0.0358977+0i) * Y2Z3Y4Z6 + (0.0228038+0i) * X2Z3X4Z7 + (0.0228038+0i) * Y2Z3Y4Z7 + (-2.22627e-11+0i) * X2Z3Z4Z5X6Z7 + (-2.22627e-11+0i) * Y2Z3Z4Z5Y6Z7 + (8.01124e-11+0i) * Z3X4Z5X6 + (8.01124e-11+0i) * Z3Y4Z5Y6 + (0.0360254+0i) * X3X5 + (0.0360254+0i) * Y3Y5 + (9.4193e-12+0i) * X3Z5Z6X7 + (9.4193e-12+0i) * Y3Z5Z6Y7 + (-1.10555e-11+0i) * X3X4Y5Y6 + (1.10555e-11+0i) * X3Y4Y5X6 + (1.10555e-11+0i) * Y3X4X5Y6 + (-1.10555e-11+0i) * Y3Y4X5X6 + (-0.013094+0i) * X3X4X6X7 + (-0.013094+0i) * X3Y4Y6X7 + (-0.013094+0i) * Y3X4X6Y7 + (-0.013094+0i) * Y3Y4Y6Y7 + (8.2426e-11+0i) * Z3X5Z6X7 + (8.2426e-11+0i) * Z3Y5Z6Y7 + (2.04748e-11+0i) * X3Z4Z6X7 + (2.04748e-11+0i) * Y3Z4Z6Y7 + (0.0228038+0i) * X3Z4X5Z6 + (0.0228038+0i) * Y3Z4Y5Z6 + (-2.22627e-11+0i) * X3Z4Z5X7 + (-2.22627e-11+0i) * Y3Z4Z5Y7 + (0.0358977+0i) * X3Z4X5Z7 + (0.0358977+0i) * Y3Z4Y5Z7 + (-4.37108e-11+0i) * Z4X5Z6X7 + (-4.37108e-11+0i) * Z4Y5Z6Y7 + (-4.37108e-11+0i) * X4X6 + (-4.37108e-11+0i) * Y4Y6 + (-0.0283132+0i) * X4X5Y6Y7 + (0.0283132+0i) * X4Y5Y6X7 + (0.0283132+0i) * Y4X5X6Y7 + (-0.0283132+0i) * Y4Y5X6X7 + (-3.28131e-11+0i) * X4Z5X6Z7 + (-3.28131e-11+0i) * Y4Z5Y6Z7 + (-3.28131e-11+0i) * X5X7 + (-3.28131e-11+0i) * Y5Y7
+    [Cudaq] Number of terms in the Qubit hamiltonian:  361
 :::
 :::
 :::
@@ -2253,13 +2290,13 @@ frozen core contributions
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [10]:
+::: highlight
+    [9]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     geomerty = 'N 0.0 0.0 0.56; N 0.0 0.0 -0.56'
     molecular_data = get_mol_hamiltonian(xyz= geomerty, spin=1, charge=1, basis='631g', nele_cas=5, norb_cas=6, ccsd=True, casci = True, verbose=True)
 
@@ -2292,12 +2329,12 @@ frozen core contributions
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     output file: N 0-pyscf.log
     [pyscf] Total number of orbitals =  18
     [pyscf] Total number of electrons =  13
-    [pyscf] HF energy =  -108.28029717676162
-    [pyscf] R-CASCI energy using molecular orbitals=  -108.37916901674117
+    [pyscf] HF energy =  -108.28029717676156
+    [pyscf] R-CASCI energy using molecular orbitals=  -108.37916901674112
 :::
 :::
 :::
@@ -2307,7 +2344,7 @@ frozen core contributions
 :::
 
 ::: {.output_area .stderr .docutils .container}
-::: {.highlight}
+::: highlight
     WARN: RCCSD method does not support ROHF method. ROHF object is converted to UHF object and UCCSD method is called.
 :::
 :::
@@ -2318,16 +2355,16 @@ frozen core contributions
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
-    [pyscf] R-CCSD energy of the active space using molecular orbitals=  -108.37763087821688
+::: highlight
+    [pyscf] R-CCSD energy of the active space using molecular orbitals=  -108.37763087821682
     -------------------------------
     Molecular data
     -------------------------------
     Number of electrons in the active space:  5
     Number of spatial orbitals in the active space:  6
     Number of spin molecular orbitals:  12
-    Core energy:  -97.73731859734104
-    [Cudaq] Qubit hamiltonian:  (-106.644+0i) + (0.261983+0i) * Z0 + (0.261983+0i) * Z1 + (0.261983+0i) * Z2 + (0.261983+0i) * Z3 + (0.237545+0i) * Z4 + (0.237545+0i) * Z5 + (0.0601943+0i) * Z6 + (0.0601943+0i) * Z7 + (0.0601943+0i) * Z8 + (0.0601943+0i) * Z9 + (-0.199869+0i) * Z10 + (-0.199869+0i) * Z11 + (0.144151+0i) * Z0Z1 + (0.127483+0i) * Z0Z2 + (0.133039+0i) * Z0Z3 + (0.123982+0i) * Z0Z4 + (0.131017+0i) * Z0Z5 + (0.100836+0i) * Z0Z6 + (0.132356+0i) * Z0Z7 + (0.112894+0i) * Z0Z8 + (0.12824+0i) * Z0Z9 + (0.0907631+0i) * Z0Z10 + (0.0949805+0i) * Z0Z11 + (0.133039+0i) * Z1Z2 + (0.127483+0i) * Z1Z3 + (0.131017+0i) * Z1Z4 + (0.123982+0i) * Z1Z5 + (0.132356+0i) * Z1Z6 + (0.100836+0i) * Z1Z7 + (0.12824+0i) * Z1Z8 + (0.112894+0i) * Z1Z9 + (0.0949805+0i) * Z1Z10 + (0.0907631+0i) * Z1Z11 + (0.144151+0i) * Z2Z3 + (0.123982+0i) * Z2Z4 + (0.131017+0i) * Z2Z5 + (0.112894+0i) * Z2Z6 + (0.12824+0i) * Z2Z7 + (0.100836+0i) * Z2Z8 + (0.132356+0i) * Z2Z9 + (0.0907631+0i) * Z2Z10 + (0.0949805+0i) * Z2Z11 + (0.131017+0i) * Z3Z4 + (0.123982+0i) * Z3Z5 + (0.12824+0i) * Z3Z6 + (0.112894+0i) * Z3Z7 + (0.132356+0i) * Z3Z8 + (0.100836+0i) * Z3Z9 + (0.0949805+0i) * Z3Z10 + (0.0907631+0i) * Z3Z11 + (0.148494+0i) * Z4Z5 + (0.119366+0i) * Z4Z6 + (0.128149+0i) * Z4Z7 + (0.119366+0i) * Z4Z8 + (0.128149+0i) * Z4Z9 + (0.0924767+0i) * Z4Z10 + (0.0997354+0i) * Z4Z11 + (0.128149+0i) * Z5Z6 + (0.119366+0i) * Z5Z7 + (0.128149+0i) * Z5Z8 + (0.119366+0i) * Z5Z9 + (0.0997354+0i) * Z5Z10 + (0.0924767+0i) * Z5Z11 + (0.130646+0i) * Z6Z7 + (0.115745+0i) * Z6Z8 + (0.120712+0i) * Z6Z9 + (0.0880899+0i) * Z6Z10 + (0.0932951+0i) * Z6Z11 + (0.120712+0i) * Z7Z8 + (0.115745+0i) * Z7Z9 + (0.0932951+0i) * Z7Z10 + (0.0880899+0i) * Z7Z11 + (0.130646+0i) * Z8Z9 + (0.0880899+0i) * Z8Z10 + (0.0932951+0i) * Z8Z11 + (0.0932951+0i) * Z9Z10 + (0.0880899+0i) * Z9Z11 + (0.0905739+0i) * Z10Z11 + (-0.00555603+0i) * X0X1Y2Y3 + (0.00555603+0i) * X0Y1Y2X3 + (0.00555603+0i) * Y0X1X2Y3 + (-0.00555603+0i) * Y0Y1X2X3 + (-0.00703472+0i) * X0X1Y4Y5 + (0.00703472+0i) * X0Y1Y4X5 + (0.00703472+0i) * Y0X1X4Y5 + (-0.00703472+0i) * Y0Y1X4X5 + (-0.0315196+0i) * X0X1Y6Y7 + (0.0315196+0i) * X0Y1Y6X7 + (0.0315196+0i) * Y0X1X6Y7 + (-0.0315196+0i) * Y0Y1X6X7 + (-0.0175786+0i) * X0X1Y6Z7Z8Y9 + (0.0175786+0i) * X0Y1Y6Z7Z8X9 + (0.0175786+0i) * Y0X1X6Z7Z8Y9 + (-0.0175786+0i) * Y0Y1X6Z7Z8X9 + (-0.0175786+0i) * X0X1X7X8 + (-0.0175786+0i) * X0Y1Y7X8 + (-0.0175786+0i) * Y0X1X7Y8 + (-0.0175786+0i) * Y0Y1Y7Y8 + (-0.0153463+0i) * X0X1Y8Y9 + (0.0153463+0i) * X0Y1Y8X9 + (0.0153463+0i) * Y0X1X8Y9 + (-0.0153463+0i) * Y0Y1X8X9 + (-0.00421737+0i) * X0X1Y10Y11 + (0.00421737+0i) * X0Y1Y10X11 + (0.00421737+0i) * Y0X1X10Y11 + (-0.00421737+0i) * Y0Y1X10X11 + (-0.00923737+0i) * X0Z1X2X6Z7X8 + (0.0212944+0i) * X0Z1X2Y6Z7Y8 + (-0.0305318+0i) * X0Z1Y2Y6Z7X8 + (-0.0305318+0i) * Y0Z1X2X6Z7Y8 + (0.0212944+0i) * Y0Z1Y2X6Z7X8 + (-0.00923737+0i) * Y0Z1Y2Y6Z7Y8 + (-0.0175786+0i) * X0Z1Z2X3Y6Y7 + (0.0175786+0i) * X0Z1Z2Y3Y6X7 + (0.0175786+0i) * Y0Z1Z2X3X6Y7 + (-0.0175786+0i) * Y0Z1Z2Y3X6X7 + (0.0233525+0i) * X0Z1Z2X3Y6Z7Z8Y9 + (-0.0233525+0i) * X0Z1Z2Y3Y6Z7Z8X9 + (-0.0233525+0i) * Y0Z1Z2X3X6Z7Z8Y9 + (0.0233525+0i) * Y0Z1Z2Y3X6Z7Z8X9 + (-0.00717925+0i) * X0Z1Z2X3X7X8 + (-0.00717925+0i) * X0Z1Z2Y3Y7X8 + (-0.00717925+0i) * Y0Z1Z2X3X7Y8 + (-0.00717925+0i) * Y0Z1Z2Y3Y7Y8 + (0.0175786+0i) * X0Z1Z2X3Y8Y9 + (-0.0175786+0i) * X0Z1Z2Y3Y8X9 + (-0.0175786+0i) * Y0Z1Z2X3X8Y9 + (0.0175786+0i) * Y0Z1Z2Y3X8X9 + (0.000664146+0i) * X0Z1Z2Z3X4X6Z7Z8Z9X10 + (-0.00772546+0i) * X0Z1Z2Z3X4Y6Z7Z8Z9Y10 + (0.00838961+0i) * X0Z1Z2Z3Y4Y6Z7Z8Z9X10 + (0.00838961+0i) * Y0Z1Z2Z3X4X6Z7Z8Z9Y10 + (-0.00772546+0i) * Y0Z1Z2Z3Y4X6Z7Z8Z9X10 + (0.000664146+0i) * Y0Z1Z2Z3Y4Y6Z7Z8Z9Y10 + (0.000425525+0i) * X0Z1Z2Z3X4X8Z9X10 + (-0.00494978+0i) * X0Z1Z2Z3X4Y8Z9Y10 + (0.00537531+0i) * X0Z1Z2Z3Y4Y8Z9X10 + (0.00537531+0i) * Y0Z1Z2Z3X4X8Z9Y10 + (-0.00494978+0i) * Y0Z1Z2Z3Y4X8Z9X10 + (0.000425525+0i) * Y0Z1Z2Z3Y4Y8Z9Y10 + (-0.006681+0i) * X0Z1Z2Z3Z4X5Y6Z7Z8Z9Z10Y11 + (0.006681+0i) * X0Z1Z2Z3Z4Y5Y6Z7Z8Z9Z10X11 + (0.006681+0i) * Y0Z1Z2Z3Z4X5X6Z7Z8Z9Z10Y11 + (-0.006681+0i) * Y0Z1Z2Z3Z4Y5X6Z7Z8Z9Z10X11 + (0.00170861+0i) * X0Z1Z2Z3Z4X5X7Z8Z9X10 + (0.00170861+0i) * X0Z1Z2Z3Z4Y5Y7Z8Z9X10 + (0.00170861+0i) * Y0Z1Z2Z3Z4X5X7Z8Z9Y10 + (0.00170861+0i) * Y0Z1Z2Z3Z4Y5Y7Z8Z9Y10 + (-0.00428059+0i) * X0Z1Z2Z3Z4X5Y8Z9Z10Y11 + (0.00428059+0i) * X0Z1Z2Z3Z4Y5Y8Z9Z10X11 + (0.00428059+0i) * Y0Z1Z2Z3Z4X5X8Z9Z10Y11 + (-0.00428059+0i) * Y0Z1Z2Z3Z4Y5X8Z9Z10X11 + (0.00109472+0i) * X0Z1Z2Z3Z4X5X9X10 + (0.00109472+0i) * X0Z1Z2Z3Z4Y5Y9X10 + (0.00109472+0i) * Y0Z1Z2Z3Z4X5X9Y10 + (0.00109472+0i) * Y0Z1Z2Z3Z4Y5Y9Y10 + (0.0131047+0i) * Z0X6Z7X8 + (0.0131047+0i) * Z0Y6Z7Y8 + (0.0131047+0i) * X0Z1X2Z6 + (0.0131047+0i) * Y0Z1Y2Z6 + (-0.00447389+0i) * Z0X7Z8X9 + (-0.00447389+0i) * Z0Y7Z8Y9 + (-0.00447389+0i) * X0Z1X2Z7 + (-0.00447389+0i) * Y0Z1Y2Z7 + (-0.00205812+0i) * X0Z1X2X7Z8X9 + (-0.00205812+0i) * X0Z1X2Y7Z8Y9 + (-0.00205812+0i) * Y0Z1Y2X7Z8X9 + (-0.00205812+0i) * Y0Z1Y2Y7Z8Y9 + (-0.00104446+0i) * X0Z1Z2Z3X4X7Z8Z9Z10X11 + (-0.00104446+0i) * X0Z1Z2Z3X4Y7Z8Z9Z10Y11 + (-0.00104446+0i) * Y0Z1Z2Z3Y4X7Z8Z9Z10X11 + (-0.00104446+0i) * Y0Z1Z2Z3Y4Y7Z8Z9Z10Y11 + (-0.0131047+0i) * X0Z1X2Z8 + (-0.0131047+0i) * Y0Z1Y2Z8 + (0.00447389+0i) * X0Z1X2Z9 + (0.00447389+0i) * Y0Z1Y2Z9 + (-0.000669197+0i) * X0Z1Z2Z3X4X9Z10X11 + (-0.000669197+0i) * X0Z1Z2Z3X4Y9Z10Y11 + (-0.000669197+0i) * Y0Z1Z2Z3Y4X9Z10X11 + (-0.000669197+0i) * Y0Z1Z2Z3Y4Y9Z10Y11 + (-0.0175786+0i) * X1X2X6X7 + (-0.0175786+0i) * X1Y2Y6X7 + (-0.0175786+0i) * Y1X2X6Y7 + (-0.0175786+0i) * Y1Y2Y6Y7 + (-0.00717925+0i) * X1X2X6Z7Z8X9 + (-0.00717925+0i) * X1Y2Y6Z7Z8X9 + (-0.00717925+0i) * Y1X2X6Z7Z8Y9 + (-0.00717925+0i) * Y1Y2Y6Z7Z8Y9 + (0.0233525+0i) * X1X2Y7Y8 + (-0.0233525+0i) * X1Y2Y7X8 + (-0.0233525+0i) * Y1X2X7Y8 + (0.0233525+0i) * Y1Y2X7X8 + (0.0175786+0i) * X1X2X8X9 + (0.0175786+0i) * X1Y2Y8X9 + (0.0175786+0i) * Y1X2X8Y9 + (0.0175786+0i) * Y1Y2Y8Y9 + (-0.00923737+0i) * X1Z2X3X7Z8X9 + (0.0212944+0i) * X1Z2X3Y7Z8Y9 + (-0.0305318+0i) * X1Z2Y3Y7Z8X9 + (-0.0305318+0i) * Y1Z2X3X7Z8Y9 + (0.0212944+0i) * Y1Z2Y3X7Z8X9 + (-0.00923737+0i) * Y1Z2Y3Y7Z8Y9 + (0.00170861+0i) * X1Z2Z3X4X6Z7Z8Z9Z10X11 + (0.00170861+0i) * X1Z2Z3Y4Y6Z7Z8Z9Z10X11 + (0.00170861+0i) * Y1Z2Z3X4X6Z7Z8Z9Z10Y11 + (0.00170861+0i) * Y1Z2Z3Y4Y6Z7Z8Z9Z10Y11 + (-0.006681+0i) * X1Z2Z3X4Y7Z8Z9Y10 + (0.006681+0i) * X1Z2Z3Y4Y7Z8Z9X10 + (0.006681+0i) * Y1Z2Z3X4X7Z8Z9Y10 + (-0.006681+0i) * Y1Z2Z3Y4X7Z8Z9X10 + (0.00109472+0i) * X1Z2Z3X4X8Z9Z10X11 + (0.00109472+0i) * X1Z2Z3Y4Y8Z9Z10X11 + (0.00109472+0i) * Y1Z2Z3X4X8Z9Z10Y11 + (0.00109472+0i) * Y1Z2Z3Y4Y8Z9Z10Y11 + (-0.00428059+0i) * X1Z2Z3X4Y9Y10 + (0.00428059+0i) * X1Z2Z3Y4Y9X10 + (0.00428059+0i) * Y1Z2Z3X4X9Y10 + (-0.00428059+0i) * Y1Z2Z3Y4X9X10 + (0.000664146+0i) * X1Z2Z3Z4X5X7Z8Z9Z10X11 + (-0.00772546+0i) * X1Z2Z3Z4X5Y7Z8Z9Z10Y11 + (0.00838961+0i) * X1Z2Z3Z4Y5Y7Z8Z9Z10X11 + (0.00838961+0i) * Y1Z2Z3Z4X5X7Z8Z9Z10Y11 + (-0.00772546+0i) * Y1Z2Z3Z4Y5X7Z8Z9Z10X11 + (0.000664146+0i) * Y1Z2Z3Z4Y5Y7Z8Z9Z10Y11 + (0.000425525+0i) * X1Z2Z3Z4X5X9Z10X11 + (-0.00494978+0i) * X1Z2Z3Z4X5Y9Z10Y11 + (0.00537531+0i) * X1Z2Z3Z4Y5Y9Z10X11 + (0.00537531+0i) * Y1Z2Z3Z4X5X9Z10Y11 + (-0.00494978+0i) * Y1Z2Z3Z4Y5X9Z10X11 + (0.000425525+0i) * Y1Z2Z3Z4Y5Y9Z10Y11 + (-0.00447389+0i) * Z1X6Z7X8 + (-0.00447389+0i) * Z1Y6Z7Y8 + (-0.00447389+0i) * X1Z2X3Z6 + (-0.00447389+0i) * Y1Z2Y3Z6 + (-0.00205812+0i) * X1Z2X3X6Z7X8 + (-0.00205812+0i) * X1Z2X3Y6Z7Y8 + (-0.00205812+0i) * Y1Z2Y3X6Z7X8 + (-0.00205812+0i) * Y1Z2Y3Y6Z7Y8 + (-0.00104446+0i) * X1Z2Z3Z4X5X6Z7Z8Z9X10 + (-0.00104446+0i) * X1Z2Z3Z4X5Y6Z7Z8Z9Y10 + (-0.00104446+0i) * Y1Z2Z3Z4Y5X6Z7Z8Z9X10 + (-0.00104446+0i) * Y1Z2Z3Z4Y5Y6Z7Z8Z9Y10 + (0.0131047+0i) * Z1X7Z8X9 + (0.0131047+0i) * Z1Y7Z8Y9 + (0.0131047+0i) * X1Z2X3Z7 + (0.0131047+0i) * Y1Z2Y3Z7 + (0.00447389+0i) * X1Z2X3Z8 + (0.00447389+0i) * Y1Z2Y3Z8 + (-0.000669197+0i) * X1Z2Z3Z4X5X8Z9X10 + (-0.000669197+0i) * X1Z2Z3Z4X5Y8Z9Y10 + (-0.000669197+0i) * Y1Z2Z3Z4Y5X8Z9X10 + (-0.000669197+0i) * Y1Z2Z3Z4Y5Y8Z9Y10 + (-0.0131047+0i) * X1Z2X3Z9 + (-0.0131047+0i) * Y1Z2Y3Z9 + (-0.00703472+0i) * X2X3Y4Y5 + (0.00703472+0i) * X2Y3Y4X5 + (0.00703472+0i) * Y2X3X4Y5 + (-0.00703472+0i) * Y2Y3X4X5 + (-0.0153463+0i) * X2X3Y6Y7 + (0.0153463+0i) * X2Y3Y6X7 + (0.0153463+0i) * Y2X3X6Y7 + (-0.0153463+0i) * Y2Y3X6X7 + (0.0175786+0i) * X2X3Y6Z7Z8Y9 + (-0.0175786+0i) * X2Y3Y6Z7Z8X9 + (-0.0175786+0i) * Y2X3X6Z7Z8Y9 + (0.0175786+0i) * Y2Y3X6Z7Z8X9 + (0.0175786+0i) * X2X3X7X8 + (0.0175786+0i) * X2Y3Y7X8 + (0.0175786+0i) * Y2X3X7Y8 + (0.0175786+0i) * Y2Y3Y7Y8 + (-0.0315196+0i) * X2X3Y8Y9 + (0.0315196+0i) * X2Y3Y8X9 + (0.0315196+0i) * Y2X3X8Y9 + (-0.0315196+0i) * Y2Y3X8X9 + (-0.00421737+0i) * X2X3Y10Y11 + (0.00421737+0i) * X2Y3Y10X11 + (0.00421737+0i) * Y2X3X10Y11 + (-0.00421737+0i) * Y2Y3X10X11 + (0.000425525+0i) * X2Z3X4X6Z7Z8Z9X10 + (-0.00494978+0i) * X2Z3X4Y6Z7Z8Z9Y10 + (0.00537531+0i) * X2Z3Y4Y6Z7Z8Z9X10 + (0.00537531+0i) * Y2Z3X4X6Z7Z8Z9Y10 + (-0.00494978+0i) * Y2Z3Y4X6Z7Z8Z9X10 + (0.000425525+0i) * Y2Z3Y4Y6Z7Z8Z9Y10 + (-0.000664146+0i) * X2Z3X4X8Z9X10 + (0.00772546+0i) * X2Z3X4Y8Z9Y10 + (-0.00838961+0i) * X2Z3Y4Y8Z9X10 + (-0.00838961+0i) * Y2Z3X4X8Z9Y10 + (0.00772546+0i) * Y2Z3Y4X8Z9X10 + (-0.000664146+0i) * Y2Z3Y4Y8Z9Y10 + (-0.00428059+0i) * X2Z3Z4X5Y6Z7Z8Z9Z10Y11 + (0.00428059+0i) * X2Z3Z4Y5Y6Z7Z8Z9Z10X11 + (0.00428059+0i) * Y2Z3Z4X5X6Z7Z8Z9Z10Y11 + (-0.00428059+0i) * Y2Z3Z4Y5X6Z7Z8Z9Z10X11 + (0.00109472+0i) * X2Z3Z4X5X7Z8Z9X10 + (0.00109472+0i) * X2Z3Z4Y5Y7Z8Z9X10 + (0.00109472+0i) * Y2Z3Z4X5X7Z8Z9Y10 + (0.00109472+0i) * Y2Z3Z4Y5Y7Z8Z9Y10 + (0.006681+0i) * X2Z3Z4X5Y8Z9Z10Y11 + (-0.006681+0i) * X2Z3Z4Y5Y8Z9Z10X11 + (-0.006681+0i) * Y2Z3Z4X5X8Z9Z10Y11 + (0.006681+0i) * Y2Z3Z4Y5X8Z9Z10X11 + (-0.00170861+0i) * X2Z3Z4X5X9X10 + (-0.00170861+0i) * X2Z3Z4Y5Y9X10 + (-0.00170861+0i) * Y2Z3Z4X5X9Y10 + (-0.00170861+0i) * Y2Z3Z4Y5Y9Y10 + (-0.0131047+0i) * Z2X6Z7X8 + (-0.0131047+0i) * Z2Y6Z7Y8 + (0.00447389+0i) * Z2X7Z8X9 + (0.00447389+0i) * Z2Y7Z8Y9 + (-0.000669197+0i) * X2Z3X4X7Z8Z9Z10X11 + (-0.000669197+0i) * X2Z3X4Y7Z8Z9Z10Y11 + (-0.000669197+0i) * Y2Z3Y4X7Z8Z9Z10X11 + (-0.000669197+0i) * Y2Z3Y4Y7Z8Z9Z10Y11 + (0.00104446+0i) * X2Z3X4X9Z10X11 + (0.00104446+0i) * X2Z3X4Y9Z10Y11 + (0.00104446+0i) * Y2Z3Y4X9Z10X11 + (0.00104446+0i) * Y2Z3Y4Y9Z10Y11 + (0.00109472+0i) * X3X4X6Z7Z8Z9Z10X11 + (0.00109472+0i) * X3Y4Y6Z7Z8Z9Z10X11 + (0.00109472+0i) * Y3X4X6Z7Z8Z9Z10Y11 + (0.00109472+0i) * Y3Y4Y6Z7Z8Z9Z10Y11 + (-0.00428059+0i) * X3X4Y7Z8Z9Y10 + (0.00428059+0i) * X3Y4Y7Z8Z9X10 + (0.00428059+0i) * Y3X4X7Z8Z9Y10 + (-0.00428059+0i) * Y3Y4X7Z8Z9X10 + (-0.00170861+0i) * X3X4X8Z9Z10X11 + (-0.00170861+0i) * X3Y4Y8Z9Z10X11 + (-0.00170861+0i) * Y3X4X8Z9Z10Y11 + (-0.00170861+0i) * Y3Y4Y8Z9Z10Y11 + (0.006681+0i) * X3X4Y9Y10 + (-0.006681+0i) * X3Y4Y9X10 + (-0.006681+0i) * Y3X4X9Y10 + (0.006681+0i) * Y3Y4X9X10 + (0.000425525+0i) * X3Z4X5X7Z8Z9Z10X11 + (-0.00494978+0i) * X3Z4X5Y7Z8Z9Z10Y11 + (0.00537531+0i) * X3Z4Y5Y7Z8Z9Z10X11 + (0.00537531+0i) * Y3Z4X5X7Z8Z9Z10Y11 + (-0.00494978+0i) * Y3Z4Y5X7Z8Z9Z10X11 + (0.000425525+0i) * Y3Z4Y5Y7Z8Z9Z10Y11 + (-0.000664146+0i) * X3Z4X5X9Z10X11 + (0.00772546+0i) * X3Z4X5Y9Z10Y11 + (-0.00838961+0i) * X3Z4Y5Y9Z10X11 + (-0.00838961+0i) * Y3Z4X5X9Z10Y11 + (0.00772546+0i) * Y3Z4Y5X9Z10X11 + (-0.000664146+0i) * Y3Z4Y5Y9Z10Y11 + (0.00447389+0i) * Z3X6Z7X8 + (0.00447389+0i) * Z3Y6Z7Y8 + (-0.000669197+0i) * X3Z4X5X6Z7Z8Z9X10 + (-0.000669197+0i) * X3Z4X5Y6Z7Z8Z9Y10 + (-0.000669197+0i) * Y3Z4Y5X6Z7Z8Z9X10 + (-0.000669197+0i) * Y3Z4Y5Y6Z7Z8Z9Y10 + (-0.0131047+0i) * Z3X7Z8X9 + (-0.0131047+0i) * Z3Y7Z8Y9 + (0.00104446+0i) * X3Z4X5X8Z9X10 + (0.00104446+0i) * X3Z4X5Y8Z9Y10 + (0.00104446+0i) * Y3Z4Y5X8Z9X10 + (0.00104446+0i) * Y3Z4Y5Y8Z9Y10 + (-0.00878244+0i) * X4X5Y6Y7 + (0.00878244+0i) * X4Y5Y6X7 + (0.00878244+0i) * Y4X5X6Y7 + (-0.00878244+0i) * Y4Y5X6X7 + (-0.00878244+0i) * X4X5Y8Y9 + (0.00878244+0i) * X4Y5Y8X9 + (0.00878244+0i) * Y4X5X8Y9 + (-0.00878244+0i) * Y4Y5X8X9 + (-0.00725868+0i) * X4X5Y10Y11 + (0.00725868+0i) * X4Y5Y10X11 + (0.00725868+0i) * Y4X5X10Y11 + (-0.00725868+0i) * Y4Y5X10X11 + (-0.00496705+0i) * X6X7Y8Y9 + (0.00496705+0i) * X6Y7Y8X9 + (0.00496705+0i) * Y6X7X8Y9 + (-0.00496705+0i) * Y6Y7X8X9 + (-0.00520528+0i) * X6X7Y10Y11 + (0.00520528+0i) * X6Y7Y10X11 + (0.00520528+0i) * Y6X7X10Y11 + (-0.00520528+0i) * Y6Y7X10X11 + (-0.00520528+0i) * X8X9Y10Y11 + (0.00520528+0i) * X8Y9Y10X11 + (0.00520528+0i) * Y8X9X10Y11 + (-0.00520528+0i) * Y8Y9X10X11
+    Core energy:  -97.73731859734099
+    [Cudaq] Qubit hamiltonian:  (-106.644+0i) + (0.261983+0i) * Z0 + (0.261983+0i) * Z1 + (0.261983+0i) * Z2 + (0.261983+0i) * Z3 + (0.237545+0i) * Z4 + (0.237545+0i) * Z5 + (0.0601943+0i) * Z6 + (0.0601943+0i) * Z7 + (0.0601943+0i) * Z8 + (0.0601943+0i) * Z9 + (-0.199869+0i) * Z10 + (-0.199869+0i) * Z11 + (0.144151+0i) * Z0Z1 + (0.127483+0i) * Z0Z2 + (0.133039+0i) * Z0Z3 + (0.123982+0i) * Z0Z4 + (0.131017+0i) * Z0Z5 + (0.0931373+0i) * Z0Z6 + (0.134985+0i) * Z0Z7 + (0.120593+0i) * Z0Z8 + (0.125611+0i) * Z0Z9 + (0.0907631+0i) * Z0Z10 + (0.0949805+0i) * Z0Z11 + (0.133039+0i) * Z1Z2 + (0.127483+0i) * Z1Z3 + (0.131017+0i) * Z1Z4 + (0.123982+0i) * Z1Z5 + (0.134985+0i) * Z1Z6 + (0.0931373+0i) * Z1Z7 + (0.125611+0i) * Z1Z8 + (0.120593+0i) * Z1Z9 + (0.0949805+0i) * Z1Z10 + (0.0907631+0i) * Z1Z11 + (0.144151+0i) * Z2Z3 + (0.123982+0i) * Z2Z4 + (0.131017+0i) * Z2Z5 + (0.120593+0i) * Z2Z6 + (0.125611+0i) * Z2Z7 + (0.0931373+0i) * Z2Z8 + (0.134985+0i) * Z2Z9 + (0.0907631+0i) * Z2Z10 + (0.0949805+0i) * Z2Z11 + (0.131017+0i) * Z3Z4 + (0.123982+0i) * Z3Z5 + (0.125611+0i) * Z3Z6 + (0.120593+0i) * Z3Z7 + (0.134985+0i) * Z3Z8 + (0.0931373+0i) * Z3Z9 + (0.0949805+0i) * Z3Z10 + (0.0907631+0i) * Z3Z11 + (0.148494+0i) * Z4Z5 + (0.119366+0i) * Z4Z6 + (0.128149+0i) * Z4Z7 + (0.119366+0i) * Z4Z8 + (0.128149+0i) * Z4Z9 + (0.0924767+0i) * Z4Z10 + (0.0997354+0i) * Z4Z11 + (0.128149+0i) * Z5Z6 + (0.119366+0i) * Z5Z7 + (0.128149+0i) * Z5Z8 + (0.119366+0i) * Z5Z9 + (0.0997354+0i) * Z5Z10 + (0.0924767+0i) * Z5Z11 + (0.130646+0i) * Z6Z7 + (0.115745+0i) * Z6Z8 + (0.120712+0i) * Z6Z9 + (0.0880899+0i) * Z6Z10 + (0.0932951+0i) * Z6Z11 + (0.120712+0i) * Z7Z8 + (0.115745+0i) * Z7Z9 + (0.0932951+0i) * Z7Z10 + (0.0880899+0i) * Z7Z11 + (0.130646+0i) * Z8Z9 + (0.0880899+0i) * Z8Z10 + (0.0932951+0i) * Z8Z11 + (0.0932951+0i) * Z9Z10 + (0.0880899+0i) * Z9Z11 + (0.0905739+0i) * Z10Z11 + (-0.00555603+0i) * X0X1Y2Y3 + (0.00555603+0i) * X0Y1Y2X3 + (0.00555603+0i) * Y0X1X2Y3 + (-0.00555603+0i) * Y0Y1X2X3 + (-0.00703472+0i) * X0X1Y4Y5 + (0.00703472+0i) * X0Y1Y4X5 + (0.00703472+0i) * Y0X1X4Y5 + (-0.00703472+0i) * Y0Y1X4X5 + (-0.0418473+0i) * X0X1Y6Y7 + (0.0418473+0i) * X0Y1Y6X7 + (0.0418473+0i) * Y0X1X6Y7 + (-0.0418473+0i) * Y0Y1X6X7 + (-0.00594236+0i) * X0X1Y6Z7Z8Y9 + (0.00594236+0i) * X0Y1Y6Z7Z8X9 + (0.00594236+0i) * Y0X1X6Z7Z8Y9 + (-0.00594236+0i) * Y0Y1X6Z7Z8X9 + (-0.00594236+0i) * X0X1X7X8 + (-0.00594236+0i) * X0Y1Y7X8 + (-0.00594236+0i) * Y0X1X7Y8 + (-0.00594236+0i) * Y0Y1Y7Y8 + (-0.00501858+0i) * X0X1Y8Y9 + (0.00501858+0i) * X0Y1Y8X9 + (0.00501858+0i) * Y0X1X8Y9 + (-0.00501858+0i) * Y0Y1X8X9 + (-0.00421737+0i) * X0X1Y10Y11 + (0.00421737+0i) * X0Y1Y10X11 + (0.00421737+0i) * Y0X1X10Y11 + (-0.00421737+0i) * Y0Y1X10X11 + (0.00153816+0i) * X0Z1X2X6Z7X8 + (-0.0289936+0i) * X0Z1X2Y6Z7Y8 + (0.0305318+0i) * X0Z1Y2Y6Z7X8 + (0.0305318+0i) * Y0Z1X2X6Z7Y8 + (-0.0289936+0i) * Y0Z1Y2X6Z7X8 + (0.00153816+0i) * Y0Z1Y2Y6Z7Y8 + (0.00594236+0i) * X0Z1Z2X3Y6Y7 + (-0.00594236+0i) * X0Z1Z2Y3Y6X7 + (-0.00594236+0i) * Y0Z1Z2X3X6Y7 + (0.00594236+0i) * Y0Z1Z2Y3X6X7 + (-0.0336802+0i) * X0Z1Z2X3Y6Z7Z8Y9 + (0.0336802+0i) * X0Z1Z2Y3Y6Z7Z8X9 + (0.0336802+0i) * Y0Z1Z2X3X6Z7Z8Y9 + (-0.0336802+0i) * Y0Z1Z2Y3X6Z7Z8X9 + (-0.00314844+0i) * X0Z1Z2X3X7X8 + (-0.00314844+0i) * X0Z1Z2Y3Y7X8 + (-0.00314844+0i) * Y0Z1Z2X3X7Y8 + (-0.00314844+0i) * Y0Z1Z2Y3Y7Y8 + (-0.00594236+0i) * X0Z1Z2X3Y8Y9 + (0.00594236+0i) * X0Z1Z2Y3Y8X9 + (0.00594236+0i) * Y0Z1Z2X3X8Y9 + (-0.00594236+0i) * Y0Z1Z2Y3X8X9 + (0.000779184+0i) * X0Z1Z2Z3X4X6Z7Z8Z9X10 + (-0.00906361+0i) * X0Z1Z2Z3X4Y6Z7Z8Z9Y10 + (0.00984279+0i) * X0Z1Z2Z3Y4Y6Z7Z8Z9X10 + (0.00984279+0i) * Y0Z1Z2Z3X4X6Z7Z8Z9Y10 + (-0.00906361+0i) * Y0Z1Z2Z3Y4X6Z7Z8Z9X10 + (0.000779184+0i) * Y0Z1Z2Z3Y4Y6Z7Z8Z9Y10 + (0.00012261+0i) * X0Z1Z2Z3X4X8Z9X10 + (-0.00142622+0i) * X0Z1Z2Z3X4Y8Z9Y10 + (0.00154883+0i) * X0Z1Z2Z3Y4Y8Z9X10 + (0.00154883+0i) * Y0Z1Z2Z3X4X8Z9Y10 + (-0.00142622+0i) * Y0Z1Z2Z3Y4X8Z9X10 + (0.00012261+0i) * Y0Z1Z2Z3Y4Y8Z9Y10 + (-0.00783823+0i) * X0Z1Z2Z3Z4X5Y6Z7Z8Z9Z10Y11 + (0.00783823+0i) * X0Z1Z2Z3Z4Y5Y6Z7Z8Z9Z10X11 + (0.00783823+0i) * Y0Z1Z2Z3Z4X5X6Z7Z8Z9Z10Y11 + (-0.00783823+0i) * Y0Z1Z2Z3Z4Y5X6Z7Z8Z9Z10X11 + (0.00200456+0i) * X0Z1Z2Z3Z4X5X7Z8Z9X10 + (0.00200456+0i) * X0Z1Z2Z3Z4Y5Y7Z8Z9X10 + (0.00200456+0i) * Y0Z1Z2Z3Z4X5X7Z8Z9Y10 + (0.00200456+0i) * Y0Z1Z2Z3Z4Y5Y7Z8Z9Y10 + (-0.0012334+0i) * X0Z1Z2Z3Z4X5Y8Z9Z10Y11 + (0.0012334+0i) * X0Z1Z2Z3Z4Y5Y8Z9Z10X11 + (0.0012334+0i) * Y0Z1Z2Z3Z4X5X8Z9Z10Y11 + (-0.0012334+0i) * Y0Z1Z2Z3Z4Y5X8Z9Z10X11 + (0.00031543+0i) * X0Z1Z2Z3Z4X5X9X10 + (0.00031543+0i) * X0Z1Z2Z3Z4Y5Y9X10 + (0.00031543+0i) * Y0Z1Z2Z3Z4X5X9Y10 + (0.00031543+0i) * Y0Z1Z2Z3Z4Y5Y9Y10 + (0.00442998+0i) * Z0X6Z7X8 + (0.00442998+0i) * Z0Y6Z7Y8 + (-0.00442998+0i) * X0Z1X2Z6 + (-0.00442998+0i) * Y0Z1Y2Z6 + (-0.00151238+0i) * Z0X7Z8X9 + (-0.00151238+0i) * Z0Y7Z8Y9 + (0.00151238+0i) * X0Z1X2Z7 + (0.00151238+0i) * Y0Z1Y2Z7 + (0.0046866+0i) * X0Z1X2X7Z8X9 + (0.0046866+0i) * X0Z1X2Y7Z8Y9 + (0.0046866+0i) * Y0Z1Y2X7Z8X9 + (0.0046866+0i) * Y0Z1Y2Y7Z8Y9 + (-0.00122537+0i) * X0Z1Z2Z3X4X7Z8Z9Z10X11 + (-0.00122537+0i) * X0Z1Z2Z3X4Y7Z8Z9Z10Y11 + (-0.00122537+0i) * Y0Z1Z2Z3Y4X7Z8Z9Z10X11 + (-0.00122537+0i) * Y0Z1Z2Z3Y4Y7Z8Z9Z10Y11 + (0.00442998+0i) * X0Z1X2Z8 + (0.00442998+0i) * Y0Z1Y2Z8 + (-0.00151238+0i) * X0Z1X2Z9 + (-0.00151238+0i) * Y0Z1Y2Z9 + (-0.00019282+0i) * X0Z1Z2Z3X4X9Z10X11 + (-0.00019282+0i) * X0Z1Z2Z3X4Y9Z10Y11 + (-0.00019282+0i) * Y0Z1Z2Z3Y4X9Z10X11 + (-0.00019282+0i) * Y0Z1Z2Z3Y4Y9Z10Y11 + (0.00594236+0i) * X1X2X6X7 + (0.00594236+0i) * X1Y2Y6X7 + (0.00594236+0i) * Y1X2X6Y7 + (0.00594236+0i) * Y1Y2Y6Y7 + (-0.00314844+0i) * X1X2X6Z7Z8X9 + (-0.00314844+0i) * X1Y2Y6Z7Z8X9 + (-0.00314844+0i) * Y1X2X6Z7Z8Y9 + (-0.00314844+0i) * Y1Y2Y6Z7Z8Y9 + (-0.0336802+0i) * X1X2Y7Y8 + (0.0336802+0i) * X1Y2Y7X8 + (0.0336802+0i) * Y1X2X7Y8 + (-0.0336802+0i) * Y1Y2X7X8 + (-0.00594236+0i) * X1X2X8X9 + (-0.00594236+0i) * X1Y2Y8X9 + (-0.00594236+0i) * Y1X2X8Y9 + (-0.00594236+0i) * Y1Y2Y8Y9 + (0.00153816+0i) * X1Z2X3X7Z8X9 + (-0.0289936+0i) * X1Z2X3Y7Z8Y9 + (0.0305318+0i) * X1Z2Y3Y7Z8X9 + (0.0305318+0i) * Y1Z2X3X7Z8Y9 + (-0.0289936+0i) * Y1Z2Y3X7Z8X9 + (0.00153816+0i) * Y1Z2Y3Y7Z8Y9 + (0.00200456+0i) * X1Z2Z3X4X6Z7Z8Z9Z10X11 + (0.00200456+0i) * X1Z2Z3Y4Y6Z7Z8Z9Z10X11 + (0.00200456+0i) * Y1Z2Z3X4X6Z7Z8Z9Z10Y11 + (0.00200456+0i) * Y1Z2Z3Y4Y6Z7Z8Z9Z10Y11 + (-0.00783823+0i) * X1Z2Z3X4Y7Z8Z9Y10 + (0.00783823+0i) * X1Z2Z3Y4Y7Z8Z9X10 + (0.00783823+0i) * Y1Z2Z3X4X7Z8Z9Y10 + (-0.00783823+0i) * Y1Z2Z3Y4X7Z8Z9X10 + (0.00031543+0i) * X1Z2Z3X4X8Z9Z10X11 + (0.00031543+0i) * X1Z2Z3Y4Y8Z9Z10X11 + (0.00031543+0i) * Y1Z2Z3X4X8Z9Z10Y11 + (0.00031543+0i) * Y1Z2Z3Y4Y8Z9Z10Y11 + (-0.0012334+0i) * X1Z2Z3X4Y9Y10 + (0.0012334+0i) * X1Z2Z3Y4Y9X10 + (0.0012334+0i) * Y1Z2Z3X4X9Y10 + (-0.0012334+0i) * Y1Z2Z3Y4X9X10 + (0.000779184+0i) * X1Z2Z3Z4X5X7Z8Z9Z10X11 + (-0.00906361+0i) * X1Z2Z3Z4X5Y7Z8Z9Z10Y11 + (0.00984279+0i) * X1Z2Z3Z4Y5Y7Z8Z9Z10X11 + (0.00984279+0i) * Y1Z2Z3Z4X5X7Z8Z9Z10Y11 + (-0.00906361+0i) * Y1Z2Z3Z4Y5X7Z8Z9Z10X11 + (0.000779184+0i) * Y1Z2Z3Z4Y5Y7Z8Z9Z10Y11 + (0.00012261+0i) * X1Z2Z3Z4X5X9Z10X11 + (-0.00142622+0i) * X1Z2Z3Z4X5Y9Z10Y11 + (0.00154883+0i) * X1Z2Z3Z4Y5Y9Z10X11 + (0.00154883+0i) * Y1Z2Z3Z4X5X9Z10Y11 + (-0.00142622+0i) * Y1Z2Z3Z4Y5X9Z10X11 + (0.00012261+0i) * Y1Z2Z3Z4Y5Y9Z10Y11 + (-0.00151238+0i) * Z1X6Z7X8 + (-0.00151238+0i) * Z1Y6Z7Y8 + (0.00151238+0i) * X1Z2X3Z6 + (0.00151238+0i) * Y1Z2Y3Z6 + (0.0046866+0i) * X1Z2X3X6Z7X8 + (0.0046866+0i) * X1Z2X3Y6Z7Y8 + (0.0046866+0i) * Y1Z2Y3X6Z7X8 + (0.0046866+0i) * Y1Z2Y3Y6Z7Y8 + (-0.00122537+0i) * X1Z2Z3Z4X5X6Z7Z8Z9X10 + (-0.00122537+0i) * X1Z2Z3Z4X5Y6Z7Z8Z9Y10 + (-0.00122537+0i) * Y1Z2Z3Z4Y5X6Z7Z8Z9X10 + (-0.00122537+0i) * Y1Z2Z3Z4Y5Y6Z7Z8Z9Y10 + (0.00442998+0i) * Z1X7Z8X9 + (0.00442998+0i) * Z1Y7Z8Y9 + (-0.00442998+0i) * X1Z2X3Z7 + (-0.00442998+0i) * Y1Z2Y3Z7 + (-0.00151238+0i) * X1Z2X3Z8 + (-0.00151238+0i) * Y1Z2Y3Z8 + (-0.00019282+0i) * X1Z2Z3Z4X5X8Z9X10 + (-0.00019282+0i) * X1Z2Z3Z4X5Y8Z9Y10 + (-0.00019282+0i) * Y1Z2Z3Z4Y5X8Z9X10 + (-0.00019282+0i) * Y1Z2Z3Z4Y5Y8Z9Y10 + (0.00442998+0i) * X1Z2X3Z9 + (0.00442998+0i) * Y1Z2Y3Z9 + (-0.00703472+0i) * X2X3Y4Y5 + (0.00703472+0i) * X2Y3Y4X5 + (0.00703472+0i) * Y2X3X4Y5 + (-0.00703472+0i) * Y2Y3X4X5 + (-0.00501858+0i) * X2X3Y6Y7 + (0.00501858+0i) * X2Y3Y6X7 + (0.00501858+0i) * Y2X3X6Y7 + (-0.00501858+0i) * Y2Y3X6X7 + (0.00594236+0i) * X2X3Y6Z7Z8Y9 + (-0.00594236+0i) * X2Y3Y6Z7Z8X9 + (-0.00594236+0i) * Y2X3X6Z7Z8Y9 + (0.00594236+0i) * Y2Y3X6Z7Z8X9 + (0.00594236+0i) * X2X3X7X8 + (0.00594236+0i) * X2Y3Y7X8 + (0.00594236+0i) * Y2X3X7Y8 + (0.00594236+0i) * Y2Y3Y7Y8 + (-0.0418473+0i) * X2X3Y8Y9 + (0.0418473+0i) * X2Y3Y8X9 + (0.0418473+0i) * Y2X3X8Y9 + (-0.0418473+0i) * Y2Y3X8X9 + (-0.00421737+0i) * X2X3Y10Y11 + (0.00421737+0i) * X2Y3Y10X11 + (0.00421737+0i) * Y2X3X10Y11 + (-0.00421737+0i) * Y2Y3X10X11 + (-0.00012261+0i) * X2Z3X4X6Z7Z8Z9X10 + (0.00142622+0i) * X2Z3X4Y6Z7Z8Z9Y10 + (-0.00154883+0i) * X2Z3Y4Y6Z7Z8Z9X10 + (-0.00154883+0i) * Y2Z3X4X6Z7Z8Z9Y10 + (0.00142622+0i) * Y2Z3Y4X6Z7Z8Z9X10 + (-0.00012261+0i) * Y2Z3Y4Y6Z7Z8Z9Y10 + (0.000779184+0i) * X2Z3X4X8Z9X10 + (-0.00906361+0i) * X2Z3X4Y8Z9Y10 + (0.00984279+0i) * X2Z3Y4Y8Z9X10 + (0.00984279+0i) * Y2Z3X4X8Z9Y10 + (-0.00906361+0i) * Y2Z3Y4X8Z9X10 + (0.000779184+0i) * Y2Z3Y4Y8Z9Y10 + (0.0012334+0i) * X2Z3Z4X5Y6Z7Z8Z9Z10Y11 + (-0.0012334+0i) * X2Z3Z4Y5Y6Z7Z8Z9Z10X11 + (-0.0012334+0i) * Y2Z3Z4X5X6Z7Z8Z9Z10Y11 + (0.0012334+0i) * Y2Z3Z4Y5X6Z7Z8Z9Z10X11 + (-0.00031543+0i) * X2Z3Z4X5X7Z8Z9X10 + (-0.00031543+0i) * X2Z3Z4Y5Y7Z8Z9X10 + (-0.00031543+0i) * Y2Z3Z4X5X7Z8Z9Y10 + (-0.00031543+0i) * Y2Z3Z4Y5Y7Z8Z9Y10 + (-0.00783823+0i) * X2Z3Z4X5Y8Z9Z10Y11 + (0.00783823+0i) * X2Z3Z4Y5Y8Z9Z10X11 + (0.00783823+0i) * Y2Z3Z4X5X8Z9Z10Y11 + (-0.00783823+0i) * Y2Z3Z4Y5X8Z9Z10X11 + (0.00200456+0i) * X2Z3Z4X5X9X10 + (0.00200456+0i) * X2Z3Z4Y5Y9X10 + (0.00200456+0i) * Y2Z3Z4X5X9Y10 + (0.00200456+0i) * Y2Z3Z4Y5Y9Y10 + (-0.00442998+0i) * Z2X6Z7X8 + (-0.00442998+0i) * Z2Y6Z7Y8 + (0.00151238+0i) * Z2X7Z8X9 + (0.00151238+0i) * Z2Y7Z8Y9 + (0.00019282+0i) * X2Z3X4X7Z8Z9Z10X11 + (0.00019282+0i) * X2Z3X4Y7Z8Z9Z10Y11 + (0.00019282+0i) * Y2Z3Y4X7Z8Z9Z10X11 + (0.00019282+0i) * Y2Z3Y4Y7Z8Z9Z10Y11 + (-0.00122537+0i) * X2Z3X4X9Z10X11 + (-0.00122537+0i) * X2Z3X4Y9Z10Y11 + (-0.00122537+0i) * Y2Z3Y4X9Z10X11 + (-0.00122537+0i) * Y2Z3Y4Y9Z10Y11 + (-0.00031543+0i) * X3X4X6Z7Z8Z9Z10X11 + (-0.00031543+0i) * X3Y4Y6Z7Z8Z9Z10X11 + (-0.00031543+0i) * Y3X4X6Z7Z8Z9Z10Y11 + (-0.00031543+0i) * Y3Y4Y6Z7Z8Z9Z10Y11 + (0.0012334+0i) * X3X4Y7Z8Z9Y10 + (-0.0012334+0i) * X3Y4Y7Z8Z9X10 + (-0.0012334+0i) * Y3X4X7Z8Z9Y10 + (0.0012334+0i) * Y3Y4X7Z8Z9X10 + (0.00200456+0i) * X3X4X8Z9Z10X11 + (0.00200456+0i) * X3Y4Y8Z9Z10X11 + (0.00200456+0i) * Y3X4X8Z9Z10Y11 + (0.00200456+0i) * Y3Y4Y8Z9Z10Y11 + (-0.00783823+0i) * X3X4Y9Y10 + (0.00783823+0i) * X3Y4Y9X10 + (0.00783823+0i) * Y3X4X9Y10 + (-0.00783823+0i) * Y3Y4X9X10 + (-0.00012261+0i) * X3Z4X5X7Z8Z9Z10X11 + (0.00142622+0i) * X3Z4X5Y7Z8Z9Z10Y11 + (-0.00154883+0i) * X3Z4Y5Y7Z8Z9Z10X11 + (-0.00154883+0i) * Y3Z4X5X7Z8Z9Z10Y11 + (0.00142622+0i) * Y3Z4Y5X7Z8Z9Z10X11 + (-0.00012261+0i) * Y3Z4Y5Y7Z8Z9Z10Y11 + (0.000779184+0i) * X3Z4X5X9Z10X11 + (-0.00906361+0i) * X3Z4X5Y9Z10Y11 + (0.00984279+0i) * X3Z4Y5Y9Z10X11 + (0.00984279+0i) * Y3Z4X5X9Z10Y11 + (-0.00906361+0i) * Y3Z4Y5X9Z10X11 + (0.000779184+0i) * Y3Z4Y5Y9Z10Y11 + (0.00151238+0i) * Z3X6Z7X8 + (0.00151238+0i) * Z3Y6Z7Y8 + (0.00019282+0i) * X3Z4X5X6Z7Z8Z9X10 + (0.00019282+0i) * X3Z4X5Y6Z7Z8Z9Y10 + (0.00019282+0i) * Y3Z4Y5X6Z7Z8Z9X10 + (0.00019282+0i) * Y3Z4Y5Y6Z7Z8Z9Y10 + (-0.00442998+0i) * Z3X7Z8X9 + (-0.00442998+0i) * Z3Y7Z8Y9 + (-0.00122537+0i) * X3Z4X5X8Z9X10 + (-0.00122537+0i) * X3Z4X5Y8Z9Y10 + (-0.00122537+0i) * Y3Z4Y5X8Z9X10 + (-0.00122537+0i) * Y3Z4Y5Y8Z9Y10 + (-0.00878244+0i) * X4X5Y6Y7 + (0.00878244+0i) * X4Y5Y6X7 + (0.00878244+0i) * Y4X5X6Y7 + (-0.00878244+0i) * Y4Y5X6X7 + (-0.00878244+0i) * X4X5Y8Y9 + (0.00878244+0i) * X4Y5Y8X9 + (0.00878244+0i) * Y4X5X8Y9 + (-0.00878244+0i) * Y4Y5X8X9 + (-0.00725868+0i) * X4X5Y10Y11 + (0.00725868+0i) * X4Y5Y10X11 + (0.00725868+0i) * Y4X5X10Y11 + (-0.00725868+0i) * Y4Y5X10X11 + (-0.00496705+0i) * X6X7Y8Y9 + (0.00496705+0i) * X6Y7Y8X9 + (0.00496705+0i) * Y6X7X8Y9 + (-0.00496705+0i) * Y6Y7X8X9 + (-0.00520528+0i) * X6X7Y10Y11 + (0.00520528+0i) * X6Y7Y10X11 + (0.00520528+0i) * Y6X7X10Y11 + (-0.00520528+0i) * Y6Y7X10X11 + (-0.00520528+0i) * X8X9Y10Y11 + (0.00520528+0i) * X8Y9Y10X11 + (0.00520528+0i) * Y8X9X10Y11 + (-0.00520528+0i) * Y8Y9X10X11
     [Cudaq] Number of terms in the Qubit hamiltonian:  383
 :::
 :::
@@ -2343,13 +2380,13 @@ orbitals or CASSCF orbitals is not supported yet.
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
-::: {.highlight}
-    [11]:
+::: highlight
+    [10]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
-::: {.highlight}
+::: highlight
     geomerty = 'N 0.0 0.0 0.56; N 0.0 0.0 -0.56'
     molecular_data = get_mol_hamiltonian(xyz= geomerty, spin=1, charge=1, basis='631g', UR=True, nele_cas=5, norb_cas=6, ccsd=True, casci = True, verbose=True)
 
@@ -2383,7 +2420,7 @@ orbitals or CASSCF orbitals is not supported yet.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     overwrite output file: N 0-pyscf.log
 :::
 :::
@@ -2394,8 +2431,8 @@ orbitals or CASSCF orbitals is not supported yet.
 :::
 
 ::: {.output_area .stderr .docutils .container}
-::: {.highlight}
-    WARN: system HOMO -0.376086973991371 >= system LUMO -0.376086973991371
+::: highlight
+    WARN: system HOMO -0.376086973991374 >= system LUMO -0.376086973991374
 :::
 :::
 :::
@@ -2405,15 +2442,15 @@ orbitals or CASSCF orbitals is not supported yet.
 :::
 
 ::: {.output_area .docutils .container}
-::: {.highlight}
+::: highlight
     [pyscf] Total number of alpha molecular orbitals =  18
     [pyscf] Total number of beta molecular orbitals =  18
     [pyscf] Total number of electrons =  13
-    [pyscf] HF energy =  -108.2893388837719
+    [pyscf] HF energy =  -108.28933888377188
     [pyscf] Converting nele_cas from 5 to (3, 2) (alpha, beta)
-    [pyscf] UR-CASCI energy using molecular orbitals=  -108.38773041848835
+    [pyscf] UR-CASCI energy using molecular orbitals=  -108.38773041848827
     [pyscf] Converting nele_cas from 5 to (3, 2) (alpha, beta)
-    [pyscf] UR-CCSD energy of the active space using molecular orbitals=  -108.38620486132406
+    [pyscf] UR-CCSD energy of the active space using molecular orbitals=  -108.38620486132402
     [pyscf] Converting nele_cas from 5 to (3, 2) (alpha, beta)
     -------------------------------
     Molecular data
@@ -2421,9 +2458,9 @@ orbitals or CASSCF orbitals is not supported yet.
     Number of electrons in the active space:  5
     Number of spatial orbitals in the active space:  6
     Number of spin molecular orbitals:  12
-    Core energy:  -103.1394501006166
-    {'hf': -108.2893388837719, 'mp2': None, 'casci': -108.38773041848835, 'casscf': None, 'ccsd': -108.38620486132406, 'fci': None}
-    [Cudaq] Qubit hamiltonian:  (-139.182+0i) + (2.65092+0i) * Z0 + (2.71224+0i) * Z1 + (2.72614+0i) * Z2 + (2.71224+0i) * Z3 + (2.72614+0i) * Z4 + (2.52845+0i) * Z5 + (2.40571+0i) * Z6 + (2.39077+0i) * Z7 + (2.40571+0i) * Z8 + (2.39077+0i) * Z9 + (1.49759+0i) * Z10 + (1.41636+0i) * Z11 + (0.130154+0i) * Z0Z1 + (0.123285+0i) * Z0Z2 + (0.130154+0i) * Z0Z3 + (0.123285+0i) * Z0Z4 + (0.141709+0i) * Z0Z5 + (0.118922+0i) * Z0Z6 + (0.127641+0i) * Z0Z7 + (0.118922+0i) * Z0Z8 + (0.127641+0i) * Z0Z9 + (0.0941675+0i) * Z0Z10 + (0.0981197+0i) * Z0Z11 + (0.135664+0i) * Z1Z2 + (0.126993+0i) * Z1Z3 + (0.141401+0i) * Z1Z4 + (0.118702+0i) * Z1Z5 + (0.125324+0i) * Z1Z6 + (0.0932033+0i) * Z1Z7 + (0.135173+0i) * Z1Z8 + (0.119782+0i) * Z1Z9 + (0.0967903+0i) * Z1Z10 + (0.08889+0i) * Z1Z11 + (0.141401+0i) * Z2Z3 + (0.127861+0i) * Z2Z4 + (0.125754+0i) * Z2Z5 + (0.0996722+0i) * Z2Z6 + (0.129352+0i) * Z2Z7 + (0.114569+0i) * Z2Z8 + (0.130983+0i) * Z2Z9 + (0.0923836+0i) * Z2Z10 + (0.0928646+0i) * Z2Z11 + (0.135664+0i) * Z3Z4 + (0.118702+0i) * Z3Z5 + (0.135173+0i) * Z3Z6 + (0.119782+0i) * Z3Z7 + (0.125324+0i) * Z3Z8 + (0.0932033+0i) * Z3Z9 + (0.0967903+0i) * Z3Z10 + (0.08889+0i) * Z3Z11 + (0.125754+0i) * Z4Z5 + (0.114569+0i) * Z4Z6 + (0.130983+0i) * Z4Z7 + (0.0996722+0i) * Z4Z8 + (0.129352+0i) * Z4Z9 + (0.0923836+0i) * Z4Z10 + (0.0928646+0i) * Z4Z11 + (0.123223+0i) * Z5Z6 + (0.114379+0i) * Z5Z7 + (0.123223+0i) * Z5Z8 + (0.114379+0i) * Z5Z9 + (0.0993155+0i) * Z5Z10 + (0.0866001+0i) * Z5Z11 + (0.120947+0i) * Z6Z7 + (0.116067+0i) * Z6Z8 + (0.130193+0i) * Z6Z9 + (0.0892601+0i) * Z6Z10 + (0.0915793+0i) * Z6Z11 + (0.130193+0i) * Z7Z8 + (0.115228+0i) * Z7Z9 + (0.094734+0i) * Z7Z10 + (0.0866918+0i) * Z7Z11 + (0.120947+0i) * Z8Z9 + (0.0892601+0i) * Z8Z10 + (0.0915793+0i) * Z8Z11 + (0.094734+0i) * Z9Z10 + (0.0866918+0i) * Z9Z11 + (0.0904142+0i) * Z10Z11 + (0.00341177+0i) * X0X1Y2Z3Z4Y5 + (-0.00341177+0i) * X0Y1Y2Z3Z4X5 + (-0.00341177+0i) * Y0X1X2Z3Z4Y5 + (0.00341177+0i) * Y0Y1X2Z3Z4X5 + (-0.00604236+0i) * X0X1Y4Y5 + (0.00604236+0i) * X0Y1Y4X5 + (0.00604236+0i) * Y0X1X4Y5 + (-0.00604236+0i) * Y0Y1X4X5 + (4.05285e-06+0i) * X0X1Y6Z7Z8Z9Z10Y11 + (-4.05285e-06+0i) * X0Y1Y6Z7Z8Z9Z10X11 + (-4.05285e-06+0i) * Y0X1X6Z7Z8Z9Z10Y11 + (4.05285e-06+0i) * Y0Y1X6Z7Z8Z9Z10X11 + (0.00659625+0i) * X0X1X7Z8Z9X10 + (0.00659625+0i) * X0Y1Y7Z8Z9X10 + (0.00659625+0i) * Y0X1X7Z8Z9Y10 + (0.00659625+0i) * Y0Y1Y7Z8Z9Y10 + (-0.0019637+0i) * X0X1Y8Z9Z10Y11 + (0.0019637+0i) * X0Y1Y8Z9Z10X11 + (0.0019637+0i) * Y0X1X8Z9Z10Y11 + (-0.0019637+0i) * Y0Y1X8Z9Z10X11 + (-0.00125526+0i) * X0X1X9X10 + (-0.00125526+0i) * X0Y1Y9X10 + (-0.00125526+0i) * Y0X1X9Y10 + (-0.00125526+0i) * Y0Y1Y9Y10 + (0.00745472+0i) * X0Z1X2X6Z7Z8Z9X10 + (-0.000578267+0i) * X0Z1X2Y6Z7Z8Z9Y10 + (0.00803299+0i) * X0Z1Y2Y6Z7Z8Z9X10 + (0.00803299+0i) * Y0Z1X2X6Z7Z8Z9Y10 + (-0.000578267+0i) * Y0Z1Y2X6Z7Z8Z9X10 + (0.00745472+0i) * Y0Z1Y2Y6Z7Z8Z9Y10 + (0.00422957+0i) * X0Z1X2X8Z9X10 + (-0.00032809+0i) * X0Z1X2Y8Z9Y10 + (0.00455766+0i) * X0Z1Y2Y8Z9X10 + (0.00455766+0i) * Y0Z1X2X8Z9Y10 + (-0.00032809+0i) * Y0Z1Y2X8Z9X10 + (0.00422957+0i) * Y0Z1Y2Y8Z9Y10 + (-0.00604236+0i) * X0Z1X2X3Z4X5 + (-0.00604236+0i) * X0Z1X2Y3Z4Y5 + (-0.00604236+0i) * Y0Z1Y2X3Z4X5 + (-0.00604236+0i) * Y0Z1Y2Y3Z4Y5 + (0.00341177+0i) * X0Z1Z2X3Y4Y5 + (-0.00341177+0i) * X0Z1Z2Y3Y4X5 + (-0.00341177+0i) * Y0Z1Z2X3X4Y5 + (0.00341177+0i) * Y0Z1Z2Y3X4X5 + (-0.0019637+0i) * X0Z1Z2X3Y6Z7Z8Z9Z10Y11 + (0.0019637+0i) * X0Z1Z2Y3Y6Z7Z8Z9Z10X11 + (0.0019637+0i) * Y0Z1Z2X3X6Z7Z8Z9Z10Y11 + (-0.0019637+0i) * Y0Z1Z2Y3X6Z7Z8Z9Z10X11 + (0.00125526+0i) * X0Z1Z2X3X7Z8Z9X10 + (0.00125526+0i) * X0Z1Z2Y3Y7Z8Z9X10 + (0.00125526+0i) * Y0Z1Z2X3X7Z8Z9Y10 + (0.00125526+0i) * Y0Z1Z2Y3Y7Z8Z9Y10 + (-4.05285e-06+0i) * X0Z1Z2X3Y8Z9Z10Y11 + (4.05285e-06+0i) * X0Z1Z2Y3Y8Z9Z10X11 + (4.05285e-06+0i) * Y0Z1Z2X3X8Z9Z10Y11 + (-4.05285e-06+0i) * Y0Z1Z2Y3X8Z9Z10X11 + (0.00659625+0i) * X0Z1Z2X3X9X10 + (0.00659625+0i) * X0Z1Z2Y3Y9X10 + (0.00659625+0i) * Y0Z1Z2X3X9Y10 + (0.00659625+0i) * Y0Z1Z2Y3Y9Y10 + (0.00422957+0i) * X0Z1Z2Z3X4X6Z7Z8Z9X10 + (-0.00032809+0i) * X0Z1Z2Z3X4Y6Z7Z8Z9Y10 + (0.00455766+0i) * X0Z1Z2Z3Y4Y6Z7Z8Z9X10 + (0.00455766+0i) * Y0Z1Z2Z3X4X6Z7Z8Z9Y10 + (-0.00032809+0i) * Y0Z1Z2Z3Y4X6Z7Z8Z9X10 + (0.00422957+0i) * Y0Z1Z2Z3Y4Y6Z7Z8Z9Y10 + (-0.00745472+0i) * X0Z1Z2Z3X4X8Z9X10 + (0.000578267+0i) * X0Z1Z2Z3X4Y8Z9Y10 + (-0.00803299+0i) * X0Z1Z2Z3Y4Y8Z9X10 + (-0.00803299+0i) * Y0Z1Z2Z3X4X8Z9Y10 + (0.000578267+0i) * Y0Z1Z2Z3Y4X8Z9X10 + (-0.00745472+0i) * Y0Z1Z2Z3Y4Y8Z9Y10 + (0.0016199+0i) * X0Z1Z2Z3Z4X5Y6Y7 + (-0.0016199+0i) * X0Z1Z2Z3Z4Y5Y6X7 + (-0.0016199+0i) * Y0Z1Z2Z3Z4X5X6Y7 + (0.0016199+0i) * Y0Z1Z2Z3Z4Y5X6X7 + (0.00860911+0i) * X0Z1Z2Z3Z4X5Y6Z7Z8Y9 + (-0.00860911+0i) * X0Z1Z2Z3Z4Y5Y6Z7Z8X9 + (-0.00860911+0i) * Y0Z1Z2Z3Z4X5X6Z7Z8Y9 + (0.00860911+0i) * Y0Z1Z2Z3Z4Y5X6Z7Z8X9 + (0.00860911+0i) * X0Z1Z2Z3Z4X5X7X8 + (0.00860911+0i) * X0Z1Z2Z3Z4Y5Y7X8 + (0.00860911+0i) * Y0Z1Z2Z3Z4X5X7Y8 + (0.00860911+0i) * Y0Z1Z2Z3Z4Y5Y7Y8 + (-0.0016199+0i) * X0Z1Z2Z3Z4X5Y8Y9 + (0.0016199+0i) * X0Z1Z2Z3Z4Y5Y8X9 + (0.0016199+0i) * Y0Z1Z2Z3Z4X5X8Y9 + (-0.0016199+0i) * Y0Z1Z2Z3Z4Y5X8X9 + (0.00816074+0i) * X0Z1Z2Z3Z4X5Y10Y11 + (-0.00816074+0i) * X0Z1Z2Z3Z4Y5Y10X11 + (-0.00816074+0i) * Y0Z1Z2Z3Z4X5X10Y11 + (0.00816074+0i) * Y0Z1Z2Z3Z4Y5X10X11 + (0.00082191+0i) * X0Z1X2X7Z8Z9Z10X11 + (0.00082191+0i) * X0Z1X2Y7Z8Z9Z10Y11 + (0.00082191+0i) * Y0Z1Y2X7Z8Z9Z10X11 + (0.00082191+0i) * Y0Z1Y2Y7Z8Z9Z10Y11 + (-0.000971723+0i) * X0Z1Z2Z3X4X7Z8Z9Z10X11 + (-0.000971723+0i) * X0Z1Z2Z3X4Y7Z8Z9Z10Y11 + (-0.000971723+0i) * Y0Z1Z2Z3Y4X7Z8Z9Z10X11 + (-0.000971723+0i) * Y0Z1Z2Z3Y4Y7Z8Z9Z10Y11 + (0.000971723+0i) * X0Z1X2X9Z10X11 + (0.000971723+0i) * X0Z1X2Y9Z10Y11 + (0.000971723+0i) * Y0Z1Y2X9Z10X11 + (0.000971723+0i) * Y0Z1Y2Y9Z10Y11 + (0.00082191+0i) * X0Z1Z2Z3X4X9Z10X11 + (0.00082191+0i) * X0Z1Z2Z3X4Y9Z10Y11 + (0.00082191+0i) * Y0Z1Z2Z3Y4X9Z10X11 + (0.00082191+0i) * Y0Z1Z2Z3Y4Y9Z10Y11 + (0.00475551+0i) * Z1X2Z3X4 + (0.00475551+0i) * Z1Y2Z3Y4 + (-0.00475551+0i) * X1X3 + (-0.00475551+0i) * Y1Y3 + (0.00286849+0i) * X1X2Y3Y4 + (-0.00286849+0i) * X1Y2Y3X4 + (-0.00286849+0i) * Y1X2X3Y4 + (0.00286849+0i) * Y1Y2X3X4 + (-0.0299018+0i) * X1X2X6X7 + (-0.0299018+0i) * X1Y2Y6X7 + (-0.0299018+0i) * Y1X2X6Y7 + (-0.0299018+0i) * Y1Y2Y6Y7 + (0.00365631+0i) * X1X2X6Z7Z8X9 + (0.00365631+0i) * X1Y2Y6Z7Z8X9 + (0.00365631+0i) * Y1X2X6Z7Z8Y9 + (0.00365631+0i) * Y1Y2Y6Z7Z8Y9 + (-0.021363+0i) * X1X2Y7Y8 + (0.021363+0i) * X1Y2Y7X8 + (0.021363+0i) * Y1X2X7Y8 + (-0.021363+0i) * Y1Y2X7X8 + (0.000445668+0i) * X1X2X8X9 + (0.000445668+0i) * X1Y2Y8X9 + (0.000445668+0i) * Y1X2X8Y9 + (0.000445668+0i) * Y1Y2Y8Y9 + (-0.00205122+0i) * X1X2X10X11 + (-0.00205122+0i) * X1Y2Y10X11 + (-0.00205122+0i) * Y1X2X10Y11 + (-0.00205122+0i) * Y1Y2Y10Y11 + (0.00184327+0i) * X1Z2X3X7Z8X9 + (-0.0284222+0i) * X1Z2X3Y7Z8Y9 + (0.0302655+0i) * X1Z2Y3Y7Z8X9 + (0.0302655+0i) * Y1Z2X3X7Z8Y9 + (-0.0284222+0i) * Y1Z2Y3X7Z8X9 + (0.00184327+0i) * Y1Z2Y3Y7Z8Y9 + (0.00475551+0i) * X1Z2X3Z4 + (0.00475551+0i) * Y1Z2Y3Z4 + (-0.0161077+0i) * X1Z2Z3X4X6X7 + (-0.0161077+0i) * X1Z2Z3Y4Y6X7 + (-0.0161077+0i) * Y1Z2Z3X4X6Y7 + (-0.0161077+0i) * Y1Z2Z3Y4Y6Y7 + (0.00668498+0i) * X1Z2Z3X4X6Z7Z8X9 + (0.00668498+0i) * X1Z2Z3Y4Y6Z7Z8X9 + (0.00668498+0i) * Y1Z2Z3X4X6Z7Z8Y9 + (0.00668498+0i) * Y1Z2Z3Y4Y6Z7Z8Y9 + (0.0361412+0i) * X1Z2Z3X4Y7Y8 + (-0.0361412+0i) * X1Z2Z3Y4Y7X8 + (-0.0361412+0i) * Y1Z2Z3X4X7Y8 + (0.0361412+0i) * Y1Z2Z3Y4X7X8 + (-0.00891164+0i) * X1Z2Z3X4X8X9 + (-0.00891164+0i) * X1Z2Z3Y4Y8X9 + (-0.00891164+0i) * Y1Z2Z3X4X8Y9 + (-0.00891164+0i) * Y1Z2Z3Y4Y8Y9 + (0.00363277+0i) * X1Z2Z3X4X10X11 + (0.00363277+0i) * X1Z2Z3Y4Y10X11 + (0.00363277+0i) * Y1Z2Z3X4X10Y11 + (0.00363277+0i) * Y1Z2Z3Y4Y10Y11 + (0.000769154+0i) * X1Z2Z3Z4X5X7Z8Z9Z10X11 + (-0.0106365+0i) * X1Z2Z3Z4X5Y7Z8Z9Z10Y11 + (0.0114056+0i) * X1Z2Z3Z4Y5Y7Z8Z9Z10X11 + (0.0114056+0i) * Y1Z2Z3Z4X5X7Z8Z9Z10Y11 + (-0.0106365+0i) * Y1Z2Z3Z4Y5X7Z8Z9Z10X11 + (0.000769154+0i) * Y1Z2Z3Z4Y5Y7Z8Z9Z10Y11 + (-0.00014637+0i) * X1Z2Z3Z4X5X9Z10X11 + (0.00202412+0i) * X1Z2Z3Z4X5Y9Z10Y11 + (-0.00217049+0i) * X1Z2Z3Z4Y5Y9Z10X11 + (-0.00217049+0i) * Y1Z2Z3Z4X5X9Z10Y11 + (0.00202412+0i) * Y1Z2Z3Z4Y5X9Z10X11 + (-0.00014637+0i) * Y1Z2Z3Z4Y5Y9Z10Y11 + (2.03255e-05+0i) * Z1X6Z7X8 + (2.03255e-05+0i) * Z1Y6Z7Y8 + (2.03255e-05+0i) * X1Z2X3Z6 + (2.03255e-05+0i) * Y1Z2Y3Z6 + (0.00492409+0i) * X1Z2X3X6Z7X8 + (0.00492409+0i) * X1Z2X3Y6Z7Y8 + (0.00492409+0i) * Y1Z2Y3X6Z7X8 + (0.00492409+0i) * Y1Z2Y3Y6Z7Y8 + (2.61831e-06+0i) * X1Z2Z3Z4X5X6Z7Z8Z9X10 + (2.61831e-06+0i) * X1Z2Z3Z4X5Y6Z7Z8Z9Y10 + (2.61831e-06+0i) * Y1Z2Z3Z4Y5X6Z7Z8Z9X10 + (2.61831e-06+0i) * Y1Z2Z3Z4Y5Y6Z7Z8Z9Y10 + (-0.00524801+0i) * Z1X7Z8X9 + (-0.00524801+0i) * Z1Y7Z8Y9 + (0.00524801+0i) * X1Z2X3Z7 + (0.00524801+0i) * Y1Z2Y3Z7 + (-2.03255e-05+0i) * X1Z2X3Z8 + (-2.03255e-05+0i) * Y1Z2Y3Z8 + (-0.00126864+0i) * X1Z2Z3Z4X5X8Z9X10 + (-0.00126864+0i) * X1Z2Z3Z4X5Y8Z9Y10 + (-0.00126864+0i) * Y1Z2Z3Z4Y5X8Z9X10 + (-0.00126864+0i) * Y1Z2Z3Z4Y5Y8Z9Y10 + (-0.00524801+0i) * X1Z2X3Z9 + (-0.00524801+0i) * Y1Z2Y3Z9 + (-0.00475551+0i) * X2X4 + (-0.00475551+0i) * Y2Y4 + (-0.00891164+0i) * X2X3Y6Y7 + (0.00891164+0i) * X2Y3Y6X7 + (0.00891164+0i) * Y2X3X6Y7 + (-0.00891164+0i) * Y2Y3X6X7 + (-0.0361412+0i) * X2X3Y6Z7Z8Y9 + (0.0361412+0i) * X2Y3Y6Z7Z8X9 + (0.0361412+0i) * Y2X3X6Z7Z8Y9 + (-0.0361412+0i) * Y2Y3X6Z7Z8X9 + (-0.00668498+0i) * X2X3X7X8 + (-0.00668498+0i) * X2Y3Y7X8 + (-0.00668498+0i) * Y2X3X7Y8 + (-0.00668498+0i) * Y2Y3Y7Y8 + (-0.0161077+0i) * X2X3Y8Y9 + (0.0161077+0i) * X2Y3Y8X9 + (0.0161077+0i) * Y2X3X8Y9 + (-0.0161077+0i) * Y2Y3X8X9 + (-0.00363277+0i) * X2X3Y10Y11 + (0.00363277+0i) * X2Y3Y10X11 + (0.00363277+0i) * Y2X3X10Y11 + (-0.00363277+0i) * Y2Y3X10X11 + (-0.00791021+0i) * X2Z3X4X6Z7X8 + (0.0228067+0i) * X2Z3X4Y6Z7Y8 + (-0.0307169+0i) * X2Z3Y4Y6Z7X8 + (-0.0307169+0i) * Y2Z3X4X6Z7Y8 + (0.0228067+0i) * Y2Z3Y4X6Z7X8 + (-0.00791021+0i) * Y2Z3Y4Y6Z7Y8 + (-0.00878018+0i) * X2Z3Z4X5Y6Z7Z8Z9Z10Y11 + (0.00878018+0i) * X2Z3Z4Y5Y6Z7Z8Z9Z10X11 + (0.00878018+0i) * Y2Z3Z4X5X6Z7Z8Z9Z10Y11 + (-0.00878018+0i) * Y2Z3Z4Y5X6Z7Z8Z9Z10X11 + (0.00132026+0i) * X2Z3Z4X5X7Z8Z9X10 + (0.00132026+0i) * X2Z3Z4Y5Y7Z8Z9X10 + (0.00132026+0i) * Y2Z3Z4X5X7Z8Z9Y10 + (0.00132026+0i) * Y2Z3Z4Y5Y7Z8Z9Y10 + (-0.00498159+0i) * X2Z3Z4X5Y8Z9Z10Y11 + (0.00498159+0i) * X2Z3Z4Y5Y8Z9Z10X11 + (0.00498159+0i) * Y2Z3Z4X5X8Z9Z10Y11 + (-0.00498159+0i) * Y2Z3Z4Y5X8Z9Z10X11 + (0.00156091+0i) * X2Z3Z4X5X9X10 + (0.00156091+0i) * X2Z3Z4Y5Y9X10 + (0.00156091+0i) * Y2Z3Z4X5X9Y10 + (0.00156091+0i) * Y2Z3Z4Y5Y9Y10 + (0.012464+0i) * Z2X6Z7X8 + (0.012464+0i) * Z2Y6Z7Y8 + (0.012464+0i) * X2Z3X4Z6 + (0.012464+0i) * Y2Z3Y4Z6 + (-0.00484846+0i) * Z2X7Z8X9 + (-0.00484846+0i) * Z2Y7Z8Y9 + (0.00484846+0i) * X2Z3X4Z7 + (0.00484846+0i) * Y2Z3Y4Z7 + (-0.000815624+0i) * X2Z3X4X7Z8X9 + (-0.000815624+0i) * X2Z3X4Y7Z8Y9 + (-0.000815624+0i) * Y2Z3Y4X7Z8X9 + (-0.000815624+0i) * Y2Z3Y4Y7Z8Y9 + (-0.012464+0i) * X2Z3X4Z8 + (-0.012464+0i) * Y2Z3Y4Z8 + (-0.00484846+0i) * X2Z3X4Z9 + (-0.00484846+0i) * Y2Z3Y4Z9 + (-0.000445668+0i) * X3X4X6X7 + (-0.000445668+0i) * X3Y4Y6X7 + (-0.000445668+0i) * Y3X4X6Y7 + (-0.000445668+0i) * Y3Y4Y6Y7 + (-0.021363+0i) * X3X4X6Z7Z8X9 + (-0.021363+0i) * X3Y4Y6Z7Z8X9 + (-0.021363+0i) * Y3X4X6Z7Z8Y9 + (-0.021363+0i) * Y3Y4Y6Z7Z8Y9 + (0.00365631+0i) * X3X4Y7Y8 + (-0.00365631+0i) * X3Y4Y7X8 + (-0.00365631+0i) * Y3X4X7Y8 + (0.00365631+0i) * Y3Y4X7X8 + (0.0299018+0i) * X3X4X8X9 + (0.0299018+0i) * X3Y4Y8X9 + (0.0299018+0i) * Y3X4X8Y9 + (0.0299018+0i) * Y3Y4Y8Y9 + (-0.00205122+0i) * X3X4X10X11 + (-0.00205122+0i) * X3Y4Y10X11 + (-0.00205122+0i) * Y3X4X10Y11 + (-0.00205122+0i) * Y3Y4Y10Y11 + (0.00014637+0i) * X3Z4X5X7Z8Z9Z10X11 + (-0.00202412+0i) * X3Z4X5Y7Z8Z9Z10Y11 + (0.00217049+0i) * X3Z4Y5Y7Z8Z9Z10X11 + (0.00217049+0i) * Y3Z4X5X7Z8Z9Z10Y11 + (-0.00202412+0i) * Y3Z4Y5X7Z8Z9Z10X11 + (0.00014637+0i) * Y3Z4Y5Y7Z8Z9Z10Y11 + (0.000769154+0i) * X3Z4X5X9Z10X11 + (-0.0106365+0i) * X3Z4X5Y9Z10Y11 + (0.0114056+0i) * X3Z4Y5Y9Z10X11 + (0.0114056+0i) * Y3Z4X5X9Z10Y11 + (-0.0106365+0i) * Y3Z4Y5X9Z10X11 + (0.000769154+0i) * Y3Z4Y5Y9Z10Y11 + (-2.03255e-05+0i) * Z3X6Z7X8 + (-2.03255e-05+0i) * Z3Y6Z7Y8 + (-0.00126864+0i) * X3Z4X5X6Z7Z8Z9X10 + (-0.00126864+0i) * X3Z4X5Y6Z7Z8Z9Y10 + (-0.00126864+0i) * Y3Z4Y5X6Z7Z8Z9X10 + (-0.00126864+0i) * Y3Z4Y5Y6Z7Z8Z9Y10 + (0.00524801+0i) * Z3X7Z8X9 + (0.00524801+0i) * Z3Y7Z8Y9 + (-2.61831e-06+0i) * X3Z4X5X8Z9X10 + (-2.61831e-06+0i) * X3Z4X5Y8Z9Y10 + (-2.61831e-06+0i) * Y3Z4Y5X8Z9X10 + (-2.61831e-06+0i) * Y3Z4Y5Y8Z9Y10 + (-0.00498159+0i) * X4X5Y6Z7Z8Z9Z10Y11 + (0.00498159+0i) * X4Y5Y6Z7Z8Z9Z10X11 + (0.00498159+0i) * Y4X5X6Z7Z8Z9Z10Y11 + (-0.00498159+0i) * Y4Y5X6Z7Z8Z9Z10X11 + (-0.00156091+0i) * X4X5X7Z8Z9X10 + (-0.00156091+0i) * X4Y5Y7Z8Z9X10 + (-0.00156091+0i) * Y4X5X7Z8Z9Y10 + (-0.00156091+0i) * Y4Y5Y7Z8Z9Y10 + (0.00878018+0i) * X4X5Y8Z9Z10Y11 + (-0.00878018+0i) * X4Y5Y8Z9Z10X11 + (-0.00878018+0i) * Y4X5X8Z9Z10Y11 + (0.00878018+0i) * Y4Y5X8Z9Z10X11 + (0.00132026+0i) * X4X5X9X10 + (0.00132026+0i) * X4Y5Y9X10 + (0.00132026+0i) * Y4X5X9Y10 + (0.00132026+0i) * Y4Y5Y9Y10 + (-0.012464+0i) * Z4X6Z7X8 + (-0.012464+0i) * Z4Y6Z7Y8 + (0.00484846+0i) * Z4X7Z8X9 + (0.00484846+0i) * Z4Y7Z8Y9 + (-0.0018035+0i) * Z6X7Z8X9 + (-0.0018035+0i) * Z6Y7Z8Y9 + (-0.0018035+0i) * X6X8 + (-0.0018035+0i) * Y6Y8 + (-0.00462276+0i) * X6X7Y8Y9 + (0.00462276+0i) * X6Y7Y8X9 + (0.00462276+0i) * Y6X7X8Y9 + (-0.00462276+0i) * Y6Y7X8X9 + (-0.000951563+0i) * X6X7Y10Y11 + (0.000951563+0i) * X6Y7Y10X11 + (0.000951563+0i) * Y6X7X10Y11 + (-0.000951563+0i) * Y6Y7X10X11 + (0.0018035+0i) * X6Z7X8Z9 + (0.0018035+0i) * Y6Z7Y8Z9 + (-0.00505716+0i) * X6Z7Z8X9Y10Y11 + (0.00505716+0i) * X6Z7Z8Y9Y10X11 + (0.00505716+0i) * Y6Z7Z8X9X10Y11 + (-0.00505716+0i) * Y6Z7Z8Y9X10X11 + (0.0018035+0i) * X7X9 + (0.0018035+0i) * Y7Y9 + (-0.00505716+0i) * X7X8X10X11 + (-0.00505716+0i) * X7Y8Y10X11 + (-0.00505716+0i) * Y7X8X10Y11 + (-0.00505716+0i) * Y7Y8Y10Y11 + (0.000951563+0i) * X8X9Y10Y11 + (-0.000951563+0i) * X8Y9Y10X11 + (-0.000951563+0i) * Y8X9X10Y11 + (0.000951563+0i) * Y8Y9X10X11
+    Core energy:  -97.75004616632093
+    {'hf': -108.28933888377188, 'mp2': None, 'casci': -108.38773041848827, 'casscf': None, 'ccsd': -108.38620486132402, 'fci': None, 'nuclear_repulsion': 23.15150297775}
+    [Cudaq] Qubit hamiltonian:  (-106.641+0i) + (0.251399+0i) * Z0 + (0.266554+0i) * Z1 + (0.265567+0i) * Z2 + (0.266554+0i) * Z3 + (0.265567+0i) * Z4 + (0.232584+0i) * Z5 + (0.0637266+0i) * Z6 + (0.0648997+0i) * Z7 + (0.0637266+0i) * Z8 + (0.0648997+0i) * Z9 + (-0.19849+0i) * Z10 + (-0.195548+0i) * Z11 + (0.130154+0i) * Z0Z1 + (0.123285+0i) * Z0Z2 + (0.130154+0i) * Z0Z3 + (0.123285+0i) * Z0Z4 + (0.141709+0i) * Z0Z5 + (0.118922+0i) * Z0Z6 + (0.127641+0i) * Z0Z7 + (0.118922+0i) * Z0Z8 + (0.127641+0i) * Z0Z9 + (0.0941675+0i) * Z0Z10 + (0.0981197+0i) * Z0Z11 + (0.135794+0i) * Z1Z2 + (0.126993+0i) * Z1Z3 + (0.141271+0i) * Z1Z4 + (0.118702+0i) * Z1Z5 + (0.127751+0i) * Z1Z6 + (0.099962+0i) * Z1Z7 + (0.132746+0i) * Z1Z8 + (0.113024+0i) * Z1Z9 + (0.0967903+0i) * Z1Z10 + (0.08889+0i) * Z1Z11 + (0.141271+0i) * Z2Z3 + (0.127861+0i) * Z2Z4 + (0.125754+0i) * Z2Z5 + (0.0926024+0i) * Z2Z6 + (0.132863+0i) * Z2Z7 + (0.121638+0i) * Z2Z8 + (0.127472+0i) * Z2Z9 + (0.0923836+0i) * Z2Z10 + (0.0928646+0i) * Z2Z11 + (0.135794+0i) * Z3Z4 + (0.118702+0i) * Z3Z5 + (0.132746+0i) * Z3Z6 + (0.113024+0i) * Z3Z7 + (0.127751+0i) * Z3Z8 + (0.099962+0i) * Z3Z9 + (0.0967903+0i) * Z3Z10 + (0.08889+0i) * Z3Z11 + (0.125754+0i) * Z4Z5 + (0.121638+0i) * Z4Z6 + (0.127472+0i) * Z4Z7 + (0.0926024+0i) * Z4Z8 + (0.132863+0i) * Z4Z9 + (0.0923836+0i) * Z4Z10 + (0.0928646+0i) * Z4Z11 + (0.123223+0i) * Z5Z6 + (0.114379+0i) * Z5Z7 + (0.123223+0i) * Z5Z8 + (0.114379+0i) * Z5Z9 + (0.0993155+0i) * Z5Z10 + (0.0866001+0i) * Z5Z11 + (0.128223+0i) * Z6Z7 + (0.116067+0i) * Z6Z8 + (0.122917+0i) * Z6Z9 + (0.0892601+0i) * Z6Z10 + (0.0915793+0i) * Z6Z11 + (0.122917+0i) * Z7Z8 + (0.115228+0i) * Z7Z9 + (0.094734+0i) * Z7Z10 + (0.0866918+0i) * Z7Z11 + (0.128223+0i) * Z8Z9 + (0.0892601+0i) * Z8Z10 + (0.0915793+0i) * Z8Z11 + (0.094734+0i) * Z9Z10 + (0.0866918+0i) * Z9Z11 + (0.0904142+0i) * Z10Z11 + (0.00349312+0i) * X0X1Y2Z3Z4Y5 + (-0.00349312+0i) * X0Y1Y2Z3Z4X5 + (-0.00349312+0i) * Y0X1X2Z3Z4Y5 + (0.00349312+0i) * Y0Y1X2Z3Z4X5 + (0.0059957+0i) * X0X1Y4Y5 + (-0.0059957+0i) * X0Y1Y4X5 + (-0.0059957+0i) * Y0X1X4Y5 + (0.0059957+0i) * Y0Y1X4X5 + (0.000974687+0i) * X0X1Y6Z7Z8Z9Z10Y11 + (-0.000974687+0i) * X0Y1Y6Z7Z8Z9Z10X11 + (-0.000974687+0i) * Y0X1X6Z7Z8Z9Z10Y11 + (0.000974687+0i) * Y0Y1X6Z7Z8Z9Z10X11 + (-0.00573123+0i) * X0X1X7Z8Z9X10 + (-0.00573123+0i) * X0Y1Y7Z8Z9X10 + (-0.00573123+0i) * Y0X1X7Z8Z9Y10 + (-0.00573123+0i) * Y0Y1Y7Z8Z9Y10 + (0.00170474+0i) * X0X1Y8Z9Z10Y11 + (-0.00170474+0i) * X0Y1Y8Z9Z10X11 + (-0.00170474+0i) * Y0X1X8Z9Z10Y11 + (0.00170474+0i) * Y0Y1X8Z9Z10X11 + (-0.00349845+0i) * X0X1X9X10 + (-0.00349845+0i) * X0Y1Y9X10 + (-0.00349845+0i) * Y0X1X9Y10 + (-0.00349845+0i) * Y0Y1Y9Y10 + (-0.00857072+0i) * X0Z1X2X6Z7Z8Z9X10 + (0.000664835+0i) * X0Z1X2Y6Z7Z8Z9Y10 + (-0.00923556+0i) * X0Z1Y2Y6Z7Z8Z9X10 + (-0.00923556+0i) * Y0Z1X2X6Z7Z8Z9Y10 + (0.000664835+0i) * Y0Z1Y2X6Z7Z8Z9X10 + (-0.00857072+0i) * Y0Z1Y2Y6Z7Z8Z9Y10 + (-6.97775e-05+0i) * X0Z1X2X8Z9X10 + (5.41268e-06+0i) * X0Z1X2Y8Z9Y10 + (-7.51902e-05+0i) * X0Z1Y2Y8Z9X10 + (-7.51902e-05+0i) * Y0Z1X2X8Z9Y10 + (5.41268e-06+0i) * Y0Z1Y2X8Z9X10 + (-6.97775e-05+0i) * Y0Z1Y2Y8Z9Y10 + (-0.0059957+0i) * X0Z1X2X3Z4X5 + (-0.0059957+0i) * X0Z1X2Y3Z4Y5 + (-0.0059957+0i) * Y0Z1Y2X3Z4X5 + (-0.0059957+0i) * Y0Z1Y2Y3Z4Y5 + (-0.00349312+0i) * X0Z1Z2X3Y4Y5 + (0.00349312+0i) * X0Z1Z2Y3Y4X5 + (0.00349312+0i) * Y0Z1Z2X3X4Y5 + (-0.00349312+0i) * Y0Z1Z2Y3X4X5 + (0.00170474+0i) * X0Z1Z2X3Y6Z7Z8Z9Z10Y11 + (-0.00170474+0i) * X0Z1Z2Y3Y6Z7Z8Z9Z10X11 + (-0.00170474+0i) * Y0Z1Z2X3X6Z7Z8Z9Z10Y11 + (0.00170474+0i) * Y0Z1Z2Y3X6Z7Z8Z9Z10X11 + (-0.00349845+0i) * X0Z1Z2X3X7Z8Z9X10 + (-0.00349845+0i) * X0Z1Z2Y3Y7Z8Z9X10 + (-0.00349845+0i) * Y0Z1Z2X3X7Z8Z9Y10 + (-0.00349845+0i) * Y0Z1Z2Y3Y7Z8Z9Y10 + (-0.000974687+0i) * X0Z1Z2X3Y8Z9Z10Y11 + (0.000974687+0i) * X0Z1Z2Y3Y8Z9Z10X11 + (0.000974687+0i) * Y0Z1Z2X3X8Z9Z10Y11 + (-0.000974687+0i) * Y0Z1Z2Y3X8Z9Z10X11 + (0.00573123+0i) * X0Z1Z2X3X9X10 + (0.00573123+0i) * X0Z1Z2Y3Y9X10 + (0.00573123+0i) * Y0Z1Z2X3X9Y10 + (0.00573123+0i) * Y0Z1Z2Y3Y9Y10 + (6.97775e-05+0i) * X0Z1Z2Z3X4X6Z7Z8Z9X10 + (-5.41268e-06+0i) * X0Z1Z2Z3X4Y6Z7Z8Z9Y10 + (7.51902e-05+0i) * X0Z1Z2Z3Y4Y6Z7Z8Z9X10 + (7.51902e-05+0i) * Y0Z1Z2Z3X4X6Z7Z8Z9Y10 + (-5.41268e-06+0i) * Y0Z1Z2Z3Y4X6Z7Z8Z9X10 + (6.97775e-05+0i) * Y0Z1Z2Z3Y4Y6Z7Z8Z9Y10 + (-0.00857072+0i) * X0Z1Z2Z3X4X8Z9X10 + (0.000664835+0i) * X0Z1Z2Z3X4Y8Z9Y10 + (-0.00923556+0i) * X0Z1Z2Z3Y4Y8Z9X10 + (-0.00923556+0i) * Y0Z1Z2Z3X4X8Z9Y10 + (0.000664835+0i) * Y0Z1Z2Z3Y4X8Z9X10 + (-0.00857072+0i) * Y0Z1Z2Z3Y4Y8Z9Y10 + (0.00767363+0i) * X0Z1Z2Z3Z4X5Y6Y7 + (-0.00767363+0i) * X0Z1Z2Z3Z4Y5Y6X7 + (-0.00767363+0i) * Y0Z1Z2Z3Z4X5X6Y7 + (0.00767363+0i) * Y0Z1Z2Z3Z4Y5X6X7 + (-0.00422568+0i) * X0Z1Z2Z3Z4X5Y6Z7Z8Y9 + (0.00422568+0i) * X0Z1Z2Z3Z4Y5Y6Z7Z8X9 + (0.00422568+0i) * Y0Z1Z2Z3Z4X5X6Z7Z8Y9 + (-0.00422568+0i) * Y0Z1Z2Z3Z4Y5X6Z7Z8X9 + (0.00422568+0i) * X0Z1Z2Z3Z4X5X7X8 + (0.00422568+0i) * X0Z1Z2Z3Z4Y5Y7X8 + (0.00422568+0i) * Y0Z1Z2Z3Z4X5X7Y8 + (0.00422568+0i) * Y0Z1Z2Z3Z4Y5Y7Y8 + (0.00767363+0i) * X0Z1Z2Z3Z4X5Y8Y9 + (-0.00767363+0i) * X0Z1Z2Z3Z4Y5Y8X9 + (-0.00767363+0i) * Y0Z1Z2Z3Z4X5X8Y9 + (0.00767363+0i) * Y0Z1Z2Z3Z4Y5X8X9 + (0.00816074+0i) * X0Z1Z2Z3Z4X5Y10Y11 + (-0.00816074+0i) * X0Z1Z2Z3Z4Y5Y10X11 + (-0.00816074+0i) * Y0Z1Z2Z3Z4X5X10Y11 + (0.00816074+0i) * Y0Z1Z2Z3Z4Y5X10X11 + (-0.00111981+0i) * X0Z1X2X7Z8Z9Z10X11 + (-0.00111981+0i) * X0Z1X2Y7Z8Z9Z10Y11 + (-0.00111981+0i) * Y0Z1Y2X7Z8Z9Z10X11 + (-0.00111981+0i) * Y0Z1Y2Y7Z8Z9Z10Y11 + (-0.000604822+0i) * X0Z1Z2Z3X4X7Z8Z9Z10X11 + (-0.000604822+0i) * X0Z1Z2Z3X4Y7Z8Z9Z10Y11 + (-0.000604822+0i) * Y0Z1Z2Z3Y4X7Z8Z9Z10X11 + (-0.000604822+0i) * Y0Z1Z2Z3Y4Y7Z8Z9Z10Y11 + (0.000604822+0i) * X0Z1X2X9Z10X11 + (0.000604822+0i) * X0Z1X2Y9Z10Y11 + (0.000604822+0i) * Y0Z1Y2X9Z10X11 + (0.000604822+0i) * Y0Z1Y2Y9Z10Y11 + (-0.00111981+0i) * X0Z1Z2Z3X4X9Z10X11 + (-0.00111981+0i) * X0Z1Z2Z3X4Y9Z10Y11 + (-0.00111981+0i) * Y0Z1Z2Z3Y4X9Z10X11 + (-0.00111981+0i) * Y0Z1Z2Z3Y4Y9Z10Y11 + (-0.0048313+0i) * Z1X2Z3X4 + (-0.0048313+0i) * Z1Y2Z3Y4 + (-0.0048313+0i) * X1X3 + (-0.0048313+0i) * Y1Y3 + (-0.00273892+0i) * X1X2Y3Y4 + (0.00273892+0i) * X1Y2Y3X4 + (0.00273892+0i) * Y1X2X3Y4 + (-0.00273892+0i) * Y1Y2X3X4 + (-0.0330849+0i) * X1X2X6X7 + (-0.0330849+0i) * X1Y2Y6X7 + (-0.0330849+0i) * Y1X2X6Y7 + (-0.0330849+0i) * Y1Y2Y6Y7 + (-0.0160578+0i) * X1X2X6Z7Z8X9 + (-0.0160578+0i) * X1Y2Y6Z7Z8X9 + (-0.0160578+0i) * Y1X2X6Z7Z8Y9 + (-0.0160578+0i) * Y1Y2Y6Z7Z8Y9 + (-0.0043462+0i) * X1X2Y7Y8 + (0.0043462+0i) * X1Y2Y7X8 + (0.0043462+0i) * Y1X2X7Y8 + (-0.0043462+0i) * Y1Y2X7X8 + (-0.000262503+0i) * X1X2X8X9 + (-0.000262503+0i) * X1Y2Y8X9 + (-0.000262503+0i) * Y1X2X8Y9 + (-0.000262503+0i) * Y1Y2Y8Y9 + (-0.00210013+0i) * X1X2X10X11 + (-0.00210013+0i) * X1Y2Y10X11 + (-0.00210013+0i) * Y1X2X10Y11 + (-0.00210013+0i) * Y1Y2Y10Y11 + (-0.00860195+0i) * X1Z2X3X7Z8X9 + (0.0216635+0i) * X1Z2X3Y7Z8Y9 + (-0.0302655+0i) * X1Z2Y3Y7Z8X9 + (-0.0302655+0i) * Y1Z2X3X7Z8Y9 + (0.0216635+0i) * Y1Z2Y3X7Z8X9 + (-0.00860195+0i) * Y1Z2Y3Y7Z8Y9 + (0.0048313+0i) * X1Z2X3Z4 + (0.0048313+0i) * Y1Z2Y3Z4 + (-0.00380909+0i) * X1Z2Z3X4X6X7 + (-0.00380909+0i) * X1Z2Z3Y4Y6X7 + (-0.00380909+0i) * Y1Z2Z3X4X6Y7 + (-0.00380909+0i) * Y1Z2Z3Y4Y6Y7 + (6.53579e-05+0i) * X1Z2Z3X4X6Z7Z8X9 + (6.53579e-05+0i) * X1Z2Z3Y4Y6Z7Z8X9 + (6.53579e-05+0i) * Y1Z2Z3X4X6Z7Z8Y9 + (6.53579e-05+0i) * Y1Z2Z3Y4Y6Z7Z8Y9 + (-0.0328877+0i) * X1Z2Z3X4Y7Y8 + (0.0328877+0i) * X1Z2Z3Y4Y7X8 + (0.0328877+0i) * Y1Z2Z3X4X7Y8 + (-0.0328877+0i) * Y1Z2Z3Y4X7X8 + (-0.0242131+0i) * X1Z2Z3X4X8X9 + (-0.0242131+0i) * X1Z2Z3Y4Y8X9 + (-0.0242131+0i) * Y1Z2Z3X4X8Y9 + (-0.0242131+0i) * Y1Z2Z3Y4Y8Y9 + (-0.00360472+0i) * X1Z2Z3X4X10X11 + (-0.00360472+0i) * X1Z2Z3Y4Y10X11 + (-0.00360472+0i) * Y1Z2Z3X4X10Y11 + (-0.00360472+0i) * Y1Z2Z3Y4Y10Y11 + (-0.000668289+0i) * X1Z2Z3Z4X5X7Z8Z9Z10X11 + (0.00924165+0i) * X1Z2Z3Z4X5Y7Z8Z9Z10Y11 + (-0.00990994+0i) * X1Z2Z3Z4Y5Y7Z8Z9Z10X11 + (-0.00990994+0i) * Y1Z2Z3Z4X5X7Z8Z9Z10Y11 + (0.00924165+0i) * Y1Z2Z3Z4Y5X7Z8Z9Z10X11 + (-0.000668289+0i) * Y1Z2Z3Z4Y5Y7Z8Z9Z10Y11 + (-0.000407936+0i) * X1Z2Z3Z4X5X9Z10X11 + (0.00564128+0i) * X1Z2Z3Z4X5Y9Z10Y11 + (-0.00604921+0i) * X1Z2Z3Z4Y5Y9Z10X11 + (-0.00604921+0i) * Y1Z2Z3Z4X5X9Z10Y11 + (0.00564128+0i) * Y1Z2Z3Z4Y5X9Z10X11 + (-0.000407936+0i) * Y1Z2Z3Z4Y5Y9Z10Y11 + (-0.00424354+0i) * Z1X6Z7X8 + (-0.00424354+0i) * Z1Y6Z7Y8 + (-0.00424354+0i) * X1Z2X3Z6 + (-0.00424354+0i) * Y1Z2Y3Z6 + (0.00249788+0i) * X1Z2X3X6Z7X8 + (0.00249788+0i) * X1Z2X3Y6Z7Y8 + (0.00249788+0i) * Y1Z2Y3X6Z7X8 + (0.00249788+0i) * Y1Z2Y3Y6Z7Y8 + (0.000629689+0i) * X1Z2Z3Z4X5X6Z7Z8Z9X10 + (0.000629689+0i) * X1Z2Z3Z4X5Y6Z7Z8Z9Y10 + (0.000629689+0i) * Y1Z2Z3Z4Y5X6Z7Z8Z9X10 + (0.000629689+0i) * Y1Z2Z3Z4Y5Y6Z7Z8Z9Y10 + (0.0127083+0i) * Z1X7Z8X9 + (0.0127083+0i) * Z1Y7Z8Y9 + (0.0127083+0i) * X1Z2X3Z7 + (0.0127083+0i) * Y1Z2Y3Z7 + (0.00424354+0i) * X1Z2X3Z8 + (0.00424354+0i) * Y1Z2Y3Z8 + (0.00110133+0i) * X1Z2Z3Z4X5X8Z9X10 + (0.00110133+0i) * X1Z2Z3Z4X5Y8Z9Y10 + (0.00110133+0i) * Y1Z2Z3Z4Y5X8Z9X10 + (0.00110133+0i) * Y1Z2Z3Z4Y5Y8Z9Y10 + (-0.0127083+0i) * X1Z2X3Z9 + (-0.0127083+0i) * Y1Z2Y3Z9 + (0.0048313+0i) * X2X4 + (0.0048313+0i) * Y2Y4 + (-0.0242131+0i) * X2X3Y6Y7 + (0.0242131+0i) * X2Y3Y6X7 + (0.0242131+0i) * Y2X3X6Y7 + (-0.0242131+0i) * Y2Y3X6X7 + (0.0328877+0i) * X2X3Y6Z7Z8Y9 + (-0.0328877+0i) * X2Y3Y6Z7Z8X9 + (-0.0328877+0i) * Y2X3X6Z7Z8Y9 + (0.0328877+0i) * Y2Y3X6Z7Z8X9 + (-6.53579e-05+0i) * X2X3X7X8 + (-6.53579e-05+0i) * X2Y3Y7X8 + (-6.53579e-05+0i) * Y2X3X7Y8 + (-6.53579e-05+0i) * Y2Y3Y7Y8 + (-0.00380909+0i) * X2X3Y8Y9 + (0.00380909+0i) * X2Y3Y8X9 + (0.00380909+0i) * Y2X3X8Y9 + (-0.00380909+0i) * Y2Y3X8X9 + (-0.00360472+0i) * X2X3Y10Y11 + (0.00360472+0i) * X2Y3Y10X11 + (0.00360472+0i) * Y2X3X10Y11 + (-0.00360472+0i) * Y2Y3X10X11 + (0.000840433+0i) * X2Z3X4X6Z7X8 + (-0.0298765+0i) * X2Z3X4Y6Z7Y8 + (0.0307169+0i) * X2Z3Y4Y6Z7X8 + (0.0307169+0i) * Y2Z3X4X6Z7Y8 + (-0.0298765+0i) * Y2Z3Y4X6Z7X8 + (0.000840433+0i) * Y2Z3Y4Y6Z7Y8 + (0.0100946+0i) * X2Z3Z4X5Y6Z7Z8Z9Z10Y11 + (-0.0100946+0i) * X2Z3Z4Y5Y6Z7Z8Z9Z10X11 + (-0.0100946+0i) * Y2Z3Z4X5X6Z7Z8Z9Z10Y11 + (0.0100946+0i) * Y2Z3Z4Y5X6Z7Z8Z9Z10X11 + (-0.00179878+0i) * X2Z3Z4X5X7Z8Z9X10 + (-0.00179878+0i) * X2Z3Z4Y5Y7Z8Z9X10 + (-0.00179878+0i) * Y2Z3Z4X5X7Z8Z9Y10 + (-0.00179878+0i) * Y2Z3Z4Y5Y7Z8Z9Y10 + (8.21841e-05+0i) * X2Z3Z4X5Y8Z9Z10Y11 + (-8.21841e-05+0i) * X2Z3Z4Y5Y8Z9Z10X11 + (-8.21841e-05+0i) * Y2Z3Z4X5X8Z9Z10Y11 + (8.21841e-05+0i) * Y2Z3Z4Y5X8Z9Z10X11 + (0.000971543+0i) * X2Z3Z4X5X9X10 + (0.000971543+0i) * X2Z3Z4Y5Y9X10 + (0.000971543+0i) * Y2Z3Z4X5X9Y10 + (0.000971543+0i) * Y2Z3Z4Y5Y9Y10 + (0.000236409+0i) * Z2X6Z7X8 + (0.000236409+0i) * Z2Y6Z7Y8 + (-0.000236409+0i) * X2Z3X4Z6 + (-0.000236409+0i) * Y2Z3Y4Z6 + (0.00411158+0i) * Z2X7Z8X9 + (0.00411158+0i) * Z2Y7Z8Y9 + (-0.00411158+0i) * X2Z3X4Z7 + (-0.00411158+0i) * Y2Z3Y4Z7 + (0.00269587+0i) * X2Z3X4X7Z8X9 + (0.00269587+0i) * X2Z3X4Y7Z8Y9 + (0.00269587+0i) * Y2Z3Y4X7Z8X9 + (0.00269587+0i) * Y2Z3Y4Y7Z8Y9 + (0.000236409+0i) * X2Z3X4Z8 + (0.000236409+0i) * Y2Z3Y4Z8 + (0.00411158+0i) * X2Z3X4Z9 + (0.00411158+0i) * Y2Z3Y4Z9 + (0.000262503+0i) * X3X4X6X7 + (0.000262503+0i) * X3Y4Y6X7 + (0.000262503+0i) * Y3X4X6Y7 + (0.000262503+0i) * Y3Y4Y6Y7 + (-0.0043462+0i) * X3X4X6Z7Z8X9 + (-0.0043462+0i) * X3Y4Y6Z7Z8X9 + (-0.0043462+0i) * Y3X4X6Z7Z8Y9 + (-0.0043462+0i) * Y3Y4Y6Z7Z8Y9 + (-0.0160578+0i) * X3X4Y7Y8 + (0.0160578+0i) * X3Y4Y7X8 + (0.0160578+0i) * Y3X4X7Y8 + (-0.0160578+0i) * Y3Y4X7X8 + (0.0330849+0i) * X3X4X8X9 + (0.0330849+0i) * X3Y4Y8X9 + (0.0330849+0i) * Y3X4X8Y9 + (0.0330849+0i) * Y3Y4Y8Y9 + (0.00210013+0i) * X3X4X10X11 + (0.00210013+0i) * X3Y4Y10X11 + (0.00210013+0i) * Y3X4X10Y11 + (0.00210013+0i) * Y3Y4Y10Y11 + (-0.000407936+0i) * X3Z4X5X7Z8Z9Z10X11 + (0.00564128+0i) * X3Z4X5Y7Z8Z9Z10Y11 + (-0.00604921+0i) * X3Z4Y5Y7Z8Z9Z10X11 + (-0.00604921+0i) * Y3Z4X5X7Z8Z9Z10Y11 + (0.00564128+0i) * Y3Z4Y5X7Z8Z9Z10X11 + (-0.000407936+0i) * Y3Z4Y5Y7Z8Z9Z10Y11 + (0.000668289+0i) * X3Z4X5X9Z10X11 + (-0.00924165+0i) * X3Z4X5Y9Z10Y11 + (0.00990994+0i) * X3Z4Y5Y9Z10X11 + (0.00990994+0i) * Y3Z4X5X9Z10Y11 + (-0.00924165+0i) * Y3Z4Y5X9Z10X11 + (0.000668289+0i) * Y3Z4Y5Y9Z10Y11 + (0.00424354+0i) * Z3X6Z7X8 + (0.00424354+0i) * Z3Y6Z7Y8 + (0.00110133+0i) * X3Z4X5X6Z7Z8Z9X10 + (0.00110133+0i) * X3Z4X5Y6Z7Z8Z9Y10 + (0.00110133+0i) * Y3Z4Y5X6Z7Z8Z9X10 + (0.00110133+0i) * Y3Z4Y5Y6Z7Z8Z9Y10 + (-0.0127083+0i) * Z3X7Z8X9 + (-0.0127083+0i) * Z3Y7Z8Y9 + (-0.000629689+0i) * X3Z4X5X8Z9X10 + (-0.000629689+0i) * X3Z4X5Y8Z9Y10 + (-0.000629689+0i) * Y3Z4Y5X8Z9X10 + (-0.000629689+0i) * Y3Z4Y5Y8Z9Y10 + (-8.21841e-05+0i) * X4X5Y6Z7Z8Z9Z10Y11 + (8.21841e-05+0i) * X4Y5Y6Z7Z8Z9Z10X11 + (8.21841e-05+0i) * Y4X5X6Z7Z8Z9Z10Y11 + (-8.21841e-05+0i) * Y4Y5X6Z7Z8Z9Z10X11 + (-0.000971543+0i) * X4X5X7Z8Z9X10 + (-0.000971543+0i) * X4Y5Y7Z8Z9X10 + (-0.000971543+0i) * Y4X5X7Z8Z9Y10 + (-0.000971543+0i) * Y4Y5Y7Z8Z9Y10 + (0.0100946+0i) * X4X5Y8Z9Z10Y11 + (-0.0100946+0i) * X4Y5Y8Z9Z10X11 + (-0.0100946+0i) * Y4X5X8Z9Z10Y11 + (0.0100946+0i) * Y4Y5X8Z9Z10X11 + (-0.00179878+0i) * X4X5X9X10 + (-0.00179878+0i) * X4Y5Y9X10 + (-0.00179878+0i) * Y4X5X9Y10 + (-0.00179878+0i) * Y4Y5Y9Y10 + (-0.000236409+0i) * Z4X6Z7X8 + (-0.000236409+0i) * Z4Y6Z7Y8 + (-0.00411158+0i) * Z4X7Z8X9 + (-0.00411158+0i) * Z4Y7Z8Y9 + (0.0041934+0i) * Z6X7Z8X9 + (0.0041934+0i) * Z6Y7Z8Y9 + (-0.0041934+0i) * X6X8 + (-0.0041934+0i) * Y6Y8 + (-0.0026529+0i) * X6X7Y8Y9 + (0.0026529+0i) * X6Y7Y8X9 + (0.0026529+0i) * Y6X7X8Y9 + (-0.0026529+0i) * Y6Y7X8X9 + (-0.00450764+0i) * X6X7Y10Y11 + (0.00450764+0i) * X6Y7Y10X11 + (0.00450764+0i) * Y6X7X10Y11 + (-0.00450764+0i) * Y6Y7X10X11 + (0.0041934+0i) * X6Z7X8Z9 + (0.0041934+0i) * Y6Z7Y8Z9 + (0.00248224+0i) * X6Z7Z8X9Y10Y11 + (-0.00248224+0i) * X6Z7Z8Y9Y10X11 + (-0.00248224+0i) * Y6Z7Z8X9X10Y11 + (0.00248224+0i) * Y6Z7Z8Y9X10X11 + (-0.0041934+0i) * X7X9 + (-0.0041934+0i) * Y7Y9 + (-0.00248224+0i) * X7X8X10X11 + (-0.00248224+0i) * X7Y8Y10X11 + (-0.00248224+0i) * Y7X8X10Y11 + (-0.00248224+0i) * Y7Y8Y10Y11 + (-0.00450764+0i) * X8X9Y10Y11 + (0.00450764+0i) * X8Y9Y10X11 + (0.00450764+0i) * Y8X9X10Y11 + (-0.00450764+0i) * Y8Y9X10X11
     [Cudaq] Number of terms in the Qubit hamiltonian:  431
 :::
 :::
@@ -2437,9 +2474,10 @@ orbitals or CASSCF orbitals is not supported yet.
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](shors.html "Factoring Integers With Shor’s Algorithm"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](grovers.html "Grover’s Algorithm"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

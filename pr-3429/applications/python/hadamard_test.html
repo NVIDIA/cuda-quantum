@@ -521,6 +521,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -964,7 +987,7 @@
 <h1>Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements<a class="headerlink" href="#Using-the-Hadamard-Test-to-Determine-Quantum-Krylov-Subspace-Decomposition-Matrix-Elements" title="Permalink to this heading">¶</a></h1>
 <p>The Hadamard test is a quantum algorithm for estimating expectation values and is a useful subroutine for a number of quantum applications ranging from estimation of molecular ground state energies to quantum semidefinite programming. This tutorial will briefly introduce the Hadamard test, demonstrate how it can be implemented in CUDA-Q, and then parallelized for a Quantum Krylov Subspace Diagonalization application.</p>
 <p>The Hadamard test is performed using a register with an ancilla qubit in the <span class="math notranslate nohighlight">\(\ket{0}\)</span> state and a prepared quantum state <span class="math notranslate nohighlight">\(\ket{\psi}\)</span>, the following circuit can be used to extract the expectation value from measurement of the ancilla.</p>
-<p><img alt="Htest" src="../../_images/htest.png" /></p>
+<img alt="Htest" src="../../_images/htest.png" />
 <p>The key insight is that</p>
 <div class="math notranslate nohighlight">
 \[P(0) = \frac{1}{2} \left[ I + Re \bra{\psi} O \ket{\phi} \right]\]</div>
@@ -1148,7 +1171,7 @@ Numerical result 0.7071067690849304
 <h2>Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test<a class="headerlink" href="#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test" title="Permalink to this heading">¶</a></h2>
 <p>This example is small, but a more practical application of the Hadamard test such as QKSD will require much larger circuits. The QKSD method works by reducing the exponential <span class="math notranslate nohighlight">\(2^N\)</span> Hilbert space into an exponentially smaller subspace using a set of non-orthogonal states which are easy to prepare on a quantum computer. The Hadamard test is used to compute the matrix elements of this smaller subspace which is then diagonalized using a classical method to produce the eigenvalues. <a class="reference external" href="https://www.osti.gov/servlets/purl/1962060">This
 paper</a> described the method in more detail and is the source of the figure below.</p>
-<p><img alt="Htest3" src="../../_images/QKSD.png" /></p>
+<img alt="Htest3" src="../../_images/QKSD.png" />
 <p>This method can be easily parallelized, and multiple QPUs, if available, could compute the matrix elements asynchronously. The CUDA-Q <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> backend allows you to simulate a computation across multiple simulated QPUs. The code below demonstrates how.</p>
 <p>First, the Hadamard test circuit is defined, but this time the <span class="math notranslate nohighlight">\(\ket{\psi}\)</span> and <span class="math notranslate nohighlight">\(\ket{\phi}\)</span> states contain parameterized rotations so that multiple states can be quickly generated, for the sake of example.</p>
 <div class="nbinput nblast docutils container">

@@ -521,6 +521,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -1059,7 +1082,7 @@
 <p>Let us now examine the geometric picture behind our current discussion. We’ll consider the ambient Hilbert space to be spanned by the standard basis vectors <span class="math notranslate nohighlight">\(|0\rangle, |1\rangle, \dots, |N-1\rangle\)</span>, where the full dimension is <span class="math notranslate nohighlight">\(N = 2^n\)</span>. Since the uniform superposition state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> can be expressed as a linear combination of the states <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> with real coefficients, all three states <span class="math notranslate nohighlight">\(|\xi\rangle, |G\rangle,\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>
 reside in a two-dimensional real subspace of the ambient Hilbert space, which we can visualize as a 2D plane as in the image below. Since, <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span> are orthogonal, we can imagine them graphed as unit vectors in the positive <span class="math notranslate nohighlight">\(y\)</span> and positive <span class="math notranslate nohighlight">\(x\)</span> directions, respectively. From our previous expression, <span class="math notranslate nohighlight">\(\ket{\xi} = \sin(\theta) |G\rangle + \cos(\theta) |B\rangle,\)</span> we see that the state <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> forms an angle <span class="math notranslate nohighlight">\(\theta\)</span> with
 <span class="math notranslate nohighlight">\(|B\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="a842795f93904bf595d80d42b6b06231" src="../../_images/grovers-2D-plane.png" /></p>
+<div style="text-align: center;"><p><img alt="d6ab60a715b94029af5c5d35042d24a7" src="../../_images/grovers-2D-plane.png" /></p>
 </div><p>Given that the number of marked states <span class="math notranslate nohighlight">\(t\)</span> is typically small compared to <span class="math notranslate nohighlight">\(N\)</span>, it follows that <span class="math notranslate nohighlight">\(\theta = \arcsin\left(\sqrt{\frac{t}{N}}\right)\)</span> is a small angle. This assumption is reasonable, as otherwise, a sufficient number of independent queries to the oracle would likely yield a solution through classical search methods.</p>
 </section>
 <section id="Step-2:-Oracle-application">
@@ -1118,7 +1141,7 @@ a phase flip (-1) when all control qubits are in state |1⟩, and does nothing o
 <h3>Step 3: Amplitude amplification<a class="headerlink" href="#Step-3:-Amplitude-amplification" title="Permalink to this heading">¶</a></h3>
 <p>The main idea behind Grover’s algorithm is to construct an operator that performs a clockwise rotation by <span class="math notranslate nohighlight">\(2\theta\)</span> in the two-dimensional plane spanned by the state vectors <span class="math notranslate nohighlight">\(|G\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>. This is carried out through a composition of two rotations. First <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> is reflected over <span class="math notranslate nohighlight">\(|B\rangle\)</span> (by a rotation operation <span class="math notranslate nohighlight">\(r_B\)</span>) and then this state is reflected over <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> by a rotation operation <span class="math notranslate nohighlight">\(r_\xi\)</span>, as depicted in the
 animation below.</p>
-<p><img alt="image0" src="https://raw.githubusercontent.com/NVIDIA/cuda-q-academic/refs/heads/main/images/grovers.gif" /></p>
+<img alt="https://raw.githubusercontent.com/NVIDIA/cuda-q-academic/refs/heads/main/images/grovers.gif" src="https://raw.githubusercontent.com/NVIDIA/cuda-q-academic/refs/heads/main/images/grovers.gif" />
 <section id="Reflecting-over-the-|0000&gt;-State">
 <h4>Reflecting over the |0000&gt; State<a class="headerlink" href="#Reflecting-over-the-|0000>-State" title="Permalink to this heading">¶</a></h4>
 <p>Before defining <span class="math notranslate nohighlight">\(r_\xi\)</span>, we’ll first define a gate sequence that will reflect a state over the all zero state.</p>
@@ -1174,9 +1197,9 @@ animation below.</p>
 <div class="math notranslate nohighlight">
 \[\mathcal{G} = r_\xi \circ r_B = H^{\otimes n} \big( 2|0^{\otimes n} \rangle \langle 0^{\otimes n}| - \text{Id} \big) H^{\otimes n} \mathcal{O}_f.\]</div>
 <p>The circuit diagram below puts together steps 1 through 3:</p>
-<div style="text-align: center;"><p><img alt="a573d4aa5c6e45629b0f73674666b773" src="../../_images/grovers-steps1-3.png" /></p>
+<div style="text-align: center;"><p><img alt="88cf110da6cb4f33bc75fd79d5df0081" src="../../_images/grovers-steps1-3.png" /></p>
 </div><p>Running this circuit initializes <span class="math notranslate nohighlight">\(\ket{\xi}\)</span> and performs a rotation by <span class="math notranslate nohighlight">\(2\theta\)</span> (twice the angle between <span class="math notranslate nohighlight">\(|\xi\rangle\)</span> and <span class="math notranslate nohighlight">\(|B\rangle\)</span>) in the direction from <span class="math notranslate nohighlight">\(|B\rangle\)</span> to <span class="math notranslate nohighlight">\(|G\rangle\)</span>.</p>
-<div style="text-align: center;"><p><img alt="3fee9b2743c74f2fb1b6099802d64b1c" src="../../_images/grovers-full-rotation.png" /></p>
+<div style="text-align: center;"><p><img alt="baf77bb5243448d4857588fcf7d7c1bc" src="../../_images/grovers-full-rotation.png" /></p>
 </div><p>Let’s verify that the state resulting from one iteration of Grover’s algorithm brings us closer to the good state, <span class="math notranslate nohighlight">\(\ket{G}\)</span>. In particular, notice that the amplitudes of <code class="docutils literal notranslate"><span class="pre">1001</span></code> and <code class="docutils literal notranslate"><span class="pre">1111</span></code> in the resulting state have been amplified compared to the equal superposition of states.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
