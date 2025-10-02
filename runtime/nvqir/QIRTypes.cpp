@@ -29,14 +29,14 @@ nvqir::ArrayTracker &nvqir::ArrayTracker::getInstance() {
 void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.push_back(arr); }
 // Untrack the given array (manually delete outside)
 void nvqir::ArrayTracker::untrack(Array *arr) {
+  if (arr == nullptr)
+    return;
+
   auto it = std::find(allocated_arrays.begin(), allocated_arrays.end(), arr);
   // Use nullptr to indicate untracked arrays (manually deleted outside) to
   // prevent vector shrink.
   if (it != allocated_arrays.end())
-    if (*it != nullptr)
-      *it = nullptr;
-    else
-      CUDAQ_WARN("Attempting to untrack an Array that is already untracked.");
+    *it = nullptr;
   else
     CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
 }
