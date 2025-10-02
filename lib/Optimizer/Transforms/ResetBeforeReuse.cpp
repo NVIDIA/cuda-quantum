@@ -151,13 +151,10 @@ private:
     {
       // Check direct use
       const auto orderedUsers = sortUsers(qubit.getUsers(), dom);
-      assert(orderedUsers.size() > 0);
-      for (auto v : llvm::enumerate(orderedUsers)) {
+      for (auto v : llvm::enumerate(orderedUsers))
         if (v.value() == op && v.index() < (orderedUsers.size() - 1) &&
-            dom.dominates(op, orderedUsers[v.index() + 1])) {
+            dom.dominates(op, orderedUsers[v.index() + 1]))
           return orderedUsers[v.index() + 1];
-        }
-      }
     }
 
     // No next use is found, check if this is an extracted qubit.
@@ -175,7 +172,6 @@ private:
         if (isa<quake::AllocaOp>(reg.getDefiningOp())) {
           const auto orderedUsers = tracker.getUsers(reg);
           // Find the next op on the register
-          assert(orderedUsers.size() > 0);
           bool foundThisExtract = false;
           for (auto v : llvm::enumerate(orderedUsers)) {
             if (foundThisExtract) {
@@ -183,7 +179,6 @@ private:
               auto nextExtractOp =
                   dyn_cast_or_null<quake::ExtractRefOp>(v.value());
               if (nextExtractOp) {
-                assert(nextExtractOp.getVeq() == reg);
                 std::optional<int64_t> nextIndex =
                     nextExtractOp.hasConstantIndex()
                         ? nextExtractOp.getConstantIndex()
@@ -195,7 +190,8 @@ private:
                   const auto extractedQubit = nextExtractOp.getRef();
                   const auto extractedQubitOrderedUsers =
                       sortUsers(extractedQubit.getUsers(), dom);
-                  assert(!extractedQubitOrderedUsers.empty());
+                  if (extractedQubitOrderedUsers.empty())
+                    return nullptr;
                   LLVM_DEBUG(llvm::dbgs()
                              << "Next use: " << *extractedQubitOrderedUsers[0]
                              << "\n");
@@ -203,11 +199,9 @@ private:
                 }
               }
             }
-            if (v.value() == extractOp) {
+            if (v.value() == extractOp)
               foundThisExtract = true;
-            }
           }
-          assert(foundThisExtract);
         }
       }
     }
