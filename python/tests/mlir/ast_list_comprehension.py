@@ -855,10 +855,3 @@ def test_list_comprehension_failures():
 # CHECK-NEXT:   (offending source -> [mz(q) for r in q])
 # CHECK-NOT:    __nvqpp__mlirgen__kernel4
 
-
-if __name__ == '__main__':
-    test_list_comprehension_indirect_tuple()
-
-    # FIXME: WRITE FOR LOOP TEST FOR 
-    # for i, (t1, t2) in enumerate([t]): ...
-    # WHERE T IS TUPLE

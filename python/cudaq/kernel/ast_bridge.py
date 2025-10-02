@@ -31,7 +31,7 @@ from .captured_data import CapturedDataStorage
 from .utils import (Color, globalAstRegistry, globalKernelRegistry,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
-                    mlirTypeToPyType)
+                    mlirTypeToPyType, mlirTryCreateStructType)
 
 State = cudaq_runtime.State
 
@@ -256,12 +256,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
             ty) or quake.StruqType.isinstance(ty)
-
-    def isQuantumStructType(self, ty):
-        """
-        Return True if the given struct type has only quantum member variables.
-        """
-        return quake.StruqType.isinstance(ty)
 
     def isMeasureResultType(self, ty, value):
         """
@@ -513,6 +507,9 @@ class PyASTBridge(ast.NodeVisitor):
         """
         return IntegerType.isinstance(type) or F64Type.isinstance(
             type) or F32Type.isinstance(type) or ComplexType.isinstance(type)
+
+    def __isSupportedNumpyFunction(self, id):
+        return id in ['sin', 'cos', 'sqrt', 'ceil', 'exp']
 
     def __isSimpleGate(self, id):
         return id in ['h', 'x', 'y', 'z', 's', 't']
@@ -1152,11 +1149,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.kernelFuncOp = f
 
             # Set this kernel as an entry point if the argument types are classical only
-            def isQuantumTy(ty):
-                return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-                    ty) or quake.StruqType.isinstance(ty)
-
-            areQuantumTypes = [isQuantumTy(ty) for ty in self.argTypes]
+            areQuantumTypes = [self.isQuantumType(ty) for ty in self.argTypes]
             f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if True not in areQuantumTypes and not self.disableEntryPointTag:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
@@ -1436,86 +1429,29 @@ class PyASTBridge(ast.NodeVisitor):
         see from ubiquitous external modules like `numpy`.
         """
         self.currentNode = node
-        # Disallow list.append since we don't do dynamic memory allocation
-        if isinstance(node.value,
-                      ast.Name) and node.value.id in self.symbolTable:
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.value)
-            value = self.symbolTable[node.value.id]
-            if self.isQuantumStructType(value.type):
-                # Here we have a quantum struct, need to use extract value instead
-                # of load from compute pointer.
-                structIdx, memberTy = self.getStructMemberIdx(
-                    node.attr, value.type)
-                self.pushValue(
-                    quake.GetMemberOp(
-                        memberTy, value,
-                        IntegerAttr.get(self.getIntegerType(32),
-                                        structIdx)).result)
-                return
 
-            valType = value.type
-            if cc.PointerType.isinstance(value.type):
-                valType = cc.PointerType.getElementType(valType)
+        if isinstance(node.value, ast.Name) and not node.value.id in self.symbolTable:
 
-            if cc.StructType.isinstance(valType):
-                # Handle the case where we have a struct member extraction, memory semantics
-                self.__visitStructAttribute(node, value)
-                return
-
-            if node.attr == 'append':
-                if cc.StdvecType.isinstance(valType) or cc.ArrayType.isinstance(
-                        valType):
-                    self.emitFatalError(
-                        "CUDA-Q does not allow dynamic list resizing.", node)
-                return
-
-            if node.attr == 'size' and quake.VeqType.isinstance(valType):
-                self.pushValue(
-                    quake.VeqSizeOp(self.getIntegerType(64),
-                                    self.symbolTable[node.value.id]).result)
-                return
-
-        if node.attr in ['imag', 'real']:
-            if isinstance(node.value,
-                          ast.Name) and node.value.id in self.symbolTable:
-                self.debug_msg(lambda: f'[(Inline) Visit Name]', node.value)
-                value = self.symbolTable[node.value.id]
-            else:
-                self.visit(node.value)
-                value = self.popValue()
-
-            value = self.ifPointerThenLoad(value)
-
-            if ComplexType.isinstance(value.type):
-                if (node.attr == 'real'):
-                    self.pushValue(complex.ReOp(value).result)
-                    return
-
-                if (node.attr == 'imag'):
-                    self.pushValue(complex.ImOp(value).result)
-                    return
-
-        if isinstance(node.value, ast.Name):
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.value)
             if node.value.id in ['np', 'numpy', 'math']:
                 if node.attr == 'complex64':
                     self.pushValue(self.getComplexType(width=32))
-                    return
-                if node.attr == 'complex128':
+                elif node.attr == 'complex128':
                     self.pushValue(self.getComplexType(width=64))
-                    return
-                if node.attr == 'pi':
+                elif node.attr == 'float64':
+                    self.pushValue(self.getFloatType(width=64))
+                elif node.attr == 'float32':
+                    self.pushValue(self.getFloatType(width=32))
+                elif node.attr == 'pi':
                     self.pushValue(self.getConstantFloat(np.pi))
-                    return
-                if node.attr == 'e':
+                elif node.attr == 'e':
                     self.pushValue(self.getConstantFloat(np.e))
-                    return
-                if node.attr == 'euler_gamma':
+                elif node.attr == 'euler_gamma':
                     self.pushValue(self.getConstantFloat(np.euler_gamma))
+                elif node.attr == 'array' or self.__isSupportedNumpyFunction(node.attr):
                     return
-                raise RuntimeError(
-                    "math expression {}.{} was not understood".format(
-                        node.value.id, node.attr))
+                else:
+                    self.emitFatalError("{}.{} is not supported".format(node.value.id, node.attr), node)
+                return
 
             if node.value.id == 'cudaq':
                 if node.attr in [
@@ -1531,20 +1467,75 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(self.getConstantInt(hash(channel_class)))
                     return
 
-        # Handle attribute access on call results (e.g., M(6, 9).i)
-        if isinstance(node.value, ast.Call):
-            # Visit the call first to get the result on the stack
-            self.visit(node.value)
-            if len(self.valueStack) == 0:
-                self.emitFatalError("Call expression did not produce a value",
-                                    node)
+                # Any other cudaq attributes should be handled by the parent
+                return
+            
+            if node.attr == 'ctrl' or node.attr == 'adj':
+                # to be processed by the caller
+                return
+        
+        def process_composite_types(value, valType):
 
-            # Get the call result from the stack
-            call_result = self.popValue()
+            if quake.StruqType.isinstance(value.type):
+                # Need to extract value instead of load from compute pointer.
+                structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
+                attr = IntegerAttr.get(self.getIntegerType(32), structIdx)
+                self.pushValue(quake.GetMemberOp(memberTy, value, attr).result)
+                return True
 
-            # Handle attribute access on the call result
-            self.__visitStructAttribute(node, call_result)
+            if cc.StructType.isinstance(valType):
+                # Handle the case where we have a struct member extraction, memory semantics
+                self.__visitStructAttribute(node, value)
+                return True
+
+            elif quake.VeqType.isinstance(valType):
+                if node.attr == 'size':
+                    self.pushValue(
+                        quake.VeqSizeOp(self.getIntegerType(), value).result)
+                    return True
+                if node.attr == 'append':
+                    self.emitFatalError(
+                        "CUDA-Q does not allow dynamic list resizing.", node)
+                if node.attr == 'front' or node.attr == 'back':
+                    return True
+                
+            elif cc.StdvecType.isinstance(valType) or cc.ArrayType.isinstance(valType):
+                if node.attr == 'size':                    
+                    self.pushValue(self.__get_vector_size(value))
+                    return True
+                if node.attr == 'append':
+                    self.emitFatalError(
+                        "CUDA-Q does not allow dynamic list resizing.", node)
+                if node.attr == 'front' or node.attr == 'back':
+                    return True
+
+            return False
+
+        # Make sure we preserve pointers for structs
+        if isinstance(node.value, ast.Name) and node.value.id in self.symbolTable:  
+            value = self.symbolTable[node.value.id]
+            if cc.PointerType.isinstance(value.type):
+                valType = cc.PointerType.getElementType(value.type)
+                processed = process_composite_types(value, valType)
+                if processed: return                    
+
+        self.visit(node.value)
+        if len(self.valueStack) == 0:
+            self.emitFatalError("failed to create value to access attribute", node)            
+        value = self.popValue()
+
+        if ComplexType.isinstance(value.type):
+            if (node.attr == 'real'):
+                self.pushValue(complex.ReOp(value).result)
+            elif (node.attr == 'imag'):
+                self.pushValue(complex.ImOp(value).result)
+            else:
+                self.emitFatalError("invalid attribute on complex value", node)
             return
+
+        processed = process_composite_types(value, value.type)
+        if not processed:
+            self.emitFatalError("unrecognized attribute {}".format(node.attr), node)
 
     def visit_Call(self, node):
         """
@@ -2260,20 +2251,11 @@ class PyASTBridge(ast.NodeVisitor):
                     mlirTypeFromPyType(v, self.ctx)
                     for _, v in annotations.items()
                 ]
-                # Ensure we don't use hybrid data types
-                numQuantumMemberTys = sum((self.isQuantumType(ty) for ty in structTys))
-                if numQuantumMemberTys != 0 and numQuantumMemberTys != len(structTys):
-                    self.emitFatalError(
-                        f'hybrid quantum-classical data types are not allowed',
-                        node)
 
-                isStruq = numQuantumMemberTys != 0
-                if isStruq:
-                    if any((self.isQuantumStructType(t) for t in structTys)):
-                        self.emitFatalError('recursive quantum struct types not allowed.', node)                    
-                    structTy = quake.StruqType.getNamed(node.func.id, structTys)
-                else:
-                    structTy = cc.StructType.getNamed(node.func.id, structTys)
+                structTy = mlirTryCreateStructType(structTys, name = node.func.id, context=self.ctx)
+                if structTy is None:
+                    self.emitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.", node)
+
                 # Disallow user specified methods on structs
                 if len({
                         k: v
@@ -2289,7 +2271,7 @@ class PyASTBridge(ast.NodeVisitor):
                 ctorArgs = [self.popValue() for _ in range(nArgs)]
                 ctorArgs.reverse()
 
-                if isStruq:
+                if quake.StruqType.isinstance(structTy):
                     # If we have a quantum struct. We cannot allocate classical
                     # memory and load / store quantum type values to that memory
                     # space, so use `quake.MakeStruqOp`.
@@ -2389,7 +2371,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
                 # Promote argument's types for `numpy.func` calls to match python's semantics
-                if node.func.attr in ['sin', 'cos', 'sqrt', 'ceil', 'exp']:
+                if self.__isSupportedNumpyFunction(node.func.attr):
                     if ComplexType.isinstance(value.type):
                         value = self.changeOperandToType(
                             self.getComplexType(), value)
@@ -4185,6 +4167,13 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map tuples in the Python AST to equivalents in MLIR.
         """
+        # FIXME: The handling of tuples in Python likely needs to be examined carefully;
+        # The corresponding issue to clarify the expected behavior is 
+        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        # I reenabled the tuple support in kernel signatures, given that we were already
+        # allowing the use of data classes everywhere, and supporting tuple use within a
+        # kernel. It hence seems that any issues with tuples also apply to named structs.
+
         self.generic_visit(node)
         self.currentNode = node
 
@@ -4203,19 +4192,13 @@ class PyASTBridge(ast.NodeVisitor):
         ]
 
         structTys = [v.type for v in elementValues]
-        numQuantumMembers = sum((self.isQuantumType(t) for t in structTys))
-        if numQuantumMembers != 0 and numQuantumMembers != len(structTys):
-            self.emitFatalError("hybrid quantum-classical data types are not allowed", node)
-        isStruq = numQuantumMembers != 0
+        structTy = mlirTryCreateStructType(structTys, context=self.ctx)
+        if structTy is None:
+            self.emitFatalError("hybrid quantum-classical data types and nested quantum structs are not allowed", node)
 
-        if isStruq:
-            if any((self.isQuantumStructType(t) for t in structTys)):
-                self.emitFatalError('recursive quantum struct types not allowed.', node)
-            structTy = quake.StruqType.getNamed("tuple", structTys)
+        if quake.StruqType.isinstance(structTy):
             self.pushValue(quake.MakeStruqOp(structTy, elementValues).result)
-
         else:
-            structTy = cc.StructType.getNamed("tuple", structTys)
             stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
                                     TypeAttr.get(structTy)).result
 

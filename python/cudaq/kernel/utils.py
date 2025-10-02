@@ -101,6 +101,26 @@ def emitWarning(msg):
                 0]
 
 
+def mlirTryCreateStructType(mlirEleTypes, name = "tuple", context = None):
+    """
+    Creates either a quake.StruqType or a cc.StructType used to represent 
+    tuples and dataclass structs of quantum and classical types. Returns
+    None if the given element types don't satisfy the restrictions imposed
+    on these types.
+    """
+    def isQuantumType(ty):
+        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+                ty) or quake.StruqType.isinstance(ty)
+
+    numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
+    if numQuantumMembers == 0:
+        return cc.StructType.getNamed(name, mlirEleTypes, context=context)
+    if numQuantumMembers != len(mlirEleTypes) or \
+        any((quake.StruqType.isinstance(t) for t in mlirEleTypes)):
+        return None
+    return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
+
+
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
     Return the MLIR Type corresponding to the given kernel function argument type annotation.
@@ -185,12 +205,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if isinstance(annotation,
                   ast.Subscript) and (annotation.value.id == 'tuple' or
                                       annotation.value.id == 'Tuple'):
-        localEmitFatalError(
-            f"Use of tuples is not supported in kernels ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
-        )
-
-        #FIXME: re-enable tuple support after we have the spec.
-        # https://github.com/NVIDIA/cuda-quantum/issues/3031
+        
         if not hasattr(annotation, 'slice'):
             localEmitFatalError(
                 f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
@@ -204,9 +219,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             localEmitFatalError(
                 f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
             )
+            
 
         eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+        tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        if tupleTy is None:
+            localEmitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+        return tupleTy
 
     if hasattr(annotation, 'id'):
         id = annotation.id
@@ -251,10 +270,6 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if id in globalRegisteredTypes.classes:
         pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
         structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
-        for ty in structTys:
-            if cc.StructType.isinstance(ty):
-                localEmitFatalError(
-                    'recursive struct types are not allowed in kernels.')
 
         if '__slots__' not in pyType.__dict__:
             emitWarning(
@@ -270,23 +285,10 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             localEmitFatalError(
                 'struct types with user specified methods are not allowed.')
 
-        numQuantumMemberTys = sum([
-            1 if
-            (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty) or
-             quake.StruqType.isinstance(ty)) else 0 for ty in structTys
-        ])
-        numStruqMemberTys = sum(
-            [1 if (quake.StruqType.isinstance(ty)) else 0 for ty in structTys])
-        if numQuantumMemberTys != 0:  # we have quantum member types
-            if numQuantumMemberTys != len(structTys):
-                emitFatalError(
-                    f'hybrid quantum-classical data types not allowed in kernel code.'
-                )
-            if numStruqMemberTys != 0:
-                emitFatalError(f'recursive quantum struct types not allowed.')
-            return quake.StruqType.getNamed(id, structTys, ctx)
-
-        return cc.StructType.getNamed(id, structTys, ctx)
+        tupleTy = mlirTryCreateStructType(structTys, name = id, context=ctx)
+        if tupleTy is None:
+            localEmitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+        return tupleTy
 
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
@@ -389,9 +391,6 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                                  ctx)
 
     if get_origin(argType) == tuple:
-        #FIXME: re-enable tuple support after we have the spec.
-        # https://github.com/NVIDIA/cuda-quantum/issues/3031
-        emitFatalError(f'Use of tuples is not supported in kernels ({argType})')
         result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
         eleTyNames = result.group('names')
         eleTypes = []
@@ -404,17 +403,20 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 emitFatalError(f'Invalid tuple element type ({eleTyName})')
             eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
         eleTypes.reverse()
-        return cc.StructType.getNamed("tuple", eleTypes, ctx)
+        tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        if tupleTy is None:
+            emitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+        return tupleTy
 
     if (argType == tuple):
-        #FIXME: re-enable tuple support after we have the spec.
-        # https://github.com/NVIDIA/cuda-quantum/issues/3031
-        emitFatalError(f'Use of tuples is not supported in kernels ({argType})')
         argInstance = kwargs['argInstance']
         if argInstance == None or (len(argInstance) == 0):
             emitFatalError(f'Cannot infer runtime argument type for {argType}')
         eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
-        return cc.StructType.getNamed("tuple", eleTypes, ctx)
+        tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        if tupleTy is None:
+            emitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+        return tupleTy
 
     if argType == qvector or argType == qreg or argType == qview:
         return quake.VeqType.get(context=ctx)
@@ -487,6 +489,9 @@ def mlirTypeToPyType(argType):
     if quake.VeqType.isinstance(argType):
         return qvector
 
+    if quake.RefType.isinstance(argType):
+        return qubit
+
     if cc.CallableType.isinstance(argType):
         return Callable
 
@@ -522,6 +527,19 @@ def mlirTypeToPyType(argType):
         if globalRegisteredTypes.isRegisteredClass(clsName):
             pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
             return pyType
+    
+    if quake.StruqType.isinstance(argType):
+        if (quake.StruqType.getName(argType) == "tuple"):
+            elements = [
+                mlirTypeToPyType(v) for v in quake.StruqType.getTypes(argType)
+            ]
+            return types.GenericAlias(tuple, tuple(elements))
+
+        clsName = quake.StruqType.getName(argType)
+        if globalRegisteredTypes.isRegisteredClass(clsName):
+            pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
+            return pyType
+
 
     emitFatalError(
         f"Cannot infer python type from provided CUDA-Q type ({argType})")
