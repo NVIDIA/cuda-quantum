@@ -2803,7 +2803,7 @@ following commands, for example, install the necessary packages for RHEL
 More detailed instructions for your platform can be found in the online
 documentation linked for that [CUDA
 version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
-.external}. Please make sure to install CUDA version 12.0 or newer, and
+.external}. Please make sure to install CUDA version 11.8 or newer, and
 confirm that your [GPU
 driver](https://www.nvidia.com/download/index.aspx){.reference
 .external} supports that version. While the above packages are
