@@ -62,6 +62,7 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
+  ResetBeforeReuse.cpp
   ResourceCountPreprocess.cpp
   SROA.cpp
   StackFramePrealloc.cpp
@@ -71,7 +72,6 @@ add_cudaq_library(OptTransforms
   VariableCoalesce.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
-  ResetBeforeReuse.cpp
 
   DEPENDS
     OptTransformsPassIncGen
