@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CircuitSimulator.h"
+#include "NVQIRUtil.h"
 #include "QIRTypes.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
@@ -123,9 +124,6 @@ void tearDownBeforeMPIFinalize() {
   getCircuitSimulatorInternal()->tearDownBeforeMPIFinalize();
 }
 
-/// @brief Store allocated Array pointers
-thread_local static std::vector<std::unique_ptr<Array>> allocatedArrays;
-
 /// @brief Store allocated Qubit pointers
 thread_local static std::vector<std::unique_ptr<Qubit>> allocatedSingleQubits;
 
@@ -139,14 +137,14 @@ thread_local static std::vector<std::unique_ptr<Qubit>> allocatedSingleQubits;
 // IMPORTANT: don't use this for borrowed qubit indices as that
 // will result in leak.
 Array *vectorSizetToArray(std::vector<std::size_t> &idxs) {
-  auto newArray = std::make_unique<Array>(idxs.size(), sizeof(std::size_t));
+  Array *newArray = new Array(idxs.size(), sizeof(std::size_t));
   for (std::size_t i = 0; i < idxs.size(); i++) {
     auto qbit = new Qubit{idxs[i]};
     auto arrayPtr = (*newArray)[i];
     *reinterpret_cast<Qubit **>(arrayPtr) = qbit;
   }
-  nvqir::allocatedArrays.emplace_back(std::move(newArray));
-  return nvqir::allocatedArrays.back().get();
+  nvqir::ArrayTracker::getInstance().track(newArray);
+  return newArray;
 }
 
 /// @brief Utility function mapping a QIR Array pointer to a vector of ids
@@ -417,13 +415,8 @@ void __quantum__rt__qubit_release_array(Array *arr) {
     nvqir::getCircuitSimulatorInternal()->deallocate(idxVal->idx);
     delete idxVal;
   }
-  auto begin = nvqir::allocatedArrays.begin();
-  auto end = nvqir::allocatedArrays.end();
-  nvqir::allocatedArrays.erase(
-      std::remove_if(
-          begin, end,
-          [&](std::unique_ptr<Array> &array) { return arr == array.get(); }),
-      end);
+  delete arr;
+  nvqir::ArrayTracker::getInstance().untrack(arr);
   return;
 }
 
@@ -1143,29 +1136,6 @@ void __quantum__rt__clear_result_maps() {
   measQB2Res.clear();
   measRes2QB.clear();
   measRes2Val.clear();
-}
-
-/// @brief Utility function used by Quake->QIR to pack a single Qubit pointer
-/// into an Array pointer.
-Array *packSingleQubitInArray(Qubit *q) {
-  auto newArray = std::make_unique<Array>(1, sizeof(std::size_t));
-  auto arrayPtr = (*newArray)[0];
-  *reinterpret_cast<Qubit **>(arrayPtr) = q;
-  nvqir::allocatedArrays.emplace_back(std::move(newArray));
-  return nvqir::allocatedArrays.back().get();
-}
-
-/// @brief Utility function used by Quake->QIR to release any created Array from
-/// Qubit packing after its been used
-void releasePackedQubitArray(Array *a) {
-  auto begin = nvqir::allocatedArrays.begin();
-  auto end = nvqir::allocatedArrays.end();
-  nvqir::allocatedArrays.erase(
-      std::remove_if(
-          begin, end,
-          [&](std::unique_ptr<Array> &array) { return a == array.get(); }),
-      end);
-  return;
 }
 
 /// This is the generalized version of invoke that does not use a va_list

@@ -634,11 +634,6 @@ public:
       return;
     }
 
-    // After kernel launch, we clean up any dangling arrays that are allocated
-    // during kernel execution.
-    builder.create<func::CallOp>(loc, std::nullopt,
-                                 cudaq::runtime::cleanupArrays, ValueRange{});
-
     // If and only if this kernel returns a value, unpack and load the
     // result value(s) from the struct returned by `launchKernel` and return
     // them to our caller.
