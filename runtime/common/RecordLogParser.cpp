@@ -9,6 +9,7 @@
 #include "RecordLogParser.h"
 #include "Logger.h"
 #include "Timing.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
@@ -81,7 +82,16 @@ void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
   if (entries.size() < 2 || entries.size() > 3)
     cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
-  metadata[entries[1]] = entries.size() == 3 ? entries[2] : "";
+  if (entries.size() == 3) {
+    if (entries[1] == cudaq::opt::qir0_2::RequiredResultsAttrName ||
+        entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
+      metadata[ResultCountMetadataName] = entries[2];
+    } else {
+      metadata[entries[1]] = entries[2];
+    }
+  } else {
+    metadata[entries[1]] = "";
+  }
 }
 
 void cudaq::RecordLogParser::handleOutput(
@@ -112,14 +122,8 @@ void cudaq::RecordLogParser::handleOutput(
       // records, not wrapped in an ARRAY. Hence, we treat it as an array of
       // results.
       containerMeta.m_type = ContainerType::ARRAY;
-      const auto it = metadata.find("required_num_results");
-      if (it != metadata.end()) {
-        containerMeta.elementCount = std::stoul(it->second);
-      } else {
-        cudaq::info("No required_num_results metadata found, defaulting to 1.");
-        containerMeta.elementCount = 1;
-      }
-
+      containerMeta.elementCount =
+          std::stoul(metadata[ResultCountMetadataName]);
       containerMeta.arrayType = "i1";
       preallocateArray();
     }
