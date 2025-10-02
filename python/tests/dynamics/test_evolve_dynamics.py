@@ -112,6 +112,47 @@ def test_save_all_intermediate_states():
     np.testing.assert_allclose(expected_answer, expt, 1e-3)
 
 
+def test_batching_bugs():
+    """
+    Test some batching bugs
+    """
+    steps = np.linspace(0, 1, 10)
+    schedule = Schedule(steps, ["t"])
+    dimensions = {0: 2, 1: 2}
+    L = SuperOperator.left_right_multiply(
+        boson.annihilate(0) * boson.annihilate(1),
+        boson.annihilate(0) * boson.annihilate(1))
+
+    psi0_ = cp.zeros(4, dtype=np.complex128)
+    psi0_[0] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+
+    evolution_results = cudaq.evolve(
+        [L, L],
+        dimensions,
+        schedule,
+        psi0,
+        store_intermediate_results=cudaq.IntermediateResultSave.ALL)
+
+    for evolution_result in evolution_results:
+        assert len(evolution_result.intermediate_states()) == len(steps)
+
+    # Another test case
+    L1 = SuperOperator.left_right_multiply(
+        boson.annihilate(0) * boson.annihilate(0) * boson.annihilate(1) *
+        boson.annihilate(1),
+        boson.create(0) * boson.create(0) * boson.create(1) * boson.create(1))
+    evolution_results = cudaq.evolve(
+        [L1, L1],
+        dimensions,
+        schedule,
+        psi0,
+        store_intermediate_results=cudaq.IntermediateResultSave.ALL)
+
+    for evolution_result in evolution_results:
+        assert len(evolution_result.intermediate_states()) == len(steps)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
