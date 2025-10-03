@@ -981,6 +981,44 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
+  let summary = "Perform phase based rotation merging.";
+
+  let description = [{
+    Multiple `quake.rz` ops can be merged into a single gate if they occur
+    at the same phase. In a circuit with only Swap, NOT, CNOT, and Rz gates, a
+    phase represents the state of a qubit based on the Swap, NOT, and CNOT
+    operations applied to it.
+
+    First, a preprocessing step identifies each subcircuit consisting only of
+    Swap, NOT, CNOT, and Rz gates. Currently, we restrict this subcircuit to
+    only working with `!quake.ref` types directly from `quake.alloca`s, as
+    values extraced from `quake.veq`s via `extract_ref` may have hidden side
+    effects that could cause the subcircuits to be incorrect.
+
+    At the beginning of the subcircuit, each qubit is assigned a unique phase
+    variable. A phase is an exclusive sum of the phase variables determining
+    the current state of a qubit, calculated as follows. While walking the
+    subcircuit:
+    * A Swap gate swaps the phases for two qubits.
+    * A NOT gate inverts the phase for a qubit by (un)setting a flag.
+    * A CNOT gate sets the phase of the target to the exclusive sum of the
+      phase variables in the phases for the control and target qubits.
+    * If multiple `rz` ops are found at the same phase, they will be combined
+      by replacing the rotation angle of the latter occuring op to the sum of
+      the rotation angles of both ops, and removing the prior op.
+  }];
+
+  let options = [
+    Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
+    "Minimumn subcircuit length to run phase folding">,
+    Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"20",
+    "Minimumn percentage of rz ops in subcircuit to run phase folding">,
+  ];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{
