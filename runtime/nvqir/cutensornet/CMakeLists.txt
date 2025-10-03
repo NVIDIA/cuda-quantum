@@ -62,8 +62,10 @@ set(CUTENSORNET_PATCH ${CMAKE_MATCH_1})
 
 set(CUTENSORNET_VERSION ${CUTENSORNET_MAJOR}.${CUTENSORNET_MINOR}.${CUTENSORNET_PATCH})
 message(STATUS "Found cutensornet version: ${CUTENSORNET_VERSION}")
-# We need cutensornet v2.7.0+ (cutensornetStateApplyGeneralChannel)
-if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.7")
+# We need cutensornet v2.9.0+
+# Using the new flow: define a network with cutensornetCreateNetwork, append inputs via cutensornetNetworkAppendTensor, set output with cutensornetNetworkSetOutputTensor, 
+# then prepare and run using cutensornetNetworkPrepareContraction and cutensornetNetworkContract.
+if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.9")
   set (BASE_TENSOR_BACKEND_SRS tensornet_utils.cpp)
   get_filename_component(CUTENSORNET_INCLUDE_DIR ${CUTENSORNET_INC} DIRECTORY)
   get_filename_component(CUTENSORNET_LIB_DIR ${CUTENSORNET_LIB} DIRECTORY)
@@ -93,5 +95,5 @@ if (${CUTENSORNET_VERSION} VERSION_GREATER_EQUAL "2.7")
   target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
   target_link_libraries(nvqir-tensornet-fp32 PRIVATE tensornet-mpi-util)
 else()
-  message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.3.0+.")
+  message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.9.0+.")
 endif()

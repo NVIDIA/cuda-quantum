@@ -145,10 +145,26 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   }
 
   cutensornetNetworkDescriptor_t m_tnDescr;
-  HANDLE_CUTN_ERROR(cutensornetCreateNetworkDescriptor(
-      cutnHandle, numTensors, numModes.data(), extentsIn.data(), NULL,
-      modesIn.data(), tensAttr.data(), 0, NULL, NULL, NULL, dataType,
-      computeType, &m_tnDescr));
+  // Set up tensor network
+  HANDLE_CUTN_ERROR(cutensornetCreateNetwork(cutnHandle, &m_tnDescr));
+
+  int64_t tensorIDs[numTensors]; // for input tensors
+
+  // attach the input tensors to the network
+  for (int32_t t = 0; t < numTensors; ++t) {
+    HANDLE_CUTN_ERROR(cutensornetNetworkAppendTensor(
+        cutnHandle, m_tnDescr, tensModes[t].size(), tensExtents[t].data(),
+        tensModes[t].data(), &tensAttr[t], dataType, &tensorIDs[t]));
+  }
+
+  // set the output tensor
+  HANDLE_CUTN_ERROR(cutensornetNetworkSetOutputTensor(cutnHandle, m_tnDescr, 0,
+                                                      NULL, dataType));
+
+  // set the network compute type
+  HANDLE_CUTN_ERROR(cutensornetNetworkSetAttribute(
+      cutnHandle, m_tnDescr, CUTENSORNET_NETWORK_COMPUTE_TYPE, &computeType,
+      sizeof(computeType)));
 
   cutensornetContractionOptimizerConfig_t m_tnConfig;
 
@@ -188,11 +204,10 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
       cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
       CUTENSORNET_WORKSPACE_SCRATCH, scratchPad.d_scratch,
       requiredWorkspaceSize));
-  cutensornetContractionPlan_t m_tnPlan;
   {
-    ScopedTraceWithContext("cutensornetCreateContractionPlan");
-    HANDLE_CUTN_ERROR(cutensornetCreateContractionPlan(
-        cutnHandle, m_tnDescr, m_tnPath, workDesc, &m_tnPlan));
+    ScopedTraceWithContext("cutensornetNetworkPrepareContraction");
+    HANDLE_CUTN_ERROR(
+        cutensornetNetworkPrepareContraction(cutnHandle, m_tnDescr, workDesc));
   }
   // Compute the unnormalized overlap
   std::vector<const void *> rawDataIn(numTensors);
@@ -202,11 +217,19 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
   }
   void *m_dOverlap{nullptr};
   HANDLE_CUDA_ERROR(cudaMalloc(&m_dOverlap, overlapSize));
+
+  // Set tensor's data buffers and strides
+  for (int32_t t = 0; t < numTensors; ++t) {
+    HANDLE_CUTN_ERROR(cutensornetNetworkSetInputTensorMemory(
+        cutnHandle, m_tnDescr, tensorIDs[t], rawDataIn[t], NULL));
+  }
+  HANDLE_CUTN_ERROR(cutensornetNetworkSetOutputTensorMemory(
+      cutnHandle, m_tnDescr, m_dOverlap, NULL));
+
   {
-    ScopedTraceWithContext("cutensornetContractSlices");
-    HANDLE_CUTN_ERROR(cutensornetContractSlices(cutnHandle, m_tnPlan,
-                                                rawDataIn.data(), m_dOverlap, 0,
-                                                workDesc, NULL, 0x0));
+    ScopedTraceWithContext("cutensornetNetworkContract");
+    HANDLE_CUTN_ERROR(cutensornetNetworkContract(cutnHandle, m_tnDescr, 0,
+                                                 workDesc, NULL, 0x0));
   }
   // Get the overlap value back to Host
   std::complex<double> overlap = 0.0;
@@ -224,10 +247,9 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
 
   // Clean up
   HANDLE_CUDA_ERROR(cudaFree(m_dOverlap));
-  HANDLE_CUTN_ERROR(cutensornetDestroyContractionPlan(m_tnPlan));
   HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerInfo(m_tnPath));
   HANDLE_CUTN_ERROR(cutensornetDestroyContractionOptimizerConfig(m_tnConfig));
-  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkDescriptor(m_tnDescr));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetwork(m_tnDescr));
 
   return std::abs(overlap);
 }
