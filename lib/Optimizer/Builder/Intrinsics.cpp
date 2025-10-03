@@ -242,7 +242,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
-
+    {cudaq::runtime::cleanupArrays, {}, R"#(
+  func.func private @__nvqpp_cleanup_arrays() -> ()
+)#"},
     {"__nvqpp_createDynamicResult",
      /* arguments:
           arg0: original buffer ptr
