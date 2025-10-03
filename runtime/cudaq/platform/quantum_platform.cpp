@@ -280,6 +280,10 @@ cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
   return config;
 }
 
+const RuntimeTarget *quantum_platform::get_runtime_target() const {
+  return runtimeTarget.get();
+}
+
 KernelThunkResultType altLaunchKernel(const char *kernelName,
                                       KernelThunkType kernelFunc,
                                       void *kernelArgs, std::uint64_t argsSize,

@@ -135,6 +135,12 @@ public:
   /// Get code generation configuration values
   CodeGenConfig get_codegen_config();
 
+  /// Get runtime target information
+  // This includes information about the target configuration (config file) and
+  // any other user-defined settings (nvq++ target option compile flags or
+  // `set_target` arguments).
+  const RuntimeTarget *get_runtime_target() const;
+
   /// @brief Turn off any noise models.
   void reset_noise();
 
