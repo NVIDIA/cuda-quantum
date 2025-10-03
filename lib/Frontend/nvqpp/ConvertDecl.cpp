@@ -191,7 +191,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
-    if (name == "_Bit_reference" || name == "__bit_reference") {
+    if (name == "_Bit_reference" || name == "__bit_reference" ||
+        name == "__bit_const_reference") {
       // Reference to a bit in a std::vector<bool>. Promote to a value.
       return pushType(builder.getI1Type());
     }
@@ -535,8 +536,28 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
   auto typeFromStack = peelPointerFromFunction(popType());
   if (auto f = module.lookupSymbol<func::FuncOp>(kernSym)) {
     auto fTy = f.getFunctionType();
-    assert(typeFromStack == fTy);
     auto fSym = f.getSymNameAttr();
+    if (typeFromStack != fTy) {
+      // This may be a call to an entry-point kernel. Determine if that is the
+      // case, and convert this to a direct call. Otherwise, this an calling
+      // convention violation.
+      bool found = false;
+      for (auto pair : namesMap)
+        if (pair.second == kernName) {
+          if (auto f = module.lookupSymbol<func::FuncOp>(pair.first)) {
+            fTy = f.getFunctionType();
+            fSym = f.getSymNameAttr();
+            found = true;
+          }
+          break;
+        }
+      if (!found) {
+        reportClangError(
+            x, mangler,
+            "invalid call from kernel: calling convention violation");
+        return false;
+      }
+    }
     return pushValue(builder.create<func::ConstantOp>(loc, fTy, fSym));
   }
   auto [funcOp, alreadyAdded] = getOrAddFunc(loc, kernName, typeFromStack);
@@ -831,7 +852,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       auto *recDecl = recTy->getDecl();
       if (isInNamespace(recDecl, "std")) {
         auto name = recDecl->getNameAsString();
-        return name == "_Bit_reference" || name == "__bit_reference";
+        return name == "_Bit_reference" || name == "__bit_reference" ||
+               name == "__bit_const_reference";
       }
     }
     return false;

@@ -22,7 +22,7 @@ public:
     queraServerHelper->setShots(shots);
 
     auto config = queraServerHelper->getConfig();
-    cudaq::info("Backend config: {}, shots {}", config, shots);
+    CUDAQ_INFO("Backend config: {}, shots {}", config, shots);
     config.insert({"shots", std::to_string(shots)});
 
     return queraServerHelper->createJob(codesToExecute);

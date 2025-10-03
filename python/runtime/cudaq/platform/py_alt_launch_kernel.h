@@ -54,7 +54,8 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 /// @brief Launch python kernel with arguments.
 std::tuple<void *, std::size_t, std::int32_t, KernelThunkType>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
-                      Type returnType, cudaq::OpaqueArguments &runtimeArgs,
+                      mlir::Type returnType,
+                      cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names,
                       std::size_t startingArgIdx = 0, bool launch = true);
 
@@ -64,5 +65,12 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
                     void *rawArgs, std::size_t size, std::uint32_t returnOffset,
                     const std::vector<std::string> &names);
 
-void bindAltLaunchKernel(py::module &mod);
+void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
+
+std::string getQIR(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs,
+                   const std::string &profile);
+
+std::string getASM(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs);
 } // namespace cudaq

@@ -43,8 +43,6 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::NVQIRInvokeRotationWithControlBits,   // obsolete
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits, // obsolete
           cudaq::opt::NVQIRGeneralizedInvokeAny,
-          cudaq::opt::NVQIRPackSingleQubitInArray,
-          cudaq::opt::NVQIRReleasePackedQubitArray,
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
           cudaq::getNumQubitsFromCudaqState,
@@ -79,7 +77,8 @@ struct VerifyNVQIRCallOpsPass
         return WalkResult::interrupt();
       } else if (!isa<LLVM::AddressOfOp, LLVM::AllocaOp, LLVM::BitcastOp,
                       LLVM::ExtractValueOp, LLVM::GEPOp, LLVM::InsertValueOp,
-                      LLVM::IntToPtrOp, LLVM::LoadOp, LLVM::StoreOp>(op)) {
+                      LLVM::IntToPtrOp, LLVM::SelectOp, LLVM::LoadOp,
+                      LLVM::StoreOp>(op)) {
         // No pointers allowed except for the above operations.
         for (auto oper : op->getOperands()) {
           if (isa<LLVM::LLVMPointerType>(oper.getType())) {

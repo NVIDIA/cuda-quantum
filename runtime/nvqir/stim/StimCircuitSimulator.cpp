@@ -177,7 +177,7 @@ protected:
     stim::simd_bit_table<W> msmSample = sampleSim->m_record.storage;
     // Disabled because it's too verbose, but left here as comments for
     // reference.
-    // cudaq::info("msmSample is {} {}\n{}", msm_err_count, num_cols,
+    // CUDAQ_INFO("msmSample is {} {}\n{}", msm_err_count, num_cols,
     //             msmSample.str(num_measurements, num_cols).c_str());
 
     // Now it's msmSample[error_mechanism_index][measure_idx]
@@ -206,7 +206,7 @@ protected:
                                "initialization of qubits from state data.");
 
     if (!tableau) {
-      cudaq::info("Creating new Stim Tableau simulator");
+      CUDAQ_INFO("Creating new Stim Tableau simulator");
       // Bump the randomEngine before cloning and giving to the Tableau
       // simulator.
       randomEngine.discard(
@@ -235,8 +235,8 @@ protected:
       circuit_stats.num_measurements = anticipated_num_measurements;
 
       auto batch_size = getBatchSize();
-      cudaq::info("Creating new Stim frame simulator with batch size {}",
-                  batch_size);
+      CUDAQ_INFO("Creating new Stim frame simulator with batch size {}",
+                 batch_size);
       // Bump the randomEngine before cloning and giving to the sample
       // simulator.
       randomEngine.discard(
@@ -273,7 +273,7 @@ protected:
     if (targets.empty())
       return;
     stim::Circuit tempCircuit;
-    cudaq::info("Calling applyOpToSims {} - {}", gate_name, targets);
+    CUDAQ_INFO("Calling applyOpToSims {} - {}", gate_name, targets);
     tempCircuit.safe_append_u(gate_name, targets);
     tableau->safe_do_circuit(tempCircuit);
     sampleSim->safe_do_circuit(tempCircuit);
@@ -311,8 +311,8 @@ protected:
     if (krausChannels.empty())
       return;
 
-    cudaq::info("Applying {} kraus channels to qubits {}", krausChannels.size(),
-                stimTargets);
+    CUDAQ_INFO("Applying {} kraus channels to qubits {}", krausChannels.size(),
+               stimTargets);
 
     for (auto &channel : krausChannels)
       applyNoise(channel, stimTargets);
@@ -333,8 +333,8 @@ protected:
 
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::uint32_t> &qubits) {
-    cudaq::info("[stim] apply kraus channel {}, is_msm_mode = {}",
-                channel.get_type_name(), is_msm_mode);
+    CUDAQ_INFO("[stim] apply kraus channel {}, is_msm_mode = {}",
+               channel.get_type_name(), is_msm_mode);
 
     // If we have a valid operation, apply it
     if (auto res = isValidStimNoiseChannel(channel)) {

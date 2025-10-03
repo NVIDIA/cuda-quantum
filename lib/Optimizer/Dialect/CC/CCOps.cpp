@@ -1228,7 +1228,9 @@ struct CollapseCastToStdvecInit
                                 PatternRewriter &rewriter) const override {
     if (auto buff = init.getBuffer().getDefiningOp<cudaq::cc::CastOp>()) {
       auto castVal = buff.getValue();
-      auto fromPtrTy = cast<cudaq::cc::PointerType>(castVal.getType());
+      auto fromPtrTy = dyn_cast<cudaq::cc::PointerType>(castVal.getType());
+      if (!fromPtrTy)
+        return failure();
       auto fromTy = fromPtrTy.getElementType();
       auto toTy = cast<cudaq::cc::PointerType>(buff.getType()).getElementType();
       if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(fromTy))

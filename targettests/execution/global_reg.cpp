@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std -DNO_ADAPTIVE --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std -DNO_ADAPTIVE --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std               --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std                                                           %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++17 %s --enable-mlir -o %t

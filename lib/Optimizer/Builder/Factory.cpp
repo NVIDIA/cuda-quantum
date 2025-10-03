@@ -78,9 +78,9 @@ Type factory::genArgumentBufferType(Type ty) {
   return genBufferType</*isOutput=*/false>(ty);
 }
 
-cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy,
-                                                     std::size_t startingArgIdx,
-                                                     bool packed) {
+cudaq::cc::StructType
+factory::buildInvokeStructType(FunctionType funcTy,
+                               std::size_t startingArgIdx) {
   auto *ctx = funcTy.getContext();
   SmallVector<Type> eleTys;
   for (auto inTy : llvm::enumerate(funcTy.getInputs()))
@@ -88,7 +88,7 @@ cudaq::cc::StructType factory::buildInvokeStructType(FunctionType funcTy,
       eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys, packed);
+  return cudaq::cc::StructType::get(ctx, eleTys, /*packed=*/false);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
@@ -774,4 +774,17 @@ factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
   return {func, /*defined=*/false};
 }
 
+void factory::mergeModules(ModuleOp into, ModuleOp from) {
+  for (Operation &op : *from.getBody()) {
+    auto sym = dyn_cast<SymbolOpInterface>(op);
+    if (!sym)
+      continue; // Only merge named symbols, avoids duplicating anonymous ops.
+
+    // If `into` already has a symbol with this name, skip it.
+    if (SymbolTable::lookupSymbolIn(into, sym.getName()))
+      continue;
+
+    into.push_back(op.clone());
+  }
+}
 } // namespace cudaq::opt

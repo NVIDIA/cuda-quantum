@@ -47,15 +47,15 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, batch size {}, value {}",
-                     context->paramNames[i], batchSize,
-                     param_map[context->paramNames[i]]);
+        CUDAQ_DBG("Callback param name {}, batch size {}, value {}",
+                  context->paramNames[i], batchSize,
+                  param_map[context->paramNames[i]]);
       }
       for (int64_t i = 0; i < batchSize; ++i) {
         scalar_operator &storedOp = context->scalarOps[i];
         tdCoef[i] = storedOp.is_constant() ? storedOp.evaluate()
                                            : storedOp.evaluate(param_map);
-        cudaq::debug("Scalar callback constant value = {}", tdCoef[i]);
+        CUDAQ_DBG("Scalar callback constant value = {}", tdCoef[i]);
       }
       return CUDENSITYMAT_STATUS_SUCCESS;
     } catch (const std::exception &e) {
@@ -76,8 +76,10 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
 cudensitymatWrappedTensorCallback_t
 cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
     const std::vector<matrix_handler> &matrixOps,
-    const std::vector<std::string> &paramNames) {
-  m_tensorCallbacks.push_back(TensorCallBackContext(matrixOps, paramNames));
+    const std::vector<std::string> &paramNames,
+    const cudaq::dimension_map &dims) {
+  m_tensorCallbacks.push_back(
+      TensorCallBackContext(matrixOps, paramNames, dims));
   TensorCallBackContext *storedCallbackContext = &m_tensorCallbacks.back();
   using WrapperFuncType = int32_t (*)(
       cudensitymatTensorCallback_t, cudensitymatElementaryOperatorSparsity_t,
@@ -119,14 +121,13 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Tensor callback param name {}, value {}",
-                     context->paramNames[i], param_map[context->paramNames[i]]);
+        CUDAQ_DBG("Tensor callback param name {}, value {}",
+                  context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
-      cudaq::dimension_map dimensions;
+      cudaq::dimension_map &dimensions = context->dimensions;
       std::size_t totalDim = 1;
       for (std::size_t i = 0; i < num_modes; ++i) {
-        dimensions[i] = modeExtents[i];
         totalDim *= modeExtents[i];
       }
 

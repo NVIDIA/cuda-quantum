@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,10 +13,11 @@
 // RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
 // 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Adonis --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 
 #include <cudaq.h>
 #include <iostream>

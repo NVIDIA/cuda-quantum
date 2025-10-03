@@ -13,12 +13,12 @@ namespace cudaq {
 static ExecutionManager *execution_manager;
 
 void setExecutionManagerInternal(ExecutionManager *em) {
-  cudaq::info("external caller setting the execution manager.");
+  CUDAQ_INFO("external caller setting the execution manager.");
   execution_manager = em;
 }
 
 void resetExecutionManagerInternal() {
-  cudaq::info("external caller clearing the execution manager.");
+  CUDAQ_INFO("external caller clearing the execution manager.");
   execution_manager = nullptr;
 }
 

@@ -345,7 +345,7 @@ void MPSSimulationState<ScalarType>::deallocate() {
 
 template <typename ScalarType>
 void MPSSimulationState<ScalarType>::destroyState() {
-  cudaq::info("mps-state destroying state vector handle.");
+  CUDAQ_INFO("mps-state destroying state vector handle.");
   deallocate();
 }
 
@@ -565,7 +565,7 @@ MPSSettings::MPSSettings() {
                                "a positive number. Got: " +
                                maxBondStr);
 
-    cudaq::info("Setting MPS max bond dimension to {}.", maxBond);
+    CUDAQ_INFO("Setting MPS max bond dimension to {}.", maxBond);
   }
   // Cutoff values
   if (auto *absCutoffEnvVar = std::getenv("CUDAQ_MPS_ABS_CUTOFF")) {
@@ -580,7 +580,7 @@ MPSSettings::MPSSettings() {
                                "a number in range (0.0, 1.0). Got: " +
                                absCutoffStr);
 
-    cudaq::info("Setting MPS absolute cutoff to {}.", absCutoff);
+    CUDAQ_INFO("Setting MPS absolute cutoff to {}.", absCutoff);
   }
   if (auto *relCutoffEnvVar = std::getenv("CUDAQ_MPS_RELATIVE_CUTOFF")) {
     const std::string relCutoffStr(relCutoffEnvVar);
@@ -595,7 +595,7 @@ MPSSettings::MPSSettings() {
           "a number in range (0.0, 1.0). Got: " +
           relCutoffStr);
 
-    cudaq::info("Setting MPS relative cutoff to {}.", relCutoff);
+    CUDAQ_INFO("Setting MPS relative cutoff to {}.", relCutoff);
   }
   using namespace std::literals::string_view_literals;
   using SvdPair = std::pair<std::string_view, cutensornetTensorSVDAlgo_t>;
@@ -622,7 +622,7 @@ MPSSettings::MPSSettings() {
       throw std::runtime_error(errorMsg.str());
     }
     svdAlgo = iter->second;
-    cudaq::info("Setting MPS SVD algorithm to {} ({}).",
+    CUDAQ_INFO("Setting MPS SVD algorithm to {} ({}).",
                 fmt::underlying(svdAlgo), iter->first);
   }
 
@@ -649,7 +649,7 @@ MPSSettings::MPSSettings() {
       throw std::runtime_error(errorMsg.str());
     }
     gaugeOption = iter->second;
-    cudaq::info("Setting MPS GAUGE option to {} ({}).", iter->first,
+    CUDAQ_INFO("Setting MPS GAUGE option to {} ({}).", iter->first,
                 fmt::underlying(iter->second));
   }
 }

@@ -35,6 +35,8 @@ public:
 
   LogicalResult matchAndRewrite(cudaq::cc::DeviceCallOp devcall,
                                 PatternRewriter &rewriter) const override {
+    constexpr const char PassthroughAttr[] = "passthrough";
+    constexpr const char QIRVendorAttr[] = "cudaq-fnid";
     auto module = devcall->getParentOfType<ModuleOp>();
     auto devFuncName = devcall.getCallee();
     auto devFunc = module.lookupSymbol<func::FuncOp>(devFuncName);
@@ -42,6 +44,36 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "cannot find the function " << devFuncName
                               << " in module\n");
       return failure();
+    }
+
+    llvm::MD5 hash;
+    hash.update(devFuncName);
+    llvm::MD5::MD5Result result;
+    hash.final(result);
+    std::uint32_t callbackCode = result.low();
+
+    bool needToAddIt = true;
+    SmallVector<Attribute> funcIdAttr;
+    if (auto passthruAttr = devFunc->getAttr(PassthroughAttr)) {
+      auto arrayAttr = cast<ArrayAttr>(passthruAttr);
+      funcIdAttr.append(arrayAttr.begin(), arrayAttr.end());
+      for (auto a : arrayAttr) {
+        if (auto strArrAttr = dyn_cast<ArrayAttr>(a)) {
+          auto strAttr = dyn_cast<StringAttr>(strArrAttr[0]);
+          if (!strAttr)
+            continue;
+          if (strAttr.getValue() == QIRVendorAttr) {
+            needToAddIt = false;
+            break;
+          }
+        }
+      }
+    }
+    if (needToAddIt) {
+      auto callbackCodeAsStr = std::to_string(callbackCode);
+      funcIdAttr.push_back(rewriter.getStrArrayAttr(
+          {QIRVendorAttr, rewriter.getStringAttr(callbackCodeAsStr)}));
+      devFunc->setAttr(PassthroughAttr, rewriter.getArrayAttr(funcIdAttr));
     }
 
     rewriter.replaceOpWithNewOp<func::CallOp>(

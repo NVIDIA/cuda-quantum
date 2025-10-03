@@ -284,7 +284,7 @@ protected:
                                           collapsed_state.rows(),
                                           collapsed_state.cols());
     }
-    cudaq::info("Measured qubit {} -> {}", qubitIdx, measurement_result);
+    CUDAQ_INFO("Measured qubit {} -> {}", qubitIdx, measurement_result);
     return measurement_result == 1 ? true : false;
   }
 
@@ -351,7 +351,7 @@ public:
                                 const int shots) override {
     if (shots < 1) {
       double expectationValue = calculateExpectationValue(qubits);
-      cudaq::info("Computed expectation value = {}", expectationValue);
+      CUDAQ_INFO("Computed expectation value = {}", expectationValue);
       return cudaq::ExecutionResult{{}, expectationValue};
     }
 

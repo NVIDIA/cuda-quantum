@@ -53,9 +53,9 @@ public:
                         "positive integer value, got '{}'.",
                         maxControlledRank));
 
-      cudaq::info("Setting max controlled rank for full tensor expansion from "
-                  "{} to {}.",
-                  m_maxControlledRankForFullTensorExpansion, maxControlledRank);
+      CUDAQ_INFO("Setting max controlled rank for full tensor expansion from "
+                 "{} to {}.",
+                 m_maxControlledRankForFullTensorExpansion, maxControlledRank);
       m_maxControlledRankForFullTensorExpansion = maxControlledRank;
     }
   }

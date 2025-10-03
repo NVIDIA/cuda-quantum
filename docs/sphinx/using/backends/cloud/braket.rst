@@ -61,13 +61,12 @@ you can also pass the ``--emulate`` flag to ``nvq++``.
 
     nvq++ --emulate --target braket src.cpp
 
-To see a complete example for using Amazon Braket backends, take a look at our :ref:`C++ examples <examples>`.
 
 Submission from Python
 `````````````````````````
 
 The target to which quantum kernels are submitted 
-can be controlled with the ``cudaq::set_target()`` function.
+can be controlled with the ``cudaq.set_target()`` function.
 
 .. code:: python
 
@@ -98,5 +97,4 @@ argument to ``cudaq.sample``. By default, the ``shots_count`` is set to 1000.
 
     cudaq.sample(kernel, shots_count=100)
 
-To see a complete example for using Amazon Braket backends, take a look at our :ref:`Python examples <examples>`.
-
+To see a complete example, take a look at :ref:`Amazon Braket examples <amazon-braket-examples>`.

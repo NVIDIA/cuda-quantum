@@ -92,7 +92,7 @@ private:
 
 // Initialize the IonQ server helper with a given backend configuration
 void IonQServerHelper::initialize(BackendConfig config) {
-  cudaq::info("Initializing IonQ Backend.");
+  CUDAQ_INFO("Initializing IonQ Backend.");
   // Move the passed config into the member variable backendConfig
   // Set the necessary configuration variables for the IonQ API
   backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
@@ -362,23 +362,23 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
 
   // Get the number of qubits. This assumes the all qubits are measured,
   // which is a safe assumption for now but may change in the future.
-  cudaq::debug("postJobResponse message: {}", postJobResponse.dump());
+  CUDAQ_DBG("postJobResponse message: {}", postJobResponse.dump());
   auto &jobs = postJobResponse.at("jobs");
   if (!jobs[0].contains("qubits"))
     throw std::runtime_error(
         "ServerMessage doesn't tell us how many qubits there were");
 
   auto nQubits = jobs[0].at("qubits").get<int>();
-  cudaq::debug("nQubits is : {}", nQubits);
-  cudaq::debug("Results message: {}", results.dump());
+  CUDAQ_DBG("nQubits is : {}", nQubits);
+  CUDAQ_DBG("Results message: {}", results.dump());
 
   if (outputNames.find(jobID) == outputNames.end())
     throw std::runtime_error("Could not find output names for job " + jobID);
 
   auto &output_names = outputNames[jobID];
   for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
-                info.registerName);
+    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
+               info.registerName);
   }
 
   cudaq::CountsDictionary counts;

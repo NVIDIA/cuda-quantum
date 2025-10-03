@@ -2,21 +2,14 @@
     "python":
     [
         {
-            "version": "3.10",
-            "operating_systems": 
-            [
-                "ubuntu:22.04",
-                "fedora:39"
-            ]
-        },
-        {
             "version": "3.11",
             "operating_systems": 
             [
                 "ubuntu:22.04",
                 "debian:12",
-                "fedora:38",
-                "redhat/ubi9:9.2"
+                "fedora:42",
+                "redhat/ubi8:8.10",
+                "redhat/ubi9:9.6"
             ]
         },
         {
@@ -24,15 +17,17 @@
             "operating_systems": 
             [
                 "ubuntu:24.04",
-                "fedora:39",
-                "redhat/ubi9:9.2"
+                "fedora:42",
+                "redhat/ubi8:8.10",
+                "redhat/ubi9:9.6",
+                "redhat/ubi10:10.0"
             ]
         },
         {
             "version": "3.13",
             "operating_systems":
             [
-                "fedora:39"
+                "fedora:42"
             ]
         }
     ],
@@ -45,14 +40,14 @@
             [
                 "ubuntu:22.04",
                 "debian:12",
-                "redhat/ubi9:9.2",
+                "redhat/ubi9:9.6",
                 "opensuse/leap:15.5",
-                "fedora:39"
+                "fedora:42"
             ],
             "ubuntu:22.04": 
             {
                 "libcdev_package": "libc6-dev",
-                "cudart_version": "12.0",
+                "cudart_version": "12.6",
                 "cuda_distribution": "ubuntu2204"
             },
             "debian:12": 
@@ -61,23 +56,23 @@
                 "cudart_version": "12.6",
                 "cuda_distribution": "debian12"
             },
-            "redhat/ubi9:9.2": 
+            "redhat/ubi9:9.6":
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": "12.0",
+                "cudart_version": "12.6",
                 "cuda_distribution": "rhel9"
             },
             "opensuse/leap:15.5": 
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": "12.0",
+                "cudart_version": "12.6",
                 "cuda_distribution": "opensuse15"
             },
-            "fedora:39": 
+            "fedora:42":
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "12.4",
-                "cuda_distribution": "fedora39"
+                "cuda_distribution": "fedora42"
             }
         },
         {
@@ -86,9 +81,9 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "redhat/ubi8:8.0",
+                "redhat/ubi8:8.10",
                 "opensuse/leap:15.5",
-                "fedora:38"
+                "fedora:42"
             ],
             "ubuntu:22.04": 
             {
@@ -96,7 +91,7 @@
                 "cudart_version": "11.8",
                 "cuda_distribution": "ubuntu2204"
             },
-            "redhat/ubi8:8.0": 
+            "redhat/ubi8:8.10":
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "11.8",
@@ -108,7 +103,7 @@
                 "cudart_version": "11.8",
                 "cuda_distribution": "opensuse15"
             },
-            "fedora:38": 
+            "fedora:42": 
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "11.8",
@@ -121,18 +116,18 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "redhat/ubi9:9.2"
+                "redhat/ubi9:9.6"
             ],
             "ubuntu:22.04": 
             {
                 "libcdev_package": "libc6-dev",
-                "cudart_version": "12.0",
+                "cudart_version": "12.6",
                 "cuda_distribution": "ubuntu2204"
             },
-            "redhat/ubi9:9.2": 
+            "redhat/ubi9:9.6":
             {
                 "libcdev_package": "glibc-devel",
-                "cudart_version": "12.0",
+                "cudart_version": "12.6",
                 "cuda_distribution": "rhel9"
             }
         },
@@ -142,8 +137,8 @@
             "operating_systems": 
             [
                 "ubuntu:22.04",
-                "redhat/ubi8:8.0",
-                "fedora:38"
+                "redhat/ubi8:8.10",
+                "fedora:42"
             ],
             "ubuntu:22.04": 
             { 
@@ -151,13 +146,13 @@
                 "cudart_version": "11.8",
                 "cuda_distribution": "ubuntu2204"
             },
-            "redhat/ubi8:8.0": 
+            "redhat/ubi8:8.10":
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "11.8",
                 "cuda_distribution": "rhel9"
             },
-            "fedora:38": 
+            "fedora:42": 
             {
                 "libcdev_package": "glibc-devel",
                 "cudart_version": "11.8",

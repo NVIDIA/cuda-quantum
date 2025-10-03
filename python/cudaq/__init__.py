@@ -84,6 +84,7 @@ State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
+Resources = cudaq_runtime.Resources
 
 # to be deprecated
 qreg = cudaq_runtime.qvector
@@ -124,6 +125,8 @@ mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
 set_noise = cudaq_runtime.set_noise
 unset_noise = cudaq_runtime.unset_noise
+register_set_target_callback = cudaq_runtime.register_set_target_callback
+unregister_set_target_callback = cudaq_runtime.unregister_set_target_callback
 
 # Noise Modeling
 KrausChannel = cudaq_runtime.KrausChannel
@@ -159,6 +162,7 @@ vqe = cudaq_runtime.vqe
 draw = cudaq_runtime.draw
 get_unitary = cudaq_runtime.get_unitary
 run = cudaq_runtime.run
+estimate_resources = cudaq_runtime.estimate_resources
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring

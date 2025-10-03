@@ -51,10 +51,10 @@ void initCuDensityMatCommLib() {
   // If CUDENSITYMAT_COMM_LIB environment variable is not set,
   // use this builtin plugin shim (redirect MPI calls to CUDA-Q plugin)
   if (std::getenv("CUDENSITYMAT_COMM_LIB") == nullptr) {
-    cudaq::info("Enabling cuDensityMat MPI without environment variable "
-                "CUDENSITYMAT_COMM_LIB. \nUse the builtin cuDensityMat "
-                "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
-                getThisSharedLibFilePath(), getMpiPluginFilePath());
+    CUDAQ_INFO("Enabling cuDensityMat MPI without environment variable "
+               "CUDENSITYMAT_COMM_LIB. \nUse the builtin cuDensityMat "
+               "communicator lib from '{}' - CUDA-Q MPI plugin {}.",
+               getThisSharedLibFilePath(), getMpiPluginFilePath());
     setenv("CUDENSITYMAT_COMM_LIB", getThisSharedLibFilePath(), 0);
   }
 }
@@ -100,7 +100,7 @@ public:
       const bool enableMemPool =
           cudaq::getEnvBool("CUDAQ_ENABLE_MEMPOOL", true);
       if (!enableMemPool) {
-        cudaq::info("Mempool is disabled.");
+        CUDAQ_INFO("Mempool is disabled.");
       } else {
         // Check if mempool is available
         int device{0};
@@ -109,7 +109,7 @@ public:
         HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
             &supported, cudaDevAttrMemoryPoolsSupported, device));
         if (!supported) {
-          cudaq::info("Memory pools are unsupported on this GPU");
+          CUDAQ_INFO("Memory pools are unsupported on this GPU");
         } else {
           cudaMemPool_t memPool;
           HANDLE_CUDA_ERROR(cudaDeviceGetDefaultMemPool(&memPool, device));
@@ -125,6 +125,18 @@ public:
   virtual ~CuDensityMatSim() {}
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     return std::make_unique<cudaq::CuDensityMatState>();
+  }
+
+  void resetExecutionContext() override {
+    // If null, do nothing
+    if (!executionContext)
+      return;
+    // Just check that the dynamics target was not invoked in gate simulation
+    // contexts.
+    if (executionContext->name != "evolve")
+      throw std::runtime_error(fmt::format(
+          "[dynamics target] Execution context '{}' is not supported.",
+          executionContext->name));
   }
 
   void addQubitToState() override {

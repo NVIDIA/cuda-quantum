@@ -1,12 +1,15 @@
 CUDA-Q Applications
 ====================
 
+This page contains a number of different applications implemented using CUDA-Q. All notebooks can be found `here. <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/applications/python>`_
+
+
 .. when adding applications
 .. 1. Add notebook to the hidden TOC list directly below
 .. 2. Add an html block along with any tags
 .. 3. Add a preview image in the _static folder
 
-:spellcheck-disable:
+.. |:spellcheck-disable:| replace:: \
 
 .. toctree::
    :maxdepth: 1
@@ -42,9 +45,9 @@ CUDA-Q Applications
    /applications/python/uccsd_wf_ansatz
    /applications/python/mps_encoding
    /applications/python/qm_mm_pe
+   /applications/python/skqd
 
-:spellcheck-enable:
-
+.. |:spellcheck-enable:| replace:: \
 
 .. raw:: html
 
@@ -119,6 +122,13 @@ CUDA-Q Applications
             Learn how the QSCI method uses the observe and sample primitives.
         </div>
         <img src="../_static/app_title_images/qsci_preview.png" alt="QSCI Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
+        <a href="../applications/python/skqd.html" class="notebook-title">Sample-Based Krylov Quantum Diagonalization (SKQD)</a>
+        <div class="notebook-content">
+            Learn how to implement the Sample-Based Krylov Quantum Diagonalization (SKQD) algorithm to predict the ground state energy of molecules.
+        </div>
     </div>
 
     <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">

@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=redhat/ubi8:8.0
+ARG base_image=redhat/ubi8:8.10
 ARG base_image_mpibuild=amd64/almalinux:8
 
 # [OpenMPI Installation]

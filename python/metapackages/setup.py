@@ -195,7 +195,7 @@ def _infer_best_package() -> str:
         raise Exception(f'Your CUDA version ({cuda_version}) is too old.')
     elif cuda_version < 12000:
         cudaq_bdist = 'cuda-quantum-cu11'
-    elif cuda_version < 13000:
+    elif cuda_version <= 13000:
         cudaq_bdist = 'cuda-quantum-cu12'
     else:
         raise Exception(f'Your CUDA version ({cuda_version}) is too new.')

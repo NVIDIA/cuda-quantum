@@ -72,6 +72,7 @@ Kernel Execution
 .. autofunction:: cudaq::vqe
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
+.. autofunction:: cudaq::estimate_resources
 
 Backend Configuration
 =============================
@@ -83,6 +84,8 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
+.. autofunction:: cudaq::register_set_target_callback
+.. autofunction:: cudaq::unregister_set_target_callback
 
 .. function:: cudaq.apply_noise(error_type, parameters..., targets...)
 
@@ -283,6 +286,9 @@ Data Types
     :members:
 
 .. autoclass:: cudaq::AsyncEvolveResult
+    :members:
+
+.. autoclass:: cudaq::Resources
     :members:
 
 Optimizers

@@ -25,7 +25,7 @@ std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
         // for the 'catch' below to handle.
         throw std::invalid_argument("must be a positive number");
       }
-      cudaq::info("Update number of hyper samples from {} to {}.",
+      CUDAQ_INFO("Update number of hyper samples from {} to {}.",
                   defaultNumHyperSamples, specifiedNumHyperSamples);
       return specifiedNumHyperSamples;
     } catch (...) {
@@ -320,14 +320,14 @@ TensorNetState<ScalarType>::executeSample(
     const std::size_t cacheSizeAvailable =
         std::min(static_cast<size_t>(reqCacheSize),
                  size_t(freeSize * 0.9) - (size_t(freeSize * 0.9) % 4096));
-    cudaq::info("Cache size = {} bytes", cacheSizeAvailable);
+    CUDAQ_INFO("Cache size = {} bytes", cacheSizeAvailable);
     const auto errCode = cudaMalloc(&d_cache, cacheSizeAvailable);
     if (errCode == cudaSuccess) {
       HANDLE_CUTN_ERROR(cutensornetWorkspaceSetMemory(
           m_cutnHandle, workDesc, CUTENSORNET_MEMSPACE_DEVICE,
           CUTENSORNET_WORKSPACE_CACHE, d_cache, cacheSizeAvailable));
     } else {
-      cudaq::info("Failed to allocate cache workspace memory.");
+      CUDAQ_INFO("Failed to allocate cache workspace memory.");
       d_cache = nullptr;
     }
   }
@@ -814,6 +814,14 @@ TensorNetState<ScalarType>::computeExpVals(
                                       /*cudaStream*/ 0));
   }
 
+  if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {
+    double flops = 0.0;
+    HANDLE_CUTN_ERROR(cutensornetExpectationGetInfo(
+        m_cutnHandle, tensorNetworkExpectation,
+        CUTENSORNET_EXPECTATION_INFO_FLOPS, &flops, sizeof(flops)));
+    CUDAQ_INFO("Total flop count = {} GFlop.", (flops / 1e9));
+  }
+
   // Attach the workspace buffer
   int64_t worksize{0};
   HANDLE_CUTN_ERROR(cutensornetWorkspaceGetMemorySize(
@@ -947,6 +955,14 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
     HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
         m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
         workDesc, /*cudaStream*/ 0));
+  }
+
+  if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {
+    double flops = 0.0;
+    HANDLE_CUTN_ERROR(cutensornetExpectationGetInfo(
+        m_cutnHandle, tensorNetworkExpectation,
+        CUTENSORNET_EXPECTATION_INFO_FLOPS, &flops, sizeof(flops)));
+    CUDAQ_INFO("Total flop count = {} GFlop.", (flops / 1e9));
   }
 
   // Attach the workspace buffer

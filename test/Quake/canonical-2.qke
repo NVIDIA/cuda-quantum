@@ -34,3 +34,16 @@ func.func @canonicalize_scope(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
 // CHECK:           } : !cc.callable<() -> ()>
 // CHECK:           quake.compute_action %[[VAL_0]], %[[VAL_1]]
 
+// Test here is that this does not crash.
+func.func @cast_to_stdvec() {
+    %c0_i64 = arith.constant 0 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %ptr = cc.cast %c0_i64 : (i64) -> !cc.ptr<i64>
+    %vector = cc.stdvec_init %ptr, %c0_i64 : (!cc.ptr<i64>, i64) -> !cc.stdvec<i64>
+    %size = cc.stdvec_size %vector : (!cc.stdvec<i64>) -> i64
+    return
+}
+
+// CHECK-LABEL:   func.func @cast_to_stdvec() {
+// CHECK:           return
+// CHECK:         }

@@ -134,9 +134,8 @@ AnyonServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   // Get the headers
   RestHeaders headers = generateRequestHeader();
 
-  cudaq::info(
-      "Created job payload for anyon, language is QIR 1.0, targeting {}",
-      machine);
+  CUDAQ_INFO("Created job payload for anyon, language is QIR 1.0, targeting {}",
+             machine);
 
   // return the payload
   return std::make_tuple(baseUrl + "job", headers, messages);
@@ -187,7 +186,7 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
   //                      "r1" : ["1", "0", ...]  } }
   auto results = postJobResponse[0]["results"];
 
-  cudaq::info("Results message: {}", results.dump());
+  CUDAQ_INFO("Results message: {}", results.dump());
 
   std::vector<ExecutionResult> srs;
 
@@ -209,8 +208,8 @@ AnyonServerHelper::processResults(ServerMessage &postJobResponse,
 
   auto &output_names = outputNames[jobId];
   for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
-                info.registerName);
+    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
+               info.registerName);
   }
 
   // The local mock server tests don't work the same way as the true Anyon
@@ -348,7 +347,7 @@ void AnyonServerHelper::refreshTokens(bool force_refresh) {
   // If we are getting close to an 30 min, then we will refresh
   bool needsRefresh = secondsDuration.count() * (1. / 1800.) > .85;
   if (needsRefresh || force_refresh) {
-    cudaq::info("Refreshing id_token");
+    CUDAQ_INFO("Refreshing id_token");
     std::stringstream ss;
     ss << "\"refresh_token\":\"" << refreshKey << "\"";
     auto headers = generateRequestHeader(refreshKey);

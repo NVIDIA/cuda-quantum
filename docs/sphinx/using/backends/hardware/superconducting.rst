@@ -74,8 +74,6 @@ Submitting
 
             cudaq.sample(kernel, shots_count=10000)
 
-        To see a complete example for using Anyon's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
-
 
 .. tab:: C++
 
@@ -107,7 +105,7 @@ Submitting
 
             nvq++ --target anyon --emulate src.cpp
 
-        To see a complete example for using Anyon's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
+To see a complete example, take a look at :ref:`Anyon examples <anyon-examples>`.
 
 
 IQM
@@ -137,13 +135,12 @@ Submitting
     
 .. tab:: Python 
     
-    
         The target to which quantum kernels are submitted
-        can be controlled with the ``cudaq::set_target()`` function.
+        can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
 
-            cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Adonis"})
+            cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Crystal_5"})
 
         To emulate the IQM Server locally, without submitting to the IQM Server,
         you can also set the ``emulate`` flag to ``True``. This will emit any target
@@ -160,16 +157,9 @@ Submitting
         .. code:: python
 
             cudaq.sample(kernel, shots_count=10000)
-
-        To see a complete example for using IQM server backends, take a look at our :doc:`Python examples<../../examples/examples>`.
-    
-    
-    
-    
-    
+  
 .. tab:: C++
     
-
         To target quantum kernel code for execution on an IQM Server,
         pass the ``--target iqm`` flag to the ``nvq++`` compiler, along with a specified ``--iqm-machine``.
 
@@ -180,18 +170,18 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --target iqm --iqm-machine Adonis src.cpp
+            nvq++ --target iqm --iqm-machine Crystal_5 src.cpp
 
         Once the binary for a specific IQM QPU architecture is compiled, it can be executed against any IQM Server with the same QPU architecture:
 
         .. code:: bash
 
-            nvq++ --target iqm --iqm-machine Adonis src.cpp -o program
+            nvq++ --target iqm --iqm-machine Crystal_5 src.cpp -o program
             IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos" ./program
 
             # Executing the same program against an IQM Server with a different underlying QPU
             # architecture will result in an error.
-            IQM_SERVER_URL="https://<Apollo IQM Server>/cocos" ./program
+            IQM_SERVER_URL="https://<Crystal_20 IQM Server>/cocos" ./program
 
         To emulate the IQM machine locally, without submitting to the IQM Server,
         you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target
@@ -199,16 +189,15 @@ Submitting
 
         .. code:: bash
 
-            nvq++ --emulate --target iqm --iqm-machine Adonis src.cpp
+            nvq++ --emulate --target iqm --iqm-machine Crystal_5 src.cpp
 
-        To see a complete example for using IQM server backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
+To see a complete example, take a look at :ref:`IQM examples <iqm-examples>`.
 
 
 OQC
 ++++
 
 .. _oqc-backend:
-
 
 
 `Oxford Quantum Circuits <https://oxfordquantumcircuits.com/>`__ (OQC) is currently providing CUDA-Q integration for multiple Quantum Processing Unit types.
@@ -232,9 +221,7 @@ There are three environment variables that the OQC target will look for during c
 Submitting
 `````````````````````````
 
-
 .. tab:: Python
-
 
         To set which OQC URL, set the :code:`url` parameter.
         To set which OQC email, set the :code:`email` parameter.
@@ -244,21 +231,17 @@ Submitting
 
             import os
             import cudaq
-            # ...
             os.environ['OQC_PASSWORD'] = password
             cudaq.set_target("oqc", url=url, machine="lucy")
 
         You can then execute a kernel against the platform using the OQC Lucy device
 
+        To emulate the OQC device locally, without submitting through the OQC QCaaS services, you can set the ``emulate`` flag to ``True``.
+        This will emit any target specific compiler warnings and diagnostics, before running a noise free emulation.
+
         .. code:: python
 
-            kernel = cudaq.make_kernel()
-            qvec = kernel.qalloc(2)
-            kernel.h(qvec[0])
-            kernel.x(qvec[1])
-            kernel.cx(qvec[0], qvec[1])
-            kernel.mz(qvec)
-            str(cudaq.sample(kernel=kernel, shots_count=1000))
+            cudaq.set_target("oqc", emulate=True)
 
 
 .. tab:: C++
@@ -286,15 +269,87 @@ Submitting
 
             nvq++ --emulate --target oqc src.cpp -o executable
 
-
         .. note::
 
             The oqc target supports a ``--oqc-machine`` option.
             The default is the 8 qubit Lucy device.
             You can set this to be either ``toshiko`` or ``lucy`` via this flag.
 
-        .. note::
+.. note::
 
-            The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
+    The OQC quantum assembly toolchain (qat) which is used to compile and execute instructions can be found on github as `oqc-community/qat <https://github.com/oqc-community/qat>`__
+
+To see a complete example, take a look at :ref:`OQC examples <oqc-examples>`.
 
 
+Quantum Circuits, Inc.
++++++++++++++++++++++++
+
+.. _qci-backend:
+
+As part of its first phase of integration with CUDA-Q,
+`Quantum Circuits <https://quantumcircuits.com/>`__ offers users the ability to simulate CUDA-Q
+programs using its simulator, AquSim. AquSim is the first simulator that models error detection and
+real-time control of Quantum Circuits' Dual-Rail Cavity Qubit systems, and uses a Monte Carlo
+approach to do so on a shot-by-shot basis.
+
+In this first phase, the supported features include all of the single and two-qubit gates offered by
+CUDA-Q, together with real-time conditional logic enabled by feed-forward capability. AquSim is
+currently wired to support ideal simulations only and noise models will be added in future
+iterations.
+
+With C++ and Python programming supported, users are able to prototype, test and explore quantum
+applications in CUDA-Q in preparation for upcoming releases targeting Quantum Circuits QPUs.
+Examples are provided to get started.
+
+Users who wish to get started with running CUDA-Q on AquSim should visit our
+`Explore <https://quantumcircuits.com/explore/>`__ page to learn more about the Quantum Circuits
+Strategic Quantum Release Program.
+
+Submitting
+`````````````````````````
+
+Until CUDA-Q release 0.13.0 is available, the integration with Quantum Circuits will be supported
+through the nightly build Docker images.
+
+Instructions on how to install and get started with CUDA-Q using Docker can be found :ref:`here <install-docker-image>`.
+
+You may present your user token to Quantum Circuits via CUDA-Q by setting an environment variable
+named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program.
+
+.. code:: bash
+
+    export QCI_AUTH_TOKEN="example-token"
+
+
+.. tab:: Python
+
+        To set the target to Quantum Circuits, add the following to your Python
+        program:
+
+        .. code:: python
+
+            cudaq.set_target('qci')
+            [... your Python here]
+
+        To run on AquSim, simply execute the script using your Python interpreter.
+
+.. tab:: C++
+
+        When executing programs in C++, they must first be compiled using the
+        CUDA-Q nvq++ compiler, and then submitted to run on AquSim.
+
+        Note that your token is fetched from your environment at run time, not at compile time.
+
+        In the example below, the compilation step shows two flags being passed to the nvq++
+        compiler: the Quantum Circuits target :code:`--target qci`, and the output file
+        :code:`-o example.x`.  The second line executes the program against AquSim. Here are the
+        shell commands in full:
+
+        .. code:: bash
+
+            nvq++ example.cpp --target qci -o example.x
+            ./example.x
+
+To see a complete example of using Quantum Circuits' backends, please take a look at the
+:ref:`Quantum Circuits examples <quantum-circuits-examples>`.

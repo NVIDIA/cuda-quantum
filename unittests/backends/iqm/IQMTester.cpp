@@ -19,14 +19,14 @@
 #include <fstream>
 #include <regex>
 
-// the mock server has Apollo architecture
+// the mock server has Crystal_20 architecture
 
 std::string backendStringTemplate =
     "iqm;emulate;false;qpu-architecture;{};url;"
     "http://localhost:62443"; // add architecture
 
 CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
-  std::string arch = "Apollo";
+  std::string arch = "Crystal_20";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
 
   auto &platform = cudaq::get_platform();
@@ -45,7 +45,7 @@ CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
 }
 
 CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
-  std::string arch = "Apollo";
+  std::string arch = "Crystal_20";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
 
   auto &platform = cudaq::get_platform();
@@ -62,7 +62,7 @@ CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
 }
 
 CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
-  std::string arch = "Apollo";
+  std::string arch = "Crystal_20";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
 
   auto &platform = cudaq::get_platform();
@@ -84,7 +84,7 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
 }
 
 CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
-  std::string arch = "Apollo";
+  std::string arch = "Crystal_20";
   auto backendString = fmt::format(fmt::runtime(backendStringTemplate), arch);
 
   auto &platform = cudaq::get_platform();
@@ -106,21 +106,21 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
 CUDAQ_TEST(IQMTester, architectureMismatched) {
   EXPECT_THAT(
       []() {
-        std::string arch = "Adonis";
+        std::string arch = "Crystal_5";
         auto backendString =
             fmt::format(fmt::runtime(backendStringTemplate), arch);
         auto &platform = cudaq::get_platform();
         platform.setTargetBackend(backendString);
       },
-      testing::ThrowsMessage<std::runtime_error>(
-          testing::StrEq("IQM QPU architecture mismatch: Adonis != Apollo")));
+      testing::ThrowsMessage<std::runtime_error>(testing::StrEq(
+          "IQM QPU architecture mismatch: Crystal_5 != Crystal_20")));
 }
 
 CUDAQ_TEST(IQMTester, iqmServerUrlEnvOverride) {
   EXPECT_THAT(
       []() {
         setenv("IQM_SERVER_URL", "fake-fake-fake", true);
-        std::string arch = "Apollo";
+        std::string arch = "Crystal_20";
         auto backendString =
             fmt::format(fmt::runtime(backendStringTemplate), arch);
         auto &platform = cudaq::get_platform();
@@ -134,7 +134,7 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
   EXPECT_THAT(
       []() {
         setenv("IQM_TOKENS_FILE", "fake-fake-fake", true);
-        std::string arch = "Apollo";
+        std::string arch = "Crystal_20";
         auto backendString =
             fmt::format(fmt::runtime(backendStringTemplate), arch);
         auto &platform = cudaq::get_platform();

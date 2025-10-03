@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+AquSim
 Asynchronous
 BFGS
 Bloch
@@ -95,10 +96,12 @@ Photonics
 PyPI
 Pygments
 QAOA
+QCI
 QCaaS
 QEC
 QIR
 QIS
+QOP
 QPP
 QPU
 QPUs
@@ -313,6 +316,7 @@ runtimes
 rvalue
 scalability
 scalable
+selectable
 sexualized
 shifter
 shifters
@@ -357,6 +361,9 @@ uncompute
 unitaries
 unitarity
 unitary
+unitaryHACK
+unmarshal
+unmarshalling
 unoptimized
 upvote
 variadic

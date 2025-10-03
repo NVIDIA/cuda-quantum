@@ -38,6 +38,13 @@
 
 #define DEBUG_TYPE "convert-to-qir"
 
+/**
+   \file
+
+   This file translates Quake to full QIR. This pass \e only supports QIR
+   version 0.1.
+ */
+
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CONVERTTOQIR
 #define GEN_PASS_DEF_LOWERTOCG

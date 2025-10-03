@@ -108,7 +108,7 @@ void RemoteSimulationState::toHost(std::complex<double> *clientAllocatedData,
   if (state->getPrecision() == cudaq::SimulationState::precision::fp64) {
     state->toHost(clientAllocatedData, numElements);
   } else {
-    cudaq::info("[RemoteSimulationState] Perform data conversion in toHost");
+    CUDAQ_INFO("[RemoteSimulationState] Perform data conversion in toHost");
     std::vector<std::complex<float>> temp(numElements);
     state->toHost(temp.data(), numElements);
     std::copy(temp.begin(), temp.end(), clientAllocatedData);
@@ -122,7 +122,7 @@ void RemoteSimulationState::toHost(std::complex<float> *clientAllocatedData,
   if (state->getPrecision() == cudaq::SimulationState::precision::fp32) {
     state->toHost(clientAllocatedData, numElements);
   } else {
-    cudaq::info("[RemoteSimulationState] Perform data conversion in toHost");
+    CUDAQ_INFO("[RemoteSimulationState] Perform data conversion in toHost");
     std::vector<std::complex<double>> temp(numElements);
     state->toHost(temp.data(), numElements);
     std::copy(temp.begin(), temp.end(), clientAllocatedData);
@@ -198,9 +198,9 @@ std::size_t RemoteSimulationState::maxQubitCountForFullStateTransfer() {
   if (auto envVal = std::getenv("CUDAQ_REMOTE_STATE_MAX_QUBIT_COUNT")) {
 
     const int val = std::stoi(envVal);
-    cudaq::info("[RemoteSimulationState] Setting remote state data transfer "
-                "qubit count threshold to {}.",
-                val);
+    CUDAQ_INFO("[RemoteSimulationState] Setting remote state data transfer "
+               "qubit count threshold to {}.",
+               val);
     return val;
   }
   return NUM_QUBITS_STATE_TRANSFER;

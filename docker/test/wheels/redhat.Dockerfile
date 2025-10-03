@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=redhat/ubi9:9.2
+ARG base_image=redhat/ubi9:9.6
 FROM ${base_image}
 
 ARG python_version=3.11

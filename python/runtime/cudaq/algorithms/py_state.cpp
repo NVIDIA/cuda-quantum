@@ -240,8 +240,8 @@ void bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
             dataPtr = reinterpret_cast<void *>(hostData);
           }
           hostDataFromDevice.emplace_back(dataPtr, [](void *data) {
-            cudaq::info("freeing data that was copied from GPU device for "
-                        "compatibility with NumPy");
+            CUDAQ_INFO("freeing data that was copied from GPU device for "
+                       "compatibility with NumPy");
             free(data);
           });
         } else
@@ -704,7 +704,7 @@ index pair.
           return pyGetStateRemote(kernel, args);
         if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);
-        if (holder.getTarget().is_remote() || holder.getTarget().is_emulated())
+        if (cudaq::is_remote_platform() || cudaq::is_emulated_platform())
           return pyGetStateQPU(kernel, args);
         return pyGetState(kernel, args);
       },

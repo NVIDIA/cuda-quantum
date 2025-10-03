@@ -25,7 +25,7 @@ protected:
   std::string iqmServerUrl = "http://localhost/cocos/";
 
   /// @brief IQM QPU architecture, provided during the compile-time
-  std::string qpuArchitecture = "Adonis";
+  std::string qpuArchitecture = "Crystal_5";
 
   /// @brief The default cortex-cli tokens file path
   std::optional<std::string> tokensFilePath = std::nullopt;
@@ -39,7 +39,7 @@ protected:
   /// @brief Parse cortex-cli tokens JSON for the API access token
   std::optional<std::string> readApiToken() const {
     if (!tokensFilePath.has_value()) {
-      cudaq::info(
+      CUDAQ_INFO(
           "tokensFilePath is not set, assuming no authentication is required");
       return std::nullopt;
     }
@@ -63,7 +63,7 @@ protected:
     auto quantumArchitecture =
         client.get(iqmServerUrl, "quantum-architecture", headers);
     try {
-      cudaq::debug("quantumArchitecture = {}", quantumArchitecture.dump());
+      CUDAQ_DBG("quantumArchitecture = {}", quantumArchitecture.dump());
       return quantumArchitecture["quantum_architecture"]["name"]
           .get<std::string>();
     } catch (const std::exception &e) {
@@ -93,12 +93,18 @@ public:
       throw std::runtime_error("QPU architecture is not provided");
     }
     qpuArchitecture = iter->second;
-    cudaq::debug("qpuArchitecture = {}", qpuArchitecture);
+    std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), '_', ' ');
+    CUDAQ_DBG("qpuArchitecture = {}", qpuArchitecture);
 
     // Set an alternate base URL if provided.
     iter = backendConfig.find("url");
     if (iter != backendConfig.end()) {
       iqmServerUrl = iter->second;
+      // For running unittests
+      if (iqmServerUrl.find("localhost") != std::string::npos) {
+        std::replace(qpuArchitecture.begin(), qpuArchitecture.end(), ' ', '_');
+        CUDAQ_DBG("qpuArchitecture = {}", qpuArchitecture);
+      }
     }
 
     // Allow overriding IQM Server Url, the compiled program will still work if
@@ -112,11 +118,10 @@ public:
 
     if (!iqmServerUrl.ends_with("/"))
       iqmServerUrl += "/";
-    cudaq::debug("iqmServerUrl = {}", iqmServerUrl);
+    CUDAQ_DBG("iqmServerUrl = {}", iqmServerUrl);
 
     if (emulate) {
-      cudaq::info(
-          "Emulation is enabled, ignore tokens file and IQM Server URL");
+      CUDAQ_INFO("Emulation is enabled, ignore tokens file and IQM Server URL");
       return;
     }
 
@@ -124,18 +129,18 @@ public:
     auto envTokenFilePath = getenv("IQM_TOKENS_FILE");
     auto defaultTokensFilePath =
         std::string(getenv("HOME")) + "/.cache/iqm-cortex-cli/tokens.json";
-    cudaq::debug("defaultTokensFilePath = {}", defaultTokensFilePath);
+    CUDAQ_DBG("defaultTokensFilePath = {}", defaultTokensFilePath);
     if (envTokenFilePath) {
       tokensFilePath = std::string(envTokenFilePath);
     } else if (cudaq::fileExists(defaultTokensFilePath)) {
       tokensFilePath = defaultTokensFilePath;
     }
-    cudaq::debug("tokensFilePath = {}", tokensFilePath.value_or("not set"));
+    CUDAQ_DBG("tokensFilePath = {}", tokensFilePath.value_or("not set"));
 
     // Fetch quantum-architecture program was compiled with
     auto configuredTargetArchitecture = getQuantumArchitectureName();
-    cudaq::debug("configuredTargetArchitecture = {}",
-                 configuredTargetArchitecture);
+    CUDAQ_DBG("configuredTargetArchitecture = {}",
+              configuredTargetArchitecture);
 
     // Does it match the compiled architecture?
     if (qpuArchitecture != configuredTargetArchitecture) {
@@ -214,7 +219,7 @@ IQMServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
 };
 
 bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  cudaq::debug("getJobResponse: {}", getJobResponse.dump());
+  CUDAQ_DBG("getJobResponse: {}", getJobResponse.dump());
 
   auto jobStatus = getJobResponse["status"].get<std::string>();
   std::unordered_set<std::string> terminalStatuses = {"ready", "failed",
@@ -225,7 +230,7 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 IQMServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobID) {
-  cudaq::info("postJobResponse: {}", postJobResponse.dump());
+  CUDAQ_INFO("postJobResponse: {}", postJobResponse.dump());
 
   // check if the job succeeded
   auto jobStatus = postJobResponse["status"].get<std::string>();

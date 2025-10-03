@@ -168,7 +168,7 @@ public:
 
           std::string mutableReq;
           for (const auto &[k, v] : headers)
-            cudaq::info("Request Header: {} : {}", k, v);
+            CUDAQ_INFO("Request Header: {} : {}", k, v);
           // Checking if this request has its body sent on as NVCF assets.
           const auto dirIter = headers.find("NVCF-ASSET-DIR");
           const auto assetIdIter = headers.find("NVCF-FUNCTION-ASSET-IDS");
@@ -477,7 +477,7 @@ protected:
   std::unique_ptr<ExecutionEngine>
   jitMlirCode(ModuleOp currentModule, const std::vector<std::string> &passes,
               const std::vector<std::string> &extraLibPaths = {}) {
-    cudaq::info("Running jitCode.");
+    CUDAQ_INFO("Running jitCode.");
     auto module = currentModule.clone();
     ExecutionEngineOptions opts;
     opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
@@ -485,7 +485,7 @@ protected:
     opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
     SmallVector<StringRef, 4> sharedLibs;
     for (auto &lib : extraLibPaths) {
-      cudaq::info("Extra library loaded: {}", lib);
+      CUDAQ_INFO("Extra library loaded: {}", lib);
       sharedLibs.push_back(lib);
     }
     opts.sharedLibPaths = sharedLibs;
@@ -509,7 +509,7 @@ protected:
         throw std::runtime_error(
             "Remote rest platform: applying IR passes failed.");
 
-      cudaq::info("- Pass manager was applied.");
+      CUDAQ_INFO("- Pass manager was applied.");
     }
     // Verify MLIR conforming to the NVQIR-spec (known runtime functions and/or
     // QIR functions)
@@ -535,9 +535,9 @@ protected:
           cudaq::opt::createVerifyNVQIRCallOpsPass(allFunctionNames));
       if (failed(pm.run(module)))
         throw std::runtime_error(
-            "Failed to IR compliance verification against NVQIR runtime.");
+            "Failed check to verify IR compliance for NVQIR runtime.");
 
-      cudaq::info("- Finish IR input verification.");
+      CUDAQ_INFO("- Finish IR input verification.");
     }
 
     opts.llvmModuleBuilder =
@@ -553,11 +553,11 @@ protected:
       return llvmModule;
     };
 
-    cudaq::info("- Creating the MLIR ExecutionEngine");
+    CUDAQ_INFO("- Creating the MLIR ExecutionEngine");
     auto uniqueJit =
         getValueOrThrow(ExecutionEngine::create(module, opts),
                         "Failed to create MLIR JIT ExecutionEngine");
-    cudaq::info("- MLIR ExecutionEngine created successfully.");
+    CUDAQ_INFO("- MLIR ExecutionEngine created successfully.");
     return uniqueJit;
   }
 
@@ -639,8 +639,7 @@ protected:
     const auto simLibPath =
         cudaqLibPath.parent_path() /
         fmt::format("libnvqir-{}.{}", simulatorName, libSuffix);
-    cudaq::info("Request simulator {} at {}", simulatorName,
-                simLibPath.c_str());
+    CUDAQ_INFO("Request simulator {} at {}", simulatorName, simLibPath.c_str());
     void *simLibHandle = dlopen(simLibPath.c_str(), RTLD_GLOBAL | RTLD_NOW);
     if (!simLibHandle) {
       char *error_msg = dlerror();
@@ -704,7 +703,7 @@ protected:
         // level.
         cudaq::log(os.str());
       } else {
-        cudaq::info(os.str());
+        CUDAQ_INFO(os.str());
       }
 
       // Verify REST API version of the incoming request

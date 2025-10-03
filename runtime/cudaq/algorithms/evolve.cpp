@@ -84,7 +84,7 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   platform.set_exec_ctx(ctx.get());
 
   auto programString = programJson.dump();
-  cudaq::debug("Program JSON: {}", programString);
+  CUDAQ_DBG("Program JSON: {}", programString);
 
   auto dynamicResult = cudaq::altLaunchKernel(
       programName.str().c_str(), KernelThunkType(nullptr),

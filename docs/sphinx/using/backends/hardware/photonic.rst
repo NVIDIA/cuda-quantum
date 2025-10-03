@@ -65,9 +65,6 @@ Submitting
             loop_lengths = [1]
             counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
 
-        To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
-
-
 
 .. tab:: C++
 
@@ -93,4 +90,4 @@ Submitting
            ./executable
 
 
-        To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+To see a complete example, take a look at :ref:`ORCA Computing examples <orca-examples>`.

@@ -12,7 +12,8 @@ endif()
 
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
-  AggressiveEarlyInlining.cpp
+  AddMeasurements.cpp
+  AggressiveInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
@@ -51,6 +52,7 @@ add_cudaq_library(OptTransforms
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  Pipelines.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp
@@ -60,7 +62,9 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
+  ResourceCountPreprocess.cpp
   SROA.cpp
+  StackFramePrealloc.cpp
   StatePreparation.cpp
   UnitarySynthesis.cpp
   UpdateRegisterNames.cpp
