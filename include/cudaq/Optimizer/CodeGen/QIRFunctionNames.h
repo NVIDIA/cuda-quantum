@@ -50,10 +50,6 @@ static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 static constexpr const char NVQIRGeneralizedInvokeAny[] =
     "generalizedInvokeWithRotationsControlsTargets";
-static constexpr const char NVQIRPackSingleQubitInArray[] =
-    "packSingleQubitInArray";
-static constexpr const char NVQIRReleasePackedQubitArray[] =
-    "releasePackedQubitArray";
 
 /// QIR Array function name strings
 static constexpr const char QIRArrayGetElementPtr1d[] =
