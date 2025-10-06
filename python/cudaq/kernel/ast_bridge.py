@@ -361,7 +361,7 @@ class PyASTBridge(ast.NodeVisitor):
         Change the type of an operand to a specified type. This function primarily 
         handles type conversions and promotions to higher types (complex > float > int). 
         Demotion of floating type to integer is not allowed by default.
-        Regardless of whether demotion is allowed, types will be case to smaller widths.
+        Regardless of whether demotion is allowed, types will be cast to smaller widths.
         """
         if ty == operand.type:
             return operand
@@ -414,7 +414,6 @@ class PyASTBridge(ast.NodeVisitor):
                 if IntegerType(ty).width < IntegerType(operand.type).width:
                     operand = cc.CastOp(ty, operand).result
                 elif IntegerType(ty).width > IntegerType(operand.type).width:
-                    # FIXME: NOT SURE THIS IS CORRECT
                     zeroext = IntegerType(operand.type).width == 1
                     operand = cc.CastOp(ty,
                                         operand,
@@ -888,29 +887,46 @@ class PyASTBridge(ast.NodeVisitor):
                 )
         return
 
-    def __deconstructTuple(self, target, value, process = None):
+    def __deconstructAssignment(self, target, value, process = None):
         if process is not None:
             target, value = process(target, value)
         if isinstance(target, ast.Name):
             if value is not None:
                 self.symbolTable[target.id] = value
         elif isinstance(target, ast.Tuple):
-            args = []                
-            if isinstance(value, ast.Tuple):
-                args = value.elts
-                getItem = lambda v, _: v
+            if isinstance(value, ast.Tuple) or \
+                isinstance(value, ast.List):
+                nrArgs = len(value.elts)
+                getItem = lambda idx: value.elts[idx]
             else:
                 value = self.ifPointerThenLoad(value)
                 if cc.StructType.isinstance(value.type):
-                    args = cc.StructType.getTypes(value.type)
-                    getItem = lambda ty, idx: cc.ExtractValueOp(ty, value, [], DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+                    argTypes = cc.StructType.getTypes(value.type)
+                    nrArgs = len(argTypes)
+                    getItem = lambda idx: cc.ExtractValueOp(argTypes[idx], value, [], DenseI32ArrayAttr.get([idx], context=self.ctx)).result
                 elif quake.StruqType.isinstance(value.type):
-                    args = quake.StruqType.getTypes(value.type)
-                    getItem = lambda ty, idx: quake.GetMemberOp(ty, value, IntegerAttr.get(self.getIntegerType(32), idx)).result
-            if len(args) != len(target.elts):
+                    argTypes = quake.StruqType.getTypes(value.type)
+                    nrArgs = len(argTypes)
+                    getItem = lambda idx: quake.GetMemberOp(argTypes[idx], value, IntegerAttr.get(self.getIntegerType(32), idx)).result
+                elif cc.StdvecType.isinstance(value.type):
+                    # We will get a runtime error for out of bounds access
+                    eleTy = cc.StdvecType.getElementType(value.type)
+                    elePtrTy = cc.PointerType.get(eleTy)
+                    arrTy = cc.ArrayType.get(eleTy)
+                    ptrArrTy = cc.PointerType.get(arrTy)
+                    vecPtr = cc.StdvecDataOp(ptrArrTy, value).result
+                    attr = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
+                    nrArgs = len(target.elts)
+                    getItem = lambda idx: cc.LoadOp(
+                        cc.ComputePtrOp(elePtrTy, vecPtr, [self.getConstantInt(idx)], attr).result).result
+                elif quake.VeqType.isinstance(value.type):
+                    # We will get a runtime error for out of bounds access
+                    nrArgs = len(target.elts)
+                    getItem = lambda idx: quake.ExtractRefOp(quake.RefType.get(), value, -1, index=self.getConstantInt(idx)).result
+            if nrArgs != len(target.elts):
                 return "shape mismatch in tuple deconstruction"
-            for i, arg in enumerate(args):
-                msg = self.__deconstructTuple(target.elts[i], getItem(arg, i), process=process)
+            for i in range(nrArgs):
+                msg = self.__deconstructAssignment(target.elts[i], getItem(i), process=process)
                 if msg is not None:
                     return msg
         else:
@@ -1039,6 +1055,12 @@ class PyASTBridge(ast.NodeVisitor):
         super().visit(node)
         self.indent_level -= 1
 
+    # FIXME: using generic_visit the way we do seems incredibly dangerous;
+    # we use this and make assumptions about what values are on the value stack
+    # without any validation that we got the right values.
+    # The whole value stack needs to be revised; we need to properly push and pop
+    # not just individual values but groups of values to ensure that the right
+    # pieces get the right arguments (and give a proper error otherwise).
     def generic_visit(self, node):
         self.debug_msg(lambda: f'[Generic Visit]', node)
         for field, value in reversed(list(ast.iter_fields(node))):
@@ -1280,7 +1302,7 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(target, ast.Name):
                 check_not_captured(target.id)
 
-                if type(value).__module__ == 'ast':
+                if isinstance(value, ast.AST):
                     # Retain the variable name for potential children (like `mz(q, registerName=...)`)
                     self.currentAssignVariableName = target.id
                     self.visit(value)
@@ -1381,7 +1403,7 @@ class PyASTBridge(ast.NodeVisitor):
             # result in having more than 1 target here, hence erroring on it for now.
             # (It would be easy to process this as target tuple, but it may not be correct to do so.)
             self.emitFatalError("CUDA-Q does not allow multiple targets in assignment", node)
-        msg = self.__deconstructTuple(node.targets[0], node.value, process=process_assignment)
+        msg = self.__deconstructAssignment(node.targets[0], node.value, process=process_assignment)
         if msg is not None:
             self.emitFatalError(msg, node)
 
@@ -3083,11 +3105,11 @@ class PyASTBridge(ast.NodeVisitor):
                 node)
 
         def process_void_list():
-            # NOTE: This does not actually a create a valid value, and will fail is something
+            # NOTE: This does not actually create a valid value, and will fail is something
             # tries to use the value that this was supposed to create later on. 
             # Keeping this to keep existing functionality, but this is questionable imo.
             # Aside from no list being produced, this should work regardless of what we
-            # iterate over or what the expression is we evaluate.
+            # iterate over or what expression we evaluate.
             self.emitWarning("produced elements in list comprehension contain None - expression will be evaluated but no list is generated", node)
             forNode = ast.For()
             forNode.iter = node.generators[0].iter
@@ -3260,7 +3282,7 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.PointerType.get(iterTy), iterable, [iterVar],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
                 loadedEle = cc.LoadOp(eleAddr).result
-            self.__deconstructTuple(node.generators[0].target, loadedEle)
+            self.__deconstructAssignment(node.generators[0].target, loadedEle)
             self.visit(node.elt)
             result = self.popValue()
             listValueAddr = cc.ComputePtrOp(
@@ -3683,7 +3705,7 @@ class PyASTBridge(ast.NodeVisitor):
                         values = extractFunctor(iterable, iterVar)
                         assert(len(values) == 2)
                         for i, v in enumerate(values):
-                            msg = self.__deconstructTuple(node.target.elts[i], v)
+                            msg = self.__deconstructAssignment(node.target.elts[i], v)
                             if msg is not None:
                                 self.emitFatalError(msg, node)
                         [self.visit(b) for b in node.body]
@@ -3773,7 +3795,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.symbolTable.pushScope()
             # we set the extract functor above, use it here
             value = extractFunctor(iterable, iterVar)
-            msg = self.__deconstructTuple(node.target, value)
+            msg = self.__deconstructAssignment(node.target, value)
             if msg is not None:
                 self.emitFatalError(msg, node)
             [self.visit(b) for b in node.body]

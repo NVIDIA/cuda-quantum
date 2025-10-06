@@ -7,9 +7,6 @@
 # ============================================================================ #
 
 # RUN: PYTHONPATH=../../ python3  %s | FileCheck %s
-# XFAIL: *
-
-# Not supported yet.
 
 import cudaq
 
@@ -34,3 +31,5 @@ print(foo)
 # CHECK:           quake.z %[[VAL_3]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
+
+# FIXME: CREATE MORE TESTS
