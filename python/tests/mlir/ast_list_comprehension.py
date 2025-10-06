@@ -724,7 +724,7 @@ def test_list_comprehension_void():
 # CHECK:         }
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
-def test_list_comprehension_iterables():
+def test_list_comprehension_expressions():
 
     @cudaq.kernel
     def kernel1():
@@ -780,10 +780,23 @@ def test_list_comprehension_iterables():
     assert(len(out) == 1 and out[0] == 3)
     print(kernel4) # keep after assert, such that we have no output if assert fails
 
+    @cudaq.kernel
+    def kernel5() -> bool:
+        vals = [0.5, 0.8, 0.1]
+        correct = [v < 1.0 for v in vals]
+        for c in correct:
+            if not c: return False
+        return True
+
+    out = cudaq.run(kernel5, shots_count=1)
+    assert(len(out) == 1 and out[0] == True)
+    print(kernel5) # keep after assert, such that we have no output if assert fails
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 def test_list_comprehension_failures():
 
@@ -798,6 +811,7 @@ def test_list_comprehension_failures():
     try:
         print(kernel1)
     except Exception as e:
+        print("Exception kernel1:")
         print(e)
 
     @cudaq.kernel
@@ -811,6 +825,7 @@ def test_list_comprehension_failures():
     try:
         print(kernel2)
     except Exception as e:
+        print("Exception kernel2:")
         print(e)
 
     @cudaq.kernel
@@ -819,12 +834,11 @@ def test_list_comprehension_failures():
         x(q)
         res = [mz([r]) for r in q]
         return len(res)
-        # also check that [mz(q) for _ in q] fails...
-        #res = [mz(q) for _ in q]
 
     try:
         print(kernel3)
     except Exception as e:
+        print("Exception kernel3:")
         print(e)
 
     @cudaq.kernel
@@ -837,21 +851,92 @@ def test_list_comprehension_failures():
     try:
         print(kernel4)
     except Exception as e:
+        print("Exception kernel4:")
         print(e)
 
-# CHECK-LABEL:  augment-assign must not change the variable type
+    @cudaq.kernel
+    def kernel5() -> bool:
+        vals = [[] for _ in range(3)]
+        if vals[0] == [(1,2)]:
+            return False
+        return True
+
+    try:
+        print(kernel5)
+    except Exception as e:
+        print("Exception kernel5:")
+        print(e)
+
+    @dataclass(slots=True)
+    class MyTuple:
+        first: float
+        second: float
+
+    @cudaq.kernel
+    def kernel6() -> MyTuple:
+        cvals = [1j for _ in range(3)]
+        vals = [MyTuple(0, v) for v in cvals]
+        res = MyTuple(0, 0)
+        for v1, v2 in vals:
+            res = MyTuple(res.first + v1, res.second + v2)
+        return res
+
+    try:
+        print(kernel6)
+    except Exception as e:
+        print("Exception kernel6:")
+        print(e)
+
+'''
+    @cudaq.kernel
+    def getTuple(v1: int) -> tuple[int, float]:
+         return v1, 1.
+
+    @cudaq.kernel
+    def test13() -> int:
+        # check argument conversion
+        v = getTuple(5.0)
+        l = [0. for _ in range(v[1])]
+        return len(l)
+
+    print(test13)
+    print("result test13: " + str(test13()))
+
+        @cudaq.kernel
+    def test13() -> int:
+        # check argument conversion
+        v = getTuple(5.0)
+        l = [0. for _ in range(v)]
+        return len(l)
+
+    print(test13)
+    print("result test13: " + str(test13()))
+
+'''
+
+# CHECK-LABEL:  Exception kernel1:
+# CHECK:        augment-assign must not change the variable type
 # CHECK-NEXT:   (offending source -> res += v)
-# CHECK-NOT:    __nvqpp__mlirgen__kernel1
 
-# CHECK-LABEL:  measurements in list comprehension expressions {{.*}} only supported when iterating over a vector of qubits
+# CHECK-LABEL:  Exception kernel2:
+# CHECK:        measurements in list comprehension expressions {{.*}} only supported when iterating over a vector of qubits
 # CHECK-NEXT:   (offending source -> [mz(q[i]) for i in range(3)])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel2
 
-# CHECK-LABEL:  unsupported argument to measurement in list comprehension
+# CHECK-LABEL:  Exception kernel3:
+# CHECK:        unsupported argument to measurement in list comprehension
 # CHECK-NEXT:   (offending source -> [mz([r]) for r in q])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel3
 
-# CHECK-LABEL:  unsupported argument to measurement in list comprehension
+# CHECK-LABEL:  Exception kernel4:
+# CHECK:        unsupported argument to measurement in list comprehension
 # CHECK-NEXT:   (offending source -> [mz(q) for r in q])
-# CHECK-NOT:    __nvqpp__mlirgen__kernel4
 
+# CHECK-LABEL:  Exception kernel5:
+# CHECK:        creating empty lists is not supported in CUDA-Q
+# CHECK-NEXT:   (offending source -> [{{.*}} for _ in range(3)])
+
+# CHECK-LABEL:  Exception kernel6:
+# CHECK:        incorrect argument type in call to MyTuple
+# CHECK-NEXT:   (offending source -> MyTuple(0, v))
+
+if __name__ == '__main__':
+    test_list_comprehension_failures()

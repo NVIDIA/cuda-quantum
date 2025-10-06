@@ -269,6 +269,16 @@ def test_tuple_assign_struct():
     print(test12)
     print("result test12: " + str(test12()))
 
+    @cudaq.kernel
+    def test13() -> int:
+        # check argument conversion
+        v = getTuple(5.0)
+        l = [0. for _ in range(v[0])]
+        return len(l)
+
+    print(test13)
+    print("result test13: " + str(test13()))
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
@@ -354,3 +364,13 @@ def test_tuple_assign_failures():
 # CHECK:         hybrid quantum-classical data types and nested quantum structs are not allowed
 # CHECK-NEXT:    (offending source -> (cudaq.qubit(), 0.5))
 
+if __name__ == '__main__':
+
+    test_tuple_assign_struct()
+
+# FIXME: ADD TESTS FOR LOOP ITERATION BOUNDS
+# FIXME: ADD PROPER CHECKS TO ENUMERATE AND RANGE IN CALL
+# FIXME: MAKE __copyVectorAndCastElements FAIL IF ELEMENT CANNOT BE CAST (USED IN CALL)
+# (FIXME: apply_noise is also pretty terrible)
+# FIXME: front and back are only handled if they are called on something that is in the symbol table
+# FIXME: reexamine checkControlsAndTargets; too permissive, they allow for vect or vect and list of vect for target (update swap checks to use that function after fixes?)
