@@ -4193,12 +4193,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.generic_visit(node)
         self.currentNode = node
 
-        nArgs = len(self.valueStack)
-        elementValues = [self.popValue() for _ in range(nArgs)]
+        elementValues = [self.popValue() for _ in range(len(node.elts))]
         elementValues.reverse()
-
-        if len(elementValues) != len(node.elts):
-            self.emitFatalError("unsupported expression in tuple construction", node)
 
         # We do not store structs of pointers
         elementValues = [
