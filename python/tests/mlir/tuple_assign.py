@@ -372,5 +372,5 @@ if __name__ == '__main__':
 # FIXME: ADD PROPER CHECKS TO ENUMERATE AND RANGE IN CALL
 # FIXME: MAKE __copyVectorAndCastElements FAIL IF ELEMENT CANNOT BE CAST (USED IN CALL)
 # (FIXME: apply_noise is also pretty terrible)
-# FIXME: front and back are only handled if they are called on something that is in the symbol table
+# FIXME: front, back, and assign are only handled if they are called on something that is in the symbol table
 # FIXME: reexamine checkControlsAndTargets; too permissive, they allow for vect or vect and list of vect for target (update swap checks to use that function after fixes?)

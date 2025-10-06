@@ -939,4 +939,43 @@ def test_list_comprehension_failures():
 # CHECK-NEXT:   (offending source -> MyTuple(0, v))
 
 if __name__ == '__main__':
-    test_list_comprehension_failures()
+
+    '''
+    @cudaq.kernel
+    def kernel() -> int:
+        l = [1,2,3]
+        l[0] = 4
+        res = 0
+        for v in l:
+            res += v
+        return res
+
+    out = cudaq.run(kernel, shots_count=1)
+    assert(len(out) == 1 and out[0] == 9)
+    print(out)
+
+    @cudaq.kernel
+    def kernel() -> int:
+        l = [1,2,3]
+        l[0] = 4
+        c = complex(0,0)
+        c += 1
+        return l.size + l[0] + c.real
+
+    out = cudaq.run(kernel, shots_count=1)
+    assert(len(out) == 1 and out[0] == 8)
+    print(out)
+    '''
+
+    @cudaq.kernel
+    def kernel() -> int:
+        l = [1,2,3]
+        l[0] = 4
+        l.size = 4
+        return len(l)
+
+    out = cudaq.run(kernel, shots_count=1)
+    #Expect error:
+    #CUDA-Q attribute assignment, variable must be a pointer.
+	#(offending source -> l.size = 4)
+    print(out)

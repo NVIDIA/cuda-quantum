@@ -511,6 +511,9 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __isSupportedNumpyFunction(self, id):
         return id in ['sin', 'cos', 'sqrt', 'ceil', 'exp']
+    
+    def __isSupportedVectorFunction(self, id):
+        return id in ['front', 'back', 'append']        
 
     def __isSimpleGate(self, id):
         return id in ['h', 'x', 'y', 'z', 's', 't']
@@ -1296,7 +1299,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(value)
                 if len(self.valueStack) == 0:
                     self.emitFatalError("invalid assignment detected.", node)
-                return target, self.popValue() # FIXME: more than one??
+                return target, self.popValue()
 
             # Handle simple `var = expr`
             elif isinstance(target, ast.Name):
@@ -1309,7 +1312,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentAssignVariableName = None
                     if len(self.valueStack) == 0:
                         self.emitFatalError("invalid assignment detected.", node)
-                    value = self.popValue() # FIXME: VALUE STACK COULD BE MORE THAN ONE...
+                    value = self.popValue()
 
                 if self.isQuantumType(value.type) or cc.CallableType.isinstance(
                         value.type):
@@ -1459,9 +1462,16 @@ class PyASTBridge(ast.NodeVisitor):
                 # to be processed by the caller
                 return
         
-        def process_composite_types(value, valType):
+        def process_potential_ptr_types(value):
+            """
+            Helper function to process anything that the parent may assign to, 
+            depending on whether value is a pointer or not.
+            """
+            valType = value.type
+            if cc.PointerType.isinstance(valType):
+                valType = cc.PointerType.getElementType(valType)
 
-            if quake.StruqType.isinstance(value.type):
+            if quake.StruqType.isinstance(valType):
                 # Need to extract value instead of load from compute pointer.
                 structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
                 attr = IntegerAttr.get(self.getIntegerType(32), structIdx)
@@ -1473,41 +1483,23 @@ class PyASTBridge(ast.NodeVisitor):
                 self.__visitStructAttribute(node, value)
                 return True
 
-            elif quake.VeqType.isinstance(valType):
-                if node.attr == 'size':
-                    self.pushValue(
-                        quake.VeqSizeOp(self.getIntegerType(), value).result)
-                    return True
-                if node.attr == 'append':
-                    self.emitFatalError(
-                        "CUDA-Q does not allow dynamic list resizing.", node)
-                if node.attr == 'front' or node.attr == 'back':
-                    return True
-                
-            elif cc.StdvecType.isinstance(valType) or cc.ArrayType.isinstance(valType):
-                if node.attr == 'size':                    
-                    self.pushValue(self.__get_vector_size(value))
-                    return True
-                if node.attr == 'append':
-                    self.emitFatalError(
-                        "CUDA-Q does not allow dynamic list resizing.", node)
-                if node.attr == 'front' or node.attr == 'back':
-                    return True
+            elif quake.VeqType.isinstance(valType) or \
+                cc.StdvecType.isinstance(valType) or \
+                cc.ArrayType.isinstance(valType):
+                return self.__isSupportedVectorFunction(node.attr)
 
             return False
 
         # Make sure we preserve pointers for structs
         if isinstance(node.value, ast.Name) and node.value.id in self.symbolTable:  
             value = self.symbolTable[node.value.id]
-            if cc.PointerType.isinstance(value.type):
-                valType = cc.PointerType.getElementType(value.type)
-                processed = process_composite_types(value, valType)
-                if processed: return                    
+            processed = process_potential_ptr_types(value)
+            if processed: return
 
         self.visit(node.value)
         if len(self.valueStack) == 0:
             self.emitFatalError("failed to create value to access attribute", node)            
-        value = self.popValue()
+        value = self.ifPointerThenLoad(self.popValue())
 
         if ComplexType.isinstance(value.type):
             if (node.attr == 'real'):
@@ -1518,7 +1510,17 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid attribute on complex value", node)
             return
 
-        processed = process_composite_types(value, value.type)
+        # numpy arrays have a size attribute
+        if node.attr == 'size':
+            if quake.VeqType.isinstance(value.type):
+                self.pushValue(
+                    quake.VeqSizeOp(self.getIntegerType(), value).result)
+                return True
+            if cc.StdvecType.isinstance(value.type) or cc.ArrayType.isinstance(value.type):
+                self.pushValue(self.__get_vector_size(value))
+                return True
+
+        processed = process_potential_ptr_types(value)
         if not processed:
             self.emitFatalError("unrecognized attribute {}".format(node.attr), node)
 
@@ -2701,9 +2703,14 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.value.id in self.symbolTable:
                 # Method call on one of our variables
                 var = self.symbolTable[node.func.value.id]
+
+                # FIXME: THESE SHOULD BE SUPPORTED ON CLASSICAL VECTORS AS WELL
+                # Also should be supported on things that are not in the symbol table
+                # see also self.__isSupportedVectorFunction
                 if quake.VeqType.isinstance(var.type):
                     if node.func.attr == 'size':
-                        # Handled already in the Attribute visit
+                        # Handled already in the Attribute visit, 
+                        # since numpy arrays have a size attribute
                         return
 
                     # `qreg` or `qview` method call
@@ -2754,6 +2761,9 @@ class PyASTBridge(ast.NodeVisitor):
                                                    -1,
                                                    index=zero).result)
                         return
+                    if node.func.attr == 'append':
+                        self.emitFatalError(
+                            "CUDA-Q does not allow dynamic list resizing.", node)
 
             def maybeProposeOpAttrFix(opName, attrName):
                 """

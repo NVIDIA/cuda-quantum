@@ -22,14 +22,14 @@ def bar(q: cudaq.qubit):
 
 
 @cudaq.kernel
-def baz(q: cudaq.qubit):
+def baz(q: cudaq.qubit, dummy: int):
     x(q)
 
 
 @cudaq.kernel
-def foo(func: Callable[[cudaq.qubit], None], size: int):
+def foo(func: Callable[[cudaq.qubit, int], None], size: int):
     q = cudaq.qvector(size)
-    func(q[0])
+    func(q[0], 5)
     result = mz(q[0])
 
 
