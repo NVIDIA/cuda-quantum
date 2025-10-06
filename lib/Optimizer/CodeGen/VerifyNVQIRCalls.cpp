@@ -43,8 +43,6 @@ struct VerifyNVQIRCallOpsPass
           cudaq::opt::NVQIRInvokeRotationWithControlBits,   // obsolete
           cudaq::opt::NVQIRInvokeWithControlRegisterOrBits, // obsolete
           cudaq::opt::NVQIRGeneralizedInvokeAny,
-          cudaq::opt::NVQIRPackSingleQubitInArray,
-          cudaq::opt::NVQIRReleasePackedQubitArray,
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
           cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
           cudaq::getNumQubitsFromCudaqState,
