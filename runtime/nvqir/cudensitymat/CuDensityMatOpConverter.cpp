@@ -205,10 +205,22 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
   }();
 
   const bool isCallbackTensor = [&]() {
+    const auto checkIfCanEvaluateWithoutParam =
+        [](const cudaq::matrix_handler &op,
+           std::unordered_map<std::size_t, std::int64_t> &dimensions) {
+          try {
+            op.to_matrix(dimensions, {});
+            return true;
+          } catch (const std::exception &e) {
+            return false;
+          }
+        };
+
     for (const auto &elemOp : elemOps) {
       if (std::find(g_knownNonParametricOps.begin(),
                     g_knownNonParametricOps.end(),
-                    elemOp.to_string(false)) == g_knownNonParametricOps.end()) {
+                    elemOp.to_string(false)) == g_knownNonParametricOps.end() &&
+          !checkIfCanEvaluateWithoutParam(elemOp, dimensions)) {
         return true;
       }
     }
