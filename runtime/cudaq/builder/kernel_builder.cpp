@@ -17,6 +17,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/platform/nvqpp_interface.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -30,15 +31,9 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
-
 #include <numeric>
 
 using namespace mlir;
-
-extern "C" {
-void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
-                     void *kernelArgs, std::uint64_t argsSize);
-}
 
 namespace cudaq::details {
 
@@ -1105,9 +1100,20 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   }
 
   // Invoke and free the args memory.
-  auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
+  auto thunk = reinterpret_cast<KernelThunkType>(*thunkPtr);
 
-  altLaunchKernel(properName.data(), thunk, rawArgs, size);
+  //  Extract the result offset, which we named.
+  auto roName = properName + ".resultOffset";
+  auto roPtr = jit->lookup(roName);
+  if (!roPtr)
+    throw std::runtime_error(
+        "cudaq::builder failed to get result offset function");
+
+  // Invoke and free the args memory.
+  auto resultOffset = reinterpret_cast<std::uint64_t>(*roPtr);
+
+  [[maybe_unused]] auto uncheckedResult =
+      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset);
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }
