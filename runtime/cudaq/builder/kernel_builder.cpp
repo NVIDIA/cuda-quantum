@@ -1103,7 +1103,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto thunk = reinterpret_cast<KernelThunkType>(*thunkPtr);
 
   //  Extract the result offset, which we named.
-  auto roName = properName + ".resultOffset";
+  auto roName = properName + ".returnOffset";
   auto roPtr = jit->lookup(roName);
   if (!roPtr)
     throw std::runtime_error(
