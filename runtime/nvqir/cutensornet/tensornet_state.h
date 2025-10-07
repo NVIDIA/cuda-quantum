@@ -9,6 +9,7 @@
 #pragma once
 #include "common/EigenDense.h"
 #include "common/SimulationState.h"
+#include "common/Timing.h"
 #include "cudaq/operators.h"
 #include "cutensornet.h"
 #include "tensornet_utils.h"
