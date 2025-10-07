@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/CodeGen/Emitter.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -98,8 +99,8 @@ public:
     for (Value measuredQubit : mz.getTargets()) {
       auto *nextOp = getNextUse(measuredQubit, mz);
       if (nextOp) {
-        // If the user is a reset op, nothing to do.
-        if (isa<quake::ResetOp>(nextOp)) {
+        // If the user is a reset/measure op, nothing to do.
+        if (isa<quake::ResetOp>(nextOp) || isa<quake::MzOp>(nextOp)) {
           continue;
         }
 
@@ -166,23 +167,21 @@ private:
         std::optional<int64_t> index =
             extractOp.hasConstantIndex()
                 ? std::optional<int64_t>(extractOp.getConstantIndex())
-                : std::optional<int64_t>();
+                : cudaq::getIndexValueAsInt(extractOp.getIndex());
         LLVM_DEBUG(llvm::dbgs() << "Reg: " << reg
                                 << "; index = " << index.value_or(-1) << "\n");
         if (isa<quake::AllocaOp>(reg.getDefiningOp())) {
           const auto orderedUsers = tracker.getUsers(reg);
-          // Find the next op on the register
-          bool foundThisExtract = false;
           for (auto v : llvm::enumerate(orderedUsers)) {
-            if (foundThisExtract) {
-              // This is after the current extract.
+            if (v.value() != extractOp) {
+              // This is another extract.
               auto nextExtractOp =
                   dyn_cast_or_null<quake::ExtractRefOp>(v.value());
               if (nextExtractOp) {
                 std::optional<int64_t> nextIndex =
                     nextExtractOp.hasConstantIndex()
                         ? nextExtractOp.getConstantIndex()
-                        : std::optional<int64_t>();
+                        : cudaq::getIndexValueAsInt(nextExtractOp.getIndex());
                 if ((!index.has_value() || !nextIndex.has_value()) ||
                     (index == nextIndex)) {
                   // Either the previous index or this index is unknown, we
@@ -190,17 +189,17 @@ private:
                   const auto extractedQubit = nextExtractOp.getRef();
                   const auto extractedQubitOrderedUsers =
                       sortUsers(extractedQubit.getUsers(), dom);
-                  if (extractedQubitOrderedUsers.empty())
-                    return nullptr;
-                  LLVM_DEBUG(llvm::dbgs()
-                             << "Next use: " << *extractedQubitOrderedUsers[0]
-                             << "\n");
-                  return extractedQubitOrderedUsers[0];
+                  for (auto *user : extractedQubitOrderedUsers) {
+                    // If the use is dominated by the original mz op,
+                    // then this is the next use.
+                    if (dom.dominates(op, user)) {
+                      LLVM_DEBUG(llvm::dbgs() << "Next use: " << *user << "\n");
+                      return user;
+                    }
+                  }
                 }
               }
             }
-            if (v.value() == extractOp)
-              foundThisExtract = true;
           }
         }
       }
