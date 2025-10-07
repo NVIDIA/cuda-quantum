@@ -201,8 +201,8 @@ jobs:
               set -e && check_package=cuda-quantum
             ;; 
             *) 
-              # Skip conflict test entirely on Python 3.13 (cuda-quantum==0.8.0 not available)
-              if [ "${{ matrix.python_version }}" = "3.13" ]; then
+              # Skip conflict test entirely on Python 3.13/3.12 (cuda-quantum==0.8.0 not available)
+              if [ "${{ matrix.python_version }}" = "3.12" ] || [ "${{ matrix.python_version }}" = "3.13" ]; then
                 echo "::warning::Skipping conflict test on Python 3.13 (cuda-quantum==0.8.0 unavailable)."
                 test_conflicting="<skipped>"
                 check_package=cudaq
