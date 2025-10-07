@@ -1585,6 +1585,52 @@ class PyASTBridge(ast.NodeVisitor):
                 args.append(arg)
             return args
 
+        def processControlAndAdjoint(pyFuncVal, attrName):
+            # NOTE: We currently generally don't have the means in the
+            # compiler to handle composition of control and adjoint, since
+            # control and adjoint are not proper functors (i.e. there is
+            # no way to obtain a new callable object that is the adjoint
+            # or controlled version of another callable).
+            # Since we don't really treat callables as first-class values,
+            # the first argument to control and adjoint indeed has to be 
+            # a Name object.
+            if not isinstance(pyFuncVal, ast.Name):
+                self.emitFatalError(f'unsupported argument in call to {attrName} - first argument must be a symbol name', node)
+            otherFuncName = pyFuncVal.id
+
+            values = [self.popValue() for _ in range(len(self.valueStack))]
+            values.reverse()
+            indirectCallee = []
+            kwargs = {"is_adj": attrName == 'adjoint'}
+
+            if otherFuncName in self.symbolTable and \
+                cc.CallableType.isinstance(values[0].type):
+                functionTy = FunctionType(cc.CallableType.getFunctionType(values[0].type))
+                inputTys, outputTys = functionTy.inputs, functionTy.results
+                indirectCallee.append(values[0])
+                values = values[1:]
+            elif otherFuncName in globalKernelRegistry:
+                otherFunc = globalKernelRegistry[otherFuncName]
+                inputTys, outputTys = otherFunc.arguments.types, otherFunc.results.types
+                kwargs["callee"] = FlatSymbolRefAttr.get(nvqppPrefix + otherFuncName)
+            else:
+                self.emitFatalError(
+                    f"{otherFuncName} is not a known quantum kernel - maybe a cudaq.kernel attribute is missing?.",
+                    node)
+
+            numControlArgs = attrName == 'control'
+            if len(values) < numControlArgs:
+                self.emitFatalError("missing control qubit(s) argument in cudaq.control", node)
+            controls = values[:numControlArgs]
+            if len(controls) == 1 and \
+                not quake.RefType.isinstance(controls[0].type) and \
+                not quake.VeqType.isinstance(controls[0].type):
+                self.emitFatalError(f'invalid argument type for control operand', node)
+            args = convertArguments(inputTys, values[numControlArgs:])
+            if len(outputTys) != 0:
+                self.emitFatalError(f'cannot take {attrName} of kernel {otherFuncName} that returns a value', node)
+            quake.ApplyOp([], indirectCallee, controls, args, **kwargs)
+
         def processFunctionCall(fType, nrValsToPop):
             if len(fType.inputs) != nrValsToPop:
                 fName = 'function'
@@ -1604,22 +1650,20 @@ class PyASTBridge(ast.NodeVisitor):
 
         def checkControlAndTargetTypes(controls, targets):
             """
-            Loop through the provided control and target qubit values and 
-            assert that they are of quantum type. Emit a fatal error if not. 
+            Check that the provided control and target operands are 
+            of an appropriate type. Emit a fatal error if not. 
             """
-            def is_qubit_or_qvec(v):
-                return quake.RefType.isinstance(v.type) or quake.VeqType.isinstance(v.type)            
-            [
-                self.emitFatalError(f'control operand {i} is not of quantum type.', node)
-                if not is_qubit_or_qvec(control) else None
-                for i, control in enumerate(controls)
-            ]
-            [
-                self.emitFatalError(f'target operand {i} is not of quantum type.', node)
-                if not is_qubit_or_qvec(target) else None
-                for i, target in enumerate(targets)
-            ]
-
+            def is_qvec_or_qubits(vals):
+                # We can either have a single item that is a vector of qubits,
+                # or multiple single-qubit items.
+                return all((quake.RefType.isinstance(v.type) for v in vals)) or \
+                    (len(vals) == 1 and quake.VeqType.isinstance(vals[0].type))
+            if len(controls) > 0 and not is_qvec_or_qubits(controls):
+                self.emitFatalError(f'invalid argument type for control operand', node)
+            if len(targets) == 0:
+                self.emitFatalError(f'missing argument for target operand', node)
+            elif not is_qvec_or_qubits(targets):
+                self.emitFatalError(f'invalid argument type for target operand', node)
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
@@ -1720,6 +1764,11 @@ class PyASTBridge(ast.NodeVisitor):
                 processFunctionCall(otherKernel.type, len(node.args))
                 return
 
+        # FIXME: This whole thing is widely inconsistent;
+        # For example; we pop all values on the value stack for a simple gate
+        # and allow x(q1, q2, q3, ...) here, but for a simple adjoint gate we
+        # only ever pop a single value. I'll tackle this as part of revising
+        # the value stack, which should be a proper stack.
         if isinstance(node.func, ast.Name):
             # Just visit the arguments, we know the name
             [self.visit(arg) for arg in node.args]
@@ -2057,13 +2106,9 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if node.func.id == 'swap':
-                # should have 1 value on the stack if
-                # this is a vanilla Hadamard
                 qubitB = self.popValue()
                 qubitA = self.popValue()
-                if not quake.RefType.isinstance(qubitA.type) or \
-                    not quake.RefType.isinstance(qubitB.type):
-                    self.emitFatalError("invalid type in call to operation swap", node)
+                checkControlAndTargetTypes([], [qubitA, qubitB])
                 opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
                 opCtor([], [], [], [qubitA, qubitB])
                 return
@@ -2560,69 +2605,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(quake.AllocaOp(self.getRefType()).result)
                     return
 
-                if node.func.attr == 'adjoint':
-                    # Handle cudaq.adjoint(kernel, ...)
-                    otherFuncName = node.args[0].id
-                    if otherFuncName in self.symbolTable:
-                        # This is a callable block argument
-                        values = [
-                            self.popValue()
-                            for _ in range(len(self.valueStack) - 2)
-                        ]
-                        quake.ApplyOp([], [self.popValue()], [], values)
-                        return
-
-                    if otherFuncName not in globalKernelRegistry:
-                        self.emitFatalError(
-                            f"{otherFuncName} is not a known quantum kernel (was it annotated?)."
-                        )
-                    otherFunc = globalKernelRegistry[otherFuncName]
-
-                    values = [self.popValue() for _ in range(len(self.valueStack))]
-                    values.reverse()
-                    values = convertArguments(otherFunc.arguments.types, values)
-                    if len(otherFunc.results.types) != 0:
-                        self.emitFatalError("cannot take adjoint of kernel {} that returns a value".format(otherFuncName), node)
-
-                    quake.ApplyOp([], [], [],
-                                  values,
-                                  callee=FlatSymbolRefAttr.get(nvqppPrefix +
-                                                               otherFuncName),
-                                  is_adj=True)
-                    return
-
-                if node.func.attr == 'control':
-                    # Handle cudaq.control(kernel, ...)
-                    otherFuncName = node.args[0].id
-                    if otherFuncName in self.symbolTable:
-                        # This is a callable argument
-                        values = [
-                            self.popValue()
-                            for _ in range(len(self.valueStack) - 2)
-                        ]
-                        controls = self.popValue()
-                        a = quake.ApplyOp([], [self.popValue()], [controls],
-                                          values)
-                        return
-
-                    if otherFuncName not in globalKernelRegistry:
-                        self.emitFatalError(
-                            f"{otherFuncName} is not a known quantum kernel (was it annotated?).",
-                            node)
-                    otherFunc = globalKernelRegistry[otherFuncName]
-                        
-                    values = [self.popValue() for _ in range(len(self.valueStack) - 1)]
-                    values.reverse()
-                    values = convertArguments(otherFunc.arguments.types, values)
-                    if len(otherFunc.results.types) != 0:
-                        self.emitFatalError("cannot take adjoint of kernel {} that returns a value".format(otherFuncName), node)
-
-                    controls = self.popValue()
-                    checkControlAndTargetTypes([controls], [])
-                    quake.ApplyOp([], [], [controls],
-                                  values,
-                                  callee=FlatSymbolRefAttr.get(nvqppPrefix +
-                                                               otherFuncName))
+                if node.func.attr == 'adjoint' or node.func.attr == 'control':
+                    processControlAndAdjoint(node.args[0], node.func.attr)
                     return
 
                 if node.func.attr == 'apply_noise':
@@ -2854,7 +2838,6 @@ class PyASTBridge(ast.NodeVisitor):
                         node)
                 opCtor = getattr(quake,
                                  '{}Op'.format(node.func.value.id.title()))
-                # FIXME: REEXAMINE THAT CHECK
                 checkControlAndTargetTypes(controls, [targetA, targetB])
                 opCtor([], [], controls, [targetA, targetB])
                 return
