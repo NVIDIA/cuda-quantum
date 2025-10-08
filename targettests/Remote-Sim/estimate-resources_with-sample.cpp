@@ -7,12 +7,10 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-
-// Compile and run with:
-// ```
+// clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu                             %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 2 %s -o %t && %t | FileCheck %s
-// ```
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
