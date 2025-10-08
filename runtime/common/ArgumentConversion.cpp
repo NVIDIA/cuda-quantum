@@ -614,12 +614,26 @@ static std::size_t getHostSideElementSize(Type eleTy,
 ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
                                     cudaq::cc::StdvecType vecTy, void *p,
                                     llvm::DataLayout &layout) {
+
+  auto eleTy = vecTy.getElementType();
+  // Need special handling for boolean arrays
+  if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
+    if (intTy.getWidth() == 1) {
+      SmallVector<Attribute> members;
+      auto *vecPtr = static_cast<std::vector<bool> *>(p);
+      auto vect = *vecPtr;
+      for (auto val : vect) {
+        members.push_back(IntegerAttr::get(intTy, val));
+      }
+      return ArrayAttr::get(builder.getContext(), members);
+    }
+  }
+  
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];
   if (!delta)
     return {};
-  auto eleTy = vecTy.getElementType();
   unsigned stepBy = 0;
   std::function<Attribute(char *)> genAttr;
   if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
@@ -639,9 +653,6 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
     genAttr = [=](char *p) -> Attribute {
       std::uint64_t val = 0;
       switch (width) {
-      case 1:
-        val = *p != '\0';
-        break;
       case 8:
         val = *(reinterpret_cast<std::uint8_t *>(p));
         break;
@@ -654,6 +665,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
       case 64:
         val = *(reinterpret_cast<std::uint64_t *>(p));
         break;
+      // FIXME: FAIL ON ANYTHING ELSE
       }
       return IntegerAttr::get(intTy, val);
     };
