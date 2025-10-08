@@ -91,6 +91,12 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
+
+            # --- Threading caps (apply to ctest + pytest + all lit) ---
+            export OMP_NUM_THREADS=1
+            export OMP_PROC_BIND=TRUE
+            export OMP_SCHEDULE=static
+
             python3 -m pip install iqm-client==16.1
             python3 -m pytest -v --durations=0 build/python/tests/interop/
             pytest_status=$?
