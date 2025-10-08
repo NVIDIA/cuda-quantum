@@ -155,7 +155,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     auto cloned = mod.clone();
     auto context = cloned.getContext();
     PassManager pm(context);
-    //pm.enableVerifier(false);
+    pm.enableVerifier(false);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createPySynthCallableBlockArgs(
         SmallVector<StringRef>(names.begin(), names.end())));
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
@@ -210,13 +210,13 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     llvm::cl::ParseCommandLineOptions(2, argv);
 
     //llvm::StringRef libPath1 = "/usr/local/cudaq/lib/libcudaq-qec-realtime-decoding.so";
-    llvm::StringRef libPath2 = "/usr/local/cudaq/lib/libcudaq-qec-realtime-decoding-simulation.so";
+    // llvm::StringRef libPath2 = "/usr/local/cudaq/lib/libcudaq-qec-realtime-decoding-simulation.so";
     //ExecutionEngineOptions opts {.sharedLibPaths={std::move(libPath1), std::move(libPath2)}};
 
     //auto lib = llvm::sys::DynamicLibrary::getPermanentLibrary(libPath1.str().c_str());
     //llvm::sys::DynamicLibrary::LoadLibraryPermanently(libPath1.str().c_str());
-    llvm::sys::DynamicLibrary::LoadLibraryPermanently(libPath2.str().c_str());
-    std::cout << "permanently loaded library " << libPath2.str() << std::endl;
+    // llvm::sys::DynamicLibrary::LoadLibraryPermanently(libPath2.str().c_str());
+    // std::cout << "permanently loaded library " << libPath2.str() << std::endl;
     ExecutionEngineOptions opts;
     opts.enableGDBNotificationListener = false;
     opts.enablePerfNotificationListener = false;
