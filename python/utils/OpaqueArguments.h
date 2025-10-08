@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <iostream>
 #include "PyTypes.h"
 #include "common/FmtCore.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -17,6 +18,8 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/builder/kernel_builder.h"
 #include "cudaq/qis/pauli_word.h"
+#include "cudaq/qis/qubit_qis.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -240,6 +243,8 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
         auto appendVectorValue = []<typename T>(py::object value, void *data,
                                                 std::size_t offset, T) {
           auto asList = value.cast<py::list>();
+          // FIXME: WHY IS THIS ALL DOUBLE??
+          // DO WE NEED TO ACCOMMODATE FOR BOOL?
           std::vector<double> *values = new std::vector<double>(asList.size());
           for (std::size_t i = 0; auto &v : asList)
             (*values)[i++] = v.cast<double>();
@@ -369,6 +374,10 @@ inline void *handleVectorElements(mlir::Type eleTy, py::list list) {
           return appendVectorValue.template operator()<bool>(eleTy, list);
 
         // All other `std::Vector<T>` types, including nested vectors.
+        // FIXME: inner most vector must do the bool conversion...!
+        // FIXME: SOMEWHERE WE HAD A LOGIC THAT ALLOCATES THINGS FOR OUTPUT DATA - 
+        // PROBABLY NEEDS TO BE ADJUSTED FOR THE CONVERSE DIRECTION OF THE TRANSLATION...
+        // FIXME: REALLY, ALL OTHER VECTOR TYPES? 
         return appendVectorValue.template operator()<std::size_t>(eleTy, list);
       })
       .Default([&](mlir::Type ty) {
@@ -491,7 +500,19 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
           auto eleTy = ty.getElementType();
           if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
-            appendVectorValue.template operator()<bool>(eleTy, list);
+            auto vect = static_cast<std::vector<bool> *>(handleVectorElements(eleTy, list));
+            void *outData = new char*[3];
+            std::vector<char *> *allocations = new std::vector<char *>;
+            support::__nvqpp_vector_bool_to_initializer_list(outData, *vect, &allocations);
+            delete vect;
+            //delete allocations;
+            argData.emplace_back(outData, [allocations = std::move(allocations)](void *ptr) {
+              auto mockVectPtr = static_cast<char***>(ptr);
+              for (char *data : *allocations)
+                delete data;
+              delete allocations;
+              delete mockVectPtr;
+            });
             return;
           }
           // All other `std::vector<T>` types, including nested vectors.
