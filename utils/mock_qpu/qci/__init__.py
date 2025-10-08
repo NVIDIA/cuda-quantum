@@ -9,7 +9,7 @@
 import base64
 import ctypes
 import uuid
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import cudaq
 import uvicorn
@@ -40,7 +40,7 @@ numQubitsRequired = 0
 class JobRequest(BaseModel):
     code: str
     machine: str
-    mappingReorderIdx: Optional[List[int]] = None
+    mappingReorderIdx: Optional[list[int]] = None
     name: str
     outputNames: Optional[Any] = None
     shots: int
@@ -56,35 +56,44 @@ backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 
 
-def getKernelFunction(module):
-    for f in module.functions:
-        if not f.is_declaration:
-            return f
-    return None
+class KernelAnalyzer:
+    """Analyzes LLVM modules to extract kernel information"""
 
+    @staticmethod
+    def get_kernel_function(module):
+        """Find the main kernel function in the module"""
+        for func in module.functions:
+            if not func.is_declaration:
+                return func
+        return None
 
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "required_num_qubits" in str(a):
-            return int(
-                str(a).split(f'required_num_qubits\"=')[-1].split(" ")
-                [0].replace("\"", "").replace("'", ""))
-        elif "requiredQubits" in str(a):
-            return int(
-                str(a).split(f'requiredQubits\"=')[-1].split(" ")[0].replace(
-                    "\"", "").replace("'", ""))
+    @staticmethod
+    def _extract_attribute_value(function,
+                                 attribute_names: list[str]) -> Optional[int]:
+        """Extract integer value from function attributes"""
+        for attr in function.attributes:
+            attr_str = str(attr)
+            for attr_name in attribute_names:
+                if attr_name in attr_str:
+                    try:
+                        value = attr_str.split(f'{attr_name}"=')[-1].split(
+                            " ")[0]
+                        return int(value.replace('"', '').replace("'", ""))
+                    except (IndexError, ValueError):
+                        continue
+        return None
 
+    @classmethod
+    def get_num_required_qubits(cls, function) -> Optional[int]:
+        """Extract required number of qubits from function attributes"""
+        return cls._extract_attribute_value(
+            function, ["required_num_qubits", "requiredQubits"])
 
-def getNumRequiredResults(function):
-    for a in function.attributes:
-        if "required_num_results" in str(a):
-            return int(
-                str(a).split(f'required_num_results\"=')[-1].split(" ")
-                [0].replace("\"", "").replace("'", ""))
-        elif "requiredResults" in str(a):
-            return int(
-                str(a).split(f'requiredResults\"=')[-1].split(" ")[0].replace(
-                    "\"", "").replace("'", ""))
+    @classmethod
+    def get_num_required_results(cls, function) -> Optional[int]:
+        """Extract required number of results from function attributes"""
+        return cls._extract_attribute_value(
+            function, ["required_num_results", "requiredResults"])
 
 
 # Here we expose a way to post jobs,
@@ -109,12 +118,14 @@ async def postJob(job: JobRequest,
     mstr = str(m)
     assert ('entry_point' in mstr)
 
+    analyzer = KernelAnalyzer()
+
     # Get the function, number of qubits, and kernel name
-    function = getKernelFunction(m)
+    function = analyzer.get_kernel_function(m)
     if function == None:
         raise Exception("Could not find kernel function")
-    numQubitsRequired = getNumRequiredQubits(function)
-    numResultsRequired = getNumRequiredResults(function)
+    numQubitsRequired = analyzer.get_num_required_qubits(function) or 0
+    numResultsRequired = analyzer.get_num_required_results(function) or 0
     kernelFunctionName = function.name
 
     print("Kernel name = ", kernelFunctionName)
