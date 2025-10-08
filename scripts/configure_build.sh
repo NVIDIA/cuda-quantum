@@ -37,6 +37,9 @@ if [ "$1" == "install-cuda" ]; then
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-toolkit-$(echo ${CUDA_VERSION} | tr . -)
+    # custatevec is now linked to `libnvidia-ml.so.1`, which is provided in the NVIDIA driver.
+    # For build on non-GPU systems, we also need to install the driver. 
+    dnf install -y --nobest --setopt=install_weak_deps=False nvidia-driver-libs    
 # [<CUDAInstall]
 fi
 
@@ -72,7 +75,7 @@ if [ "$1" == "install-cuquantum" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuQuantumInstall]
-    CUQUANTUM_VERSION=25.06.0.10
+    CUQUANTUM_VERSION=25.09.0.7
     CUQUANTUM_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuquantum/redist/cuquantum
 
     cuquantum_archive=cuquantum-linux-${CUDA_ARCH_FOLDER}-${CUQUANTUM_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
@@ -88,14 +91,13 @@ if [ "$1" == "install-cutensor" ]; then
     CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 
 # [>cuTensorInstall]
-    CUTENSOR_VERSION=2.2.0.0
+    CUTENSOR_VERSION=2.3.1.0
     CUTENSOR_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cutensor/redist/libcutensor
 
-    cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}-archive.tar.xz
+    cutensor_archive=libcutensor-linux-${CUDA_ARCH_FOLDER}-${CUTENSOR_VERSION}_cuda$(echo ${CUDA_VERSION} | cut -d . -f1)-archive.tar.xz
     wget "${CUTENSOR_DOWNLOAD_URL}/linux-${CUDA_ARCH_FOLDER}/${cutensor_archive}"
     mkdir -p "${CUTENSOR_INSTALL_PREFIX}" && tar xf "${cutensor_archive}" --strip-components 1 -C "${CUTENSOR_INSTALL_PREFIX}"
-    mv "${CUTENSOR_INSTALL_PREFIX}"/lib/$(echo ${CUDA_VERSION} | cut -d . -f1)/* ${CUTENSOR_INSTALL_PREFIX}/lib/
-    ls -d ${CUTENSOR_INSTALL_PREFIX}/lib/*/ | xargs rm -rf && rm -rf "${cutensor_archive}"
+    rm -rf "${cutensor_archive}"
 # [<cuTensorInstall]
 fi
 
