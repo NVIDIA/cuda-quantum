@@ -134,7 +134,7 @@ ENV UCX_TLS=rc,cuda_copy,cuda_ipc,gdr_copy,sm
 
 # Install CUDA
 
-ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink"
+ARG cuda_packages="cuda-cudart cuda-nvrtc cuda-compiler libcublas libcublas-dev libcurand-dev libcusolver libcusparse-dev libnvjitlink cuda-nvml-dev"
 RUN if [ -n "$cuda_packages" ]; then \
         # Filter out libnvjitlink if CUDA version is less than 12
         if [ $(echo $CUDA_VERSION | cut -d "." -f1) -lt 12 ]; then \
@@ -175,7 +175,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.06 && \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.09 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
         echo "expecting Python version 3.12"; \
     fi
