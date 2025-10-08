@@ -464,6 +464,14 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("Job was cancelled.");
   }
   if (jobStatus == "COMPLETED") {
+    const std::string deviceName =
+        getJobResponse["data"]["attributes"]["definition"]["backend_config"]
+                      ["device_name"]
+                          .get<std::string>();
+    // Helios (NG device) syntax checker jobs are done when status is COMPLETED
+    // and wouldn't contain a result.
+    if (deviceName.starts_with("Helios") && deviceName.ends_with("SC"))
+      return true;
     // Check if the response contains the result ID
     // In some cases, the status may be "COMPLETED" but the result ID
     // is not yet available, so we will check for that.
@@ -508,7 +516,15 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    const std::string deviceName =
+        jobResponse["data"]["attributes"]["definition"]["backend_config"]
+                   ["device_name"]
+                       .get<std::string>();
+    // NG-device (Helios) syntax checker jobs will not return results.
+    if (deviceName.starts_with("Helios") && deviceName.ends_with("SC"))
+      return cudaq::sample_result(cudaq::ExecutionResult());
+    else
+      throw std::runtime_error("Job completed but no result ID found.");
   }
   const std::string resultPath =
       resultType == QuantinuumServerHelper::ResultType::QSYS
@@ -559,7 +575,17 @@ std::string QuantinuumServerHelper::extractOutputLog(ServerMessage &jobResponse,
                                                      std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    const std::string deviceName =
+        jobResponse["data"]["attributes"]["definition"]["backend_config"]
+                   ["device_name"]
+                       .get<std::string>();
+    // NG-device (Helios) syntax checker jobs will not return results.
+    if (deviceName.starts_with("Helios") && deviceName.ends_with("SC")) {
+      CUDAQ_INFO("Syntax checker job completed, no output to extract.");
+      return "";
+    } else {
+      throw std::runtime_error("Job completed but no result ID found.");
+    }
   }
   if (resultType != QuantinuumServerHelper::ResultType::QSYS) {
     throw std::runtime_error(
