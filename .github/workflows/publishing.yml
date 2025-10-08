@@ -783,7 +783,7 @@ jobs:
     with:
       cudaq_version: ${{ needs.assets.outputs.cudaq_version }}
       python_versions: "['3.11', '3.12', '3.13']"
-      cuda_versions: "['', '12.6']"
+      cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -925,7 +925,7 @@ jobs:
     strategy:
       matrix:
         os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
-        cuda_version: ['12.6']
+        cuda_version: ['12.6', '13.0']
       fail-fast: false
 
     container:
