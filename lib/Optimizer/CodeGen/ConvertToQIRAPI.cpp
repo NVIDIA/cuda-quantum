@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <iostream>
 #include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -2015,11 +2014,8 @@ struct QuakeToQIRAPIPass
           return true;
         });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
-    if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-      std::cout << "Partial conversion to QIR API failed\n";
+    if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
-    }
-
     LLVM_DEBUG(llvm::dbgs() << "After QIR API conversion:\n" << *op << '\n');
   }
 
