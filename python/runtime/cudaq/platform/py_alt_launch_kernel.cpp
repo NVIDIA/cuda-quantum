@@ -159,6 +159,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
     pm.addPass(cudaq::opt::createReturnToOutputLog());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    pm.addPass(cudaq::opt::createDistributedDeviceCall());
     std::string tl = getTransportLayer();
     auto tlPair = StringRef(tl).split(':');
     if (tlPair.first != "qir") {
