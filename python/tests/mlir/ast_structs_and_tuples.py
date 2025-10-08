@@ -12,6 +12,31 @@ from dataclasses import dataclass
 import cudaq
 import numpy
 
+def test_basic_struq():
+
+    @dataclass(slots=True)
+    class patch:
+        q: cudaq.qview
+        r: cudaq.qview
+
+    @cudaq.kernel
+    def entry():
+        q = cudaq.qvector(2)
+        r = cudaq.qvector(2)
+        p = patch(q, r)
+        h(p.r[0])
+
+    print(entry)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry()
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+# The struq type is erased in this example.
+# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+# CHECK:           return
+# CHECK:         }
 
 def test_tuple_assign_struq():
 
@@ -134,7 +159,6 @@ def test_tuple_assign_struq():
 
     print(test10)
     print("result test10: " + str(cudaq.sample(test10)))
-
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref

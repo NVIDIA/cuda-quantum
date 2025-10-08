@@ -887,32 +887,42 @@ def test_list_comprehension_failures():
         print("Exception kernel6:")
         print(e)
 
-'''
-    @cudaq.kernel
-    def getTuple(v1: int) -> tuple[int, float]:
-         return v1, 1.
 
     @cudaq.kernel
-    def test13() -> int:
-        # check argument conversion
-        v = getTuple(5.0)
-        l = [0. for _ in range(v[1])]
+    def kernel7() -> int:
+        l = [1,2,3]
+        l[0] = 4
+        l.size = 4
         return len(l)
 
-    print(test13)
-    print("result test13: " + str(test13()))
+    try:
+        print(kernel7)
+    except Exception as e:
+        print("Exception kernel7:")
+        print(e)
 
-        @cudaq.kernel
-    def test13() -> int:
-        # check argument conversion
-        v = getTuple(5.0)
+    @cudaq.kernel
+    def kernel8() -> int:
+        v = (5, 1)
         l = [0. for _ in range(v)]
         return len(l)
 
-    print(test13)
-    print("result test13: " + str(test13()))
+    try:
+        print(kernel8)
+    except Exception as e:
+        print("Exception kernel8:")
+        print(e)
 
-'''
+    @cudaq.kernel
+    def kernel9() -> int:
+        l = [0. for _ in range(1.)]
+        return len(l)
+
+    try:
+        print(kernel9)
+    except Exception as e:
+        print("Exception kernel9:")
+        print(e)
 
 # CHECK-LABEL:  Exception kernel1:
 # CHECK:        augment-assign must not change the variable type
@@ -938,8 +948,21 @@ def test_list_comprehension_failures():
 # CHECK:        incorrect argument type in call to MyTuple
 # CHECK-NEXT:   (offending source -> MyTuple(0, v))
 
+# CHECK-LABEL:  Exception kernel7:
+# CHECK:        invalid CUDA-Q attribute assignment
+# CHECK-NEXT:   (offending source -> l.size = 4)
+
+# CHECK-LABEL:  Exception kernel8:
+# CHECK:        non-integer value in range expression
+# CHECK-NEXT:   (offending source -> v)
+
+# CHECK-LABEL:  Exception kernel9:
+# CHECK:        non-integer value in range expression
+# CHECK-NEXT:   (offending source -> 1.0)
+
 if __name__ == '__main__':
 
+    test_list_comprehension_failures()
     '''
     @cudaq.kernel
     def kernel() -> int:
@@ -967,15 +990,24 @@ if __name__ == '__main__':
     print(out)
     '''
 
-    @cudaq.kernel
-    def kernel() -> int:
-        l = [1,2,3]
-        l[0] = 4
-        l.size = 4
-        return len(l)
+'''
+# FIXME: This is exactly an example where the non-hierarchical nature of the value
+# stack leads to an incorrect error...
 
-    out = cudaq.run(kernel, shots_count=1)
-    #Expect error:
-    #CUDA-Q attribute assignment, variable must be a pointer.
-	#(offending source -> l.size = 4)
-    print(out)
+@cudaq.kernel
+def foo3(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], decompose_adj: bool):
+    targets = cudaq.qvector(len(adj))
+    if decompose_adj:
+        func(targets, 1, [not b for b in adj])
+    else:
+        cudaq.adjoint(func, targets, 1, adj)
+    mz(targets)
+
+@cudaq.kernel
+def baz(qs: cudaq.qvector, angle: float, adj: list[bool]):
+    for idx, is_adj in enumerate(adj):
+        if is_adj: ry(-angle, qs[idx])
+        else: ry(angle, qs[idx])
+
+out = cudaq.sample(foo5, baz, [True, False, True], False)    
+'''

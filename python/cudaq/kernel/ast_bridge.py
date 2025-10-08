@@ -982,16 +982,11 @@ class PyASTBridge(ast.NodeVisitor):
         endVal = self.ifPointerThenLoad(endVal)
         stepVal = self.ifPointerThenLoad(stepVal)
 
-        # Range expects integers
-        if F64Type.isinstance(startVal.type):
-            startVal = arith.FPToSIOp(self.getIntegerType(), startVal).result
-
-        if F64Type.isinstance(endVal.type):
-            endVal = arith.FPToSIOp(self.getIntegerType(), endVal).result
-
-        if F64Type.isinstance(stepVal.type):
-            stepVal = arith.FPToSIOp(self.getIntegerType(), stepVal).result
-
+        for idx, v in enumerate([startVal, endVal, stepVal]):
+            if not IntegerType.isinstance(v.type):
+                # matching Python behavior to error on non-integer values
+                self.emitFatalError("non-integer value in range expression", 
+                                    argumentNodes[idx if len(argumentNodes) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
 
     def __visitStructAttribute(self, node, structValue):
@@ -1389,7 +1384,7 @@ class PyASTBridge(ast.NodeVisitor):
                 ptrVal = self.popValue()
                 if not cc.PointerType.isinstance(ptrVal.type):
                     self.emitFatalError(
-                        "Invalid CUDA-Q attribute assignment, variable must be a pointer.",
+                        "invalid CUDA-Q attribute assignment",
                         node)
                 # Visit the value being assigned
                 self.visit(node.value)
