@@ -164,7 +164,8 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetAccessorPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetAccessorPrepare");
     HANDLE_CUTN_ERROR(cutensornetAccessorPrepare(
         cutnHandle, accessor, scratchPad.scratchSize, workDesc, 0));
   }
@@ -187,7 +188,8 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Result overlap (host data)
   std::complex<ScalarType> h_overlap{0.0, 0.0};
   {
-    ScopedTraceWithContext("cutensornetAccessorCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetAccessorCompute");
     HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
         cutnHandle, accessor, projectedModeValues.data(), workDesc, d_overlap,
         static_cast<void *>(&stateNorm), 0));
