@@ -630,7 +630,7 @@ class PyASTBridge(ast.NodeVisitor):
         sourceType = cc.PointerType.getElementType(sourcePtr.type)
         if not cc.StdvecType.isinstance(sourceType):
             raise RuntimeError(
-                f"expected vector type in __copyVectorAndCastElements but received {sourceType}"
+                f"expected vector type to copy and cast elements but received {sourceType}"
             )
 
         sourceEleType = cc.StdvecType.getElementType(sourceType)
@@ -659,6 +659,8 @@ class PyASTBridge(ast.NodeVisitor):
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
             castedEle = self.tryChangeOperandToType(targetEleType, loadedEle, allowDemotion=allowDemotion)
+            if castedEle.type != targetEleType:
+                self.emitFatalError(f'could not convert {mlirTypeToPyType(castedEle.type)} to {mlirTypeToPyType(targetEleType)}', self.currentNode)
             targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
                                             [iterVar], rawIndex).result
             cc.StoreOp(castedEle, targetEleAddr)
@@ -1050,7 +1052,10 @@ class PyASTBridge(ast.NodeVisitor):
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
         self.indent_level += 1
+        parentNode = self.currentNode
+        self.currentNode = node
         super().visit(node)
+        self.currentNode = parentNode
         self.indent_level -= 1
 
     # FIXME: using generic_visit the way we do seems incredibly dangerous;
@@ -1242,8 +1247,6 @@ class PyASTBridge(ast.NodeVisitor):
                 ry(np.pi, qubits)
         ```
         """
-        self.currentNode = node
-
         arguments = node.args.args
         if len(arguments):
             self.emitFatalError("CUDA-Q lambdas cannot have arguments.", node)
@@ -1277,8 +1280,6 @@ class PyASTBridge(ast.NodeVisitor):
         will be allocated with a `cc.alloca` op, and the loaded value will be stored in the 
         symbol table.
         """
-        self.currentNode = node
-
         def check_not_captured(name):
             if name in self.capturedVars:
                 self.emitFatalError(
@@ -1411,8 +1412,6 @@ class PyASTBridge(ast.NodeVisitor):
         looks for attributes like method calls, or common attributes we'll 
         see from ubiquitous external modules like `numpy`.
         """
-        self.currentNode = node
-
         if isinstance(node.value, ast.Name) and not node.value.id in self.symbolTable:
 
             if node.value.id in ['np', 'numpy', 'math']:
@@ -1558,8 +1557,6 @@ class PyASTBridge(ast.NodeVisitor):
         ```
         """
         global globalRegisteredOperations
-
-        self.currentNode = node
 
         def convertArguments(expectedArgTypes, values):
             fName = 'function'
@@ -1888,10 +1885,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 iterable.type), node)
                 else:
                     if len(self.valueStack) != 2:
-                        msg = 'Error in AST processing, should have 2 values on the stack for enumerate {}'.format(
-                            ast.unparse(node) if hasattr(ast, 'unparse'
-                                                        ) else node)
-                        self.emitFatalError(msg)
+                        msg = 'Error in AST processing, should have 2 values on the stack for enumerate'
+                        self.emitFatalError(msg, node)
 
                     totalSize = self.popValue()
                     iterable = self.popValue()
@@ -3046,8 +3041,6 @@ class PyASTBridge(ast.NodeVisitor):
         `[expr(iter) for iter in iterable]` or 
         `myList = [exprThatReturns(iter) for iter in iterable]`.
         """
-        self.currentNode = node
-
         if len(node.generators) > 1:
             self.emitFatalError(
                 "CUDA-Q only supports single generators for list comprehension.",
@@ -3300,7 +3293,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError("creating empty lists is not supported in CUDA-Q", node)
 
         self.generic_visit(node)
-        self.currentNode = node
 
         listElementValues = [self.popValue() for _ in range(len(node.elts))]
         listElementValues.reverse()
@@ -3360,7 +3352,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Convert constant values in the code to constant values in the MLIR. 
         """
-        self.currentNode = node
         if isinstance(node.value, bool):
             boolValue = 0 if node.value == 0 else 1
             self.pushValue(self.getConstantInt(boolValue, 1))
@@ -3403,8 +3394,6 @@ class PyASTBridge(ast.NodeVisitor):
         corresponding extraction or slice code in the MLIR. This method handles 
         extraction for `veq` types and `stdvec` types. 
         """
-        self.currentNode = node
-
         def get_size(val):
             if quake.VeqType.isinstance(val.type):
                 return quake.VeqSizeOp(self.getIntegerType(), val).result
@@ -3599,8 +3588,6 @@ class PyASTBridge(ast.NodeVisitor):
         ITERABLEs are the `veq` type, the `stdvec` type, and the result of 
         range() and enumerate(). 
         """
-        self.currentNode = node
-
         if isinstance(node.iter, ast.Call):
             self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
 
@@ -3797,8 +3784,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-        self.currentNode = node
-
         loop = cc.LoopOp([], [], BoolAttr.get(False))
         whileBlock = Block.create_at_start(loop.whileRegion, [])
         with InsertionPoint(whileBlock):
@@ -3845,7 +3830,6 @@ class PyASTBridge(ast.NodeVisitor):
         Convert boolean operations into equivalent MLIR operations using 
         the Arith Dialect.
         """
-        self.currentNode = node
         shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
             # Visit the LHS and pop the value
@@ -3896,8 +3880,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if len(node.ops) > 1:
             self.emitFatalError("only single comparators are supported.", node)
-
-        self.currentNode = node
 
         iTy = self.getIntegerType()
 
@@ -4060,8 +4042,6 @@ class PyASTBridge(ast.NodeVisitor):
         Map a Python `ast.If` node to an if statement operation in the CC dialect. 
         """
 
-        self.currentNode = node
-
         # Visit the conditional node, retain
         # measurement results by assigning a dummy variable name
         self.currentAssignVariableName = ''
@@ -4169,7 +4149,6 @@ class PyASTBridge(ast.NodeVisitor):
         # kernel. It hence seems that any issues with tuples also apply to named structs.
 
         self.generic_visit(node)
-        self.currentNode = node
 
         elementValues = [self.popValue() for _ in range(len(node.elts))]
         elementValues.reverse()
@@ -4206,8 +4185,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map unary operations in the Python AST to equivalents in MLIR.
         """
-
-        self.currentNode = node
 
         self.generic_visit(node)
         operand = self.popValue()
@@ -4254,8 +4231,6 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Break(self, node):
 
-        self.currentNode = node
-
         if not self.isInForBody():
             self.emitFatalError("break statement outside of for loop body.",
                                 node)
@@ -4270,8 +4245,6 @@ class PyASTBridge(ast.NodeVisitor):
         return
 
     def visit_Continue(self, node):
-
-        self.currentNode = node
 
         if not self.isInForBody():
             self.emitFatalError("continue statement outside of for loop body.",
@@ -4482,8 +4455,6 @@ class PyASTBridge(ast.NodeVisitor):
         MLIR. This method handles arithmetic operations between values. 
         """
 
-        self.currentNode = node
-
         # Get the left and right parts of this expression
         self.visit(node.left)
         left = self.popValue()
@@ -4499,7 +4470,6 @@ class PyASTBridge(ast.NodeVisitor):
         Visit augment-assign operations (e.g. +=). 
         """
         target = None
-        self.currentNode = node
 
         if isinstance(node.target,
                       ast.Name) and node.target.id in self.symbolTable:
@@ -4527,7 +4497,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Visit `ast.Name` nodes and extract the correct value from the symbol table.
         """
-        self.currentNode = node
 
         if node.id in globalKernelRegistry:
             return

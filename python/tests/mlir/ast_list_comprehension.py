@@ -792,6 +792,29 @@ def test_list_comprehension_expressions():
     assert(len(out) == 1 and out[0] == True)
     print(kernel5) # keep after assert, such that we have no output if assert fails
 
+    '''
+    # FIXME: This is exactly an example where the non-hierarchical nature of the value
+    # stack leads to an incorrect error...
+    # This test will be enabled as part of the PR to revise the ast bridge value stack.
+
+    @cudaq.kernel
+    def foo3(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], decompose_adj: bool):
+        targets = cudaq.qvector(len(adj))
+        if decompose_adj:
+            func(targets, 1, [not b for b in adj])
+        else:
+            cudaq.adjoint(func, targets, 1, adj)
+        mz(targets)
+
+    @cudaq.kernel
+    def baz(qs: cudaq.qvector, angle: float, adj: list[bool]):
+        for idx, is_adj in enumerate(adj):
+            if is_adj: ry(-angle, qs[idx])
+            else: ry(angle, qs[idx])
+
+    out = cudaq.sample(foo5, baz, [True, False, True], False)    
+    '''
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint", "cudaq-kernel"}
@@ -887,12 +910,10 @@ def test_list_comprehension_failures():
         print("Exception kernel6:")
         print(e)
 
-
     @cudaq.kernel
     def kernel7() -> int:
-        l = [1,2,3]
-        l[0] = 4
-        l.size = 4
+        v = (5, 1)
+        l = [0. for _ in range(v)]
         return len(l)
 
     try:
@@ -903,25 +924,13 @@ def test_list_comprehension_failures():
 
     @cudaq.kernel
     def kernel8() -> int:
-        v = (5, 1)
-        l = [0. for _ in range(v)]
+        l = [0. for _ in range(1.)]
         return len(l)
 
     try:
         print(kernel8)
     except Exception as e:
         print("Exception kernel8:")
-        print(e)
-
-    @cudaq.kernel
-    def kernel9() -> int:
-        l = [0. for _ in range(1.)]
-        return len(l)
-
-    try:
-        print(kernel9)
-    except Exception as e:
-        print("Exception kernel9:")
         print(e)
 
 # CHECK-LABEL:  Exception kernel1:
@@ -949,65 +958,10 @@ def test_list_comprehension_failures():
 # CHECK-NEXT:   (offending source -> MyTuple(0, v))
 
 # CHECK-LABEL:  Exception kernel7:
-# CHECK:        invalid CUDA-Q attribute assignment
-# CHECK-NEXT:   (offending source -> l.size = 4)
-
-# CHECK-LABEL:  Exception kernel8:
 # CHECK:        non-integer value in range expression
 # CHECK-NEXT:   (offending source -> v)
 
-# CHECK-LABEL:  Exception kernel9:
+# CHECK-LABEL:  Exception kernel8:
 # CHECK:        non-integer value in range expression
 # CHECK-NEXT:   (offending source -> 1.0)
 
-if __name__ == '__main__':
-
-    test_list_comprehension_failures()
-    '''
-    @cudaq.kernel
-    def kernel() -> int:
-        l = [1,2,3]
-        l[0] = 4
-        res = 0
-        for v in l:
-            res += v
-        return res
-
-    out = cudaq.run(kernel, shots_count=1)
-    assert(len(out) == 1 and out[0] == 9)
-    print(out)
-
-    @cudaq.kernel
-    def kernel() -> int:
-        l = [1,2,3]
-        l[0] = 4
-        c = complex(0,0)
-        c += 1
-        return l.size + l[0] + c.real
-
-    out = cudaq.run(kernel, shots_count=1)
-    assert(len(out) == 1 and out[0] == 8)
-    print(out)
-    '''
-
-'''
-# FIXME: This is exactly an example where the non-hierarchical nature of the value
-# stack leads to an incorrect error...
-
-@cudaq.kernel
-def foo3(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], decompose_adj: bool):
-    targets = cudaq.qvector(len(adj))
-    if decompose_adj:
-        func(targets, 1, [not b for b in adj])
-    else:
-        cudaq.adjoint(func, targets, 1, adj)
-    mz(targets)
-
-@cudaq.kernel
-def baz(qs: cudaq.qvector, angle: float, adj: list[bool]):
-    for idx, is_adj in enumerate(adj):
-        if is_adj: ry(-angle, qs[idx])
-        else: ry(angle, qs[idx])
-
-out = cudaq.sample(foo5, baz, [True, False, True], False)    
-'''

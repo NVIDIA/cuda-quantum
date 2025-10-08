@@ -28,7 +28,6 @@ def test_basic_struq():
 
     print(entry)
 
-
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry()
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
@@ -375,7 +374,6 @@ def test_tuple_assign_failures():
         print("Failure for test3:")
         print(e)
 
-
 # CHECK-LABEL:   Failure for test1:
 # CHECK:         shape mismatch in tuple deconstruction
 # CHECK-NEXT:    (offending source -> (v1, v2, v3) = ((1, 2), 3))
@@ -392,9 +390,7 @@ if __name__ == '__main__':
 
     test_tuple_assign_struct()
 
-# FIXME: ADD TESTS FOR LOOP ITERATION BOUNDS
-# FIXME: ADD PROPER CHECKS TO ENUMERATE AND RANGE IN CALL
-# FIXME: MAKE __copyVectorAndCastElements FAIL IF ELEMENT CANNOT BE CAST (USED IN CALL)
+# FIXME: test error for failed conversion in __copyVectorAndCastElements
 # (FIXME: apply_noise is also pretty terrible)
 # FIXME: front, back, and assign are only handled if they are called on something that is in the symbol table
 # FIXME: if node.func.attr == 'control' where otherFuncName in self.symbolTable clearly was missing a tests (values not reversed)
