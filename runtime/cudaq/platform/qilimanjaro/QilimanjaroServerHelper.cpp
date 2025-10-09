@@ -19,7 +19,7 @@ void QilimanjaroServerHelper::initialize(BackendConfig config) {
   cudaq::info("Initialize Qilimanjaro's SpeQtrum.");
 
   // Hard-coded for now.
-  const std::string MACHINE = "CUDA_DYNAMICS";
+  const std::string MACHINE = "radagast";
 
   cudaq::info("Running on device {}", MACHINE);
 
@@ -55,12 +55,13 @@ RestHeaders QilimanjaroServerHelper::getHeaders() {
 ServerJobPayload
 QilimanjaroServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<ServerMessage> tasks;
-
+  // TODO: circuitCodes needs to change to the time evolution JSON
   for (auto &circuitCode : circuitCodes) {
     ServerMessage message;
-    message["machine"] = backendConfig.at("machine");
+    message["device_code"] = backendConfig.at("machine");
     message["shots"] = shots;
-    message["sequence"] = nlohmann::json::parse(circuitCode.code);
+    message["job_type"] = "analog";
+    message["payload"] = nlohmann::json::parse(circuitCode.code);
     tasks.push_back(message);
   }
 
@@ -72,40 +73,35 @@ QilimanjaroServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 }
 
 std::string QilimanjaroServerHelper::extractJobId(ServerMessage &postResponse) {
-  return postResponse["data"]["id"].get<std::string>();
+  return postResponse["id"].get<std::string>();
 }
 
 std::string QilimanjaroServerHelper::constructGetJobPath(std::string &jobId) {
-  return speqtrumApiUrl + "/jobs/" + jobId;
+  return speqtrumApiUrl + "/jobs/" + jobId + "?result=true";
 }
 
 std::string
 QilimanjaroServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return speqtrumApiUrl + "/jobs/" + postResponse["data"]["id"].get<std::string>();
+  auto jobId = extractJobId(postResponse);
+  return constructGetJobPath(jobId);
 }
 
 bool QilimanjaroServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  std::unordered_set<std::string> terminal_states = {"COMPLETED", "ERROR", "CANCELED"};
-  auto jobStatus = getJobResponse["data"]["status"].get<std::string>();
+  std::unordered_set<std::string> terminal_states = {"completed", "error", "canceled", "timeout"};
+  auto jobStatus = getJobResponse["status"].get<std::string>();
   return terminal_states.find(jobStatus) != terminal_states.end();
 }
 
 sample_result QilimanjaroServerHelper::processResults(ServerMessage &postJobResponse,
-                                                 std::string &jobId) {
-  auto status = postJobResponse["data"]["status"].get<std::string>();
-  if (status != "COMPLETED")
-    throw std::runtime_error("Job status: " + status);
-
+                                                      std::string &jobId) {
+  auto jobStatus = postJobResponse["status"].get<std::string>();
+  if (jobStatus != "completed")
+    throw std::runtime_error("Job status: " + jobStatus);
+  
+  auto job_result = postJobResponse["result"];
+  
+  // TODO: Use EvolveResults instead. Need to change method signature.
   std::vector<ExecutionResult> results;
-  auto jobs = postJobResponse["data"]["result"];
-  for (auto &job : jobs) {
-    std::unordered_map<std::string, std::size_t> result;
-    for (auto &[bitstring, count] : job.items()) {
-      auto r_bitstring = bitstring;
-      result[r_bitstring] = count;
-    }
-    results.push_back(ExecutionResult(result));
-  }
 
   return sample_result(results);
 }
