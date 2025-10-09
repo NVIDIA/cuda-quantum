@@ -2665,71 +2665,95 @@ class PyASTBridge(ast.NodeVisitor):
                     f'Invalid function or class type requested from the cudaq module ({node.func.attr})',
                     node)
 
-            if node.func.value.id in self.symbolTable:
-                # Method call on one of our variables
-                var = self.symbolTable[node.func.value.id]
 
-                # FIXME: THESE SHOULD BE SUPPORTED ON CLASSICAL VECTORS AS WELL
-                # Also should be supported on things that are not in the symbol table
-                # see also self.__isSupportedVectorFunction
-                if quake.VeqType.isinstance(var.type):
-                    if node.func.attr == 'size':
-                        # Handled already in the Attribute visit, 
-                        # since numpy arrays have a size attribute
-                        return
+            if node.func.attr == 'size':
+                # Handled already in the Attribute visit, 
+                # since numpy arrays have a size attribute
+                return
 
-                    # `qreg` or `qview` method call
-                    if node.func.attr == 'back':
-                        qrSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                 var).result
+            if self.__isSupportedVectorFunction(node.func.attr):
+
+                # This means we are visiting this node twice -
+                # once in visit_Attribute, once here. But unless
+                # we make the functions we support on values explicit
+                # somewhere, there is no way around that.
+                self.visit(node.func.value)
+                funcVal = self.ifPointerThenLoad(self.popValue())
+
+                # Just to be nice and give a dedicated error.
+                if node.func.attr == 'append' and \
+                    (quake.VeqType.isinstance(funcVal.type) or cc.StdvecType.isinstance(funcVal.type)):
+                    self.emitFatalError(
+                        "CUDA-Q does not allow dynamic resizing or lists, arrays, or qvectors.", node)
+
+                # Neither Python lists nor numpy arrays have a function
+                # or attribute 'front'/'back'; hence we only support that
+                # for qvectors.
+                if not quake.VeqType.isinstance(funcVal.type):
+                    self.emitFatalError(f'function {node.func.attr} is not supported on a value of type {funcVal.type}', node)
+
+                funcArg = None
+                if len(node.args) > 1:
+                    self.emitFatalError(f'call to {node.func.attr} supports at most one value')
+                elif len(node.args) == 1:
+                    funcArg = self.ifPointerThenLoad(self.popValue())
+                    if not IntegerType.isinstance(funcArg.type):
+                        self.emitFatalError(f'expecting an integer argument for call to {node.func.attr}', node)
+
+                # `qreg` or `qview` method call
+                if node.func.attr == 'back':
+                    qrSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                funcVal).result
+                    one = self.getConstantInt(1)
+                    endOff = arith.SubIOp(qrSize, one)
+                    if funcArg is None:
+                        # extract the qubit...
+                        self.pushValue(
+                            quake.ExtractRefOp(self.getRefType(),
+                                                funcVal,
+                                                -1,
+                                                index=endOff).result)
+                    else:
+                        # extract the `subveq`
+                        startOff = arith.SubIOp(qrSize, funcArg)
+                        dyna = IntegerAttr.get(self.getIntegerType(), -1)
+                        self.pushValue(
+                            quake.SubVeqOp(self.getVeqType(),
+                                            funcVal,
+                                            dyna,
+                                            dyna,
+                                            lower=startOff,
+                                            upper=endOff).result)
+                    return
+
+                if node.func.attr == 'front':
+                    zero = self.getConstantInt(0)
+                    if funcArg is None:
+                        # extract the qubit...
+                        self.pushValue(
+                            quake.ExtractRefOp(self.getRefType(),
+                                                funcVal,
+                                                -1,
+                                                index=zero).result)
+                    else:
+                        # extract the `subveq`
                         one = self.getConstantInt(1)
-                        endOff = arith.SubIOp(qrSize, one)
-                        if len(node.args):
-                            # extract the `subveq`
-                            startOff = arith.SubIOp(qrSize, self.popValue())
-                            dyna = IntegerAttr.get(self.getIntegerType(), -1)
-                            self.pushValue(
-                                quake.SubVeqOp(self.getVeqType(),
-                                               var,
-                                               dyna,
-                                               dyna,
-                                               lower=startOff,
-                                               upper=endOff).result)
-                        else:
-                            # extract the qubit...
-                            self.pushValue(
-                                quake.ExtractRefOp(self.getRefType(),
-                                                   var,
-                                                   -1,
-                                                   index=endOff).result)
-                        return
-                    if node.func.attr == 'front':
-                        zero = self.getConstantInt(0)
-                        if len(node.args):
-                            # extract the `subveq`
-                            qrSize = self.popValue()
-                            one = self.getConstantInt(1)
-                            offset = arith.SubIOp(qrSize, one)
-                            dyna = IntegerAttr.get(self.getIntegerType(), -1)
-                            self.pushValue(
-                                quake.SubVeqOp(self.getVeqType(),
-                                               var,
-                                               dyna,
-                                               dyna,
-                                               lower=zero,
-                                               upper=offset).result)
-                        else:
-                            # extract the qubit...
-                            self.pushValue(
-                                quake.ExtractRefOp(self.getRefType(),
-                                                   var,
-                                                   -1,
-                                                   index=zero).result)
-                        return
-                    if node.func.attr == 'append':
-                        self.emitFatalError(
-                            "CUDA-Q does not allow dynamic list resizing.", node)
+                        offset = arith.SubIOp(funcArg, one)
+                        dyna = IntegerAttr.get(self.getIntegerType(), -1)
+                        self.pushValue(
+                            quake.SubVeqOp(self.getVeqType(),
+                                            funcVal,
+                                            dyna,
+                                            dyna,
+                                            lower=zero,
+                                            upper=offset).result)
+                    return
 
+                # To make sure we at least have a proper error if we have
+                # any mismatch between what is implemented, vs what's listed in 
+                # __isSupportedVectorFunction.
+                self.emitFatalError(f'unsupported function {node.func.attr}', node)
+    
             def maybeProposeOpAttrFix(opName, attrName):
                 """
                 Check the quantum operation attribute name and 

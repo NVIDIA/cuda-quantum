@@ -53,5 +53,3 @@ def test_attribute_failures():
 # CHECK-LABEL:  Exception kernel1:
 # CHECK:        invalid CUDA-Q attribute assignment
 # CHECK-NEXT:   (offending source -> l.size = 4)
-
-# FIXME: front, back, and assign are only handled if they are called on something that is in the symbol table
