@@ -2044,6 +2044,34 @@ not need to specify project or machine when emulating.
 :::
 :::
 
+::: {.admonition .note}
+Note
+
+Quantinuum's syntax checker for Helios (e.g., [`Helios-1SC`{.docutils
+.literal .notranslate}]{.pre}) only performs QIR code validation and
+does not return any results. Thus, it always returns an empty result
+set. This is different from other Quantinuum backends (e.g.,
+[`H1-1SC`{.docutils .literal .notranslate}]{.pre}) where the syntax
+checker returns dummy results. As a result, when using the Helios syntax
+checker, we may receive this warning message:
+
+> <div>
+>
+> ::: {.highlight-text .notranslate}
+> ::: highlight
+>     WARNING: this kernel invocation produced 0 shots worth of results when executed.
+> :::
+> :::
+>
+> It means that the kernel was successfully validated, but no execution
+> results are available. To get results, please submit to the Helios
+> emulator (e.g., [`Helios-1E`{.docutils .literal .notranslate}]{.pre})
+> or the actual quantum device (e.g., [`Helios-1`{.docutils .literal
+> .notranslate}]{.pre}).
+>
+> </div>
+:::
+
 To see a complete example, take a look at [[Quantinuum examples]{.std
 .std-ref}](../../examples/hardware_providers.html#quantinuum-examples){.reference
 .internal}.
