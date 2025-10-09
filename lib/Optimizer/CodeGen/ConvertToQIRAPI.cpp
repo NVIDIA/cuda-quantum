@@ -587,7 +587,7 @@ struct DiscriminateOpRewrite
 };
 
 // Supported QIR versions.
-enum struct QirVersion { version_0_1, version_0_2 };
+enum struct QirVersion { version_0_1, version_1_0 };
 
 template <typename M>
 struct DiscriminateOpToCallRewrite
@@ -598,9 +598,9 @@ struct DiscriminateOpToCallRewrite
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if constexpr (M::discriminateToClassical) {
-      if constexpr (M::qirVersion == QirVersion::version_0_2) {
+      if constexpr (M::qirVersion == QirVersion::version_1_0) {
         rewriter.replaceOpWithNewOp<func::CallOp>(
-            disc, rewriter.getI1Type(), cudaq::opt::qir0_2::ReadResult,
+            disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
             adaptor.getOperands());
       } else {
         rewriter.replaceOpWithNewOp<func::CallOp>(
@@ -2049,14 +2049,14 @@ struct QuakeToQIRAPIPass
       else
         processOperation<FullQIR</*opaquePtr=*/false>>(typeConverter);
     } else if (apiField[0] == "base-profile") {
-      if (apiField.size() > 1 && apiField[1] == "0.2") {
+      if (apiField.size() > 1 && apiField[1] == "1.0") {
         if (opaquePtr)
           processOperation<
-              BaseProfileQIR</*opaquePtr=*/true, QirVersion::version_0_2>>(
+              BaseProfileQIR</*opaquePtr=*/true, QirVersion::version_1_0>>(
               typeConverter);
         else
           processOperation<
-              BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
+              BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_1_0>>(
               typeConverter);
       } else {
         if (opaquePtr)
@@ -2069,14 +2069,14 @@ struct QuakeToQIRAPIPass
               typeConverter);
       }
     } else if (apiField[0] == "adaptive-profile") {
-      if (apiField.size() > 1 && apiField[1] == "0.2") {
+      if (apiField.size() > 1 && apiField[1] == "1.0") {
         if (opaquePtr)
           processOperation<
-              AdaptiveProfileQIR</*opaquePtr=*/true, QirVersion::version_0_2>>(
+              AdaptiveProfileQIR</*opaquePtr=*/true, QirVersion::version_1_0>>(
               typeConverter);
         else
           processOperation<
-              AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
+              AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_1_0>>(
               typeConverter);
       } else {
         if (opaquePtr)
@@ -2265,14 +2265,14 @@ struct QuakeToQIRAPIPrepPass
   }
 
   static StringRef getRequiredQubitsAttrName(StringRef version) {
-    if (version == "0.2")
-      return cudaq::opt::qir0_2::RequiredQubitsAttrName;
+    if (version == "1.0")
+      return cudaq::opt::qir1_0::RequiredQubitsAttrName;
     return cudaq::opt::qir0_1::RequiredQubitsAttrName;
   }
 
   static StringRef getRequiredResultsAttrName(StringRef version) {
-    if (version == "0.2")
-      return cudaq::opt::qir0_2::RequiredResultsAttrName;
+    if (version == "1.0")
+      return cudaq::opt::qir1_0::RequiredResultsAttrName;
     return cudaq::opt::qir0_1::RequiredResultsAttrName;
   }
 

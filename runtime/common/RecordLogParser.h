@@ -282,7 +282,7 @@ public:
 
 namespace {
 // Simplify look up of the required number of results by using a common
-// identifier instead of different QIR versions (0.1 and 0.2)
+// identifier instead of different QIR versions (0.1 and 1.0)
 constexpr char ResultCountMetadataName[] = "required_results";
 } // namespace
 
