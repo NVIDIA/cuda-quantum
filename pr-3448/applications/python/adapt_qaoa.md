@@ -1759,7 +1759,7 @@ explained above.
 
 <div>
 
-![2756c10424854b3e9a331f411b864af9](../../_images/adapt-qaoa.png){.no-scaled-link
+![8280a84254db44cc8d2ee1da14188f5b](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
