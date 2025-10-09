@@ -139,7 +139,7 @@ async def postJob(job: JobRequest,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    # NOTE: This uses QIR v0.2
+    # NOTE: This uses QIR v1.0
     qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
     for i in range(shots):
         cudaq.testing.toggleDynamicQubitManagement()
