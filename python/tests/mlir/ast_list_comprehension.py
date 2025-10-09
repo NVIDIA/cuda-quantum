@@ -933,6 +933,8 @@ def test_list_comprehension_failures():
         print("Exception kernel8:")
         print(e)
 
+test_list_comprehension_failures()
+
 # CHECK-LABEL:  Exception kernel1:
 # CHECK:        augment-assign must not change the variable type
 # CHECK-NEXT:   (offending source -> res += v)
@@ -954,7 +956,7 @@ def test_list_comprehension_failures():
 # CHECK-NEXT:   (offending source -> [{{.*}} for _ in range(3)])
 
 # CHECK-LABEL:  Exception kernel6:
-# CHECK:        incorrect argument type in call to MyTuple
+# CHECK:        cannot convert value of type complex<f64> to the requested type f64
 # CHECK-NEXT:   (offending source -> MyTuple(0, v))
 
 # CHECK-LABEL:  Exception kernel7:

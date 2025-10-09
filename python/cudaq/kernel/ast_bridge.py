@@ -257,6 +257,8 @@ class PyASTBridge(ast.NodeVisitor):
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
             ty) or quake.StruqType.isinstance(ty)
 
+    # FIXME: Needs to be revised when we introduce the proper type distinction
+    # between boolean and measurements.
     def isMeasureResultType(self, ty, value):
         """
         Return true if the given type is a qubit measurement result type (an i1 type).
@@ -286,7 +288,9 @@ class PyASTBridge(ast.NodeVisitor):
         # Note:
         # `numpy.float64` is the same as `float` type, with width of 64 bit.
         # `numpy.float32` type has width of 32 bit.
-        return F64Type.get() if width == 64 else F32Type.get()
+        if width == 64: return F64Type.get()
+        elif width == 32: return F32Type.get()
+        else: self.emitFatalError(f'unsupported width {width} requested for float type', self.currentNode)
 
     def getFloatAttr(self, type, value):
         """
@@ -356,7 +360,7 @@ class PyASTBridge(ast.NodeVisitor):
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
-    def tryChangeOperandToType(self, ty, operand, allowDemotion=False):
+    def changeOperandToType(self, ty, operand, allowDemotion=False):
         """
         Change the type of an operand to a specified type. This function primarily 
         handles type conversions and promotions to higher types (complex > float > int). 
@@ -373,37 +377,37 @@ class PyASTBridge(ast.NodeVisitor):
                 otherComplexType = ComplexType(operand.type)
                 otherFloatType = otherComplexType.element_type
                 if (floatType != otherFloatType):
-                    real = self.tryChangeOperandToType(
+                    real = self.changeOperandToType(
                         floatType,
                         complex.ReOp(operand).result)
-                    imag = self.tryChangeOperandToType(
+                    imag = self.changeOperandToType(
                         floatType,
                         complex.ImOp(operand).result)
-                    operand = complex.CreateOp(complexType, real, imag).result
+                    return complex.CreateOp(complexType, real, imag).result
             else:
-                real = self.tryChangeOperandToType(floatType, operand)
+                real = self.changeOperandToType(floatType, operand)
                 imag = self.getConstantFloatWithType(0.0, floatType)
-                operand = complex.CreateOp(complexType, real, imag).result
+                return complex.CreateOp(complexType, real, imag).result
 
         if (cc.StdvecType.isinstance(ty)):
             eleTy = cc.StdvecType.getElementType(ty)
             if cc.StdvecType.isinstance(operand.type):
-                operand = self.__copyVectorAndCastElements(operand, eleTy, allowDemotion=allowDemotion)
+                return self.__copyVectorAndCastElements(operand, eleTy, allowDemotion=allowDemotion)
 
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
-                operand = cc.CastOp(ty, operand).result
+                return cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
                 zeroext = IntegerType(operand.type).width == 1
-                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                return cc.CastOp(ty, operand, sint=not zeroext,
                                     zint=zeroext).result
 
         if F32Type.isinstance(ty):
             if F64Type.isinstance(operand.type):
-                operand = cc.CastOp(ty, operand).result
+                return cc.CastOp(ty, operand).result
             if IntegerType.isinstance(operand.type):
                 zeroext = IntegerType(operand.type).width == 1
-                operand = cc.CastOp(ty, operand, sint=not zeroext,
+                return cc.CastOp(ty, operand, sint=not zeroext,
                                     zint=zeroext).result
 
         if IntegerType.isinstance(ty):
@@ -411,16 +415,17 @@ class PyASTBridge(ast.NodeVisitor):
                                   F32Type.isinstance(operand.type)):
                 operand = cc.CastOp(ty, operand, sint=True, zint=False).result
             if IntegerType.isinstance(operand.type):
-                if IntegerType(ty).width < IntegerType(operand.type).width:
-                    operand = cc.CastOp(ty, operand).result
-                elif IntegerType(ty).width > IntegerType(operand.type).width:
-                    zeroext = IntegerType(operand.type).width == 1
-                    operand = cc.CastOp(ty,
-                                        operand,
-                                        sint=not zeroext,
-                                        zint=zeroext).result
-
-        return operand
+                requested_width = IntegerType(ty).width
+                operand_width = IntegerType(operand.type).width
+                if requested_width == operand_width:
+                    return operand
+                elif requested_width < operand_width:
+                    return cc.CastOp(ty, operand).result
+                return cc.CastOp(ty,
+                                    operand,
+                                    sint=operand_width != 1,
+                                    zint=operand_width == 1).result
+        self.emitFatalError(f'cannot convert value of type {operand.type} to the requested type {ty}', self.currentNode)
 
     def simulationPrecision(self):
         """
@@ -658,9 +663,7 @@ class PyASTBridge(ast.NodeVisitor):
             eleAddr = cc.ComputePtrOp(sourceElePtrTy, sourceDataPtr, [iterVar],
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
-            castedEle = self.tryChangeOperandToType(targetEleType, loadedEle, allowDemotion=allowDemotion)
-            if castedEle.type != targetEleType:
-                self.emitFatalError(f'could not convert {mlirTypeToPyType(castedEle.type)} to {mlirTypeToPyType(targetEleType)}', self.currentNode)
+            castedEle = self.changeOperandToType(targetEleType, loadedEle, allowDemotion=allowDemotion)
             targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
                                             [iterVar], rawIndex).result
             cc.StoreOp(castedEle, targetEleAddr)
@@ -786,15 +789,26 @@ class PyASTBridge(ast.NodeVisitor):
         Returns:
             MLIR Type representing the superior type
         """
-        if ComplexType.isinstance(t1) or ComplexType.isinstance(t2):
-            et1 = ComplexType(t1).element_type
-            et2 = ComplexType(t2).element_type
-            return self.getComplexType(self.__get_superior_type(et1, et2)) 
+        def complex_type(ct, ot):
+            et1 = ComplexType(ct).element_type
+            if IntegerType.isinstance(ot):
+                return ct
+            elif F64Type.isinstance(ot) or F32Type.isinstance(ot):
+                et2 = ot
+            elif ComplexType.isinstance(ot):
+                et2 = ComplexType(ot).element_type
+            else: return None
+            return self.getComplexTypeWithElementType(self.__get_superior_type(et1, et2)) 
+
+        if ComplexType.isinstance(t1):
+            return complex_type(t1, t2)
+        if ComplexType.isinstance(t2):
+            return complex_type(t2, t1)
         if F64Type.isinstance(t1) or F64Type.isinstance(t2):
             return F64Type.get()
         if F32Type.isinstance(t1) or F32Type.isinstance(t2):
             return F32Type.get()
-        elif IntegerType.isinstance(t1) and IntegerType.isinstance(t2):
+        if IntegerType.isinstance(t1) and IntegerType.isinstance(t2):
             return self.getIntegerType(
                 max(IntegerType(t1).width,
                     IntegerType(t2).width))
@@ -929,13 +943,11 @@ class PyASTBridge(ast.NodeVisitor):
                     nrArgs = len(target.elts)
                     getItem = lambda idx: quake.ExtractRefOp(quake.RefType.get(), value, -1, index=self.getConstantInt(idx)).result
             if nrArgs != len(target.elts):
-                return "shape mismatch in tuple deconstruction"
+                self.emitFatalError("shape mismatch in tuple deconstruction", self.currentNode)
             for i in range(nrArgs):
-                msg = self.__deconstructAssignment(target.elts[i], getItem(i), process=process)
-                if msg is not None:
-                    return msg
+                self.__deconstructAssignment(target.elts[i], getItem(i), process=process)
         else:
-            return "unsupported target in tuple deconstruction"
+            self.emitFatalError("unsupported target in tuple deconstruction", self.currentNode)
 
     def __processRangeLoopIterationBounds(self, argumentNodes):
         """
@@ -1402,9 +1414,7 @@ class PyASTBridge(ast.NodeVisitor):
             # result in having more than 1 target here, hence erroring on it for now.
             # (It would be easy to process this as target tuple, but it may not be correct to do so.)
             self.emitFatalError("CUDA-Q does not allow multiple targets in assignment", node)
-        msg = self.__deconstructAssignment(node.targets[0], node.value, process=process_assignment)
-        if msg is not None:
-            self.emitFatalError(msg, node)
+        self.__deconstructAssignment(node.targets[0], node.value, process=process_assignment)
 
     def visit_Attribute(self, node):
         """
@@ -1570,10 +1580,7 @@ class PyASTBridge(ast.NodeVisitor):
             for idx, value in enumerate(values):
                 arg = self.ifPointerThenLoad(value)
                 expectedTy = expectedArgTypes[idx]
-                if arg.type != expectedTy:
-                    arg = self.tryChangeOperandToType(expectedTy, arg, allowDemotion=True)
-                if arg.type != expectedTy:
-                    self.emitFatalError("incorrect argument type in call to {}".format(fName), node)
+                arg = self.changeOperandToType(expectedTy, arg, allowDemotion=True)
                 args.append(arg)
             return args
 
@@ -1943,10 +1950,8 @@ class PyASTBridge(ast.NodeVisitor):
                 else:
                     imag = namedArgs['imag']
                     real = namedArgs['real']
-                imag = self.tryChangeOperandToType(self.getFloatType(), imag)
-                real = self.tryChangeOperandToType(self.getFloatType(), real)
-                if not F64Type.isinstance(imag.type) or not F64Type.isinstance(real.type):
-                    self.emitFatalError("invalid argument type in construction of complex", node)
+                imag = self.changeOperandToType(self.getFloatType(), imag)
+                real = self.changeOperandToType(self.getFloatType(), real)
                 self.pushValue(
                     complex.CreateOp(self.getComplexType(), real, imag).result)
                 return
@@ -2244,11 +2249,8 @@ class PyASTBridge(ast.NodeVisitor):
             elif node.func.id == 'int':
                 # cast operation
                 value = self.popValue()
-                casted = self.tryChangeOperandToType(IntegerType.get_signless(64),
+                casted = self.changeOperandToType(IntegerType.get_signless(64),
                                                   value, allowDemotion=True)
-                if not IntegerType.isinstance(casted.type):
-                    self.emitFatalError(
-                        f'Invalid cast to integer: {value.type}', node)
                 self.pushValue(casted)
 
             elif node.func.id == 'list':
@@ -2379,24 +2381,11 @@ class PyASTBridge(ast.NodeVisitor):
                 if node.func.attr in ['complex128', 'complex64']:
                     if node.func.attr == 'complex128':
                         ty = self.getComplexType()
-                        eleTy = self.getFloatType()
                     if node.func.attr == 'complex64':
                         ty = self.getComplexType(width=32)
-                        eleTy = self.getFloatType(width=32)
 
-                    value = self.tryChangeOperandToType(ty, value)
-                    if (ty == value.type):
-                        self.pushValue(value)
-                        return
-                    elif not ComplexType.isinstance(value.type):
-                        self.emitFatalError("type {} cannot be converted to {}".format(value.type, node.func.attr), node)
-
-                    real = complex.ReOp(value).result
-                    imag = complex.ImOp(value).result
-                    real = self.tryChangeOperandToType(eleTy, real)
-                    imag = self.tryChangeOperandToType(eleTy, imag)
-
-                    self.pushValue(complex.CreateOp(ty, real, imag).result)
+                    value = self.changeOperandToType(ty, value)
+                    self.pushValue(value)
                     return
 
                 if node.func.attr in ['float64', 'float32']:
@@ -2405,23 +2394,19 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == 'float32':
                         ty = self.getFloatType(width=32)
 
-                    value = self.tryChangeOperandToType(ty, value)
-                    if value.type != ty:
-                        self.emitFatalError("type {} cannot be converted to {}".format(value.type, node.func.attr), node)
-
+                    value = self.changeOperandToType(ty, value)
                     self.pushValue(value)
                     return
 
                 # Promote argument's types for `numpy.func` calls to match python's semantics
                 if self.__isSupportedNumpyFunction(node.func.attr):
                     if ComplexType.isinstance(value.type):
-                        value = self.tryChangeOperandToType(
+                        value = self.changeOperandToType(
                             self.getComplexType(), value)
-                    if IntegerType.isinstance(value.type):
-                        value = self.tryChangeOperandToType(
+                    elif IntegerType.isinstance(value.type):
+                        value = self.changeOperandToType(
                             self.getFloatType(), value)
-                    if not ComplexType.isinstance(value.type) and \
-                        not F64Type.isinstance(value.type):
+                    else:
                         self.emitFatalError("invalid type {} for call to numpy function {}".format(value.type, node.func.attr), node)
 
                 if node.func.attr == 'cos':
@@ -2453,7 +2438,7 @@ class PyASTBridge(ast.NodeVisitor):
                         floatType = complexType.element_type
                         real = complex.ReOp(value).result
                         imag = complex.ImOp(value).result
-                        left = self.tryChangeOperandToType(complexType,
+                        left = self.changeOperandToType(complexType,
                                                         math.ExpOp(real).result)
                         re2 = math.CosOp(imag).result
                         im2 = math.SinOp(imag).result
@@ -3337,11 +3322,7 @@ class PyASTBridge(ast.NodeVisitor):
                         format([v.type for v in listElementValues]), node)
 
             # Convert the values to the superior arithmetic type
-            listElementValues = [self.tryChangeOperandToType(superiorType, v, allowDemotion=False) for v in listElementValues]
-            if any((v.type != superiorType) for v in listElementValues):
-                self.emitFatalError(
-                    "non-homogenous list not allowed - must all be same type: {}".
-                    format([v.type for v in listElementValues]), node)
+            listElementValues = [self.changeOperandToType(superiorType, v, allowDemotion=False) for v in listElementValues]
 
         # Turn this List into a StdVec<T>
         self.pushValue(
@@ -3680,9 +3661,7 @@ class PyASTBridge(ast.NodeVisitor):
                         values = extractFunctor(iterable, iterVar)
                         assert(len(values) == 2)
                         for i, v in enumerate(values):
-                            msg = self.__deconstructAssignment(node.target.elts[i], v)
-                            if msg is not None:
-                                self.emitFatalError(msg, node)
+                            self.__deconstructAssignment(node.target.elts[i], v)
                         [self.visit(b) for b in node.body]
                         self.symbolTable.popScope()
 
@@ -3770,9 +3749,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.symbolTable.pushScope()
             # we set the extract functor above, use it here
             value = extractFunctor(iterable, iterVar)
-            msg = self.__deconstructAssignment(node.target, value)
-            if msg is not None:
-                self.emitFatalError(msg, node)
+            self.__deconstructAssignment(node.target, value)
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
@@ -3896,93 +3873,97 @@ class PyASTBridge(ast.NodeVisitor):
         right = self.popValue()
         op = node.ops[0]
 
-        left_type = left.type
-        right_type = right.type
+        def convert_arithmetic_types(item1, item2):
+            superior_type = self.__get_superior_type(item1.type, item2.type)
+            if superior_type is None:
+                self.emitFatalError("invalid type in comparison", node)
+            item1 = self.changeOperandToType(superior_type, item1, allowDemotion=False)
+            item2 = self.changeOperandToType(superior_type, item2, allowDemotion=False)
+            return item1, item2
 
-        if IntegerType.isinstance(left_type) and F64Type.isinstance(right_type):
-            left = arith.SIToFPOp(self.getFloatType(), left).result
-        elif F64Type.isinstance(left_type) and IntegerType.isinstance(
-                right_type):
-            right = arith.SIToFPOp(self.getFloatType(), right).result
-        elif IntegerType.isinstance(left_type) and IntegerType.isinstance(
-                right_type):
-            if IntegerType(left_type).width < IntegerType(right_type).width:
-                zeroext = IntegerType(left_type).width == 1
-                left = cc.CastOp(right_type,
-                                 left,
-                                 sint=not zeroext,
-                                 zint=zeroext).result
-            elif IntegerType(left_type).width > IntegerType(right_type).width:
-                zeroext = IntegerType(right_type).width == 1
-                right = cc.CastOp(left_type,
-                                  right,
-                                  sint=not zeroext,
-                                  zint=zeroext).result
+        def compare_equality(item1, item2):
+            # TODO: the In/NotIn case should be recursive such 
+            # that we can search for a list in a list of lists.
+            item1, item2 = convert_arithmetic_types(item1, item2)
+            iCondPred = self.getIntegerAttr(iTy, 0)
+            fCondPred = self.getIntegerAttr(iTy, 1)
+
+            if ComplexType.isinstance(item1.type):
+                reComp = arith.CmpFOp(fCondPred, 
+                                    complex.ReOp(item1).result, 
+                                    complex.ReOp(item2).result)
+                imComp = arith.CmpFOp(fCondPred, 
+                                    complex.ImOp(item1).result, 
+                                    complex.ImOp(item2).result)
+                return arith.AndIOp(reComp, imComp)
+            elif IntegerType.isinstance(item1.type):
+                return arith.CmpIOp(iCondPred, item1, item2).result
+            else:
+                return arith.CmpFOp(fCondPred, item1, item2).result
 
         if isinstance(op, ast.Gt):
-            if F64Type.isinstance(left.type):
+            left, right = convert_arithmetic_types(left, right)
+            if ComplexType.isinstance(left.type):
+                self.emitFatalError("invalid type 'Complex' in comparison", node)
+            elif IntegerType.isinstance(left.type):
                 self.pushValue(
-                    arith.CmpFOp(self.getIntegerAttr(iTy, 2), left,
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 4), left,
                                  right).result)
             else:
                 self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 4), left,
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 2), left,
                                  right).result)
             return
 
         if isinstance(op, ast.GtE):
-            if F64Type.isinstance(left.type):
+            left, right = convert_arithmetic_types(left, right)
+            if ComplexType.isinstance(left.type):
+                self.emitFatalError("invalid type 'Complex' in comparison", node)
+            elif IntegerType.isinstance(left.type):
                 self.pushValue(
-                    arith.CmpFOp(self.getIntegerAttr(iTy, 3), left,
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 5), left,
                                  right).result)
             else:
                 self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 5), left,
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 3), left,
                                  right).result)
             return
 
         if isinstance(op, ast.Lt):
-            if F64Type.isinstance(left.type):
+            left, right = convert_arithmetic_types(left, right)
+            if ComplexType.isinstance(left.type):
+                self.emitFatalError("invalid type 'Complex' in comparison", node)
+            elif IntegerType.isinstance(left.type):
                 self.pushValue(
-                    arith.CmpFOp(self.getIntegerAttr(iTy, 4), left,
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 2), left,
                                  right).result)
             else:
                 self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 2), left,
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 4), left,
                                  right).result)
             return
 
         if isinstance(op, ast.LtE):
-            if F64Type.isinstance(left.type):
+            left, right = convert_arithmetic_types(left, right)
+            if ComplexType.isinstance(left.type):
+                self.emitFatalError("invalid type 'Complex' in comparison", node)
+            elif IntegerType.isinstance(left.type):
                 self.pushValue(
-                    arith.CmpFOp(self.getIntegerAttr(iTy, 5), left,
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
                                  right).result)
             else:
                 self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
+                    arith.CmpFOp(self.getIntegerAttr(iTy, 5), left,
                                  right).result)
             return
 
         if isinstance(op, ast.NotEq):
-            if F64Type.isinstance(left.type):
-                self.pushValue(
-                    arith.CmpFOp(self.getIntegerAttr(iTy, 6), left,
-                                 right).result)
-            else:
-                self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 1), left,
-                                 right).result)
+            eqComp = compare_equality(left, right)
+            self.pushValue(arith.XOrIOp(eqComp, self.getConstantInt(1, 1)).result)
             return
 
         if isinstance(op, ast.Eq):
-            if F64Type.isinstance(left.type):
-                self.pushValue(
-                    arith.CmpFOp(self.getIntegerAttr(iTy, 1), left,
-                                 right).result)
-            else:
-                self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 0), left,
-                                 right).result)
+            self.pushValue(compare_equality(left, right))
             return
 
         if isinstance(op, (ast.In, ast.NotIn)):
@@ -4004,27 +3985,9 @@ class PyASTBridge(ast.NodeVisitor):
             # Element comparison loop
             def check_element(idx):
                 element = self.__load_vector_element(right_val, idx)
-                superior_type = self.__get_superior_type(left_val.type, element.type)
-                promoted_left = self.tryChangeOperandToType(superior_type, left_val)
-                promoted_element = self.tryChangeOperandToType(superior_type, element)
-                if promoted_left.type != superior_type or element.type != superior_type:
-                    self.emitFatalError("failed to convert type for comparison", node)
-
-                iCondPred = IntegerAttr.get(self.getIntegerType(), 0)
-                fCondPred = IntegerAttr.get(self.getIntegerType(), 0)
-
-                # TODO: support... (i.e. adjust cmp_result below)
-                if ComplexType.isinstance(promoted_left.type):
-                    self.emitFatalError(
-                        "Complex values not supported for 'in' comparison")
-
-                cmp_result = (
-                    arith.CmpIOp(iCondPred, promoted_left, promoted_element)
-                    if IntegerType.isinstance(promoted_left.type) else
-                    arith.CmpFOp(fCondPred, promoted_left, promoted_element))
-
+                compRes = compare_equality(left_val, element)
                 current = cc.LoadOp(accumulator).result
-                cc.StoreOp(arith.OrIOp(current, cmp_result.result), accumulator)
+                cc.StoreOp(arith.OrIOp(current, compRes), accumulator)
 
             self.createInvariantForLoop(self.__get_vector_size(right_val),
                                         check_element)
@@ -4100,16 +4063,9 @@ class PyASTBridge(ast.NodeVisitor):
 
         result = self.ifPointerThenLoad(self.popValue())
         result = self.ifPointerThenLoad(result)
-        if result.type != self.knownResultType:
-            # FIXME consider more auto-casting where possible
-            result = self.tryChangeOperandToType(self.knownResultType,
-                                              result,
-                                              allowDemotion=True)
-
-        if result.type != self.knownResultType:
-            self.emitFatalError(
-                f"Invalid return type, function was defined to return a {mlirTypeToPyType(self.knownResultType)} but the value being returned is of type {mlirTypeToPyType(result.type)}",
-                node)
+        result = self.changeOperandToType(self.knownResultType,
+                                            result,
+                                            allowDemotion=True)
 
         if cc.StdvecType.isinstance(result.type):
             symName = '__nvqpp_vectorCopyCtor'
@@ -4270,24 +4226,20 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.PointerType.isinstance(right.type):
             right = cc.LoadOp(right).result
 
-        if not IntegerType.isinstance(left.type) and not F64Type.isinstance(
-                left.type) and not ComplexType.isinstance(left.type):
-            raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
-                nodeType, left, right))
-
-        if not IntegerType.isinstance(right.type) and not F64Type.isinstance(
-                right.type) and not ComplexType.isinstance(right.type):
-            raise RuntimeError("Invalid type for Binary Op {} ({}, {})".format(
-                nodeType, right, right))
+        if not self.isArithmeticType(left.type) or not self.isArithmeticType(right.type):
+            self.emitFatalError("Invalid type for Binary Op {} ({}, {})".format(
+                nodeType, left, right), node)
 
         # Type promotion for addition, subtraction, multiplication, or division
         if issubclass(nodeType, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
-            right = self.tryChangeOperandToType(left.type,
-                                             right,
-                                             allowDemotion=False)
-            left = self.tryChangeOperandToType(right.type,
-                                            left,
-                                            allowDemotion=False)
+            superiorTy = self.__get_superior_type(left.type, right.type)
+            if superiorTy is not None:
+                left = self.changeOperandToType(superiorTy,
+                                                left,
+                                                allowDemotion=False)
+                right = self.changeOperandToType(superiorTy,
+                                                right,
+                                                allowDemotion=False)
 
         # Based on the op type and the leaf types, create the MLIR operator
         if issubclass(nodeType, ast.Add):
@@ -4302,7 +4254,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(complex.AddOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.Add types."
+                self.emitFatalError("unhandled BinOp.Add types", self.currentNode)
 
         if issubclass(nodeType, ast.Sub):
             if IntegerType.isinstance(left.type):
@@ -4316,14 +4268,14 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(complex.SubOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.Sub types."
+                self.emitFatalError("unhandled BinOp.Sub types", self.currentNode)
 
         if issubclass(nodeType, ast.FloorDiv):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.FloorDivSIOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.FloorDiv types."
+                self.emitFatalError("unhandled BinOp.FloorDiv types", self.currentNode)
 
         if issubclass(nodeType, ast.Div):
             if IntegerType.isinstance(left.type):
@@ -4338,7 +4290,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(complex.DivOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.Div types."
+                self.emitFatalError("unhandled BinOp.Div types", self.currentNode)
 
         if issubclass(nodeType, ast.Mult):
             if IntegerType.isinstance(left.type):
@@ -4352,7 +4304,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(complex.MulOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.Mult types."
+                self.emitFatalError("unhandled BinOp.Mult types", self.currentNode)
 
         if issubclass(nodeType, ast.Pow):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
@@ -4373,7 +4325,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(math.PowFOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.Pow types."
+                self.emitFatalError("unhandled BinOp.Pow types", self.currentNode)
             
         if issubclass(nodeType, ast.Mod):            
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
@@ -4381,73 +4333,69 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(arith.RemUIOp(left, right).result)
                 return
             if IntegerType.isinstance(right.type):
-                if F32Type.isinstance(left.type):
-                    right = arith.SIToFPOp(self.getFloatType(32), right).result
-                if F64Type.isinstance(left.type):
-                    right = arith.SIToFPOp(self.getFloatType(), right).result
+                if F32Type.isinstance(left.type) or F64Type.isinstance(left.type):
+                    right = arith.SIToFPOp(left.type, right).result
             if IntegerType.isinstance(left.type):
-                if F32Type.isinstance(right.type):
-                    left = arith.SIToFPOp(self.getFloatType(32), left).result
-                if F64Type.isinstance(right.type):
-                    left = arith.SIToFPOp(self.getFloatType(), left).result
+                if F32Type.isinstance(right.type) or F64Type.isinstance(right.type):
+                    left = arith.SIToFPOp(right.type, left).result
             if F64Type.isinstance(left.type) or \
                 F32Type.isinstance(left.type):
                 self.pushValue(arith.RemFOp(left, right).result)
                 return
             else:
-                return "unhandled BinOp.Mod types; only integers are supported."
+                self.emitFatalError("unhandled BinOp.Mod types; only integers are supported", self.currentNode)
 
         if issubclass(nodeType, ast.LShift):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left = self.tryChangeOperandToType(self.getIntegerType(), left)
-                right = self.tryChangeOperandToType(self.getIntegerType(), right)
+                left = self.changeOperandToType(self.getIntegerType(), left)
+                right = self.changeOperandToType(self.getIntegerType(), right)
                 self.pushValue(arith.ShLIOp(left, right).result)
                 return
             else:
-                return "unsupported operand type(s) for BinOp.LShift; only integers supported."
+                self.emitFatalError("unsupported operand type(s) for BinOp.LShift; only integers supported", self.currentNode)
 
         if issubclass(nodeType, ast.RShift):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left = self.tryChangeOperandToType(self.getIntegerType(), left)
-                right = self.tryChangeOperandToType(self.getIntegerType(), right)
+                left = self.changeOperandToType(self.getIntegerType(), left)
+                right = self.changeOperandToType(self.getIntegerType(), right)
                 self.pushValue(arith.ShRSIOp(left, right).result)
                 return
             else:
-                return "unsupported operand type(s) for BinOp.RShift; only integers supported."
+                self.emitFatalError("unsupported operand type(s) for BinOp.RShift; only integers supported", self.currentNode)
 
         if issubclass(nodeType, ast.BitAnd):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left = self.tryChangeOperandToType(self.getIntegerType(), left)
-                right = self.tryChangeOperandToType(self.getIntegerType(), right)
+                left = self.changeOperandToType(self.getIntegerType(), left)
+                right = self.changeOperandToType(self.getIntegerType(), right)
                 self.pushValue(arith.AndIOp(left, right).result)
                 return
             else:
-                return "unsupported operand type(s) for BinOp.BitAnd; only integers supported."
+                self.emitFatalError("unsupported operand type(s) for BinOp.BitAnd; only integers supported", self.currentNode)
 
         if issubclass(nodeType, ast.BitOr):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left = self.tryChangeOperandToType(self.getIntegerType(), left)
-                right = self.tryChangeOperandToType(self.getIntegerType(), right)
+                left = self.changeOperandToType(self.getIntegerType(), left)
+                right = self.changeOperandToType(self.getIntegerType(), right)
                 self.pushValue(arith.OrIOp(left, right).result)
                 return
             else:
-                return "unsupported operand type(s) for BinOp.BitOr; only integers supported."
+                self.emitFatalError("unsupported operand type(s) for BinOp.BitOr; only integers supported", self.currentNode)
 
         if issubclass(nodeType, ast.BitXor):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
                     right.type):
-                left = self.tryChangeOperandToType(self.getIntegerType(), left)
-                right = self.tryChangeOperandToType(self.getIntegerType(), right)
+                left = self.changeOperandToType(self.getIntegerType(), left)
+                right = self.changeOperandToType(self.getIntegerType(), right)
                 self.pushValue(arith.XOrIOp(left, right).result)
                 return
             else:
-                return "unsupported operand type(s) for BinOp.BitXor; only integers supported."
+                self.emitFatalError("unsupported operand type(s) for BinOp.BitXor; only integers supported.", self.currentNode)
 
-        return "unhandled binary operator"
+        self.emitFatalError("unhandled binary operator", self.currentNode)
 
     def visit_BinOp(self, node):
         """
@@ -4461,9 +4409,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.right)
         right = self.popValue()
 
-        errMsg = self.__process_binary_op(left, right, type(node.op))
-        if errMsg is not None:
-            self.emitFatalError(errMsg, node)
+        self.__process_binary_op(left, right, type(node.op))
 
     def visit_AugAssign(self, node):
         """
@@ -4484,9 +4430,7 @@ class PyASTBridge(ast.NodeVisitor):
         value = self.popValue()
 
         loaded = cc.LoadOp(target).result
-        errMsg = self.__process_binary_op(loaded, value, type(node.op))
-        if errMsg is not None:
-            self.emitFatalError(errMsg, node)
+        self.__process_binary_op(loaded, value, type(node.op))
 
         res = self.popValue()
         if res.type != loaded.type:

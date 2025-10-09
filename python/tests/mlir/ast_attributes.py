@@ -13,6 +13,11 @@ import cudaq
 
 def test_attribute_access():
 
+    # TODO: this is a good example to reexamine some of the
+    # handling in the bridge; the Python AST does represent LoadOp
+    # and StoreOp, which we are not currently overloading.
+    # Creating explicit overloads for these could allow some clean up.
+
     @cudaq.kernel
     def kernel1() -> float:
         l = [1,2,3]
@@ -29,8 +34,6 @@ def test_attribute_access():
     print("[attribute access] kernel 1 outputs " + str(out[0]))
 
 # CHECK-LABEL: [attribute access] kernel 1 outputs 13.0
-
-test_attribute_access()
 
 def test_attribute_failures():
 
