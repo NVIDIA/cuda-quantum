@@ -386,11 +386,4 @@ def test_tuple_assign_failures():
 # CHECK:         hybrid quantum-classical data types and nested quantum structs are not allowed
 # CHECK-NEXT:    (offending source -> (cudaq.qubit(), 0.5))
 
-if __name__ == '__main__':
-
-    test_tuple_assign_struct()
-
-# FIXME: test error for failed conversion in __copyVectorAndCastElements
-# (FIXME: apply_noise is also pretty terrible)
 # FIXME: front, back, and assign are only handled if they are called on something that is in the symbol table
-# FIXME: if node.func.attr == 'control' where otherFuncName in self.symbolTable clearly was missing a tests (values not reversed)

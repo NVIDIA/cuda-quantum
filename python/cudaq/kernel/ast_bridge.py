@@ -942,6 +942,8 @@ class PyASTBridge(ast.NodeVisitor):
                     # We will get a runtime error for out of bounds access
                     nrArgs = len(target.elts)
                     getItem = lambda idx: quake.ExtractRefOp(quake.RefType.get(), value, -1, index=self.getConstantInt(idx)).result
+                else:
+                    nrArgs = 0
             if nrArgs != len(target.elts):
                 self.emitFatalError("shape mismatch in tuple deconstruction", self.currentNode)
             for i in range(nrArgs):
@@ -1301,13 +1303,17 @@ class PyASTBridge(ast.NodeVisitor):
         def process_assignment(target, value):
             if isinstance(target, ast.Tuple):
 
-                if isinstance(value, ast.Tuple):
+                if isinstance(value, ast.Tuple) or \
+                    isinstance(value, ast.List):
                     return target, value
                 
-                self.visit(value)
-                if len(self.valueStack) == 0:
-                    self.emitFatalError("invalid assignment detected.", node)
-                return target, self.popValue()
+                if isinstance(value, ast.AST):
+                    self.visit(value)
+                    if len(self.valueStack) == 0:
+                        self.emitFatalError("invalid assignment detected.", node)
+                    return target, self.popValue()
+
+                return target, value
 
             # Handle simple `var = expr`
             elif isinstance(target, ast.Name):
