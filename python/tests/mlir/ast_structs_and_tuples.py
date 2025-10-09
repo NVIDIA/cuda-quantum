@@ -385,5 +385,3 @@ def test_tuple_assign_failures():
 # CHECK-LABEL:   Failure for test3:
 # CHECK:         hybrid quantum-classical data types and nested quantum structs are not allowed
 # CHECK-NEXT:    (offending source -> (cudaq.qubit(), 0.5))
-
-# FIXME: front, back, and assign are only handled if they are called on something that is in the symbol table
