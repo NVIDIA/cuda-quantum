@@ -9,6 +9,7 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
+import numpy
 
 
 def test_list_init():
@@ -66,3 +67,23 @@ def test_list_init():
 # CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
+
+def test_list_conversion_fail():
+
+    @cudaq.kernel
+    def test1(params: list[complex]):
+        angles = numpy.array(params, dtype=float)
+        q = cudaq.qubit()
+        for a in angles:
+            rz(a, q)
+
+    try:
+        print(test1)
+    except Exception as e:
+        print("Failure for test1:")
+        print(e)
+
+# CHECK-LABEL:  Failure for test1:
+# CHECK:        cannot convert value of type complex<f64> to the requested type f64
+# CHECK-NEXT:   (offending source -> numpy.array(params, dtype=float))
+
