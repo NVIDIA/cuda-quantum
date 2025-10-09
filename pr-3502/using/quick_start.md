@@ -1752,7 +1752,7 @@ CUDA-Q with all its dependencies:
 
 ::: {.highlight-console .notranslate}
 ::: highlight
-    cuda_version=12.4.0 # set this variable to version 11.x (where x >= 8) or 12.x
+    cuda_version=12.4.0 # set this variable to version 12.x or 13.x
     conda create -y -n cudaq-env python=3.11 pip
     conda install -y -n cudaq-env -c "nvidia/label/cuda-${cuda_version}" cuda
     conda install -y -n cudaq-env -c conda-forge mpi4py openmpi">=5.0.3" cxx-compiler

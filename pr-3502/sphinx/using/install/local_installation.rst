@@ -888,11 +888,11 @@ The following table summarizes the required components.
     :header-rows: 0
 
     * - GPU Architectures
-      - Volta, Turing, Ampere, Ada, Hopper
+      - Turing, Ampere, Ada, Hopper, Blackwell (Blackwell supported for CUDA 13.x only)
     * - NVIDIA GPU with Compute Capability
-      - 7.0+
+      - 7.5+
     * - CUDA
-      - 11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)
+      - 12.x (Driver 525.60.13+), 13.x (Driver 580.65.06+)
 
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
 

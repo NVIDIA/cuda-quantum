@@ -3020,13 +3020,14 @@ The following table summarizes the required components.
 Systems]{.caption-text}[¶](#id11 "Permalink to this table"){.headerlink}
 
 +--------------------------+--------------------------------------------+
-| GPU Architectures        | Volta, Turing, Ampere, Ada, Hopper         |
+| GPU Architectures        | Turing, Ampere, Ada, Hopper, Blackwell     |
+|                          | (Blackwell supported for CUDA 13.x only)   |
 +--------------------------+--------------------------------------------+
-| NVIDIA GPU with Compute  | 7.0+                                       |
+| NVIDIA GPU with Compute  | 7.5+                                       |
 | Capability               |                                            |
 +--------------------------+--------------------------------------------+
-| CUDA                     | 11.x (Driver 470.57.02+), 12.x (Driver     |
-|                          | 525.60.13+)                                |
+| CUDA                     | 12.x (Driver 525.60.13+), 13.x (Driver     |
+|                          | 580.65.06+)                                |
 +--------------------------+--------------------------------------------+
 
 : [Requirements for GPU
