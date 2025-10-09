@@ -933,8 +933,6 @@ def test_list_comprehension_failures():
         print("Exception kernel8:")
         print(e)
 
-test_list_comprehension_failures()
-
 # CHECK-LABEL:  Exception kernel1:
 # CHECK:        augment-assign must not change the variable type
 # CHECK-NEXT:   (offending source -> res += v)
