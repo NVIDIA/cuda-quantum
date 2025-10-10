@@ -192,11 +192,11 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         cusolver_version=11.4 && \
         cuda_runtime_version=12.0 && \
         cuda_nvrtc_version=12.0 && \
-        sed -i "s/-cu12/-cu11/g" pyproject.toml && \
-        sed -i "s/-cuda12/-cuda11/g" pyproject.toml && \
+        sed -i "s/-cu13/-cu12/g" pyproject.toml && \
+        sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_nvrtc_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml; \
     fi && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
