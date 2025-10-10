@@ -1720,7 +1720,7 @@ Let's define Hamiltonian of [\\(\\mathrm{H_4}\\)]{.math .notranslate
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    !pip install --quiet openfermion==1.7.1 openfermionpyscf==0.5
+    !pip install --quiet --break-system-packages openfermionpyscf==0.5
 :::
 :::
 :::
