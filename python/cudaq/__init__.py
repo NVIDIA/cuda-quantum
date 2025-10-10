@@ -208,14 +208,15 @@ def amplitudes(array_data):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations, globalKernelDecorators
+    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations
     globalKernelRegistry.clear()
     globalAstRegistry.clear()
     globalRegisteredOperations.clear()
-    for decorator in globalKernelDecorators:
-        decorator.module = None
 
-cudaq_runtime.register_set_target_callback(lambda _: __clearKernelRegistries(), "__clearKernelRegistries")
+cudaq_runtime.register_set_target_callback(
+    lambda _ : [setattr(kernel, "module", None) for kernel in globalKernelDecorators],
+    "clearKernelDecoratorModules"
+)
 
 # Expose chemistry domain functions
 from .domains import chemistry
