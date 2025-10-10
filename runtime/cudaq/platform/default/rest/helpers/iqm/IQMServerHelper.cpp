@@ -91,9 +91,6 @@ protected:
   /// @brief Write the dynamic quantum architecture file
   std::string writeQuantumArchitectureFile(void);
 
-  /// @brief Emulation mode flag
-  bool emulation_mode = false;
-
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
@@ -143,20 +140,8 @@ public:
 void IQMServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
 
-  auto iter = backendConfig.find("emulate");
-  if (iter != backendConfig.end()) {
-    emulation_mode = iter->second == "true";
-  }
-
-  // In emulation mode no server is contacted. So there is no need for
-  // an URL or tokens.
-  if (emulation_mode) {
-    cudaq::info("Emulation is enabled, ignore tokens file and IQM Server URL");
-    return;
-  }
-
   // Set an alternate base URL if provided.
-  iter = backendConfig.find("url");
+  auto iter = backendConfig.find("url");
   if (iter != backendConfig.end()) {
     iqmServerUrl = iter->second;
   }
@@ -314,25 +299,40 @@ IQMServerHelper::generateRequestHeader() const {
   return headers;
 }
 
+/**
+ * Put the quantum architecture file on the transpiler commandline.
+ *
+ * The quantum architecture file is normally a temporary file generated from
+ * the dynamic quantum architecture which is retrieved from the configured
+ * IQM server URL. But it can be overwritten by specifying the 'mapping_file'
+ * parameter in the backend string, or even more flexible by setting the
+ * environment variable 'IQM_QPU_QA' to the path+filename.
+ */
 void IQMServerHelper::updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) {
   std::string pathToFile;
 
-  // Allow setting of a mapping file from outside.
-  auto iter = backendConfig.find("mapping_file");
-  if (iter != backendConfig.end()) {
+  // For normal operation the dynamic quantum architecture is retrieved from
+  // the configured IQM server URL. This gives the connectivity of the
+  // calibrated QPU.
+  // For testing the file with the QPU quantum architecture can be given via
+  // environment variable to allow testing different architectures without
+  // recompilation. It can also be specified via the backend configuration.
+  auto filename = getenv("IQM_QPU_QA");
+  if (filename) {
     // Use provided string as path+filename
-    pathToFile = iter->second;
-  } else {
-    if (!emulation_mode) {
+    pathToFile = std::string(filename);
+  }
+  else {
+    // Allow setting of quantum architecture file via the backend config
+    auto iter = backendConfig.find("mapping_file");
+    if (iter != backendConfig.end()) {
+      // Use provided string as path+filename
+      pathToFile = iter->second;
+    } else {
       // Use the dynamic quantum architecture of the configured IQM server
       fetchQuantumArchitecture();
       pathToFile = writeQuantumArchitectureFile();
-    } else {
-      // In emulation mode there is no server information so no mapping file
-      // can be created. Use a static mapping file instead.
-      pathToFile =
-          std::string(platformPath / std::string("mapping/iqm/Crystal_20.txt"));
     }
   }
   cudaq::info("Using quantum architecture file: {}", pathToFile);

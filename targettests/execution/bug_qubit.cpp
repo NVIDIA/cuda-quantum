@@ -12,7 +12,10 @@
 // RUN: nvq++ %cpp_std --target anyon      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target infleqtion --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target oqc        --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
