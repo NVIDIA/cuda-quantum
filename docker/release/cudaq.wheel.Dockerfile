@@ -42,14 +42,14 @@ RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
     if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
         cublas_version=12.0 && \
         cusolver_version=11.4 && \
-        cuda-runtime_version=12.0 && \
-        cuda-nvrtc_version=12.0 && \
+        cuda_runtime_version=12.0 && \
+        cuda_nvrtc_version=12.0 && \
         sed -i "s/-cu12/-cu11/g" pyproject.toml && \
         sed -i "s/-cuda12/-cuda11/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda-runtime_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda-runtime_version}/g" pyproject.toml; \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml; \
     fi
 
 # Create the README
