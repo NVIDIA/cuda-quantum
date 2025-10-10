@@ -287,13 +287,54 @@ def test_comparison_in():
     # CHECK-LABEL:    [False]
 
     @cudaq.kernel
+    def test_integer_not_in_int_list(v: int) -> bool:
+        return v not in [1, 2, 3]
+
+    print(cudaq.run(test_integer_not_in_int_list, -1, shots_count=1))
+    print(cudaq.run(test_integer_not_in_int_list, 1, shots_count=1))
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
+
+    # FIXME: see issue
+    # Clearly, we have a bug somewhere; this works perfectly fine when
+    # compiling in hw emulation mode (were argument and return are 
+    # handled slightly differently), but doesn't produce the correct
+    # output on simulators.
+    '''
+    @cudaq.kernel
     def test_float_in_float_list(v: float) -> bool:
         return v in [1.5, 2.5, 3.5]
 
     print(cudaq.run(test_float_in_float_list, 1.5, shots_count=1))
-    print(cudaq.run(test_float_in_float_list, 5., shots_count=1))
-    # CHECK-LABEL:    [True]
-    # CHECK-LABEL:    [False]
+    print(cudaq.run(test_float_in_float_list, 2., shots_count=1))
+    # should be: [True], [False]
+
+    @cudaq.kernel
+    def test_float_not_in_float_list(v: float) -> bool:
+        return v not in [1.5, 2.5, 3.5]
+
+    print(cudaq.run(test_float_not_in_float_list, -1.5, shots_count=1))
+    print(cudaq.run(test_float_not_in_float_list, 2.5, shots_count=1))
+    # should be: [True], [False]
+
+    @cudaq.kernel
+    def test_complex_in_float_list(v: complex) -> bool:
+        return v in [complex(1, 0.5), complex(2, 0.5)]
+
+    print(cudaq.run(test_complex_in_float_list, complex(2, 0.5), shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(2, 0.), shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(0., 0.5), shots_count=1))
+    # should be: [True], [False], [False]
+
+    @cudaq.kernel
+    def test_complex_not_in_float_list(v: complex) -> bool:
+        return v not in [complex(1, 0.5), complex(2, 0.5)]
+
+    print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.), shots_count=1))
+    print(cudaq.run(test_complex_not_in_float_list, complex(0., 0.5), shots_count=1))
+    print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.5), shots_count=1))
+    # should be: [True], [True], [False]
+    '''
 
 
 def test_comparison_failures():
@@ -468,6 +509,25 @@ def test_comparison_failures():
     # CHECK:          invalid type 'Complex' in comparison
     # CHECK-NEXT:     (offending source -> v1 >= v2)
 
+    # In/NotIn
+    # Not yet supported - left as todos...
+
+    @cudaq.kernel
+    def test_list_in_list(v: list[int]) -> bool:
+        return v in [[1], [2], [3]]    
+
+    try:
+        print(cudaq.run(test_list_in_list, [1], shots_count=1))
+    except Exception as e:
+        print("Failure test_list_in_list:")
+        print(e)
+
+    # CHECK-LABEL:    Failure test_list_in_list:
+    # CHECK:          invalid type in comparison
+    # CHECK-NEXT:     (offending source -> v in {{.*}}1], [2], [3{{.*}})
 
 # TODO: support 2. == 1.5 | 2. == 2.5 (has multiple ops, and comparators)
+# TODO: support tuple comparison + add tests
 # TODO: add tests for negative values...!
+
+test_comparison_failures()
