@@ -32,12 +32,12 @@ std::optional<CudaDeviceProperties> getCudaProperties() {
     CudaDeviceProperties info;
     info.deviceName = deviceProp.name;
     int memoryClockRate;
-    SAFE_HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(&memoryClockRate,
-                           cudaDevAttrMemoryClockRate, 0));
+    SAFE_HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+        &memoryClockRate, cudaDevAttrMemoryClockRate, 0));
     info.memoryClockRateMhz = memoryClockRate * 1e-3;
     int clockRate;
-    SAFE_HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(&clockRate,
-                           cudaDevAttrClockRate, 0));
+    SAFE_HANDLE_CUDA_ERROR(
+        cudaDeviceGetAttribute(&clockRate, cudaDevAttrClockRate, 0));
     info.clockRateMhz = clockRate * 1e-3;
     info.totalGlobalMemMbytes = deviceProp.totalGlobalMem / 1048576;
     info.driverVersion = driverVersion;
