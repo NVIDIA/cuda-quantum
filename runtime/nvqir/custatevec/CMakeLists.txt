@@ -38,6 +38,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
     PRIVATE 
       . .. 
       ${CUDAToolkit_INCLUDE_DIRS} 
+      ${CUDAToolkit_INCLUDE_DIRS}/cccl
       ${CMAKE_SOURCE_DIR}/runtime/common
       ${CUSTATEVEC_ROOT}/include)
 
