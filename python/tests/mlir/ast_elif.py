@@ -28,6 +28,7 @@ def test_elif():
     cost([1., 2., 3., 4., 5., 6.])
     print(cost)
 
+test_elif()
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -47,7 +48,7 @@ def test_elif():
 # CHECK:             %[[VAL_13:.*]] = arith.sitofp %[[VAL_9]] : i64 to f64
 # CHECK:             %[[VAL_14:.*]] = arith.remf %[[VAL_13]], %[[VAL_12]] : f64
 # CHECK:             %[[VAL_15:.*]] = arith.constant 0.000000e+00 : f64
-# CHECK:             %[[VAL_16:.*]] = arith.cmpf oeq, %[[VAL_14]], %[[VAL_15]] : f64
+# CHECK:             %[[VAL_16:.*]] = arith.cmpf une, %[[VAL_14]], %[[VAL_15]] : f64
 # CHECK:             cc.if(%[[VAL_16]]) {
 # CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_11]] : !cc.ptr<f64>
 # CHECK:               %[[VAL_18:.*]] = arith.constant 4 : i64
@@ -88,7 +89,7 @@ def test_elif():
 # CHECK:             %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_13:.*]] = arith.sitofp %[[VAL_10]] : i64 to f64
 # CHECK:             %[[VAL_14:.*]] = arith.remf %[[VAL_13]], %[[VAL_1]] : f64
-# CHECK:             %[[VAL_15:.*]] = arith.cmpf oeq, %[[VAL_14]], %[[VAL]] : f64
+# CHECK:             %[[VAL_15:.*]] = arith.cmpf une, %[[VAL_14]], %[[VAL]] : f64
 # CHECK:             cc.if(%[[VAL_15]]) {
 # CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_12]] : !cc.ptr<f64>
 # CHECK:               %[[VAL_17:.*]] = arith.remui %[[VAL_10]], %[[VAL_4]] : i64

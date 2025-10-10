@@ -3925,7 +3925,7 @@ class PyASTBridge(ast.NodeVisitor):
                 imComp = arith.CmpFOp(fCondPred, 
                                     complex.ImOp(item1).result, 
                                     complex.ImOp(item2).result)
-                return arith.AndIOp(reComp, imComp)
+                return arith.AndIOp(reComp, imComp).result
             elif IntegerType.isinstance(item1.type):
                 return arith.CmpIOp(iCondPred, item1, item2).result
             else:
@@ -3979,7 +3979,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid type 'Complex' in comparison", node)
             elif IntegerType.isinstance(left.type):
                 self.pushValue(
-                    arith.CmpIOp(self.getIntegerAttr(iTy, 7), left,
+                    arith.CmpIOp(self.getIntegerAttr(iTy, 3), left,
                                  right).result)
             else:
                 self.pushValue(
@@ -3997,12 +3997,10 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(op, (ast.In, ast.NotIn)):
-            right_val = right
-            left_val = left
 
             # Type validation and vector initialization
-            if not (cc.StdvecType.isinstance(right_val.type) or
-                    cc.ArrayType.isinstance(right_val.type)):
+            if not (cc.StdvecType.isinstance(right.type) or
+                    cc.ArrayType.isinstance(right.type)):
                 self.emitFatalError(
                     "Right operand must be a list/vector for 'in' comparison")
 
@@ -4014,12 +4012,12 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Element comparison loop
             def check_element(idx):
-                element = self.__load_vector_element(right_val, idx)
-                compRes = compare_equality(left_val, element)
+                element = self.__load_vector_element(right, idx)
+                compRes = compare_equality(left, element)
                 current = cc.LoadOp(accumulator).result
                 cc.StoreOp(arith.OrIOp(current, compRes), accumulator)
 
-            self.createInvariantForLoop(self.__get_vector_size(right_val),
+            self.createInvariantForLoop(self.__get_vector_size(right),
                                         check_element)
 
             final_result = cc.LoadOp(accumulator).result
@@ -4045,13 +4043,13 @@ class PyASTBridge(ast.NodeVisitor):
         condition = self.ifPointerThenLoad(condition)
 
         if self.getIntegerType(1) != condition.type:
-            # not equal to 0, then compare with 1
-            condPred = IntegerAttr.get(self.getIntegerType(), 1)
             if IntegerType.isinstance(condition.type):
+                condPred = IntegerAttr.get(self.getIntegerType(), 1) # ne
                 condition = arith.CmpIOp(condPred, condition,
                                         self.getConstantInt(0)).result
                 
             elif F64Type.isinstance(condition.type):
+                condPred = IntegerAttr.get(self.getIntegerType(), 13) # une
                 condition = arith.CmpFOp(condPred, condition,
                                         self.getConstantFloat(0)).result
             else:
@@ -4258,7 +4256,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if not self.isArithmeticType(left.type) or not self.isArithmeticType(right.type):
             self.emitFatalError("Invalid type for Binary Op {} ({}, {})".format(
-                nodeType, left, right), node)
+                nodeType, left, right), self.currentNode)
 
         # Type promotion for addition, subtraction, multiplication, or division
         if issubclass(nodeType, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
