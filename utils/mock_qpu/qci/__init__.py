@@ -46,7 +46,6 @@ class JobRequest(BaseModel):
     userData: Optional[Any] = None
 
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
