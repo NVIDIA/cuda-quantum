@@ -83,7 +83,7 @@ void cudaq::RecordLogParser::handleMetadata(
   if (entries.size() < 2 || entries.size() > 3)
     cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
   if (entries.size() == 3) {
-    if (entries[1] == cudaq::opt::qir0_2::RequiredResultsAttrName ||
+    if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
         entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
       metadata[ResultCountMetadataName] = entries[2];
     } else {
