@@ -22,10 +22,6 @@
 
 using namespace mlir;
 
-static Value genConstant(OpBuilder &builder, mlir::Type ty) {
-  return builder.create<cudaq::cc::PoisonOp>(builder.getUnknownLoc(), ty);
-}
-
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
   return builder.create<arith::ConstantIntOp>(builder.getUnknownLoc(), v, bits);
@@ -597,7 +593,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
       .Case([&](cudaq::cc::ArrayType ty) {
         return genConstant(builder, ty, p, substMod, layout);
       })
-      .Default(genConstant(builder, ty));
+      .Default({});
 }
 
 // Get the size of \p eleTy on the host side in bytes.
@@ -941,7 +937,7 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               return buildSubst(ty, argPtr, sourceModule, substModule,
                                 dataLayout);
             })
-            .Default(buildSubst(argTy));
+            .Default({});
     if (subst)
       kernelInfo->getSubstitutions().emplace_back(std::move(subst));
   }
