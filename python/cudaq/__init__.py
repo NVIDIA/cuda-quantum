@@ -54,6 +54,7 @@ from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
+from .kernel.utils import globalKernelDecorators
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.run import run_async
@@ -207,11 +208,14 @@ def amplitudes(array_data):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations
+    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations, globalKernelDecorators
     globalKernelRegistry.clear()
     globalAstRegistry.clear()
     globalRegisteredOperations.clear()
+    for decorator in globalKernelDecorators:
+        decorator.module = None
 
+cudaq_runtime.register_set_target_callback(lambda _: __clearKernelRegistries(), "__clearKernelRegistries")
 
 # Expose chemistry domain functions
 from .domains import chemistry

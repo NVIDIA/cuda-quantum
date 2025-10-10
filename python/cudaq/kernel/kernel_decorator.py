@@ -19,7 +19,7 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry, globalKernelDecorators,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix)
 
@@ -164,6 +164,8 @@ class PyKernelDecorator(object):
         # building up call graphs. We also must retain
         # the source code location for error diagnostics
         globalAstRegistry[self.name] = (self.astModule, self.location)
+        # Add this decorator to the global set
+        globalKernelDecorators.add(self)
 
     def compile(self):
         """
