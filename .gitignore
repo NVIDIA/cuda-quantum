@@ -84,6 +84,9 @@ docs/sphinx/_mdgen
 **/_build/*
 _version.py
 
+# Generated files
+targettests/generated
+
 # third party integrations
 simulators/
 apps/

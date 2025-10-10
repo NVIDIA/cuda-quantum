@@ -265,9 +265,9 @@ cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
   // The target config doesn't specify a codegen setting
   CodeGenConfig config = {.profile = "qir-adaptive",
                           .isQIRProfile = true,
-                          .version = QirVersion::version_0_2,
-                          .qir_major_version = 0,
-                          .qir_minor_version = 2,
+                          .version = QirVersion::version_1_0,
+                          .qir_major_version = 1,
+                          .qir_minor_version = 0,
                           .isAdaptiveProfile = true,
                           .isBaseProfile = false,
                           .integerComputations = true,

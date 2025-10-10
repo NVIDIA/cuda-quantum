@@ -36,7 +36,7 @@ target-arguments:
           - device2-1
           - device2-2
         config: 
-          codegen-emission: qir-adaptive:0.2:int_computations,float_computations
+          codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
   cudaq::config::TargetConfig config;
@@ -53,9 +53,9 @@ target-arguments:
             "qir-adaptive:0.1:int_computations");
   // Gen 2
   EXPECT_EQ(config.getCodeGenSpec({{"machine", "device2-1"}}),
-            "qir-adaptive:0.2:int_computations,float_computations");
+            "qir-adaptive:1.0:int_computations,float_computations");
   EXPECT_EQ(config.getCodeGenSpec({{"machine", "device2-2"}}),
-            "qir-adaptive:0.2:int_computations,float_computations");
+            "qir-adaptive:1.0:int_computations,float_computations");
 }
 
 TEST(TargetConfigTester, checkRegex) {
@@ -81,7 +81,7 @@ target-arguments:
       - arch-name: gen2
         pattern: Helios.*
         config: 
-          codegen-emission: qir-adaptive:0.2:int_computations,float_computations
+          codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
   cudaq::config::TargetConfig config;
@@ -98,7 +98,7 @@ target-arguments:
             "qir-adaptive:0.1:int_computations");
   // Gen 2
   EXPECT_EQ(config.getCodeGenSpec({{"machine", "Helios-1SC"}}),
-            "qir-adaptive:0.2:int_computations,float_computations");
+            "qir-adaptive:1.0:int_computations,float_computations");
   EXPECT_EQ(config.getCodeGenSpec({{"machine", "Helios-1E"}}),
-            "qir-adaptive:0.2:int_computations,float_computations");
+            "qir-adaptive:1.0:int_computations,float_computations");
 }
