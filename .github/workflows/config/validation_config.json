@@ -98,12 +98,6 @@
                 "cudart_version": "13.0",
                 "cuda_distribution": "debian12"
             },
-            "redhat/ubi9:9.6":
-            {
-                "libcdev_package": "glibc-devel",
-                "cudart_version": "13.0",
-                "cuda_distribution": "rhel9"
-            },
             "opensuse/leap:15.5": 
             {
                 "libcdev_package": "glibc-devel",
