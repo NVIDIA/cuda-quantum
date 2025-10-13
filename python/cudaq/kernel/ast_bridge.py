@@ -1770,18 +1770,14 @@ class PyASTBridge(ast.NodeVisitor):
             # If we did have module names, then this is what we are looking for
             if len(moduleNames):
                 name = node.func.attr
-                if not name in globalKernelRegistry:
-                    moduleNames.reverse()
-                    self.emitFatalError(
-                        "{}.{} is not a valid quantum kernel to call.".format(
-                            '.'.join(moduleNames), node.func.attr), node)
-
-                # If it is in `globalKernelRegistry`, it has to be in this Module
-                otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
-                                                                 name]
-                [self.visit(arg) for arg in node.args]
-                processFunctionCall(otherKernel.type, len(node.args))
-                return
+                # FIXME: We should be properly dealing with modules and submodules...
+                if name in globalKernelRegistry:
+                    # If it is in `globalKernelRegistry`, it has to be in this Module
+                    otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
+                                                                    name]
+                    [self.visit(arg) for arg in node.args]
+                    processFunctionCall(otherKernel.type, len(node.args))
+                    return
 
         # FIXME: This whole thing is widely inconsistent;
         # For example; we pop all values on the value stack for a simple gate
@@ -2365,320 +2361,6 @@ class PyASTBridge(ast.NodeVisitor):
         elif isinstance(node.func, ast.Attribute):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
             self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func.value)
-            if node.func.value.id in ['numpy', 'np']:
-                [self.visit(arg) for arg in node.args]
-
-                namedArgs = {}
-                for keyword in node.keywords:
-                    self.visit(keyword.value)
-                    namedArgs[keyword.arg] = self.popValue()
-
-                value = self.popValue()
-
-                if node.func.attr == 'array':
-                    # `np.array(vec, <dtype = ty>)`
-                    arrayType = value.type
-                    if cc.PointerType.isinstance(value.type):
-                        arrayType = cc.PointerType.getElementType(value.type)
-
-                    if cc.StdvecType.isinstance(arrayType):
-                        eleTy = cc.StdvecType.getElementType(arrayType)
-                        dTy = eleTy
-                        if len(namedArgs) > 0:
-                            dTy = namedArgs['dtype']
-
-                        # Convert the vector to the provided data type if needed.
-                        self.pushValue(
-                            self.__copyVectorAndCastElements(value, dTy, allowDemotion=True))
-                        return
-
-                    raise self.emitFatalError(
-                        f"unexpected numpy array initializer type: {value.type}",
-                        node)
-
-                value = self.ifPointerThenLoad(value)
-
-                if node.func.attr in ['complex128', 'complex64']:
-                    if node.func.attr == 'complex128':
-                        ty = self.getComplexType()
-                    if node.func.attr == 'complex64':
-                        ty = self.getComplexType(width=32)
-
-                    value = self.changeOperandToType(ty, value)
-                    self.pushValue(value)
-                    return
-
-                if node.func.attr in ['float64', 'float32']:
-                    if node.func.attr == 'float64':
-                        ty = self.getFloatType()
-                    if node.func.attr == 'float32':
-                        ty = self.getFloatType(width=32)
-
-                    value = self.changeOperandToType(ty, value)
-                    self.pushValue(value)
-                    return
-
-                # Promote argument's types for `numpy.func` calls to match python's semantics
-                if self.__isSupportedNumpyFunction(node.func.attr):
-                    if ComplexType.isinstance(value.type):
-                        value = self.changeOperandToType(
-                            self.getComplexType(), value)
-                    elif IntegerType.isinstance(value.type):
-                        value = self.changeOperandToType(
-                            self.getFloatType(), value)
-                    else:
-                        self.emitFatalError("invalid type {} for call to numpy function {}".format(value.type, node.func.attr), node)
-
-                if node.func.attr == 'cos':
-                    if ComplexType.isinstance(value.type):
-                        self.pushValue(complex.CosOp(value).result)
-                        return
-                    self.pushValue(math.CosOp(value).result)
-                    return
-                if node.func.attr == 'sin':
-                    if ComplexType.isinstance(value.type):
-                        self.pushValue(complex.SinOp(value).result)
-                        return
-                    self.pushValue(math.SinOp(value).result)
-                    return
-                if node.func.attr == 'sqrt':
-                    if ComplexType.isinstance(value.type):
-                        self.pushValue(complex.SqrtOp(value).result)
-                        return
-                    self.pushValue(math.SqrtOp(value).result)
-                    return
-                if node.func.attr == 'exp':
-                    if ComplexType.isinstance(value.type):
-                        # Note: using `complex.ExpOp` results in a
-                        # "can't legalize `complex.exp`" error.
-                        # Using Euler's' formula instead:
-                        #
-                        # "e^(x+i*y) = (e^x) * (cos(y)+i*sin(y))"
-                        complexType = ComplexType(value.type)
-                        floatType = complexType.element_type
-                        real = complex.ReOp(value).result
-                        imag = complex.ImOp(value).result
-                        left = self.changeOperandToType(complexType,
-                                                        math.ExpOp(real).result)
-                        re2 = math.CosOp(imag).result
-                        im2 = math.SinOp(imag).result
-                        right = complex.CreateOp(ComplexType.get(floatType),
-                                                 re2, im2).result
-                        res = complex.MulOp(left, right).result
-                        self.pushValue(res)
-                        return
-                    self.pushValue(math.ExpOp(value).result)
-                    return
-                if node.func.attr == 'ceil':
-                    if ComplexType.isinstance(value.type):
-                        self.emitFatalError(
-                            f"numpy call ({node.func.attr}) is not supported for complex numbers",
-                            node)
-                        return
-                    self.pushValue(math.CeilOp(value).result)
-                    return
-
-                self.emitFatalError(
-                    f"unsupported NumPy call ({node.func.attr})", node)
-
-            self.generic_visit(node)
-
-            if node.func.value.id == 'cudaq':
-                if node.func.attr == 'complex':
-                    self.pushValue(self.simulationDType())
-                    return
-
-                if node.func.attr == 'amplitudes':
-                    value = self.popValue()
-                    arrayType = value.type
-                    if cc.PointerType.isinstance(value.type):
-                        arrayType = cc.PointerType.getElementType(value.type)
-                    if cc.StdvecType.isinstance(arrayType):
-                        self.pushValue(value)
-                        return
-
-                    self.emitFatalError(
-                        f"unsupported amplitudes argument type: {value.type}",
-                        node)
-
-                if node.func.attr == 'qvector':
-                    if len(self.valueStack) == 0:
-                        self.emitFatalError(
-                            'qvector does not have default constructor. Init from size or existing state.',
-                            node)
-
-                    valueOrPtr = self.popValue()
-                    initializerTy = valueOrPtr.type
-
-                    if cc.PointerType.isinstance(initializerTy):
-                        initializerTy = cc.PointerType.getElementType(
-                            initializerTy)
-
-                    if (IntegerType.isinstance(initializerTy)):
-                        # handle `cudaq.qvector(n)`
-                        value = self.ifPointerThenLoad(valueOrPtr)
-                        ty = self.getVeqType()
-                        qubits = quake.AllocaOp(ty, size=value).result
-                        self.pushValue(qubits)
-                        return
-                    if cc.StdvecType.isinstance(initializerTy):
-                        # handle `cudaq.qvector(initState)`
-
-                        # Validate the length in case of a constant initializer:
-                        # `cudaq.qvector([1., 0., ...])`
-                        # `cudaq.qvector(np.array([1., 0., ...]))`
-                        value = self.ifPointerThenLoad(valueOrPtr)
-                        listScalar = None
-                        arrNode = node.args[0]
-                        if isinstance(arrNode, ast.List):
-                            listScalar = arrNode.elts
-
-                        if isinstance(arrNode, ast.Call) and isinstance(
-                                arrNode.func, ast.Attribute):
-                            if arrNode.func.value.id in [
-                                    'numpy', 'np'
-                            ] and arrNode.func.attr == 'array':
-                                lst = node.args[0].args[0]
-                                if isinstance(lst, ast.List):
-                                    listScalar = lst.elts
-
-                        if listScalar != None:
-                            size = len(listScalar)
-                            numQubits = np.log2(size)
-                            if not numQubits.is_integer():
-                                self.emitFatalError(
-                                    "Invalid input state size for qvector init (not a power of 2)",
-                                    node)
-
-                        eleTy = cc.StdvecType.getElementType(value.type)
-                        size = cc.StdvecSizeOp(self.getIntegerType(),
-                                               value).result
-                        numQubits = math.CountTrailingZerosOp(size).result
-
-                        # TODO: Dynamically check if number of qubits is power of 2
-                        # and if the state is normalized
-
-                        ptrTy = cc.PointerType.get(eleTy)
-                        arrTy = cc.ArrayType.get(eleTy)
-                        ptrArrTy = cc.PointerType.get(arrTy)
-                        veqTy = quake.VeqType.get()
-
-                        qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        data = cc.StdvecDataOp(ptrArrTy, value).result
-                        init = quake.InitializeStateOp(veqTy, qubits,
-                                                       data).result
-                        self.pushValue(init)
-                        return
-
-                    if cc.StateType.isinstance(initializerTy):
-                        # handle `cudaq.qvector(state)`
-                        statePtr = self.ifNotPointerThenStore(valueOrPtr)
-
-                        i64Ty = self.getIntegerType()
-                        numQubits = quake.GetNumberOfQubitsOp(i64Ty,
-                                                              statePtr).result
-
-                        veqTy = quake.VeqType.get()
-                        qubits = quake.AllocaOp(veqTy, size=numQubits).result
-                        init = quake.InitializeStateOp(veqTy, qubits,
-                                                       statePtr).result
-
-                        self.pushValue(init)
-                        return
-
-                    self.emitFatalError(
-                        f"unsupported qvector argument type: {value.type}",
-                        node)
-                    return
-
-                if node.func.attr == "qubit":
-                    if len(self.valueStack) == 1 and IntegerType.isinstance(
-                            self.valueStack[0].type):
-                        self.emitFatalError(
-                            'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
-                        )
-                    self.pushValue(quake.AllocaOp(self.getRefType()).result)
-                    return
-
-                if node.func.attr == 'adjoint' or node.func.attr == 'control':
-                    processControlAndAdjoint(node.args[0], node.func.attr)
-                    return
-
-                if node.func.attr == 'apply_noise':
-                    # Pop off all the arguments we need
-                    values = [
-                        self.popValue() for _ in range(len(self.valueStack))
-                    ]
-                    # They are in reverse order
-                    values.reverse()
-                    # First one should be the number of Kraus channel parameters
-                    numParamsVal = values[0]
-                    # Shrink the arguments down
-                    values = values[1:]
-
-                    # Need to get the number of parameters as an integer
-                    concreteIntAttr = IntegerAttr(
-                        numParamsVal.owner.attributes['value'])
-                    numParams = concreteIntAttr.value
-
-                    # Next Value is our generated key for the channel
-                    # Get it and shrink the list
-                    key = values[0]
-                    values = values[1:]
-
-                    # Now we know the next `numParams` arguments are
-                    # our Kraus channel parameters
-                    params = values[:numParams]
-                    for i, p in enumerate(params):
-                        # If we have a F64 value, we want to
-                        # store it to a pointer
-                        if F64Type.isinstance(p.type):
-                            alloca = cc.AllocaOp(cc.PointerType.get(p.type),
-                                                 TypeAttr.get(p.type)).result
-                            cc.StoreOp(p, alloca)
-                            params[i] = alloca
-
-                    # The remaining arguments are the qubits
-                    asVeq = quake.ConcatOp(self.getVeqType(),
-                                           values[numParams:]).result
-                    quake.ApplyNoiseOp(params, [asVeq], key=key)
-                    return
-
-                if node.func.attr == 'compute_action':
-                    # There can only be 2 arguments here.
-                    action = None
-                    compute = None
-                    actionArg = node.args[1]
-                    if isinstance(actionArg, ast.Name):
-                        actionName = actionArg.id
-                        if actionName in self.symbolTable:
-                            action = self.symbolTable[actionName]
-                        else:
-                            self.emitFatalError(
-                                "could not find action lambda / function in the symbol table.",
-                                node)
-                    else:
-                        action = self.popValue()
-
-                    computeArg = node.args[0]
-                    if isinstance(computeArg, ast.Name):
-                        computeName = computeArg.id
-                        if computeName in self.symbolTable:
-                            compute = self.symbolTable[computeName]
-                        else:
-                            self.emitFatalError(
-                                "could not find compute lambda / function in the symbol table.",
-                                node)
-                    else:
-                        compute = self.popValue()
-
-                    quake.ComputeActionOp(compute, action)
-                    return
-
-                self.emitFatalError(
-                    f'Invalid function or class type requested from the cudaq module ({node.func.attr})',
-                    node)
-
 
             if node.func.attr == 'size':
                 # Handled already in the Attribute visit, 
@@ -2710,6 +2392,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if len(node.args) > 1:
                     self.emitFatalError(f'call to {node.func.attr} supports at most one value')
                 elif len(node.args) == 1:
+                    self.visit(node.args[0])
                     funcArg = self.ifPointerThenLoad(self.popValue())
                     if not IntegerType.isinstance(funcArg.type):
                         self.emitFatalError(f'expecting an integer argument for call to {node.func.attr}', node)
@@ -2767,301 +2450,617 @@ class PyASTBridge(ast.NodeVisitor):
                 # any mismatch between what is implemented, vs what's listed in 
                 # __isSupportedVectorFunction.
                 self.emitFatalError(f'unsupported function {node.func.attr}', node)
-    
-            def maybeProposeOpAttrFix(opName, attrName):
-                """
-                Check the quantum operation attribute name and propose a smart
-                fix message if possible. For example, if we have
-                `x.control(...)` then remind the programmer the correct
-                attribute is `x.ctrl(...)`.
-                """
-                # TODO Add more possibilities in the future...
-                if attrName in ['control'
-                               ] or 'control' in attrName or 'ctrl' in attrName:
-                    return f'Did you mean {opName}.ctrl(...)?'
 
-                if attrName in ['adjoint'
-                               ] or 'adjoint' in attrName or 'adj' in attrName:
-                    return f'Did you mean {opName}.adj(...)?'
+            if isinstance(node.func.value, ast.Name):
 
-                return ''
+                if node.func.value.id in ['numpy', 'np']:
+                    [self.visit(arg) for arg in node.args]
 
-            # We have a `func_name.ctrl`
-            if self.__isSimpleGate(node.func.value.id):
-                if node.func.attr == 'ctrl':
-                    target = self.popValue()
-                    # Should be number of arguments minus one for the controls
-                    controls = [
-                        self.popValue() for i in range(len(node.args) - 1)
-                    ]
-                    if not controls:
-                        self.emitFatalError(
-                            'controlled operation requested without any control argument(s).',
+                    namedArgs = {}
+                    for keyword in node.keywords:
+                        self.visit(keyword.value)
+                        namedArgs[keyword.arg] = self.popValue()
+
+                    value = self.popValue()
+
+                    if node.func.attr == 'array':
+                        # `np.array(vec, <dtype = ty>)`
+                        arrayType = value.type
+                        if cc.PointerType.isinstance(value.type):
+                            arrayType = cc.PointerType.getElementType(value.type)
+
+                        if cc.StdvecType.isinstance(arrayType):
+                            eleTy = cc.StdvecType.getElementType(arrayType)
+                            dTy = eleTy
+                            if len(namedArgs) > 0:
+                                dTy = namedArgs['dtype']
+
+                            # Convert the vector to the provided data type if needed.
+                            self.pushValue(
+                                self.__copyVectorAndCastElements(value, dTy, allowDemotion=True))
+                            return
+
+                        raise self.emitFatalError(
+                            f"unexpected numpy array initializer type: {value.type}",
                             node)
-                    negatedControlQubits = None
-                    if len(self.controlNegations):
-                        negCtrlBools = [None] * len(controls)
-                        for i, c in enumerate(controls):
-                            negCtrlBools[i] = c in self.controlNegations
-                        negatedControlQubits = DenseBoolArrayAttr.get(
-                            negCtrlBools)
-                        self.controlNegations.clear()
 
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-                    checkControlAndTargetTypes(controls, [target])
-                    opCtor([], [],
-                           controls, [target],
-                           negated_qubit_controls=negatedControlQubits)
-                    return
-                if node.func.attr == 'adj':
-                    target = self.popValue()
-                    checkControlAndTargetTypes([], [target])
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-                    if quake.VeqType.isinstance(target.type):
+                    value = self.ifPointerThenLoad(value)
 
-                        def bodyBuilder(iterVal):
-                            q = quake.ExtractRefOp(self.getRefType(),
-                                                   target,
-                                                   -1,
-                                                   index=iterVal).result
-                            opCtor([], [], [], [q], is_adj=True)
+                    if node.func.attr in ['complex128', 'complex64']:
+                        if node.func.attr == 'complex128':
+                            ty = self.getComplexType()
+                        if node.func.attr == 'complex64':
+                            ty = self.getComplexType(width=32)
 
-                        veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                  target).result
-                        self.createInvariantForLoop(veqSize, bodyBuilder)
+                        value = self.changeOperandToType(ty, value)
+                        self.pushValue(value)
                         return
-                    elif quake.RefType.isinstance(target.type):
-                        opCtor([], [], [], [target], is_adj=True)
+
+                    if node.func.attr in ['float64', 'float32']:
+                        if node.func.attr == 'float64':
+                            ty = self.getFloatType()
+                        if node.func.attr == 'float32':
+                            ty = self.getFloatType(width=32)
+
+                        value = self.changeOperandToType(ty, value)
+                        self.pushValue(value)
                         return
-                    else:
-                        self.emitFatalError(
-                            'adj quantum operation on incorrect type {}.'.
-                            format(target.type), node)
 
-                self.emitFatalError(
-                    f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
-                )
+                    # Promote argument's types for `numpy.func` calls to match python's semantics
+                    if self.__isSupportedNumpyFunction(node.func.attr):
+                        if ComplexType.isinstance(value.type):
+                            value = self.changeOperandToType(
+                                self.getComplexType(), value)
+                        elif IntegerType.isinstance(value.type):
+                            value = self.changeOperandToType(
+                                self.getFloatType(), value)
+                        else:
+                            self.emitFatalError("invalid type {} for call to numpy function {}".format(value.type, node.func.attr), node)
 
-            # We have a `func_name.ctrl`
-            if node.func.value.id == 'swap' and node.func.attr == 'ctrl':
-                targetB = self.popValue()
-                targetA = self.popValue()
-                controls = [
-                    self.popValue() for i in range(len(self.valueStack))
-                ]
-                if not controls:
+                    if node.func.attr == 'cos':
+                        if ComplexType.isinstance(value.type):
+                            self.pushValue(complex.CosOp(value).result)
+                            return
+                        self.pushValue(math.CosOp(value).result)
+                        return
+                    if node.func.attr == 'sin':
+                        if ComplexType.isinstance(value.type):
+                            self.pushValue(complex.SinOp(value).result)
+                            return
+                        self.pushValue(math.SinOp(value).result)
+                        return
+                    if node.func.attr == 'sqrt':
+                        if ComplexType.isinstance(value.type):
+                            self.pushValue(complex.SqrtOp(value).result)
+                            return
+                        self.pushValue(math.SqrtOp(value).result)
+                        return
+                    if node.func.attr == 'exp':
+                        if ComplexType.isinstance(value.type):
+                            # Note: using `complex.ExpOp` results in a
+                            # "can't legalize `complex.exp`" error.
+                            # Using Euler's' formula instead:
+                            #
+                            # "e^(x+i*y) = (e^x) * (cos(y)+i*sin(y))"
+                            complexType = ComplexType(value.type)
+                            floatType = complexType.element_type
+                            real = complex.ReOp(value).result
+                            imag = complex.ImOp(value).result
+                            left = self.changeOperandToType(complexType,
+                                                            math.ExpOp(real).result)
+                            re2 = math.CosOp(imag).result
+                            im2 = math.SinOp(imag).result
+                            right = complex.CreateOp(ComplexType.get(floatType),
+                                                    re2, im2).result
+                            res = complex.MulOp(left, right).result
+                            self.pushValue(res)
+                            return
+                        self.pushValue(math.ExpOp(value).result)
+                        return
+                    if node.func.attr == 'ceil':
+                        if ComplexType.isinstance(value.type):
+                            self.emitFatalError(
+                                f"numpy call ({node.func.attr}) is not supported for complex numbers",
+                                node)
+                            return
+                        self.pushValue(math.CeilOp(value).result)
+                        return
+
                     self.emitFatalError(
-                        'controlled operation requested without any control argument(s).',
-                        node)
-                opCtor = getattr(quake,
-                                 '{}Op'.format(node.func.value.id.title()))
-                checkControlAndTargetTypes(controls, [targetA, targetB])
-                opCtor([], [], controls, [targetA, targetB])
-                return
+                        f"unsupported NumPy call ({node.func.attr})", node)
 
-            if self.__isRotationGate(node.func.value.id):
-                if node.func.attr == 'ctrl':
-                    target = self.popValue()
+                self.generic_visit(node)
+
+                if node.func.value.id == 'cudaq':
+                    if node.func.attr == 'complex':
+                        self.pushValue(self.simulationDType())
+                        return
+
+                    if node.func.attr == 'amplitudes':
+                        value = self.popValue()
+                        arrayType = value.type
+                        if cc.PointerType.isinstance(value.type):
+                            arrayType = cc.PointerType.getElementType(value.type)
+                        if cc.StdvecType.isinstance(arrayType):
+                            self.pushValue(value)
+                            return
+
+                        self.emitFatalError(
+                            f"unsupported amplitudes argument type: {value.type}",
+                            node)
+
+                    if node.func.attr == 'qvector':
+                        if len(self.valueStack) == 0:
+                            self.emitFatalError(
+                                'qvector does not have default constructor. Init from size or existing state.',
+                                node)
+
+                        valueOrPtr = self.popValue()
+                        initializerTy = valueOrPtr.type
+
+                        if cc.PointerType.isinstance(initializerTy):
+                            initializerTy = cc.PointerType.getElementType(
+                                initializerTy)
+
+                        if (IntegerType.isinstance(initializerTy)):
+                            # handle `cudaq.qvector(n)`
+                            value = self.ifPointerThenLoad(valueOrPtr)
+                            ty = self.getVeqType()
+                            qubits = quake.AllocaOp(ty, size=value).result
+                            self.pushValue(qubits)
+                            return
+                        if cc.StdvecType.isinstance(initializerTy):
+                            # handle `cudaq.qvector(initState)`
+
+                            # Validate the length in case of a constant initializer:
+                            # `cudaq.qvector([1., 0., ...])`
+                            # `cudaq.qvector(np.array([1., 0., ...]))`
+                            value = self.ifPointerThenLoad(valueOrPtr)
+                            listScalar = None
+                            arrNode = node.args[0]
+                            if isinstance(arrNode, ast.List):
+                                listScalar = arrNode.elts
+
+                            if isinstance(arrNode, ast.Call) and isinstance(
+                                    arrNode.func, ast.Attribute):
+                                if arrNode.func.value.id in [
+                                        'numpy', 'np'
+                                ] and arrNode.func.attr == 'array':
+                                    lst = node.args[0].args[0]
+                                    if isinstance(lst, ast.List):
+                                        listScalar = lst.elts
+
+                            if listScalar != None:
+                                size = len(listScalar)
+                                numQubits = np.log2(size)
+                                if not numQubits.is_integer():
+                                    self.emitFatalError(
+                                        "Invalid input state size for qvector init (not a power of 2)",
+                                        node)
+
+                            eleTy = cc.StdvecType.getElementType(value.type)
+                            size = cc.StdvecSizeOp(self.getIntegerType(),
+                                                value).result
+                            numQubits = math.CountTrailingZerosOp(size).result
+
+                            # TODO: Dynamically check if number of qubits is power of 2
+                            # and if the state is normalized
+
+                            ptrTy = cc.PointerType.get(eleTy)
+                            arrTy = cc.ArrayType.get(eleTy)
+                            ptrArrTy = cc.PointerType.get(arrTy)
+                            veqTy = quake.VeqType.get()
+
+                            qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                            data = cc.StdvecDataOp(ptrArrTy, value).result
+                            init = quake.InitializeStateOp(veqTy, qubits,
+                                                        data).result
+                            self.pushValue(init)
+                            return
+
+                        if cc.StateType.isinstance(initializerTy):
+                            # handle `cudaq.qvector(state)`
+                            statePtr = self.ifNotPointerThenStore(valueOrPtr)
+
+                            i64Ty = self.getIntegerType()
+                            numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                                statePtr).result
+
+                            veqTy = quake.VeqType.get()
+                            qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                            init = quake.InitializeStateOp(veqTy, qubits,
+                                                        statePtr).result
+
+                            self.pushValue(init)
+                            return
+
+                        self.emitFatalError(
+                            f"unsupported qvector argument type: {value.type}",
+                            node)
+                        return
+
+                    if node.func.attr == "qubit":
+                        if len(self.valueStack) == 1 and IntegerType.isinstance(
+                                self.valueStack[0].type):
+                            self.emitFatalError(
+                                'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
+                            )
+                        self.pushValue(quake.AllocaOp(self.getRefType()).result)
+                        return
+
+                    if node.func.attr == 'adjoint' or node.func.attr == 'control':
+                        processControlAndAdjoint(node.args[0], node.func.attr)
+                        return
+
+                    if node.func.attr == 'apply_noise':
+                        # Pop off all the arguments we need
+                        values = [
+                            self.popValue() for _ in range(len(self.valueStack))
+                        ]
+                        # They are in reverse order
+                        values.reverse()
+                        # First one should be the number of Kraus channel parameters
+                        numParamsVal = values[0]
+                        # Shrink the arguments down
+                        values = values[1:]
+
+                        # Need to get the number of parameters as an integer
+                        concreteIntAttr = IntegerAttr(
+                            numParamsVal.owner.attributes['value'])
+                        numParams = concreteIntAttr.value
+
+                        # Next Value is our generated key for the channel
+                        # Get it and shrink the list
+                        key = values[0]
+                        values = values[1:]
+
+                        # Now we know the next `numParams` arguments are
+                        # our Kraus channel parameters
+                        params = values[:numParams]
+                        for i, p in enumerate(params):
+                            # If we have a F64 value, we want to
+                            # store it to a pointer
+                            if F64Type.isinstance(p.type):
+                                alloca = cc.AllocaOp(cc.PointerType.get(p.type),
+                                                    TypeAttr.get(p.type)).result
+                                cc.StoreOp(p, alloca)
+                                params[i] = alloca
+
+                        # The remaining arguments are the qubits
+                        asVeq = quake.ConcatOp(self.getVeqType(),
+                                            values[numParams:]).result
+                        quake.ApplyNoiseOp(params, [asVeq], key=key)
+                        return
+
+                    if node.func.attr == 'compute_action':
+                        # There can only be 2 arguments here.
+                        action = None
+                        compute = None
+                        actionArg = node.args[1]
+                        if isinstance(actionArg, ast.Name):
+                            actionName = actionArg.id
+                            if actionName in self.symbolTable:
+                                action = self.symbolTable[actionName]
+                            else:
+                                self.emitFatalError(
+                                    "could not find action lambda / function in the symbol table.",
+                                    node)
+                        else:
+                            action = self.popValue()
+
+                        computeArg = node.args[0]
+                        if isinstance(computeArg, ast.Name):
+                            computeName = computeArg.id
+                            if computeName in self.symbolTable:
+                                compute = self.symbolTable[computeName]
+                            else:
+                                self.emitFatalError(
+                                    "could not find compute lambda / function in the symbol table.",
+                                    node)
+                        else:
+                            compute = self.popValue()
+
+                        quake.ComputeActionOp(compute, action)
+                        return
+
+                    self.emitFatalError(
+                        f'Invalid function or class type requested from the cudaq module ({node.func.attr})',
+                        node)
+        
+                def maybeProposeOpAttrFix(opName, attrName):
+                    """
+                    Check the quantum operation attribute name and propose a smart
+                    fix message if possible. For example, if we have
+                    `x.control(...)` then remind the programmer the correct
+                    attribute is `x.ctrl(...)`.
+                    """
+                    # TODO Add more possibilities in the future...
+                    if attrName in ['control'
+                                ] or 'control' in attrName or 'ctrl' in attrName:
+                        return f'Did you mean {opName}.ctrl(...)?'
+
+                    if attrName in ['adjoint'
+                                ] or 'adjoint' in attrName or 'adj' in attrName:
+                        return f'Did you mean {opName}.adj(...)?'
+
+                    return ''
+
+                # We have a `func_name.ctrl`
+                if self.__isSimpleGate(node.func.value.id):
+                    if node.func.attr == 'ctrl':
+                        target = self.popValue()
+                        # Should be number of arguments minus one for the controls
+                        controls = [
+                            self.popValue() for i in range(len(node.args) - 1)
+                        ]
+                        if not controls:
+                            self.emitFatalError(
+                                'controlled operation requested without any control argument(s).',
+                                node)
+                        negatedControlQubits = None
+                        if len(self.controlNegations):
+                            negCtrlBools = [None] * len(controls)
+                            for i, c in enumerate(controls):
+                                negCtrlBools[i] = c in self.controlNegations
+                            negatedControlQubits = DenseBoolArrayAttr.get(
+                                negCtrlBools)
+                            self.controlNegations.clear()
+
+                        opCtor = getattr(quake,
+                                        '{}Op'.format(node.func.value.id.title()))
+                        checkControlAndTargetTypes(controls, [target])
+                        opCtor([], [],
+                            controls, [target],
+                            negated_qubit_controls=negatedControlQubits)
+                        return
+                    if node.func.attr == 'adj':
+                        target = self.popValue()
+                        checkControlAndTargetTypes([], [target])
+                        opCtor = getattr(quake,
+                                        '{}Op'.format(node.func.value.id.title()))
+                        if quake.VeqType.isinstance(target.type):
+
+                            def bodyBuilder(iterVal):
+                                q = quake.ExtractRefOp(self.getRefType(),
+                                                    target,
+                                                    -1,
+                                                    index=iterVal).result
+                                opCtor([], [], [], [q], is_adj=True)
+
+                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                    target).result
+                            self.createInvariantForLoop(veqSize, bodyBuilder)
+                            return
+                        elif quake.RefType.isinstance(target.type):
+                            opCtor([], [], [], [target], is_adj=True)
+                            return
+                        else:
+                            self.emitFatalError(
+                                'adj quantum operation on incorrect type {}.'.
+                                format(target.type), node)
+
+                    self.emitFatalError(
+                        f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
+                    )
+
+                # We have a `func_name.ctrl`
+                if node.func.value.id == 'swap' and node.func.attr == 'ctrl':
+                    targetB = self.popValue()
+                    targetA = self.popValue()
                     controls = [
                         self.popValue() for i in range(len(self.valueStack))
                     ]
-                    param = controls[-1]
-                    controls = controls[:-1]
                     if not controls:
                         self.emitFatalError(
                             'controlled operation requested without any control argument(s).',
                             node)
-                    if IntegerType.isinstance(param.type):
-                        param = arith.SIToFPOp(self.getFloatType(),
-                                               param).result
-                    elif not F64Type.isinstance(param.type):
-                        self.emitFatalError(
-                            'rotational parameter must be a float, or int.',
-                            node)
                     opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-                    checkControlAndTargetTypes(controls, [target])
-                    opCtor([], [param], controls, [target])
+                                    '{}Op'.format(node.func.value.id.title()))
+                    checkControlAndTargetTypes(controls, [targetA, targetB])
+                    opCtor([], [], controls, [targetA, targetB])
                     return
 
-                if node.func.attr == 'adj':
-                    target = self.popValue()
-                    param = self.popValue()
-                    if IntegerType.isinstance(param.type):
-                        param = arith.SIToFPOp(self.getFloatType(),
-                                               param).result
-                    elif not F64Type.isinstance(param.type):
-                        self.emitFatalError(
-                            'rotational parameter must be a float, or int.',
-                            node)
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-                    checkControlAndTargetTypes([], [target])
-                    if quake.VeqType.isinstance(target.type):
-
-                        def bodyBuilder(iterVal):
-                            q = quake.ExtractRefOp(self.getRefType(),
-                                                   target,
-                                                   -1,
-                                                   index=iterVal).result
-                            opCtor([], [param], [], [q], is_adj=True)
-
-                        veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                  target).result
-                        self.createInvariantForLoop(veqSize, bodyBuilder)
-                        return
-                    elif quake.RefType.isinstance(target.type):
-                        opCtor([], [param], [], [target], is_adj=True)
-                        return
-                    else:
-                        self.emitFatalError(
-                            'adj quantum operation on incorrect type {}.'.
-                            format(target.type), node)
-
-                self.emitFatalError(
-                    f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
-                )
-
-            if node.func.value.id == 'u3':
-                numValues = len(self.valueStack)
-                target = self.popValue()
-                other_args = [self.popValue() for _ in range(numValues - 1)]
-
-                opCtor = getattr(quake,
-                                 '{}Op'.format(node.func.value.id.title()))
-
-                if node.func.attr == 'ctrl':
-                    controls = other_args[:-3]
-                    if not controls:
-                        self.emitFatalError(
-                            'controlled operation requested without any control argument(s).',
-                            node)
-                    params = other_args[-3:]
-                    params.reverse()
-                    for idx, val in enumerate(params):
-                        if IntegerType.isinstance(val.type):
-                            params[idx] = arith.SIToFPOp(
-                                self.getFloatType(), val).result
-                        elif not F64Type.isinstance(val.type):
+                if self.__isRotationGate(node.func.value.id):
+                    if node.func.attr == 'ctrl':
+                        target = self.popValue()
+                        controls = [
+                            self.popValue() for i in range(len(self.valueStack))
+                        ]
+                        param = controls[-1]
+                        controls = controls[:-1]
+                        if not controls:
+                            self.emitFatalError(
+                                'controlled operation requested without any control argument(s).',
+                                node)
+                        if IntegerType.isinstance(param.type):
+                            param = arith.SIToFPOp(self.getFloatType(),
+                                                param).result
+                        elif not F64Type.isinstance(param.type):
                             self.emitFatalError(
                                 'rotational parameter must be a float, or int.',
                                 node)
-                    negatedControlQubits = None
-                    if len(self.controlNegations):
-                        negCtrlBools = [None] * len(controls)
-                        for i, c in enumerate(controls):
-                            negCtrlBools[i] = c in self.controlNegations
-                        negatedControlQubits = DenseBoolArrayAttr.get(
-                            negCtrlBools)
-                        self.controlNegations.clear()
+                        opCtor = getattr(quake,
+                                        '{}Op'.format(node.func.value.id.title()))
+                        checkControlAndTargetTypes(controls, [target])
+                        opCtor([], [param], controls, [target])
+                        return
 
-                    checkControlAndTargetTypes(controls, [target])
-                    opCtor([],
-                           params,
-                           controls, [target],
-                           negated_qubit_controls=negatedControlQubits)
-                    return
-
-                if node.func.attr == 'adj':
-                    params = other_args
-                    params.reverse()
-                    for idx, val in enumerate(params):
-                        if IntegerType.isinstance(val.type):
-                            params[idx] = arith.SIToFPOp(
-                                self.getFloatType(), val).result
-                        elif not F64Type.isinstance(val.type):
+                    if node.func.attr == 'adj':
+                        target = self.popValue()
+                        param = self.popValue()
+                        if IntegerType.isinstance(param.type):
+                            param = arith.SIToFPOp(self.getFloatType(),
+                                                param).result
+                        elif not F64Type.isinstance(param.type):
                             self.emitFatalError(
                                 'rotational parameter must be a float, or int.',
                                 node)
+                        opCtor = getattr(quake,
+                                        '{}Op'.format(node.func.value.id.title()))
+                        checkControlAndTargetTypes([], [target])
+                        if quake.VeqType.isinstance(target.type):
 
-                    checkControlAndTargetTypes([], [target])
-                    if quake.VeqType.isinstance(target.type):
+                            def bodyBuilder(iterVal):
+                                q = quake.ExtractRefOp(self.getRefType(),
+                                                    target,
+                                                    -1,
+                                                    index=iterVal).result
+                                opCtor([], [param], [], [q], is_adj=True)
 
-                        def bodyBuilder(iterVal):
-                            q = quake.ExtractRefOp(self.getRefType(),
-                                                   target,
-                                                   -1,
-                                                   index=iterVal).result
-                            opCtor([], params, [], [q], is_adj=True)
+                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                    target).result
+                            self.createInvariantForLoop(veqSize, bodyBuilder)
+                            return
+                        elif quake.RefType.isinstance(target.type):
+                            opCtor([], [param], [], [target], is_adj=True)
+                            return
+                        else:
+                            self.emitFatalError(
+                                'adj quantum operation on incorrect type {}.'.
+                                format(target.type), node)
 
-                        veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                  target).result
-                        self.createInvariantForLoop(veqSize, bodyBuilder)
-                        return
-                    elif quake.RefType.isinstance(target.type):
-                        opCtor([], params, [], [target], is_adj=True)
-                        return
-                    else:
-                        self.emitFatalError(
-                            'adj quantum operation on incorrect type {}.'.
-                            format(target.type), node)
-
-            # custom `ctrl` and `adj`
-            if node.func.value.id in globalRegisteredOperations:
-                if not node.func.attr == 'ctrl' and not node.func.attr == 'adj':
                     self.emitFatalError(
-                        f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
+                        f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                     )
 
-                unitary = globalRegisteredOperations[node.func.value.id]
-                numTargets = int(np.log2(np.sqrt(unitary.size)))
-                numValues = len(self.valueStack)
-                targets = [self.popValue() for _ in range(numTargets)]
-                targets.reverse()
+                if node.func.value.id == 'u3':
+                    numValues = len(self.valueStack)
+                    target = self.popValue()
+                    other_args = [self.popValue() for _ in range(numValues - 1)]
 
-                for i, t in enumerate(targets):
-                    if not quake.RefType.isinstance(t.type):
+                    opCtor = getattr(quake,
+                                    '{}Op'.format(node.func.value.id.title()))
+
+                    if node.func.attr == 'ctrl':
+                        controls = other_args[:-3]
+                        if not controls:
+                            self.emitFatalError(
+                                'controlled operation requested without any control argument(s).',
+                                node)
+                        params = other_args[-3:]
+                        params.reverse()
+                        for idx, val in enumerate(params):
+                            if IntegerType.isinstance(val.type):
+                                params[idx] = arith.SIToFPOp(
+                                    self.getFloatType(), val).result
+                            elif not F64Type.isinstance(val.type):
+                                self.emitFatalError(
+                                    'rotational parameter must be a float, or int.',
+                                    node)
+                        negatedControlQubits = None
+                        if len(self.controlNegations):
+                            negCtrlBools = [None] * len(controls)
+                            for i, c in enumerate(controls):
+                                negCtrlBools[i] = c in self.controlNegations
+                            negatedControlQubits = DenseBoolArrayAttr.get(
+                                negCtrlBools)
+                            self.controlNegations.clear()
+
+                        checkControlAndTargetTypes(controls, [target])
+                        opCtor([],
+                            params,
+                            controls, [target],
+                            negated_qubit_controls=negatedControlQubits)
+                        return
+
+                    if node.func.attr == 'adj':
+                        params = other_args
+                        params.reverse()
+                        for idx, val in enumerate(params):
+                            if IntegerType.isinstance(val.type):
+                                params[idx] = arith.SIToFPOp(
+                                    self.getFloatType(), val).result
+                            elif not F64Type.isinstance(val.type):
+                                self.emitFatalError(
+                                    'rotational parameter must be a float, or int.',
+                                    node)
+
+                        checkControlAndTargetTypes([], [target])
+                        if quake.VeqType.isinstance(target.type):
+
+                            def bodyBuilder(iterVal):
+                                q = quake.ExtractRefOp(self.getRefType(),
+                                                    target,
+                                                    -1,
+                                                    index=iterVal).result
+                                opCtor([], params, [], [q], is_adj=True)
+
+                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                    target).result
+                            self.createInvariantForLoop(veqSize, bodyBuilder)
+                            return
+                        elif quake.RefType.isinstance(target.type):
+                            opCtor([], params, [], [target], is_adj=True)
+                            return
+                        else:
+                            self.emitFatalError(
+                                'adj quantum operation on incorrect type {}.'.
+                                format(target.type), node)
+
+                # custom `ctrl` and `adj`
+                if node.func.value.id in globalRegisteredOperations:
+                    if not node.func.attr == 'ctrl' and not node.func.attr == 'adj':
                         self.emitFatalError(
-                            f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                            f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
                         )
 
-                globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
+                    unitary = globalRegisteredOperations[node.func.value.id]
+                    numTargets = int(np.log2(np.sqrt(unitary.size)))
+                    numValues = len(self.valueStack)
+                    targets = [self.popValue() for _ in range(numTargets)]
+                    targets.reverse()
 
-                currentST = SymbolTable(self.module.operation)
-                if not globalName in currentST:
-                    with InsertionPoint(self.module.body):
-                        gen_vector_of_complex_constant(self.loc, self.module,
-                                                       globalName,
-                                                       unitary.tolist())
+                    for i, t in enumerate(targets):
+                        if not quake.RefType.isinstance(t.type):
+                            self.emitFatalError(
+                                f'invalid target operand {i}, broadcasting is not supported on custom operations.'
+                            )
 
-                negatedControlQubits = None
-                controls = []
-                is_adj = False
+                    globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
 
-                if node.func.attr == 'ctrl':
-                    controls = [
-                        self.popValue() for _ in range(numValues - numTargets)
-                    ]
-                    if not controls:
-                        self.emitFatalError(
-                            'controlled operation requested without any control argument(s).',
-                            node)
+                    currentST = SymbolTable(self.module.operation)
+                    if not globalName in currentST:
+                        with InsertionPoint(self.module.body):
+                            gen_vector_of_complex_constant(self.loc, self.module,
+                                                        globalName,
+                                                        unitary.tolist())
+
                     negatedControlQubits = None
-                    if len(self.controlNegations):
-                        negCtrlBools = [None] * len(controls)
-                        for i, c in enumerate(controls):
-                            negCtrlBools[i] = c in self.controlNegations
-                        negatedControlQubits = DenseBoolArrayAttr.get(
-                            negCtrlBools)
-                        self.controlNegations.clear()
-                if node.func.attr == 'adj':
-                    is_adj = True
+                    controls = []
+                    is_adj = False
 
-                checkControlAndTargetTypes(controls, targets)
-                quake.CustomUnitarySymbolOp(
-                    [],
-                    generator=FlatSymbolRefAttr.get(globalName),
-                    parameters=[],
-                    controls=controls,
-                    targets=targets,
-                    is_adj=is_adj,
-                    negated_qubit_controls=negatedControlQubits)
-                return
+                    if node.func.attr == 'ctrl':
+                        controls = [
+                            self.popValue() for _ in range(numValues - numTargets)
+                        ]
+                        if not controls:
+                            self.emitFatalError(
+                                'controlled operation requested without any control argument(s).',
+                                node)
+                        negatedControlQubits = None
+                        if len(self.controlNegations):
+                            negCtrlBools = [None] * len(controls)
+                            for i, c in enumerate(controls):
+                                negCtrlBools[i] = c in self.controlNegations
+                            negatedControlQubits = DenseBoolArrayAttr.get(
+                                negCtrlBools)
+                            self.controlNegations.clear()
+                    if node.func.attr == 'adj':
+                        is_adj = True
 
-            self.emitFatalError(
-                f"Invalid function call - '{node.func.value.id}' is unknown.")
+                    checkControlAndTargetTypes(controls, targets)
+                    quake.CustomUnitarySymbolOp(
+                        [],
+                        generator=FlatSymbolRefAttr.get(globalName),
+                        parameters=[],
+                        controls=controls,
+                        targets=targets,
+                        is_adj=is_adj,
+                        negated_qubit_controls=negatedControlQubits)
+                    return
+
+        self.emitFatalError(
+            f"Invalid function call - '{node.func.value.id}' is unknown.")
 
     def visit_ListComp(self, node):
         """
