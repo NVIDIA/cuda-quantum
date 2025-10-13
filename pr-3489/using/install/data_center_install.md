@@ -1,9 +1,9 @@
-::: {.wy-grid-for-nav}
-::: {.wy-side-scroll}
+::: wy-grid-for-nav
+::: wy-side-scroll
 ::: {.wy-side-nav-search style="background: #76b900"}
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
-::: {.version}
+::: version
 pr-3489
 :::
 
@@ -140,13 +140,13 @@ pr-3489
         -   [From CPU to
             GPU](../examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
-        -   [Pooling the memory of multiple GPUs (`mgpu`{.code .docutils
-            .literal
-            .notranslate})](../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
-            .internal}
-        -   [Parallel execution over multiple QPUs (`mqpu`{.code
+        -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate})](../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .internal}
+        -   [Parallel execution over multiple QPUs ([`mqpu`{.code
+            .docutils .literal
+            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
                 Terms](../examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
@@ -154,9 +154,9 @@ pr-3489
             -   [Circuit
                 Batching](../examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends (`remote-mqpu`{.code .docutils
+        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate})](../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -240,11 +240,11 @@ pr-3489
                 Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Section 2 - Simulating open quantum systems with the
-                `collapse_operators`{.docutils .literal
-                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
             -   [Exercise 2 - Adding additional jump operators
-                [\\(L\_i\\)]{.math .notranslate
+                [\\(L_i\\)]{.math .notranslate
                 .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
                 .internal}
             -   [Section 3 - Many qubits coupled to the
@@ -326,7 +326,7 @@ pr-3489
         -   [CUDA-Q
             Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
-    -   [Multi-reference Quantum Krylov Algorithm - [\\(H\_2\\)]{.math
+    -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
         .internal}
@@ -399,8 +399,8 @@ pr-3489
         -   [Numerical result as a
             reference:](../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
-        -   [Using `Sample`{.docutils .literal .notranslate} to perform
-            the Hadamard
+        -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
+            perform the Hadamard
             test](../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
@@ -417,8 +417,8 @@ pr-3489
             with
             CUDA-QX](../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
-        -   [Constructing circuits in the `[[4,2,2]]`{.docutils .literal
-            .notranslate}
+        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
+            .literal .notranslate}]{.pre}
             encoding](../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
@@ -453,8 +453,10 @@ pr-3489
             -   [2. Hamiltonian
                 Trotterization](../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
-            -   [3. `Compute overlap`{.docutils .literal
-                .notranslate}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
+            -   [3. [`Compute`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`overlap`{.docutils .literal
+                .notranslate}]{.pre}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
                 Hamiltonian](../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
@@ -619,14 +621,14 @@ pr-3489
         -   [Simulation
             input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
             .internal}
-        -   [The problem Hamiltonian [\\(H\_C\\)]{.math .notranslate
+        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
             graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
-        -   [Th operator pool [\\(A\_j\\)]{.math .notranslate
+        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
             .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
-        -   [The commutator [\\(\[H\_C,A\_j\]\\)]{.math .notranslate
+        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
             .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
@@ -651,7 +653,7 @@ pr-3489
                 excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A\_i\\)]{.math .notranslate
+            [\\(A_i\\)]{.math .notranslate
             .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
@@ -1135,14 +1137,14 @@ pr-3489
             -   [Server Helper
                 Class](../extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [`CMakeLists.txt`{.docutils .literal
-                .notranslate}](../extending/backend.html#cmakelists-txt){.reference
+            -   [[`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
             Configuration](../extending/backend.html#target-configuration){.reference
             .internal}
-            -   [Update Parent `CMakeLists.txt`{.docutils .literal
-                .notranslate}](../extending/backend.html#update-parent-cmakelists-txt){.reference
+            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
         -   [Testing](../extending/backend.html#testing){.reference
             .internal}
@@ -1174,8 +1176,8 @@ pr-3489
     -   [Create a new NVQIR
         Simulator](../extending/nvqir_simulator.html){.reference
         .internal}
-        -   [`CircuitSimulator`{.code .docutils .literal
-            .notranslate}](../extending/nvqir_simulator.html#circuitsimulator){.reference
+        -   [[`CircuitSimulator`{.code .docutils .literal
+            .notranslate}]{.pre}](../extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
             action](../extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
@@ -1198,11 +1200,11 @@ pr-3489
         -   [3. Quantum
             Types](../../specification/cudaq/types.html){.reference
             .internal}
-            -   [3.1. `cudaq::qudit<Levels>`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
+            -   [3.1. [`cudaq::qudit<Levels>`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
                 .internal}
-            -   [3.2. `cudaq::qubit`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qubit){.reference
+            -   [3.2. [`cudaq::qubit`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qubit){.reference
                 .internal}
             -   [3.3. Quantum
                 Containers](../../specification/cudaq/types.html#quantum-containers){.reference
@@ -1210,15 +1212,15 @@ pr-3489
         -   [4. Quantum
             Operators](../../specification/cudaq/operators.html){.reference
             .internal}
-            -   [4.1. `cudaq::spin_op`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
+            -   [4.1. [`cudaq::spin_op`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
                 .internal}
         -   [5. Quantum
             Operations](../../specification/cudaq/operations.html){.reference
             .internal}
-            -   [5.1. Operations on `cudaq::qubit`{.code .docutils
+            -   [5.1. Operations on [`cudaq::qubit`{.code .docutils
                 .literal
-                .notranslate}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
@@ -1244,21 +1246,23 @@ pr-3489
         -   [12. Algorithmic
             Primitives](../../specification/cudaq/algorithmic_primitives.html){.reference
             .internal}
-            -   [12.1. `cudaq::sample`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
+            -   [12.1. [`cudaq::sample`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
                 .internal}
-            -   [12.2. `cudaq::run`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
+            -   [12.2. [`cudaq::run`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
                 .internal}
-            -   [12.3. `cudaq::observe`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
+            -   [12.3. [`cudaq::observe`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
                 .internal}
-            -   [12.4. `cudaq::optimizer`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.4. [`cudaq::optimizer`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
-            -   [12.5. `cudaq::gradient`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.5. [`cudaq::gradient`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
         -   [13. Example
@@ -1318,150 +1322,150 @@ pr-3489
         -   [Program
             Construction](../../api/languages/python_api.html#program-construction){.reference
             .internal}
-            -   [`make_kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
+            -   [[`make_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.make_kernel){.reference
                 .internal}
-            -   [`PyKernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
+            -   [[`PyKernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernel){.reference
                 .internal}
-            -   [`Kernel`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Kernel){.reference
+            -   [[`Kernel`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Kernel){.reference
                 .internal}
-            -   [`PyKernelDecorator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
+            -   [[`PyKernelDecorator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.PyKernelDecorator){.reference
                 .internal}
-            -   [`kernel()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.kernel){.reference
+            -   [[`kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.kernel){.reference
                 .internal}
         -   [Kernel
             Execution](../../api/languages/python_api.html#kernel-execution){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample){.reference
                 .internal}
-            -   [`sample_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.sample_async){.reference
+            -   [[`sample_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.sample_async){.reference
                 .internal}
-            -   [`run()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run){.reference
+            -   [[`run()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run){.reference
                 .internal}
-            -   [`run_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.run_async){.reference
+            -   [[`run_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.run_async){.reference
                 .internal}
-            -   [`observe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe){.reference
+            -   [[`observe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe){.reference
                 .internal}
-            -   [`observe_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.observe_async){.reference
+            -   [[`observe_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.observe_async){.reference
                 .internal}
-            -   [`get_state()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state){.reference
+            -   [[`get_state()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state){.reference
                 .internal}
-            -   [`get_state_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
+            -   [[`get_state_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_state_async){.reference
                 .internal}
-            -   [`vqe()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.vqe){.reference
+            -   [[`vqe()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.vqe){.reference
                 .internal}
-            -   [`draw()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.draw){.reference
+            -   [[`draw()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.draw){.reference
                 .internal}
-            -   [`translate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.translate){.reference
+            -   [[`translate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.translate){.reference
                 .internal}
-            -   [`estimate_resources()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+            -   [[`estimate_resources()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
-            -   [`has_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.has_target){.reference
+            -   [[`has_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
-            -   [`get_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_target){.reference
+            -   [[`get_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_target){.reference
                 .internal}
-            -   [`get_targets()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.get_targets){.reference
+            -   [[`get_targets()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.get_targets){.reference
                 .internal}
-            -   [`set_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_target){.reference
+            -   [[`set_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_target){.reference
                 .internal}
-            -   [`reset_target()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.reset_target){.reference
+            -   [[`reset_target()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.reset_target){.reference
                 .internal}
-            -   [`set_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_noise){.reference
+            -   [[`set_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_noise){.reference
                 .internal}
-            -   [`unset_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
+            -   [[`unset_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unset_noise){.reference
                 .internal}
-            -   [`register_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
+            -   [[`register_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.register_set_target_callback){.reference
                 .internal}
-            -   [`unregister_set_target_callback()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
+            -   [[`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.unregister_set_target_callback){.reference
                 .internal}
-            -   [`cudaq.apply_noise()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
+            -   [[`cudaq.apply_noise()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.cudaq.apply_noise){.reference
                 .internal}
-            -   [`initialize_cudaq()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
+            -   [[`initialize_cudaq()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.initialize_cudaq){.reference
                 .internal}
-            -   [`num_available_gpus()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
+            -   [[`num_available_gpus()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.num_available_gpus){.reference
                 .internal}
-            -   [`set_random_seed()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
+            -   [[`set_random_seed()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.set_random_seed){.reference
                 .internal}
         -   [Dynamics](../../api/languages/python_api.html#dynamics){.reference
             .internal}
-            -   [`evolve()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve){.reference
+            -   [[`evolve()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve){.reference
                 .internal}
-            -   [`evolve_async()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
+            -   [[`evolve_async()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.evolve_async){.reference
                 .internal}
-            -   [`Schedule`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Schedule){.reference
+            -   [[`Schedule`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Schedule){.reference
                 .internal}
-            -   [`BaseIntegrator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
+            -   [[`BaseIntegrator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator){.reference
                 .internal}
-            -   [`InitialState`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
+            -   [[`InitialState`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState){.reference
                 .internal}
-            -   [`InitialStateType`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
+            -   [[`InitialStateType`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.InitialStateType){.reference
                 .internal}
-            -   [`IntermediateResultSave`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
+            -   [[`IntermediateResultSave`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.IntermediateResultSave){.reference
                 .internal}
         -   [Operators](../../api/languages/python_api.html#operators){.reference
             .internal}
-            -   [`OperatorSum`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
+            -   [[`OperatorSum`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.OperatorSum){.reference
                 .internal}
-            -   [`ProductOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
+            -   [[`ProductOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ProductOperator){.reference
                 .internal}
-            -   [`ElementaryOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
+            -   [[`ElementaryOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ElementaryOperator){.reference
                 .internal}
-            -   [`ScalarOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
+            -   [[`ScalarOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.ScalarOperator){.reference
                 .internal}
-            -   [`RydbergHamiltonian`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
+            -   [[`RydbergHamiltonian`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian){.reference
                 .internal}
-            -   [`SuperOperator`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
+            -   [[`SuperOperator`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SuperOperator){.reference
                 .internal}
-            -   [`operators.define()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.define){.reference
+            -   [[`operators.define()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.define){.reference
                 .internal}
-            -   [`operators.instantiate()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
+            -   [[`operators.instantiate()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.operators.instantiate){.reference
                 .internal}
             -   [Spin
                 Operators](../../api/languages/python_api.html#spin-operators){.reference
@@ -1478,59 +1482,59 @@ pr-3489
         -   [Data
             Types](../../api/languages/python_api.html#data-types){.reference
             .internal}
-            -   [`SimulationPrecision`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
+            -   [[`SimulationPrecision`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SimulationPrecision){.reference
                 .internal}
-            -   [`Target`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Target){.reference
+            -   [[`Target`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Target){.reference
                 .internal}
-            -   [`State`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.State){.reference
+            -   [[`State`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.State){.reference
                 .internal}
-            -   [`Tensor`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Tensor){.reference
+            -   [[`Tensor`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Tensor){.reference
                 .internal}
-            -   [`QuakeValue`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
+            -   [[`QuakeValue`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.QuakeValue){.reference
                 .internal}
-            -   [`qubit`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qubit){.reference
+            -   [[`qubit`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qubit){.reference
                 .internal}
-            -   [`qreg`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qreg){.reference
+            -   [[`qreg`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qreg){.reference
                 .internal}
-            -   [`qvector`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.qvector){.reference
+            -   [[`qvector`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
                 .internal}
-            -   [`ComplexMatrix`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
+            -   [[`ComplexMatrix`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
                 .internal}
-            -   [`SampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
+            -   [[`SampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.SampleResult){.reference
                 .internal}
-            -   [`AsyncSampleResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
+            -   [[`AsyncSampleResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncSampleResult){.reference
                 .internal}
-            -   [`ObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
+            -   [[`ObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ObserveResult){.reference
                 .internal}
-            -   [`AsyncObserveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
+            -   [[`AsyncObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncObserveResult){.reference
                 .internal}
-            -   [`AsyncStateResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
+            -   [[`AsyncStateResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncStateResult){.reference
                 .internal}
-            -   [`OptimizationResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
+            -   [[`OptimizationResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.OptimizationResult){.reference
                 .internal}
-            -   [`EvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
+            -   [[`EvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.EvolveResult){.reference
                 .internal}
-            -   [`AsyncEvolveResult`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
+            -   [[`AsyncEvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.AsyncEvolveResult){.reference
                 .internal}
-            -   [`Resources`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.Resources){.reference
+            -   [[`Resources`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.Resources){.reference
                 .internal}
             -   [Optimizers](../../api/languages/python_api.html#optimizers){.reference
                 .internal}
@@ -1542,73 +1546,73 @@ pr-3489
         -   [MPI
             Submodule](../../api/languages/python_api.html#mpi-submodule){.reference
             .internal}
-            -   [`initialize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
+            -   [[`initialize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.initialize){.reference
                 .internal}
-            -   [`rank()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
+            -   [[`rank()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.rank){.reference
                 .internal}
-            -   [`num_ranks()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
+            -   [[`num_ranks()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.num_ranks){.reference
                 .internal}
-            -   [`all_gather()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
+            -   [[`all_gather()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.all_gather){.reference
                 .internal}
-            -   [`broadcast()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
+            -   [[`broadcast()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.broadcast){.reference
                 .internal}
-            -   [`is_initialized()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
+            -   [[`is_initialized()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
-            -   [`finalize()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
+            -   [[`finalize()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
         -   [ORCA
             Submodule](../../api/languages/python_api.html#orca-submodule){.reference
             .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.orca.sample){.reference
                 .internal}
     -   [Quantum Operations](../../api/default_ops.html){.reference
         .internal}
         -   [Unitary Operations on
             Qubits](../../api/default_ops.html#unitary-operations-on-qubits){.reference
             .internal}
-            -   [`x`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#x){.reference
+            -   [[`x`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#x){.reference
                 .internal}
-            -   [`y`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#y){.reference
+            -   [[`y`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#y){.reference
                 .internal}
-            -   [`z`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#z){.reference
+            -   [[`z`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#z){.reference
                 .internal}
-            -   [`h`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#h){.reference
+            -   [[`h`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#h){.reference
                 .internal}
-            -   [`r1`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#r1){.reference
+            -   [[`r1`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#r1){.reference
                 .internal}
-            -   [`rx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rx){.reference
+            -   [[`rx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rx){.reference
                 .internal}
-            -   [`ry`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#ry){.reference
+            -   [[`ry`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#ry){.reference
                 .internal}
-            -   [`rz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#rz){.reference
+            -   [[`rz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#rz){.reference
                 .internal}
-            -   [`s`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#s){.reference
+            -   [[`s`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#s){.reference
                 .internal}
-            -   [`t`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#t){.reference
+            -   [[`t`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#t){.reference
                 .internal}
-            -   [`swap`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#swap){.reference
+            -   [[`swap`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#swap){.reference
                 .internal}
-            -   [`u3`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#u3){.reference
+            -   [[`u3`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
@@ -1616,14 +1620,14 @@ pr-3489
         -   [Measurements on
             Qubits](../../api/default_ops.html#measurements-on-qubits){.reference
             .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mz){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mz){.reference
                 .internal}
-            -   [`mx`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#mx){.reference
+            -   [[`mx`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#mx){.reference
                 .internal}
-            -   [`my`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#my){.reference
+            -   [[`my`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#my){.reference
                 .internal}
         -   [User-Defined Custom
             Operations](../../api/default_ops.html#user-defined-custom-operations){.reference
@@ -1631,20 +1635,20 @@ pr-3489
         -   [Photonic Operations on
             Qudits](../../api/default_ops.html#photonic-operations-on-qudits){.reference
             .internal}
-            -   [`create`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#create){.reference
+            -   [[`create`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#create){.reference
                 .internal}
-            -   [`annihilate`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#annihilate){.reference
+            -   [[`annihilate`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#annihilate){.reference
                 .internal}
-            -   [`phase_shift`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#phase-shift){.reference
+            -   [[`phase_shift`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#phase-shift){.reference
                 .internal}
-            -   [`beam_splitter`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#beam-splitter){.reference
+            -   [[`beam_splitter`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#beam-splitter){.reference
                 .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../../api/default_ops.html#id1){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
 :::
@@ -1653,10 +1657,10 @@ pr-3489
 ::: {.section .wy-nav-content-wrap toggle="wy-nav-shift"}
 [NVIDIA CUDA-Q](../../index.html)
 
-::: {.wy-nav-content}
-::: {.rst-content}
+::: wy-nav-content
+::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
--   [](../../index.html){.icon .icon-home}
+-   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [Installation Guide](install.html)
 -   Installation from Source
 -   
@@ -1664,9 +1668,10 @@ pr-3489
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](local_installation.html "Local Installation"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](../integration/integration.html "Integration with other Software Tools"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1675,8 +1680,7 @@ aria-hidden="true"}](../integration/integration.html "Integration with other Sof
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
 ::: {#installation-from-source .section}
-Installation from Source[¶](#installation-from-source "Permalink to this heading"){.headerlink}
-===============================================================================================
+# Installation from Source[¶](#installation-from-source "Permalink to this heading"){.headerlink}
 
 In most cases, you should not need to build CUDA-Q from source. For the
 best experience, we recommend using a container runtime to avoid
@@ -1734,8 +1738,7 @@ vector simulator]{.std
 ::: {#prerequisites .section}
 []{#compatibility-prebuilt-binaries}
 
-Prerequisites[¶](#prerequisites "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------
+## Prerequisites[¶](#prerequisites "Permalink to this heading"){.headerlink}
 
 The following pre-requisites need to be satisfied both on the build
 system and on the host system, that is the system where the built CUDA-Q
@@ -1744,16 +1747,16 @@ binaries will be installed and used.
 -   Linux operating system. The instructions in this guide have been
     validated with the [AlmaLinux 8
     image](https://hub.docker.com/u/almalinux){.reference .external}
-    that serves as the base image for the [manylinux\_2\_28
+    that serves as the base image for the [manylinux_2_28
     image](https://github.com/pypa/manylinux){.reference .external}, and
     should work for the operating systems CentOS 8, Debian 11 and 12,
     Fedora 41, OpenSUSE/SLED/SLES 15.5 and 15.6, RHEL 8 and 9, Rocky 8
-    and 9, and Ubuntu 24.04 and 22.04. Other operating systems may work,
-    but have not been tested.
+    and 9, Ubuntu 24.04 and 22.04. Other operating systems may work, but
+    have not been tested.
 
 -   [Bash](https://www.gnu.org/software/bash/){.reference .external}
     shell. The CUDA-Q build, install and run scripts expect to use
-    `/bin/bash`{.code .docutils .literal .notranslate}.
+    [`/bin/bash`{.code .docutils .literal .notranslate}]{.pre}.
 
 -   [GNU C library](https://www.gnu.org/software/libc/){.reference
     .external}. Make sure that the version on the host system is the
@@ -1771,10 +1774,10 @@ binaries will be installed and used.
     .external} 7+. Make sure you have the latest
     [drivers](https://www.nvidia.com/download/index.aspx){.reference
     .external} installed for your GPU, and double check that the driver
-    version listed by the `nvidia-smi`{.code .docutils .literal
-    .notranslate} command is 470.57.02 or newer. You do *not* need to
-    have a GPU available on the build system; the CUDA compiler needed
-    for the build can be installed and used without a GPU.
+    version listed by the [`nvidia-smi`{.code .docutils .literal
+    .notranslate}]{.pre} command is 470.57.02 or newer. You do *not*
+    need to have a GPU available on the build system; the CUDA compiler
+    needed for the build can be installed and used without a GPU.
 
 We strongly recommend using a virtual environment for the build that
 includes *only* the tools and dependencies listed in this guide. If you
@@ -1783,8 +1786,7 @@ build is linking against the correct libraries and versions.
 :::
 
 ::: {#build-dependencies .section}
-Build Dependencies[¶](#build-dependencies "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------
+## Build Dependencies[¶](#build-dependencies "Permalink to this heading"){.headerlink}
 
 In addition to the prerequisites listed above, you will need to install
 the following prerequisites in your build environment prior to
@@ -1797,12 +1799,13 @@ proceeding with the build as described in the subsequent sections:
     for some of the LLVM build scripts and the Python version used for
     the build does not have to match the version on the host system.
 
--   Common tools: `wget`{.code .docutils .literal .notranslate},
-    `git`{.code .docutils .literal .notranslate}, `unzip`{.code
-    .docutils .literal .notranslate}. The commands in the rest of this
-    guide assume that these tools are present on the build system, but
-    they can be replaced by other alternatives (such as, for example,
-    manually going to a web page and downloading a file/folder).
+-   Common tools: [`wget`{.code .docutils .literal .notranslate}]{.pre},
+    [`git`{.code .docutils .literal .notranslate}]{.pre}, [`unzip`{.code
+    .docutils .literal .notranslate}]{.pre}. The commands in the rest of
+    this guide assume that these tools are present on the build system,
+    but they can be replaced by other alternatives (such as, for
+    example, manually going to a web page and downloading a
+    file/folder).
 
 The above prerequisites are no longer needed once CUDA-Q is built and do
 not need to be present on the host system.
@@ -1811,8 +1814,8 @@ not need to be present on the host system.
 Note
 
 The CUDA-Q build scripts and the commands listed in the rest of this
-document assume you are using `bash`{.code .docutils .literal
-.notranslate} as the shell for your build.
+document assume you are using [`bash`{.code .docutils .literal
+.notranslate}]{.pre} as the shell for your build.
 :::
 
 In addition to installing the needed build dependencies listed above,
@@ -1820,7 +1823,7 @@ make sure to set the following environment variables prior to
 proceeding:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     export CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
     export CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
     export CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
@@ -1844,23 +1847,25 @@ working on making this more flexible in the future.
 ::: {.admonition .note}
 Note
 
-Please do **not** set `LLVM_INSTALL_PREFIX`{.code .docutils .literal
-.notranslate} to an existing directory; To avoid compatibility issues,
-it is important to use the same compiler to build the LLVM/MLIR
+Please do **not** set [`LLVM_INSTALL_PREFIX`{.code .docutils .literal
+.notranslate}]{.pre} to an existing directory; To avoid compatibility
+issues, it is important to use the same compiler to build the LLVM/MLIR
 dependencies from source as is later used to build CUDA-Q itself.
 :::
 
 ::: {.admonition .note}
 Note
 
-If you are setting the `CURL_INSTALL_PREFIX`{.code .docutils .literal
-.notranslate} variable to an existing CURL installation (not
-recommended), please make sure the command `curl --version`{.code
-.docutils .literal .notranslate} lists HTTP and HTTPS as supported
-protocols. If these protocols are not listed, please instead set the
-`CURL_INSTALL_PREFIX`{.code .docutils .literal .notranslate} variable to
-a path that does *not* exist. In that case, a suitable library will be
-automatically built from source as part of building CUDA-Q.
+If you are setting the [`CURL_INSTALL_PREFIX`{.code .docutils .literal
+.notranslate}]{.pre} variable to an existing CURL installation (not
+recommended), please make sure the command [`curl`{.code .docutils
+.literal .notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`--version`{.code .docutils .literal .notranslate}]{.pre}
+lists HTTP and HTTPS as supported protocols. If these protocols are not
+listed, please instead set the [`CURL_INSTALL_PREFIX`{.code .docutils
+.literal .notranslate}]{.pre} variable to a path that does *not* exist.
+In that case, a suitable library will be automatically built from source
+as part of building CUDA-Q.
 :::
 
 If you deviate from the instructions below for installing one of the
@@ -1873,7 +1878,7 @@ you set for the corresponding environment variable(s).
 
 Building CUDA-Q requires a full installation of the CUDA toolkit. **You
 can install the CUDA toolkit and use the CUDA compiler without having a
-GPU.** The instructions are tested using version 11.8 and 12.0, but
+GPU.** The instructions are tested using version 11.8 and 12.6, but
 other CUDA 11 or 12 versions should work, as long as the CUDA runtime
 version on the host system matches the CUDA version used for the build,
 and the installed driver on the host system supports that CUDA version.
@@ -1886,11 +1891,11 @@ version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
 online documentation linked on that page.
 
 Within the tested AlmaLinux 8 environment, for example, the following
-commands install CUDA 12.0:
+commands install CUDA 12.6:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
-    CUDA_VERSION=${CUDA_VERSION:-12.0}
+::: highlight
+    CUDA_VERSION=${CUDA_VERSION:-12.6}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -1899,6 +1904,9 @@ commands install CUDA 12.0:
     dnf config-manager --add-repo "${CUDA_DOWNLOAD_URL}/${DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${DISTRIBUTION}.repo"
     dnf install -y --nobest --setopt=install_weak_deps=False \
         cuda-toolkit-$(echo ${CUDA_VERSION} | tr . -)
+    # custatevec is now linked to `libnvidia-ml.so.1`, which is provided in the NVIDIA driver.
+    # For build on non-GPU systems, we also need to install the driver. 
+    dnf install -y --nobest --setopt=install_weak_deps=False nvidia-driver-libs    
 :::
 :::
 :::
@@ -1917,7 +1925,7 @@ Within the tested AlmaLinux 8 environment, for example, the following
 commands install GCC 11:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     GCC_VERSION=${GCC_VERSION:-11}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
@@ -1935,7 +1943,7 @@ environment variables to point to the respective compilers on your build
 system:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
     export CXX="${GCC_TOOLCHAIN}/bin/g++"
     export CC="${GCC_TOOLCHAIN}/bin/gcc"
@@ -1944,22 +1952,21 @@ system:
 :::
 :::
 
--   The variables `CC`{.code .docutils .literal .notranslate} and
-    `CXX`{.code .docutils .literal .notranslate} *must* be set for the
-    CUDA-Q build.
+-   The variables [`CC`{.code .docutils .literal .notranslate}]{.pre}
+    and [`CXX`{.code .docutils .literal .notranslate}]{.pre} *must* be
+    set for the CUDA-Q build.
 
--   To use GPU-acceleration in CUDA-Q, make sure to set `CUDACXX`{.code
-    .docutils .literal .notranslate} to your CUDA compiler, and
-    `CUDAHOSTCXX`{.code .docutils .literal .notranslate} to the CUDA
-    compatible host compiler you are using. If the CUDA compiler is not
-    found when building CUDA-Q, some components and backends will be
+-   To use GPU-acceleration in CUDA-Q, make sure to set [`CUDACXX`{.code
+    .docutils .literal .notranslate}]{.pre} to your CUDA compiler, and
+    [`CUDAHOSTCXX`{.code .docutils .literal .notranslate}]{.pre} to the
+    CUDA compatible host compiler you are using. If the CUDA compiler is
+    not found when building CUDA-Q, some components and backends will be
     omitted automatically during the build.
 :::
 :::
 
 ::: {#building-cuda-q .section}
-Building CUDA-Q[¶](#building-cuda-q "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------
+## Building CUDA-Q[¶](#building-cuda-q "Permalink to this heading"){.headerlink}
 
 This installation guide has been written for a specific version/commit
 of CUDA-Q. Make sure to obtain the source code for that version. Clone
@@ -1973,11 +1980,12 @@ will not work.
 Please follow the instructions in the respective subsection(s) to build
 the necessary components for using CUDA-Q from C++ and/or Python. After
 the build, check that the GPU-accelerated components have been built by
-confirming that the file `nvidia.config`{.code .docutils .literal
-.notranslate} exists in the `$CUDAQ_INSTALL_PREFIX/targets`{.code
-.docutils .literal .notranslate} folder. We also recommend checking the
-build log printed to the console to confirm that all desired components
-have been built.
+confirming that the file [`nvidia.config`{.code .docutils .literal
+.notranslate}]{.pre} exists in the
+[`$CUDAQ_INSTALL_PREFIX/targets`{.code .docutils .literal
+.notranslate}]{.pre} folder. We also recommend checking the build log
+printed to the console to confirm that all desired components have been
+built.
 
 ::: {.admonition .note}
 Note
@@ -1995,58 +2003,71 @@ described in this document.
 ::: {#python-support .section}
 []{#cudaq-python-from-source}
 
-Python Support[¶](#python-support "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------
+## Python Support[¶](#python-support "Permalink to this heading"){.headerlink}
 
 The most convenient way to enable Python support within CUDA-Q is to
 build a [wheel](https://pythonwheels.com/){.reference .external} that
-can then easily be installed using `pip`{.code .docutils .literal
-.notranslate}. To ensure the wheel can be installed on the host system,
-make sure to use the same Python version for the build as the one that
-is installed on the host system. To build a CUDA-Q Python wheel, you
-will need to install the following additional Python-specific tools:
+can then easily be installed using [`pip`{.code .docutils .literal
+.notranslate}]{.pre}. To ensure the wheel can be installed on the host
+system, make sure to use the same Python version for the build as the
+one that is installed on the host system. To build a CUDA-Q Python
+wheel, you will need to install the following additional Python-specific
+tools:
 
 -   Python development headers: The development headers for your Python
     version are installed in the way as you installed Python itself. If
     you installed Python via the package manager for your system, you
     may need to install an additional package to get the development
     headers. The package name is usually your python version followed by
-    either a `-dev`{.code .docutils .literal .notranslate} or
-    `-devel`{.code .docutils .literal .notranslate} suffix. If you are
-    using a [Conda
+    either a [`-dev`{.code .docutils .literal .notranslate}]{.pre} or
+    [`-devel`{.code .docutils .literal .notranslate}]{.pre} suffix. If
+    you are using a [Conda
     environment](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-python.html){.reference
     .external}, the necessary headers should already be installed.
 
--   Pip package manager: Make sure the `pip`{.code .docutils .literal
-    .notranslate} module is enable for your Python version, and that
-    your `pip`{.code .docutils .literal .notranslate} version is 24 or
-    newer. We refer to the Python
+-   Pip package manager: Make sure the [`pip`{.code .docutils .literal
+    .notranslate}]{.pre} module is enable for your Python version, and
+    that your [`pip`{.code .docutils .literal .notranslate}]{.pre}
+    version is 24 or newer. We refer to the Python
     [documentation](https://pip.pypa.io/en/stable/installation/){.reference
     .external} for more information about installing/enabling
-    `pip`{.code .docutils .literal .notranslate}.
+    [`pip`{.code .docutils .literal .notranslate}]{.pre}.
 
--   Python modules: Install the additional modules `numpy`{.code
-    .docutils .literal .notranslate}, `build`{.code .docutils .literal
-    .notranslate}, `auditwheel`{.code .docutils .literal .notranslate},
-    and `patchelf`{.code .docutils .literal .notranslate} for your
-    Python version, e.g.
-    `python3 -m pip install numpy build auditwheel patchelf`{.code
-    .docutils .literal .notranslate}.
+-   Python modules: Install the additional modules [`numpy`{.code
+    .docutils .literal .notranslate}]{.pre}, [`build`{.code .docutils
+    .literal .notranslate}]{.pre}, [`auditwheel`{.code .docutils
+    .literal .notranslate}]{.pre}, and [`patchelf`{.code .docutils
+    .literal .notranslate}]{.pre} for your Python version, e.g.
+    [`python3`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+    .docutils .literal .notranslate}[`-m`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`pip`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`install`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`numpy`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`build`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`auditwheel`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`patchelf`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
 ::: {.admonition .note}
 Note
 
 The wheel build by default is configured to depend on CUDA 12. To build
 a wheel for CUDA 11, you need to adjust the dependencies and project
-name in the `pyproject.toml`{.code .docutils .literal .notranslate}
-file.
+name in the [`pyproject.toml`{.code .docutils .literal
+.notranslate}]{.pre} file.
 :::
 
 From within the folder where you cloned the CUDA-Q repository, run the
 following command to build the CUDA-Q Python wheel:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
@@ -2062,8 +2083,8 @@ Note
 A version identifier will be automatically assigned to the wheel based
 on the commit history. You can manually override this detection to give
 a more descriptive identifier by setting the environment variable
-`SETUPTOOLS_SCM_PRETEND_VERSION`{.code .docutils .literal .notranslate}
-to the desired value before building the wheel.
+[`SETUPTOOLS_SCM_PRETEND_VERSION`{.code .docutils .literal
+.notranslate}]{.pre} to the desired value before building the wheel.
 :::
 
 After the initial build,
@@ -2075,7 +2096,7 @@ following the instructions in the next section. The following command
 builds the final wheel, not including CUDA dependencies:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     CUDAQ_WHEEL="$(find . -name 'cuda_quantum*.whl')" && \
     MANYLINUX_PLATFORM="$(echo ${CUDAQ_WHEEL} | grep -o '[a-z]*linux_[^\.]*' | sed -re 's/^linux_/manylinux_2_28_/')" && \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:$(pwd)/_skbuild/lib" \ 
@@ -2097,9 +2118,9 @@ builds the final wheel, not including CUDA dependencies:
 :::
 :::
 
-The command above will create a new wheel in the `wheelhouse`{.code
-.docutils .literal .notranslate} folder. This wheel can be installed on
-any [compatible
+The command above will create a new wheel in the [`wheelhouse`{.code
+.docutils .literal .notranslate}]{.pre} folder. This wheel can be
+installed on any [compatible
 platform](https://packaging.python.org/en/latest/specifications/platform-compatibility-tags/){.reference
 .external}.
 
@@ -2108,9 +2129,16 @@ Note
 
 You can confirm that the wheel is indeed compatible with your host
 platform by checking that the wheel tag (i.e. the file name ending of
-the `.whl`{.code .docutils .literal .notranslate} file) is listed under
-"Compatible Tags" when running the command
-`python3 -m pip debug --verbose`{.code .docutils .literal .notranslate}
+the [`.whl`{.code .docutils .literal .notranslate}]{.pre} file) is
+listed under "Compatible Tags" when running the command [`python3`{.code
+.docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`-m`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`pip`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`debug`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`--verbose`{.code .docutils .literal .notranslate}]{.pre}
 on the host.
 :::
 :::
@@ -2118,14 +2146,13 @@ on the host.
 ::: {#c-support .section}
 []{#cudaq-cpp-from-source}
 
-C++ Support[¶](#c-support "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------
+## C++ Support[¶](#c-support "Permalink to this heading"){.headerlink}
 
 From within the folder where you cloned the CUDA-Q repository, run the
 following command to build CUDA-Q:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     CUDAQ_ENABLE_STATIC_LINKING=TRUE \
     CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
@@ -2135,10 +2162,10 @@ following command to build CUDA-Q:
 :::
 :::
 
-Note that `lld`{.code .docutils .literal .notranslate} is primarily
-needed when the build or host system does not already have an existing
-default linker on its path; CUDA-Q supports the same linkers as
-`clang`{.code .docutils .literal .notranslate} does.
+Note that [`lld`{.code .docutils .literal .notranslate}]{.pre} is
+primarily needed when the build or host system does not already have an
+existing default linker on its path; CUDA-Q supports the same linkers as
+[`clang`{.code .docutils .literal .notranslate}]{.pre} does.
 
 To easily migrate the built binaries to the host system, we recommend
 creating a [self-extracting archive](https://makeself.io/){.reference
@@ -2148,7 +2175,7 @@ and move the necessary files to install into a separate folder using the
 command
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     mkdir -p cuda_quantum_assets/llvm/bin && \
     mkdir -p cuda_quantum_assets/llvm/lib && \
     mkdir -p cuda_quantum_assets/llvm/include && \
@@ -2169,7 +2196,7 @@ command
 You can then create a self-extracting archive with the command
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     ./makeself.sh --gzip --sha256 --license cuda_quantum_assets/cudaq/LICENSE \
         cuda_quantum_assets install_cuda_quantum.$(uname -m) \
         "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
@@ -2179,34 +2206,34 @@ You can then create a self-extracting archive with the command
 :::
 
 ::: {#installation-on-the-host .section}
-Installation on the Host[¶](#installation-on-the-host "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------------------
+## Installation on the Host[¶](#installation-on-the-host "Permalink to this heading"){.headerlink}
 
 Make sure your host system satisfies the
 [Prerequisites](#prerequisites){.reference .internal} listed above.
 
 -   To use CUDA-Q with Python, you should have a working Python
-    installation on the host system, including the `pip`{.code .docutils
-    .literal .notranslate} package manager.
+    installation on the host system, including the [`pip`{.code
+    .docutils .literal .notranslate}]{.pre} package manager.
 
 -   To use CUDA-Q with C++, you should make sure that you have the
     necessary development headers of the C standard library installed.
-    You can check this by searching for `features.h`{.code .docutils
-    .literal .notranslate}, commonly found in `/usr/include/`{.code
-    .docutils .literal .notranslate}. You can install the necessary
-    headers via package manager (usually the package name is called
-    something like `glibc-devel`{.code .docutils .literal .notranslate}
-    or `libc6-devel`{.code .docutils .literal .notranslate}). These
-    headers are also included with any installation of GCC.
+    You can check this by searching for [`features.h`{.code .docutils
+    .literal .notranslate}]{.pre}, commonly found in
+    [`/usr/include/`{.code .docutils .literal .notranslate}]{.pre}. You
+    can install the necessary headers via package manager (usually the
+    package name is called something like [`glibc-devel`{.code .docutils
+    .literal .notranslate}]{.pre} or [`libc6-devel`{.code .docutils
+    .literal .notranslate}]{.pre}). These headers are also included with
+    any installation of GCC.
 
 If you followed the instructions for building the [[CUDA-Q Python
 wheel]{.std .std-ref}](#cudaq-python-from-source){.reference .internal},
-copy the built `.whl`{.code .docutils .literal .notranslate} file to the
-host system, and install it using `pip`{.code .docutils .literal
-.notranslate}; e.g.
+copy the built [`.whl`{.code .docutils .literal .notranslate}]{.pre}
+file to the host system, and install it using [`pip`{.code .docutils
+.literal .notranslate}]{.pre}; e.g.
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     pip install cuda_quantum*.whl
 :::
 :::
@@ -2214,34 +2241,37 @@ host system, and install it using `pip`{.code .docutils .literal
 To install the necessary CUDA and MPI dependencies for some of the
 components, you can either follow the instructions on
 [PyPI.org](https://pypi.org/project/cudaq/){.reference .external},
-replacing `pip install cudaq`{.code .docutils .literal .notranslate}
-with the command above, or you can follow the instructions in the
-remaining sections of this document to customize and better optimize
-them for your host system.
+replacing [`pip`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+.docutils .literal .notranslate}[`install`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`cudaq`{.code .docutils .literal .notranslate}]{.pre} with
+the command above, or you can follow the instructions in the remaining
+sections of this document to customize and better optimize them for your
+host system.
 
 If you followed the instructions for building the [[CUDA-Q C++
 tools]{.std .std-ref}](#cudaq-cpp-from-source){.reference .internal},
-copy the `install_cuda_quantum`{.code .docutils .literal .notranslate}
-file that you created to the host system, and install it by running the
-commands
+copy the [`install_cuda_quantum`{.code .docutils .literal
+.notranslate}]{.pre} file that you created to the host system, and
+install it by running the commands
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     sudo bash install_cuda_quantum.$(uname -m) --accept
     . /opt/nvidia/cudaq/set_env.sh
 :::
 :::
 
 This will extract the built assets and move them to the correct
-locations. The `set_env.sh`{.code .docutils .literal .notranslate}
-script in `/opt/nvidia/cudaq`{.code .docutils .literal .notranslate}
-defines the necessary environment variables to use CUDA-Q. To avoid
-having to set them manually every time a new shell is opened, we highly
-recommend adding the following lines to the `/etc/profile`{.code
-.docutils .literal .notranslate} file:
+locations. The [`set_env.sh`{.code .docutils .literal
+.notranslate}]{.pre} script in [`/opt/nvidia/cudaq`{.code .docutils
+.literal .notranslate}]{.pre} defines the necessary environment
+variables to use CUDA-Q. To avoid having to set them manually every time
+a new shell is opened, we highly recommend adding the following lines to
+the [`/etc/profile`{.code .docutils .literal .notranslate}]{.pre} file:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     if [ -f /opt/nvidia/cudaq/set_env.sh ];
       . /opt/nvidia/cudaq/set_env.sh
     fi
@@ -2279,8 +2309,8 @@ libraries, the following commands, for example, install the necessary
 packages for the AlmaLinux 8 environment:
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
-    CUDA_VERSION=${CUDA_VERSION:-12.0}
+::: highlight
+    CUDA_VERSION=${CUDA_VERSION:-12.6}
     CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
     # Go to the url above, set the variables below to a suitable distribution
     # and subfolder for your platform, and uncomment the line below.
@@ -2310,10 +2340,10 @@ To work with all CUDA-Q backends, a CUDA-aware MPI installation is
 required. If you do not have an existing CUDA-aware MPI installation,
 you can build one from source. To do so, in addition to the CUDA runtime
 libraries listed above you will need to install the CUDA runtime
-development package (`cuda-cudart-devel-${version_suffix}`{.code
-.docutils .literal .notranslate} or
-`cuda-cudart-dev-${version_suffix}`{.code .docutils .literal
-.notranslate}, depending on your distribution).
+development package ([`cuda-cudart-devel-${version_suffix}`{.code
+.docutils .literal .notranslate}]{.pre} or
+[`cuda-cudart-dev-${version_suffix}`{.code .docutils .literal
+.notranslate}]{.pre}, depending on your distribution).
 
 The following commands build a sufficient CUDA-aware OpenMPI
 installation. To make best use of MPI, we recommend a more fully
@@ -2321,13 +2351,13 @@ featured installation including additional configurations that fit your
 host system. The commands below assume you have the necessary
 prerequisites for the OpenMPI build installed on the build system.
 Within the tested AlmaLinux 8 environment, for example, the packages
-`autoconf`{.code .docutils .literal .notranslate}, `libtool`{.code
-.docutils .literal .notranslate}, `flex`{.code .docutils .literal
-.notranslate}, and `make`{.code .docutils .literal .notranslate} need to
-be installed.
+[`autoconf`{.code .docutils .literal .notranslate}]{.pre},
+[`libtool`{.code .docutils .literal .notranslate}]{.pre}, [`flex`{.code
+.docutils .literal .notranslate}]{.pre}, and [`make`{.code .docutils
+.literal .notranslate}]{.pre} need to be installed.
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     OPENMPI_VERSION=4.1.4
     OPENMPI_DOWNLOAD_URL=https://github.com/open-mpi/ompi
 
@@ -2353,7 +2383,7 @@ OpenMPI and MPICH, for example, this can be done by compiling and
 running the following program:
 
 ::: {.highlight-cpp .notranslate}
-::: {.highlight}
+::: highlight
     // Compile and run with:
     // ```
     // mpic++ mpi_cuda_check.cpp -o check.x && mpiexec -np 1 ./check.x
@@ -2385,13 +2415,14 @@ running the following program:
 Note
 
 If you are encountering an error similar to "The value of the MCA
-parameter `plm_rsh_agent`{.code .docutils .literal .notranslate} was set
-to a path that could not be found", please make sure you have an SSH
-Client installed or update the MCA parameter to another suitable agent.
-MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell){.reference
-.external} or
-[RSH](https://en.wikipedia.org/wiki/Remote_Shell){.reference .external}
-to communicate with each node unless another resource manager, such as
+parameter [`plm_rsh_agent`{.code .docutils .literal .notranslate}]{.pre}
+was set to a path that could not be found", please make sure you have an
+SSH Client installed or update the MCA parameter to another suitable
+agent. MPI uses
+[SSH](https://en.wikipedia.org/wiki/Secure_Shell){.reference .external}
+or [RSH](https://en.wikipedia.org/wiki/Remote_Shell){.reference
+.external} to communicate with each node unless another resource
+manager, such as
 [SLURM](https://slurm.schedmd.com/overview.html){.reference .external},
 is used.
 :::
@@ -2400,12 +2431,12 @@ Different MPI implementations are supported via a plugin infrastructure
 in CUDA-Q. Once you have a CUDA-aware MPI installation on your host
 system, you can configure CUDA-Q to use it by activating the necessary
 plugin. Plugins for OpenMPI and MPICH are included in CUDA-Q and can be
-activated by setting the environment variable `MPI_PATH`{.code .docutils
-.literal .notranslate} to the MPI installation folder and then running
-the command
+activated by setting the environment variable [`MPI_PATH`{.code
+.docutils .literal .notranslate}]{.pre} to the MPI installation folder
+and then running the command
 
 ::: {.highlight-bash .notranslate}
-::: {.highlight}
+::: highlight
     bash "${CUDA_QUANTUM_PATH}/distributed_interfaces/activate_custom_mpi.sh"
 :::
 :::
@@ -2414,9 +2445,13 @@ the command
 Note
 
 To activate the MPI plugin for the Python support, replace
-`${CUDA_QUANTUM_PATH}`{.code .docutils .literal .notranslate} with the
-path that is listed under "Location" when you run the command
-`pip show cuda-quantum`{.code .docutils .literal .notranslate}.
+[`${CUDA_QUANTUM_PATH}`{.code .docutils .literal .notranslate}]{.pre}
+with the path that is listed under "Location" when you run the command
+[`pip`{.code .docutils .literal .notranslate}]{.pre}` `{.code .docutils
+.literal .notranslate}[`show`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`cuda-quantum`{.code .docutils .literal
+.notranslate}]{.pre}.
 :::
 
 If you use a different MPI implementation than OpenMPI or MPICH, you
@@ -2431,9 +2466,10 @@ activating the plugin with the command above.
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](local_installation.html "Local Installation"){.btn
-.btn-neutral .float-left} [Next []{.fa .fa-arrow-circle-right
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](../integration/integration.html "Integration with other Software Tools"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------
