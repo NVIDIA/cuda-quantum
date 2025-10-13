@@ -426,9 +426,16 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      R"#(
   func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
 )#"},
-    {cudaq::opt::QIRBoolRecordOutput, {}, R"#(
-  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
+    {cudaq::opt::QIRBoolRecordOutput, {"__quantum__rt__bool_record_output_host"}, R"#(
+  func.func private @__quantum__rt__bool_record_output(%val : i1, %lab : !cc.ptr<i8>) {
+      %0 = cc.cast signed %val : (i1) -> i8
+      call @__quantum__rt__bool_record_output_host(%0, %lab) : (i8, !cc.ptr<i8>) -> ()
+      return
+  })#"},
+    {"__quantum__rt__bool_record_output_host", {}, R"#(
+  func.func private @__quantum__rt__bool_record_output_host(i8, !cc.ptr<i8>)
 )#"},
+
     {cudaq::opt::QIRDoubleRecordOutput, {}, R"#(
   func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
 )#"},

@@ -295,19 +295,14 @@ def test_comparison_in():
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [False]
 
-    # FIXME: see issue
-    # Clearly, we have a bug somewhere; this works perfectly fine when
-    # compiling in hw emulation mode (were argument and return are 
-    # handled slightly differently), but doesn't produce the correct
-    # output on simulators.
-    '''
     @cudaq.kernel
     def test_float_in_float_list(v: float) -> bool:
         return v in [1.5, 2.5, 3.5]
 
     print(cudaq.run(test_float_in_float_list, 1.5, shots_count=1))
     print(cudaq.run(test_float_in_float_list, 2., shots_count=1))
-    # should be: [True], [False]
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
 
     @cudaq.kernel
     def test_float_not_in_float_list(v: float) -> bool:
@@ -315,7 +310,8 @@ def test_comparison_in():
 
     print(cudaq.run(test_float_not_in_float_list, -1.5, shots_count=1))
     print(cudaq.run(test_float_not_in_float_list, 2.5, shots_count=1))
-    # should be: [True], [False]
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
 
     @cudaq.kernel
     def test_complex_in_float_list(v: complex) -> bool:
@@ -324,7 +320,9 @@ def test_comparison_in():
     print(cudaq.run(test_complex_in_float_list, complex(2, 0.5), shots_count=1))
     print(cudaq.run(test_complex_in_float_list, complex(2, 0.), shots_count=1))
     print(cudaq.run(test_complex_in_float_list, complex(0., 0.5), shots_count=1))
-    # should be: [True], [False], [False]
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
+    # CHECK-LABEL:    [False]
 
     @cudaq.kernel
     def test_complex_not_in_float_list(v: complex) -> bool:
@@ -333,8 +331,9 @@ def test_comparison_in():
     print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.), shots_count=1))
     print(cudaq.run(test_complex_not_in_float_list, complex(0., 0.5), shots_count=1))
     print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.5), shots_count=1))
-    # should be: [True], [True], [False]
-    '''
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
 
 
 def test_comparison_failures():
@@ -530,4 +529,3 @@ def test_comparison_failures():
 # TODO: support tuple comparison + add tests
 # TODO: add tests for negative values...!
 
-test_comparison_failures()
