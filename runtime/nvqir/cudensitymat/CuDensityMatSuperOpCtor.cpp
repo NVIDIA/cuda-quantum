@@ -475,9 +475,9 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           auto cudmElemOp = createElementaryOperator(leftOpComponents,
                                                      parameters, modeExtents);
           elemOps.emplace_back(cudmElemOp);
-          allDegrees.emplace_back(leftOps[0].degrees());
+          allDegrees.emplace_back(leftOps[0][i].degrees());
           all_action_dual_modalities.emplace_back(
-              std::vector<int>(leftOps[0].degrees().size(), 0));
+              std::vector<int>(leftOps[0][i].degrees().size(), 0));
         }
 
         const auto rightNumOps = rightOps[0].num_ops();
@@ -497,9 +497,9 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           auto cudmElemOp = createElementaryOperator(rightOpComponents,
                                                      parameters, modeExtents);
           elemOps.emplace_back(cudmElemOp);
-          allDegrees.emplace_back(rightOps[0].degrees());
+          allDegrees.emplace_back(rightOps[0][i].degrees());
           all_action_dual_modalities.emplace_back(
-              std::vector<int>(rightOps[0].degrees().size(), 1));
+              std::vector<int>(rightOps[0][i].degrees().size(), 1));
         }
 
         for (std::size_t i = 0; i < batchSize; ++i) {

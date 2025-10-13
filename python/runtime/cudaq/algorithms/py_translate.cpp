@@ -66,7 +66,7 @@ path, i.e., the trace, of the provided `kernel`.
 Args:
   format (str): format to translate to, <name[:version]>.
      Available format names: `qir`, `qir-full`, `qir-base`, `qir-adaptive`,
-     `openqasm2`. QIR versions: `0.1` and `0.2`.
+     `openqasm2`. QIR versions: `0.1` and `1.0`.
   kernel (:class:`Kernel`): The :class:`Kernel` to translate.
   *arguments (Optional[Any]): The concrete values to evaluate the kernel
     function at. Leave empty if the kernel doesn't accept any arguments.
