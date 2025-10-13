@@ -45,7 +45,7 @@ RestHeaders QilimanjaroServerHelper::getHeaders() {
   std::map<std::string, std::string> headers{
       {"Authorization", token},
       {"Content-Type", "application/json"},
-      {"User-Agent", "cudaq/0.12.0"},
+      {"User-Agent", "cudaq/0.12.0"},  // TODO: How to get version dynamically?
       {"Connection", "keep-alive"},
       {"Accept", "*/*"}};
 
@@ -55,7 +55,7 @@ RestHeaders QilimanjaroServerHelper::getHeaders() {
 ServerJobPayload
 QilimanjaroServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<ServerMessage> tasks;
-  // TODO: circuitCodes needs to change to the time evolution JSON
+  // TODO: circuitCodes needs to change to the Time Evolution JSON
   for (auto &circuitCode : circuitCodes) {
     ServerMessage message;
     message["device_code"] = backendConfig.at("machine");
@@ -100,7 +100,7 @@ sample_result QilimanjaroServerHelper::processResults(ServerMessage &postJobResp
   
   auto job_result = postJobResponse["result"];
   
-  // TODO: Use EvolveResults instead. Need to change method signature.
+  // TODO: We need a new method signature with EvolveResults instead.
   std::vector<ExecutionResult> results;
 
   return sample_result(results);

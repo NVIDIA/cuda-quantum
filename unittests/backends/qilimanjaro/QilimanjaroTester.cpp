@@ -13,7 +13,7 @@ const std::string sampleTimeEvolutionPayload = R"(
     {
         "type": "time_evolution",
         "payload": {
-            "hamiltonian": {
+            "hamiltonians": {
                 "Hinit": {
                     "X0": 0.8,
                     "X1": 0.6,
