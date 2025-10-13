@@ -8,8 +8,6 @@
 
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
-import os
-import pytest
 import cudaq
 
 def test_comparison_operators_for_integers():
@@ -19,7 +17,7 @@ def test_comparison_operators_for_integers():
         return v1 == v2
 
     print(cudaq.synthesize(test_integer_equal_to, 5, 5))
-    print(cudaq.synthesize(test_integer_equal_to, 3, 5))
+    print(cudaq.synthesize(test_integer_equal_to, 3, -3))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
 
@@ -28,7 +26,7 @@ def test_comparison_operators_for_integers():
         return v1 != v2
 
     print(cudaq.synthesize(test_integer_not_equal_to, 3, 5))
-    print(cudaq.synthesize(test_integer_not_equal_to, 5, 5))
+    print(cudaq.synthesize(test_integer_not_equal_to, -5, -5))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
 
@@ -37,7 +35,7 @@ def test_comparison_operators_for_integers():
         return v1 < v2
 
     print(cudaq.synthesize(test_integer_less_than, 3, 5))
-    print(cudaq.synthesize(test_integer_less_than, 5, 3))
+    print(cudaq.synthesize(test_integer_less_than, 5, -3))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
 
@@ -45,7 +43,7 @@ def test_comparison_operators_for_integers():
     def test_integer_greater_than(v1: int, v2: int) -> bool:
         return v1 > v2
 
-    print(cudaq.synthesize(test_integer_greater_than, 5, 3))
+    print(cudaq.synthesize(test_integer_greater_than, 5, -3))
     print(cudaq.synthesize(test_integer_greater_than, 3, 5))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
@@ -54,7 +52,7 @@ def test_comparison_operators_for_integers():
     def test_integer_less_than_or_equal_to(v1: int, v2: int) -> bool:
         return v1 <= v2
 
-    print(cudaq.synthesize(test_integer_less_than_or_equal_to, 3, 5))
+    print(cudaq.synthesize(test_integer_less_than_or_equal_to, -5, -3))
     print(cudaq.synthesize(test_integer_less_than_or_equal_to, 5, 3))
     print(cudaq.synthesize(test_integer_less_than_or_equal_to, 3, 3))
     # CHECK-LABEL:    %true = arith.constant true
@@ -66,7 +64,7 @@ def test_comparison_operators_for_integers():
         return v1 >= v2
 
     print(cudaq.synthesize(test_integer_greater_than_or_equal_to, 5, 3))
-    print(cudaq.synthesize(test_integer_greater_than_or_equal_to, 3, 5))
+    print(cudaq.synthesize(test_integer_greater_than_or_equal_to, -5, -3))
     print(cudaq.synthesize(test_integer_greater_than_or_equal_to, 3, 3))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
@@ -80,7 +78,7 @@ def test_comparison_operators_for_floats():
         return v1 == v2
 
     print(cudaq.synthesize(test_float_equal_to, 5.2, 5.2))
-    print(cudaq.synthesize(test_float_equal_to, 5.1, 5.2))
+    print(cudaq.synthesize(test_float_equal_to, 5.1, -5.1))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
 
@@ -89,7 +87,7 @@ def test_comparison_operators_for_floats():
         return v1 != v2
 
     print(cudaq.synthesize(test_float_not_equal_to, 5.1, 5.2))
-    print(cudaq.synthesize(test_float_not_equal_to, 5.2, 5.2))
+    print(cudaq.synthesize(test_float_not_equal_to, -5.2, -5.2))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
 
@@ -97,7 +95,7 @@ def test_comparison_operators_for_floats():
     def test_float_less_than(v1: float, v2: float) -> bool:
         return v1 < v2
 
-    print(cudaq.synthesize(test_float_less_than, 5.1, 5.2))
+    print(cudaq.synthesize(test_float_less_than, -5.2, -5.1))
     print(cudaq.synthesize(test_float_less_than, 5.2, 5.1))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
@@ -107,7 +105,7 @@ def test_comparison_operators_for_floats():
         return v1 > v2
 
     print(cudaq.synthesize(test_float_greater_than, 5.2, 5.1))
-    print(cudaq.synthesize(test_float_greater_than, 5.1, 5.2))
+    print(cudaq.synthesize(test_float_greater_than, -5.8, 5.2))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
 
@@ -115,7 +113,7 @@ def test_comparison_operators_for_floats():
     def test_float_less_than_or_equal_to(v1: float, v2: float) -> bool:
         return v1 <= v2
 
-    print(cudaq.synthesize(test_float_less_than_or_equal_to, 5.1, 5.2))
+    print(cudaq.synthesize(test_float_less_than_or_equal_to, -5.1, 5.0))
     print(cudaq.synthesize(test_float_less_than_or_equal_to, 5.2, 5.1))
     print(cudaq.synthesize(test_float_less_than_or_equal_to, 5.1, 5.1))
     # CHECK-LABEL:    %true = arith.constant true
@@ -126,7 +124,7 @@ def test_comparison_operators_for_floats():
     def test_float_greater_than_or_equal_to(v1: float, v2: float) -> bool:
         return v1 >= v2
 
-    print(cudaq.synthesize(test_float_greater_than_or_equal_to, 5.2, 5.1))
+    print(cudaq.synthesize(test_float_greater_than_or_equal_to, 5.0, -5.1))
     print(cudaq.synthesize(test_float_greater_than_or_equal_to, 5.1, 5.2))
     print(cudaq.synthesize(test_float_greater_than_or_equal_to, 5.1, 5.1))
     # CHECK-LABEL:    %true = arith.constant true
@@ -142,7 +140,11 @@ def test_comparison_operators_for_complex():
 
     print(cudaq.synthesize(test_complex_equal_to, complex(1., 0.5), complex(1., 0.5)))
     print(cudaq.synthesize(test_complex_equal_to, complex(1., 2.), complex(1., 2.5)))
+    print(cudaq.synthesize(test_complex_equal_to, complex(1., 0.5), complex(1., -0.5)))
+    print(cudaq.synthesize(test_complex_equal_to, complex(-1., 0.5), complex(1., 0.5)))
     # CHECK-LABEL:    %true = arith.constant true
+    # CHECK-LABEL:    %false = arith.constant false
+    # CHECK-LABEL:    %false = arith.constant false
     # CHECK-LABEL:    %false = arith.constant false
 
     @cudaq.kernel
@@ -151,8 +153,12 @@ def test_comparison_operators_for_complex():
 
     print(cudaq.synthesize(test_complex_not_equal_to, complex(1., 2.), complex(1., 2.5)))
     print(cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5), complex(1., 0.5)))
+    print(cudaq.synthesize(test_complex_not_equal_to, complex(1., -0.5), complex(1., 0.5)))
+    print(cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5), complex(-1., 0.5)))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
+    # CHECK-LABEL:    %true = arith.constant true
+    # CHECK-LABEL:    %true = arith.constant true
 
 
 def test_comparison_operators_for_mixed_types():
@@ -283,15 +289,19 @@ def test_comparison_in():
 
     print(cudaq.run(test_integer_in_int_list, 1, shots_count=1))
     print(cudaq.run(test_integer_in_int_list, 5, shots_count=1))
+    print(cudaq.run(test_integer_in_int_list, -1, shots_count=1))
     # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
     # CHECK-LABEL:    [False]
 
     @cudaq.kernel
     def test_integer_not_in_int_list(v: int) -> bool:
         return v not in [1, 2, 3]
 
+    print(cudaq.run(test_integer_not_in_int_list, 5, shots_count=1))
     print(cudaq.run(test_integer_not_in_int_list, -1, shots_count=1))
     print(cudaq.run(test_integer_not_in_int_list, 1, shots_count=1))
+    # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [False]
 
@@ -301,7 +311,9 @@ def test_comparison_in():
 
     print(cudaq.run(test_float_in_float_list, 1.5, shots_count=1))
     print(cudaq.run(test_float_in_float_list, 2., shots_count=1))
+    print(cudaq.run(test_float_in_float_list, -1.5, shots_count=1))
     # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
     # CHECK-LABEL:    [False]
 
     @cudaq.kernel
@@ -310,30 +322,44 @@ def test_comparison_in():
 
     print(cudaq.run(test_float_not_in_float_list, -1.5, shots_count=1))
     print(cudaq.run(test_float_not_in_float_list, 2.5, shots_count=1))
+    print(cudaq.run(test_float_not_in_float_list, -2.5, shots_count=1))
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [False]
+    # CHECK-LABEL:    [True]
 
     @cudaq.kernel
     def test_complex_in_float_list(v: complex) -> bool:
-        return v in [complex(1, 0.5), complex(2, 0.5)]
+        return v in [complex(-1, 0.5), complex(2, 0.5)]
 
     print(cudaq.run(test_complex_in_float_list, complex(2, 0.5), shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(-1., 0.5), shots_count=1))
     print(cudaq.run(test_complex_in_float_list, complex(2, 0.), shots_count=1))
     print(cudaq.run(test_complex_in_float_list, complex(0., 0.5), shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(2, -0.5), shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(-2, 0.5), shots_count=1))
     # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [False]
+    # CHECK-LABEL:    [False]
     # CHECK-LABEL:    [False]
     # CHECK-LABEL:    [False]
 
     @cudaq.kernel
     def test_complex_not_in_float_list(v: complex) -> bool:
-        return v not in [complex(1, 0.5), complex(2, 0.5)]
+        return v not in [complex(1, -0.5), complex(2, 0.5)]
 
     print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.), shots_count=1))
     print(cudaq.run(test_complex_not_in_float_list, complex(0., 0.5), shots_count=1))
     print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.5), shots_count=1))
+    print(cudaq.run(test_complex_not_in_float_list, complex(1, -0.5), shots_count=1))
+    print(cudaq.run(test_complex_not_in_float_list, complex(2, -0.5), shots_count=1))
+    print(cudaq.run(test_complex_not_in_float_list, complex(-2, 0.5), shots_count=1))
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [False]
+    # CHECK-LABEL:    [False]
+    # CHECK-LABEL:    [True]
+    # CHECK-LABEL:    [True]
 
 
 def test_comparison_failures():
@@ -508,7 +534,6 @@ def test_comparison_failures():
     # CHECK:          invalid type 'Complex' in comparison
     # CHECK-NEXT:     (offending source -> v1 >= v2)
 
-    # In/NotIn
     # Not yet supported - left as todos...
 
     @cudaq.kernel
@@ -525,7 +550,31 @@ def test_comparison_failures():
     # CHECK:          invalid type in comparison
     # CHECK-NEXT:     (offending source -> v in {{.*}}1], [2], [3{{.*}})
 
-# TODO: support 2. == 1.5 | 2. == 2.5 (has multiple ops, and comparators)
-# TODO: support tuple comparison + add tests
-# TODO: add tests for negative values...!
+    @cudaq.kernel
+    def test_int_tuple_equal_to(v : tuple[int, int]) -> bool:
+        return v == (1, 3)
+
+    try:
+        print(cudaq.run(test_int_tuple_equal_to, (1, 3), shots_count=1))
+    except Exception as e:
+        print("Failure test_int_tuple_equal_to:")
+        print(e)
+
+    # CHECK-LABEL:    Failure test_int_tuple_equal_to:
+    # CHECK:          invalid type in comparison
+    # CHECK-NEXT:     (offending source -> v == (1, 3))
+
+    @cudaq.kernel
+    def test_composition() -> bool:
+        return 2. == 1.5 | 2. == 2.5
+
+    try:
+        print(cudaq.run(test_composition, shots_count=1))
+    except Exception as e:
+        print("Failure test_composition:")
+        print(e)
+
+    # CHECK-LABEL:    Failure test_composition:
+    # CHECK:          only single comparators are supported
+    # CHECK-NEXT:     (offending source -> 2.0 == 1.5 | 2.0 == 2.5)
 

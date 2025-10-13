@@ -3900,7 +3900,7 @@ class PyASTBridge(ast.NodeVisitor):
         here we limit ourselves to just a single comparator. 
         """
         if len(node.ops) > 1:
-            self.emitFatalError("only single comparators are supported.", node)
+            self.emitFatalError("only single comparators are supported", node)
 
         iTy = self.getIntegerType()
 
@@ -3908,7 +3908,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.debug_msg(lambda: f'[(Inline) Visit Name]', node.left)
             if node.left.id not in self.symbolTable:
                 self.emitFatalError(
-                    f"{node.left.id} was not initialized before use in compare expression.",
+                    f"{node.left.id} was not initialized before use in compare expression",
                     node)
 
         self.visit(node.left)

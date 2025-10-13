@@ -448,7 +448,7 @@ void __quantum__rt__deallocate_all(const std::size_t numQubits,
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
 }
 
-void __quantum__rt__bool_record_output_host(bool val, const char *label) {
+void __quantum__rt__bool_record_output(bool val, const char *label) {
   quantumRTGenericRecordOutput("BOOL", (val ? "true" : "false"), label);
 }
 
