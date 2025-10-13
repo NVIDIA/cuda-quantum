@@ -34,9 +34,9 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
     return std::nullopt;
   // First element
   std::complex<double> val = kdK(0, 0);
-  if (val.real() > eps && std::abs(val.imag()) < eps) {
+  if (val.real() > 0.0 && std::abs(val.imag()) < eps) {
     auto scaledKdK = (std::complex<double>{1.0} / val) * kdK;
-    if (scaledKdK.isIdentity())
+    if (scaledKdK.isIdentity(eps))
       return std::sqrt(val.real());
   }
   return std::nullopt;

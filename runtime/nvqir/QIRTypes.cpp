@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 #include "QIRTypes.h"
-#include "common/FmtCore.h"
+#include "NVQIRUtil.h"
+#include "common/Logger.h"
 #include <algorithm>
 #include <cassert>
 #include <cstring>
@@ -17,6 +18,37 @@
 extern "C" {
 extern bool initialized;
 extern bool verbose;
+}
+
+nvqir::ArrayTracker &nvqir::ArrayTracker::getInstance() {
+  static thread_local nvqir::ArrayTracker instance;
+  return instance;
+}
+
+// Track the given array
+void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.push_back(arr); }
+// Untrack the given array (manually delete outside)
+void nvqir::ArrayTracker::untrack(Array *arr) {
+  if (arr == nullptr)
+    return;
+
+  auto it = std::find(allocated_arrays.begin(), allocated_arrays.end(), arr);
+  // Use nullptr to indicate untracked arrays (manually deleted outside) to
+  // prevent vector shrink.
+  if (it != allocated_arrays.end())
+    *it = nullptr;
+  else
+    CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+}
+
+// Clean up all tracked arrays
+void nvqir::ArrayTracker::clear() {
+  CUDAQ_INFO("Cleaning up {} allocated arrays", allocated_arrays.size());
+
+  for (auto arr : allocated_arrays)
+    if (arr != nullptr)
+      delete arr;
+  allocated_arrays.clear();
 }
 
 int8_t *Array::operator[](std::size_t index) {
@@ -54,7 +86,9 @@ int Array::element_size() const { return element_size_bytes; }
 
 Array::~Array() { clear(); }
 
-std::vector<int64_t> getRangeValues(Array *in_array, const Range &in_range) {
+// Slice a range of qubits from an array.
+// Note: the qubits are referenced (copy pointers), not created new ones.
+Array *sliceArrayRange(Array *in_array, const Range &in_range) {
   const bool is_fwd_range = in_range.step > 0;
 
   const auto convertIndex = [&](int64_t in_rawIdx) -> int64_t {
@@ -73,30 +107,34 @@ std::vector<int64_t> getRangeValues(Array *in_array, const Range &in_range) {
   // Convert to absolute index.
   const auto start_idx = convertIndex(in_range.start);
   const auto end_idx = convertIndex(in_range.end);
-
+  Array *result = new Array(0, sizeof(Qubit *));
+  nvqir::ArrayTracker::getInstance().track(result);
   if (is_fwd_range) {
     if (start_idx > end_idx) {
-      return {};
+      return result;
     }
 
     assert(in_range.step > 0);
-    std::vector<int64_t> result;
+
     for (int64_t i = start_idx; i <= end_idx; i += in_range.step) {
-      auto qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
-      result.emplace_back(qubit->idx);
+      Qubit *qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
+      result->add_element();
+      auto arrayPtr = (*result)[result->size() - 1];
+      *reinterpret_cast<Qubit **>(arrayPtr) = qubit;
     }
     return result;
   }
 
   if (start_idx < end_idx) {
-    return {};
+    return result;
   }
 
-  std::vector<int64_t> result;
   assert(in_range.step < 0);
   for (int64_t i = start_idx; i >= end_idx; i += in_range.step) {
     auto qubit = *reinterpret_cast<Qubit **>((*in_array)[i]);
-    result.emplace_back(qubit->idx);
+    result->add_element();
+    auto arrayPtr = (*result)[result->size() - 1];
+    *reinterpret_cast<Qubit **>(arrayPtr) = qubit;
   }
   return result;
 }
@@ -109,7 +147,9 @@ extern "C" {
 
 Array *__quantum__rt__array_create_1d(int32_t itemSizeInBytes,
                                       int64_t count_items) {
-  return new Array(count_items, itemSizeInBytes);
+  auto *array = new Array(count_items, itemSizeInBytes);
+  nvqir::ArrayTracker::getInstance().track(array);
+  return array;
 }
 
 int8_t *__quantum__rt__array_get_element_ptr_1d(Array *q, uint64_t idx) {
@@ -138,17 +178,13 @@ Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
 }
 
 Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range) {
-  const std::vector<int64_t> range_idxs = getRangeValues(array, range);
-  std::vector<std::size_t> sliceIdxs;
-  for (const auto &idx : range_idxs) {
-    sliceIdxs.push_back(idx);
-  }
-  return nvqir::vectorSizetToArray(sliceIdxs);
+  return sliceArrayRange(array, range);
 }
 
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail) {
   if (head && tail) {
-    auto resultArray = new Array(*head);
+    auto *resultArray = new Array(*head);
+    nvqir::ArrayTracker::getInstance().track(resultArray);
     resultArray->append(*tail);
     return resultArray;
   }
@@ -157,7 +193,9 @@ Array *__quantum__rt__array_concatenate(Array *head, Array *tail) {
 }
 Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance) {
   if (array && forceNewInstance) {
-    return new Array(*array);
+    auto *newArray = new Array(*array);
+    nvqir::ArrayTracker::getInstance().track(newArray);
+    return newArray;
   }
 
   if (!array) {
@@ -166,5 +204,10 @@ Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance) {
 
   return array;
 }
-void __quantum__rt__array_release(Array *a) { delete a; }
+void __quantum__rt__array_release(Array *a) {
+  nvqir::ArrayTracker::getInstance().untrack(a);
+  delete a;
+}
+
+void __nvqpp_cleanup_arrays() { nvqir::ArrayTracker::getInstance().clear(); }
 }
