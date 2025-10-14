@@ -204,10 +204,11 @@ QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job[config_keys::MACHINE] = backendConfig.at(config_keys::MACHINE);
     job[config_keys::METHOD] = backendConfig.at(config_keys::METHOD);
     job["options"] = nlohmann::json::object();
-    job["options"]["compiler"] = {{"shots", shots}, {config_keys::RUSR, rusr}};
-    job["options"]["aqusim"] = {{config_keys::NOISY, noisy},
+    job["options"]["aqusim"] = {{"shots", shots},
+                                {config_keys::NOISY, noisy},
                                 {config_keys::RUSR, rusr}};
-    job["options"]["qpu"] = {{config_keys::RUSR, rusr}};
+    job["options"]["compiler"] = {{"shots_requested", shots}};
+    job["options"]["qpu"] = {{"shots", shots}, {config_keys::RUSR, rusr}};
 
     messages.push_back(job);
   }
