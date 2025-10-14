@@ -55,6 +55,9 @@ public:
   /// Overrides resetExecutionContext to forward to
   /// the ExecutionManager. Also handles observe post-processing
   void resetExecutionContext() override {
+    // check if it was reset by other preceding routines
+    if (!executionContext)
+      return;
     ScopedTraceWithContext(
         executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
         "DefaultPlatform::resetExecutionContext", executionContext->name);

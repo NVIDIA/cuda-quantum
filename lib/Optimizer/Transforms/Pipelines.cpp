@@ -18,6 +18,9 @@ struct TargetPrepPipelineOptions
   PassOptions::Option<bool> eraseNoise{
       *this, "erase-noise", llvm::cl::desc("Erase apply noise calls."),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> eraseSaveState{
+      *this, "erase-save-state", llvm::cl::desc("Erase save state calls."),
+      llvm::cl::init(true)};
   PassOptions::Option<bool> applyConstProp{
       *this, "apply-const-prop",
       llvm::cl::desc("Enable constant propagation in apply specialization."),

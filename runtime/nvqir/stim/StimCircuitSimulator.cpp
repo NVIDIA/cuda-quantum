@@ -61,6 +61,14 @@ protected:
   /// for speed)
   bool is_msm_mode = false;
 
+  /// @brief Whether or not the execution context name is "training" (value is
+  /// cached for speed)
+  bool is_training_mode = false;
+
+  ExecutionContext* exe_ctx;
+
+  std::vector<std::tuple<std::size_t, std::vector<uint8_t>, std::vector<uint8_t>>> error_log;
+
   std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
@@ -148,40 +156,94 @@ protected:
     return std::nullopt;
   }
 
-  StimData serialize_frame_simulator(stim::FrameSimulator<W> *sampleSim) {
-    StimData data;
+  std::vector<std::vector<uint8_t>> get_x_z_tables_as_vectors(stim::FrameSimulator<W>* sampleSim){
+    auto* executionContext = getExecutionContext();
+    auto batch_size = executionContext->shots;
+    auto num_qubits = sampleSim->num_qubits;
 
-    // 0: num_qubits
-    std::size_t num_qubits = sampleSim->num_qubits;
-    printf("num_qubits = %zu\n", num_qubits);
-    data.push_back({&num_qubits, 1});
-
-    // 1: msm_err_count
-    std::size_t msm_err_count_copy = msm_err_count;
-    printf("msm_err_count = %zu\n", msm_err_count_copy);
-    data.push_back({&msm_err_count_copy, 1});
-
-    // 2,3 : x_output array, z_output array
     std::vector<uint8_t> x_output;
     std::vector<uint8_t> z_output;
+    x_output.resize(sampleSim->num_qubits * batch_size);
+    z_output.resize(sampleSim->num_qubits * batch_size);
 
-    auto *executionContext = getExecutionContext();
-    auto batch_size = executionContext->shots;
     for (int shot = 0; shot < batch_size; shot++) {
-      for (std::size_t q = 0; q < num_qubits; q++) {
-        printf("q %zu: x = %d, z = %d\n", q,
-               static_cast<int>(sampleSim->x_table[q][shot]),
-               static_cast<int>(sampleSim->z_table[q][shot]));
+        for (std::size_t q = 0; q < num_qubits; q++) {
+            printf("q %zu: x = %d, z = %d\n", q,
+                   static_cast<int>(sampleSim->x_table[q][shot]),
+                   static_cast<int>(sampleSim->z_table[q][shot]));
 
-        x_output.push_back(sampleSim->x_table[q][shot] ? 1 : 0);
-        z_output.push_back(sampleSim->z_table[q][shot] ? 1 : 0);
-      }
+            x_output.at(q + shot * num_qubits) = sampleSim->x_table[q][shot] ? 1 : 0;
+            z_output.at(q + shot * num_qubits) = sampleSim->z_table[q][shot] ? 1 : 0;
+        }
     }
-    data.push_back({x_output.data(), x_output.size()});
-    data.push_back({z_output.data(), z_output.size()});
+
+    return {x_output, z_output};
+  }
+
+std::vector<uint8_t> xor_vectors(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
+    // Determine the length of the longer vector
+    size_t max_size = std::max(a.size(), b.size());
+
+    // Create copies of the vectors, padded with zeros if necessary
+    std::vector<uint8_t> a_padded = a;
+    std::vector<uint8_t> b_padded = b;
+
+    a_padded.resize(max_size, 0);
+    b_padded.resize(max_size, 0);
+
+    // Optional: print for debugging
+    for (size_t i = 0; i < max_size; i++) {
+        printf("a[%zu] = %d, b[%zu] = %d\n", i, static_cast<int>(a_padded[i]), i, static_cast<int>(b_padded[i]));
+    }
+
+    // XOR element-wise
+    std::vector<uint8_t> result(max_size);
+    for (size_t i = 0; i < max_size; ++i) {
+        result[i] = a_padded[i] ^ b_padded[i];
+    }
+
+    return result;
+}
+
+StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
+    StimData data;
+
+    auto* executionContext = getExecutionContext();
+    auto batch_size = executionContext->shots;
+    std::cout << "batch_size: " << batch_size << "\n";
+    std::size_t num_qubits = sampleSim->num_qubits;
+
+    // 0: num_qubits
+    std::size_t* num_qubits_ptr = new std::size_t(num_qubits);
+    std::cout << "num_qubits: " << *num_qubits_ptr << "\n";
+    data.push_back({num_qubits_ptr, 1});
+
+    // 1: msm_err_count
+    std::size_t* msm_err_count_ptr = new std::size_t(msm_err_count);
+    std::cout << "msm_err_count: " << *msm_err_count_ptr << "\n";
+    data.push_back({msm_err_count_ptr, 1});
+
+    // 2,3: x_output and z_output
+    uint8_t* x_output = new uint8_t[num_qubits * batch_size];
+    uint8_t* z_output = new uint8_t[num_qubits * batch_size];
+
+    for (int shot = 0; shot < batch_size; shot++) {
+        for (std::size_t q = 0; q < num_qubits; q++) {
+            printf("q %zu: x = %d, z = %d\n", q,
+                   static_cast<int>(sampleSim->x_table[q][shot]),
+                   static_cast<int>(sampleSim->z_table[q][shot]));
+
+            x_output[q + shot * num_qubits] = sampleSim->x_table[q][shot] ? 1 : 0;
+            z_output[q + shot * num_qubits] = sampleSim->z_table[q][shot] ? 1 : 0;
+        }
+    }
+
+    data.push_back({x_output, num_qubits * batch_size});
+    data.push_back({z_output, num_qubits * batch_size});
 
     return data;
-  }
+}
+
 
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
@@ -264,6 +326,7 @@ protected:
         executionContext->msm_prob_err_id.emplace();
         executionContext->msm_prob_err_id->reserve(num_msm_cols);
       }
+      is_training_mode = executionContext && executionContext->name == "training";
 
       // If possible, provide a non-empty stim::CircuitStats in order to avoid
       // reallocations during execution.
@@ -404,10 +467,59 @@ protected:
           }
         }
         msm_id_counter++;
-      } else {
+      } else if (is_training_mode) {
+        std::cout << "Applying noise operation " << res->stim_name << " to qubits ";
+        stim::Circuit noiseOps;
+        noiseOps.safe_append_u(res.value().stim_name, qubits, channel.parameters);
+
+
+        auto tables = get_x_z_tables_as_vectors(sampleSim.get());
+        // Only apply the noise operations to the sample simulator (not the
+        // Tableau simulator).
+        sampleSim->safe_do_circuit(noiseOps);
+
+        auto tables_after = get_x_z_tables_as_vectors(sampleSim.get());
+        printf("tables[0].size() = %zu, tables_after[0].size() = %zu\n", tables[0].size(), tables_after[0].size());
+        printf("tables[1].size() = %zu, tables_after[1].size() = %zu\n", tables[1].size(), tables_after[1].size());
+
+        auto error_x = xor_vectors(tables[0], tables_after[0]);
+        auto error_z = xor_vectors(tables[1], tables_after[1]);
+
+        auto find_one_indices = [](const std::vector<uint8_t>& vec) {
+        std::vector<size_t> indices;
+        indices.reserve(vec.size());
+        size_t i = 0;
+        std::for_each(vec.begin(), vec.end(), [&](uint8_t val) {
+            if (val == 1) indices.push_back(i);
+            ++i;
+        });
+        return indices;
+        };
+
+        auto error_x_indices = find_one_indices(error_x);
+        auto error_z_indices = find_one_indices(error_z);
+        for(int i = 0; i < error_x_indices.size(); i++) {
+            printf("error_x_indices[%d] = %zu\n", i, error_x_indices[i]);
+        }
+        for(int i = 0; i < error_z_indices.size(); i++) {
+            printf("error_z_indices[%d] = %zu\n", i, error_z_indices[i]);
+        }
+        CUDAQ_INFO("Applied noise operation {}, x errors on qubits {}, z errors on qubits {}",
+                   res.value().stim_name,
+                   fmt::join(error_x_indices, ", "),
+                   fmt::join(error_z_indices, ", "));
+
+        // Increment the error count by the number of mechanisms
+        msm_err_count += res->params.size();
+        //error_log.push_back({msm_id_counter, error_x, error_z});
+        executionContext->record_error_data(msm_id_counter, error_x, error_z);
+        msm_id_counter++;
+      }
+      else {
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
                                channel.parameters);
+
         // Only apply the noise operations to the sample simulator (not the
         // Tableau simulator).
         sampleSim->safe_do_circuit(noiseOps);
@@ -496,6 +608,12 @@ public:
     // simulator knows how to buffer the results across multiple sample()
     // invocations.
     supportsBufferedSample = true;
+
+    auto exe_ctx = getExecutionContext();
+    if (exe_ctx && exe_ctx->randomSeed != 0){
+      setRandomSeed(exe_ctx->randomSeed);
+      CUDAQ_INFO("Setting random seed to {} in Stim simulator", exe_ctx->randomSeed);
+    }
   }
   virtual ~StimCircuitSimulator() = default;
 

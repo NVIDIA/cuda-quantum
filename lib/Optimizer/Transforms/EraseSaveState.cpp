@@ -39,4 +39,20 @@ public:
   }
 };
 
+class EraseSaveStatePass
+    : public cudaq::opt::impl::EraseSaveStateBase<EraseSaveStatePass> {
+public:
+  using EraseSaveStateBase::EraseSaveStateBase;
+
+  void runOnOperation() override {
+    auto *op = getOperation();
+    LLVM_DEBUG(llvm::dbgs() << "Before erasure:\n" << *op << "\n\n");
+    auto *ctx = &getContext();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<EraseSaveStatePattern<quake::SaveStateOp>>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+      signalPassFailure();
+    LLVM_DEBUG(llvm::dbgs() << "After erasure:\n" << *op << "\n\n");
+  }
+};
 } // namespace
