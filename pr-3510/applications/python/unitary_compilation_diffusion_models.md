@@ -1816,6 +1816,8 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
     import genQC
     import os
 
+    os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
+
     import genQC.utils.misc_utils as util
     from genQC.pipeline.diffusion_pipeline import DiffusionPipeline
     from genQC.pipeline.multimodal_diffusion_pipeline \
@@ -1829,8 +1831,6 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
                 import decode_tensors_to_backend, generate_compilation_tensors
     from genQC.inference.evaluation_helper import get_unitaries
     from genQC.inference.eval_metrics import UnitaryInfidelityNorm
-
-    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1" # This crashes in CI, so disable here.
 :::
 :::
 :::
