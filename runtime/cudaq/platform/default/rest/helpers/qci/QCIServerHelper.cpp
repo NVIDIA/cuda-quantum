@@ -181,22 +181,21 @@ ServerJobPayload
 QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<ServerMessage> messages;
 
+  bool rusr = backendConfig.at("rusr") == "true";
+  bool noisy = backendConfig.at("noisy") == "true";
+
   for (auto &circuitCode : circuitCodes) {
     ServerMessage job;
     job["code"] = circuitCode.code;
     job["name"] = circuitCode.name;
-    job["userData"] = circuitCode.user_data;
     // Target-specific parameters
     job["machine"] = backendConfig.at("machine");
-    job["method"] = backendConfig.at("method");    
-    job["shots"] = shots;    
-    job["noisy"] = backendConfig.at("noisy");
+    job["method"] = backendConfig.at("method");
     job["options"] = nlohmann::json::object();
-    bool rusr = backendConfig.at("rusr") == "true";
     job["options"]["compiler"] = {{"shots", shots}, {"rusr", rusr}};
-    job["options"]["aqusim"] = {{"rusr", rusr}};
+    job["options"]["aqusim"] = {{"noisy", noisy}, {"rusr", rusr}};
     job["options"]["qpu"] = {{"rusr", true}};
-    
+
     messages.push_back(job);
   }
 
