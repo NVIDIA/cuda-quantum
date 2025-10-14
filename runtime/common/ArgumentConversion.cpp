@@ -560,7 +560,8 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         case 64:
           return genConstant(builder, *static_cast<std::int64_t *>(p));
         default:
-          throw std::runtime_error("unsupported integer width " + std::to_string(width));
+          throw std::runtime_error("unsupported integer width " +
+                                   std::to_string(width));
         }
       })
       .Case([&](Float32Type fltTy) {
@@ -629,7 +630,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
       return ArrayAttr::get(builder.getContext(), members);
     }
   }
-  
+
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];
@@ -667,7 +668,8 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
         val = *(reinterpret_cast<std::uint64_t *>(p));
         break;
       default:
-        throw std::runtime_error("unsupported integer width " + std::to_string(width));
+        throw std::runtime_error("unsupported integer width " +
+                                 std::to_string(width));
       }
       return IntegerAttr::get(intTy, val);
     };
@@ -685,7 +687,8 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
         return FloatAttr::get(eleTy, APFloat{val});
       }
       default:
-        throw std::runtime_error("unsupported floating point width " + std::to_string(width));
+        throw std::runtime_error("unsupported floating point width " +
+                                 std::to_string(width));
       }
     };
   } else {
@@ -894,7 +897,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               case 64:
                 return buildSubst(*static_cast<std::int64_t *>(argPtr));
               default:
-                throw std::runtime_error("unsupported integer width " + std::to_string(width));
+                throw std::runtime_error("unsupported integer width " +
+                                         std::to_string(width));
               }
             })
             .Case([&](Float32Type fltTy) {

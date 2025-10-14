@@ -42,7 +42,8 @@ static std::tuple<std::string, MlirModule, OpaqueArguments *,
                   mlir::func::FuncOp, std::string, mlir::func::FuncOp>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (!py::hasattr(kernel, "arguments"))
-    throw std::runtime_error("unrecognized kernel - did you forget the @kernel attribute?");
+    throw std::runtime_error(
+        "unrecognized kernel - did you forget the @kernel attribute?");
   if (py::len(kernel.attr("arguments")) != args.size())
     throw std::runtime_error("Invalid number of arguments passed to run:" +
                              std::to_string(args.size()) + " expected " +

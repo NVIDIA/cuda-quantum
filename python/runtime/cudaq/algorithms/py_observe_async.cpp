@@ -74,7 +74,8 @@ async_observe_result pyObserveAsync(py::object &kernel,
     kernel.attr("compile")();
 
   if (!py::hasattr(kernel, "arguments"))
-    throw std::runtime_error("unrecognized kernel - did you forget the @kernel attribute?");
+    throw std::runtime_error(
+        "unrecognized kernel - did you forget the @kernel attribute?");
   auto kernelBlockArgs = kernel.attr("arguments");
   if (py::len(kernelBlockArgs) != args.size())
     throw std::runtime_error(
