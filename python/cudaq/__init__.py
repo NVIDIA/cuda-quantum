@@ -213,10 +213,11 @@ def __clearKernelRegistries():
     globalAstRegistry.clear()
     globalRegisteredOperations.clear()
 
+
 cudaq_runtime.register_set_target_callback(
-    lambda _ : [setattr(kernel, "module", None) for kernel in globalKernelDecorators],
-    "clearKernelDecoratorModules"
-)
+    lambda _:
+    [setattr(kernel, "module", None) for kernel in globalKernelDecorators],
+    "clearKernelDecoratorModules")
 
 # Expose chemistry domain functions
 from .domains import chemistry

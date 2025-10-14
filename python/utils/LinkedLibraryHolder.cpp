@@ -424,7 +424,7 @@ void LinkedLibraryHolder::setTarget(
              target.simulatorName, target.platformName);
   std::string simName = target.simulatorName;
   if (simName.empty()) {
-    // This target doesn't a simulator defined, e.g., hardware targets.
+    // This target doesn't have a simulator defined, e.g., hardware targets.
     // We still need a simulator in case of local emulation.
     auto &defaultTargetInfo = targets[defaultTarget];
     simName = defaultTargetInfo.simulatorName;

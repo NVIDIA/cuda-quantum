@@ -46,10 +46,10 @@ globalRegisteredOperations = {}
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
-
 # Keep track of all kernel decorators
 # We only track alive decorators so we use a `WeakSet`
 globalKernelDecorators = weakref.WeakSet()
+
 
 class Color:
     YELLOW = '\033[93m'

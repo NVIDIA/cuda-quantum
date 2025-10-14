@@ -19,9 +19,9 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType,
 from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry, globalKernelDecorators,
-                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
-                    nvqppPrefix)
+from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
+                    globalKernelDecorators, globalRegisteredTypes,
+                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
