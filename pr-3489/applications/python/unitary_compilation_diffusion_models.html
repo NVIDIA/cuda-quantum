@@ -1030,6 +1030,9 @@ convert them back into the circuit form. An overview of these steps is provided 
 import torch
 import numpy as np
 import genQC
+import os
+
+os.environ[&#39;HF_HUB_DISABLE_PROGRESS_BARS&#39;] = &#39;1&#39;
 
 import genQC.utils.misc_utils as util
 from genQC.pipeline.diffusion_pipeline import DiffusionPipeline
@@ -1044,7 +1047,7 @@ from genQC.inference.sampling \
             import decode_tensors_to_backend, generate_compilation_tensors
 from genQC.inference.evaluation_helper import get_unitaries
 from genQC.inference.eval_metrics import UnitaryInfidelityNorm
-</pre></div>
+<br/><br/></pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">

@@ -1814,6 +1814,9 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
     import torch
     import numpy as np
     import genQC
+    import os
+
+    os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
 
     import genQC.utils.misc_utils as util
     from genQC.pipeline.diffusion_pipeline import DiffusionPipeline
