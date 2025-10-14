@@ -2268,6 +2268,7 @@ class PyASTBridge(ast.NodeVisitor):
                 casted = self.changeOperandToType(IntegerType.get_signless(64),
                                                   value, allowDemotion=True)
                 self.pushValue(casted)
+                return
 
             elif node.func.id == 'list':
                 if len(self.valueStack) == 2:
@@ -2363,8 +2364,11 @@ class PyASTBridge(ast.NodeVisitor):
             self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func.value)
 
             if node.func.attr == 'size':
-                # Handled already in the Attribute visit, 
+                if len(node.args) != 0:
+                    self.emitFatalError("'size' does not support an argument", node)
+                # Handled in the Attribute visit, 
                 # since numpy arrays have a size attribute
+                self.visit(node.func)
                 return
 
             if self.__isSupportedVectorFunction(node.func.attr):
@@ -2677,7 +2681,6 @@ class PyASTBridge(ast.NodeVisitor):
                         self.emitFatalError(
                             f"unsupported qvector argument type: {value.type}",
                             node)
-                        return
 
                     if node.func.attr == "qubit":
                         if len(self.valueStack) == 1 and IntegerType.isinstance(
@@ -2996,6 +2999,8 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 'adj quantum operation on incorrect type {}.'.
                                 format(target.type), node)
+                            
+                    self.emitFatalError(f'unknown attribute {node.func.attr} on u3', node)
 
                 # custom `ctrl` and `adj`
                 if node.func.value.id in globalRegisteredOperations:
@@ -3060,7 +3065,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
         self.emitFatalError(
-            f"Invalid function call - '{node.func.value.id}' is unknown.")
+            f"unknown function call", node)
 
     def visit_ListComp(self, node):
         """

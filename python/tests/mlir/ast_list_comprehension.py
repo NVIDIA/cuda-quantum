@@ -68,7 +68,6 @@ def test_list_comprehension_constant():
 # CHECK:            %[[VAL_2:.*]] = cc.compute_ptr %[[VAL_1]][{{.*}}] : (!cc.ptr<!cc.array<complex<f64> x 5>>, i64) -> !cc.ptr<complex<f64>>
 # CHECK:            cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<complex<f64>>
 
-
 def test_list_comprehension_variable():
     
     @cudaq.kernel
