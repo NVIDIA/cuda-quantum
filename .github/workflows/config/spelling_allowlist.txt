@@ -240,6 +240,7 @@ fmt
 fourier
 frontend
 frontends
+functors
 grovers
 hadamard
 hamiltonian
@@ -338,6 +339,7 @@ subexpression
 subexpressions
 subfolder
 submodule
+submodules
 subscriptable
 subscripted
 subtype

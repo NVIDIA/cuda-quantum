@@ -1422,7 +1422,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         if len(node.targets) > 1:
             # I am not entirely sure what kinds of Python language constructs would
-            # result in having more than 1 target here, hence erroring on it for now.
+            # result in having more than 1 target here, hence giving an error on it for now.
             # (It would be easy to process this as target tuple, but it may not be correct to do so.)
             self.emitFatalError("CUDA-Q does not allow multiple targets in assignment", node)
         self.__deconstructAssignment(node.targets[0], node.value, process=process_assignment)
@@ -1525,7 +1525,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid attribute on complex value", node)
             return
 
-        # numpy arrays have a size attribute
+        # `numpy` arrays have a size attribute
         if node.attr == 'size':
             if quake.VeqType.isinstance(value.type):
                 self.pushValue(
@@ -2367,7 +2367,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if len(node.args) != 0:
                     self.emitFatalError("'size' does not support an argument", node)
                 # Handled in the Attribute visit, 
-                # since numpy arrays have a size attribute
+                # since `numpy` arrays have a size attribute
                 self.visit(node.func)
                 return
 
@@ -2386,9 +2386,9 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         "CUDA-Q does not allow dynamic resizing or lists, arrays, or qvectors.", node)
 
-                # Neither Python lists nor numpy arrays have a function
+                # Neither Python lists nor `numpy` arrays have a function
                 # or attribute 'front'/'back'; hence we only support that
-                # for qvectors.
+                # for `qvectors`.
                 if not quake.VeqType.isinstance(funcVal.type):
                     self.emitFatalError(f'function {node.func.attr} is not supported on a value of type {funcVal.type}', node)
 
@@ -3121,7 +3121,7 @@ class PyASTBridge(ast.NodeVisitor):
         def process_void_list():
             # NOTE: This does not actually create a valid value, and will fail is something
             # tries to use the value that this was supposed to create later on. 
-            # Keeping this to keep existing functionality, but this is questionable imo.
+            # Keeping this to keep existing functionality, but this is a bit questionable.
             # Aside from no list being produced, this should work regardless of what we
             # iterate over or what expression we evaluate.
             self.emitWarning("produced elements in list comprehension contain None - expression will be evaluated but no list is generated", node)
@@ -3209,8 +3209,8 @@ class PyASTBridge(ast.NodeVisitor):
                         return None
                     elif self.__isMeasurementGate(pyval.func.id):
                         # It's tricky to know if we are calling a measurement on a single qubit, 
-                        # or on a vector of qubits, e.g. consider the case [mz(qs[i:]) for i in range(n)], 
-                        # or [mz(qs) for _ in range(n)], or [mz(qs) for _ in qs].
+                        # or on a vector of qubits, e.g. consider the case `[mz(qs[i:]) for i in range(n)]`, 
+                        # or `[mz(qs) for _ in range(n)], or [mz(qs) for _ in qs]`.
                         # We hence limit support to iterating over a vector of qubits, and check that the
                         # iteration variable is passed directly to the measurement.
                         iterSymName = None
@@ -3595,8 +3595,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
         
-        # Let's allow subscripting into Struqs, but only if we don't need a pointer
-        # (i.e. no updating of Struqs).
+        # Let's allow subscripts into `Struqs``, but only if we don't need a pointer
+        # (i.e. no updating of `Struqs`).
         if not self.subscriptPushPointerValue and \
             quake.StruqType.isinstance(var.type):
             memberTys = quake.StruqType.getTypes(var.type)
@@ -4061,14 +4061,17 @@ class PyASTBridge(ast.NodeVisitor):
         condition = self.popValue()
         condition = self.ifPointerThenLoad(condition)
 
+        # To understand the integer attributes used here (the predicates)
+        # see `arith::CmpIPredicate` and `arith::CmpFPredicate`.
+
         if self.getIntegerType(1) != condition.type:
             if IntegerType.isinstance(condition.type):
-                condPred = IntegerAttr.get(self.getIntegerType(), 1) # ne
+                condPred = IntegerAttr.get(self.getIntegerType(), 1)
                 condition = arith.CmpIOp(condPred, condition,
                                         self.getConstantInt(0)).result
                 
             elif F64Type.isinstance(condition.type):
-                condPred = IntegerAttr.get(self.getIntegerType(), 13) # une
+                condPred = IntegerAttr.get(self.getIntegerType(), 13)
                 condition = arith.CmpFOp(condPred, condition,
                                         self.getConstantFloat(0)).result
             else:
@@ -4147,7 +4150,7 @@ class PyASTBridge(ast.NodeVisitor):
         # FIXME: The handling of tuples in Python likely needs to be examined carefully;
         # The corresponding issue to clarify the expected behavior is 
         # https://github.com/NVIDIA/cuda-quantum/issues/3031
-        # I reenabled the tuple support in kernel signatures, given that we were already
+        # I re-enabled the tuple support in kernel signatures, given that we were already
         # allowing the use of data classes everywhere, and supporting tuple use within a
         # kernel. It hence seems that any issues with tuples also apply to named structs.
 

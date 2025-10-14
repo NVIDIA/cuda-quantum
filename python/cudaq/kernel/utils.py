@@ -103,8 +103,8 @@ def emitWarning(msg):
 
 def mlirTryCreateStructType(mlirEleTypes, name = "tuple", context = None):
     """
-    Creates either a quake.StruqType or a cc.StructType used to represent 
-    tuples and dataclass structs of quantum and classical types. Returns
+    Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
+    tuples and `dataclass` structs of quantum and classical types. Returns
     None if the given element types don't satisfy the restrictions imposed
     on these types.
     """
