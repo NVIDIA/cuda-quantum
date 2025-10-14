@@ -4529,26 +4529,18 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.currentNode)
 
         if issubclass(nodeType, ast.Mod):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                self.pushValue(arith.RemUIOp(left, right).result)
-                return
-            if IntegerType.isinstance(right.type):
-                if F32Type.isinstance(left.type) or F64Type.isinstance(
-                        left.type):
-                    right = arith.SIToFPOp(left.type, right).result
-            if IntegerType.isinstance(left.type):
-                if F32Type.isinstance(right.type) or F64Type.isinstance(
-                        right.type):
-                    left = arith.SIToFPOp(right.type, left).result
-            if F64Type.isinstance(left.type) or \
-                F32Type.isinstance(left.type):
-                self.pushValue(arith.RemFOp(left, right).result)
-                return
-            else:
-                self.emitFatalError(
-                    "unhandled BinOp.Mod types; only integers are supported",
-                    self.currentNode)
+            # FIXME: This should be revised to 
+            # 1) properly fail when we have a complex number
+            # 2) use `arith.RemFOp` for floating point
+            # (these changes are split out into a separate PR
+            # per review request)
+            if F64Type.isinstance(left.type):
+                left = arith.FPToSIOp(self.getIntegerType(), left).result
+            if F64Type.isinstance(right.type):
+                right = arith.FPToSIOp(self.getIntegerType(), right).result
+
+            self.pushValue(arith.RemUIOp(left, right).result)
+            return
 
         if issubclass(nodeType, ast.LShift):
             if IntegerType.isinstance(left.type) and IntegerType.isinstance(
