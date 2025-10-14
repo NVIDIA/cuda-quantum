@@ -42,6 +42,15 @@ __qpu__ std::vector<bool> vector_bool_test() {
   return vec;
 }
 
+struct K9 {
+  std::vector<bool> operator()() __qpu__ {
+    cudaq::qvector q(5);
+    cudaq::qubit p;
+    x(q);
+    return mz(q);
+  }
+};
+
 __qpu__ std::vector<int> vector_int_test() {
   std::vector<int> result(2);
   result[0] = 42;
@@ -100,7 +109,7 @@ int main() {
     }
   }
 
-  // TODO: this currently fails due to a missing support for tuple copy
+  /// TODO: this currently fails due to a missing support for tuple copy
   // constructor in ConvertExpr.cpp
   // {
   //   std::tuple<int, bool> t{13, true};
@@ -147,8 +156,6 @@ int main() {
     }
   }
 
-#if 0
-  // vector return types are not fully supported yet.
   {
     const std::vector<std::vector<bool>> results =
         cudaq::run(3, vector_bool_test);
@@ -160,6 +167,22 @@ int main() {
         printf("%d: {%d , %d}\n", c++, (bool)i[0], (bool)i[1]);
         assert(i[0] == true);
         assert(i[1] == false);
+      }
+      printf("success!\n");
+    }
+  }
+
+  {
+    const std::vector<std::vector<bool>> results = cudaq::run(2, K9{});
+    c = 0;
+    if (results.size() != 2) {
+      printf("FAILED! Expected 2 shots. Got %lu\n", results.size());
+    } else {
+      for (auto i : results) {
+        printf("%d: {", c++);
+        for (auto b : i)
+          printf("%d ", (bool)b);
+        printf("}\n");
       }
       printf("success!\n");
     }
@@ -193,7 +216,6 @@ int main() {
       printf("success!\n");
     }
   }
-#endif
 
   {
     const auto results = cudaq::run(3, struct_test);
@@ -215,7 +237,8 @@ int main() {
 // CHECK: success!
 // CHECK: success!
 // CHECK: success!
-// XXECK: success!
-// XXECK: success!
-// XXECK: success!
+// CHECK: success!
+// CHECK: success!
+// CHECK: success!
+// CHECK: success!
 // CHECK: success!
