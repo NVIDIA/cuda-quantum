@@ -27,11 +27,13 @@ struct RecordStorage {
 
   size_t memory_limit;
   size_t current_memory;
+  std::vector<std::tuple<std::size_t, std::vector<uint8_t>, std::vector<uint8_t>>> error_data;
   RecordStorage(size_t limit = 1e9) : memory_limit(limit), current_memory(0) {}
 
   std::vector<std::unique_ptr<SimulationState>> recordedStates;
 
   void save_state(SimulationState *state) {
+    printf("Recording state\n");
     recordedStates.push_back(clone_state(state));
   }
   const std::vector<std::unique_ptr<SimulationState>> &
@@ -44,6 +46,29 @@ struct RecordStorage {
     for (std::size_t i = 0; i < recordedStates.size(); i++) {
       recordedStates[i]->dump(std::cout);
     }
+  }
+
+  void dump_error_data() const {
+    for (const auto& [id, x_indices, z_indices] : error_data) {
+        std::cout << "Error ID: " << id << "\n";
+        std::cout << "X error indices: ";
+        for (const auto& idx : x_indices) {
+            std::cout << static_cast<int>(idx) << " ";
+        }
+        std::cout << "\nZ error indices: ";
+        for (const auto& idx : z_indices) {
+            std::cout << static_cast<int>(idx) << " ";
+        }
+        std::cout << "\n";
+    }
+  }
+
+  void record_error_data(std::size_t msm_id_counter, std::vector<uint8_t>& x_indices, std::vector<uint8_t>& z_indices) {
+    error_data.push_back({msm_id_counter, x_indices, z_indices});
+  }
+  ~RecordStorage() {
+    std::cout << "Destroying RecordStorage with " << recordedStates.size()
+              << " recorded states.\n";
   }
 
 private:
@@ -239,17 +264,7 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  /// @brief For each possible error, this is a "flips" vector of length number
-  /// of qubits known to the simulator at the time of the error mechanism. This
-  /// is populated when using the measurement syndrome matrix mode
-  std::vector<std::vector<bool>> msm_x_flips; // msm_x_flips[error_id][qubit_id]
-  std::vector<std::vector<bool>> msm_z_flips; // msm_z_flips[error_id][qubit_id]
-
-  /// @brief For each shot, this is a vector of error IDs.
-  /// This is populated when using the "sample" mode (i.e. this->name ==
-  /// "sample")
-  std::vector<std::vector<std::size_t>>
-      errors_per_shot; // errors_per_shot[shot][error_id]
+  std::size_t randomSeed = 0;
 
   /// @brief Save the current simulation state in the recorded states storage.
   void save_state(SimulationState *state) { recordStorage.save_state(state); }
@@ -265,5 +280,13 @@ public:
 
   /// @brief Dump the recorded states saved during execution.
   void dump_recorded_states() const { recordStorage.dump_recorded_states(); }
+
+  void dump_error_data() const { recordStorage.dump_error_data(); }
+  
+  void record_error_data(std::size_t msm_id_counter, std::vector<uint8_t>& x_indices, std::vector<uint8_t>& z_indices) { 
+    recordStorage.record_error_data(msm_id_counter, x_indices, z_indices);
+  }
+
+  void set_seed(std::size_t seed) { randomSeed  = seed; }
 };
 } // namespace cudaq
