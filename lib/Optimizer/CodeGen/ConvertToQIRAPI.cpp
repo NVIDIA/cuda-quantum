@@ -1752,7 +1752,8 @@ static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
   patterns.insert<ApplyOpTrap, GetMemberOpRewrite, MakeStruqOpRewrite,
-                  ReturnOpPattern, RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
+                  ReturnOpPattern, RelaxSizeOpErase, VeqSizeOpRewrite>(
+      typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2012,19 +2013,19 @@ struct QuakeToQIRAPIPass
           return true;
         });
     target.addDynamicallyLegalOp<
-        func::CallOp, func::CallIndirectOp, func::ReturnOp, cudaq::cc::NoInlineCallOp,
-        cudaq::cc::VarargCallOp, cudaq::cc::CallCallableOp,
-        cudaq::cc::CallIndirectCallableOp, cudaq::cc::CastOp,
-        cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp, cudaq::cc::LoadOp>(
-        [&](Operation *op) {
-          for (auto opnd : op->getOperands())
-            if (hasQuakeType(opnd.getType()))
-              return false;
-          for (auto res : op->getResults())
-            if (hasQuakeType(res.getType()))
-              return false;
-          return true;
-        });
+        func::CallOp, func::CallIndirectOp, func::ReturnOp,
+        cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
+        cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
+        cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
+        cudaq::cc::LoadOp>([&](Operation *op) {
+      for (auto opnd : op->getOperands())
+        if (hasQuakeType(opnd.getType()))
+          return false;
+      for (auto res : op->getResults())
+        if (hasQuakeType(res.getType()))
+          return false;
+      return true;
+    });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
