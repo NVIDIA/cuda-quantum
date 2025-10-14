@@ -23,11 +23,15 @@ def foo1(func: Callable[[cudaq.qubit], None], size: int):
     q = cudaq.qvector(size)
     func(q[0])
 
+
 @cudaq.kernel
 def baz(qs: cudaq.qvector, angle: float, adj: list[bool]):
     for idx, is_adj in enumerate(adj):
-        if is_adj: ry(-angle, qs[idx])
-        else: ry(angle, qs[idx])
+        if is_adj:
+            ry(-angle, qs[idx])
+        else:
+            ry(angle, qs[idx])
+
 
 @cudaq.kernel
 def foo2(adj: list[bool], set_controls: bool):
@@ -36,6 +40,7 @@ def foo2(adj: list[bool], set_controls: bool):
         x(controls)
     cudaq.control(baz, controls, targets, 1, adj)
 
+
 @cudaq.kernel
 def foo3(adj: list[bool], uncompute: bool):
     targets = cudaq.qvector(len(adj))
@@ -43,19 +48,24 @@ def foo3(adj: list[bool], uncompute: bool):
     if uncompute:
         baz(targets, 1, adj)
 
+
 @cudaq.kernel
-def foo4(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], set_controls: bool):
+def foo4(func: Callable[[cudaq.qvector, float, list[bool]], None],
+         adj: list[bool], set_controls: bool):
     controls, targets = cudaq.qvector(2), cudaq.qvector(len(adj))
     if set_controls:
         x(controls)
     cudaq.control(func, controls, targets, 1, adj)
 
+
 @cudaq.kernel
-def foo5(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], uncompute: bool):
+def foo5(func: Callable[[cudaq.qvector, float, list[bool]], None],
+         adj: list[bool], uncompute: bool):
     targets = cudaq.qvector(len(adj))
     cudaq.adjoint(func, targets, 1, adj)
     if uncompute:
         func(targets, 1, adj)
+
 
 out = cudaq.sample(foo1, bar, 1)
 assert len(out) == 1 and '1' in out
@@ -111,10 +121,8 @@ print(out)
 # CHECK: test8 - superposition of length 8
 # CHECK: test9 - most probable: 000
 
-
 # FIXME: fails per issue https://github.com/NVIDIA/cuda-quantum/issues/3499
 # Fix the issue, then uncomment the following code and add llvm-lit checks for tests 10 - 13.
-
 '''
 @cudaq.kernel
 def controlled(kernel: Callable[[cudaq.qvector, float, list[bool]], None], 
@@ -158,4 +166,3 @@ out = cudaq.sample(foo9, baz, [True, False, True], True)
 assert len(out) == 1 and '000' in out
 print("test13 - most probable: " + str(out.most_probable()))
 '''
-

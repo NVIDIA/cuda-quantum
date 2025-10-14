@@ -10,6 +10,7 @@
 
 import cudaq
 
+
 def test_comparison_operators_for_integers():
 
     @cudaq.kernel
@@ -138,10 +139,18 @@ def test_comparison_operators_for_complex():
     def test_complex_equal_to(v1: complex, v2: complex) -> bool:
         return v1 == v2
 
-    print(cudaq.synthesize(test_complex_equal_to, complex(1., 0.5), complex(1., 0.5)))
-    print(cudaq.synthesize(test_complex_equal_to, complex(1., 2.), complex(1., 2.5)))
-    print(cudaq.synthesize(test_complex_equal_to, complex(1., 0.5), complex(1., -0.5)))
-    print(cudaq.synthesize(test_complex_equal_to, complex(-1., 0.5), complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
+                         complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(1., 2.),
+                         complex(1., 2.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
+                         complex(1., -0.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(-1., 0.5),
+                         complex(1., 0.5)))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
     # CHECK-LABEL:    %false = arith.constant false
@@ -151,10 +160,18 @@ def test_comparison_operators_for_complex():
     def test_complex_not_equal_to(v1: complex, v2: complex) -> bool:
         return v1 != v2
 
-    print(cudaq.synthesize(test_complex_not_equal_to, complex(1., 2.), complex(1., 2.5)))
-    print(cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5), complex(1., 0.5)))
-    print(cudaq.synthesize(test_complex_not_equal_to, complex(1., -0.5), complex(1., 0.5)))
-    print(cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5), complex(-1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., 2.),
+                         complex(1., 2.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
+                         complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., -0.5),
+                         complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
+                         complex(-1., 0.5)))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
     # CHECK-LABEL:    %true = arith.constant true
@@ -234,7 +251,6 @@ def test_comparison_operators_for_mixed_types():
     print(cudaq.synthesize(test_float_int_greater_than, 5.0, 5))
     # CHECK-LABEL:    %true = arith.constant true
     # CHECK-LABEL:    %false = arith.constant false
-
 
     @cudaq.kernel
     def test_int_float_less_than_or_equal_to(v1: int, v2: float) -> bool:
@@ -332,11 +348,15 @@ def test_comparison_in():
         return v in [complex(-1, 0.5), complex(2, 0.5)]
 
     print(cudaq.run(test_complex_in_float_list, complex(2, 0.5), shots_count=1))
-    print(cudaq.run(test_complex_in_float_list, complex(-1., 0.5), shots_count=1))
+    print(
+        cudaq.run(test_complex_in_float_list, complex(-1., 0.5), shots_count=1))
     print(cudaq.run(test_complex_in_float_list, complex(2, 0.), shots_count=1))
-    print(cudaq.run(test_complex_in_float_list, complex(0., 0.5), shots_count=1))
-    print(cudaq.run(test_complex_in_float_list, complex(2, -0.5), shots_count=1))
-    print(cudaq.run(test_complex_in_float_list, complex(-2, 0.5), shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(0., 0.5),
+                    shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(2, -0.5),
+                    shots_count=1))
+    print(cudaq.run(test_complex_in_float_list, complex(-2, 0.5),
+                    shots_count=1))
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [False]
@@ -348,12 +368,29 @@ def test_comparison_in():
     def test_complex_not_in_float_list(v: complex) -> bool:
         return v not in [complex(1, -0.5), complex(2, 0.5)]
 
-    print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.), shots_count=1))
-    print(cudaq.run(test_complex_not_in_float_list, complex(0., 0.5), shots_count=1))
-    print(cudaq.run(test_complex_not_in_float_list, complex(2, 0.5), shots_count=1))
-    print(cudaq.run(test_complex_not_in_float_list, complex(1, -0.5), shots_count=1))
-    print(cudaq.run(test_complex_not_in_float_list, complex(2, -0.5), shots_count=1))
-    print(cudaq.run(test_complex_not_in_float_list, complex(-2, 0.5), shots_count=1))
+    print(
+        cudaq.run(test_complex_not_in_float_list, complex(2, 0.),
+                  shots_count=1))
+    print(
+        cudaq.run(test_complex_not_in_float_list,
+                  complex(0., 0.5),
+                  shots_count=1))
+    print(
+        cudaq.run(test_complex_not_in_float_list,
+                  complex(2, 0.5),
+                  shots_count=1))
+    print(
+        cudaq.run(test_complex_not_in_float_list,
+                  complex(1, -0.5),
+                  shots_count=1))
+    print(
+        cudaq.run(test_complex_not_in_float_list,
+                  complex(2, -0.5),
+                  shots_count=1))
+    print(
+        cudaq.run(test_complex_not_in_float_list,
+                  complex(-2, 0.5),
+                  shots_count=1))
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [True]
     # CHECK-LABEL:    [False]
@@ -371,7 +408,9 @@ def test_comparison_failures():
         return v1 < v2
 
     try:
-        print(cudaq.synthesize(test_complex_less_than, complex(1, 0), complex(1, 0)))
+        print(
+            cudaq.synthesize(test_complex_less_than, complex(1, 0),
+                             complex(1, 0)))
     except Exception as e:
         print("Failure test_complex_less_than:")
         print(e)
@@ -413,7 +452,9 @@ def test_comparison_failures():
         return v1 > v2
 
     try:
-        print(cudaq.synthesize(test_complex_greater_than, complex(1, 0), complex(1, 0)))
+        print(
+            cudaq.synthesize(test_complex_greater_than, complex(1, 0),
+                             complex(1, 0)))
     except Exception as e:
         print("Failure test_complex_greater_than:")
         print(e)
@@ -427,7 +468,9 @@ def test_comparison_failures():
         return v1 > v2
 
     try:
-        print(cudaq.synthesize(test_float_complex_greater_than, 1., complex(1, 0)))
+        print(
+            cudaq.synthesize(test_float_complex_greater_than, 1., complex(1,
+                                                                          0)))
     except Exception as e:
         print("Failure test_float_complex_greater_than:")
         print(e)
@@ -441,7 +484,9 @@ def test_comparison_failures():
         return v1 > v2
 
     try:
-        print(cudaq.synthesize(test_complex_float_greater_than, complex(1, 0), 1.))
+        print(
+            cudaq.synthesize(test_complex_float_greater_than, complex(1, 0),
+                             1.))
     except Exception as e:
         print("Failure test_complex_float_greater_than:")
         print(e)
@@ -455,7 +500,9 @@ def test_comparison_failures():
         return v1 <= v2
 
     try:
-        print(cudaq.synthesize(test_complex_less_than_or_equal_to, complex(1, 0), complex(1, 0)))
+        print(
+            cudaq.synthesize(test_complex_less_than_or_equal_to, complex(1, 0),
+                             complex(1, 0)))
     except Exception as e:
         print("Failure test_complex_less_than_or_equal_to:")
         print(e)
@@ -465,11 +512,14 @@ def test_comparison_failures():
     # CHECK-NEXT:     (offending source -> v1 <= v2)
 
     @cudaq.kernel
-    def test_float_complex_less_than_or_equal_to(v1: float, v2: complex) -> bool:
+    def test_float_complex_less_than_or_equal_to(v1: float,
+                                                 v2: complex) -> bool:
         return v1 <= v2
 
     try:
-        print(cudaq.synthesize(test_float_complex_less_than_or_equal_to, 1., complex(1, 0)))
+        print(
+            cudaq.synthesize(test_float_complex_less_than_or_equal_to, 1.,
+                             complex(1, 0)))
     except Exception as e:
         print("Failure test_float_complex_less_than_or_equal_to:")
         print(e)
@@ -479,11 +529,14 @@ def test_comparison_failures():
     # CHECK-NEXT:     (offending source -> v1 <= v2)
 
     @cudaq.kernel
-    def test_complex_float_less_than_or_equal_to(v1: complex, v2: float) -> bool:
+    def test_complex_float_less_than_or_equal_to(v1: complex,
+                                                 v2: float) -> bool:
         return v1 <= v2
 
     try:
-        print(cudaq.synthesize(test_complex_float_less_than_or_equal_to, complex(1, 0), 1.))
+        print(
+            cudaq.synthesize(test_complex_float_less_than_or_equal_to,
+                             complex(1, 0), 1.))
     except Exception as e:
         print("Failure test_complex_float_less_than_or_equal_to:")
         print(e)
@@ -497,7 +550,9 @@ def test_comparison_failures():
         return v1 >= v2
 
     try:
-        print(cudaq.synthesize(test_complex_greater_than_or_equal_to, complex(1, 0), complex(1, 0)))
+        print(
+            cudaq.synthesize(test_complex_greater_than_or_equal_to,
+                             complex(1, 0), complex(1, 0)))
     except Exception as e:
         print("Failure test_complex_greater_than_or_equal_to:")
         print(e)
@@ -507,11 +562,14 @@ def test_comparison_failures():
     # CHECK-NEXT:     (offending source -> v1 >= v2)
 
     @cudaq.kernel
-    def test_float_complex_greater_than_or_equal_to(v1: float, v2: complex) -> bool:
+    def test_float_complex_greater_than_or_equal_to(v1: float,
+                                                    v2: complex) -> bool:
         return v1 >= v2
 
     try:
-        print(cudaq.synthesize(test_float_complex_greater_than_or_equal_to, 1., complex(1, 0)))
+        print(
+            cudaq.synthesize(test_float_complex_greater_than_or_equal_to, 1.,
+                             complex(1, 0)))
     except Exception as e:
         print("Failure test_float_complex_greater_than_or_equal_to:")
         print(e)
@@ -521,11 +579,14 @@ def test_comparison_failures():
     # CHECK-NEXT:     (offending source -> v1 >= v2)
 
     @cudaq.kernel
-    def test_complex_float_greater_than_or_equal_to(v1: complex, v2: float) -> bool:
+    def test_complex_float_greater_than_or_equal_to(v1: complex,
+                                                    v2: float) -> bool:
         return v1 >= v2
 
     try:
-        print(cudaq.synthesize(test_complex_float_greater_than_or_equal_to, complex(1, 0), 1.))
+        print(
+            cudaq.synthesize(test_complex_float_greater_than_or_equal_to,
+                             complex(1, 0), 1.))
     except Exception as e:
         print("Failure test_complex_float_greater_than_or_equal_to:")
         print(e)
@@ -538,7 +599,7 @@ def test_comparison_failures():
 
     @cudaq.kernel
     def test_list_in_list(v: list[int]) -> bool:
-        return v in [[1], [2], [3]]    
+        return v in [[1], [2], [3]]
 
     try:
         print(cudaq.run(test_list_in_list, [1], shots_count=1))
@@ -551,7 +612,7 @@ def test_comparison_failures():
     # CHECK-NEXT:     (offending source -> v in {{.*}}1], [2], [3{{.*}})
 
     @cudaq.kernel
-    def test_int_tuple_equal_to(v : tuple[int, int]) -> bool:
+    def test_int_tuple_equal_to(v: tuple[int, int]) -> bool:
         return v == (1, 3)
 
     try:
@@ -577,4 +638,3 @@ def test_comparison_failures():
     # CHECK-LABEL:    Failure test_composition:
     # CHECK:          only single comparators are supported
     # CHECK-NEXT:     (offending source -> 2.0 == 1.5 | 2.0 == 2.5)
-

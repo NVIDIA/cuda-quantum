@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import cudaq
 import numpy
 
+
 def test_basic_struq():
 
     @dataclass(slots=True)
@@ -28,6 +29,7 @@ def test_basic_struq():
 
     print(entry)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry()
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
@@ -36,6 +38,7 @@ def test_basic_struq():
 # CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
+
 
 def test_tuple_assign_struq():
 
@@ -148,7 +151,7 @@ def test_tuple_assign_struq():
     @cudaq.kernel
     def getTuple(arg: cudaq.qview) -> tuple[cudaq.qvector, cudaq.qubit]:
         return (arg[:-1], arg[-1])
-    
+
     @cudaq.kernel
     def test10():
         reg = cudaq.qvector(6)
@@ -158,6 +161,7 @@ def test_tuple_assign_struq():
 
     print(test10)
     print("result test10: " + str(cudaq.sample(test10)))
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
@@ -179,6 +183,7 @@ def test_tuple_assign_struq():
 # CHECK-LABEL:   result test8: { 1111:1000 }
 # CHECK-LABEL:   result test9: { 11111:1000 }
 # CHECK-LABEL:   result test10: { 111111:1000 }
+
 
 def test_tuple_assign_struct():
 
@@ -234,7 +239,7 @@ def test_tuple_assign_struct():
 
     @cudaq.kernel
     def test6() -> float:
-        v = (getMyTuple(5), 1) 
+        v = (getMyTuple(5), 1)
         return v[0].first + v[0].second + v[1]
 
     print(test6)
@@ -242,7 +247,7 @@ def test_tuple_assign_struct():
 
     @cudaq.kernel
     def test7() -> float:
-        v1, v2 = ((6, 2.), 1) 
+        v1, v2 = ((6, 2.), 1)
         return v1[0] + v1[1] + v2
 
     print(test7)
@@ -250,7 +255,7 @@ def test_tuple_assign_struct():
 
     @cudaq.kernel
     def test8() -> float:
-        (v1, v2), v3 = ((7, 2.), 1) 
+        (v1, v2), v3 = ((7, 2.), 1)
         return v1 + v2 + v3
 
     print(test8)
@@ -258,7 +263,7 @@ def test_tuple_assign_struct():
 
     @cudaq.kernel
     def test9() -> float:
-        (v1, v2), v3 = (getMyTuple(8), 1) 
+        (v1, v2), v3 = (getMyTuple(8), 1)
         return v1 + v2 + v3
 
     print(test9)
@@ -266,7 +271,7 @@ def test_tuple_assign_struct():
 
     @cudaq.kernel
     def getTuple(v1: int) -> tuple[int, float]:
-         return v1, 1.
+        return v1, 1.
 
     @cudaq.kernel
     def test10() -> float:
@@ -286,7 +291,7 @@ def test_tuple_assign_struct():
 
     @cudaq.kernel
     def test12() -> float:
-        v = (getTuple(2), 1) 
+        v = (getTuple(2), 1)
         return v[0][0] + v[0][1] + v[1]
 
     print(test12)
@@ -301,6 +306,7 @@ def test_tuple_assign_struct():
 
     print(test13)
     print("result test13: " + str(test13()))
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
@@ -337,11 +343,12 @@ def test_tuple_assign_struct():
 # CHECK-LABEL:   result test11: 3.0
 # CHECK-LABEL:   result test12: 4.0
 
+
 def test_tuple_assign_failures():
 
     @cudaq.kernel
     def test1() -> float:
-        v1, v2, v3 = ((1, 2), 3) 
+        v1, v2, v3 = ((1, 2), 3)
         return v1 + v2 + v3
 
     try:
@@ -352,7 +359,7 @@ def test_tuple_assign_failures():
 
     @cudaq.kernel
     def test2():
-        q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit()) 
+        q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit())
         x(q1)
         x.ctrl(q1, q2)
         x.ctrl(q1, q3)
@@ -373,6 +380,7 @@ def test_tuple_assign_failures():
     except Exception as e:
         print("Failure for test3:")
         print(e)
+
 
 # CHECK-LABEL:   Failure for test1:
 # CHECK:         shape mismatch in tuple deconstruction

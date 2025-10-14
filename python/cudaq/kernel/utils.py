@@ -101,16 +101,17 @@ def emitWarning(msg):
                 0]
 
 
-def mlirTryCreateStructType(mlirEleTypes, name = "tuple", context = None):
+def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
     tuples and `dataclass` structs of quantum and classical types. Returns
     None if the given element types don't satisfy the restrictions imposed
     on these types.
     """
+
     def isQuantumType(ty):
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
-                ty) or quake.StruqType.isinstance(ty)
+            ty) or quake.StruqType.isinstance(ty)
 
     numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:
@@ -138,7 +139,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     if annotation == None:
         localEmitFatalError(
             'cudaq.kernel functions must have argument type annotations.')
-        
+
     with ctx:
 
         if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
@@ -173,7 +174,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                     return IntegerType.get_signless(8)
 
         if isinstance(annotation,
-                    ast.Subscript) and annotation.value.id == 'Callable':
+                      ast.Subscript) and annotation.value.id == 'Callable':
             if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
                     f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
@@ -188,12 +189,14 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 localEmitFatalError(
                     f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
-            argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
+            argTypes = [
+                mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts
+            ]
             return cc.CallableType.get(argTypes)
 
         if isinstance(annotation,
-                    ast.Subscript) and (annotation.value.id == 'list' or
-                                        annotation.value.id == 'List'):
+                      ast.Subscript) and (annotation.value.id == 'list' or
+                                          annotation.value.id == 'List'):
             if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
                     f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
@@ -205,9 +208,9 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             return cc.StdvecType.get(listEleTy)
 
         if isinstance(annotation,
-                    ast.Subscript) and (annotation.value.id == 'tuple' or
-                                        annotation.value.id == 'Tuple'):
-            
+                      ast.Subscript) and (annotation.value.id == 'tuple' or
+                                          annotation.value.id == 'Tuple'):
+
             if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
                     f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
@@ -221,12 +224,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 localEmitFatalError(
                     f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
-                
 
             eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
             tupleTy = mlirTryCreateStructType(eleTypes)
             if tupleTy is None:
-                localEmitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+                localEmitFatalError(
+                    "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+                )
             return tupleTy
 
         if hasattr(annotation, 'id'):
@@ -271,7 +275,9 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         # One final check to see if this is a custom data type.
         if id in globalRegisteredTypes.classes:
             pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
-            structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
+            structTys = [
+                mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
+            ]
 
             if '__slots__' not in pyType.__dict__:
                 emitWarning(
@@ -287,9 +293,11 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 localEmitFatalError(
                     'struct types with user specified methods are not allowed.')
 
-            tupleTy = mlirTryCreateStructType(structTys, name = id)
+            tupleTy = mlirTryCreateStructType(structTys, name=id)
             if tupleTy is None:
-                localEmitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+                localEmitFatalError(
+                    "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+                )
             return tupleTy
 
     localEmitFatalError(
@@ -407,7 +415,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         eleTypes.reverse()
         tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         if tupleTy is None:
-            emitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+            emitFatalError(
+                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+            )
         return tupleTy
 
     if (argType == tuple):
@@ -417,7 +427,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
         tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         if tupleTy is None:
-            emitFatalError("Hybrid quantum-classical data types and nested quantum structs are not allowed.")
+            emitFatalError(
+                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+            )
         return tupleTy
 
     if argType == qvector or argType == qreg or argType == qview:
@@ -529,7 +541,7 @@ def mlirTypeToPyType(argType):
         if globalRegisteredTypes.isRegisteredClass(clsName):
             pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
             return pyType
-    
+
     if quake.StruqType.isinstance(argType):
         if (quake.StruqType.getName(argType) == "tuple"):
             elements = [
@@ -541,7 +553,6 @@ def mlirTypeToPyType(argType):
         if globalRegisteredTypes.isRegisteredClass(clsName):
             pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
             return pyType
-
 
     emitFatalError(
         f"Cannot infer python type from provided CUDA-Q type ({argType})")

@@ -68,6 +68,7 @@ def test_list_init():
 # CHECK:           return
 # CHECK:         }
 
+
 def test_list_conversion_fail():
 
     @cudaq.kernel
@@ -83,7 +84,7 @@ def test_list_conversion_fail():
         print("Failure for test1:")
         print(e)
 
+
 # CHECK-LABEL:  Failure for test1:
 # CHECK:        cannot convert value of type complex<f64> to the requested type f64
 # CHECK-NEXT:   (offending source -> numpy.array(params, dtype=float))
-

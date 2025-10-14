@@ -11,6 +11,7 @@
 from dataclasses import dataclass
 import cudaq
 
+
 def test_attribute_access():
 
     @dataclass(slots=True)
@@ -25,17 +26,17 @@ def test_attribute_access():
 
     @cudaq.kernel
     def kernel1() -> float:
-        l = [1,2,3]
+        l = [1, 2, 3]
         l[0] = 4
-        c = complex(0,0)
+        c = complex(0, 0)
         c += 1
         res = l.size + c.real
         for v in l:
             res += v
-        return res 
+        return res
 
     out = cudaq.run(kernel1, shots_count=1)
-    assert(len(out) == 1 and out[0] == 13)
+    assert (len(out) == 1 and out[0] == 13)
     print("[attribute access] kernel 1 outputs " + str(out[0]))
 
     @cudaq.kernel
@@ -44,7 +45,7 @@ def test_attribute_access():
         x(qs.targets.front())
 
     out = cudaq.sample(kernel2, shots_count=100)
-    assert(len(out) == 1 and out.most_probable() == '0100')
+    assert (len(out) == 1 and out.most_probable() == '0100')
     print("[attribute access] kernel 2 outputs " + out.most_probable())
 
     @cudaq.kernel
@@ -53,18 +54,20 @@ def test_attribute_access():
         x(qs.targets.back())
 
     out = cudaq.sample(kernel3, shots_count=100)
-    assert(len(out) == 1 and out.most_probable() == '0001')
+    assert (len(out) == 1 and out.most_probable() == '0001')
     print("[attribute access] kernel 3 outputs " + out.most_probable())
+
 
 # CHECK-LABEL: [attribute access] kernel 1 outputs 13.0
 # CHECK-LABEL: [attribute access] kernel 2 outputs 0100
 # CHECK-LABEL: [attribute access] kernel 3 outputs 0001
 
+
 def test_attribute_failures():
 
     @cudaq.kernel
     def kernel1() -> int:
-        l = [1,2,3]
+        l = [1, 2, 3]
         l[0] = 4
         l.size = 4
         return len(l)
@@ -101,6 +104,7 @@ def test_attribute_failures():
         print("Failure kernel3:")
         print(e)
 
+
 # CHECK-LABEL:  Failure kernel1:
 # CHECK:        invalid CUDA-Q attribute assignment
 # CHECK-NEXT:   (offending source -> l.size = 4)
@@ -112,4 +116,3 @@ def test_attribute_failures():
 # CHECK-LABEL:  Failure kernel3:
 # CHECK:        CUDA-Q does not allow dynamic resizing or lists, arrays, or qvectors.
 # CHECK-NEXT:   (offending source -> angles.append(1.5))
-

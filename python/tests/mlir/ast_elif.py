@@ -28,7 +28,6 @@ def test_elif():
     cost([1., 2., 3., 4., 5., 6.])
     print(cost)
 
-test_elif()
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
 # CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {

@@ -11,6 +11,7 @@
 import cudaq
 from dataclasses import dataclass
 
+
 def test_list_deconstruction():
 
     @dataclass(slots=True)
@@ -158,9 +159,9 @@ def test_list_deconstruction_failures():
 
     try:
         # This will fail when running the pass manager.
-        # I could not figure out how to capture any errors that the 
+        # I could not figure out how to capture any errors that the
         # pass manager produces and return them along with the
-        # exception. I think it would be nicer to do that, since 
+        # exception. I think it would be nicer to do that, since
         # as it is, the error message is a bit fragmented.
         print(kernel2)
     except Exception as e:
@@ -168,17 +169,17 @@ def test_list_deconstruction_failures():
         print(e)
 
     # Note: We have a slight mismatch in Python interpreted code
-    # vs compiled python code; since the length of the list we are 
-    # deconstructing is runtime information, we merely index into 
+    # vs compiled python code; since the length of the list we are
+    # deconstructing is runtime information, we merely index into
     # it to get however many elements we assign to. If this number
     # is larger than the length of the list, then we either get a
-    # pass manager failure or a runtime failure, depending on when 
-    # the length of the list is known. However, if the number `n` 
+    # pass manager failure or a runtime failure, depending on when
+    # the length of the list is known. However, if the number `n`
     # of targets we assign to is smaller than the list, we happily
     # will just assign the first n items without a failure. This
     # is in contrast to the Python interpreter that doesn't allow
     # for that. We can, and do, give a proper error, however, if
-    # the list we assign is 
+    # the list we assign is
 
     @cudaq.kernel
     def kernel3():
@@ -204,4 +205,3 @@ def test_list_deconstruction_failures():
 # CHECK-LABEL:   Failure for kernel3:
 # CHECK:         shape mismatch in tuple deconstruction
 # CHECK-NEXT:    (offending source -> (r1, r2) = [0.5, 1.0, 1.5])
-
