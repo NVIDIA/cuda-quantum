@@ -4529,7 +4529,7 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.currentNode)
 
         if issubclass(nodeType, ast.Mod):
-            # FIXME: This should be revised to 
+            # FIXME: This should be revised to
             # 1) properly fail when we have a complex number
             # 2) use `arith.RemFOp` for floating point
             # (these changes are split out into a separate PR
