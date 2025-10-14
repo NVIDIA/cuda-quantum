@@ -95,6 +95,11 @@ protected:
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override;
 
+  /// @brief Helper to determine if a completed job returns a result.
+  // Some jobs, such as syntax checker jobs, may complete without returning a
+  // result.
+  bool jobReturnsResult(ServerMessage &postJobResponse) const;
+
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
@@ -464,6 +469,8 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("Job was cancelled.");
   }
   if (jobStatus == "COMPLETED") {
+    if (!jobReturnsResult(getJobResponse))
+      return true;
     // Check if the response contains the result ID
     // In some cases, the status may be "COMPLETED" but the result ID
     // is not yet available, so we will check for that.
@@ -508,7 +515,10 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    if (!jobReturnsResult(jobResponse))
+      return cudaq::sample_result(cudaq::ExecutionResult());
+    else
+      throw std::runtime_error("Job completed but no result ID found.");
   }
   const std::string resultPath =
       resultType == QuantinuumServerHelper::ResultType::QSYS
@@ -559,7 +569,12 @@ std::string QuantinuumServerHelper::extractOutputLog(ServerMessage &jobResponse,
                                                      std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    if (!jobReturnsResult(jobResponse)) {
+      CUDAQ_INFO("Syntax checker job completed, no output to extract.");
+      return "";
+    } else {
+      throw std::runtime_error("Job completed but no result ID found.");
+    }
   }
   if (resultType != QuantinuumServerHelper::ResultType::QSYS) {
     throw std::runtime_error(
@@ -684,6 +699,20 @@ cudaq::ExtraPayloadProvider *QuantinuumServerHelper::getExtraPayloadProvider() {
   return it->get();
 }
 
+bool QuantinuumServerHelper::jobReturnsResult(
+    ServerMessage &jobResponse) const {
+  // Retrieve the device name if available.
+  auto deviceNamePath =
+      "/data/attributes/definition/backend_config/device_name"_json_pointer;
+  if (!jobResponse.contains(deviceNamePath))
+    return true;
+  const std::string deviceName = jobResponse[deviceNamePath].get<std::string>();
+  // Helios (NG device) syntax checker jobs won't return a result.
+  if (deviceName.starts_with("Helios") && deviceName.ends_with("SC"))
+    return false;
+
+  return true;
+}
 } // namespace cudaq
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QuantinuumServerHelper,
