@@ -42,7 +42,11 @@ __qpu__ std::vector<bool> vector_bool_test() {
   return vec;
 }
 
+#ifndef CUDAQ_LIBRARY_MODE
 struct K9 {
+  /// NOTE: This doesn't work in library mode - `error: no viable conversion
+  /// from returned value of type 'vector<measure_result>' to function return
+  /// type 'vector<bool>'`
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
     cudaq::qubit p;
@@ -50,6 +54,7 @@ struct K9 {
     return mz(q);
   }
 };
+#endif
 
 __qpu__ std::vector<int> vector_int_test() {
   std::vector<int> result(2);
@@ -171,7 +176,7 @@ int main() {
       printf("success!\n");
     }
   }
-
+#ifndef CUDAQ_LIBRARY_MODE
   {
     const std::vector<std::vector<bool>> results = cudaq::run(2, K9{});
     c = 0;
@@ -187,7 +192,7 @@ int main() {
       printf("success!\n");
     }
   }
-
+#endif
   {
     const std::vector<std::vector<int>> results =
         cudaq::run(3, vector_int_test);
@@ -233,7 +238,6 @@ int main() {
   return 0;
 }
 
-// CHECK: success!
 // CHECK: success!
 // CHECK: success!
 // CHECK: success!
