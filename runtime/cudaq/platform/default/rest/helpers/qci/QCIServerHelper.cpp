@@ -91,6 +91,10 @@ public:
     CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
                config["method"]);
 
+    config["noisy"] = getValueOrDefault(config, "noisy", "false");
+    config["rusr"] =
+        getValueOrDefault(config, "repeat_until_shots_requested", "false");
+
     // Authentication token not required in emulation mode
     bool isTokenRequired = [&]() {
       auto it = config.find("emulate");
@@ -180,14 +184,19 @@ QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   for (auto &circuitCode : circuitCodes) {
     ServerMessage job;
     job["code"] = circuitCode.code;
-    job["machine"] = backendConfig.at("machine");
-    job["method"] = backendConfig.at("method");
-    job["mappingReorderIdx"] = circuitCode.mapping_reorder_idx;
     job["name"] = circuitCode.name;
-    job["outputNames"] = circuitCode.output_names;
-    job["shots"] = shots;
     job["userData"] = circuitCode.user_data;
-
+    // Target-specific parameters
+    job["machine"] = backendConfig.at("machine");
+    job["method"] = backendConfig.at("method");    
+    job["shots"] = shots;    
+    job["noisy"] = backendConfig.at("noisy");
+    job["options"] = nlohmann::json::object();
+    bool rusr = backendConfig.at("rusr") == "true";
+    job["options"]["compiler"] = {{"shots", shots}, {"rusr", rusr}};
+    job["options"]["aqusim"] = {{"rusr", rusr}};
+    job["options"]["qpu"] = {{"rusr", true}};
+    
     messages.push_back(job);
   }
 
