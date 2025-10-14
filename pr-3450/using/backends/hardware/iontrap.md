@@ -342,6 +342,26 @@ pr-3450
         -   [Determining the ground state energy of the
             subspace](../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../../../applications/python/qsci.html){.reference
+        .internal}
+        -   [0. Problem
+            definition](../../../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../../../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../../../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
         Algorithm](../../../applications/python/bernstein_vazirani.html){.reference
         .internal}
@@ -2022,6 +2042,34 @@ not need to specify project or machine when emulating.
 :::
 :::
 :::
+:::
+
+::: {.admonition .note}
+Note
+
+Quantinuum's syntax checker for Helios (e.g., [`Helios-1SC`{.docutils
+.literal .notranslate}]{.pre}) only performs QIR code validation and
+does not return any results. Thus, it always returns an empty result
+set. This is different from other Quantinuum backends (e.g.,
+[`H1-1SC`{.docutils .literal .notranslate}]{.pre}) where the syntax
+checker returns dummy results. As a result, when using the Helios syntax
+checker, we may receive this warning message:
+
+> <div>
+>
+> ::: {.highlight-text .notranslate}
+> ::: highlight
+>     WARNING: this kernel invocation produced 0 shots worth of results when executed.
+> :::
+> :::
+>
+> It means that the kernel was successfully validated, but no execution
+> results are available. To get results, please submit to the Helios
+> emulator (e.g., [`Helios-1E`{.docutils .literal .notranslate}]{.pre})
+> or the actual quantum device (e.g., [`Helios-1`{.docutils .literal
+> .notranslate}]{.pre}).
+>
+> </div>
 :::
 
 To see a complete example, take a look at [[Quantinuum examples]{.std

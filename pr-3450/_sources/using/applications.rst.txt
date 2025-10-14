@@ -18,6 +18,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
+   /applications/python/qsci
    /applications/python/bernstein_vazirani
    /applications/python/cost_minimization
    /applications/python/deutsch_algorithm
@@ -113,6 +114,14 @@ This page contains a number of different applications implemented using CUDA-Q. 
             Learn how the Krylov method uses the Hadamard test to predict the ground state energy of molecules. Also learn how to implement the same approach with the <code>mqpu</code> backend and simulate execution on multiple QPUs in parallel.
         </div>
         <img src="../_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
+        <a href="../applications/python/qsci.html" class="notebook-title">Quantum-Selected Configuration Interaction</a>
+        <div class="notebook-content">
+            Learn how the QSCI method uses the observe and sample primitives.
+        </div>
+        <img src="../_static/app_title_images/qsci_preview.png" alt="QSCI Preview" class="notebook-image">
     </div>
 
     <div class="notebook-entry" data-tags="chemistry,noiseless">
