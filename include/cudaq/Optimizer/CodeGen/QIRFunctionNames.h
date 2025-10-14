@@ -31,7 +31,7 @@ static constexpr const char ReadResultBody[] =
     "__quantum__qis__read_result__body";
 }
 
-namespace qir0_2 {
+namespace qir1_0 {
 static constexpr const char ReadResult[] = "__quantum__rt__read_result";
 }
 
