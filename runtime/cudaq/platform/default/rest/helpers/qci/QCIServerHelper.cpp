@@ -264,7 +264,7 @@ cudaq::sample_result
 QCIServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobId) {
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
-  CUDAQ_DBG("jobId: {}", jobId);
+  CUDAQ_INFO("jobId: {}", jobId);
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   auto qirResults = getOutputLog(outputPath);
   return createSampleResultFromQirOutput(qirResults);
@@ -288,7 +288,7 @@ RestHeaders QCIServerHelper::getHeaders() { return generateRequestHeaders(); }
 std::string QCIServerHelper::extractOutputLog(ServerMessage &postJobResponse,
                                               std::string &jobId) {
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
-  CUDAQ_DBG("jobId: {}", jobId);
+  CUDAQ_INFO("jobId: {}", jobId);
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   return getOutputLog(outputPath);
 }
