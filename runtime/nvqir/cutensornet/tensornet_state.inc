@@ -26,7 +26,7 @@ std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
         throw std::invalid_argument("must be a positive number");
       }
       CUDAQ_INFO("Update number of hyper samples from {} to {}.",
-                  defaultNumHyperSamples, specifiedNumHyperSamples);
+                 defaultNumHyperSamples, specifiedNumHyperSamples);
       return specifiedNumHyperSamples;
     } catch (...) {
       throw std::runtime_error(
@@ -269,7 +269,8 @@ TensorNetState<ScalarType>::prepareSample(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetSamplerPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetSamplerPrepare");
     HANDLE_CUTN_ERROR(cutensornetSamplerPrepare(m_cutnHandle, sampler,
                                                 scratchPad.scratchSize,
                                                 workDesc, /*cudaStream*/ 0));
@@ -353,7 +354,8 @@ TensorNetState<ScalarType>::executeSample(
     }
 
     {
-      ScopedTraceWithContext("cutensornetSamplerSample");
+      ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                             "cutensornetSamplerSample");
       HANDLE_CUTN_ERROR(cutensornetSamplerSample(
           m_cutnHandle, sampler, numShots, workDesc, samples.data(),
           /*cudaStream*/ 0));
@@ -434,7 +436,8 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetAccessorPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetAccessorPrepare");
     HANDLE_CUTN_ERROR(cutensornetAccessorPrepare(
         m_cutnHandle, accessor, scratchPad.scratchSize, workDesc, 0));
   }
@@ -465,7 +468,8 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
           ? std::vector<int64_t>(projectedModes.size(), 0)
           : in_projectedModeValues;
   {
-    ScopedTraceWithContext("cutensornetAccessorCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetAccessorCompute");
     HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
         m_cutnHandle, accessor, projectedModeValues.data(), workDesc, d_sv,
         static_cast<void *>(&stateNorm), 0));
@@ -577,7 +581,7 @@ void TensorNetState<ScalarType>::computeMPSFactorize(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetStatePrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET, "cutensornetStatePrepare");
     HANDLE_CUTN_ERROR(cutensornetStatePrepare(
         m_cutnHandle, m_quantumState, scratchPad.scratchSize, workDesc, 0));
   }
@@ -613,7 +617,7 @@ void TensorNetState<ScalarType>::computeMPSFactorize(
       CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
 
   {
-    ScopedTraceWithContext("cutensornetStateCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET, "cutensornetStateCompute");
     // Execute MPS computation
     HANDLE_CUTN_ERROR(cutensornetStateCompute(
         m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
@@ -678,7 +682,8 @@ TensorNetState<ScalarType>::computeRDM(const std::vector<int32_t> &qubits) {
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetMarginalPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetMarginalPrepare");
     HANDLE_CUTN_ERROR(cutensornetMarginalPrepare(
         m_cutnHandle, marginal, scratchPad.scratchSize, workDesc, 0));
   }
@@ -695,7 +700,8 @@ TensorNetState<ScalarType>::computeRDM(const std::vector<int32_t> &qubits) {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
   {
-    ScopedTraceWithContext("cutensornetMarginalCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetMarginalCompute");
     // Compute the specified quantum circuit reduced density matrix (marginal)
     HANDLE_CUTN_ERROR(cutensornetMarginalCompute(m_cutnHandle, marginal,
                                                  nullptr, workDesc, d_rdm, 0));
@@ -807,7 +813,8 @@ TensorNetState<ScalarType>::computeExpVals(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetExpectationPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetExpectationPrepare");
     HANDLE_CUTN_ERROR(
         cutensornetExpectationPrepare(m_cutnHandle, tensorNetworkExpectation,
                                       scratchPad.scratchSize, workDesc,
@@ -906,7 +913,8 @@ TensorNetState<ScalarType>::computeExpVals(
       std::complex<ScalarType> expVal = 0.0;
       for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
         std::complex<ScalarType> result;
-        ScopedTraceWithContext("cutensornetExpectationCompute");
+        ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                               "cutensornetExpectationCompute");
         HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
             m_cutnHandle, tensorNetworkExpectation, workDesc, &result, nullptr,
             /*cudaStream*/ 0));
@@ -951,7 +959,8 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetExpectationPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetExpectationPrepare");
     HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
         m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
         workDesc, /*cudaStream*/ 0));
@@ -990,7 +999,8 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
   std::complex<ScalarType> expVal = 0.0;
   for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
     std::complex<ScalarType> result;
-    ScopedTraceWithContext("cutensornetExpectationCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetExpectationCompute");
     HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
         m_cutnHandle, tensorNetworkExpectation, workDesc, &result,
         /*stateNorm*/ nullptr,
