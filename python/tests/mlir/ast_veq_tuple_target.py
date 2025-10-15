@@ -179,7 +179,7 @@ def test_list_deconstruction_failures():
     # will just assign the first n items without a failure. This
     # is in contrast to the Python interpreter that doesn't allow
     # for that. We can, and do, give a proper error, however, if
-    # the list we assign is
+    # the list we assign is a Python literal
 
     @cudaq.kernel
     def kernel3():
