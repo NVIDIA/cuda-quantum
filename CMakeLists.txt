@@ -542,11 +542,11 @@ if(CMAKE_CUDA_COMPILER)
     message(STATUS "Found CUDA Toolkit version: ${CUDAToolkit_VERSION}")
 
     if (CUDAToolkit_VERSION VERSION_LESS 13.0)
-      # Ampere, Hopper
-      set(CUDA_TARGET_ARCHS  "80;90")
+      # Turing, Ampere, Hopper
+      set(CUDA_TARGET_ARCHS  "75;80;90")
     else()
-      # Ampere, Hopper, Blackwell
-      set(CUDA_TARGET_ARCHS  "80;90;100")
+      # Turing, Ampere, Hopper, Blackwell
+      set(CUDA_TARGET_ARCHS  "75;80;90;100")
     endif()
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
