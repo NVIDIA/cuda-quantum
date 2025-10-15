@@ -1487,6 +1487,10 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(self.getFloatType(width=64))
                 elif node.attr == 'float32':
                     self.pushValue(self.getFloatType(width=32))
+                elif node.attr == 'int64':
+                    self.pushValue(self.getIntegerType(width=64))
+                elif node.attr == 'int32':
+                    self.pushValue(self.getIntegerType(width=32))
                 elif node.attr == 'pi':
                     self.pushValue(self.getConstantFloat(np.pi))
                 elif node.attr == 'e':
@@ -2591,9 +2595,19 @@ class PyASTBridge(ast.NodeVisitor):
 
                     if node.func.attr in ['float64', 'float32']:
                         if node.func.attr == 'float64':
-                            ty = self.getFloatType()
+                            ty = self.getFloatType(width=64)
                         if node.func.attr == 'float32':
                             ty = self.getFloatType(width=32)
+
+                        value = self.changeOperandToType(ty, value)
+                        self.pushValue(value)
+                        return
+
+                    if node.func.attr in ['int64', 'int32']:
+                        if node.func.attr == 'int64':
+                            ty = self.getIntegerType(width=64)
+                        if node.func.attr == 'int32':
+                            ty = self.getIntegerType(width=32)
 
                         value = self.changeOperandToType(ty, value)
                         self.pushValue(value)
@@ -2607,7 +2621,8 @@ class PyASTBridge(ast.NodeVisitor):
                         elif IntegerType.isinstance(value.type):
                             value = self.changeOperandToType(
                                 self.getFloatType(), value)
-                        else:
+                        elif not F64Type.isinstance(value.type) and \
+                            not F32Type.isinstance(value.type):
                             self.emitFatalError(
                                 "invalid type {} for call to numpy function {}".
                                 format(value.type, node.func.attr), node)
@@ -2665,7 +2680,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                self.generic_visit(node)
+                [self.visit(arg) for arg in node.args]
 
                 if node.func.value.id == 'cudaq':
                     if node.func.attr == 'complex':
@@ -3709,7 +3724,12 @@ class PyASTBridge(ast.NodeVisitor):
                                     node)
             return idxValue
 
+        # We allow subscripts into `Structs`, but only if we don't need a pointer
+        # (i.e. no updating of Tuples).
         if cc.StructType.isinstance(var.type):
+            if self.subscriptPushPointerValue:
+                self.emitFatalError("indexing into struct elements must not modify value", node)
+
             # Handle the case where we have a tuple member extraction, memory semantics
             memberTys = cc.StructType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
@@ -3726,10 +3746,12 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
 
-        # Let's allow subscripts into `Struqs``, but only if we don't need a pointer
+        # Let's allow subscripts into `Struqs`, but only if we don't need a pointer
         # (i.e. no updating of `Struqs`).
-        if not self.subscriptPushPointerValue and \
-            quake.StruqType.isinstance(var.type):
+        if quake.StruqType.isinstance(var.type):
+            if self.subscriptPushPointerValue:
+                self.emitFatalError("indexing into struct elements must not modify value", node)
+
             memberTys = quake.StruqType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
 
@@ -4480,11 +4502,11 @@ class PyASTBridge(ast.NodeVisitor):
                 left = arith.SIToFPOp(self.getFloatType(), left).result
             if IntegerType.isinstance(right.type):
                 right = arith.SIToFPOp(self.getFloatType(), right).result
-            elif F64Type.isinstance(left.type) or \
+            if F64Type.isinstance(left.type) or \
                 F32Type.isinstance(left.type):
                 self.pushValue(arith.DivFOp(left, right).result)
                 return
-            if ComplexType.isinstance(left.type):
+            elif ComplexType.isinstance(left.type):
                 self.pushValue(complex.DivOp(left, right).result)
                 return
             else:
@@ -4699,12 +4721,17 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if isinstance(value, (list, np.ndarray)) and isinstance(
-                    value[0], (int, bool, float, np.float32, np.float64,
-                               complexType, np.complex64, np.complex128)):
+                    value[0], (int, bool, float, np.int32, np.int64,
+                               np.float32, np.float64, complexType,
+                               np.complex64, np.complex128)):
                 elementValues = None
                 if isinstance(value[0], bool):
                     elementValues = [self.getConstantInt(el, 1) for el in value]
-                elif isinstance(value[0], int):
+                elif isinstance(value[0], np.int32):
+                    elementValues = [
+                        self.getConstantInt(el, width=32) for el in value
+                    ]
+                elif isinstance(value[0], (int, np.int64)):
                     elementValues = [self.getConstantInt(el) for el in value]
                 elif isinstance(value[0], np.float32):
                     elementValues = [
@@ -4736,7 +4763,9 @@ class PyASTBridge(ast.NodeVisitor):
             self.dependentCaptureVars[node.id] = value
             if isinstance(value, bool):
                 mlirValCreator = lambda: self.getConstantInt(value, 1)
-            elif isinstance(value, int):
+            elif isinstance(value, np.int32):
+                mlirValCreator = lambda: self.getConstantInt(value, width=32)
+            elif isinstance(value, (int, np.int64)):
                 mlirValCreator = lambda: self.getConstantInt(value)
             elif isinstance(value, np.float32):
                 mlirValCreator = lambda: self.getConstantFloat(value, width=32)
