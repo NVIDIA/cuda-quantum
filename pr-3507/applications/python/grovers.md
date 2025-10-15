@@ -342,6 +342,24 @@ pr-3507
         -   [Determining the ground state energy of the
             subspace](krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](qsci.html){.reference .internal}
+        -   [0. Problem
+            definition](qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
         -   [Classical
@@ -1952,7 +1970,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![39665c4c0d834940af1dc2a17c2f3815](../../_images/grovers-2D-plane.png)
+![f472dd4df68c49b487149f9f53b678ed](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2167,7 +2185,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![aaf173bba5964c25ad36b2d6c6a6d836](../../_images/grovers-steps1-3.png)
+![9484405332f448d6ac7acf01db4092e0](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2179,7 +2197,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![cc0e77f689d64372943758b9254d0385](../../_images/grovers-full-rotation.png)
+![ffb0bfeb339a4bd69c241bd9a0120175](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

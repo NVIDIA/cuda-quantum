@@ -342,6 +342,24 @@ pr-3507
         -   [Determining the ground state energy of the
             subspace](krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](qsci.html){.reference .internal}
+        -   [0. Problem
+            definition](qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
         -   [Classical
@@ -1808,7 +1826,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![4ef8ff965f41414e8ca2dc7327962c48](../../_images/oracle.png){.no-scaled-link
+![75943a0e8817461e8c641cf28ee81dfa](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -1914,7 +1932,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![42b8c8c9cc4d42ceae381216223802ba](../../_images/deutsch.png){.no-scaled-link
+![2db749d918144687abae923434ab9c7b](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}
