@@ -65,7 +65,7 @@ int main() {
         printf("%d: %d %d\n", c++, (bool)i[0], (bool)i[1]);
       }
       if (c == shots)
-        printf("success!\n");
+        printf("success async!\n");
     }
   }
 
@@ -74,4 +74,4 @@ int main() {
 
 // FAIL: `run` is not yet supported on this target
 // CHECK: success!
-// CHECK: success!
+// CHECK: success async!
