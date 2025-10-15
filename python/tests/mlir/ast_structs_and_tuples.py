@@ -384,11 +384,11 @@ def test_tuple_assign_failures():
 
 # CHECK-LABEL:   Failure for test1:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> (v1, v2, v3) = ((1, 2), 3))
+# CHECK-NEXT:    (offending source -> v1, v2, v3 = ((1, 2), 3))
 
 # CHECK-LABEL:   Failure for test2:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> (q1, q2, q3) = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit()))
+# CHECK-NEXT:    (offending source -> q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit()))
 
 # CHECK-LABEL:   Failure for test3:
 # CHECK:         hybrid quantum-classical data types and nested quantum structs are not allowed
