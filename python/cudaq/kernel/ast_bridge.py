@@ -3406,6 +3406,13 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(pyval, ast.UnaryOp) and \
                 isinstance(pyval.op, ast.Not):
                 return IntegerType.get_signless(1)
+            # limiting to add, sub, and mult here for now -
+            # be careful and test with different bitwidths if more is enabled
+            elif isinstance(pyval, ast.BinOp) and \
+                isinstance(pyval.op, (ast.Add, ast.Sub, ast.Mult)):
+                leftTy = get_item_type(pyval.left)
+                rightTy = get_item_type(pyval.right)
+                return self.__get_superior_type(leftTy, rightTy)
             else:
                 self.emitFatalError(
                     "Only variables, constants, and some calls can be used to populate values in list comprehension expressions",
@@ -4443,6 +4450,9 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.PointerType.isinstance(right.type):
             right = cc.LoadOp(right).result
 
+        # Note: including support for any non-arithmetic types
+        # (e.g. addition on lists) needs to be tested/implemented
+        # also when used in list comprehension expressions.
         if not self.isArithmeticType(left.type) or not self.isArithmeticType(
                 right.type):
             self.emitFatalError(
