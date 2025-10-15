@@ -15,8 +15,8 @@ from typing import get_origin, Callable, List
 import types
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.dialects import quake, cc
-from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType
+from cudaq.mlir.dialects import quake, cc, func
+from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType, SymbolTable
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
@@ -442,7 +442,41 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
-            return cc.CallableType.get(argInstance.argTypes, ctx)
+            if hasattr(argInstance, 'argTypes'):
+                print("Found Callable with argTypes:", argInstance.argTypes)
+                return cc.CallableType.get(argInstance.argTypes, ctx)
+            elif hasattr(argInstance, '__call__') and hasattr(argInstance, '__module__') and hasattr(argInstance, '__name__'):
+                # This is a callable object, likely a C++ kernel
+                devKey = f"{argInstance.__module__}.{argInstance.__name__}"
+                if cudaq_runtime.isRegisteredDeviceModule(devKey):
+                    print("Found registered device module for callable object:", devKey)
+                    if "module" in kwargs:
+                        module = kwargs['module']
+                        maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                            module, devKey)
+                        if maybeKernelName != None:
+                            otherKernel = SymbolTable(
+                                module.operation)[maybeKernelName]
+                            print("Found registered C++ kernel:", maybeKernelName)
+                            print("Other kernel type:", otherKernel.type)
+                            print("Other kernel:", otherKernel)
+                            if isinstance(otherKernel, func.FuncOp):
+                                print("HEY:", dir(otherKernel.type))
+                                print("HOW:", otherKernel.arguments)
+                                argTypes = []
+                                for arg in otherKernel.arguments:
+                                    print("ARG TYPE:", arg.type)
+                                    argTypes.append(arg.type)
+                                return cc.CallableType.get(argTypes, ctx)
+                            else:
+                                emitFatalError(
+                                    f"Registered C++ kernel '{maybeKernelName}' is not of CallableType."
+                                )
+                    # maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(self.module, devKey)
+                    # if maybeKernelName != None:
+                    #     otherKernel = SymbolTable(
+                    #         self.module.operation)[maybeKernelName]
+                    #     processFunctionCall(otherKernel.type, len(node.args))
 
     for name in globalRegisteredTypes.classes:
         customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
