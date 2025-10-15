@@ -1668,7 +1668,7 @@ def test_measure_variadic_qubits():
     def test():
         q = cudaq.qvector(5)
         x(q[0], q[2])
-        mz(q[0], [q[1], q[2]])
+        mz([q[0], *q[1:3]])
 
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '101' in counts

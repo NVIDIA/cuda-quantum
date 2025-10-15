@@ -3467,30 +3467,32 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 "creating empty lists is not supported in CUDA-Q", node)
 
-        self.generic_visit(node)
+        listElementValues = []
+        for element in node.elts:
+            if isinstance(element, ast.Starred):
+                self.visit(element.value)
+                evalElem = self.popValue()
+                if not quake.VeqType.isinstance(evalElem.type):
+                    self.emitFatalError("unpack operator `*` is only supported on qvectors", node)
+                listElementValues.append(evalElem)
+            else:
+                self.visit(element)
+                # We do not store lists of pointers
+                evalElem = self.ifPointerThenLoad(self.popValue())
+                if self.isQuantumType(evalElem.type) and not quake.RefType.isinstance(evalElem.type):
+                    self.emitFatalError("list must not contain a qvector or quantum struct - use `*` operator to unpack qvectors", node)
+                listElementValues.append(evalElem)
 
-        listElementValues = [self.popValue() for _ in range(len(node.elts))]
-        listElementValues.reverse()
-        valueTys = [
-            quake.VeqType.isinstance(v.type) or quake.RefType.isinstance(v.type)
-            for v in listElementValues
-        ]
-        if False not in valueTys:
-            # this is a list of quantum types,
-            # concatenate them into a `veq`
+        numQuantumTs = sum((self.isQuantumType(v.type) for v in listElementValues))
+        if numQuantumTs != 0:
             if len(listElementValues) == 1:
                 self.pushValue(listElementValues[0])
-            else:
-                self.pushValue(
-                    quake.ConcatOp(self.getVeqType(), listElementValues).result)
+                return
+            if numQuantumTs != len(listElementValues):
+                self.emitFatalError("non-homogenous list not allowed", node)
+            self.pushValue(
+                quake.ConcatOp(self.getVeqType(), listElementValues).result)
             return
-
-        # We do not store lists of pointers
-        listElementValues = [
-            cc.LoadOp(ele).result
-            if cc.PointerType.isinstance(ele.type) else ele
-            for ele in listElementValues
-        ]
 
         # not a list of quantum types
         # Get the first element
