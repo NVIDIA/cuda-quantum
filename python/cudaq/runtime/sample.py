@@ -116,6 +116,13 @@ Returns:
     ctx.explicitMeasurements = explicit_measurements
     cudaq_runtime.setExecutionContext(ctx)
 
+    # If the platform is a hardware QPU, launch once
+    if cudaq_runtime.isQuantumDevice():
+        kernel(*args)
+        cudaq_runtime.resetExecutionContext()
+        cudaq_runtime.unset_noise()
+        return ctx.result
+
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
         kernel(*args)
