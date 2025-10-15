@@ -190,7 +190,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
         cublas_version=12.0 && \
         cusolver_version=11.4 && \
-        cuda_runtime_version=12.6 && \
+        cuda_runtime_version=12.0 && \
         cuda_nvrtc_version=12.0 && \
         sed -i "s/-cu13/-cu12/g" pyproject.toml && \
         sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
