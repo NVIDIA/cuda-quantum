@@ -806,8 +806,10 @@ class PyASTBridge(ast.NodeVisitor):
             return cc.StdvecSizeOp(self.getIntegerType(), vector).result
         elif cc.ArrayType.isinstance(vector.type):
             return self.getConstantInt(
-                cc.ArrayType.getSize(cc.PointerType.getElementType(
-                    vector.type)))
+                # cc::ArrayType::getSize exists in C++
+                # but is not part of the generated MLIR bindings.
+                # Using a manual binding instead.
+                cudaq_runtime.ArrayTypeGetSize(vector.type))
         self.emitFatalError("cannot get the size for a value of type {}".format(
             vector.type))
 
@@ -2033,7 +2035,6 @@ class PyASTBridge(ast.NodeVisitor):
                                             isDecrementing=isDecrementing)
 
                 self.pushValue(iterable)
-                self.pushValue(actualSize)
                 return
 
             # [PRODUCES MORE THAN ONE VALUE ON STACK]
@@ -2130,7 +2131,6 @@ class PyASTBridge(ast.NodeVisitor):
 
                 self.createInvariantForLoop(totalSize, bodyBuilder)
                 self.pushValue(enumIterable)
-                self.pushValue(totalSize)
                 return
 
             if node.func.id == 'complex':
@@ -2480,36 +2480,18 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             elif node.func.id == 'list':
-                if self.valueStack.currentNumValues == 2:
-                    maybeIterableSize = self.popValue()
-                    maybeIterable = self.popValue()
-                    self.valueStack.popFrame()
+                array = self.popValue()
+                self.valueStack.popFrame()
 
-                    # Make sure that we have a list + size
-                    if IntegerType.isinstance(maybeIterableSize.type):
-                        if cc.PointerType.isinstance(maybeIterable.type):
-                            ptrEleTy = cc.PointerType.getElementType(
-                                maybeIterable.type)
-                            if cc.ArrayType.isinstance(ptrEleTy):
-                                # We're good, just pass this back through.
-                                self.pushValue(maybeIterable)
-                                self.pushValue(maybeIterableSize)
-                                return
+                arrayTy = array.type
+                if cc.PointerType.isinstance(arrayTy):
+                    arrayTy = cc.PointerType.getElementType(arrayTy)
+                if not cc.StdvecType.isinstance(arrayTy) and \
+                    not cc.ArrayType.isinstance(arrayTy):
+                    self.emitFatalError('Invalid list() cast requested.', node)
 
-                elif self.valueStack.currentNumValues == 1:
-                    array = self.popValue()
-                    self.valueStack.popFrame()
-
-                    arrayTy = array.type
-                    self.pushValue(array)
-                    if cc.PointerType.isinstance(arrayTy):
-                        arrayTy = cc.PointerType.getElementType(arrayTy)
-                    if cc.StdvecType.isinstance(arrayTy):
-                        return
-                    if cc.ArrayType.isinstance(arrayTy):
-                        return
-
-                self.emitFatalError('Invalid list() cast requested.', node)
+                self.pushValue(array)
+                return
 
             elif node.func.id in ['print_i64', 'print_f64']:
                 self.__insertDbgStmt(self.popValue(), node.func.id)
@@ -3362,42 +3344,26 @@ class PyASTBridge(ast.NodeVisitor):
         # `    %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>`
         self.valueStack.pushFrame()
         self.visit(node.generators[0].iter)
-
-        if self.valueStack.currentNumValues == 1:
-            iterable = self.ifPointerThenLoad(self.popValue())
-            self.valueStack.popFrame()
-
-            iterableSize = None
-            if cc.StdvecType.isinstance(iterable.type):
-                iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                               iterable).result
-                iterTy = cc.StdvecType.getElementType(iterable.type)
-                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
-                iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
-            elif quake.VeqType.isinstance(iterable.type):
-                iterableSize = quake.VeqSizeOp(self.getIntegerType(),
-                                               iterable).result
-                iterTy = quake.RefType.get()
-            if iterableSize is None:
-                self.emitFatalError(
-                    "CUDA-Q only supports list comprehension on ranges and arrays",
-                    node)
-        elif self.valueStack.currentNumValues == 2:
-            iterableSize = self.popValue()
-            iterable = self.popValue()
-            self.valueStack.popFrame()
-
-            if not cc.PointerType.isinstance(iterable.type):
-                self.emitFatalError(
-                    "CUDA-Q only supports list comprehension on ranges and arrays",
-                    node)
-            iterArrTy = cc.PointerType.getElementType(iterable.type)
-            if not cc.ArrayType.isinstance(iterArrTy):
-                self.emitFatalError(
-                    "CUDA-Q only supports list comprehension on ranges and arrays",
-                    node)
-            iterTy = cc.ArrayType.getElementType(iterArrTy)
-        else:
+        if self.valueStack.currentNumValues != 1:
+            self.emitFatalError(
+                "CUDA-Q only supports list comprehension on ranges and arrays",
+                node)            
+        iterable = self.ifPointerThenLoad(self.popValue())
+        self.valueStack.popFrame()
+        iterableSize = None
+        if cc.StdvecType.isinstance(iterable.type):
+            iterableSize = self.__get_vector_size(iterable)
+            iterTy = cc.StdvecType.getElementType(iterable.type)
+            iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
+            iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
+        elif cc.ArrayType.isinstance(iterable.type):
+            iterableSize = self.__get_vector_size(iterable)
+            iterTy = cc.ArrayType.getElementType(iterable.type)
+        elif quake.VeqType.isinstance(iterable.type):
+            iterableSize = quake.VeqSizeOp(self.getIntegerType(),
+                                            iterable).result
+            iterTy = quake.RefType.get()
+        if iterableSize is None:
             self.emitFatalError(
                 "CUDA-Q only supports list comprehension on ranges and arrays",
                 node)
@@ -3989,16 +3955,14 @@ class PyASTBridge(ast.NodeVisitor):
             # by just building a for loop over the iterable object L and using
             # the index into that iterable and the element.
             if node.iter.func.id == 'enumerate':
+                if len(node.iter.args) != 1:
+                    self.emitFatalError("invalid number of arguments to enumerate - expecting 1 argument", node)
+                
                 self.valueStack.pushFrame()
-                [self.visit(arg) for arg in node.iter.args]
-                if self.valueStack.currentNumValues == 2:
-                    iterable = self.popValue()
-                    self.popValue()
-                else:
-                    assert self.valueStack.currentNumValues == 1
-                    iterable = self.popValue()
+                self.visit(node.iter.args[0])
+                iterable = self.ifPointerThenLoad(self.popValue())
                 self.valueStack.popFrame()
-                iterable = self.ifPointerThenLoad(iterable)
+
                 totalSize = None
                 extractFunctor = None
 
