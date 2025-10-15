@@ -330,6 +330,26 @@ pr-3489
         -   [Determining the ground state energy of the
             subspace](../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../../../applications/python/qsci.html){.reference
+        .internal}
+        -   [0. Problem
+            definition](../../../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../../../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../../../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
         Algorithm](../../../applications/python/bernstein_vazirani.html){.reference
         .internal}
