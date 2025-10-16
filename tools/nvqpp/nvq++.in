@@ -107,12 +107,6 @@ function f_option_handling {
 	-fno-set-target-backend)
 		SET_TARGET_BACKEND=false
 		;;
-	-fenable-cudaq-run)
-		ENABLE_CUDAQ_RUN=true
-		;;
-	-fno-enable-cudaq-run)
-		ENABLE_CUDAQ_RUN=false
-		;;
 	-farray-conversion)
 		ENABLE_ARRAY_CONVERSION=true
 		;;
@@ -367,7 +361,6 @@ ENABLE_LOWER_TO_CFG=true
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_LAMBDA_LIFTING=true
 ENABLE_MLIR_LIB_LINKING=true
-ENABLE_CUDAQ_RUN=
 DELETE_TEMPS=true
 TARGET_CONFIG=
 EMIT_QIR=false
@@ -713,25 +706,10 @@ if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_SIMULATION_SCALAR_"* ]]; then
 	fi
 fi
 
-# If ENABLE_CUDAQ_RUN is not set, then the user did not explicitly request it,
-# so we guard against using it with CUDAQ_QUANTUM_DEVICE. The user must still
-# set CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 (env var) at runtime to enable support
-# at runtime. Note: this override is still required because no targets support
-# run yet.
-if [[ -z "${ENABLE_CUDAQ_RUN}" ]]; then
-	if [[ "${PREPROCESSOR_DEFINES}" != *"CUDAQ_QUANTUM_DEVICE"* ]]; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
-	fi
-else
-	# we honor the user's explicit command-line request.
-	if ${ENABLE_CUDAQ_RUN}; then
-		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --cudaq-run=1"
-		AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
-	fi
-fi
+AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
 
 RUN_OPT=false
+# NB: Keep this in synch with the PreDeviceCodeLoader pipeline
 OPT_PASSES=
 if ${ENABLE_VARIABLE_COALESCE}; then
 	RUN_OPT=true
@@ -871,6 +849,15 @@ done
 if ${DO_LINK}; then
 	if ${LIBRARY_MODE}; then
 		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
+	fi
+
+	# If the default C++ standard lib is LLVM's libc++ (injected by clang++ automatically), 
+	# we put it in front of CUDA-Q libs when compiling the application executable.
+	# Some CUDA-Q libs may contain partial C++ standard library implementation (due to static linking).
+	# Hence, we want to prioritize the full libc++ implementation when linking the application.
+	DEFAULT_CXX_ARGS=$( ( ${CXX} -v 2>&1 || true ) )
+	if [[ $DEFAULT_CXX_ARGS == *"-lc++"* ]]; then
+		LINKLIBS="-lc++ ${LINKLIBS}"
 	fi
 
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}

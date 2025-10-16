@@ -33,7 +33,7 @@ def test_ng_qir_profile():
         x(q)
         mz(q)
 
-    # This device requires qir:0.2
+    # This device requires qir:1.0
     cudaq.set_target('quantinuum', emulate=True, machine='Helios-1E')
     result = cudaq.sample(my_kernel)
 

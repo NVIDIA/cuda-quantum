@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-ARG base_image=ubuntu:22.04
+ARG base_image=ubuntu:24.04
 FROM ${base_image}
 
 ARG python_version=3.10

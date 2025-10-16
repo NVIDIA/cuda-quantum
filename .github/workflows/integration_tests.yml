@@ -58,7 +58,6 @@ on:
         required: true
         description: 'Python version to run wheel test'
         options:
-        - '3.10'
         - '3.11'
         - '3.12'
         - '3.13'
@@ -72,7 +71,7 @@ env:
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
-  python_version: '3.10'
+  python_version: '3.12'
 
 jobs:
   # We need this job purely to choose the container image values because the
@@ -453,32 +452,13 @@ jobs:
           set +e # Allow script to keep going through errors
           test_err_sum=0
           for filename in ${{ steps.gettests.outputs.testlist }}; do
-            # TODO: merge the sample and run tests as we unified the compilation pipeline
             case $filename in
-              targettests/quantinuum_ng/sample*)
+              targettests/quantinuum_ng/*)
                 [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
                 nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
-                  test_status=$?
-                  if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                  else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
-                  fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
-              ;;
-              targettests/quantinuum_ng/run*)
-                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename -fenable-cudaq-run --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  CUDAQ_ENABLE_QUANTUM_DEVICE_RUN=1 ./a.out
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY

@@ -12,6 +12,7 @@ endif()
 
 add_cudaq_library(OptTransforms
   AddDeallocs.cpp
+  AddMeasurements.cpp
   AggressiveInlining.cpp
   ApplyControlNegations.cpp
   ApplyOpSpecialization.cpp
@@ -51,6 +52,8 @@ add_cudaq_library(OptTransforms
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
   ObserveAnsatz.cpp
+  PhaseFolding.cpp
+  Pipelines.cpp
   PruneCtrlRelations.cpp
   PySynthCallableBlockArgs.cpp
   QuakeAddMetadata.cpp

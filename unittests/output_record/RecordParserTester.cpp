@@ -402,12 +402,6 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
     EXPECT_ANY_THROW(parser.parse(missingShotStatus));
   }
   {
-    const std::string failedShot = "START\n"
-                                   "OUTPUT\tDOUBLE\t0.00\tf64\n"
-                                   "END\t1\n";
-    EXPECT_ANY_THROW(parser.parse(failedShot));
-  }
-  {
     const std::string insufficientData = "OUTPUT\tDOUBLE\n";
     EXPECT_ANY_THROW(parser.parse(insufficientData));
   }
@@ -563,6 +557,131 @@ CUDAQ_TEST(ParserTester, checkResultTypeWithRegisterName) {
     // 1 measured bits each
     EXPECT_EQ(1, result.size());
     EXPECT_TRUE(result[0]); // all should be 1
+  }
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkFailedShot_0) {
+  const std::string log = "START\n"
+                          "OUTPUT\tDOUBLE\t0.00\tf64\n"
+                          "END\t1\n";
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  // No data should be recorded for a failed shot
+  EXPECT_EQ(0, bufferSize);
+  EXPECT_EQ(nullptr, origBuffer);
+}
+
+CUDAQ_TEST(ParserTester, checkFailedShot_1) {
+  const std::string log = "HEADER\tschema_name\tlabeled\n"
+                          "START\n"
+                          "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
+                          "OUTPUT\tINT\t2345\t[0]\n"
+                          "OUTPUT\tINT\t4567\t[1]\n"
+                          "END\t0\n"
+                          "START\n"
+                          "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
+                          "OUTPUT\tINT\t7890\t[1]\n"
+                          "OUTPUT\tINT\t5678\t[0]\n"
+                          "END\t255\n"
+                          "START\n"
+                          "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
+                          "OUTPUT\tINT\t1234\t[1]\n"
+                          "OUTPUT\tINT\t6789\t[0]\n"
+                          "END\t0";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::vector<std::int16_t>> results = {
+      reinterpret_cast<std::vector<std::int16_t> *>(span.data),
+      reinterpret_cast<std::vector<std::int16_t> *>(span.data +
+                                                    span.lengthInBytes)};
+  EXPECT_EQ(2, results.size());
+  EXPECT_EQ(2, results[0].size());
+  EXPECT_EQ(2, results[1].size());
+  EXPECT_EQ(2345, results[0][0]);
+  EXPECT_EQ(4567, results[0][1]);
+  EXPECT_EQ(6789, results[1][0]);
+  EXPECT_EQ(1234, results[1][1]);
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkFailedShot_2) {
+  std::string log =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
+      "0\nSTART\nMETADATA\tentry_point\nMETADATA\toutput_labeling_"
+      "schema\tschema_id\nMETADATA\tqir_profiles\tadaptive_"
+      "profile\nMETADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_"
+      "results\t2\nOUTPUT\tINT\t0\ti64\nEND\t1\nSTART\nOUTPUT\tINT\t2\ti64\nE"
+      "ND\t0\nSTART\nOUTPUT\tINT\t0\ti64\nEND\t0\nSTART\nOUTPUT\tINT\t0\ti64"
+      "\nEND\t5\nSTART\nOUTPUT\tINT\t0\ti64\nEND\t0\nSTART\nOUTPUT\tINT\t2\ti"
+      "64\nEND\t127\nSTART\nOUTPUT\tINT\t0\ti64\nEND\t0";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::int64_t> results = {
+      reinterpret_cast<std::int64_t *>(span.data),
+      reinterpret_cast<std::int64_t *>(span.data + span.lengthInBytes)};
+  // Only 4 successful shots
+  EXPECT_EQ(4, results.size());
+  for (const auto &result : results) {
+    // Result should be either 0 or 2
+    EXPECT_TRUE(result == 0 || result == 2);
+  }
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkFailedShot_3) {
+  std::string log =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
+      "0\nSTART\nMETADATA\tentry_point\nMETADATA\toutput_labeling_"
+      "schema\tschema_id\nMETADATA\tqir_profiles\tadaptive_"
+      "profile\nMETADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_"
+      "results\t2\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0"
+      "\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t2\nS"
+      "TART\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t3\nSTAR"
+      "T\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\nOUT"
+      "PUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\nOUTPUT"
+      "\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t127\nSTART\nOUTPUT"
+      "\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\nOUTPUT\tR"
+      "ESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\nOUTPUT\tRESU"
+      "LT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t64";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  std::vector<std::vector<bool>> results = {
+      reinterpret_cast<std::vector<bool> *>(span.data),
+      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
+  // Only 6 successful shots
+  EXPECT_EQ(6, results.size());
+  for (const auto &result : results) {
+    // Result should be either 00 or 11
+    EXPECT_TRUE((result[0] == false && result[1] == false) ||
+                (result[0] == true && result[1] == true));
   }
   free(buffer);
   buffer = nullptr;
