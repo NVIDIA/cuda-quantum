@@ -215,6 +215,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -278,6 +279,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
@@ -462,16 +472,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html">Generating the electronic Hamiltonian</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.">Second Quantized formulation.</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Computational-Implementation">Computational Implementation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Hartree Fock molecular orbitals</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:">Active space Hamiltonian:</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Restricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals">(b) Generate the molecular Hamiltonian using Unrestricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.">(a) Generate the active space hamiltonian using RHF molecular orbitals.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(b) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(c) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF">(d) Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF">(e) Generate electronic Hamiltonian using UHF</a></li>
 </ul>
 </li>
 </ul>
@@ -522,6 +529,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -565,6 +595,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -821,6 +852,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.register_set_target_callback"><code class="docutils literal notranslate"><span class="pre">register_set_target_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unregister_set_target_callback"><code class="docutils literal notranslate"><span class="pre">unregister_set_target_callback()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
@@ -1112,25 +1145,25 @@ is available, for example, by choosing the target <code class="code docutils lit
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This kind of parallelization is most effective
-if you actually have multiple QPU or CPU available. Otherwise, the
+if you actually have multiple QPUs or GPUs available. Otherwise, the
 sampling will still have to execute sequentially due to resource constraints.</p>
 </div>
-<p>More information about parallelizing execution can be found at <a class="reference internal" href="../backends/sims/mqpusims.html#mqpu-platform"><span class="std std-ref">Simulate Multiple QPUs in Parallel</span></a>  page.</p>
+<p>More information about parallelizing execution can be found on the <a class="reference internal" href="../backends/sims/mqpusims.html#mqpu-platform"><span class="std std-ref">Simulate Multiple QPUs in Parallel</span></a>  page.</p>
 </section>
 <section id="run">
 <h2>Run<a class="headerlink" href="#run" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="code docutils literal notranslate"><span class="pre">run</span></code> method executes a quantum kernel multiple times and returns each individual result. Unlike <code class="code docutils literal notranslate"><span class="pre">sample</span></code>,
-which collects measurement statistics as counts, <code class="code docutils literal notranslate"><span class="pre">run</span></code> preserves each individual return value from every
-execution. This is useful when you need to analyze the distribution of returned values rather than just
+which collects measurement statistics as counts, <code class="code docutils literal notranslate"><span class="pre">run</span></code> preserves each individual return value from each
+execution. This is useful when you need to analyze the distribution of returned values which may not be possible from just
 aggregated measurement counts. Additionally, the <code class="code docutils literal notranslate"><span class="pre">run</span></code> method also supports returning various types of values
 from the quantum kernel, including scalar types (bool, int, float and their variants) and user-defined data structures.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--6-input--1" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--1">Python</label><div class="tab-content docutils">
-<p>The <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> method takes a kernel and its arguments as inputs, and returns a list containing
+<p>The <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> method takes a kernel and its arguments as inputs and returns a list containing
 the result values from each execution. The kernel must return a non-void value.</p>
 </div>
 <input class="tab-input" id="tab-set--6-input--2" name="tab-set--6" type="radio"><label class="tab-label" for="tab-set--6-input--2">C++</label><div class="tab-content docutils">
-<p>The <code class="docutils literal notranslate"><span class="pre">cudaq::run</span></code> method takes a kernel and its arguments as inputs, and returns a <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> containing
+<p>The <code class="docutils literal notranslate"><span class="pre">cudaq::run</span></code> method takes a kernel and its arguments as inputs and returns a <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> containing
 the result values from each execution. The kernel must return a non-void value.</p>
 </div>
 </div>
@@ -1401,7 +1434,7 @@ complex spin Hamiltonians on multiple qubits.</p>
 </div>
 <p>Below is an example of a spin operator object consisting of a <code class="code docutils literal notranslate"><span class="pre">Z(0)</span></code> operator, or a Pauli Z-operator on the qubit zero.
 This is followed by the construction of a kernel with a single qubit in an equal superposition.
-The Hamiltonian is printed to confirm it has been constructed properly.</p>
+The Hamiltonian is printed to confirm that it has been constructed properly.</p>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--11-input--1" name="tab-set--11" type="radio"><label class="tab-label" for="tab-set--11-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1529,7 +1562,7 @@ all of the available targets and ways to accelerate kernel execution, visit the
 <input class="tab-input" id="tab-set--15-input--2" name="tab-set--15" type="radio"><label class="tab-label" for="tab-set--15-input--2">C++</label><div class="tab-content docutils">
 <p>To compare the performance, we can create a simple timing script that isolates just the call
 to <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code>. We are still using the same GHZ kernel as earlier, but the following
-modification made to the main function:</p>
+modification is made to the main function:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">qubit_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">argc</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">25</span><span class="p">;</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">shots_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000000</span><span class="p">;</span>
