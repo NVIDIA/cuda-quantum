@@ -808,7 +808,7 @@ class PyASTBridge(ast.NodeVisitor):
         """
 
         def fp_type(fpt, ot):
-            assert(F64Type.isinstance(fpt) or F32Type.isinstance(fpt))
+            assert (F64Type.isinstance(fpt) or F32Type.isinstance(fpt))
             if F64Type.isinstance(ot):
                 return ot
             if F32Type.isinstance(ot):
@@ -3418,13 +3418,16 @@ class PyASTBridge(ast.NodeVisitor):
                 # division and power are special, everything else
                 # strictly creates a value of superior type
                 if isinstance(pyval.op, ast.Pow):
-                    # determining the correct type is messy, left as todo for now...
-                    self.emitFatalError("BinOp.Pow is not currently supported in list comprehension expressions", node)
+                    # determining the correct type is messy, left as TODO for now...
+                    self.emitFatalError(
+                        "BinOp.Pow is not currently supported in list comprehension expressions",
+                        node)
                 leftTy = get_item_type(pyval.left)
                 rightTy = get_item_type(pyval.right)
                 superiorTy = self.__get_superior_type(leftTy, rightTy)
-                # division converts integer type to `FP64` and perserves the superior type otherwise
-                if isinstance(pyval.op, ast.Div) and IntegerType.isinstance(superiorTy):
+                # division converts integer type to `FP64` and preserves the superior type otherwise
+                if isinstance(pyval.op,
+                              ast.Div) and IntegerType.isinstance(superiorTy):
                     return F64Type.get()
                 return superiorTy
             else:
@@ -4472,23 +4475,25 @@ class PyASTBridge(ast.NodeVisitor):
         right = self.ifPointerThenLoad(right)
 
         # type promotion for anything except pow to match Python behavior
-        if not issubclass(nodeType, (ast.Pow, ast.Mod)): # FIXME: remove modulo here and fix it below
+        if not issubclass(
+                nodeType,
+            (ast.Pow, ast.Mod)):  # FIXME: remove modulo here and fix it below
             superiorTy = self.__get_superior_type(left.type, right.type)
             if superiorTy is not None:
                 left = self.changeOperandToType(superiorTy,
                                                 left,
                                                 allowDemotion=False)
                 right = self.changeOperandToType(superiorTy,
-                                                    right,
-                                                    allowDemotion=False)
+                                                 right,
+                                                 allowDemotion=False)
 
         # Note: including support for any non-arithmetic types
         # (e.g. addition on lists) needs to be tested/implemented
         # also when used in list comprehension expressions.
         if not self.isArithmeticType(left.type) or not self.isArithmeticType(
                 right.type):
-            self.emitFatalError(
-                f'Invalid type for {nodeType}', self.currentNode)
+            self.emitFatalError(f'Invalid type for {nodeType}',
+                                self.currentNode)
 
         # Based on the op type and the leaf types, create the MLIR operator
         if issubclass(nodeType, ast.Add):
