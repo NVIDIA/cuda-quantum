@@ -87,11 +87,7 @@ def QIRToQIRProfilePrep : Pass<"qir-profile-prep", "mlir::ModuleOp"> {
     conflicts when rewriting matching DAGs independently.
   }];
 
-let options = [
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
-  ];
-  let constructor = "cudaq::opt::createQIRProfilePreparationPass(false)";
+  let constructor = "cudaq::opt::createQIRProfilePreparationPass()";
 }
 
 def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
@@ -109,12 +105,10 @@ def QIRToQIRProfileFunc : Pass<"quake-to-qir-func",
 
   let options = [
     Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">,
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
+           "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
-  let constructor = "cudaq::opt::createConvertToQIRFuncPass(\"qir-base\", false)";
+  let constructor = "cudaq::opt::createConvertToQIRFuncPass(\"qir-base\")";
 }
 
 def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
@@ -131,12 +125,10 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
 
   let options = [
     Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">,
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
+           "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
-  let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\", false)";
+  let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
 def RemoveMeasurements : Pass<"remove-measurements"> {
@@ -199,9 +191,7 @@ def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
   let options = [
     Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
-           "Select the profile to convert wire sets to.">,
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
+           "Select the profile to convert wire sets to.">
   ];
 }
 
@@ -212,11 +202,6 @@ def WireSetToProfileQIRPost :
     This pass should be run immediately after wireset-to-profile-qir.
   }];
 
-  let options = [
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
-  ];
-
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
@@ -226,11 +211,6 @@ def WireSetToProfileQIRPrep :
   let description = [{
     This pass should be run immediately before wireset-to-profile-qir.
   }];
-
-  let options = [
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
-  ];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
@@ -257,9 +237,7 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
     Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
-           "Use opaque pointers.">,
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
+           "Use opaque pointers.">
   ];
 }
 
@@ -289,9 +267,7 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
     Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
-           "Use opaque pointers.">,
-    Option<"qirVersionUnderDevelopment", "qir-version-under-development", "bool", /*default=*/"false",
-           "Use version under development to create qir">
+           "Use opaque pointers.">
   ];
 }
 

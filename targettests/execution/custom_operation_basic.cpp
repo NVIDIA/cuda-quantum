@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -40,8 +40,8 @@ int main() {
   }
 }
 
-// CHECK: 11
-// CHECK: 00
+// CHECK-DAG: 11
+// CHECK-DAG: 00
 
 // CHECK-NOT: 01
 // CHECK-NOT: 10

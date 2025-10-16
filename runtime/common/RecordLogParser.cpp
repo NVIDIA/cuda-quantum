@@ -9,36 +9,58 @@
 #include "RecordLogParser.h"
 #include "Logger.h"
 #include "Timing.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
-  cudaq::debug("Parsing log:\n{}", outputLog);
+  CUDAQ_DBG("Parsing log:\n{}", outputLog);
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
-  for (const auto &line : lines) {
+
+  // Collect log from a single shot and process it only if it is successful.
+  bool processingShot = false;
+  // Maintain the starting index of each shot's data
+  std::size_t shotStart = 0;
+
+  for (std::size_t idx = 0; idx < lines.size(); ++idx) {
+    const auto &line = lines[idx];
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
-    handleRecord(entries);
-  }
-}
 
-void cudaq::RecordLogParser::handleRecord(
-    const std::vector<std::string> &entries) {
-  const std::string &recordType = entries[0];
-  if (recordType == "HEADER")
-    handleHeader(entries);
-  else if (recordType == "METADATA")
-    handleMetadata(entries);
-  else if (recordType == "START")
-    handleStart(entries);
-  else if (recordType == "OUTPUT")
-    handleOutput(entries);
-  else if (recordType == "END")
-    handleEnd(entries);
-  else
-    throw std::runtime_error("Invalid record type: " + recordType);
+    const std::string &recordType = entries[0];
+    if (recordType == "HEADER")
+      handleHeader(entries);
+    else if (recordType == "METADATA")
+      handleMetadata(entries);
+    else if (recordType == "START") {
+      processingShot = true;
+      shotStart = 0;
+    } else if (recordType == "OUTPUT") {
+      if (processingShot)
+        shotStart = shotStart == 0 ? idx : shotStart;
+      else
+        handleOutput(entries);
+    } else if (recordType == "END") {
+      if (entries.size() < 2)
+        throw std::runtime_error("Missing shot status");
+      if (entries[1] == "0") {
+        if (processingShot) {
+          // Successful shot, process it
+          for (std::size_t j = shotStart; j < idx; ++j)
+            handleOutput(cudaq::split(lines[j], '\t'));
+        }
+      } else {
+        CUDAQ_INFO("Discarding shot data due to non-zero END status.");
+      }
+      processingShot = false;
+      shotStart = 0;
+      containerMeta.reset();
+    } else {
+      throw std::runtime_error("Invalid record type: " + recordType);
+    }
+  }
 }
 
 void cudaq::RecordLogParser::handleHeader(
@@ -58,20 +80,18 @@ void cudaq::RecordLogParser::handleHeader(
 
 void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
-  // Ignore metadata for now
-}
-
-void cudaq::RecordLogParser::handleStart(
-    const std::vector<std::string> &entries) {
-  // Ignore start of a shot for now
-}
-
-void cudaq::RecordLogParser::handleEnd(
-    const std::vector<std::string> &entries) {
-  if (entries.size() < 2)
-    throw std::runtime_error("Missing shot status");
-  if ("0" != entries[1])
-    throw std::runtime_error("Cannot handle unsuccessful shot");
+  if (entries.size() < 2 || entries.size() > 3)
+    cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
+  if (entries.size() == 3) {
+    if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
+        entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
+      metadata[ResultCountMetadataName] = entries[2];
+    } else {
+      metadata[entries[1]] = entries[2];
+    }
+  } else {
+    metadata[entries[1]] = "";
+  }
 }
 
 void cudaq::RecordLogParser::handleOutput(
@@ -83,8 +103,39 @@ void cudaq::RecordLogParser::handleOutput(
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
-  if (recType == "RESULT")
-    throw std::runtime_error("This type is not yet supported");
+  if (recType == "RESULT") {
+    // Sample-type QIR output, where we have an array of `RESULT` per shot. For
+    // example,
+    //  START
+    //  OUTPUT    RESULT  1       r00000
+    //  ....
+    //  OUTPUT    RESULT  1       r00009
+    //  END       0
+
+    currentOutput = OutputType::RESULT;
+    const bool isUninitializedContainer =
+        (containerMeta.m_type == ContainerType::NONE) ||
+        (containerMeta.m_type == ContainerType::ARRAY &&
+         containerMeta.elementCount == 0);
+    if (isUninitializedContainer) {
+      // Currently, our QIR for sampled kernel only has a sequence of RESULT
+      // records, not wrapped in an ARRAY. Hence, we treat it as an array of
+      // results.
+      containerMeta.m_type = ContainerType::ARRAY;
+      containerMeta.elementCount =
+          std::stoul(metadata[ResultCountMetadataName]);
+      containerMeta.arrayType = "i1";
+      preallocateArray();
+    }
+
+    // Note: we expect the results are sequential in the same order that mz
+    // operations are called. This may include results in named registers
+    // (specified in kernel code) and other auto-generated register names.
+    processArrayEntry(recValue,
+                      fmt::format("[{}]", containerMeta.processedElements));
+    containerMeta.processedElements++;
+    return;
+  }
   if (recType == "ARRAY") {
     containerMeta.m_type = ContainerType::ARRAY;
     containerMeta.elementCount = std::stoul(recValue);
@@ -111,6 +162,8 @@ void cudaq::RecordLogParser::handleOutput(
     currentOutput = OutputType::INT;
   else if (recType == "DOUBLE")
     currentOutput = OutputType::DOUBLE;
+  else if (recType == "RESULT")
+    currentOutput = OutputType::RESULT;
   else
     throw std::runtime_error("Invalid data");
   if ((containerMeta.elementCount > 0) &&
@@ -183,6 +236,10 @@ void cudaq::RecordLogParser::preallocateTuple() {
 void cudaq::RecordLogParser::processSingleRecord(const std::string &recValue,
                                                  const std::string &recLabel) {
   auto label = recLabel;
+  // For result type, we don't use the record label (register name) as the type
+  // annotation.
+  if (currentOutput == OutputType::RESULT)
+    label = "i1";
   if (label.empty()) {
     if (currentOutput == OutputType::BOOL)
       label = "i1";

@@ -308,7 +308,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                   });
 
   if (!isMasterEquation && noCollapseOperators) {
-    cudaq::info("Construct state vector Liouvillian");
+    CUDAQ_INFO("Construct state vector Liouvillian");
     std::vector<sum_op<cudaq::matrix_handler>> liouvillians;
     liouvillians.reserve(batchSize);
     for (const auto &ham : hamOperators) {
@@ -316,7 +316,7 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
     }
     return convertToCudensitymatOperator(parameters, liouvillians, modeExtents);
   } else {
-    cudaq::info("Construct density matrix Liouvillian");
+    CUDAQ_INFO("Construct density matrix Liouvillian");
     cudensitymatOperator_t liouvillian;
     HANDLE_CUDM_ERROR(cudensitymatCreateOperator(
         m_handle, static_cast<int32_t>(modeExtents.size()), modeExtents.data(),
@@ -475,9 +475,9 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           auto cudmElemOp = createElementaryOperator(leftOpComponents,
                                                      parameters, modeExtents);
           elemOps.emplace_back(cudmElemOp);
-          allDegrees.emplace_back(leftOps[0].degrees());
+          allDegrees.emplace_back(leftOps[0][i].degrees());
           all_action_dual_modalities.emplace_back(
-              std::vector<int>(leftOps[0].degrees().size(), 0));
+              std::vector<int>(leftOps[0][i].degrees().size(), 0));
         }
 
         const auto rightNumOps = rightOps[0].num_ops();
@@ -497,9 +497,9 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
           auto cudmElemOp = createElementaryOperator(rightOpComponents,
                                                      parameters, modeExtents);
           elemOps.emplace_back(cudmElemOp);
-          allDegrees.emplace_back(rightOps[0].degrees());
+          allDegrees.emplace_back(rightOps[0][i].degrees());
           all_action_dual_modalities.emplace_back(
-              std::vector<int>(rightOps[0].degrees().size(), 1));
+              std::vector<int>(rightOps[0][i].degrees().size(), 1));
         }
 
         for (std::size_t i = 0; i < batchSize; ++i) {

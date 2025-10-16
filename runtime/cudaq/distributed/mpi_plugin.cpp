@@ -133,7 +133,7 @@ void MPIPlugin::finalize() {
     return;
 
   if (rank() == 0)
-    cudaq::info("Finalizing MPI.");
+    CUDAQ_INFO("Finalizing MPI.");
 
   // Finalize
   HANDLE_MPI_ERROR(m_distributedInterface->finalize());

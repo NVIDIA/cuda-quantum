@@ -36,7 +36,7 @@ void cudaq::registry::__cudaq_deviceCodeHolderAdd(const char *key,
   auto it = std::find_if(quakeRegistry.begin(), quakeRegistry.end(),
                          [&](const auto &pair) { return pair.first == key; });
   if (it != quakeRegistry.end()) {
-    cudaq::info("Replacing code for kernel {}", key);
+    CUDAQ_INFO("Replacing code for kernel {}", key);
     it->second = code;
     return;
   }
@@ -77,7 +77,8 @@ void *
 cudaq::registry::__cudaq_getRunnableKernel(const std::string &kernelName) {
   void *result = getRunnableKernelOrNull(kernelName);
   if (!result)
-    throw std::runtime_error("runnable kernel is not present: kernel cannot be "
+    throw std::runtime_error("runnable kernel " + kernelName +
+                             "is not present: kernel cannot be "
                              "called by cudaq::run");
   return result;
 }

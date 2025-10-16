@@ -31,52 +31,35 @@ static constexpr const char StartingOffsetAttrName[] = "StartingOffset";
 static constexpr const char ResultIndexAttrName[] = "ResultIndex";
 static constexpr const char MzAssignedNameAttrName[] = "MzAssignedName";
 
-namespace qir_current {
-static constexpr const char QIRRequiredQubitsAttrName[] = "requiredQubits";
-static constexpr const char QIRRequiredResultsAttrName[] = "requiredResults";
+namespace qir0_1 {
+static constexpr const char RequiredQubitsAttrName[] = "requiredQubits";
+static constexpr const char RequiredResultsAttrName[] = "requiredResults";
 
-static constexpr const char QIRQubitResettingFlagName[] = "qubit_resetting";
-static constexpr const char QIRClassicalIntsFlagName[] = "classical_ints";
-static constexpr const char QIRClassicalFloatsFlagName[] = "classical_floats";
-static constexpr const char QIRClassicalFixedPointsFlagName[] =
+static constexpr const char QubitResettingFlagName[] = "qubit_resetting";
+static constexpr const char ClassicalIntsFlagName[] = "classical_ints";
+static constexpr const char ClassicalFloatsFlagName[] = "classical_floats";
+static constexpr const char ClassicalFixedPointsFlagName[] =
     "classical_fixed_points";
-static constexpr const char QIRUserFunctionsFlagName[] = "user_functions";
-static constexpr const char QIRDynamicFloatArgsFlagName[] =
-    "dynamic_float_args";
-static constexpr const char QIRExternFunctionsFlagName[] = "extern_functions";
-static constexpr const char QIRBackwardsBranchingFlagName[] =
+static constexpr const char UserFunctionsFlagName[] = "user_functions";
+static constexpr const char DynamicFloatArgsFlagName[] = "dynamic_float_args";
+static constexpr const char ExternFunctionsFlagName[] = "extern_functions";
+static constexpr const char BackwardsBranchingFlagName[] =
     "backwards_branching";
-} // namespace qir_current
+} // namespace qir0_1
 
-namespace qir_under_development {
-static constexpr const char QIRRequiredQubitsAttrName[] = "required_num_qubits";
-static constexpr const char QIRRequiredResultsAttrName[] =
-    "required_num_results";
+namespace qir1_0 {
+static constexpr const char RequiredQubitsAttrName[] = "required_num_qubits";
+static constexpr const char RequiredResultsAttrName[] = "required_num_results";
 
-static constexpr const char QIRIrFunctionsFlagName[] = "ir_functions";
-static constexpr const char QIRIntComputationsFlagName[] = "int_computations";
-static constexpr const char QIRFloatComputationsFlagName[] =
-    "float_computations";
-static constexpr const char QIRBackwardsBranchingFlagName[] =
+static constexpr const char IrFunctionsFlagName[] = "ir_functions";
+static constexpr const char IntComputationsFlagName[] = "int_computations";
+static constexpr const char FloatComputationsFlagName[] = "float_computations";
+static constexpr const char BackwardsBranchingFlagName[] =
     "backwards_branching";
-static constexpr const char QIRMultipleTargetBranchingFlagName[] =
+static constexpr const char MultipleTargetBranchingFlagName[] =
     "multiple_target_branching";
-static constexpr const char QIRMultipleReturnPointsFlagName[] =
+static constexpr const char MultipleReturnPointsFlagName[] =
     "multiple_return_points";
-} // namespace qir_under_development
+} // namespace qir1_0
 
-// helpers
-constexpr const char *
-getQIRRequiredQubitsAttrName(bool qirVersionUnderDevelopment) {
-  return qirVersionUnderDevelopment
-             ? cudaq::opt::qir_under_development::QIRRequiredQubitsAttrName
-             : cudaq::opt::qir_current::QIRRequiredQubitsAttrName;
-}
-
-constexpr const char *
-getQIRRequiredResultsAttrName(bool qirVersionUnderDevelopment) {
-  return qirVersionUnderDevelopment
-             ? cudaq::opt::qir_under_development::QIRRequiredResultsAttrName
-             : cudaq::opt::qir_current::QIRRequiredResultsAttrName;
-}
 } // namespace cudaq::opt

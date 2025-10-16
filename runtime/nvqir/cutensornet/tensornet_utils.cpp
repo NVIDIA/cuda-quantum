@@ -40,7 +40,7 @@ ScratchDeviceMem::ScratchDeviceMem() {
           minScratchSizePercent, maxScratchSizePercent, scratchSizePercent));
 
     freeMemRatio = static_cast<double>(envIntVal) / 100.0;
-    cudaq::info("Setting scratch size ratio to {}.", freeMemRatio);
+    CUDAQ_INFO("Setting scratch size ratio to {}.", freeMemRatio);
   }
 }
 

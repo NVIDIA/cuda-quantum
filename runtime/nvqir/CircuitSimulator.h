@@ -11,8 +11,10 @@
 #include "Gates.h"
 #include "QIRTypes.h"
 #include "common/Environment.h"
+#include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
@@ -614,8 +616,8 @@ protected:
         }
       }
 
-      cudaq::info("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
-                  bitResult, mutableRegisterName);
+      CUDAQ_INFO("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
+                 bitResult, mutableRegisterName);
       // See if we've observed this register before, if not
       // start a vector of bit results, if we have, add the
       // bit result to the existing vector
@@ -740,8 +742,8 @@ protected:
       sampleQubits.erase(last, sampleQubits.end());
     }
 
-    cudaq::info("Sampling the current state, with measure qubits = {}",
-                sampleQubits);
+    CUDAQ_INFO("Sampling the current state, with measure qubits = {}",
+               sampleQubits);
 
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
@@ -941,8 +943,8 @@ public:
         return newIdx;
     }
 
-    cudaq::info("Allocating new qubit with idx {} (nQ={}, dim={})", newIdx,
-                nQubitsAllocated, stateDimension);
+    CUDAQ_INFO("Allocating new qubit with idx {} (nQ={}, dim={})", newIdx,
+               nQubitsAllocated, stateDimension);
 
     // Increment the number of qubits and set
     // the new state dimension
@@ -1001,7 +1003,7 @@ public:
         count = qubits.back() + 1 - nQubitsAllocated;
     }
 
-    cudaq::info("Allocating {} new qubits.", count);
+    CUDAQ_INFO("Allocating {} new qubits.", count);
 
     previousStateDimension = stateDimension;
     nQubitsAllocated += count;
@@ -1047,7 +1049,7 @@ public:
         count = qubits.back() + 1 - nQubitsAllocated;
     }
 
-    cudaq::info("Allocating {} new qubits.", count);
+    CUDAQ_INFO("Allocating {} new qubits.", count);
 
     previousStateDimension = stateDimension;
     nQubitsAllocated += count;
@@ -1068,12 +1070,12 @@ public:
   /// @brief Deallocate the qubit with give index
   void deallocate(const std::size_t qubitIdx) override {
     if (executionContext && executionContext->name != "tracer") {
-      cudaq::info("Deferring qubit {} deallocation", qubitIdx);
+      CUDAQ_INFO("Deferring qubit {} deallocation", qubitIdx);
       deferredDeallocation.push_back(qubitIdx);
       return;
     }
 
-    cudaq::info("Deallocating qubit {}", qubitIdx);
+    CUDAQ_INFO("Deallocating qubit {}", qubitIdx);
 
     // Reset the qubit
     if (!isInTracerMode())
@@ -1085,7 +1087,7 @@ public:
 
     // Reset the state if we've deallocated all qubits.
     if (tracker.allDeallocated()) {
-      cudaq::info("Deallocated all qubits, reseting state vector.");
+      CUDAQ_INFO("Deallocated all qubits, reseting state vector.");
       // all qubits deallocated,
       deallocateState();
       while (!gateQueue.empty())
@@ -1103,14 +1105,14 @@ public:
 
     if (executionContext) {
       for (auto &qubitIdx : qubits) {
-        cudaq::info("Deferring qubit {} deallocation", qubitIdx);
+        CUDAQ_INFO("Deferring qubit {} deallocation", qubitIdx);
         deferredDeallocation.push_back(qubitIdx);
       }
       return;
     }
 
     if (qubits.size() == tracker.numAllocated()) {
-      cudaq::info("Deallocate all qubits.");
+      CUDAQ_INFO("Deallocate all qubits.");
       deallocateState();
       for (auto &q : qubits)
         tracker.returnIndex(q);
@@ -1218,11 +1220,11 @@ public:
     // Reset the state if we've deallocated all qubits.
     if (tracker.allDeallocated()) {
       if (shouldSetToZero) {
-        cudaq::info("In batch mode currently, reset state to |0>");
+        CUDAQ_INFO("In batch mode currently, reset state to |0>");
         // Do not deallocate the state, but reset it to |0>
         setToZeroState();
       } else {
-        cudaq::info("Deallocated all qubits, reseting state vector.");
+        CUDAQ_INFO("Deallocated all qubits, reseting state vector.");
         // all qubits deallocated,
         deallocateState();
       }
@@ -1237,7 +1239,7 @@ public:
     executionContext = context;
     executionContext->canHandleObserve = canHandleObserve();
     currentCircuitName = context->kernelName;
-    cudaq::info("Setting current circuit name to {}", currentCircuitName);
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
   /// @brief Return the current execution context
@@ -1392,7 +1394,7 @@ public:
   void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
             const std::size_t tgtIdx) override {
     flushAnySamplingTasks();
-    cudaq::info(gateToString("swap", ctrlBits, {}, {srcIdx, tgtIdx}));
+    CUDAQ_INFO(gateToString("swap", ctrlBits, {}, {srcIdx, tgtIdx}));
     std::vector<std::complex<ScalarType>> matrix{
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
@@ -1459,7 +1461,7 @@ public:
       throw std::runtime_error(
           "measuring a sum of spin operators is not supported");
 
-    cudaq::info("Measure {}", op.to_string());
+    CUDAQ_INFO("Measure {}", op.to_string());
     std::vector<std::size_t> qubitsToMeasure;
     std::vector<std::function<void(bool)>> basisChange;
 

@@ -150,8 +150,8 @@ public:
     if (controls.empty() && qubitIds.size() == 2 &&
         shouldHandlePauliOp(pauli_word)) {
       this->flushGateQueue();
-      cudaq::info("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
-                  op.to_string(), qubitIds[0], qubitIds[1]);
+      CUDAQ_INFO("[SimulatorMPS] (apply) exp(i*{}*{}) ({}, {}).", theta,
+                 op.to_string(), qubitIds[0], qubitIds[1]);
       const GateApplicationTask task = [&]() {
         // Note: Rxx(angle) ==  exp(-i*angle/2 XX)
         // i.e., exp(i*theta XX) == Rxx(-2 * theta)

@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
@@ -85,8 +86,8 @@ public:
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string targetConfigFileName = targetName + std::string(".yml");
     auto configFilePath = platformPath / targetConfigFileName;
-    cudaq::info("Config file path for target {} = {}", targetName,
-                configFilePath.string());
+    CUDAQ_INFO("Config file path for target {} = {}", targetName,
+               configFilePath.string());
     // Don't try to load something that doesn't exist.
     if (!std::filesystem::exists(configFilePath))
       return "";
@@ -117,7 +118,7 @@ public:
         return "";
       for (std::size_t i = 0; i < splitParts.size() - 1; ++i) {
         if (splitParts[i] == prefix) {
-          cudaq::debug(
+          CUDAQ_DBG(
               "Retrieved option '{}' for the key '{}' from input string '{}'",
               splitParts[i + 1], prefix, str);
           if (splitParts[i + 1].starts_with("base64_")) {
@@ -126,8 +127,8 @@ public:
             if (auto err = llvm::decodeBase64(splitParts[i + 1], decoded_vec))
               throw std::runtime_error("DecodeBase64 error");
             std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-            cudaq::info("Decoded {} parameter from '{}' to '{}'", splitParts[i],
-                        splitParts[i + 1], decodedStr);
+            CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", splitParts[i],
+                       splitParts[i + 1], decodedStr);
             return decodedStr;
           }
           return splitParts[i + 1];
@@ -230,7 +231,7 @@ public:
           // Default to launching one instance if no other setting is available.
           const int numInstances =
               numInstanceStr.empty() ? 1 : std::stoi(numInstanceStr);
-          cudaq::info("Auto launch {} REST servers", numInstances);
+          CUDAQ_INFO("Auto launch {} REST servers", numInstances);
           for (int i = 0; i < numInstances; ++i) {
             m_remoteServers.emplace_back(
                 std::make_unique<cudaq::AutoLaunchRestServerProcess>(i));

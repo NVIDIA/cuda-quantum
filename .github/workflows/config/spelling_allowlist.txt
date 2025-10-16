@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+AquSim
 Asynchronous
 BFGS
 Bloch
@@ -361,6 +362,8 @@ unitaries
 unitarity
 unitary
 unitaryHACK
+unmarshal
+unmarshalling
 unoptimized
 upvote
 variadic

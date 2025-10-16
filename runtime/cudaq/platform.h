@@ -43,6 +43,6 @@ inline bool is_emulated_platform() {
 }
 
 // Declare this function, implemented elsewhere
-std::string getQIR(const std::string &, bool);
+std::string getQIR(const std::string &);
 
 } // namespace cudaq

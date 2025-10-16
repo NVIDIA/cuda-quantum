@@ -11,6 +11,22 @@
 
 include "mlir/Pass/PassBase.td"
 
+def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
+  let summary = "Add measurement operations.";
+  let description = [{
+    This pass adds measurement operations to the kernels that have no 
+    measurements.
+
+    This pass should be run in the sampling context, so as to comply with the 
+    spec - If no measurements appear in the kernel, then the `__global__` 
+    register is formed with implicit measurements being added for all the 
+    qubits defined in the kernel, and the measurements all occur at the end of 
+    the kernel.
+
+  }];
+  let dependentDialects = ["quake::QuakeDialect", "mlir::cf::ControlFlowDialect"];
+}
+
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
   let summary = "Adds a topology-less `quake.wire_set` to the module.";
   let description = [{
@@ -965,6 +981,44 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
+  let summary = "Perform phase based rotation merging.";
+
+  let description = [{
+    Multiple `quake.rz` ops can be merged into a single gate if they occur
+    at the same phase. In a circuit with only Swap, NOT, CNOT, and Rz gates, a
+    phase represents the state of a qubit based on the Swap, NOT, and CNOT
+    operations applied to it.
+
+    First, a preprocessing step identifies each subcircuit consisting only of
+    Swap, NOT, CNOT, and Rz gates. Currently, we restrict this subcircuit to
+    only working with `!quake.ref` types directly from `quake.alloca`s, as
+    values extraced from `quake.veq`s via `extract_ref` may have hidden side
+    effects that could cause the subcircuits to be incorrect.
+
+    At the beginning of the subcircuit, each qubit is assigned a unique phase
+    variable. A phase is an exclusive sum of the phase variables determining
+    the current state of a qubit, calculated as follows. While walking the
+    subcircuit:
+    * A Swap gate swaps the phases for two qubits.
+    * A NOT gate inverts the phase for a qubit by (un)setting a flag.
+    * A CNOT gate sets the phase of the target to the exclusive sum of the
+      phase variables in the phases for the control and target qubits.
+    * If multiple `rz` ops are found at the same phase, they will be combined
+      by replacing the rotation angle of the latter occuring op to the sum of
+      the rotation angles of both ops, and removing the prior op.
+  }];
+
+  let options = [
+    Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
+    "Minimumn subcircuit length to run phase folding">,
+    Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"20",
+    "Minimumn percentage of rz ops in subcircuit to run phase folding">,
+  ];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{
@@ -1164,6 +1218,33 @@ def SROA : Pass<"cc-sroa"> {
     To be implemented: handling recursive compositions of aggregate types.
   }];
   let dependentDialects = ["cudaq::cc::CCDialect"];
+}
+
+def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
+  let summary = "Stack frame preallocation.";
+  let description = [{
+    This pass is intended to be run on the CFG (low-level semantics) level.
+
+    Stack slots may end up being allocated across the body of a function. It
+    is generally beneficial however to collect them in the function preamble
+    (or entry block).
+
+    This pass is similar to variable coalescing, which can merge allocations
+    based on their scopes, but works at a lower semantic level of the IR. This
+    pass aims to optimize patterns such as
+    ```mlir
+      %10 = call @llvm.stacksave()
+      %24 = cc.alloca !T
+      call @llvm.stackrestore(%10)
+    ```
+    such that the allocation, %24, is moved to the entry block and the two
+    stack guards, if they guard no allocations, can be correctly removed.
+
+    Not all allocations can be moved in this way, which implies that not all
+    stack guards can be safely removed.  Transport layer conformity tools may
+    unsafely remove operations, but the compiler should never do so, as it
+    would mean the compiler is generating incorrect code.
+  }];
 }
 
 def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {

@@ -18,7 +18,7 @@
 #   source validate_pycudaq.sh -v ${cudaq_version} -i ${package_folder} -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
-# ARG base_image=ubuntu:22.04
+# ARG base_image=ubuntu:24.04
 # FROM ${base_image}
 # ARG cudaq_version=0.0.0
 # ARG package_folder=/tmp/packages
