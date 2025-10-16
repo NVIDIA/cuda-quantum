@@ -15,6 +15,16 @@
 
 #include <cudaq.h>
 #include <iostream>
+struct test_adaptive {
+  void operator()() __qpu__ {
+    cudaq::qubit a, b;
+    x(a);
+    auto bit = mz(b);
+    if (!bit) {
+      x(b); // note that this is not allowed in base profile programs
+    }
+  }
+};
 
 #define RUN_AND_PRINT_GLOBAL_REG(TEST_NAME)                                    \
   do {                                                                         \
@@ -64,7 +74,7 @@ int main() {
     cudaq::qubit a, b;
     x(a);
     auto ma1 = mz(a); // 1st measurement of qubit a
-    //auto ma2 = mz(a); // 2nd measurement of qubit a
+    // auto ma2 = mz(a); // 2nd measurement of qubit a
     auto mb = mz(b);
   };
 #endif
@@ -109,12 +119,7 @@ int main() {
   // Check that performing a quantum operation after the final measurement makes
   // all qubits appear in the global register.
 #ifndef NO_ADAPTIVE
-  auto test6b = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    mz(b);
-    x(b); // note that this is not allowed in base profile programs
-  };
+  auto test6b = test_adaptive{};
 #else
   // Platforms that don't support the adaptive profile will test this instead.
   auto test6b = []() __qpu__ {
