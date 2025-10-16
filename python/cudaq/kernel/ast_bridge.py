@@ -807,27 +807,35 @@ class PyASTBridge(ast.NodeVisitor):
             MLIR Type representing the superior type
         """
 
-        def complex_type(ct, ot):
-            et1 = ComplexType(ct).element_type
-            if IntegerType.isinstance(ot):
-                return ct
-            elif F64Type.isinstance(ot) or F32Type.isinstance(ot):
-                et2 = ot
-            elif ComplexType.isinstance(ot):
-                et2 = ComplexType(ot).element_type
-            else:
+        def fp_type(fpt, ot):
+            assert(F64Type.isinstance(fpt) or F32Type.isinstance(fpt))
+            if F64Type.isinstance(ot):
+                return ot
+            if F32Type.isinstance(ot):
+                return fpt
+            if not IntegerType.isinstance(ot):
                 return None
-            return self.getComplexTypeWithElementType(
-                self.__get_superior_type(et1, et2))
+            if IntegerType(ot).width > 32:
+                # matching Python behavior
+                return F64Type.get()
+            return fpt
+
+        def complex_type(ct, ot):
+            if ComplexType.isinstance(ot):
+                ot = ComplexType(ot).element_type
+            et = fp_type(ComplexType(ct).element_type, ot)
+            if et is None:
+                return None
+            return self.getComplexTypeWithElementType(et)
 
         if ComplexType.isinstance(t1):
             return complex_type(t1, t2)
         if ComplexType.isinstance(t2):
             return complex_type(t2, t1)
-        if F64Type.isinstance(t1) or F64Type.isinstance(t2):
-            return F64Type.get()
-        if F32Type.isinstance(t1) or F32Type.isinstance(t2):
-            return F32Type.get()
+        if F64Type.isinstance(t1) or F32Type.isinstance(t1):
+            return fp_type(t1, t2)
+        if F64Type.isinstance(t2) or F32Type.isinstance(t2):
+            return fp_type(t2, t1)
         if IntegerType.isinstance(t1) and IntegerType.isinstance(t2):
             return self.getIntegerType(
                 max(IntegerType(t1).width,
@@ -3406,13 +3414,19 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(pyval, ast.UnaryOp) and \
                 isinstance(pyval.op, ast.Not):
                 return IntegerType.get_signless(1)
-            # limiting to `add`, `sub`, and `mult` here for now -
-            # be careful and test with different bitwidths if more is enabled
-            elif isinstance(pyval, ast.BinOp) and \
-                isinstance(pyval.op, (ast.Add, ast.Sub, ast.Mult)):
+            elif isinstance(pyval, ast.BinOp):
+                # division and power are special, everything else
+                # strictly creates a value of superior type
+                if isinstance(pyval.op, ast.Pow):
+                    # determining the correct type is messy, left as todo for now...
+                    self.emitFatalError("BinOp.Pow is not currently supported in list comprehension expressions", node)
                 leftTy = get_item_type(pyval.left)
                 rightTy = get_item_type(pyval.right)
-                return self.__get_superior_type(leftTy, rightTy)
+                superiorTy = self.__get_superior_type(leftTy, rightTy)
+                # division converts integer type to `FP64` and perserves the superior type otherwise
+                if isinstance(pyval.op, ast.Div) and IntegerType.isinstance(superiorTy):
+                    return F64Type.get()
+                return superiorTy
             else:
                 self.emitFatalError(
                     "Only variables, constants, and some calls can be used to populate values in list comprehension expressions",
@@ -4454,10 +4468,19 @@ class PyASTBridge(ast.NodeVisitor):
         MLIR. This method handles arithmetic operations between values. 
         """
 
-        if cc.PointerType.isinstance(left.type):
-            left = cc.LoadOp(left).result
-        if cc.PointerType.isinstance(right.type):
-            right = cc.LoadOp(right).result
+        left = self.ifPointerThenLoad(left)
+        right = self.ifPointerThenLoad(right)
+
+        # type promotion for anything except pow to match Python behavior
+        if not issubclass(nodeType, (ast.Pow, ast.Mod)): # FIXME: remove modulo here and fix it below
+            superiorTy = self.__get_superior_type(left.type, right.type)
+            if superiorTy is not None:
+                left = self.changeOperandToType(superiorTy,
+                                                left,
+                                                allowDemotion=False)
+                right = self.changeOperandToType(superiorTy,
+                                                    right,
+                                                    allowDemotion=False)
 
         # Note: including support for any non-arithmetic types
         # (e.g. addition on lists) needs to be tested/implemented
@@ -4465,19 +4488,7 @@ class PyASTBridge(ast.NodeVisitor):
         if not self.isArithmeticType(left.type) or not self.isArithmeticType(
                 right.type):
             self.emitFatalError(
-                "Invalid type for Binary Op {} ({}, {})".format(
-                    nodeType, left, right), self.currentNode)
-
-        # Type promotion for addition, subtraction, multiplication, or division
-        if issubclass(nodeType, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
-            superiorTy = self.__get_superior_type(left.type, right.type)
-            if superiorTy is not None:
-                left = self.changeOperandToType(superiorTy,
-                                                left,
-                                                allowDemotion=False)
-                right = self.changeOperandToType(superiorTy,
-                                                 right,
-                                                 allowDemotion=False)
+                f'Invalid type for {nodeType}', self.currentNode)
 
         # Based on the op type and the leaf types, create the MLIR operator
         if issubclass(nodeType, ast.Add):
@@ -4521,7 +4532,6 @@ class PyASTBridge(ast.NodeVisitor):
         if issubclass(nodeType, ast.Div):
             if IntegerType.isinstance(left.type):
                 left = arith.SIToFPOp(self.getFloatType(), left).result
-            if IntegerType.isinstance(right.type):
                 right = arith.SIToFPOp(self.getFloatType(), right).result
             if F64Type.isinstance(left.type) or \
                 F32Type.isinstance(left.type):
@@ -4586,10 +4596,7 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if issubclass(nodeType, ast.LShift):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.ShLIOp(left, right).result)
                 return
             else:
@@ -4598,10 +4605,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.RShift):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.ShRSIOp(left, right).result)
                 return
             else:
@@ -4610,10 +4614,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.BitAnd):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.AndIOp(left, right).result)
                 return
             else:
@@ -4622,10 +4623,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.BitOr):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.OrIOp(left, right).result)
                 return
             else:
@@ -4634,10 +4632,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.BitXor):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.XOrIOp(left, right).result)
                 return
             else:
