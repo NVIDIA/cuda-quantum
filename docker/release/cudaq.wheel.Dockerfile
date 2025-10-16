@@ -44,8 +44,11 @@ RUN cd cuda-quantum && sed -i "s/README.md.in/README.md/g" pyproject.toml && \
         cusolver_version=11.4 && \
         cuda_runtime_version=12.0 && \
         cuda_nvrtc_version=12.0 && \
+        cupy_version=13.4.1 && \
         sed -i "s/-cu13/-cu12/g" pyproject.toml && \
         sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
+        sed -i -E "s/cupy-cuda[0-9]+x/cupy-cuda12x/g" pyproject.toml && \
+        sed -i -E "s/(cupy-cuda[0-9]+x? ~= )[0-9\.]*/\1${cupy_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_nvrtc_version}/g" pyproject.toml && \
