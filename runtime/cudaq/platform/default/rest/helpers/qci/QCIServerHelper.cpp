@@ -207,8 +207,9 @@ QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["options"]["aqusim"] = {{"shots", shots},
                                 {config_keys::NOISY, noisy},
                                 {config_keys::RUSR, rusr}};
-    job["options"]["compiler"] = {{"shots_requested", shots}};
-    job["options"]["qpu"] = {{"shots", shots}, {config_keys::RUSR, rusr}};
+    if (rusr)
+      job["options"]["compiler"] = {{"shots_requested", shots}};
+    job["options"]["qpu"] = {{"shots", shots}};
 
     messages.push_back(job);
   }
