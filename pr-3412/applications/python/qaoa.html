@@ -282,6 +282,15 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -517,6 +526,29 @@
 <li class="toctree-l4"><a class="reference internal" href="qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
 </ul>
@@ -973,7 +1005,7 @@ The cut depicted in the diagram on the right divides the graph vertices into two
 <div class="math notranslate nohighlight">
 \[\begin{split}\sum_{\substack{u \in V_0; v\in V_1\\ (u,v) \in E}}1.\end{split}\]</div>
 <p>For the graph on the right, the number of edges in the cut (in this case there are <span class="math notranslate nohighlight">\(5\)</span> edges) is maximal, and this value is referred to as the <em>max cut value</em>. The partitioning <span class="math notranslate nohighlight">\((V_0,V_1)\)</span> — and sometimes the set of edges connecting vertices in <span class="math notranslate nohighlight">\(V_0\)</span> and <span class="math notranslate nohighlight">\(V_1\)</span> — is referred to as a <em>max cut of a graph</em>. Note that the max cut of a graph need not be unique; that is, two distinct partitions may produce the same cut value.</p>
-<p><img alt="image0" src="../../_images/max-cut-illustration.png" /></p>
+<img alt="../../_images/max-cut-illustration.png" src="../../_images/max-cut-illustration.png" />
 <p>We will use bitstrings to identify vertices in each of the two partitions. For example using the ordering of the vertices, the bitstring <code class="docutils literal notranslate"><span class="pre">01100</span></code> captures the partition in the image above on the left with vertices <span class="math notranslate nohighlight">\(1\)</span> and <span class="math notranslate nohighlight">\(2\)</span> in <span class="math notranslate nohighlight">\(V_1\)</span>, and the bitstring <code class="docutils literal notranslate"><span class="pre">01011</span></code> codes the partition in the image on the right with vertices <span class="math notranslate nohighlight">\(1\)</span>, <span class="math notranslate nohighlight">\(3\)</span>, and <span class="math notranslate nohighlight">\(4\)</span> in <span class="math notranslate nohighlight">\(V_1\)</span>.</p>
 <p>Let’s code our graph data as lists of integers so that we can call these variables when we create the <code class="docutils literal notranslate"><span class="pre">cudaq.kernel</span></code> for QAOA.</p>
 <div class="nbinput nblast docutils container">
@@ -1007,9 +1039,9 @@ The cut depicted in the diagram on the right divides the graph vertices into two
 </div>
 <p>QAOA is a variational algortihm with a particular ansatz. QAOA is made up of a variational quantum circuit (i.e., a kernel that depends on a set of parameter values) and a classical optimizer. The aim of QAOA is to use the classical optimizer to identify parameter values that generate a quantum circuit whose expectation value for a given cost Hamilitonian is minimized.</p>
 <p>What distinguishes QAOA from other variational algorithms is the structure of the quantum circuit. For each vertex in the graph, there is an associated qubit in the circuit. The circuit is initialized in a superposition state. The remainder of the QAOA circuit is made up of blocks (referred to as layers). The more layers there are, the better the approximation the algorithm achieves.</p>
-<p><img alt="diagram of QAOA circuit layers" src="../../_images/qaoa-circuit-layers.png" /></p>
+<img alt="diagram of QAOA circuit layers" src="../../_images/qaoa-circuit-layers.png" />
 <p>Each layer contains a problem kernel and a mixer kernel. The mixer kernel is composed of parameterized rotation gates applied to each qubit, depicted in green in the image above. The problem kernel encodes the graph edges. The image below shows an example of an graph edge encoded with controlled-X gates and a parameterized rotation gate.</p>
-<p><img alt="diagram of a QAOA problem kernel for a max cut problem" src="../../_images/qaoa-problem-kernel.png" /></p>
+<img alt="diagram of a QAOA problem kernel for a max cut problem" src="../../_images/qaoa-problem-kernel.png" />
 <p>Let’s implement the QAOA circuit for our max cut problem in CUDA-Q.</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:

@@ -276,6 +276,15 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -511,6 +520,29 @@
 <li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
 </ul>
@@ -1279,6 +1311,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13boson_op_termE">cudaq::boson_op_term (C++ type)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13CodeGenConfigE">cudaq::CodeGenConfig (C++ struct)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq21commutation_relationsE">cudaq::commutation_relations (C++ struct)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7complexE">cudaq::complex (C++ type)</a>
@@ -1715,10 +1749,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEERNSt6vectorIdEEiNSt6size_tE">cudaq::orca::sample_async (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4orca12sample_asyncERNSt6vectorINSt6size_tEEERNSt6vectorINSt6size_tEEERNSt6vectorIdEEiNSt6size_tE">[1]</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
@@ -1913,6 +1947,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16enqueueAsyncTaskEKNSt6size_tER19KernelExecutionTask">cudaq::quantum_platform::enqueueAsyncTask (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16enqueueAsyncTaskEKNSt6size_tERNSt8functionIFvvEEE">[1]</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv">cudaq::quantum_platform::get_codegen_config (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform15get_current_qpuEv">cudaq::quantum_platform::get_current_qpu (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12get_exec_ctxEv">cudaq::quantum_platform::get_exec_ctx (C++ function)</a>
@@ -1922,6 +1958,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">cudaq::quantum_platform::get_num_qubits (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE">cudaq::quantum_platform::get_remote_capabilities (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv">cudaq::quantum_platform::get_runtime_target (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9get_shotsEv">cudaq::quantum_platform::get_shots (C++ function)</a>
 </li>
@@ -2034,6 +2072,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS">cudaq::run (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS">cudaq::run_async (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13RuntimeTargetE">cudaq::RuntimeTarget (C++ struct)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args">[2]</a>
 </li>

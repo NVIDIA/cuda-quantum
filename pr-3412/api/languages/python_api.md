@@ -1,9 +1,9 @@
-::: {.wy-grid-for-nav}
-::: {.wy-side-scroll}
+::: wy-grid-for-nav
+::: wy-side-scroll
 ::: {.wy-side-nav-search style="background: #76b900"}
 [NVIDIA CUDA-Q](../../index.html){.icon .icon-home}
 
-::: {.version}
+::: version
 pr-3412
 :::
 
@@ -146,13 +146,13 @@ pr-3412
         -   [From CPU to
             GPU](../../using/examples/multi_gpu_workflows.html#from-cpu-to-gpu){.reference
             .internal}
-        -   [Pooling the memory of multiple GPUs (`mgpu`{.code .docutils
-            .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
-            .internal}
-        -   [Parallel execution over multiple QPUs (`mqpu`{.code
+        -   [Pooling the memory of multiple GPUs ([`mgpu`{.code
             .docutils .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu){.reference
+            .internal}
+        -   [Parallel execution over multiple QPUs ([`mqpu`{.code
+            .docutils .literal
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#parallel-execution-over-multiple-qpus-mqpu){.reference
             .internal}
             -   [Batching Hamiltonian
                 Terms](../../using/examples/multi_gpu_workflows.html#batching-hamiltonian-terms){.reference
@@ -160,9 +160,9 @@ pr-3412
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends (`remote-mqpu`{.code .docutils
+        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
             .literal
-            .notranslate})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
+            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
             .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
@@ -247,11 +247,11 @@ pr-3412
                 Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
                 .internal}
             -   [Section 2 - Simulating open quantum systems with the
-                `collapse_operators`{.docutils .literal
-                .notranslate}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+                [`collapse_operators`{.docutils .literal
+                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
                 .internal}
             -   [Exercise 2 - Adding additional jump operators
-                [\\(L\_i\\)]{.math .notranslate
+                [\\(L_i\\)]{.math .notranslate
                 .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
                 .internal}
             -   [Section 3 - Many qubits coupled to the
@@ -333,7 +333,7 @@ pr-3412
         -   [CUDA-Q
             Implementation](../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
             .internal}
-    -   [Multi-reference Quantum Krylov Algorithm - [\\(H\_2\\)]{.math
+    -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../../applications/python/krylov.html){.reference
         .internal}
@@ -344,6 +344,26 @@ pr-3412
             .internal}
         -   [Determining the ground state energy of the
             subspace](../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
+            .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../../applications/python/qsci.html){.reference
+        .internal}
+        -   [0. Problem
+            definition](../../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../../applications/python/qsci.html#Reference){.reference
             .internal}
     -   [Bernstein-Vazirani
         Algorithm](../../applications/python/bernstein_vazirani.html){.reference
@@ -406,8 +426,8 @@ pr-3412
         -   [Numerical result as a
             reference:](../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:){.reference
             .internal}
-        -   [Using `Sample`{.docutils .literal .notranslate} to perform
-            the Hadamard
+        -   [Using [`Sample`{.docutils .literal .notranslate}]{.pre} to
+            perform the Hadamard
             test](../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test){.reference
             .internal}
         -   [Multi-GPU evaluation of QKSD matrix elements using the
@@ -424,8 +444,8 @@ pr-3412
             with
             CUDA-QX](../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX){.reference
             .internal}
-        -   [Constructing circuits in the `[[4,2,2]]`{.docutils .literal
-            .notranslate}
+        -   [Constructing circuits in the [`[[4,2,2]]`{.docutils
+            .literal .notranslate}]{.pre}
             encoding](../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-%5B%5B4,2,2%5D%5D-encoding){.reference
             .internal}
         -   [Setting up submission and decoding
@@ -460,8 +480,10 @@ pr-3412
             -   [2. Hamiltonian
                 Trotterization](../../applications/python/hamiltonian_simulation.html#2.-Hamiltonian-Trotterization){.reference
                 .internal}
-            -   [3. `Compute overlap`{.docutils .literal
-                .notranslate}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
+            -   [3. [`Compute`{.docutils .literal
+                .notranslate}]{.pre}` `{.docutils .literal
+                .notranslate}[`overlap`{.docutils .literal
+                .notranslate}]{.pre}](../../applications/python/hamiltonian_simulation.html#3.-Compute-overlap){.reference
                 .internal}
             -   [4. Construct Heisenberg
                 Hamiltonian](../../applications/python/hamiltonian_simulation.html#4.-Construct-Heisenberg-Hamiltonian){.reference
@@ -626,14 +648,14 @@ pr-3412
         -   [Simulation
             input:](../../applications/python/adapt_qaoa.html#Simulation-input:){.reference
             .internal}
-        -   [The problem Hamiltonian [\\(H\_C\\)]{.math .notranslate
+        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
             .nohighlight} of the max-cut
             graph:](../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
             .internal}
-        -   [Th operator pool [\\(A\_j\\)]{.math .notranslate
+        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
             .nohighlight}:](../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
             .internal}
-        -   [The commutator [\\(\[H\_C,A\_j\]\\)]{.math .notranslate
+        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
             .nohighlight}:](../../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
             .internal}
         -   [Beginning of ADAPT-QAOA
@@ -658,7 +680,7 @@ pr-3412
                 excitation](../../applications/python/adapt_vqe.html#Double-excitation){.reference
                 .internal}
         -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A\_i\\)]{.math .notranslate
+            [\\(A_i\\)]{.math .notranslate
             .nohighlight}\]](../../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
             .internal}
         -   [Reference
@@ -837,6 +859,45 @@ pr-3412
                 .internal}
             -   [Example 2: NH3 with 46 water molecule using active
                 space.](../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
+                .internal}
+    -   [Sample-Based Krylov Quantum Diagonalization
+        (SKQD)](../../applications/python/skqd.html){.reference
+        .internal}
+        -   [Why
+            SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
+            .internal}
+        -   [Setup and
+            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
+            .internal}
+        -   [Understanding Krylov
+            Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
+            .internal}
+            -   [What is a Krylov
+                Subspace?](../../applications/python/skqd.html#What-is-a-Krylov-Subspace?){.reference
+                .internal}
+            -   [The SKQD
+                Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
+                .internal}
+        -   [Krylov State Generation via Repeated
+            Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
+            .internal}
+        -   [Quantum Measurements and
+            Sampling](../../applications/python/skqd.html#Quantum-Measurements-and-Sampling){.reference
+            .internal}
+            -   [The Sampling
+                Process](../../applications/python/skqd.html#The-Sampling-Process){.reference
+                .internal}
+        -   [Classical Post-Processing and
+            Diagonalization](../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization){.reference
+            .internal}
+            -   [The SKQD Algorithm: Matrix Construction
+                Details](../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details){.reference
+                .internal}
+        -   [Results Analysis and
+            Convergence](../../applications/python/skqd.html#Results-Analysis-and-Convergence){.reference
+            .internal}
+            -   [What to
+                Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
@@ -1134,14 +1195,14 @@ pr-3412
             -   [Server Helper
                 Class](../../using/extending/backend.html#server-helper-class){.reference
                 .internal}
-            -   [`CMakeLists.txt`{.docutils .literal
-                .notranslate}](../../using/extending/backend.html#cmakelists-txt){.reference
+            -   [[`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/backend.html#cmakelists-txt){.reference
                 .internal}
         -   [Target
             Configuration](../../using/extending/backend.html#target-configuration){.reference
             .internal}
-            -   [Update Parent `CMakeLists.txt`{.docutils .literal
-                .notranslate}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
+            -   [Update Parent [`CMakeLists.txt`{.docutils .literal
+                .notranslate}]{.pre}](../../using/extending/backend.html#update-parent-cmakelists-txt){.reference
                 .internal}
         -   [Testing](../../using/extending/backend.html#testing){.reference
             .internal}
@@ -1173,8 +1234,8 @@ pr-3412
     -   [Create a new NVQIR
         Simulator](../../using/extending/nvqir_simulator.html){.reference
         .internal}
-        -   [`CircuitSimulator`{.code .docutils .literal
-            .notranslate}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
+        -   [[`CircuitSimulator`{.code .docutils .literal
+            .notranslate}]{.pre}](../../using/extending/nvqir_simulator.html#circuitsimulator){.reference
             .internal}
         -   [Let's see this in
             action](../../using/extending/nvqir_simulator.html#let-s-see-this-in-action){.reference
@@ -1198,11 +1259,11 @@ pr-3412
         -   [3. Quantum
             Types](../../specification/cudaq/types.html){.reference
             .internal}
-            -   [3.1. `cudaq::qudit<Levels>`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
+            -   [3.1. [`cudaq::qudit<Levels>`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qudit-levels){.reference
                 .internal}
-            -   [3.2. `cudaq::qubit`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/types.html#cudaq-qubit){.reference
+            -   [3.2. [`cudaq::qubit`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/types.html#cudaq-qubit){.reference
                 .internal}
             -   [3.3. Quantum
                 Containers](../../specification/cudaq/types.html#quantum-containers){.reference
@@ -1210,15 +1271,15 @@ pr-3412
         -   [4. Quantum
             Operators](../../specification/cudaq/operators.html){.reference
             .internal}
-            -   [4.1. `cudaq::spin_op`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
+            -   [4.1. [`cudaq::spin_op`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/operators.html#cudaq-spin-op){.reference
                 .internal}
         -   [5. Quantum
             Operations](../../specification/cudaq/operations.html){.reference
             .internal}
-            -   [5.1. Operations on `cudaq::qubit`{.code .docutils
+            -   [5.1. Operations on [`cudaq::qubit`{.code .docutils
                 .literal
-                .notranslate}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
+                .notranslate}]{.pre}](../../specification/cudaq/operations.html#operations-on-cudaq-qubit){.reference
                 .internal}
         -   [6. Quantum
             Kernels](../../specification/cudaq/kernels.html){.reference
@@ -1244,21 +1305,23 @@ pr-3412
         -   [12. Algorithmic
             Primitives](../../specification/cudaq/algorithmic_primitives.html){.reference
             .internal}
-            -   [12.1. `cudaq::sample`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
+            -   [12.1. [`cudaq::sample`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-sample){.reference
                 .internal}
-            -   [12.2. `cudaq::run`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
+            -   [12.2. [`cudaq::run`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-run){.reference
                 .internal}
-            -   [12.3. `cudaq::observe`{.code .docutils .literal
-                .notranslate}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
+            -   [12.3. [`cudaq::observe`{.code .docutils .literal
+                .notranslate}]{.pre}](../../specification/cudaq/algorithmic_primitives.html#cudaq-observe){.reference
                 .internal}
-            -   [12.4. `cudaq::optimizer`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.4. [`cudaq::optimizer`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
-            -   [12.5. `cudaq::gradient`{.code .docutils .literal
-                .notranslate} (deprecated, functionality moved to CUDA-Q
+            -   [12.5. [`cudaq::gradient`{.code .docutils .literal
+                .notranslate}]{.pre} (deprecated, functionality moved to
+                CUDA-Q
                 libraries)](../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries){.reference
                 .internal}
         -   [13. Example
@@ -1306,125 +1369,142 @@ pr-3412
     -   [Python API](#){.current .reference .internal}
         -   [Program Construction](#program-construction){.reference
             .internal}
-            -   [`make_kernel()`{.docutils .literal
-                .notranslate}](#cudaq.make_kernel){.reference .internal}
-            -   [`PyKernel`{.docutils .literal
-                .notranslate}](#cudaq.PyKernel){.reference .internal}
-            -   [`Kernel`{.docutils .literal
-                .notranslate}](#cudaq.Kernel){.reference .internal}
-            -   [`PyKernelDecorator`{.docutils .literal
-                .notranslate}](#cudaq.PyKernelDecorator){.reference
+            -   [[`make_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.make_kernel){.reference
                 .internal}
-            -   [`kernel()`{.docutils .literal
-                .notranslate}](#cudaq.kernel){.reference .internal}
+            -   [[`PyKernel`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.PyKernel){.reference
+                .internal}
+            -   [[`Kernel`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.Kernel){.reference
+                .internal}
+            -   [[`PyKernelDecorator`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.PyKernelDecorator){.reference
+                .internal}
+            -   [[`kernel()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.kernel){.reference
+                .internal}
         -   [Kernel Execution](#kernel-execution){.reference .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](#cudaq.sample){.reference .internal}
-            -   [`sample_async()`{.docutils .literal
-                .notranslate}](#cudaq.sample_async){.reference
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.sample){.reference
                 .internal}
-            -   [`run()`{.docutils .literal
-                .notranslate}](#cudaq.run){.reference .internal}
-            -   [`run_async()`{.docutils .literal
-                .notranslate}](#cudaq.run_async){.reference .internal}
-            -   [`observe()`{.docutils .literal
-                .notranslate}](#cudaq.observe){.reference .internal}
-            -   [`observe_async()`{.docutils .literal
-                .notranslate}](#cudaq.observe_async){.reference
+            -   [[`sample_async()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.sample_async){.reference
                 .internal}
-            -   [`get_state()`{.docutils .literal
-                .notranslate}](#cudaq.get_state){.reference .internal}
-            -   [`get_state_async()`{.docutils .literal
-                .notranslate}](#cudaq.get_state_async){.reference
+            -   [[`run()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.run){.reference .internal}
+            -   [[`run_async()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.run_async){.reference
                 .internal}
-            -   [`vqe()`{.docutils .literal
-                .notranslate}](#cudaq.vqe){.reference .internal}
-            -   [`draw()`{.docutils .literal
-                .notranslate}](#cudaq.draw){.reference .internal}
-            -   [`translate()`{.docutils .literal
-                .notranslate}](#cudaq.translate){.reference .internal}
-            -   [`estimate_resources()`{.docutils .literal
-                .notranslate}](#cudaq.estimate_resources){.reference
+            -   [[`observe()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.observe){.reference
+                .internal}
+            -   [[`observe_async()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.observe_async){.reference
+                .internal}
+            -   [[`get_state()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.get_state){.reference
+                .internal}
+            -   [[`get_state_async()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.get_state_async){.reference
+                .internal}
+            -   [[`vqe()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.vqe){.reference .internal}
+            -   [[`draw()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.draw){.reference .internal}
+            -   [[`translate()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.translate){.reference
+                .internal}
+            -   [[`estimate_resources()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.estimate_resources){.reference
                 .internal}
         -   [Backend Configuration](#backend-configuration){.reference
             .internal}
-            -   [`has_target()`{.docutils .literal
-                .notranslate}](#cudaq.has_target){.reference .internal}
-            -   [`get_target()`{.docutils .literal
-                .notranslate}](#cudaq.get_target){.reference .internal}
-            -   [`get_targets()`{.docutils .literal
-                .notranslate}](#cudaq.get_targets){.reference .internal}
-            -   [`set_target()`{.docutils .literal
-                .notranslate}](#cudaq.set_target){.reference .internal}
-            -   [`reset_target()`{.docutils .literal
-                .notranslate}](#cudaq.reset_target){.reference
+            -   [[`has_target()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.has_target){.reference
                 .internal}
-            -   [`set_noise()`{.docutils .literal
-                .notranslate}](#cudaq.set_noise){.reference .internal}
-            -   [`unset_noise()`{.docutils .literal
-                .notranslate}](#cudaq.unset_noise){.reference .internal}
-            -   [`register_set_target_callback()`{.docutils .literal
-                .notranslate}](#cudaq.register_set_target_callback){.reference
+            -   [[`get_target()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.get_target){.reference
                 .internal}
-            -   [`unregister_set_target_callback()`{.docutils .literal
-                .notranslate}](#cudaq.unregister_set_target_callback){.reference
+            -   [[`get_targets()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.get_targets){.reference
                 .internal}
-            -   [`cudaq.apply_noise()`{.docutils .literal
-                .notranslate}](#cudaq.cudaq.apply_noise){.reference
+            -   [[`set_target()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.set_target){.reference
                 .internal}
-            -   [`initialize_cudaq()`{.docutils .literal
-                .notranslate}](#cudaq.initialize_cudaq){.reference
+            -   [[`reset_target()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.reset_target){.reference
                 .internal}
-            -   [`num_available_gpus()`{.docutils .literal
-                .notranslate}](#cudaq.num_available_gpus){.reference
+            -   [[`set_noise()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.set_noise){.reference
                 .internal}
-            -   [`set_random_seed()`{.docutils .literal
-                .notranslate}](#cudaq.set_random_seed){.reference
+            -   [[`unset_noise()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.unset_noise){.reference
+                .internal}
+            -   [[`register_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.register_set_target_callback){.reference
+                .internal}
+            -   [[`unregister_set_target_callback()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.unregister_set_target_callback){.reference
+                .internal}
+            -   [[`cudaq.apply_noise()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.cudaq.apply_noise){.reference
+                .internal}
+            -   [[`initialize_cudaq()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.initialize_cudaq){.reference
+                .internal}
+            -   [[`num_available_gpus()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.num_available_gpus){.reference
+                .internal}
+            -   [[`set_random_seed()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.set_random_seed){.reference
                 .internal}
         -   [Dynamics](#dynamics){.reference .internal}
-            -   [`evolve()`{.docutils .literal
-                .notranslate}](#cudaq.evolve){.reference .internal}
-            -   [`evolve_async()`{.docutils .literal
-                .notranslate}](#cudaq.evolve_async){.reference
+            -   [[`evolve()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.evolve){.reference
                 .internal}
-            -   [`Schedule`{.docutils .literal
-                .notranslate}](#cudaq.Schedule){.reference .internal}
-            -   [`BaseIntegrator`{.docutils .literal
-                .notranslate}](#cudaq.dynamics.integrator.BaseIntegrator){.reference
+            -   [[`evolve_async()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.evolve_async){.reference
                 .internal}
-            -   [`InitialState`{.docutils .literal
-                .notranslate}](#cudaq.dynamics.helpers.InitialState){.reference
+            -   [[`Schedule`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.Schedule){.reference
                 .internal}
-            -   [`InitialStateType`{.docutils .literal
-                .notranslate}](#cudaq.InitialStateType){.reference
+            -   [[`BaseIntegrator`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator){.reference
                 .internal}
-            -   [`IntermediateResultSave`{.docutils .literal
-                .notranslate}](#cudaq.IntermediateResultSave){.reference
+            -   [[`InitialState`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.dynamics.helpers.InitialState){.reference
+                .internal}
+            -   [[`InitialStateType`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.InitialStateType){.reference
+                .internal}
+            -   [[`IntermediateResultSave`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.IntermediateResultSave){.reference
                 .internal}
         -   [Operators](#operators){.reference .internal}
-            -   [`OperatorSum`{.docutils .literal
-                .notranslate}](#cudaq.operators.OperatorSum){.reference
+            -   [[`OperatorSum`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.OperatorSum){.reference
                 .internal}
-            -   [`ProductOperator`{.docutils .literal
-                .notranslate}](#cudaq.operators.ProductOperator){.reference
+            -   [[`ProductOperator`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.ProductOperator){.reference
                 .internal}
-            -   [`ElementaryOperator`{.docutils .literal
-                .notranslate}](#cudaq.operators.ElementaryOperator){.reference
+            -   [[`ElementaryOperator`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.ElementaryOperator){.reference
                 .internal}
-            -   [`ScalarOperator`{.docutils .literal
-                .notranslate}](#cudaq.operators.ScalarOperator){.reference
+            -   [[`ScalarOperator`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.ScalarOperator){.reference
                 .internal}
-            -   [`RydbergHamiltonian`{.docutils .literal
-                .notranslate}](#cudaq.operators.RydbergHamiltonian){.reference
+            -   [[`RydbergHamiltonian`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.RydbergHamiltonian){.reference
                 .internal}
-            -   [`SuperOperator`{.docutils .literal
-                .notranslate}](#cudaq.SuperOperator){.reference
+            -   [[`SuperOperator`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.SuperOperator){.reference
                 .internal}
-            -   [`operators.define()`{.docutils .literal
-                .notranslate}](#cudaq.operators.define){.reference
+            -   [[`operators.define()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.define){.reference
                 .internal}
-            -   [`operators.instantiate()`{.docutils .literal
-                .notranslate}](#cudaq.operators.instantiate){.reference
+            -   [[`operators.instantiate()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.operators.instantiate){.reference
                 .internal}
             -   [Spin Operators](#spin-operators){.reference .internal}
             -   [Fermion Operators](#fermion-operators){.reference
@@ -1434,119 +1514,128 @@ pr-3412
             -   [General Operators](#general-operators){.reference
                 .internal}
         -   [Data Types](#data-types){.reference .internal}
-            -   [`SimulationPrecision`{.docutils .literal
-                .notranslate}](#cudaq.SimulationPrecision){.reference
+            -   [[`SimulationPrecision`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.SimulationPrecision){.reference
                 .internal}
-            -   [`Target`{.docutils .literal
-                .notranslate}](#cudaq.Target){.reference .internal}
-            -   [`State`{.docutils .literal
-                .notranslate}](#cudaq.State){.reference .internal}
-            -   [`Tensor`{.docutils .literal
-                .notranslate}](#cudaq.Tensor){.reference .internal}
-            -   [`QuakeValue`{.docutils .literal
-                .notranslate}](#cudaq.QuakeValue){.reference .internal}
-            -   [`qubit`{.docutils .literal
-                .notranslate}](#cudaq.qubit){.reference .internal}
-            -   [`qreg`{.docutils .literal
-                .notranslate}](#cudaq.qreg){.reference .internal}
-            -   [`qvector`{.docutils .literal
-                .notranslate}](#cudaq.qvector){.reference .internal}
-            -   [`ComplexMatrix`{.docutils .literal
-                .notranslate}](#cudaq.ComplexMatrix){.reference
+            -   [[`Target`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.Target){.reference
                 .internal}
-            -   [`SampleResult`{.docutils .literal
-                .notranslate}](#cudaq.SampleResult){.reference
+            -   [[`State`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.State){.reference
                 .internal}
-            -   [`AsyncSampleResult`{.docutils .literal
-                .notranslate}](#cudaq.AsyncSampleResult){.reference
+            -   [[`Tensor`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.Tensor){.reference
                 .internal}
-            -   [`ObserveResult`{.docutils .literal
-                .notranslate}](#cudaq.ObserveResult){.reference
+            -   [[`QuakeValue`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.QuakeValue){.reference
                 .internal}
-            -   [`AsyncObserveResult`{.docutils .literal
-                .notranslate}](#cudaq.AsyncObserveResult){.reference
+            -   [[`qubit`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.qubit){.reference
                 .internal}
-            -   [`AsyncStateResult`{.docutils .literal
-                .notranslate}](#cudaq.AsyncStateResult){.reference
+            -   [[`qreg`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.qreg){.reference .internal}
+            -   [[`qvector`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.qvector){.reference
                 .internal}
-            -   [`OptimizationResult`{.docutils .literal
-                .notranslate}](#cudaq.OptimizationResult){.reference
+            -   [[`ComplexMatrix`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.ComplexMatrix){.reference
                 .internal}
-            -   [`EvolveResult`{.docutils .literal
-                .notranslate}](#cudaq.EvolveResult){.reference
+            -   [[`SampleResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.SampleResult){.reference
                 .internal}
-            -   [`AsyncEvolveResult`{.docutils .literal
-                .notranslate}](#cudaq.AsyncEvolveResult){.reference
+            -   [[`AsyncSampleResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.AsyncSampleResult){.reference
                 .internal}
-            -   [`Resources`{.docutils .literal
-                .notranslate}](#cudaq.Resources){.reference .internal}
+            -   [[`ObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.ObserveResult){.reference
+                .internal}
+            -   [[`AsyncObserveResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.AsyncObserveResult){.reference
+                .internal}
+            -   [[`AsyncStateResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.AsyncStateResult){.reference
+                .internal}
+            -   [[`OptimizationResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.OptimizationResult){.reference
+                .internal}
+            -   [[`EvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.EvolveResult){.reference
+                .internal}
+            -   [[`AsyncEvolveResult`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.AsyncEvolveResult){.reference
+                .internal}
+            -   [[`Resources`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.Resources){.reference
+                .internal}
             -   [Optimizers](#optimizers){.reference .internal}
             -   [Gradients](#gradients){.reference .internal}
             -   [Noisy Simulation](#noisy-simulation){.reference
                 .internal}
         -   [MPI Submodule](#mpi-submodule){.reference .internal}
-            -   [`initialize()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.initialize){.reference
+            -   [[`initialize()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.initialize){.reference
                 .internal}
-            -   [`rank()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.rank){.reference .internal}
-            -   [`num_ranks()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.num_ranks){.reference
+            -   [[`rank()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.rank){.reference
                 .internal}
-            -   [`all_gather()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.all_gather){.reference
+            -   [[`num_ranks()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.num_ranks){.reference
                 .internal}
-            -   [`broadcast()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.broadcast){.reference
+            -   [[`all_gather()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.all_gather){.reference
                 .internal}
-            -   [`is_initialized()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.is_initialized){.reference
+            -   [[`broadcast()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.broadcast){.reference
                 .internal}
-            -   [`finalize()`{.docutils .literal
-                .notranslate}](#cudaq.mpi.finalize){.reference
+            -   [[`is_initialized()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.is_initialized){.reference
+                .internal}
+            -   [[`finalize()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.finalize){.reference
                 .internal}
         -   [ORCA Submodule](#orca-submodule){.reference .internal}
-            -   [`sample()`{.docutils .literal
-                .notranslate}](#cudaq.orca.sample){.reference .internal}
+            -   [[`sample()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.orca.sample){.reference
+                .internal}
     -   [Quantum Operations](../default_ops.html){.reference .internal}
         -   [Unitary Operations on
             Qubits](../default_ops.html#unitary-operations-on-qubits){.reference
             .internal}
-            -   [`x`{.code .docutils .literal
-                .notranslate}](../default_ops.html#x){.reference
+            -   [[`x`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#x){.reference
                 .internal}
-            -   [`y`{.code .docutils .literal
-                .notranslate}](../default_ops.html#y){.reference
+            -   [[`y`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#y){.reference
                 .internal}
-            -   [`z`{.code .docutils .literal
-                .notranslate}](../default_ops.html#z){.reference
+            -   [[`z`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#z){.reference
                 .internal}
-            -   [`h`{.code .docutils .literal
-                .notranslate}](../default_ops.html#h){.reference
+            -   [[`h`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#h){.reference
                 .internal}
-            -   [`r1`{.code .docutils .literal
-                .notranslate}](../default_ops.html#r1){.reference
+            -   [[`r1`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#r1){.reference
                 .internal}
-            -   [`rx`{.code .docutils .literal
-                .notranslate}](../default_ops.html#rx){.reference
+            -   [[`rx`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#rx){.reference
                 .internal}
-            -   [`ry`{.code .docutils .literal
-                .notranslate}](../default_ops.html#ry){.reference
+            -   [[`ry`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#ry){.reference
                 .internal}
-            -   [`rz`{.code .docutils .literal
-                .notranslate}](../default_ops.html#rz){.reference
+            -   [[`rz`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#rz){.reference
                 .internal}
-            -   [`s`{.code .docutils .literal
-                .notranslate}](../default_ops.html#s){.reference
+            -   [[`s`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#s){.reference
                 .internal}
-            -   [`t`{.code .docutils .literal
-                .notranslate}](../default_ops.html#t){.reference
+            -   [[`t`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#t){.reference
                 .internal}
-            -   [`swap`{.code .docutils .literal
-                .notranslate}](../default_ops.html#swap){.reference
+            -   [[`swap`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#swap){.reference
                 .internal}
-            -   [`u3`{.code .docutils .literal
-                .notranslate}](../default_ops.html#u3){.reference
+            -   [[`u3`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#u3){.reference
                 .internal}
         -   [Adjoint and Controlled
             Operations](../default_ops.html#adjoint-and-controlled-operations){.reference
@@ -1554,14 +1643,14 @@ pr-3412
         -   [Measurements on
             Qubits](../default_ops.html#measurements-on-qubits){.reference
             .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../default_ops.html#mz){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#mz){.reference
                 .internal}
-            -   [`mx`{.code .docutils .literal
-                .notranslate}](../default_ops.html#mx){.reference
+            -   [[`mx`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#mx){.reference
                 .internal}
-            -   [`my`{.code .docutils .literal
-                .notranslate}](../default_ops.html#my){.reference
+            -   [[`my`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#my){.reference
                 .internal}
         -   [User-Defined Custom
             Operations](../default_ops.html#user-defined-custom-operations){.reference
@@ -1569,20 +1658,20 @@ pr-3412
         -   [Photonic Operations on
             Qudits](../default_ops.html#photonic-operations-on-qudits){.reference
             .internal}
-            -   [`create`{.code .docutils .literal
-                .notranslate}](../default_ops.html#create){.reference
+            -   [[`create`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#create){.reference
                 .internal}
-            -   [`annihilate`{.code .docutils .literal
-                .notranslate}](../default_ops.html#annihilate){.reference
+            -   [[`annihilate`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#annihilate){.reference
                 .internal}
-            -   [`phase_shift`{.code .docutils .literal
-                .notranslate}](../default_ops.html#phase-shift){.reference
+            -   [[`phase_shift`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#phase-shift){.reference
                 .internal}
-            -   [`beam_splitter`{.code .docutils .literal
-                .notranslate}](../default_ops.html#beam-splitter){.reference
+            -   [[`beam_splitter`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#beam-splitter){.reference
                 .internal}
-            -   [`mz`{.code .docutils .literal
-                .notranslate}](../default_ops.html#id1){.reference
+            -   [[`mz`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#id1){.reference
                 .internal}
 -   [Other Versions](../../versions.html){.reference .internal}
 :::
@@ -1591,20 +1680,20 @@ pr-3412
 ::: {.section .wy-nav-content-wrap toggle="wy-nav-shift"}
 [NVIDIA CUDA-Q](../../index.html)
 
-::: {.wy-nav-content}
-::: {.rst-content}
+::: wy-nav-content
+::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
--   [](../../index.html){.icon .icon-home}
+-   [](../../index.html){.icon .icon-home aria-label="Home"}
 -   [Code documentation](../api.html)
 -   CUDA-Q Python API
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](cpp_api.html "CUDA-Q C++ API"){.btn .btn-neutral .float-left}
-[Next []{.fa .fa-arrow-circle-right
+Previous](cpp_api.html "CUDA-Q C++ API"){.btn .btn-neutral .float-left
+accesskey="p"} [Next []{.fa .fa-arrow-circle-right
 aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1615,33 +1704,31 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 ::: {#module-cudaq .section}
 []{#cuda-q-python-api}
 
-CUDA-Q Python API[¶](#module-cudaq "Permalink to this heading"){.headerlink}
-============================================================================
+# CUDA-Q Python API[¶](#module-cudaq "Permalink to this heading"){.headerlink}
 
 ::: {#program-construction .section}
-Program Construction[¶](#program-construction "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------------------
+## Program Construction[¶](#program-construction "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[make\_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.make_kernel "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[make_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.make_kernel "Permalink to this definition"){.headerlink}
 
 :   <div>
     >
-    > Create a [`Kernel`{.xref .py .py-class .docutils .literal
-    > .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+    > Create a [[`Kernel`{.xref .py .py-class .docutils .literal
+    > .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
     > .internal}: An empty kernel function to be used for quantum
     > program construction. This kernel is non-parameterized if it
     > accepts no arguments, else takes the provided types as arguments.
     >
     > Returns a kernel if it is non-parameterized, else a tuple
-    > containing the kernel and a [`QuakeValue`{.xref .py .py-class
+    > containing the kernel and a [[`QuakeValue`{.xref .py .py-class
     > .docutils .literal
-    > .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    > .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
     > .internal} for each kernel argument.
     >
     > </div>
 
     ::: {.highlight-python .notranslate}
-    ::: {.highlight}
+    ::: highlight
         # Example:
         # Non-parameterized kernel.
         kernel = cudaq.make_kernel()
@@ -1658,49 +1745,50 @@ Program Construction[¶](#program-construction "Permalink to this heading"){.hea
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[argTypeList]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernel "Permalink to this definition"){.headerlink}
 
-:   The [`Kernel`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference .internal}
-    provides an API for dynamically constructing quantum circuits. The
-    [`Kernel`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference .internal}
-    programmatically represents the circuit as an MLIR function using
-    the Quake dialect.
+:   The [[`Kernel`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+    .internal} provides an API for dynamically constructing quantum
+    circuits. The [[`Kernel`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+    .internal} programmatically represents the circuit as an MLIR
+    function using the Quake dialect.
 
     [[name]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernel.name "Permalink to this definition"){.headerlink}
 
-    :   The name of the [`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+    :   The name of the [[`Kernel`{.xref .py .py-class .docutils
+        .literal
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal} function. Read-only.
 
         Type[:]{.colon}
 
-        :   [`str`{.xref .py .py-obj .docutils .literal
-            .notranslate}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+        :   [[`str`{.xref .py .py-obj .docutils .literal
+            .notranslate}]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}
 
     [[arguments]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernel.arguments "Permalink to this definition"){.headerlink}
 
-    :   The arguments accepted by the [`Kernel`{.xref .py .py-class
+    :   The arguments accepted by the [[`Kernel`{.xref .py .py-class
         .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal} function. Read-only.
 
         Type[:]{.colon}
 
-        :   List\[[`QuakeValue`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        :   List\[[[`QuakeValue`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal}\]
 
-    [[argument\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernel.argument_count "Permalink to this definition"){.headerlink}
+    [[argument_count]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernel.argument_count "Permalink to this definition"){.headerlink}
 
-    :   The number of arguments accepted by the [`Kernel`{.xref .py
+    :   The number of arguments accepted by the [[`Kernel`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal} function. Read-only.
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
 
 ```{=html}
@@ -1709,8 +1797,8 @@ Program Construction[¶](#program-construction "Permalink to this heading"){.hea
 
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[Kernel]{.pre}]{.sig-name .descname}[¶](#cudaq.Kernel "Permalink to this definition"){.headerlink}
 
-:   alias of [`PyKernel`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.PyKernel "cudaq.kernel.kernel_builder.PyKernel"){.reference
+:   alias of [[`PyKernel`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.PyKernel "cudaq.kernel.kernel_builder.PyKernel"){.reference
     .internal}
 
 ```{=html}
@@ -1719,16 +1807,16 @@ Program Construction[¶](#program-construction "Permalink to this heading"){.hea
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[funcSrc]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
 
-:   The `PyKernelDecorator`{.code .docutils .literal .notranslate}
-    serves as a standard Python decorator that takes the decorated
-    function as input and optionally lowers its AST representation to
-    executable code via MLIR. This decorator enables full JIT
-    compilation mode, where the function is lowered to an MLIR
+:   The [`PyKernelDecorator`{.code .docutils .literal
+    .notranslate}]{.pre} serves as a standard Python decorator that
+    takes the decorated function as input and optionally lowers its AST
+    representation to executable code via MLIR. This decorator enables
+    full JIT compilation mode, where the function is lowered to an MLIR
     representation.
 
     This decorator exposes a call overload that executes the code via
-    the MLIR `ExecutionEngine`{.code .docutils .literal .notranslate}
-    for the MLIR mode.
+    the MLIR [`ExecutionEngine`{.code .docutils .literal
+    .notranslate}]{.pre} for the MLIR mode.
 
     [[\_\_call\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__call__ "Permalink to this definition"){.headerlink}
 
@@ -1745,26 +1833,26 @@ Program Construction[¶](#program-construction "Permalink to this heading"){.hea
     :   Compile the Python function AST to MLIR. This is a no-op if the
         kernel is already compiled.
 
-    [[enable\_return\_to\_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
+    [[enable_return_to_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
 
-    :   Enable translation from `return`{.code .docutils .literal
-        .notranslate} statements to QIR output log
+    :   Enable translation from [`return`{.code .docutils .literal
+        .notranslate}]{.pre} statements to QIR output log
 
-    [[extract\_c\_function\_pointer]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[name]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.extract_c_function_pointer "Permalink to this definition"){.headerlink}
+    [[extract_c_function_pointer]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[name]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.extract_c_function_pointer "Permalink to this definition"){.headerlink}
 
     :   Return the C function pointer for the function with given name,
         or with the name of this kernel if not provided.
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[jStr]{.pre}]{.n}*, *[[overrideDict]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.from_json "Permalink to this definition"){.headerlink}
 
     :   Convert a JSON string into a new PyKernelDecorator object.
 
-    [[merge\_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[otherMod]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.merge_kernel "Permalink to this definition"){.headerlink}
+    [[merge_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[otherMod]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.merge_kernel "Permalink to this definition"){.headerlink}
 
     :   Merge the kernel in this PyKernelDecorator (the ModuleOp) with
         the provided ModuleOp.
 
-    [[synthesize\_callable\_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[funcNames]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.synthesize_callable_arguments "Permalink to this definition"){.headerlink}
+    [[synthesize_callable_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[funcNames]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.synthesize_callable_arguments "Permalink to this definition"){.headerlink}
 
     :   Given this Kernel has callable block arguments, synthesize away
         these callable arguments with the in-module FuncOps with given
@@ -1772,14 +1860,14 @@ Program Construction[¶](#program-construction "Permalink to this heading"){.hea
         callable block argument, index 1 to the second callable block
         argument, etc.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.to_json "Permalink to this definition"){.headerlink}
 
-    :   Convert `self`{.code .docutils .literal .notranslate} to a
-        JSON-serialized version of the kernel such that
-        `from_json`{.code .docutils .literal .notranslate} can
+    :   Convert [`self`{.code .docutils .literal .notranslate}]{.pre} to
+        a JSON-serialized version of the kernel such that
+        [`from_json`{.code .docutils .literal .notranslate}]{.pre} can
         reconstruct it elsewhere.
 
-    *[static]{.pre}[ ]{.w}*[[type\_to\_str]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[t]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.type_to_str "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[type_to_str]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[t]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.type_to_str "Permalink to this definition"){.headerlink}
 
     :   This converts types to strings in a clean JSON-compatible way.
         int -\> 'int' list\[float\] -\> 'list\[float\]' List\[float\]
@@ -1791,71 +1879,76 @@ Program Construction[¶](#program-construction "Permalink to this heading"){.hea
 
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.kernel "Permalink to this definition"){.headerlink}
 
-:   The `cudaq.kernel`{.code .docutils .literal .notranslate} represents
-    the CUDA-Q language function attribute that programmers leverage to
-    indicate the following function is a CUDA-Q kernel and should be
-    compile and executed on an available quantum coprocessor.
+:   The [`cudaq.kernel`{.code .docutils .literal .notranslate}]{.pre}
+    represents the CUDA-Q language function attribute that programmers
+    leverage to indicate the following function is a CUDA-Q kernel and
+    should be compile and executed on an available quantum coprocessor.
 
-    Verbose logging can be enabled via `verbose=True`{.code .docutils
-    .literal .notranslate}.
+    Verbose logging can be enabled via [`verbose=True`{.code .docutils
+    .literal .notranslate}]{.pre}.
 :::
 
 ::: {#kernel-execution .section}
-Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------------
+## Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots\_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[noise\_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[explicit\_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[explicit_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample "Permalink to this definition"){.headerlink}
 
-:   Sample the state generated by the provided `kernel`{.code .docutils
-    .literal .notranslate} at the given kernel `arguments`{.code
-    .docutils .literal .notranslate} over the specified number of
-    circuit executions (`shots_count`{.code .docutils .literal
-    .notranslate}). Each argument in `arguments`{.code .docutils
-    .literal .notranslate} provided can be a list or `ndarray`{.code
-    .docutils .literal .notranslate} of arguments of the specified
-    kernel argument type, and in this case, the `sample`{.code .docutils
-    .literal .notranslate} functionality will be broadcasted over all
-    argument sets and a list of `sample_result`{.code .docutils .literal
-    .notranslate} instances will be returned.
+:   Sample the state generated by the provided [`kernel`{.code .docutils
+    .literal .notranslate}]{.pre} at the given kernel [`arguments`{.code
+    .docutils .literal .notranslate}]{.pre} over the specified number of
+    circuit executions ([`shots_count`{.code .docutils .literal
+    .notranslate}]{.pre}). Each argument in [`arguments`{.code .docutils
+    .literal .notranslate}]{.pre} provided can be a list or
+    [`ndarray`{.code .docutils .literal .notranslate}]{.pre} of
+    arguments of the specified kernel argument type, and in this case,
+    the [`sample`{.code .docutils .literal .notranslate}]{.pre}
+    functionality will be broadcasted over all argument sets and a list
+    of [`sample_result`{.code .docutils .literal .notranslate}]{.pre}
+    instances will be returned.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to execute `shots_count`{.code .docutils .literal
-            .notranslate} times on the QPU.
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to execute [`shots_count`{.code .docutils
+            .literal .notranslate}]{.pre} times on the QPU.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments. For example, if the
-            kernel takes two `float`{.code .docutils .literal
-            .notranslate} values as input, the `sample`{.code .docutils
-            .literal .notranslate} call should be structured as
-            `cudaq.sample(kernel, firstFloat, secondFloat)`{.code
-            .docutils .literal .notranslate}. For broadcasting of the
-            `sample`{.code .docutils .literal .notranslate} function,
-            the arguments should be structured as a `list`{.code
-            .docutils .literal .notranslate} or `ndarray`{.code
-            .docutils .literal .notranslate} of argument values of the
-            specified kernel argument type.
+            kernel takes two [`float`{.code .docutils .literal
+            .notranslate}]{.pre} values as input, the [`sample`{.code
+            .docutils .literal .notranslate}]{.pre} call should be
+            structured as [`cudaq.sample(kernel,`{.code .docutils
+            .literal .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`firstFloat,`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`secondFloat)`{.code .docutils .literal
+            .notranslate}]{.pre}. For broadcasting of the
+            [`sample`{.code .docutils .literal .notranslate}]{.pre}
+            function, the arguments should be structured as a
+            [`list`{.code .docutils .literal .notranslate}]{.pre} or
+            [`ndarray`{.code .docutils .literal .notranslate}]{.pre} of
+            argument values of the specified kernel argument type.
 
-        -   **shots\_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **shots_count**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The number of kernel executions on the
             QPU. Defaults to 1000. Key-word only.
 
-        -   **noise\_model** (Optional\[`NoiseModel`{.code .docutils
-            .literal .notranslate}\]) -- The optional
-            [`NoiseModel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
+        -   **noise_model** (Optional\[[`NoiseModel`{.code .docutils
+            .literal .notranslate}]{.pre}\]) -- The optional
+            [[`NoiseModel`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
             .internal} to add noise to the kernel execution on the
             simulator. Defaults to an empty noise model.
 
-        -   **explicit\_measurements**
-            (*Optional\[*[*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference
+        -   **explicit_measurements**
+            (*Optional\[*[*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
             .external}*\]*) -- Whether or not to concatenate
             measurements in execution order for the returned sample
             result.
@@ -1863,81 +1956,82 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
     Returns[:]{.colon}
 
     :   A dictionary containing the measurement count results for the
-        [`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        [[`Kernel`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal}, or a list of such results in the case of
-        `sample`{.code .docutils .literal .notranslate} function
+        [`sample`{.code .docutils .literal .notranslate}]{.pre} function
         broadcasting.
 
     Return type[:]{.colon}
 
-    :   [`SampleResult`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
-        .internal} or `list[SampleResult]`{.code .docutils .literal
-        .notranslate}
+    :   [[`SampleResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        .internal} or [`list[SampleResult]`{.code .docutils .literal
+        .notranslate}]{.pre}
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.sample_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.sample_async "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[shots\_count:]{.pre} [int]{.pre} [=]{.pre} [1000]{.pre}]{.n}*, *[[explicit\_measurements:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[qpu\_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncSampleResult]{.pre}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[shots_count:]{.pre} [int]{.pre} [=]{.pre} [1000]{.pre}]{.n}*, *[[explicit_measurements:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[qpu_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncSampleResult]{.pre}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Asynchronously sample the state of the provided `kernel`{.code
-    .docutils .literal .notranslate} at the specified number of circuit
-    executions (`shots_count`{.code .docutils .literal .notranslate}).
-    When targeting a quantum platform with more than one QPU, the
-    optional `qpu_id`{.code .docutils .literal .notranslate} allows for
-    control over which QPU to enable. Will return a future whose results
-    can be retrieved via `future.get()`{.code .docutils .literal
-    .notranslate}.
+    Asynchronously sample the state of the provided [`kernel`{.code
+    .docutils .literal .notranslate}]{.pre} at the specified number of
+    circuit executions ([`shots_count`{.code .docutils .literal
+    .notranslate}]{.pre}). When targeting a quantum platform with more
+    than one QPU, the optional [`qpu_id`{.code .docutils .literal
+    .notranslate}]{.pre} allows for control over which QPU to enable.
+    Will return a future whose results can be retrieved via
+    [`future.get()`{.code .docutils .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to execute `shots_count`{.code .docutils .literal
-            .notranslate} times on the QPU.
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to execute [`shots_count`{.code .docutils
+            .literal .notranslate}]{.pre} times on the QPU.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
-        -   **shots\_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **shots_count**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The number of kernel executions on the
             QPU. Defaults to 1000. Key-word only.
 
-        -   **explicit\_measurements**
-            (*Optional\[*[*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference
+        -   **explicit_measurements**
+            (*Optional\[*[*bool*](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference
             .external}*\]*) -- A flag to indicate whether or not to
             concatenate measurements in execution order for the returned
             sample result.
 
-        -   **qpu\_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **qpu_id**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
     Returns[:]{.colon}
 
     :   A dictionary containing the measurement count results for the
-        [`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        [[`Kernel`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal}.
 
     Return type[:]{.colon}
 
-    :   [`AsyncSampleResult`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference
+    :   [[`AsyncSampleResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference
         .internal}
 
 ```{=html}
@@ -1948,155 +2042,166 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[shots\_count:]{.pre} [int]{.pre} [=]{.pre} [100]{.pre}]{.n}*, *[[noise\_model:]{.pre} [Optional\[NoiseModel\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[shots_count:]{.pre} [int]{.pre} [=]{.pre} [100]{.pre}]{.n}*, *[[noise_model:]{.pre} [Optional\[NoiseModel\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Run the provided `kernel`{.code .docutils .literal .notranslate}
-    with the given kernel arguments over the specified number of circuit
-    executions (`shots_count`{.code .docutils .literal .notranslate}).
+    Run the provided [`kernel`{.code .docutils .literal
+    .notranslate}]{.pre} with the given kernel arguments over the
+    specified number of circuit executions ([`shots_count`{.code
+    .docutils .literal .notranslate}]{.pre}).
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** -- The kernel to execute `shots_count`{.code
-            .docutils .literal .notranslate} times on the QPU.
+    :   -   **kernel** -- The kernel to execute [`shots_count`{.code
+            .docutils .literal .notranslate}]{.pre} times on the QPU.
 
         -   **\*arguments** -- The concrete values to evaluate the
             kernel function at.
 
-        -   **shots\_count** -- The number of kernel executions on the
+        -   **shots_count** -- The number of kernel executions on the
             QPU. Defaults to 100.
 
-        -   **noise\_model** -- The optional noise model to add noise to
+        -   **noise_model** -- The optional noise model to add noise to
             the kernel execution.
 
     Returns[:]{.colon}
 
     :   A list of kernel return values from each execution. The length
-        equals `shots_count`{.code .docutils .literal .notranslate}.
+        equals [`shots_count`{.code .docutils .literal
+        .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots\_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise\_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu\_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run_async "Permalink to this definition"){.headerlink}
 
-:   Run the provided `kernel`{.code .docutils .literal .notranslate}
-    with the given kernel `arguments`{.code .docutils .literal
-    .notranslate} over the specified number of circuit executions
-    (`shots_count`{.code .docutils .literal .notranslate})
-    asynchronously on the specified `qpu_id`{.code .docutils .literal
-    .notranslate}.
+:   Run the provided [`kernel`{.code .docutils .literal
+    .notranslate}]{.pre} with the given kernel [`arguments`{.code
+    .docutils .literal .notranslate}]{.pre} over the specified number of
+    circuit executions ([`shots_count`{.code .docutils .literal
+    .notranslate}]{.pre}) asynchronously on the specified
+    [`qpu_id`{.code .docutils .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to execute `shots_count`{.code .docutils .literal
-            .notranslate} times on the QPU.
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to execute [`shots_count`{.code .docutils
+            .literal .notranslate}]{.pre} times on the QPU.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments. For example, if the
-            kernel takes two `float`{.code .docutils .literal
-            .notranslate} values as input, the `run`{.code .docutils
-            .literal .notranslate} call should be structured as
-            `cudaq.run(kernel, firstFloat, secondFloat)`{.code .docutils
-            .literal .notranslate}.
+            kernel takes two [`float`{.code .docutils .literal
+            .notranslate}]{.pre} values as input, the [`run`{.code
+            .docutils .literal .notranslate}]{.pre} call should be
+            structured as [`cudaq.run(kernel,`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`firstFloat,`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`secondFloat)`{.code .docutils .literal
+            .notranslate}]{.pre}.
 
-        -   **shots\_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **shots_count**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The number of kernel executions on the
             QPU. Defaults to 100. Key-word only.
 
-        -   **noise\_model** (Optional\[`NoiseModel`{.code .docutils
-            .literal .notranslate}\]) -- The optional
-            [`NoiseModel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
+        -   **noise_model** (Optional\[[`NoiseModel`{.code .docutils
+            .literal .notranslate}]{.pre}\]) -- The optional
+            [[`NoiseModel`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
             .internal} to add noise to the kernel execution on the
             simulator. Defaults to an empty noise model.
 
-        -   **qpu\_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **qpu_id**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The id of the QPU. Defaults to 0.
             Key-word only.
 
     Returns[:]{.colon}
 
-    :   A handle, which can be waited on via a `get()`{.code .docutils
-        .literal .notranslate} method, which returns an array of
-        `kernel`{.code .docutils .literal .notranslate} return values.
-        The length of the list is equal to `shots_count`{.code .docutils
-        .literal .notranslate}.
+    :   A handle, which can be waited on via a [`get()`{.code .docutils
+        .literal .notranslate}]{.pre} method, which returns an array of
+        [`kernel`{.code .docutils .literal .notranslate}]{.pre} return
+        values. The length of the list is equal to [`shots_count`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
     Return type[:]{.colon}
 
-    :   `AsyncRunResult`{.code .docutils .literal .notranslate}
+    :   [`AsyncRunResult`{.code .docutils .literal .notranslate}]{.pre}
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin\_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots\_count]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[noise\_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[num\_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[execution]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[num_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[execution]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe "Permalink to this definition"){.headerlink}
 
-:   Compute the expected value of the `spin_operator`{.code .docutils
-    .literal .notranslate} with respect to the `kernel`{.code .docutils
-    .literal .notranslate}. If the input `spin_operator`{.code .docutils
-    .literal .notranslate} is a list of `SpinOperator`{.code .docutils
-    .literal .notranslate} then compute the expected value of every
+:   Compute the expected value of the [`spin_operator`{.code .docutils
+    .literal .notranslate}]{.pre} with respect to the [`kernel`{.code
+    .docutils .literal .notranslate}]{.pre}. If the input
+    [`spin_operator`{.code .docutils .literal .notranslate}]{.pre} is a
+    list of [`SpinOperator`{.code .docutils .literal
+    .notranslate}]{.pre} then compute the expected value of every
     operator in the list and return a list of results. If the kernel
     accepts arguments, it will be evaluated with respect to
-    `kernel(*arguments)`{.code .docutils .literal .notranslate}. Each
-    argument in `arguments`{.code .docutils .literal .notranslate}
-    provided can be a list or `ndarray`{.code .docutils .literal
-    .notranslate} of arguments of the specified kernel argument type,
-    and in this case, the `observe`{.code .docutils .literal
-    .notranslate} functionality will be broadcasted over all argument
-    sets and a list of `observe_result`{.code .docutils .literal
-    .notranslate} instances will be returned. If both the input
-    `spin_operator`{.code .docutils .literal .notranslate} and
-    `arguments`{.code .docutils .literal .notranslate} are broadcast
-    lists, a nested list of results over `arguments`{.code .docutils
-    .literal .notranslate} then `spin_operator`{.code .docutils .literal
-    .notranslate} will be returned.
+    [`kernel(*arguments)`{.code .docutils .literal .notranslate}]{.pre}.
+    Each argument in [`arguments`{.code .docutils .literal
+    .notranslate}]{.pre} provided can be a list or [`ndarray`{.code
+    .docutils .literal .notranslate}]{.pre} of arguments of the
+    specified kernel argument type, and in this case, the
+    [`observe`{.code .docutils .literal .notranslate}]{.pre}
+    functionality will be broadcasted over all argument sets and a list
+    of [`observe_result`{.code .docutils .literal .notranslate}]{.pre}
+    instances will be returned. If both the input [`spin_operator`{.code
+    .docutils .literal .notranslate}]{.pre} and [`arguments`{.code
+    .docutils .literal .notranslate}]{.pre} are broadcast lists, a
+    nested list of results over [`arguments`{.code .docutils .literal
+    .notranslate}]{.pre} then [`spin_operator`{.code .docutils .literal
+    .notranslate}]{.pre} will be returned.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to evaluate the expectation value with respect
             to.
 
-        -   **spin\_operator** (`SpinOperator`{.code .docutils .literal
-            .notranslate} or `list[SpinOperator]`{.code .docutils
-            .literal .notranslate}) -- The Hermitian spin operator to
-            calculate the expectation of, or a list of such operators.
+        -   **spin_operator** ([`SpinOperator`{.code .docutils .literal
+            .notranslate}]{.pre} or [`list[SpinOperator]`{.code
+            .docutils .literal .notranslate}]{.pre}) -- The Hermitian
+            spin operator to calculate the expectation of, or a list of
+            such operators.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
-        -   **shots\_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **shots_count**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The number of shots to use for QPU
             execution. Defaults to -1 implying no shots-based sampling.
             Key-word only.
 
-        -   **noise\_model** (Optional\[`NoiseModel`{.code .docutils
-            .literal .notranslate}\]) -- The optional
-            [`NoiseModel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
+        -   **noise_model** (Optional\[[`NoiseModel`{.code .docutils
+            .literal .notranslate}]{.pre}\]) -- The optional
+            [[`NoiseModel`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
             .internal} to add noise to the kernel execution on the
             simulator. Defaults to an empty noise model.
 
-        -   **num\_trajectories**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **num_trajectories**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional number of trajectories for
             noisy simulation. Only valid if a noise model is provided.
             Key-word only.
@@ -2104,72 +2209,74 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
     Returns[:]{.colon}
 
     :   A data-type containing the expectation value of the
-        `spin_operator`{.code .docutils .literal .notranslate} with
-        respect to the `kernel(*arguments)`{.code .docutils .literal
-        .notranslate}, or a list of such results in the case of
-        `observe`{.code .docutils .literal .notranslate} function
-        broadcasting. If `shots_count`{.code .docutils .literal
-        .notranslate} was provided, the [`ObserveResult`{.xref .py
+        [`spin_operator`{.code .docutils .literal .notranslate}]{.pre}
+        with respect to the [`kernel(*arguments)`{.code .docutils
+        .literal .notranslate}]{.pre}, or a list of such results in the
+        case of [`observe`{.code .docutils .literal .notranslate}]{.pre}
+        function broadcasting. If [`shots_count`{.code .docutils
+        .literal .notranslate}]{.pre} was provided, the
+        [[`ObserveResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
+        .internal} will also contain a [[`SampleResult`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
-        .internal} will also contain a [`SampleResult`{.xref .py
-        .py-class .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal} dictionary.
 
     Return type[:]{.colon}
 
-    :   [`ObserveResult`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
+    :   [[`ObserveResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
         .internal}
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.observe_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.observe_async "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[spin\_operator:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[qpu\_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*, *[[shots\_count:]{.pre} [int]{.pre} [=]{.pre} [-1]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncObserveResult]{.pre}](#cudaq.AsyncObserveResult "cudaq.AsyncObserveResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[spin_operator:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[qpu_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*, *[[shots_count:]{.pre} [int]{.pre} [=]{.pre} [-1]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncObserveResult]{.pre}](#cudaq.AsyncObserveResult "cudaq.AsyncObserveResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Compute the expected value of the `spin_operator`{.code .docutils
-    .literal .notranslate} with respect to the `kernel`{.code .docutils
-    .literal .notranslate} asynchronously. If the kernel accepts
-    arguments, it will be evaluated with respect to
-    `kernel(*arguments)`{.code .docutils .literal .notranslate}. When
-    targeting a quantum platform with more than one QPU, the optional
-    `qpu_id`{.code .docutils .literal .notranslate} allows for control
-    over which QPU to enable. Will return a future whose results can be
-    retrieved via `future.get()`{.code .docutils .literal .notranslate}.
+    Compute the expected value of the [`spin_operator`{.code .docutils
+    .literal .notranslate}]{.pre} with respect to the [`kernel`{.code
+    .docutils .literal .notranslate}]{.pre} asynchronously. If the
+    kernel accepts arguments, it will be evaluated with respect to
+    [`kernel(*arguments)`{.code .docutils .literal .notranslate}]{.pre}.
+    When targeting a quantum platform with more than one QPU, the
+    optional [`qpu_id`{.code .docutils .literal .notranslate}]{.pre}
+    allows for control over which QPU to enable. Will return a future
+    whose results can be retrieved via [`future.get()`{.code .docutils
+    .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to evaluate the expectation value with respect
             to.
 
-        -   **spin\_operator** (`SpinOperator`{.code .docutils .literal
-            .notranslate}) -- The Hermitian spin operator to calculate
-            the expectation of.
+        -   **spin_operator** ([`SpinOperator`{.code .docutils .literal
+            .notranslate}]{.pre}) -- The Hermitian spin operator to
+            calculate the expectation of.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
-        -   **qpu\_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **qpu_id**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
-        -   **shots\_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **shots_count**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The number of shots to use for QPU
             execution. Defaults to -1 implying no shots-based sampling.
             Key-word only.
@@ -2180,34 +2287,35 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     Return type[:]{.colon}
 
-    :   [`AsyncObserveResult`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.AsyncObserveResult "cudaq.AsyncObserveResult"){.reference
+    :   [[`AsyncObserveResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.AsyncObserveResult "cudaq.AsyncObserveResult"){.reference
         .internal}
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_state "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_state "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Return the [`State`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.State "cudaq.State"){.reference .internal} of
-    the system after execution of the provided `kernel`{.code .docutils
-    .literal .notranslate}.
+    Return the [[`State`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
+    .internal} of the system after execution of the provided
+    [`kernel`{.code .docutils .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to execute on the QPU.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
@@ -2215,7 +2323,7 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
             kernel doesn't accept any arguments.
 
     ::: {.highlight-python .notranslate}
-    ::: {.highlight}
+    ::: highlight
         # Example:
         import numpy as np
 
@@ -2237,36 +2345,37 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_state\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_state_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_state_async "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_state\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[qpu\_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncStateResult]{.pre}](#cudaq.AsyncStateResult "cudaq.AsyncStateResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[qpu_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncStateResult]{.pre}](#cudaq.AsyncStateResult "cudaq.AsyncStateResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
     Asynchronously retrieve the state generated by the given quantum
     kernel. When targeting a quantum platform with more than one QPU,
-    the optional `qpu_id`{.code .docutils .literal .notranslate} allows
-    for control over which QPU to enable. Will return a future whose
-    results can be retrieved via `future.get()`{.code .docutils .literal
-    .notranslate}.
+    the optional [`qpu_id`{.code .docutils .literal .notranslate}]{.pre}
+    allows for control over which QPU to enable. Will return a future
+    whose results can be retrieved via [`future.get()`{.code .docutils
+    .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to execute on the QPU.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
-        -   **qpu\_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        -   **qpu_id**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
@@ -2276,8 +2385,8 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     Return type[:]{.colon}
 
-    :   [`AsyncStateResult`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.AsyncStateResult "cudaq.AsyncStateResult"){.reference
+    :   [[`AsyncStateResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.AsyncStateResult "cudaq.AsyncStateResult"){.reference
         .internal}
 
 ```{=html}
@@ -2290,25 +2399,25 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     1.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[spin\_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
     2.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[spin\_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[argument\_mapper]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[argument_mapper]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
     3.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[gradient\_strategy]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[spin\_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[gradient_strategy]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
     4.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[gradient\_strategy]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[spin\_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[argument\_mapper]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[gradient_strategy]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[argument_mapper]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -2322,7 +2431,7 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     1.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [str]{.pre}]{.n}*, *[[arg1:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [str]{.pre}]{.n}*, *[[arg1:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -2334,15 +2443,16 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
     Parameters[:]{.colon}
 
     :   -   **format**
-            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}) -- The format of the output. Can be 'ascii' or
             'latex'.
 
-        -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+        -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to draw.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
@@ -2351,21 +2461,22 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
     Return a UTF-8 encoded string representing drawing of the execution
-    path, i.e., the trace, of the provided `kernel`{.code .docutils
-    .literal .notranslate}.
+    path, i.e., the trace, of the provided [`kernel`{.code .docutils
+    .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to draw.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
@@ -2378,7 +2489,7 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
         operations.
 
     ::: {.highlight-python .notranslate}
-    ::: {.highlight}
+    ::: highlight
         # Example
         import cudaq
         @cudaq.kernel
@@ -2418,33 +2529,34 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[format:]{.pre} [str]{.pre} [=]{.pre} [\'qir:0.1\']{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[format:]{.pre} [str]{.pre} [=]{.pre} [\'qir:0.1\']{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
     Return a UTF-8 encoded string representing drawing of the execution
-    path, i.e., the trace, of the provided `kernel`{.code .docutils
-    .literal .notranslate}.
+    path, i.e., the trace, of the provided [`kernel`{.code .docutils
+    .literal .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
     :   -   **format**
-            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}) -- format to translate to, \<name\[:version\]\>.
-            Available format names: `qir`{.code .docutils .literal
-            .notranslate}, `qir-full`{.code .docutils .literal
-            .notranslate}, `qir-base`{.code .docutils .literal
-            .notranslate}, `qir-adaptive`{.code .docutils .literal
-            .notranslate}, `openqasm2`{.code .docutils .literal
-            .notranslate}. QIR versions: `0.1`{.code .docutils .literal
-            .notranslate} and `0.2`{.code .docutils .literal
-            .notranslate}.
+            Available format names: [`qir`{.code .docutils .literal
+            .notranslate}]{.pre}, [`qir-full`{.code .docutils .literal
+            .notranslate}]{.pre}, [`qir-base`{.code .docutils .literal
+            .notranslate}]{.pre}, [`qir-adaptive`{.code .docutils
+            .literal .notranslate}]{.pre}, [`openqasm2`{.code .docutils
+            .literal .notranslate}]{.pre}. QIR versions: [`0.1`{.code
+            .docutils .literal .notranslate}]{.pre} and [`1.0`{.code
+            .docutils .literal .notranslate}]{.pre}.
 
-        -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+        -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to translate.
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
@@ -2460,7 +2572,7 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
         operations.
 
     ::: {.highlight-python .notranslate}
-    ::: {.highlight}
+    ::: highlight
         # Example
         import cudaq
         @cudaq.kernel
@@ -2497,11 +2609,11 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate\_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate\_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[choice:]{.pre} [Optional\[Callable\[\[\]]{.pre}]{.n}*, *[[bool\]\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[choice:]{.pre} [Optional\[Callable\[\[\]]{.pre}]{.n}*, *[[bool\]\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2513,18 +2625,20 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
     :   -   **choice** (*Any*) -- A choice function called to determine
             the outcome of measurements, in case control flow depends on
-            measurements. Should only return either `True`{.code
-            .docutils .literal .notranslate} or `False`{.code .docutils
-            .literal .notranslate}. Invoking the kernel within the
-            choice function is forbidden. Default: returns `True`{.code
-            .docutils .literal .notranslate} or `False`{.code .docutils
-            .literal .notranslate} with 50% probability.
+            measurements. Should only return either [`True`{.code
+            .docutils .literal .notranslate}]{.pre} or [`False`{.code
+            .docutils .literal .notranslate}]{.pre}. Invoking the kernel
+            within the choice function is forbidden. Default: returns
+            [`True`{.code .docutils .literal .notranslate}]{.pre} or
+            [`False`{.code .docutils .literal .notranslate}]{.pre} with
+            50% probability.
 
-        -   **kernel** ([`Kernel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [`Kernel`{.xref .py .py-class .docutils
+        -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
             .internal} to count resources on
 
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
@@ -2534,127 +2648,128 @@ Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
     Returns[:]{.colon}
 
     :   A dictionary containing the resource count results for the
-        [`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        [[`Kernel`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal}.
 
     Return type[:]{.colon}
 
-    :   [`Resources`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Resources "cudaq.Resources"){.reference
+    :   [[`Resources`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference
         .internal}
 :::
 
 ::: {#backend-configuration .section}
-Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.headerlink}
------------------------------------------------------------------------------------------
+## Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[has\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[has\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Return true if the `cudaq.Target`{.code .docutils .literal
-    .notranslate} with the given name exists.
+    Return true if the [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} with the given name exists.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.get_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.get_target "Permalink to this definition"){.headerlink}
 
 :   Overloaded function.
 
     1.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-    Return the `cudaq.Target`{.code .docutils .literal .notranslate}
-    with the given name. Will raise an exception if the name is not
-    valid.
+    Return the [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} with the given name. Will raise an exception if
+    the name is not valid.
 
     2.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-    Return the `cudaq.Target`{.code .docutils .literal .notranslate}
-    with the given name. Will raise an exception if the name is not
-    valid.
+    Return the [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} with the given name. Will raise an exception if
+    the name is not valid.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_targets "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_targets "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get\_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Return all available `cudaq.Target`{.code .docutils .literal
-    .notranslate} instances on the current system.
+    Return all available [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} instances on the current system.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
 
 :   Overloaded function.
 
     1.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [Target]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [Target]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-    Set the `cudaq.Target`{.code .docutils .literal .notranslate} to be
-    used for CUDA-Q kernel execution. Can provide optional,
-    target-specific configuration data via Python kwargs.
+    Set the [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} to be used for CUDA-Q kernel execution. Can
+    provide optional, target-specific configuration data via Python
+    kwargs.
 
     2.  
 
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [str]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [str]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-    Set the `cudaq.Target`{.code .docutils .literal .notranslate} with
-    given name to be used for CUDA-Q kernel execution. Can provide
-    optional, target-specific configuration data via Python kwargs.
+    Set the [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} with given name to be used for CUDA-Q kernel
+    execution. Can provide optional, target-specific configuration data
+    via Python kwargs.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[reset\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.reset_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[reset_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.reset_target "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[reset\_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[reset_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
-    Reset the current `cudaq.Target`{.code .docutils .literal
-    .notranslate} to the default.
+    Reset the current [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} to the default.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.set_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.set_noise "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2664,11 +2779,11 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unset_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unset_noise "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[unset_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2678,28 +2793,28 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[register\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.register_set_target_callback "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[register_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.register_set_target_callback "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[register\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[register_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
     Register a callback function to be executed when the runtime target
-    is changed. The string `id`{.code .docutils .literal .notranslate}
-    can be used to identify the callback for replacement/removal
-    purposes.
+    is changed. The string [`id`{.code .docutils .literal
+    .notranslate}]{.pre} can be used to identify the callback for
+    replacement/removal purposes.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unregister_set_target_callback "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.unregister_set_target_callback "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister\_set\_target\_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2709,38 +2824,39 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[apply\_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[error\_type]{.pre}]{.n}*, *[[parameters\...]{.pre}]{.n}*, *[[targets\...]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.cudaq.apply_noise "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[apply_noise]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[error_type]{.pre}]{.n}*, *[[parameters\...]{.pre}]{.n}*, *[[targets\...]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.cudaq.apply_noise "Permalink to this definition"){.headerlink}
 
 :   This function is a type-safe injection of noise into a quantum
     kernel, occurring precisely at the call site of the function
     invocation. The function should be called inside CUDA-Q kernels
-    (those annotated with `@cudaq.kernel`{.code .docutils .literal
-    .notranslate}). The functionality is only supported for simulation
-    targets, so it is automatically (and silently) stripped from any
-    programs submitted to hardware targets.
+    (those annotated with [`@cudaq.kernel`{.code .docutils .literal
+    .notranslate}]{.pre}). The functionality is only supported for
+    simulation targets, so it is automatically (and silently) stripped
+    from any programs submitted to hardware targets.
 
     Parameters[:]{.colon}
 
-    :   -   **error\_type** --
+    :   -   **error_type** --
 
-            A subtype of [`cudaq.KrausChannel`{.xref .py .py-class
+            A subtype of [[`cudaq.KrausChannel`{.xref .py .py-class
             .docutils .literal
-            .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+            .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
             .internal} that implements/defines the desired noise
             mechanisms as Kraus channels (e.g.
-            [`cudaq.Depolarization2`{.xref .py .py-class .docutils
+            [[`cudaq.Depolarization2`{.xref .py .py-class .docutils
             .literal
-            .notranslate}](#cudaq.Depolarization2 "cudaq.Depolarization2"){.reference
+            .notranslate}]{.pre}](#cudaq.Depolarization2 "cudaq.Depolarization2"){.reference
             .internal}). If you want to use a custom
-            [`cudaq.KrausChannel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+            [[`cudaq.KrausChannel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
             .internal} (i.e. not built-in to CUDA-Q), it must first be
             registered *outside the kernel* with
-            `register_channel`{.code .docutils .literal .notranslate},
-            like this:
+            [`register_channel`{.code .docutils .literal
+            .notranslate}]{.pre}, like this:
 
             ::: {.highlight-python .notranslate}
-            ::: {.highlight}
+            ::: highlight
                 class CustomNoiseChannel(cudaq.KrausChannel):
                     num_parameters = 1
                     num_targets = 1
@@ -2768,17 +2884,25 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
         -   **parameters** --
 
             The precise argument pack depend on the concrete
-            [`cudaq.KrausChannel`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+            [[`cudaq.KrausChannel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
             .internal} being used. The arguments are a concatenated list
             of parameters and targets. For example, to apply a 2-qubit
-            depolarization channel, which has `num_parameters = 1`{.code
-            .docutils .literal .notranslate} and `num_targets = 2`{.code
-            .docutils .literal .notranslate}, one would write the call
-            like this:
+            depolarization channel, which has [`num_parameters`{.code
+            .docutils .literal .notranslate}]{.pre}` `{.code .docutils
+            .literal .notranslate}[`=`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`1`{.code .docutils .literal
+            .notranslate}]{.pre} and [`num_targets`{.code .docutils
+            .literal .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`=`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`2`{.code .docutils .literal
+            .notranslate}]{.pre}, one would write the call like this:
 
             ::: {.highlight-python .notranslate}
-            ::: {.highlight}
+            ::: highlight
                 q, r = cudaq.qubit(), cudaq.qubit()
                 cudaq.apply_noise(cudaq.Depolarization2, 0.1, q, r)
             :::
@@ -2790,11 +2914,11 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize\_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.initialize_cudaq "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.initialize_cudaq "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize\_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2804,11 +2928,11 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[num\_available\_gpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.num_available_gpus "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[num_available_gpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.num_available_gpus "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[num\_available\_gpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[num_available_gpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2818,11 +2942,11 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_random\_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.set_random_seed "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_random_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.set_random_seed "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set\_random\_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_random_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -2830,10 +2954,9 @@ Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.h
 :::
 
 ::: {#dynamics .section}
-Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
----------------------------------------------------------------
+## Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial\_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse\_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store\_intermediate\_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[max\_batch\_size]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store_intermediate_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[max_batch_size]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve "Permalink to this definition"){.headerlink}
 
 :   Computes the time evolution of one or more initial state(s) under
     the defined operator(s).
@@ -2850,27 +2973,27 @@ Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
         -   **schedule** -- A sequence that generates a mapping of
             keyword arguments to their respective value. The keyword
             arguments are the parameters needed to evaluate any of the
-            operators passed to `evolve`{.code .docutils .literal
-            .notranslate}. All required parameters for evaluating an
-            operator and their documentation, if available, can be
-            queried by accessing the `parameter`{.code .docutils
-            .literal .notranslate} property of the operator.
+            operators passed to [`evolve`{.code .docutils .literal
+            .notranslate}]{.pre}. All required parameters for evaluating
+            an operator and their documentation, if available, can be
+            queried by accessing the [`parameter`{.code .docutils
+            .literal .notranslate}]{.pre} property of the operator.
 
-        -   **initial\_state** -- A single state or a sequence of states
+        -   **initial_state** -- A single state or a sequence of states
             of a quantum system.
 
-        -   **collapse\_operators** -- A sequence of operators that
+        -   **collapse_operators** -- A sequence of operators that
             describe the influence of noise on the quantum system.
 
         -   **observables** -- A sequence of operators for which to
             compute their expectation value during evolution. If
-            `store_intermediate_results`{.code .docutils .literal
-            .notranslate} is not None, the expectation values are
+            [`store_intermediate_results`{.code .docutils .literal
+            .notranslate}]{.pre} is not None, the expectation values are
             computed after each step in the schedule, and otherwise only
             the final expectation values at the end of the evolution are
             computed.
 
-        -   **shots\_count** -- Optional integer, if provided, it is the
+        -   **shots_count** -- Optional integer, if provided, it is the
             number of shots to use for QPU execution.
 
     Returns[:]{.colon}
@@ -2878,18 +3001,18 @@ Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
     :   A single evolution result if a single initial state is provided,
         or a sequence of evolution results representing the data
         computed during the evolution of each initial state. See
-        `EvolveResult`{.code .docutils .literal .notranslate} for more
-        information about the data computed during evolution.
+        [`EvolveResult`{.code .docutils .literal .notranslate}]{.pre}
+        for more information about the data computed during evolution.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve\_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial\_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse\_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store\_intermediate\_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store_intermediate_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve_async "Permalink to this definition"){.headerlink}
 
 :   Asynchronously computes the time evolution of one or more initial
-    state(s) under the defined operator(s). See `cudaq.evolve`{.code
-    .docutils .literal .notranslate} for more details about the
+    state(s) under the defined operator(s). See [`cudaq.evolve`{.code
+    .docutils .literal .notranslate}]{.pre} for more details about the
     parameters passed here.
 
     Returns[:]{.colon}
@@ -2897,15 +3020,15 @@ Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
     :   The handle to a single evolution result if a single initial
         state is provided, or a sequence of handles to the evolution
         results representing the data computed during the evolution of
-        each initial state. See the `EvolveResult`{.code .docutils
-        .literal .notranslate} for more information about the data
-        computed during evolution.
+        each initial state. See the [`EvolveResult`{.code .docutils
+        .literal .notranslate}]{.pre} for more information about the
+        data computed during evolution.
 
 ```{=html}
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Schedule]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[get\_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.Schedule "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Schedule]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[get_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.Schedule "Permalink to this definition"){.headerlink}
 
 :   Represents an iterator that produces all values needed for
     evaluating an operator expression at different time steps.
@@ -2925,8 +3048,8 @@ Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
 
 [[cudaq.dynamics.helpers.]{.pre}]{.sig-prename .descclassname}[[InitialState]{.pre}]{.sig-name .descname}[¶](#cudaq.dynamics.helpers.InitialState "Permalink to this definition"){.headerlink}
 
-:   alias of [`InitialStateType`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference
+:   alias of [[`InitialStateType`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference
     .internal}
 
 ```{=html}
@@ -2952,28 +3075,28 @@ Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[IntermediateResultSave]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[value]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.IntermediateResultSave "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[IntermediateResultSave]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[value]{.pre}]{.n}*, *[[names=\<not]{.pre} [given\>]{.pre}]{.n}*, *[[\*values]{.pre}]{.n}*, *[[module=None]{.pre}]{.n}*, *[[qualname=None]{.pre}]{.n}*, *[[type=None]{.pre}]{.n}*, *[[start=1]{.pre}]{.n}*, *[[boundary=None]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.IntermediateResultSave "Permalink to this definition"){.headerlink}
 
 :   Enum to specify how intermediate results should be saved during the
     dynamics evolution.
 :::
 
 ::: {#operators .section}
-Operators[¶](#operators "Permalink to this heading"){.headerlink}
------------------------------------------------------------------
+## Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 [[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[OperatorSum]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.OperatorSum "Permalink to this definition"){.headerlink}
 
-:   alias of [`MatrixOperator`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference
-    .internal} \| [`SpinOperator`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference
-    .internal} \| [`BosonOperator`{.xref .py .py-class .docutils
+:   alias of [[`MatrixOperator`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference
+    .internal} \| [[`SpinOperator`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference
-    .internal} \| [`FermionOperator`{.xref .py .py-class .docutils
+    .notranslate}]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference
+    .internal} \| [[`BosonOperator`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference
+    .notranslate}]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference
+    .internal} \| [[`FermionOperator`{.xref .py .py-class .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference
     .internal}
 
 ```{=html}
@@ -2982,18 +3105,18 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 [[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[ProductOperator]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.ProductOperator "Permalink to this definition"){.headerlink}
 
-:   alias of [`MatrixOperatorTerm`{.xref .py .py-class .docutils
+:   alias of [[`MatrixOperatorTerm`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference
-    .internal} \| [`SpinOperatorTerm`{.xref .py .py-class .docutils
+    .notranslate}]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference
+    .internal} \| [[`SpinOperatorTerm`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference
-    .internal} \| [`BosonOperatorTerm`{.xref .py .py-class .docutils
+    .notranslate}]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference
+    .internal} \| [[`BosonOperatorTerm`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference
-    .internal} \| [`FermionOperatorTerm`{.xref .py .py-class .docutils
+    .notranslate}]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference
+    .internal} \| [[`FermionOperatorTerm`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference
+    .notranslate}]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference
     .internal}
 
 ```{=html}
@@ -3002,29 +3125,29 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 [[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[ElementaryOperator]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.ElementaryOperator "Permalink to this definition"){.headerlink}
 
-:   alias of [`SpinOperatorElement`{.xref .py .py-class .docutils
+:   alias of [[`SpinOperatorElement`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.spin.SpinOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorElement"){.reference
-    .internal} \| [`BosonOperatorElement`{.xref .py .py-class .docutils
+    .notranslate}]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorElement"){.reference
+    .internal} \| [[`BosonOperatorElement`{.xref .py .py-class .docutils
     .literal
-    .notranslate}](#cudaq.operators.boson.BosonOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorElement"){.reference
-    .internal} \| [`FermionOperatorElement`{.xref .py .py-class
+    .notranslate}]{.pre}](#cudaq.operators.boson.BosonOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorElement"){.reference
+    .internal} \| [[`FermionOperatorElement`{.xref .py .py-class
     .docutils .literal
-    .notranslate}](#cudaq.operators.fermion.FermionOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorElement"){.reference
-    .internal} \| [`MatrixOperatorElement`{.xref .py .py-class .docutils
-    .literal
-    .notranslate}](#cudaq.operators.MatrixOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorElement"){.reference
+    .notranslate}]{.pre}](#cudaq.operators.fermion.FermionOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorElement"){.reference
+    .internal} \| [[`MatrixOperatorElement`{.xref .py .py-class
+    .docutils .literal
+    .notranslate}]{.pre}](#cudaq.operators.MatrixOperatorElement "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorElement"){.reference
     .internal}
 
 ```{=html}
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[ScalarOperator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[generator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[parameter\_info]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.ScalarOperator "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[ScalarOperator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[generator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[parameter_info]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.ScalarOperator "Permalink to this definition"){.headerlink}
 
 :   
 
-    *[classmethod]{.pre}[ ]{.w}*[[const]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[constant\_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.const "Permalink to this definition"){.headerlink}
+    *[classmethod]{.pre}[ ]{.w}*[[const]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[constant_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.const "Permalink to this definition"){.headerlink}
 
     :   Creates a scalar operator that has a constant value.
 
@@ -3032,17 +3155,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[evaluate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ScalarOperator]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[evaluate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ScalarOperator]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Evaluated value of the operator.
 
-    [[is\_constant]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.ScalarOperator.is_constant "Permalink to this definition"){.headerlink}
+    [[is_constant]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.ScalarOperator.is_constant "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_constant]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.operators.ScalarOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_constant]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.operators.ScalarOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3053,7 +3176,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Class method for consistency with other operator classes.
         Invokes the generator with the given keyword arguments.
@@ -3068,8 +3191,8 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
             -   **kwargs** -- Keyword arguments needed to evaluate the
                 generator. All required parameters and their
                 documentation, if available, can be queried by accessing
-                the `parameter`{.code .docutils .literal .notranslate}
-                property.
+                the [`parameter`{.code .docutils .literal
+                .notranslate}]{.pre} property.
 
         Returns[:]{.colon}
 
@@ -3080,21 +3203,22 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[RydbergHamiltonian]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom\_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta\_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom\_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[delta\_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[RydbergHamiltonian]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[delta_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian "Permalink to this definition"){.headerlink}
 
 :   Representation for the time-dependent Hamiltonian which is simulated
     by analog neutral-atom machines such as QuEra's Aquila and Pasqal's
     Fresnel. Ref:
-    <https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema>
+    [https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema](https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema){.reference
+    .external}
 
-    [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom\_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta\_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom\_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[delta\_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir\_libs.\_quakeDialects.cudaq\_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian.__init__ "Permalink to this definition"){.headerlink}
+    [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[delta_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian.__init__ "Permalink to this definition"){.headerlink}
 
-    :   Instantiate an operator consumable by `evolve`{.code .docutils
-        .literal .notranslate} API using the supplied parameters.
+    :   Instantiate an operator consumable by [`evolve`{.code .docutils
+        .literal .notranslate}]{.pre} API using the supplied parameters.
 
         Parameters[:]{.colon}
 
-        :   -   **atom\_sites** -- List of 2-d coordinates where the
+        :   -   **atom_sites** -- List of 2-d coordinates where the
                 tweezers trap atoms.
 
             -   **amplitude** -- time and value points of driving
@@ -3103,17 +3227,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
             -   **phase** -- time and value points of driving phase,
                 phi(t).
 
-            -   **delta\_global** -- time and value points of driving
-                detuning, Delta\_global(t).
+            -   **delta_global** -- time and value points of driving
+                detuning, Delta_global(t).
 
-            -   **atom\_filling** -- typing.Optional. Marks atoms that
+            -   **atom_filling** -- typing.Optional. Marks atoms that
                 occupy the trap sites with 1, and empty sites with 0. If
                 not provided, all are set to 1, i.e. filled.
 
-            -   **delta\_local** -- typing.Optional. A tuple of time and
+            -   **delta_local** -- typing.Optional. A tuple of time and
                 value points of the time-dependent factor of the local
-                detuning magnitude, Delta\_local(t), and site-dependent
-                factor of the local detuning magnitude, h\_k, a
+                detuning magnitude, Delta_local(t), and site-dependent
+                factor of the local detuning magnitude, h_k, a
                 dimensionless number between 0.0 and 1.0
 
 ```{=html}
@@ -3124,13 +3248,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    *[static]{.pre}[ ]{.w}*[[left\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.SuperOperator.left_multiply "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[left_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.SuperOperator.left_multiply "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[left\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[left_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3139,7 +3263,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[left\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[left_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3147,13 +3271,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         the operator to the density matrix. The sum is distributed into
         a linear combination of super-operator actions.
 
-    *[static]{.pre}[ ]{.w}*[[left\_right\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.SuperOperator.left_right_multiply "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[left_right_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.SuperOperator.left_right_multiply "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[left\_right\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[left_right_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3164,7 +3288,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[left\_right\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[left_right_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3174,13 +3298,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         matrix. The sum is distributed into a linear combination of
         super-operator actions.
 
-    *[static]{.pre}[ ]{.w}*[[right\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.SuperOperator.right_multiply "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[right_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.SuperOperator.right_multiply "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[right\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[right_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3189,7 +3313,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[right\_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[right_multiply]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.SuperOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3201,7 +3325,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[operators.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[expected\_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.define "Permalink to this definition"){.headerlink}
+[[operators.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.define "Permalink to this definition"){.headerlink}
 
 :   Defines a matrix operator element with the given id. After
     definition, an the defined elementary operator can be instantiated
@@ -3215,15 +3339,15 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     Note: The dimensions passed during operator evaluation are
     automatically validated against the expected dimensions specified
-    during definition - the `create`{.code .docutils .literal
-    .notranslate} function does not need to do this.
+    during definition - the [`create`{.code .docutils .literal
+    .notranslate}]{.pre} function does not need to do this.
 
     Parameters[:]{.colon}
 
-    :   -   **op\_id** -- A string that uniquely identifies the defined
+    :   -   **op_id** -- A string that uniquely identifies the defined
             operator.
 
-        -   **expected\_dimensions** -- defines the number of levels,
+        -   **expected_dimensions** -- defines the number of levels,
             that is the dimension, for each degree of freedom in
             canonical (that is sorted) order. A negative or zero value
             for one (or more) of the expected dimensions indicates that
@@ -3234,13 +3358,14 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
             and returns the matrix representing the operator in
             canonical order. If the matrix can be defined for any number
             of levels for one or more degree of freedom, the
-            `create`{.code .docutils .literal .notranslate} function
-            must take an argument called `dimension`{.code .docutils
-            .literal .notranslate} (or `dim`{.code .docutils .literal
-            .notranslate} for short), if the operator acts on a single
-            degree of freedom, and an argument called `dimensions`{.code
-            .docutils .literal .notranslate} (or `dims`{.code .docutils
-            .literal .notranslate} for short), if the operator acts on
+            [`create`{.code .docutils .literal .notranslate}]{.pre}
+            function must take an argument called [`dimension`{.code
+            .docutils .literal .notranslate}]{.pre} (or [`dim`{.code
+            .docutils .literal .notranslate}]{.pre} for short), if the
+            operator acts on a single degree of freedom, and an argument
+            called [`dimensions`{.code .docutils .literal
+            .notranslate}]{.pre} (or [`dims`{.code .docutils .literal
+            .notranslate}]{.pre} for short), if the operator acts on
             multiple degrees of freedom.
 
         -   **override** -- if True it allows override the definition.
@@ -3250,14 +3375,14 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[operators.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.instantiate "Permalink to this definition"){.headerlink}
+[[operators.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.instantiate "Permalink to this definition"){.headerlink}
 
 :   Instantiates a product operator containing a previously defined
     operator element.
 
     Parameters[:]{.colon}
 
-    :   -   **operator\_id** -- The id of the operator element as
+    :   -   **operator_id** -- The id of the operator element as
             specified when it was defined.
 
         -   **degrees** -- The degree(s) of freedom that the operator
@@ -3284,7 +3409,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3307,17 +3432,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
         probability 1 is given by the vector {0., 1., 0., 0.}.
 
-    [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.distribute_terms "Permalink to this definition"){.headerlink}
+    [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.distribute_terms "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3328,7 +3453,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3347,100 +3472,101 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         neutral element for addition; multiplying an empty sum with
         anything will still result in an empty sum.
 
-    *[static]{.pre}[ ]{.w}*[[empty\_op]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.empty_op "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[empty_op]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.empty_op "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[empty\_op]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[empty_op]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use `empty`{.code .docutils .literal .notranslate}
-        instead.
+        Deprecated - use [`empty`{.code .docutils .literal
+        .notranslate}]{.pre} instead.
 
-    [[for\_each\_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.for_each_pauli "Permalink to this definition"){.headerlink}
+    [[for_each_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.for_each_pauli "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[for\_each\_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[for_each_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Deprecated - iterator over sum and then iterator over term
         instead.
 
-    [[for\_each\_term]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.for_each_term "Permalink to this definition"){.headerlink}
+    [[for_each_term]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.for_each_term "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[for\_each\_term]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[for_each_term]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Deprecated - use standard iteration instead.
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Convert JSON string ('\[d1, d2, d3, ...\]') to spin\_op
+        Convert JSON string ('\[d1, d2, d3, ...\]') to spin_op
 
-    *[static]{.pre}[ ]{.w}*[[from\_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.from_word "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.from_word "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Creates an operator from a Pauli word string.
 
-    [[get\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_coefficient "Permalink to this definition"){.headerlink}
+    [[get_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_coefficient "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use `evaluate_coefficient`{.code .docutils .literal
-        .notranslate} on each term (product operator) instead.
+        Deprecated - use [`evaluate_coefficient`{.code .docutils
+        .literal .notranslate}]{.pre} on each term (product operator)
+        instead.
 
-    [[get\_qubit\_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_qubit_count "Permalink to this definition"){.headerlink}
+    [[get_qubit_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_qubit_count "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_qubit\_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_qubit_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use `qubit_count`{.code .docutils .literal
-        .notranslate} instead.
+        Deprecated - use [`qubit_count`{.code .docutils .literal
+        .notranslate}]{.pre} instead.
 
-    [[get\_raw\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_raw_data "Permalink to this definition"){.headerlink}
+    [[get_raw_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_raw_data "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_raw\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[get_raw_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Deprecated.
 
-    [[get\_term\_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_term_count "Permalink to this definition"){.headerlink}
+    [[get_term_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.get_term_count "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_term\_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_term_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use `term_count`{.code .docutils .literal
-        .notranslate} instead.
+        Deprecated - use [`term_count`{.code .docutils .literal
+        .notranslate}]{.pre} instead.
 
     *[static]{.pre}[ ]{.w}*[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.identity "Permalink to this definition"){.headerlink}
 
@@ -3457,30 +3583,30 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Creates a product operator that applies the identity to the
         given target index.
 
-    [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.is_identity "Permalink to this definition"){.headerlink}
+    [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.is_identity "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - is\_identity will only be supported on each term
+        Deprecated - is_identity will only be supported on each term
         (product operator) in future releases.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
@@ -3490,7 +3616,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[qubit\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.qubit_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[qubit_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.qubit_count "Permalink to this definition"){.headerlink}
 
     :   Return the number of qubits this operator acts on.
 
@@ -3498,130 +3624,140 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[term\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[849477732]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[3278435999]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Return a random spin operator with the given number of terms
-        (`term_count`{.code .docutils .literal .notranslate}) where each
-        term acts on all targets in the open range \[0, qubit\_count).
-        An optional seed value may also be provided.
+        ([`term_count`{.code .docutils .literal .notranslate}]{.pre})
+        where each term acts on all targets in the open range \[0,
+        qubit_count). An optional seed value may also be provided.
 
     [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.serialize "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns the serialized data representation of the operator.
 
-    *[property]{.pre}[ ]{.w}*[[term\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.term_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.term_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of terms in the operator.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Convert spin\_op to JSON string: '\[d1, d2, d3, ...\]'
+        Convert spin_op to JSON string: '\[d1, d2, d3, ...\]'
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
+    [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_string "Permalink to this definition"){.headerlink}
+    [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.to_string "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[print\_coefficient]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[True]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[print_coefficient]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[True]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use the standard `str`{.code .docutils .literal
-        .notranslate} conversion or `get_pauli_word`{.code .docutils
-        .literal .notranslate} on each term instead.
+        Deprecated - use the standard [`str`{.code .docutils .literal
+        .notranslate}]{.pre} conversion or [`get_pauli_word`{.code
+        .docutils .literal .notranslate}]{.pre} on each term instead.
 
     [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperator.trim "Permalink to this definition"){.headerlink}
 
@@ -3629,7 +3765,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3667,7 +3803,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -3680,7 +3816,8 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the unevaluated coefficient of the operator. The
         coefficient is a callback function that can be invoked with the
-        `evaluate`{.code .docutils .literal .notranslate} method.
+        [`evaluate`{.code .docutils .literal .notranslate}]{.pre}
+        method.
 
     [[copy]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.copy "Permalink to this definition"){.headerlink}
 
@@ -3697,41 +3834,41 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
         probability 1 is given by the vector {0., 1., 0., 0.}.
 
-    [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.distribute_terms "Permalink to this definition"){.headerlink}
+    [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.distribute_terms "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[chunk\_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[chunk_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - instantiate a `SpinOperator`{.code .docutils
-        .literal .notranslate} from this `SpinOperatorTerm`{.code
-        .docutils .literal .notranslate} and call distribute\_terms on
-        that.
+        Deprecated - instantiate a [`SpinOperator`{.code .docutils
+        .literal .notranslate}]{.pre} from this
+        [`SpinOperatorTerm`{.code .docutils .literal
+        .notranslate}]{.pre} and call distribute_terms on that.
 
     [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.dump "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Prints the string representation of the operator to the standard
         output.
 
-    [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
+    [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3739,83 +3876,83 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         parameters is a map of parameter names to their concrete,
         complex values.
 
-    [[for\_each\_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.for_each_pauli "Permalink to this definition"){.headerlink}
+    [[for_each_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.for_each_pauli "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[for\_each\_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[for_each_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Deprecated - use standard iteration instead.
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Convert JSON string ('\[d1, d2, d3, ...\]') to spin\_op
+        Convert JSON string ('\[d1, d2, d3, ...\]') to spin_op
 
-    [[get\_binary\_symplectic\_form]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_binary_symplectic_form "Permalink to this definition"){.headerlink}
+    [[get_binary_symplectic_form]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_binary_symplectic_form "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_binary\_symplectic\_form]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[get_binary_symplectic_form]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Gets the binary symplectic representation of this operator.
 
-    [[get\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_coefficient "Permalink to this definition"){.headerlink}
+    [[get_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_coefficient "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use `evaluate_coefficient`{.code .docutils .literal
-        .notranslate} instead.
+        Deprecated - use [`evaluate_coefficient`{.code .docutils
+        .literal .notranslate}]{.pre} instead.
 
-    [[get\_pauli\_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_pauli_word "Permalink to this definition"){.headerlink}
+    [[get_pauli_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_pauli_word "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_pauli\_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[pad\_identities]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_pauli_word]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[pad_identities]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Gets the Pauli word representation of this product operator.
 
-    [[get\_qubit\_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count "Permalink to this definition"){.headerlink}
+    [[get_qubit_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_qubit\_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_qubit_count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use `qubit_count`{.code .docutils .literal
-        .notranslate} instead.
+        Deprecated - use [`qubit_count`{.code .docutils .literal
+        .notranslate}]{.pre} instead.
 
-    [[get\_raw\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_raw_data "Permalink to this definition"){.headerlink}
+    [[get_raw_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.get_raw_data "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_raw\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[get_raw_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Deprecated.
 
-    [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
+    [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3823,17 +3960,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         this function returns true regardless of the value of the
         coefficient.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[ops\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[ops_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of operators in the product.
 
@@ -3842,7 +3979,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[qubit\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.qubit_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[qubit_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.qubit_count "Permalink to this definition"){.headerlink}
 
     :   Return the number of qubits this operator acts on.
 
@@ -3850,119 +3987,129 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns the serialized data representation of the operator.
 
-    *[property]{.pre}[ ]{.w}*[[term\_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.term_id "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.term_id "Permalink to this definition"){.headerlink}
 
     :   The term id uniquely identifies the operators and targets
         (degrees) that they act on, but does not include information
         about the coefficient.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Convert spin\_op to JSON string: '\[d1, d2, d3, ...\]'
+        Convert spin_op to JSON string: '\[d1, d2, d3, ...\]'
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
+    [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_string "Permalink to this definition"){.headerlink}
+    [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_string "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[print\_coefficient]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[True]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[print_coefficient]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[True]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Deprecated - use the standard `str`{.code .docutils .literal
-        .notranslate} conversion or use `get_pauli_word`{.code .docutils
-        .literal .notranslate} instead.
+        Deprecated - use the standard [`str`{.code .docutils .literal
+        .notranslate}]{.pre} conversion or use [`get_pauli_word`{.code
+        .docutils .literal .notranslate}]{.pre} instead.
 
 ```{=html}
 <!-- -->
@@ -3972,11 +4119,11 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[as\_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorElement.as_pauli "Permalink to this definition"){.headerlink}
+    [[as_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorElement.as_pauli "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[as\_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorElement]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.operators.spin.SpinOperatorElement"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Pauli]{.pre}](#cudaq.spin.Pauli "cudaq.spin.Pauli"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[as_pauli]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorElement]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.operators.spin.SpinOperatorElement"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Pauli]{.pre}](#cudaq.spin.Pauli "cudaq.spin.Pauli"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -3991,13 +4138,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the degree of freedom that the operator targets.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorElement]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.operators.spin.SpinOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorElement]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.operators.spin.SpinOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -4005,17 +4152,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [SpinOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.
 
-    [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorElement.to_string "Permalink to this definition"){.headerlink}
+    [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.spin.SpinOperatorElement.to_string "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorElement]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.operators.spin.SpinOperatorElement"){.reference .internal}]{.n}*, *[[include\_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorElement]{.pre}](#cudaq.operators.spin.SpinOperatorElement "cudaq.operators.spin.SpinOperatorElement"){.reference .internal}]{.n}*, *[[include_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4071,7 +4218,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4090,7 +4237,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     4.  
 
-        [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4121,7 +4268,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[i]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[i]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4135,7 +4282,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4160,7 +4307,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4174,7 +4321,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[minus]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[minus]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4188,7 +4335,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[plus]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[plus]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4202,7 +4349,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[x]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[x]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4216,7 +4363,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[y]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[y]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4230,7 +4377,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[z]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.spin.]{.pre}]{.sig-prename .descclassname}[[z]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.operators.spin.SpinOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4258,7 +4405,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -4281,17 +4428,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
         probability 1 is given by the vector {0., 1., 0., 0.}.
 
-    [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.distribute_terms "Permalink to this definition"){.headerlink}
+    [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.distribute_terms "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4302,7 +4449,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4336,19 +4483,19 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Creates a product operator that applies the identity to the
         given target index.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
@@ -4358,89 +4505,99 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[term\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.term_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.term_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of terms in the operator.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
+    [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
     [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperator.trim "Permalink to this definition"){.headerlink}
 
@@ -4448,7 +4605,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -4486,7 +4643,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -4499,7 +4656,8 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the unevaluated coefficient of the operator. The
         coefficient is a callback function that can be invoked with the
-        `evaluate`{.code .docutils .literal .notranslate} method.
+        [`evaluate`{.code .docutils .literal .notranslate}]{.pre}
+        method.
 
     [[copy]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.copy "Permalink to this definition"){.headerlink}
 
@@ -4516,7 +4674,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
@@ -4526,18 +4684,18 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Prints the string representation of the operator to the standard
         output.
 
-    [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
+    [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4545,11 +4703,11 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         parameters is a map of parameter names to their concrete,
         complex values.
 
-    [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
+    [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4557,17 +4715,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         this function returns true regardless of the value of the
         coefficient.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[ops\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[ops_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of operators in the product.
 
@@ -4576,91 +4734,101 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[term\_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.term_id "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.term_id "Permalink to this definition"){.headerlink}
 
     :   The term id uniquely identifies the operators and targets
         (degrees) that they act on, but does not include information
         about the coefficient.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
+    [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
 ```{=html}
 <!-- -->
@@ -4679,13 +4847,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the degree of freedom that the operator targets.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorElement]{.pre}](#cudaq.operators.fermion.FermionOperatorElement "cudaq.operators.fermion.FermionOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorElement]{.pre}](#cudaq.operators.fermion.FermionOperatorElement "cudaq.operators.fermion.FermionOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -4693,17 +4861,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [FermionOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.
 
-    [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorElement.to_string "Permalink to this definition"){.headerlink}
+    [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.fermion.FermionOperatorElement.to_string "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorElement]{.pre}](#cudaq.operators.fermion.FermionOperatorElement "cudaq.operators.fermion.FermionOperatorElement"){.reference .internal}]{.n}*, *[[include\_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorElement]{.pre}](#cudaq.operators.fermion.FermionOperatorElement "cudaq.operators.fermion.FermionOperatorElement"){.reference .internal}]{.n}*, *[[include_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4715,7 +4883,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[annihilate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[annihilate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4739,7 +4907,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4758,7 +4926,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     4.  
 
-        [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.operators.fermion.FermionOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4774,7 +4942,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[create]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[create]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4803,7 +4971,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4828,7 +4996,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4842,7 +5010,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[number]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.fermion.]{.pre}]{.sig-prename .descclassname}[[number]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.operators.fermion.FermionOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -4870,7 +5038,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -4893,17 +5061,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
         probability 1 is given by the vector {0., 1., 0., 0.}.
 
-    [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.distribute_terms "Permalink to this definition"){.headerlink}
+    [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.distribute_terms "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4914,7 +5082,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -4948,19 +5116,19 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Creates a product operator that applies the identity to the
         given target index.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
@@ -4970,89 +5138,99 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[term\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.term_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.term_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of terms in the operator.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
+    [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
     [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperator.trim "Permalink to this definition"){.headerlink}
 
@@ -5060,7 +5238,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5098,7 +5276,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5111,7 +5289,8 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the unevaluated coefficient of the operator. The
         coefficient is a callback function that can be invoked with the
-        `evaluate`{.code .docutils .literal .notranslate} method.
+        [`evaluate`{.code .docutils .literal .notranslate}]{.pre}
+        method.
 
     [[copy]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.copy "Permalink to this definition"){.headerlink}
 
@@ -5128,7 +5307,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
@@ -5138,18 +5317,18 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Prints the string representation of the operator to the standard
         output.
 
-    [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
+    [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5157,11 +5336,11 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         parameters is a map of parameter names to their concrete,
         complex values.
 
-    [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
+    [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5169,17 +5348,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         this function returns true regardless of the value of the
         coefficient.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[ops\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[ops_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of operators in the product.
 
@@ -5188,91 +5367,101 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[term\_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.term_id "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.term_id "Permalink to this definition"){.headerlink}
 
     :   The term id uniquely identifies the operators and targets
         (degrees) that they act on, but does not include information
         about the coefficient.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
-    [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
+    [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_sparse\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[to_sparse_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the sparse matrix representation of the operator. This
-        representation is a
-        `Tuple[list[complex], list[int], list[int]]`{.code .docutils
-        .literal .notranslate}, encoding the non-zero values, rows, and
+        representation is a [`Tuple[list[complex],`{.code .docutils
+        .literal .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int],`{.code .docutils .literal
+        .notranslate}]{.pre}` `{.code .docutils .literal
+        .notranslate}[`list[int]]`{.code .docutils .literal
+        .notranslate}]{.pre}, encoding the non-zero values, rows, and
         columns of the matrix. This format is supported by
-        `scipy.sparse.csr_array`{.code .docutils .literal
-        .notranslate}.The matrix is ordered according to the convention
-        (endianness) used in CUDA-Q, and the ordering returned by
-        `degrees`{.code .docutils .literal .notranslate}. This order can
-        be inverted by setting the optional `invert_order`{.code
-        .docutils .literal .notranslate} argument to `True`{.code
-        .docutils .literal .notranslate}. See also the documentation for
-        `degrees`{.code .docutils .literal .notranslate} for more
-        detail.
+        [`scipy.sparse.csr_array`{.code .docutils .literal
+        .notranslate}]{.pre}.The matrix is ordered according to the
+        convention (endianness) used in CUDA-Q, and the ordering
+        returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
 ```{=html}
 <!-- -->
@@ -5291,13 +5480,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the degree of freedom that the operator targets.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorElement]{.pre}](#cudaq.operators.boson.BosonOperatorElement "cudaq.operators.boson.BosonOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorElement]{.pre}](#cudaq.operators.boson.BosonOperatorElement "cudaq.operators.boson.BosonOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5305,17 +5494,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [BosonOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.
 
-    [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorElement.to_string "Permalink to this definition"){.headerlink}
+    [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.boson.BosonOperatorElement.to_string "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorElement]{.pre}](#cudaq.operators.boson.BosonOperatorElement "cudaq.operators.boson.BosonOperatorElement"){.reference .internal}]{.n}*, *[[include\_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorElement]{.pre}](#cudaq.operators.boson.BosonOperatorElement "cudaq.operators.boson.BosonOperatorElement"){.reference .internal}]{.n}*, *[[include_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5327,7 +5516,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[annihilate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[annihilate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -5351,7 +5540,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5370,7 +5559,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     4.  
 
-        [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5386,7 +5575,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[create]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[create]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -5415,7 +5604,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -5440,7 +5629,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5454,7 +5643,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[momentum]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[momentum]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -5468,7 +5657,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[number]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[number]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.operators.boson.BosonOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -5482,7 +5671,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[position]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.boson.]{.pre}]{.sig-prename .descclassname}[[position]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.operators.boson.BosonOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -5510,7 +5699,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5533,11 +5722,11 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets.
 
-    [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperator.distribute_terms "Permalink to this definition"){.headerlink}
+    [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperator.distribute_terms "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[distribute\_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[distribute_terms]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5548,7 +5737,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5582,19 +5771,19 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Creates a product operator that applies the identity to the
         given target index.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
@@ -5604,43 +5793,45 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[term\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.term_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.term_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of terms in the operator.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [MatrixOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [MatrixOperator]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
     [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperator.trim "Permalink to this definition"){.headerlink}
 
@@ -5648,7 +5839,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[trim]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[tol]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0.0]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5686,7 +5877,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[canonicalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5699,7 +5890,8 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   Returns the unevaluated coefficient of the operator. The
         coefficient is a callback function that can be invoked with the
-        `evaluate`{.code .docutils .literal .notranslate} method.
+        [`evaluate`{.code .docutils .literal .notranslate}]{.pre}
+        method.
 
     [[copy]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.copy "Permalink to this definition"){.headerlink}
 
@@ -5716,7 +5908,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets. The order of degrees is from smallest to
         largest and reflects the ordering of the matrix returned by
-        `to_matrix`{.code .docutils .literal .notranslate}.
+        [`to_matrix`{.code .docutils .literal .notranslate}]{.pre}.
         Specifically, the indices of a statevector with two qubits are
         {00, 01, 10, 11}. An ordering of degrees {0, 1} then indicates
         that a state where the qubit with index 0 equals 1 with
@@ -5726,18 +5918,18 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Prints the string representation of the operator to the standard
         output.
 
-    [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
+    [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.evaluate_coefficient "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[evaluate\_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[evaluate_coefficient]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5745,11 +5937,11 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         parameters is a map of parameter names to their concrete,
         complex values.
 
-    [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
+    [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_identity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5757,17 +5949,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
         this function returns true regardless of the value of the
         coefficient.
 
-    *[property]{.pre}[ ]{.w}*[[max\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[min\_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[min_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.min_degree "Permalink to this definition"){.headerlink}
 
     :   Returns the smallest index of the degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[ops\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[ops_count]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.ops_count "Permalink to this definition"){.headerlink}
 
     :   Returns the number of operators in the product.
 
@@ -5776,45 +5968,47 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    *[property]{.pre}[ ]{.w}*[[term\_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.term_id "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[term_id]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.term_id "Permalink to this definition"){.headerlink}
 
     :   The term id uniquely identifies the operators and targets
         (degrees) that they act on, but does not include information
         about the coefficient.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert\_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[invert_order]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [MatrixOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert\_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [MatrixOperatorTerm]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[invert_order:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
-        and the ordering returned by `degrees`{.code .docutils .literal
-        .notranslate}. This order can be inverted by setting the
-        optional `invert_order`{.code .docutils .literal .notranslate}
-        argument to `True`{.code .docutils .literal .notranslate}. See
-        also the documentation for `degrees`{.code .docutils .literal
-        .notranslate} for more detail.
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
 
 ```{=html}
 <!-- -->
@@ -5824,7 +6018,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    *[classmethod]{.pre}[ ]{.w}*[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[expected\_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.MatrixOperatorElement.define "Permalink to this definition"){.headerlink}
+    *[classmethod]{.pre}[ ]{.w}*[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.MatrixOperatorElement.define "Permalink to this definition"){.headerlink}
 
     :   Creates the definition of an elementary operator with the given
         id.
@@ -5834,7 +6028,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a vector that lists all degrees of freedom that the
         operator targets.
 
-    *[property]{.pre}[ ]{.w}*[[expected\_dimensions]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorElement.expected_dimensions "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[expected_dimensions]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorElement.expected_dimensions "Permalink to this definition"){.headerlink}
 
     :   The number of levels, that is the dimension, for each degree of
         freedom in canonical order that the operator acts on. A value of
@@ -5850,13 +6044,13 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorElement.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorElement]{.pre}](#cudaq.operators.MatrixOperatorElement "cudaq.operators.MatrixOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorElement]{.pre}](#cudaq.operators.MatrixOperatorElement "cudaq.operators.MatrixOperatorElement"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[dict]{.pre}](https://docs.python.org/3/library/stdtypes.html#dict "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -5864,17 +6058,17 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[to\_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [MatrixOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+            [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [MatrixOperatorElement]{.pre}]{.n}*, *[[dimensions:]{.pre} [dict\[int]{.pre}]{.n}*, *[[int\]]{.pre} [=]{.pre} [{}]{.pre}]{.n}*, *[[\\\*\\\*kwargs]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Returns the matrix representation of the operator.
 
-    [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorElement.to_string "Permalink to this definition"){.headerlink}
+    [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.operators.MatrixOperatorElement.to_string "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorElement]{.pre}](#cudaq.operators.MatrixOperatorElement "cudaq.operators.MatrixOperatorElement"){.reference .internal}]{.n}*, *[[include\_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_string]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorElement]{.pre}](#cudaq.operators.MatrixOperatorElement "cudaq.operators.MatrixOperatorElement"){.reference .internal}]{.n}*, *[[include_degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5896,7 +6090,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5915,7 +6109,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     4.  
 
-        [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[canonicalized]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[set]{.pre}](https://docs.python.org/3/library/stdtypes.html#set "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.operators.MatrixOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -5927,7 +6121,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[expected\_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.define "Permalink to this definition"){.headerlink}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.3)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.define "Permalink to this definition"){.headerlink}
 
 :   Defines a matrix operator element with the given id. After
     definition, an the defined elementary operator can be instantiated
@@ -5941,15 +6135,15 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
     Note: The dimensions passed during operator evaluation are
     automatically validated against the expected dimensions specified
-    during definition - the `create`{.code .docutils .literal
-    .notranslate} function does not need to do this.
+    during definition - the [`create`{.code .docutils .literal
+    .notranslate}]{.pre} function does not need to do this.
 
     Parameters[:]{.colon}
 
-    :   -   **op\_id** -- A string that uniquely identifies the defined
+    :   -   **op_id** -- A string that uniquely identifies the defined
             operator.
 
-        -   **expected\_dimensions** -- defines the number of levels,
+        -   **expected_dimensions** -- defines the number of levels,
             that is the dimension, for each degree of freedom in
             canonical (that is sorted) order. A negative or zero value
             for one (or more) of the expected dimensions indicates that
@@ -5960,13 +6154,14 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
             and returns the matrix representing the operator in
             canonical order. If the matrix can be defined for any number
             of levels for one or more degree of freedom, the
-            `create`{.code .docutils .literal .notranslate} function
-            must take an argument called `dimension`{.code .docutils
-            .literal .notranslate} (or `dim`{.code .docutils .literal
-            .notranslate} for short), if the operator acts on a single
-            degree of freedom, and an argument called `dimensions`{.code
-            .docutils .literal .notranslate} (or `dims`{.code .docutils
-            .literal .notranslate} for short), if the operator acts on
+            [`create`{.code .docutils .literal .notranslate}]{.pre}
+            function must take an argument called [`dimension`{.code
+            .docutils .literal .notranslate}]{.pre} (or [`dim`{.code
+            .docutils .literal .notranslate}]{.pre} for short), if the
+            operator acts on a single degree of freedom, and an argument
+            called [`dimensions`{.code .docutils .literal
+            .notranslate}]{.pre} (or [`dims`{.code .docutils .literal
+            .notranslate}]{.pre} for short), if the operator acts on
             multiple degrees of freedom.
 
         -   **override** -- if True it allows override the definition.
@@ -5980,7 +6175,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[displace]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[displace]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6009,7 +6204,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[identities]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[first]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[last]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6020,14 +6215,14 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[op\_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.instantiate "Permalink to this definition"){.headerlink}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[op_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.instantiate "Permalink to this definition"){.headerlink}
 
 :   Instantiates a product operator containing a previously defined
     operator element.
 
     Parameters[:]{.colon}
 
-    :   -   **operator\_id** -- The id of the operator element as
+    :   -   **operator_id** -- The id of the operator element as
             specified when it was defined.
 
         -   **degrees** -- The degree(s) of freedom that the operator
@@ -6041,7 +6236,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[momentum]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[momentum]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6055,7 +6250,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[number]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[number]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6069,7 +6264,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[parity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[parity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6083,7 +6278,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[position]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[position]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6097,7 +6292,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[squeeze]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[squeeze]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.operators.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -6106,8 +6301,7 @@ Operators[¶](#operators "Permalink to this heading"){.headerlink}
 :::
 
 ::: {#data-types .section}
-Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------
+## Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[SimulationPrecision]{.pre}]{.sig-name .descname}[¶](#cudaq.SimulationPrecision "Permalink to this definition"){.headerlink}
 
@@ -6141,53 +6335,54 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Target]{.pre}]{.sig-name .descname}[¶](#cudaq.Target "Permalink to this definition"){.headerlink}
 
-:   The `cudaq.Target`{.code .docutils .literal .notranslate} represents
-    the underlying infrastructure that CUDA-Q kernels will execute on.
-    Instances of `cudaq.Target`{.code .docutils .literal .notranslate}
-    describe what simulator they may leverage, the quantum\_platform
-    required for execution, and a description for the target.
+:   The [`cudaq.Target`{.code .docutils .literal .notranslate}]{.pre}
+    represents the underlying infrastructure that CUDA-Q kernels will
+    execute on. Instances of [`cudaq.Target`{.code .docutils .literal
+    .notranslate}]{.pre} describe what simulator they may leverage, the
+    quantum_platform required for execution, and a description for the
+    target.
 
     *[property]{.pre}[ ]{.w}*[[description]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.description "Permalink to this definition"){.headerlink}
 
-    :   A string describing the features for this `cudaq.Target`{.code
-        .docutils .literal .notranslate}.
+    :   A string describing the features for this [`cudaq.Target`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
-    [[get\_precision]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.get_precision "Permalink to this definition"){.headerlink}
+    [[get_precision]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.get_precision "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_precision]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SimulationPrecision]{.pre}](#cudaq.SimulationPrecision "cudaq.SimulationPrecision"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[get_precision]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SimulationPrecision]{.pre}](#cudaq.SimulationPrecision "cudaq.SimulationPrecision"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Return the simulation precision for the current target.
 
-    [[is\_emulated]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.is_emulated "Permalink to this definition"){.headerlink}
+    [[is_emulated]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.is_emulated "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_emulated]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_emulated]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns true if the emulation mode for the target has been
         activated.
 
-    [[is\_remote]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.is_remote "Permalink to this definition"){.headerlink}
+    [[is_remote]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.is_remote "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_remote]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_remote]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns true if the target consists of a remote REST QPU.
 
-    [[is\_remote\_simulator]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.is_remote_simulator "Permalink to this definition"){.headerlink}
+    [[is_remote_simulator]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.is_remote_simulator "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_remote\_simulator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_remote_simulator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -6196,29 +6391,30 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     *[property]{.pre}[ ]{.w}*[[name]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.name "Permalink to this definition"){.headerlink}
 
-    :   The name of the `cudaq.Target`{.code .docutils .literal
-        .notranslate}.
+    :   The name of the [`cudaq.Target`{.code .docutils .literal
+        .notranslate}]{.pre}.
 
-    [[num\_qpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.num_qpus "Permalink to this definition"){.headerlink}
+    [[num_qpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Target.num_qpus "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[num\_qpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[num_qpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Target]{.pre}](#cudaq.Target "cudaq.Target"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the number of QPUs available in this `cudaq.Target`{.code
-        .docutils .literal .notranslate}.
+        Return the number of QPUs available in this
+        [`cudaq.Target`{.code .docutils .literal .notranslate}]{.pre}.
 
     *[property]{.pre}[ ]{.w}*[[platform]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.platform "Permalink to this definition"){.headerlink}
 
-    :   The name of the quantum\_platform implementation this
-        `cudaq.Target`{.code .docutils .literal .notranslate} leverages.
+    :   The name of the quantum_platform implementation this
+        [`cudaq.Target`{.code .docutils .literal .notranslate}]{.pre}
+        leverages.
 
     *[property]{.pre}[ ]{.w}*[[simulator]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.simulator "Permalink to this definition"){.headerlink}
 
-    :   The name of the simulator this `cudaq.Target`{.code .docutils
-        .literal .notranslate} leverages. This will be empty for
+    :   The name of the simulator this [`cudaq.Target`{.code .docutils
+        .literal .notranslate}]{.pre} leverages. This will be empty for
         physical QPUs.
 
 ```{=html}
@@ -6229,9 +6425,9 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 :   A data-type representing the quantum state of the internal
     simulator. This type is not user-constructible and instances can
-    only be retrieved via the `cudaq.get_state(...)`{.code .docutils
-    .literal .notranslate} function or the static
-    cudaq.State.from\_data() method.
+    only be retrieved via the [`cudaq.get_state(...)`{.code .docutils
+    .literal .notranslate}]{.pre} function or the static
+    cudaq.State.from_data() method.
 
     [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.State.amplitude "Permalink to this definition"){.headerlink}
 
@@ -6239,14 +6435,14 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the amplitude of a state in computational basis.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             # Create a simulation state.
             state = cudaq.get_state(kernel)
@@ -6257,14 +6453,14 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the amplitude of a state in computational basis.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             # Create a simulation state.
             state = cudaq.get_state(kernel)
@@ -6279,14 +6475,14 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[amplitudes]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[amplitudes]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Return the amplitude of a list of states in computational basis.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             # Create a simulation state.
             state = cudaq.get_state(kernel)
@@ -6297,7 +6493,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[amplitudes]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[amplitudes]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6305,7 +6501,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
         basis.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             # Create a simulation state.
             state = cudaq.get_state(kernel)
@@ -6318,19 +6514,19 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Print the state to the console.
 
-    *[static]{.pre}[ ]{.w}*[[from\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[from\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[from_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6338,7 +6534,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[from\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[from_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6346,7 +6542,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         3.  
 
-            [[from\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Tensor]{.pre}](#cudaq.Tensor "cudaq.Tensor"){.reference .internal}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[from_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Tensor]{.pre}](#cudaq.Tensor "cudaq.Tensor"){.reference .internal}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6354,7 +6550,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         4.  
 
-            [[from\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[from_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6363,7 +6559,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         5.  
 
-            [[from\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[from_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6373,38 +6569,38 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[getTensor]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[idx]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Tensor]{.pre}](#cudaq.Tensor "cudaq.Tensor"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[getTensor]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[idx]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Tensor]{.pre}](#cudaq.Tensor "cudaq.Tensor"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the `idx`{.code .docutils .literal .notranslate} tensor
-        making up this state representation.
+        Return the [`idx`{.code .docutils .literal .notranslate}]{.pre}
+        tensor making up this state representation.
 
     [[getTensors]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.getTensors "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[getTensors]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[Tensor]{.pre}](#cudaq.Tensor "cudaq.Tensor"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[getTensors]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Tensor]{.pre}](#cudaq.Tensor "cudaq.Tensor"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Return all the tensors that comprise this state representation.
 
-    [[is\_on\_gpu]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.is_on_gpu "Permalink to this definition"){.headerlink}
+    [[is_on_gpu]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.is_on_gpu "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[is\_on\_gpu]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[is_on_gpu]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Return True if this state is on the GPU.
 
-    [[num\_qubits]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.num_qubits "Permalink to this definition"){.headerlink}
+    [[num_qubits]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.num_qubits "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[num\_qubits]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[num_qubits]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -6416,29 +6612,29 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[overlap]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[overlap]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Compute the overlap between the provided [`State`{.xref .py
+        Compute the overlap between the provided [[`State`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.State "cudaq.State"){.reference
+        .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
         .internal}'s.
 
         2.  
 
-            [[overlap]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[overlap]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.3)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Compute the overlap between the provided [`State`{.xref .py
+        Compute the overlap between the provided [[`State`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.State "cudaq.State"){.reference
+        .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
         .internal}'s.
 
         3.  
 
-            [[overlap]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[overlap]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6450,9 +6646,9 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Tensor]{.pre}]{.sig-name .descname}[¶](#cudaq.Tensor "Permalink to this definition"){.headerlink}
 
-:   The `Tensor`{.code .docutils .literal .notranslate} describes a
-    pointer to simulation data as well as the rank and extents for that
-    tensorial data it represents.
+:   The [`Tensor`{.code .docutils .literal .notranslate}]{.pre}
+    describes a pointer to simulation data as well as the rank and
+    extents for that tensorial data it represents.
 
 ```{=html}
 <!-- -->
@@ -6460,44 +6656,47 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[QuakeValue]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[mlirValue]{.pre}]{.n}*, *[[pyKernel]{.pre}]{.n}*, *[[size]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.QuakeValue "Permalink to this definition"){.headerlink}
 
-:   A [`QuakeValue`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+:   A [[`QuakeValue`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
     .internal} represents a handle to an individual function argument of
-    a [`Kernel`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference .internal},
-    or a return value from an operation within it. As documented in
-    [`make_kernel()`{.xref .py .py-func .docutils .literal
-    .notranslate}](#cudaq.make_kernel "cudaq.make_kernel"){.reference
-    .internal}, a [`QuakeValue`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    a [[`Kernel`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+    .internal}, or a return value from an operation within it. As
+    documented in [[`make_kernel()`{.xref .py .py-func .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.make_kernel "cudaq.make_kernel"){.reference
+    .internal}, a [[`QuakeValue`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
     .internal} can hold values of the following types: int, float,
-    list/List, [`qubit`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.qubit "cudaq.qubit"){.reference .internal}, or
-    [`qvector`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.qvector "cudaq.qvector"){.reference
-    .internal}. The [`QuakeValue`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    list/List, [[`qubit`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.qubit "cudaq.qubit"){.reference
+    .internal}, or [[`qvector`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.qvector "cudaq.qvector"){.reference
+    .internal}. The [[`QuakeValue`{.xref .py .py-class .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
     .internal} can also hold kernel operations such as qubit allocations
     and measurements.
 
     [[\_\_add\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[other]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__add__ "Permalink to this definition"){.headerlink}
 
-    :   Return the sum of `self`{.code .docutils .literal .notranslate}
-        ([`QuakeValue`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
-        .internal}) and `other`{.code .docutils .literal .notranslate}
-        (float).
+    :   Return the sum of [`self`{.code .docutils .literal
+        .notranslate}]{.pre} ([[`QuakeValue`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .internal}) and [`other`{.code .docutils .literal
+        .notranslate}]{.pre} (float).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = value + 5.0
@@ -6506,22 +6705,23 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_radd\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[other]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__radd__ "Permalink to this definition"){.headerlink}
 
-    :   Return the sum of `other`{.code .docutils .literal .notranslate}
-        (float) and `self`{.code .docutils .literal .notranslate}
-        ([`QuakeValue`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    :   Return the sum of [`other`{.code .docutils .literal
+        .notranslate}]{.pre} (float) and [`self`{.code .docutils
+        .literal .notranslate}]{.pre} ([[`QuakeValue`{.xref .py
+        .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
         .internal}).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = 5.0 + value
@@ -6530,23 +6730,23 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_sub\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[other]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__sub__ "Permalink to this definition"){.headerlink}
 
-    :   Return the difference of `self`{.code .docutils .literal
-        .notranslate} ([`QuakeValue`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
-        .internal}) and `other`{.code .docutils .literal .notranslate}
-        (float).
+    :   Return the difference of [`self`{.code .docutils .literal
+        .notranslate}]{.pre} ([[`QuakeValue`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .internal}) and [`other`{.code .docutils .literal
+        .notranslate}]{.pre} (float).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = value - 5.0
@@ -6555,23 +6755,23 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_rsub\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[other]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__rsub__ "Permalink to this definition"){.headerlink}
 
-    :   Return the difference of `other`{.code .docutils .literal
-        .notranslate} (float) and `self`{.code .docutils .literal
-        .notranslate} ([`QuakeValue`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    :   Return the difference of [`other`{.code .docutils .literal
+        .notranslate}]{.pre} (float) and [`self`{.code .docutils
+        .literal .notranslate}]{.pre} ([[`QuakeValue`{.xref .py
+        .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
         .internal}).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = 5.0 - value
@@ -6580,22 +6780,22 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_neg\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.QuakeValue.__neg__ "Permalink to this definition"){.headerlink}
 
-    :   Return the negation of `self`{.code .docutils .literal
-        .notranslate} ([`QuakeValue`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    :   Return the negation of [`self`{.code .docutils .literal
+        .notranslate}]{.pre} ([[`QuakeValue`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
         .internal}).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = -value
@@ -6604,23 +6804,23 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_mul\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[other]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__mul__ "Permalink to this definition"){.headerlink}
 
-    :   Return the product of `self`{.code .docutils .literal
-        .notranslate} ([`QuakeValue`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
-        .internal}) with `other`{.code .docutils .literal .notranslate}
-        (float).
+    :   Return the product of [`self`{.code .docutils .literal
+        .notranslate}]{.pre} ([[`QuakeValue`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .internal}) with [`other`{.code .docutils .literal
+        .notranslate}]{.pre} (float).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = value * 5.0
@@ -6629,23 +6829,23 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_rmul\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[other]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__rmul__ "Permalink to this definition"){.headerlink}
 
-    :   Return the product of `other`{.code .docutils .literal
-        .notranslate} (float) with `self`{.code .docutils .literal
-        .notranslate} ([`QuakeValue`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+    :   Return the product of [`other`{.code .docutils .literal
+        .notranslate}]{.pre} (float) with [`self`{.code .docutils
+        .literal .notranslate}]{.pre} ([[`QuakeValue`{.xref .py
+        .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
         .internal}).
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if the underlying [`QuakeValue`{.xref .py
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal} type is not a float.
 
         ::: {.highlight-python .notranslate}
-        ::: {.highlight}
+        ::: highlight
             # Example:
             kernel, value = cudaq.make_kernel(float)
             new_value: QuakeValue = 5.0 * value
@@ -6654,96 +6854,102 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[idx]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.__getitem__ "Permalink to this definition"){.headerlink}
 
-    :   Return the element of `self`{.code .docutils .literal
-        .notranslate} at the provided `index`{.code .docutils .literal
-        .notranslate}.
+    :   Return the element of [`self`{.code .docutils .literal
+        .notranslate}]{.pre} at the provided [`index`{.code .docutils
+        .literal .notranslate}]{.pre}.
 
         ::: {.admonition .note}
         Note
 
-        Only `list`{.code .docutils .literal .notranslate} or
-        [`qvector`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.qvector "cudaq.qvector"){.reference
-        .internal} type [`QuakeValue`{.xref .py .py-class .docutils
+        Only [`list`{.code .docutils .literal .notranslate}]{.pre} or
+        [[`qvector`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.qvector "cudaq.qvector"){.reference
+        .internal} type [[`QuakeValue`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
         .internal}'s may be indexed.
         :::
 
         Parameters[:]{.colon}
 
         :   **index**
-            ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
-            .external}) -- The element of `self`{.code .docutils
-            .literal .notranslate} that you'd like to return.
+            ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}) -- The element of [`self`{.code .docutils
+            .literal .notranslate}]{.pre} that you'd like to return.
 
         Returns[:]{.colon}
 
-        :   A new [`QuakeValue`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
-            .internal} for the `index`{.code .docutils .literal
-            .notranslate} element of `self`{.code .docutils .literal
-            .notranslate}.
+        :   A new [[`QuakeValue`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+            .internal} for the [`index`{.code .docutils .literal
+            .notranslate}]{.pre} element of [`self`{.code .docutils
+            .literal .notranslate}]{.pre}.
 
         Return type[:]{.colon}
 
-        :   [`QuakeValue`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        :   [[`QuakeValue`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal}
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.13)"){.reference
-            .external} -- if `self`{.code .docutils .literal
-            .notranslate} is a non-subscriptable [`QuakeValue`{.xref .py
-            .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/library/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+            .external} -- if [`self`{.code .docutils .literal
+            .notranslate}]{.pre} is a non-subscriptable
+            [[`QuakeValue`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal}.
 
     [[slice]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[startIdx]{.pre}]{.n}*, *[[count]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.QuakeValue.slice "Permalink to this definition"){.headerlink}
 
-    :   Return a slice of the given [`QuakeValue`{.xref .py .py-class
+    :   Return a slice of the given [[`QuakeValue`{.xref .py .py-class
         .docutils .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
-        .internal} as a new [`QuakeValue`{.xref .py .py-class .docutils
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .internal} as a new [[`QuakeValue`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
         .internal}.
 
         ::: {.admonition .note}
         Note
 
-        The underlying [`QuakeValue`{.xref .py .py-class .docutils
+        The underlying [[`QuakeValue`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
-        .internal} must be a `list`{.code .docutils .literal
-        .notranslate} or `veq`{.code .docutils .literal .notranslate}.
+        .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        .internal} must be a [`list`{.code .docutils .literal
+        .notranslate}]{.pre} or [`veq`{.code .docutils .literal
+        .notranslate}]{.pre}.
         :::
 
         Parameters[:]{.colon}
 
         :   -   **start**
-                ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+                ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
                 .external}) -- The index to begin the slice from.
 
             -   **count**
-                ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+                ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
                 .external}) -- The number of elements to extract after
-                the `start`{.code .docutils .literal .notranslate}
-                index.
+                the [`start`{.code .docutils .literal
+                .notranslate}]{.pre} index.
 
         Returns[:]{.colon}
 
-        :   A new `QuakeValue`{.code .docutils .literal .notranslate}
-            containing a slice of `self`{.code .docutils .literal
-            .notranslate} from the `start`{.code .docutils .literal
-            .notranslate} element to the `start + count`{.code .docutils
-            .literal .notranslate} element.
+        :   A new [`QuakeValue`{.code .docutils .literal
+            .notranslate}]{.pre} containing a slice of [`self`{.code
+            .docutils .literal .notranslate}]{.pre} from the
+            [`start`{.code .docutils .literal .notranslate}]{.pre}
+            element to the [`start`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`+`{.code .docutils .literal
+            .notranslate}]{.pre}` `{.code .docutils .literal
+            .notranslate}[`count`{.code .docutils .literal
+            .notranslate}]{.pre} element.
 
         Return type[:]{.colon}
 
-        :   [`QuakeValue`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
+        :   [[`QuakeValue`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
             .internal}
 
 ```{=html}
@@ -6761,8 +6967,8 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[qreg]{.pre}]{.sig-name .descname}[¶](#cudaq.qreg "Permalink to this definition"){.headerlink}
 
-:   alias of [`qvector`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.qvector "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.qvector"){.reference
+:   alias of [[`qvector`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.qvector "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.qvector"){.reference
     .internal}
 
 ```{=html}
@@ -6772,9 +6978,10 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[qvector]{.pre}]{.sig-name .descname}[¶](#cudaq.qvector "Permalink to this definition"){.headerlink}
 
 :   An owning, dynamically sized container for qubits. The semantics of
-    the `qvector`{.code .docutils .literal .notranslate} follows that of
-    a `std::vector`{.code .docutils .literal .notranslate} or
-    `list`{.code .docutils .literal .notranslate} for qubits.
+    the [`qvector`{.code .docutils .literal .notranslate}]{.pre} follows
+    that of a [`std::vector`{.code .docutils .literal
+    .notranslate}]{.pre} or [`list`{.code .docutils .literal
+    .notranslate}]{.pre} for qubits.
 
 ```{=html}
 <!-- -->
@@ -6782,8 +6989,8 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[ComplexMatrix]{.pre}]{.sig-name .descname}[¶](#cudaq.ComplexMatrix "Permalink to this definition"){.headerlink}
 
-:   The [`ComplexMatrix`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
+:   The [[`ComplexMatrix`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
     .internal} is a thin wrapper around a matrix of complex\<double\>
     elements.
 
@@ -6793,7 +7000,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6801,7 +7008,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -6811,7 +7018,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[\_\_str\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[\_\_str\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -6821,55 +7028,55 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Prints the matrix to the standard output.
 
-    [[minimal\_eigenvalue]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.minimal_eigenvalue "Permalink to this definition"){.headerlink}
+    [[minimal_eigenvalue]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.minimal_eigenvalue "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[minimal\_eigenvalue]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[minimal_eigenvalue]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[complex]{.pre}](https://docs.python.org/3/library/functions.html#complex "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the lowest eigenvalue for this [`ComplexMatrix`{.xref .py
-        .py-class .docutils .literal
-        .notranslate}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
+        Return the lowest eigenvalue for this [[`ComplexMatrix`{.xref
+        .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
         .internal}.
 
-    [[num\_columns]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.num_columns "Permalink to this definition"){.headerlink}
+    [[num_columns]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.num_columns "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[num\_columns]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[num_columns]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns the number of columns in the matrix.
 
-    [[num\_rows]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.num_rows "Permalink to this definition"){.headerlink}
+    [[num_rows]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.num_rows "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[num\_rows]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[num_rows]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns the number of rows in the matrix.
 
-    [[to\_numpy]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.to_numpy "Permalink to this definition"){.headerlink}
+    [[to_numpy]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ComplexMatrix.to_numpy "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_numpy]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
+        [[to_numpy]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ComplexMatrix]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[numpy.ndarray\[\]]{.pre}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Convert [`ComplexMatrix`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
+        Convert [[`ComplexMatrix`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
         .internal} to numpy.ndarray.
 
 ```{=html}
@@ -6878,101 +7085,101 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[SampleResult]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult "Permalink to this definition"){.headerlink}
 
-:   A data-type containing the results of a call to [`sample()`{.xref
+:   A data-type containing the results of a call to [[`sample()`{.xref
     .py .py-func .docutils .literal
-    .notranslate}](#cudaq.sample "cudaq.sample"){.reference .internal}.
-    This includes all measurement counts data from both mid-circuit and
-    terminal measurements.
+    .notranslate}]{.pre}](#cudaq.sample "cudaq.sample"){.reference
+    .internal}. This includes all measurement counts data from both
+    mid-circuit and terminal measurements.
 
     ::: {.admonition .note}
     Note
 
     At this time, mid-circuit measurements are not directly supported.
     Mid-circuit measurements may only be used if they are passed through
-    to `c_if`{.code .docutils .literal .notranslate}.
+    to [`c_if`{.code .docutils .literal .notranslate}]{.pre}.
     :::
 
-    [[register\_names]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.register_names "Permalink to this definition"){.headerlink}
+    [[register_names]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.register_names "Permalink to this definition"){.headerlink}
 
     :   A list of the names of each measurement register that are stored
-        in `self`{.code .docutils .literal .notranslate}.
+        in [`self`{.code .docutils .literal .notranslate}]{.pre}.
 
         Type[:]{.colon}
 
-        :   List\[[str](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+        :   List\[[str](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}\]
 
     [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.__getitem__ "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[bitstring]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[bitstring]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the measurement counts for the given `bitstring`{.code
-        .docutils .literal .notranslate}.
+        Return the measurement counts for the given [`bitstring`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
         Parameters[:]{.colon}
 
         :   **bitstring**
-            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}) -- The binary string to return the measurement
             data of.
 
         Returns[:]{.colon}
 
-        :   The number of times the given `bitstring`{.code .docutils
-            .literal .notranslate} was measured during the
-            `shots_count`{.code .docutils .literal .notranslate} number
-            of executions on the QPU.
+        :   The number of times the given [`bitstring`{.code .docutils
+            .literal .notranslate}]{.pre} was measured during the
+            [`shots_count`{.code .docutils .literal .notranslate}]{.pre}
+            number of executions on the QPU.
 
         Return type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
     [[\_\_iter\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.__iter__ "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[\_\_iter\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Iterator]{.pre}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[\_\_iter\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Iterator]{.pre}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Iterate through the [`SampleResult`{.xref .py .py-class
+        Iterate through the [[`SampleResult`{.xref .py .py-class
         .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal} dictionary.
 
     [[\_\_len\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.__len__ "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[\_\_len\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[\_\_len\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the number of elements in `self`{.code .docutils .literal
-        .notranslate}. Equivalent to the number of uniquely measured
-        bitstrings.
+        Return the number of elements in [`self`{.code .docutils
+        .literal .notranslate}]{.pre}. Equivalent to the number of
+        uniquely measured bitstrings.
 
     [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.clear "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Clear out all metadata from `self`{.code .docutils .literal
-        .notranslate}.
+        Clear out all metadata from [`self`{.code .docutils .literal
+        .notranslate}]{.pre}.
 
     [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.count "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[bitstring]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[bitstring]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -6981,12 +7188,12 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
         Parameters[:]{.colon}
 
         :   -   **bitstring**
-                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}) -- The binary string to return the
                 measurement counts for.
 
-            -   **register\_name**
-                (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+            -   **register_name**
+                (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}*\]*) -- The optional measurement register
                 name to extract the probability from. Defaults to the
                 '\_\_global\_\_' register.
@@ -6998,14 +7205,14 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         Return type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
 
     [[deserialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.deserialize "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[deserialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[deserialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7016,7 +7223,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7027,97 +7234,98 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Return the expectation value in the Z-basis of the
-        [`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        [[`Kernel`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal} that was sampled.
 
-    [[expectation\_z]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.expectation_z "Permalink to this definition"){.headerlink}
+    [[expectation_z]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.expectation_z "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[expectation\_z]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[expectation_z]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Return the expectation value in the Z-basis of the
-        [`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
+        [[`Kernel`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
         .internal} that was sampled.
 
-    [[get\_marginal\_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_marginal_counts "Permalink to this definition"){.headerlink}
+    [[get_marginal_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_marginal_counts "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_marginal\_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[self:]{.pre} [SampleResult,]{.pre} [marginal\_indices:]{.pre} [list\[int\],]{.pre} [\\\*,]{.pre} [register\_name:]{.pre} [str]{.pre} [=]{.pre} [\'\_\_global\_\_\']{.pre}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[get_marginal_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[self:]{.pre} [SampleResult,]{.pre} [marginal_indices:]{.pre} [list\[int\],]{.pre} [\\\*,]{.pre} [register_name:]{.pre} [str]{.pre} [=]{.pre} [\'\_\_global\_\_\']{.pre}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Extract the measurement counts data for the provided subset of
-        qubits (`marginal_indices`{.code .docutils .literal
-        .notranslate}).
+        qubits ([`marginal_indices`{.code .docutils .literal
+        .notranslate}]{.pre}).
 
         Parameters[:]{.colon}
 
-        :   -   **marginal\_indices**
-                ([*list*](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference
-                .external}*\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+        :   -   **marginal_indices**
+                ([*list*](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference
+                .external}*\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
                 .external}*\]*) -- A list of the qubit indices to
                 extract the measurement data from.
 
-            -   **register\_name**
-                (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+            -   **register_name**
+                (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}*\]*) -- The optional measurement register
                 name to extract the counts data from. Defaults to the
                 '\_\_global\_\_' register.
 
         Returns[:]{.colon}
 
-        :   A new `SampleResult`{.code .docutils .literal .notranslate}
-            dictionary containing the extracted measurement data.
+        :   A new [`SampleResult`{.code .docutils .literal
+            .notranslate}]{.pre} dictionary containing the extracted
+            measurement data.
 
         Return type[:]{.colon}
 
-        :   [`SampleResult`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        :   [[`SampleResult`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
             .internal}
 
-    [[get\_register\_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_register_counts "Permalink to this definition"){.headerlink}
+    [[get_register_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_register_counts "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_register\_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[get_register_counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Extract the provided sub-register (`register_name`{.code
-        .docutils .literal .notranslate}) as a new [`SampleResult`{.xref
-        .py .py-class .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        Extract the provided sub-register ([`register_name`{.code
+        .docutils .literal .notranslate}]{.pre}) as a new
+        [[`SampleResult`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal}.
 
-    [[get\_sequential\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_sequential_data "Permalink to this definition"){.headerlink}
+    [[get_sequential_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_sequential_data "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_sequential\_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[get_sequential_data]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the data from the given register (`register_name`{.code
-        .docutils .literal .notranslate}) as it was collected
+        Return the data from the given register ([`register_name`{.code
+        .docutils .literal .notranslate}]{.pre}) as it was collected
         sequentially. A list of measurement results, not collated into a
         map.
 
-    [[get\_total\_shots]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_total_shots "Permalink to this definition"){.headerlink}
+    [[get_total_shots]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.get_total_shots "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_total\_shots]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[get_total_shots]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7127,20 +7335,20 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[items]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Iterator]{.pre}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[items]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Iterator]{.pre}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the key/value pairs in this [`SampleResult`{.xref .py
+        Return the key/value pairs in this [[`SampleResult`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal} dictionary.
 
-    [[most\_probable]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.most_probable "Permalink to this definition"){.headerlink}
+    [[most_probable]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.most_probable "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[most\_probable]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[most_probable]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7149,8 +7357,8 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         Parameters[:]{.colon}
 
-        :   **register\_name**
-            (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+        :   **register_name**
+            (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional measurement register name to
             extract the most probable bitstring from. Defaults to the
             '\_\_global\_\_' register.
@@ -7162,51 +7370,51 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         Return type[:]{.colon}
 
-        :   [str](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+        :   [str](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
             .external}
 
     [[probability]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.probability "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[probability]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[bitstring]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[register\_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[probability]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*, *[[bitstring]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[register_name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\'\_\_global\_\_\']{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the probability of measuring the given `bitstring`{.code
-        .docutils .literal .notranslate}.
+        Return the probability of measuring the given [`bitstring`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
         Parameters[:]{.colon}
 
         :   -   **bitstring**
-                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}) -- The binary string to return the
                 measurement probability of.
 
-            -   **register\_name**
-                (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+            -   **register_name**
+                (*Optional\[*[*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}*\]*) -- The optional measurement register
                 name to extract the probability from. Defaults to the
                 '\_\_global\_\_' register.
 
         Returns[:]{.colon}
 
-        :   The probability of measuring the given `bitstring`{.code
-            .docutils .literal .notranslate}. Equivalent to the
+        :   The probability of measuring the given [`bitstring`{.code
+            .docutils .literal .notranslate}]{.pre}. Equivalent to the
             proportion of the total times the bitstring was measured vs.
-            the number of experiments (`shots_count`{.code .docutils
-            .literal .notranslate}).
+            the number of experiments ([`shots_count`{.code .docutils
+            .literal .notranslate}]{.pre}).
 
         Return type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
     [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.SampleResult.serialize "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[serialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7216,13 +7424,13 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Iterator]{.pre}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Iterator]{.pre}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return all values (the counts) in this [`SampleResult`{.xref .py
-        .py-class .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        Return all values (the counts) in this [[`SampleResult`{.xref
+        .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal} dictionary.
 
 ```{=html}
@@ -7232,15 +7440,15 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncSampleResult]{.pre}]{.sig-name .descname}[¶](#cudaq.AsyncSampleResult "Permalink to this definition"){.headerlink}
 
 :   A data-type containing the results of a call to
-    [`sample_async()`{.xref .py .py-func .docutils .literal
-    .notranslate}](#cudaq.sample_async "cudaq.sample_async"){.reference
-    .internal}. The `AsyncSampleResult`{.code .docutils .literal
-    .notranslate} models a future-like type, whose [`SampleResult`{.xref
-    .py .py-class .docutils .literal
-    .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
-    .internal} may be returned via an invocation of the `get`{.code
-    .docutils .literal .notranslate} method. This kicks off a wait on
-    the current thread until the results are available. See
+    [[`sample_async()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.sample_async "cudaq.sample_async"){.reference
+    .internal}. The [`AsyncSampleResult`{.code .docutils .literal
+    .notranslate}]{.pre} models a future-like type, whose
+    [[`SampleResult`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+    .internal} may be returned via an invocation of the [`get`{.code
+    .docutils .literal .notranslate}]{.pre} method. This kicks off a
+    wait on the current thread until the results are available. See
     [future](https://en.cppreference.com/w/cpp/thread/future){.reference
     .external} for more information on this programming pattern.
 
@@ -7252,9 +7460,9 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         :   
 
-        Return the [`SampleResult`{.xref .py .py-class .docutils
+        Return the [[`SampleResult`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal} from the asynchronous sample execution.
 
 ```{=html}
@@ -7263,12 +7471,12 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[ObserveResult]{.pre}]{.sig-name .descname}[¶](#cudaq.ObserveResult "Permalink to this definition"){.headerlink}
 
-:   A data-type containing the results of a call to [`observe()`{.xref
+:   A data-type containing the results of a call to [[`observe()`{.xref
     .py .py-func .docutils .literal
-    .notranslate}](#cudaq.observe "cudaq.observe"){.reference
+    .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
     .internal}. This includes any measurement counts data, as well as
     the global expectation value of the user-defined
-    `spin_operator`{.code .docutils .literal .notranslate}.
+    [`spin_operator`{.code .docutils .literal .notranslate}]{.pre}.
 
     [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.ObserveResult.counts "Permalink to this definition"){.headerlink}
 
@@ -7280,54 +7488,56 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
             :   
 
-        Returns a [`SampleResult`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        Returns a [[`SampleResult`{.xref .py .py-class .docutils
+        .literal
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
         .internal} dictionary with the measurement results from the
         experiment. The result for each individual term of the
-        `spin_operator`{.code .docutils .literal .notranslate} is stored
-        in its own measurement register. Each register name corresponds
-        to the string representation of the spin term (without any
-        coefficients).
+        [`spin_operator`{.code .docutils .literal .notranslate}]{.pre}
+        is stored in its own measurement register. Each register name
+        corresponds to the string representation of the spin term
+        (without any coefficients).
 
         2.  
 
-            [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub\_term:]{.pre} [cudaq::product\_op\<cudaq::spin\_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub_term:]{.pre} [cudaq::product_op\<cudaq::spin_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         3.  
 
-            [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*, *[[sub\_term]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*, *[[sub_term]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Given a `sub_term`{.code .docutils .literal .notranslate} of the
-        global `spin_operator`{.code .docutils .literal .notranslate}
-        that was passed to [`observe()`{.xref .py .py-func .docutils
-        .literal
-        .notranslate}](#cudaq.observe "cudaq.observe"){.reference
+        Given a [`sub_term`{.code .docutils .literal
+        .notranslate}]{.pre} of the global [`spin_operator`{.code
+        .docutils .literal .notranslate}]{.pre} that was passed to
+        [[`observe()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
         .internal}, return its measurement counts.
 
         Parameters[:]{.colon}
 
-        :   **sub\_term** (`SpinOperator`{.code .docutils .literal
-            .notranslate}) -- An individual sub-term of the
-            `spin_operator`{.code .docutils .literal .notranslate}.
+        :   **sub_term** ([`SpinOperator`{.code .docutils .literal
+            .notranslate}]{.pre}) -- An individual sub-term of the
+            [`spin_operator`{.code .docutils .literal
+            .notranslate}]{.pre}.
 
         Returns[:]{.colon}
 
         :   The measurement counts data for the individual
-            `sub_term`{.code .docutils .literal .notranslate}.
+            [`sub_term`{.code .docutils .literal .notranslate}]{.pre}.
 
         Return type[:]{.colon}
 
-        :   [`SampleResult`{.xref .py .py-class .docutils .literal
-            .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        :   [[`SampleResult`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
             .internal}
 
         4.  
 
-            [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub\_term:]{.pre} [cudaq::sum\_op\<cudaq::spin\_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+            [[counts]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub_term:]{.pre} [cudaq::sum_op\<cudaq::spin_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -7338,16 +7548,16 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Dump the raw data from the [`SampleResult`{.xref .py .py-class
+        Dump the raw data from the [[`SampleResult`{.xref .py .py-class
         .docutils .literal
-        .notranslate}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
-        .internal} that are stored in [`ObserveResult`{.xref .py
+        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
+        .internal} that are stored in [[`ObserveResult`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
+        .notranslate}]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
         .internal} to the terminal.
 
     [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.ObserveResult.expectation "Permalink to this definition"){.headerlink}
@@ -7356,78 +7566,79 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Return the expectation value of the `spin_operator`{.code
-        .docutils .literal .notranslate} that was provided in
-        [`observe()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.observe "cudaq.observe"){.reference
+        Return the expectation value of the [`spin_operator`{.code
+        .docutils .literal .notranslate}]{.pre} that was provided in
+        [[`observe()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
         .internal}.
 
         2.  
 
-            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub\_term:]{.pre} [cudaq::product\_op\<cudaq::spin\_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub_term:]{.pre} [cudaq::product_op\<cudaq::spin_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         3.  
 
-            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*, *[[sub\_term]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*, *[[sub_term]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Return the expectation value of an individual `sub_term`{.code
-        .docutils .literal .notranslate} of the global
-        `spin_operator`{.code .docutils .literal .notranslate} that was
-        passed to [`observe()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.observe "cudaq.observe"){.reference
+        Return the expectation value of an individual [`sub_term`{.code
+        .docutils .literal .notranslate}]{.pre} of the global
+        [`spin_operator`{.code .docutils .literal .notranslate}]{.pre}
+        that was passed to [[`observe()`{.xref .py .py-func .docutils
+        .literal
+        .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
         .internal}.
 
         Parameters[:]{.colon}
 
-        :   **sub\_term** (`SpinOperatorTerm`{.xref .py .py-class
-            .docutils .literal .notranslate}) -- An individual sub-term
-            of the `spin_operator`{.code .docutils .literal
-            .notranslate}.
+        :   **sub_term** ([`SpinOperatorTerm`{.xref .py .py-class
+            .docutils .literal .notranslate}]{.pre}) -- An individual
+            sub-term of the [`spin_operator`{.code .docutils .literal
+            .notranslate}]{.pre}.
 
         Returns[:]{.colon}
 
-        :   The expectation value of the `sub_term`{.code .docutils
-            .literal .notranslate} with respect to the [`Kernel`{.xref
-            .py .py-class .docutils .literal
-            .notranslate}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} that was passed to [`observe()`{.xref .py
+        :   The expectation value of the [`sub_term`{.code .docutils
+            .literal .notranslate}]{.pre} with respect to the
+            [[`Kernel`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} that was passed to [[`observe()`{.xref .py
             .py-func .docutils .literal
-            .notranslate}](#cudaq.observe "cudaq.observe"){.reference
+            .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
             .internal}.
 
         Return type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference
+        :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
         4.  
 
-            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub\_term:]{.pre} [cudaq::sum\_op\<cudaq::spin\_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[expectation]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self:]{.pre} [ObserveResult]{.pre}]{.n}*, *[[sub_term:]{.pre} [cudaq::sum_op\<cudaq::spin_handler\>]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Deprecated - ensure to pass a SpinOperatorTerm instead of a
         SpinOperator
 
-    [[get\_spin]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ObserveResult.get_spin "Permalink to this definition"){.headerlink}
+    [[get_spin]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.ObserveResult.get_spin "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_spin]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[cudaq::sum\_op\<cudaq::spin\_handler\>]{.pre}]{.sig-return-typehint}]{.sig-return}
+        [[get_spin]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[cudaq::sum_op\<cudaq::spin_handler\>]{.pre}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the `SpinOperator`{.code .docutils .literal .notranslate}
-        corresponding to this `ObserveResult`{.code .docutils .literal
-        .notranslate}.
+        Return the [`SpinOperator`{.code .docutils .literal
+        .notranslate}]{.pre} corresponding to this
+        [`ObserveResult`{.code .docutils .literal .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
@@ -7436,16 +7647,16 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncObserveResult]{.pre}]{.sig-name .descname}[¶](#cudaq.AsyncObserveResult "Permalink to this definition"){.headerlink}
 
 :   A data-type containing the results of a call to
-    [`observe_async()`{.xref .py .py-func .docutils .literal
-    .notranslate}](#cudaq.observe_async "cudaq.observe_async"){.reference
+    [[`observe_async()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.observe_async "cudaq.observe_async"){.reference
     .internal}.
 
-    The `AsyncObserveResult`{.code .docutils .literal .notranslate}
-    contains a future, whose [`ObserveResult`{.xref .py .py-class
-    .docutils .literal
-    .notranslate}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
-    .internal} may be returned via an invocation of the `get`{.code
-    .docutils .literal .notranslate} method.
+    The [`AsyncObserveResult`{.code .docutils .literal
+    .notranslate}]{.pre} contains a future, whose
+    [[`ObserveResult`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
+    .internal} may be returned via an invocation of the [`get`{.code
+    .docutils .literal .notranslate}]{.pre} method.
 
     This kicks off a wait on the current thread until the results are
     available.
@@ -7462,9 +7673,9 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         :   
 
-        Returns the [`ObserveResult`{.xref .py .py-class .docutils
+        Returns the [[`ObserveResult`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
+        .notranslate}]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference
         .internal} from the asynchronous observe execution.
 
 ```{=html}
@@ -7474,15 +7685,15 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncStateResult]{.pre}]{.sig-name .descname}[¶](#cudaq.AsyncStateResult "Permalink to this definition"){.headerlink}
 
 :   A data-type containing the results of a call to
-    [`get_state_async()`{.xref .py .py-func .docutils .literal
-    .notranslate}](#cudaq.get_state_async "cudaq.get_state_async"){.reference
-    .internal}. The `AsyncStateResult`{.code .docutils .literal
-    .notranslate} models a future-like type, whose [`State`{.xref .py
-    .py-class .docutils .literal
-    .notranslate}](#cudaq.State "cudaq.State"){.reference .internal} may
-    be returned via an invocation of the `get`{.code .docutils .literal
-    .notranslate} method. This kicks off a wait on the current thread
-    until the results are available. See
+    [[`get_state_async()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.get_state_async "cudaq.get_state_async"){.reference
+    .internal}. The [`AsyncStateResult`{.code .docutils .literal
+    .notranslate}]{.pre} models a future-like type, whose
+    [[`State`{.xref .py .py-class .docutils .literal
+    .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
+    .internal} may be returned via an invocation of the [`get`{.code
+    .docutils .literal .notranslate}]{.pre} method. This kicks off a
+    wait on the current thread until the results are available. See
     [future](https://en.cppreference.com/w/cpp/thread/future){.reference
     .external} for more information on this programming pattern.
 
@@ -7494,10 +7705,10 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         :   
 
-        Return the [`State`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.State "cudaq.State"){.reference .internal}
-        from the asynchronous `get_state`{.code .docutils .literal
-        .notranslate} accessor execution.
+        Return the [[`State`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
+        .internal} from the asynchronous [`get_state`{.code .docutils
+        .literal .notranslate}]{.pre} accessor execution.
 
 ```{=html}
 <!-- -->
@@ -7513,89 +7724,90 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[EvolveResult]{.pre}]{.sig-name .descname}[¶](#cudaq.EvolveResult "Permalink to this definition"){.headerlink}
 
-:   Stores the execution data from an invocation of [`evolve()`{.xref
+:   Stores the execution data from an invocation of [[`evolve()`{.xref
     .py .py-func .docutils .literal
-    .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference .internal}.
+    .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
+    .internal}.
 
-    [[expectation\_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.expectation_values "Permalink to this definition"){.headerlink}
+    [[expectation_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.expectation_values "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[expectation\_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Optional]{.pre}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[expectation_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Optional]{.pre}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Stores the expectation values, that is the results from the
-        calls to [`observe()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.observe "cudaq.observe"){.reference
+        calls to [[`observe()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
         .internal}, at each step in the schedule produced by a call to
-        [`evolve()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        [[`evolve()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal}, including the final expectation values. Each entry
-        corresponds to one observable provided in the [`evolve()`{.xref
+        corresponds to one observable provided in the [[`evolve()`{.xref
         .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal} call. This property is only populated saving
         intermediate results was requested in the call to
-        [`evolve()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        [[`evolve()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal}. This value will be None if no intermediate results
         were requested, or if no observables were specified in the call.
 
-    [[final\_expectation\_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.final_expectation_values "Permalink to this definition"){.headerlink}
+    [[final_expectation_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.final_expectation_values "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[final\_expectation\_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[final_expectation_values]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[ObserveResult]{.pre}](#cudaq.ObserveResult "cudaq.ObserveResult"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Stores the final expectation values, that is the results
-        produced by calls to [`observe()`{.xref .py .py-func .docutils
+        produced by calls to [[`observe()`{.xref .py .py-func .docutils
         .literal
-        .notranslate}](#cudaq.observe "cudaq.observe"){.reference
-        .internal}, triggered by a call to [`evolve()`{.xref .py
+        .notranslate}]{.pre}](#cudaq.observe "cudaq.observe"){.reference
+        .internal}, triggered by a call to [[`evolve()`{.xref .py
         .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal}. Each entry corresponds to one observable provided in
-        the [`evolve()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        the [[`evolve()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal} call. This value will be None if no observables were
         specified in the call.
 
-    [[final\_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.final_state "Permalink to this definition"){.headerlink}
+    [[final_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.final_state "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[final\_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[final_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Stores the final state produced by a call to [`evolve()`{.xref
+        Stores the final state produced by a call to [[`evolve()`{.xref
         .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal}. Represent the state of a quantum system after time
-        evolution under a set of operators, see the [`evolve()`{.xref
+        evolution under a set of operators, see the [[`evolve()`{.xref
         .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal} documentation for more detail.
 
-    [[intermediate\_states]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.intermediate_states "Permalink to this definition"){.headerlink}
+    [[intermediate_states]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.EvolveResult.intermediate_states "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[intermediate\_states]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Optional]{.pre}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[intermediate_states]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.EvolveResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[Optional]{.pre}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Stores all intermediate states, meaning the state after each
         step in a defined schedule, produced by a call to
-        [`evolve()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        [[`evolve()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal}, including the final state. This property is only
         populated if saving intermediate results was requested in the
-        call to [`evolve()`{.xref .py .py-func .docutils .literal
-        .notranslate}](#cudaq.evolve "cudaq.evolve"){.reference
+        call to [[`evolve()`{.xref .py .py-func .docutils .literal
+        .notranslate}]{.pre}](#cudaq.evolve "cudaq.evolve"){.reference
         .internal}.
 
 ```{=html}
@@ -7605,8 +7817,8 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncEvolveResult]{.pre}]{.sig-name .descname}[¶](#cudaq.AsyncEvolveResult "Permalink to this definition"){.headerlink}
 
 :   Stores the execution data from an invocation of
-    [`evolve_async()`{.xref .py .py-func .docutils .literal
-    .notranslate}](#cudaq.evolve_async "cudaq.evolve_async"){.reference
+    [[`evolve_async()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.evolve_async "cudaq.evolve_async"){.reference
     .internal}.
 
     [[get]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.AsyncEvolveResult.get "Permalink to this definition"){.headerlink}
@@ -7627,20 +7839,20 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Resources]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources "Permalink to this definition"){.headerlink}
 
 :   A data-type containing the results of a call to
-    [`estimate_resources()`{.xref .py .py-func .docutils .literal
-    .notranslate}](#cudaq.estimate_resources "cudaq.estimate_resources"){.reference
+    [[`estimate_resources()`{.xref .py .py-func .docutils .literal
+    .notranslate}]{.pre}](#cudaq.estimate_resources "cudaq.estimate_resources"){.reference
     .internal}. This includes all gate counts.
 
     [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.clear "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[clear]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Clear out all metadata from `self`{.code .docutils .literal
-        .notranslate}.
+        Clear out all metadata from [`self`{.code .docutils .literal
+        .notranslate}]{.pre}.
 
     [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.Resources.count "Permalink to this definition"){.headerlink}
 
@@ -7648,7 +7860,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
@@ -7657,17 +7869,17 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         2.  
 
-            [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[count]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         Get the total number of occurrences of all gates
 
-    [[count\_controls]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.count_controls "Permalink to this definition"){.headerlink}
+    [[count_controls]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.count_controls "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[count\_controls]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[count_controls]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7678,7 +7890,7 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -7699,25 +7911,25 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 :   
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to optimizer
 
-    *[property]{.pre}[ ]{.w}*[[initial\_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.initial_parameters "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.initial_parameters "Permalink to this definition"){.headerlink}
 
     :   Set the initial parameter values for the optimization.
 
-    *[property]{.pre}[ ]{.w}*[[lower\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.lower_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.lower_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the lower value bound for the optimization parameters.
 
-    *[property]{.pre}[ ]{.w}*[[max\_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.max_iterations "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.max_iterations "Permalink to this definition"){.headerlink}
 
     :   Set the maximum number of optimizer iterations.
 
@@ -7725,34 +7937,34 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Run `cudaq.optimize()`{.code .docutils .literal .notranslate} on
-        the provided objective function.
+        Run [`cudaq.optimize()`{.code .docutils .literal
+        .notranslate}]{.pre} on the provided objective function.
 
-    [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.requires_gradients "Permalink to this definition"){.headerlink}
+    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.requires_gradients "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns whether the optimizer requires gradient.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.GradientDescent.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.GradientDescent]{.pre}](#cudaq.optimizers.GradientDescent "cudaq.optimizers.GradientDescent"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert optimizer to JSON string
 
-    *[property]{.pre}[ ]{.w}*[[upper\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.upper_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the upper value bound for the optimization parameters.
 
@@ -7764,25 +7976,25 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 :   
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to optimizer
 
-    *[property]{.pre}[ ]{.w}*[[initial\_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.initial_parameters "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.initial_parameters "Permalink to this definition"){.headerlink}
 
     :   Set the initial parameter values for the optimization.
 
-    *[property]{.pre}[ ]{.w}*[[lower\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.lower_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.lower_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the lower value bound for the optimization parameters.
 
-    *[property]{.pre}[ ]{.w}*[[max\_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.max_iterations "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.max_iterations "Permalink to this definition"){.headerlink}
 
     :   Set the maximum number of optimizer iterations.
 
@@ -7790,34 +8002,34 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Run `cudaq.optimize()`{.code .docutils .literal .notranslate} on
-        the provided objective function.
+        Run [`cudaq.optimize()`{.code .docutils .literal
+        .notranslate}]{.pre} on the provided objective function.
 
-    [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.requires_gradients "Permalink to this definition"){.headerlink}
+    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.requires_gradients "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns whether the optimizer requires gradient.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.COBYLA]{.pre}](#cudaq.optimizers.COBYLA "cudaq.optimizers.COBYLA"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert optimizer to JSON string
 
-    *[property]{.pre}[ ]{.w}*[[upper\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.upper_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the upper value bound for the optimization parameters.
 
@@ -7829,25 +8041,25 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 :   
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to optimizer
 
-    *[property]{.pre}[ ]{.w}*[[initial\_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.initial_parameters "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.initial_parameters "Permalink to this definition"){.headerlink}
 
     :   Set the initial parameter values for the optimization.
 
-    *[property]{.pre}[ ]{.w}*[[lower\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.lower_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.lower_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the lower value bound for the optimization parameters.
 
-    *[property]{.pre}[ ]{.w}*[[max\_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.max_iterations "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.max_iterations "Permalink to this definition"){.headerlink}
 
     :   Set the maximum number of optimizer iterations.
 
@@ -7855,34 +8067,34 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Run `cudaq.optimize()`{.code .docutils .literal .notranslate} on
-        the provided objective function.
+        Run [`cudaq.optimize()`{.code .docutils .literal
+        .notranslate}]{.pre} on the provided objective function.
 
-    [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.requires_gradients "Permalink to this definition"){.headerlink}
+    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.requires_gradients "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns whether the optimizer requires gradient.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.NelderMead]{.pre}](#cudaq.optimizers.NelderMead "cudaq.optimizers.NelderMead"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert optimizer to JSON string
 
-    *[property]{.pre}[ ]{.w}*[[upper\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.upper_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the upper value bound for the optimization parameters.
 
@@ -7894,25 +8106,25 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 :   
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to optimizer
 
-    *[property]{.pre}[ ]{.w}*[[initial\_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.initial_parameters "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.initial_parameters "Permalink to this definition"){.headerlink}
 
     :   Set the initial parameter values for the optimization.
 
-    *[property]{.pre}[ ]{.w}*[[lower\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.lower_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.lower_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the lower value bound for the optimization parameters.
 
-    *[property]{.pre}[ ]{.w}*[[max\_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.max_iterations "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.max_iterations "Permalink to this definition"){.headerlink}
 
     :   Set the maximum number of optimizer iterations.
 
@@ -7920,34 +8132,34 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Run `cudaq.optimize()`{.code .docutils .literal .notranslate} on
-        the provided objective function.
+        Run [`cudaq.optimize()`{.code .docutils .literal
+        .notranslate}]{.pre} on the provided objective function.
 
-    [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.requires_gradients "Permalink to this definition"){.headerlink}
+    [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.requires_gradients "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[requires\_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Returns whether the optimizer requires gradient.
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.LBFGS]{.pre}](#cudaq.optimizers.LBFGS "cudaq.optimizers.LBFGS"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert optimizer to JSON string
 
-    *[property]{.pre}[ ]{.w}*[[upper\_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.upper_bounds "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Set the upper value bound for the optimization parameters.
 :::
@@ -7971,30 +8183,30 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[compute]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[parameter\_vector]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[funcAtX]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[compute]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[parameter_vector]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[funcAtX]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Compute the gradient of the provided `parameter_vector`{.code
-        .docutils .literal .notranslate} with respect to its loss
-        function, using the `CentralDifference`{.code .docutils .literal
-        .notranslate} method.
+        Compute the gradient of the provided [`parameter_vector`{.code
+        .docutils .literal .notranslate}]{.pre} with respect to its loss
+        function, using the [`CentralDifference`{.code .docutils
+        .literal .notranslate}]{.pre} method.
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.CentralDifference.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.CentralDifference.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[gradients.CentralDifference]{.pre}](#cudaq.gradients.CentralDifference "cudaq.gradients.CentralDifference"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[gradients.CentralDifference]{.pre}](#cudaq.gradients.CentralDifference "cudaq.gradients.CentralDifference"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to gradient
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.CentralDifference.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.CentralDifference.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.CentralDifference]{.pre}](#cudaq.gradients.CentralDifference "cudaq.gradients.CentralDifference"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.CentralDifference]{.pre}](#cudaq.gradients.CentralDifference "cudaq.gradients.CentralDifference"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8012,30 +8224,30 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[compute]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[parameter\_vector]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[funcAtX]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[compute]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[parameter_vector]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[funcAtX]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Compute the gradient of the provided `parameter_vector`{.code
-        .docutils .literal .notranslate} with respect to its loss
-        function, using the `ForwardDifference`{.code .docutils .literal
-        .notranslate} method.
+        Compute the gradient of the provided [`parameter_vector`{.code
+        .docutils .literal .notranslate}]{.pre} with respect to its loss
+        function, using the [`ForwardDifference`{.code .docutils
+        .literal .notranslate}]{.pre} method.
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ForwardDifference.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ForwardDifference.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[gradients.ForwardDifference]{.pre}](#cudaq.gradients.ForwardDifference "cudaq.gradients.ForwardDifference"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[gradients.ForwardDifference]{.pre}](#cudaq.gradients.ForwardDifference "cudaq.gradients.ForwardDifference"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to gradient
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ForwardDifference.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ForwardDifference.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.ForwardDifference]{.pre}](#cudaq.gradients.ForwardDifference "cudaq.gradients.ForwardDifference"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.ForwardDifference]{.pre}](#cudaq.gradients.ForwardDifference "cudaq.gradients.ForwardDifference"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8053,30 +8265,30 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[compute]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[parameter\_vector]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[funcAtX]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[compute]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[parameter_vector]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[function]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[funcAtX]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Compute the gradient of the provided `parameter_vector`{.code
-        .docutils .literal .notranslate} with respect to its loss
-        function, using the `ParameterShift`{.code .docutils .literal
-        .notranslate} method.
+        Compute the gradient of the provided [`parameter_vector`{.code
+        .docutils .literal .notranslate}]{.pre} with respect to its loss
+        function, using the [`ParameterShift`{.code .docutils .literal
+        .notranslate}]{.pre} method.
 
-    *[static]{.pre}[ ]{.w}*[[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ParameterShift.from_json "Permalink to this definition"){.headerlink}
+    *[static]{.pre}[ ]{.w}*[[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ParameterShift.from_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[from\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[gradients.ParameterShift]{.pre}](#cudaq.gradients.ParameterShift "cudaq.gradients.ParameterShift"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[from_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[gradients.ParameterShift]{.pre}](#cudaq.gradients.ParameterShift "cudaq.gradients.ParameterShift"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Convert JSON string to gradient
 
-    [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ParameterShift.to_json "Permalink to this definition"){.headerlink}
+    [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.gradients.ParameterShift.to_json "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[to\_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.ParameterShift]{.pre}](#cudaq.gradients.ParameterShift "cudaq.gradients.ParameterShift"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.ParameterShift]{.pre}](#cudaq.gradients.ParameterShift "cudaq.gradients.ParameterShift"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8088,9 +8300,10 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[NoiseModel]{.pre}]{.sig-name .descname}[¶](#cudaq.NoiseModel "Permalink to this definition"){.headerlink}
 
-:   The `NoiseModel`{.code .docutils .literal .notranslate} defines a
-    set of [`KrausChannel`{.xref .py .py-class .docutils .literal
-    .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+:   The [`NoiseModel`{.code .docutils .literal .notranslate}]{.pre}
+    defines a set of [[`KrausChannel`{.xref .py .py-class .docutils
+    .literal
+    .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
     .internal}'s applied to specific qubits after the invocation of
     specified quantum operations.
 
@@ -8098,133 +8311,133 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     :   
 
-        [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
         Construct a noise model with all built-in channels
         pre-registered.
 
-    [[add\_all\_qubit\_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.NoiseModel.add_all_qubit_channel "Permalink to this definition"){.headerlink}
+    [[add_all_qubit_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.NoiseModel.add_all_qubit_channel "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[add\_all\_qubit\_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[channel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[num\_controls]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[add_all_qubit_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[channel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[num_controls]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Add the given [`KrausChannel`{.xref .py .py-class .docutils
+        Add the given [[`KrausChannel`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal} to be applied after invocation of the specified
         quantum operation on arbitrary qubits.
 
         Parameters[:]{.colon}
 
         :   -   **operator**
-                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}) -- The quantum operator to apply the noise
                 channel to.
 
             -   **channel**
                 ([*cudaq.KrausChannel*](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
-                .internal}) -- The [`KrausChannel`{.xref .py .py-class
+                .internal}) -- The [[`KrausChannel`{.xref .py .py-class
                 .docutils .literal
-                .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
-                .internal} to apply to the specified `operator`{.code
-                .docutils .literal .notranslate} on any arbitrary
+                .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+                .internal} to apply to the specified [`operator`{.code
+                .docutils .literal .notranslate}]{.pre} on any arbitrary
                 qubits.
 
-            -   **num\_controls** -- Number of control bits. Default is
-                0 (no control bits).
+            -   **num_controls** -- Number of control bits. Default is 0
+                (no control bits).
 
-    [[add\_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.NoiseModel.add_channel "Permalink to this definition"){.headerlink}
+    [[add_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.NoiseModel.add_channel "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[add\_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[qubits]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[channel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[add_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[qubits]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[channel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Add the given [`KrausChannel`{.xref .py .py-class .docutils
+        Add the given [[`KrausChannel`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal} to be applied after invocation of the specified
         quantum operation.
 
         Parameters[:]{.colon}
 
         :   -   **operator**
-                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}) -- The quantum operator to apply the noise
                 channel to.
 
             -   **qubits**
-                (*List\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference
+                (*List\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
                 .external}*\]*) -- The qubit/s to apply the noise
                 channel to.
 
             -   **channel**
                 ([*cudaq.KrausChannel*](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
-                .internal}) -- The [`KrausChannel`{.xref .py .py-class
+                .internal}) -- The [[`KrausChannel`{.xref .py .py-class
                 .docutils .literal
-                .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
-                .internal} to apply to the specified `operator`{.code
-                .docutils .literal .notranslate} on the specified
-                `qubits`{.code .docutils .literal .notranslate}.
+                .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+                .internal} to apply to the specified [`operator`{.code
+                .docutils .literal .notranslate}]{.pre} on the specified
+                [`qubits`{.code .docutils .literal .notranslate}]{.pre}.
 
         2.  
 
-            [[add\_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[pre]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[add_channel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[pre]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Add the given [`KrausChannel`{.xref .py .py-class .docutils
+        Add the given [[`KrausChannel`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal} generator callback to be applied after invocation of
         the specified quantum operation.
 
         Parameters[:]{.colon}
 
         :   -   **operator**
-                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference
+                ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
                 .external}) -- The quantum operator to apply the noise
                 channel to.
 
             -   **pre** (*Callable*) -- The callback which takes qubits
                 operands and gate parameters and returns a concrete
-                [`KrausChannel`{.xref .py .py-class .docutils .literal
-                .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
-                .internal} to apply to the specified `operator`{.code
-                .docutils .literal .notranslate}.
+                [[`KrausChannel`{.xref .py .py-class .docutils .literal
+                .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+                .internal} to apply to the specified [`operator`{.code
+                .docutils .literal .notranslate}]{.pre}.
 
-    [[get\_channels]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.NoiseModel.get_channels "Permalink to this definition"){.headerlink}
+    [[get_channels]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.NoiseModel.get_channels "Permalink to this definition"){.headerlink}
 
     :   Overloaded function.
 
         1.  
 
-            [[get\_channels]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[qubits]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[get_channels]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[qubits]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Return the [`KrausChannel`{.xref .py .py-class .docutils
+        Return the [[`KrausChannel`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}'s that make up this noise model.
 
         2.  
 
-            [[get\_channels]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.13)"){.reference .external}]{.n}*, *[[qubits]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[controls]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+            [[get_channels]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[NoiseModel]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference .internal}]{.n}*, *[[operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[qubits]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[controls]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Return the [`KrausChannel`{.xref .py .py-class .docutils
+        Return the [[`KrausChannel`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}'s that make up this noise model.
 
 ```{=html}
@@ -8234,19 +8447,24 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[BitFlipChannel]{.pre}]{.sig-name .descname}[¶](#cudaq.BitFlipChannel "Permalink to this definition"){.headerlink}
 
 :   Models the decoherence of the qubit state. Its constructor expects a
-    float value, `probability`{.code .docutils .literal .notranslate},
-    representing the probability that the qubit flips from the 1-state
-    to the 0-state, or vice versa. E.g, the probability of a random
-    X-180 rotation being applied to the qubit.
+    float value, [`probability`{.code .docutils .literal
+    .notranslate}]{.pre}, representing the probability that the qubit
+    flips from the 1-state to the 0-state, or vice versa. E.g, the
+    probability of a random X-180 rotation being applied to the qubit.
 
     The Kraus Channels are thereby defined to be:
 
-    K\_0 = sqrt(1 - probability) \* I
+    K_0 = sqrt(1 - probability) \* I
 
-    K\_1 = sqrt(probability ) \* X
+    K_1 = sqrt(probability ) \* X
 
     The probability of the qubit remaining in the same state is
-    therefore `1 - probability`{.code .docutils .literal .notranslate}.
+    therefore [`1`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`-`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`probability`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
     [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.BitFlipChannel.__init__ "Permalink to this definition"){.headerlink}
 
@@ -8254,19 +8472,19 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BitFlipChannel]{.pre}](#cudaq.BitFlipChannel "cudaq.BitFlipChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BitFlipChannel]{.pre}](#cudaq.BitFlipChannel "cudaq.BitFlipChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         2.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BitFlipChannel]{.pre}](#cudaq.BitFlipChannel "cudaq.BitFlipChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[BitFlipChannel]{.pre}](#cudaq.BitFlipChannel "cudaq.BitFlipChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Initialize the `BitFlipChannel`{.code .docutils .literal
-        .notranslate} with the provided `probability`{.code .docutils
-        .literal .notranslate}.
+        Initialize the [`BitFlipChannel`{.code .docutils .literal
+        .notranslate}]{.pre} with the provided [`probability`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
@@ -8275,18 +8493,22 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PhaseFlipChannel]{.pre}]{.sig-name .descname}[¶](#cudaq.PhaseFlipChannel "Permalink to this definition"){.headerlink}
 
 :   Models the decoherence of the qubit phase. Its constructor expects a
-    float value, `probability`{.code .docutils .literal .notranslate},
-    representing the probability of a random Z-180 rotation being
-    applied to the qubit.
+    float value, [`probability`{.code .docutils .literal
+    .notranslate}]{.pre}, representing the probability of a random Z-180
+    rotation being applied to the qubit.
 
     The Kraus Channels are thereby defined to be:
 
-    K\_0 = sqrt(1 - probability) \* I
+    K_0 = sqrt(1 - probability) \* I
 
-    K\_1 = sqrt(probability ) \* Z
+    K_1 = sqrt(probability ) \* Z
 
     The probability of the qubit phase remaining untouched is therefore
-    `1 - probability`{.code .docutils .literal .notranslate}.
+    [`1`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+    .docutils .literal .notranslate}[`-`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`probability`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
     [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PhaseFlipChannel.__init__ "Permalink to this definition"){.headerlink}
 
@@ -8294,19 +8516,19 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[PhaseFlipChannel]{.pre}](#cudaq.PhaseFlipChannel "cudaq.PhaseFlipChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[PhaseFlipChannel]{.pre}](#cudaq.PhaseFlipChannel "cudaq.PhaseFlipChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         2.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[PhaseFlipChannel]{.pre}](#cudaq.PhaseFlipChannel "cudaq.PhaseFlipChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[PhaseFlipChannel]{.pre}](#cudaq.PhaseFlipChannel "cudaq.PhaseFlipChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Initialize the `PhaseFlipChannel`{.code .docutils .literal
-        .notranslate} with the provided `probability`{.code .docutils
-        .literal .notranslate}.
+        Initialize the [`PhaseFlipChannel`{.code .docutils .literal
+        .notranslate}]{.pre} with the provided [`probability`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
@@ -8315,34 +8537,54 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[DepolarizationChannel]{.pre}]{.sig-name .descname}[¶](#cudaq.DepolarizationChannel "Permalink to this definition"){.headerlink}
 
 :   Models the decoherence of the qubit state and phase into a mixture "
-    of the computational basis states, `|0>`{.code .docutils .literal
-    .notranslate} and `|1>`{.code .docutils .literal .notranslate}.
+    of the computational basis states, [`|0>`{.code .docutils .literal
+    .notranslate}]{.pre} and [`|1>`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
     The Kraus Channels are thereby defined to be:
 
-    K\_0 = sqrt(1 - probability) \* I
+    K_0 = sqrt(1 - probability) \* I
 
-    K\_1 = sqrt(probability / 3) \* X
+    K_1 = sqrt(probability / 3) \* X
 
-    K\_2 = sqrt(probability / 3) \* Y
+    K_2 = sqrt(probability / 3) \* Y
 
-    K\_3 = sqrt(probability / 3) \* Z
+    K_3 = sqrt(probability / 3) \* Z
 
     where I, X, Y, Z are the 2x2 Pauli matrices.
 
-    The constructor expects a float value, `probability`{.code .docutils
-    .literal .notranslate}, representing the probability the state decay
-    will occur. The qubit will remain untouched, therefore, with a
-    probability of `1 - probability`{.code .docutils .literal
-    .notranslate}. And the X,Y,Z operators will be applied with a
-    probability of `probability / 3`{.code .docutils .literal
-    .notranslate}.
+    The constructor expects a float value, [`probability`{.code
+    .docutils .literal .notranslate}]{.pre}, representing the
+    probability the state decay will occur. The qubit will remain
+    untouched, therefore, with a probability of [`1`{.code .docutils
+    .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`-`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`probability`{.code .docutils .literal
+    .notranslate}]{.pre}. And the X,Y,Z operators will be applied with a
+    probability of [`probability`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`/`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`3`{.code .docutils .literal .notranslate}]{.pre}.
 
-    For `probability = 0.0`{.code .docutils .literal .notranslate}, the
-    channel will behave noise-free. For `probability = 0.75`{.code
-    .docutils .literal .notranslate}, the channel will fully depolarize
-    the state. For `probability = 1.0`{.code .docutils .literal
-    .notranslate}, the channel will be uniform.
+    For [`probability`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`0.0`{.code .docutils .literal .notranslate}]{.pre},
+    the channel will behave noise-free. For [`probability`{.code
+    .docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`0.75`{.code .docutils .literal .notranslate}]{.pre},
+    the channel will fully depolarize the state. For
+    [`probability`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`1.0`{.code .docutils .literal .notranslate}]{.pre},
+    the channel will be uniform.
 
     [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.DepolarizationChannel.__init__ "Permalink to this definition"){.headerlink}
 
@@ -8350,19 +8592,19 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[DepolarizationChannel]{.pre}](#cudaq.DepolarizationChannel "cudaq.DepolarizationChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[DepolarizationChannel]{.pre}](#cudaq.DepolarizationChannel "cudaq.DepolarizationChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         2.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[DepolarizationChannel]{.pre}](#cudaq.DepolarizationChannel "cudaq.DepolarizationChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[DepolarizationChannel]{.pre}](#cudaq.DepolarizationChannel "cudaq.DepolarizationChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Initialize the `DepolarizationChannel`{.code .docutils .literal
-        .notranslate} with the provided `probability`{.code .docutils
-        .literal .notranslate}.
+        Initialize the [`DepolarizationChannel`{.code .docutils .literal
+        .notranslate}]{.pre} with the provided [`probability`{.code
+        .docutils .literal .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
@@ -8375,15 +8617,19 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
     The Kraus Channels are thereby defined to be:
 
-    K\_0 = sqrt(1 - probability) \* I
+    K_0 = sqrt(1 - probability) \* I
 
-    K\_1 = sqrt(probability) \* 0.5 \* (X + iY)
+    K_1 = sqrt(probability) \* 0.5 \* (X + iY)
 
-    Its constructor expects a float value, `probability`{.code .docutils
-    .literal .notranslate}, representing the probablity that the qubit
-    will decay to its ground state. The probability of the qubit
-    remaining in the same state is therefore `1 - probability`{.code
-    .docutils .literal .notranslate}.
+    Its constructor expects a float value, [`probability`{.code
+    .docutils .literal .notranslate}]{.pre}, representing the probablity
+    that the qubit will decay to its ground state. The probability of
+    the qubit remaining in the same state is therefore [`1`{.code
+    .docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`-`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`probability`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
     [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.AmplitudeDampingChannel.__init__ "Permalink to this definition"){.headerlink}
 
@@ -8391,19 +8637,19 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
         1.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[AmplitudeDampingChannel]{.pre}](#cudaq.AmplitudeDampingChannel "cudaq.AmplitudeDampingChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[AmplitudeDampingChannel]{.pre}](#cudaq.AmplitudeDampingChannel "cudaq.AmplitudeDampingChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
         2.  
 
-            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[AmplitudeDampingChannel]{.pre}](#cudaq.AmplitudeDampingChannel "cudaq.AmplitudeDampingChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+            [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[AmplitudeDampingChannel]{.pre}](#cudaq.AmplitudeDampingChannel "cudaq.AmplitudeDampingChannel"){.reference .internal}]{.n}*, *[[probability]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
             :   
 
-        Initialize the `AmplitudeDampingChannel`{.code .docutils
-        .literal .notranslate} with the provided `probability`{.code
-        .docutils .literal .notranslate}.
+        Initialize the [`AmplitudeDampingChannel`{.code .docutils
+        .literal .notranslate}]{.pre} with the provided
+        [`probability`{.code .docutils .literal .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
@@ -8484,57 +8730,57 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[KrausChannel]{.pre}]{.sig-name .descname}[¶](#cudaq.KrausChannel "Permalink to this definition"){.headerlink}
 
-:   The `KrausChannel`{.code .docutils .literal .notranslate} is
-    composed of a list of [`KrausOperator`{.xref .py .py-class .docutils
-    .literal
-    .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+:   The [`KrausChannel`{.code .docutils .literal .notranslate}]{.pre} is
+    composed of a list of [[`KrausOperator`{.xref .py .py-class
+    .docutils .literal
+    .notranslate}]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
     .internal}'s and is applied to a specific qubit or set of qubits.
 
     [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.KrausChannel.__getitem__ "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[index]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[\_\_getitem\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[index]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the [`KrausOperator`{.xref .py .py-class .docutils
+        Return the [[`KrausOperator`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
-        .internal} at the given index in this [`KrausChannel`{.xref .py
+        .notranslate}]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        .internal} at the given index in this [[`KrausChannel`{.xref .py
         .py-class .docutils .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}.
 
     [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.KrausChannel.append "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+        [[append]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*, *[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Add a [`KrausOperator`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
-        .internal} to this [`KrausChannel`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        Add a [[`KrausOperator`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        .internal} to this [[`KrausChannel`{.xref .py .py-class
+        .docutils .literal
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}.
 
-    [[get\_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.KrausChannel.get_ops "Permalink to this definition"){.headerlink}
+    [[get_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.KrausChannel.get_ops "Permalink to this definition"){.headerlink}
 
     :   
 
-        [[get\_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[get_ops]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[KrausChannel]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[KrausOperator]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-        Return the [`KrausOperator`{.xref .py .py-class .docutils
+        Return the [[`KrausOperator`{.xref .py .py-class .docutils
         .literal
-        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
-        .internal}'s in this [`KrausChannel`{.xref .py .py-class
+        .notranslate}]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        .internal}'s in this [[`KrausChannel`{.xref .py .py-class
         .docutils .literal
-        .notranslate}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
+        .notranslate}]{.pre}](#cudaq.KrausChannel "cudaq.KrausChannel"){.reference
         .internal}.
 
 ```{=html}
@@ -8543,36 +8789,42 @@ Data Types[¶](#data-types "Permalink to this heading"){.headerlink}
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[KrausOperator]{.pre}]{.sig-name .descname}[¶](#cudaq.KrausOperator "Permalink to this definition"){.headerlink}
 
-:   The `KrausOperator`{.code .docutils .literal .notranslate} is
-    represented by a matrix and serves as an element of a quantum
-    channel such that `Sum Ki Ki^dag = I.`{.code .docutils .literal
-    .notranslate}
+:   The [`KrausOperator`{.code .docutils .literal .notranslate}]{.pre}
+    is represented by a matrix and serves as an element of a quantum
+    channel such that [`Sum`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`Ki`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`Ki^dag`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`I.`{.code .docutils .literal .notranslate}]{.pre}
 
-    *[property]{.pre}[ ]{.w}*[[col\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.KrausOperator.col_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[col_count]{.pre}]{.sig-name .descname}[¶](#cudaq.KrausOperator.col_count "Permalink to this definition"){.headerlink}
 
     :   The number of columns in the matrix representation of this
-        [`KrausOperator`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        [[`KrausOperator`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
         .internal}.
 
-    *[property]{.pre}[ ]{.w}*[[row\_count]{.pre}]{.sig-name .descname}[¶](#cudaq.KrausOperator.row_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[row_count]{.pre}]{.sig-name .descname}[¶](#cudaq.KrausOperator.row_count "Permalink to this definition"){.headerlink}
 
     :   The number of rows in the matrix representation of this
-        [`KrausOperator`{.xref .py .py-class .docutils .literal
-        .notranslate}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
+        [[`KrausOperator`{.xref .py .py-class .docutils .literal
+        .notranslate}]{.pre}](#cudaq.KrausOperator "cudaq.KrausOperator"){.reference
         .internal}.
 :::
 :::
 
 ::: {#mpi-submodule .section}
-MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
--------------------------------------------------------------------------
+## MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 
 [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[initialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.mpi.initialize "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[initialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[initialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -8586,7 +8838,7 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[rank]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[rank]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -8596,11 +8848,11 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[num\_ranks]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.mpi.num_ranks "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[num_ranks]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.mpi.num_ranks "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[num\_ranks]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[num_ranks]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -8610,30 +8862,31 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all\_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.mpi.all_gather "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.mpi.all_gather "Permalink to this definition"){.headerlink}
 
 :   Overloaded function.
 
     1.  
 
-        [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all\_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-    Gather and scatter the `local`{.code .docutils .literal
-    .notranslate} list of floating-point numbers, returning a
+    Gather and scatter the [`local`{.code .docutils .literal
+    .notranslate}]{.pre} list of floating-point numbers, returning a
     concatenation of all lists across all ranks. The total global list
     size must be provided.
 
     2.  
 
-        [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all\_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
-    Gather and scatter the `local`{.code .docutils .literal
-    .notranslate} list of integers, returning a concatenation of all
-    lists across all ranks. The total global list size must be provided.
+    Gather and scatter the [`local`{.code .docutils .literal
+    .notranslate}]{.pre} list of integers, returning a concatenation of
+    all lists across all ranks. The total global list size must be
+    provided.
 
 ```{=html}
 <!-- -->
@@ -8643,7 +8896,7 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[broadcast]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*, *[[arg2]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[broadcast]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg2]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -8654,11 +8907,11 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is\_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.mpi.is_initialized "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.mpi.is_initialized "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is\_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -8672,7 +8925,7 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 
 :   
 
-    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[finalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.13)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+    [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[finalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
     :   
 
@@ -8680,8 +8933,7 @@ MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 :::
 
 ::: {#orca-submodule .section}
-ORCA Submodule[¶](#orca-submodule "Permalink to this heading"){.headerlink}
----------------------------------------------------------------------------
+## ORCA Submodule[¶](#orca-submodule "Permalink to this heading"){.headerlink}
 
 [[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.orca.sample "Permalink to this definition"){.headerlink}
 
@@ -8689,7 +8941,7 @@ ORCA Submodule[¶](#orca-submodule "Permalink to this heading"){.headerlink}
 
     1.  
 
-        [[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input\_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop\_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs\_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[ps\_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n\_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu\_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[ps_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8698,7 +8950,7 @@ ORCA Submodule[¶](#orca-submodule "Permalink to this heading"){.headerlink}
 
     2.  
 
-        [[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input\_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop\_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs\_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.13)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.13)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n\_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu\_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.13)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8711,10 +8963,10 @@ ORCA Submodule[¶](#orca-submodule "Permalink to this heading"){.headerlink}
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](cpp_api.html "CUDA-Q C++ API"){.btn .btn-neutral .float-left}
-[Next []{.fa .fa-arrow-circle-right
+Previous](cpp_api.html "CUDA-Q C++ API"){.btn .btn-neutral .float-left
+accesskey="p" rel="prev"} [Next []{.fa .fa-arrow-circle-right
 aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
-.btn-neutral .float-right}
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

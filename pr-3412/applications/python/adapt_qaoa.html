@@ -282,6 +282,15 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -517,6 +526,29 @@
 <li class="toctree-l4"><a class="reference internal" href="qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
 </ul>
@@ -980,7 +1012,7 @@ using general variational quantum algorithm methods. If the norm of the gradient
 parameter</p>
 <p>3- Optimize all parameters currently in the Ansatz <span class="math notranslate nohighlight">\(\beta_m, \gamma_m = 1, 2, ...k\)</span> such that <span class="math notranslate nohighlight">\(\braket{\psi (k)|H_C|\psi(k)}\)</span> is minimized, and return to the second step.</p>
 <p>Below is a schematic representation of the ADAPT-QAOA algorithm explained above.</p>
-<div><p><img alt="370c9ba6722b47518362f1401356ac37" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 1000px;" /></p>
+<div><p><img alt="e11371ed96c2466a866c0a9a58cafd18" class="no-scaled-link" src="../../_images/adapt-qaoa.png" style="width: 1000px;" /></p>
 </div><div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>

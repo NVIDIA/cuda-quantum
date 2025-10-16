@@ -282,6 +282,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -517,6 +526,29 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
 </ul>
@@ -970,7 +1002,7 @@
 <p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Landau%E2%80%93Zener_formula">Landau-Zener model</a> describes the transition probability of a quantum system with two energy levels that cross each other as a function of an external parameter. For example, one can consider two spins weakly coupled to each other (<span class="math notranslate nohighlight">\(g\)</span>) while an external magnetic field is swept. If the two spins have an energy spectrum that cross each other as a function of the magnetic field, an avoided crossing is created due to the
 interaction of the spins with each other.</p>
 <p>If the magnetic field is swept slowly (adiabatically), no transitions across the splitting occurs. However, if it is swept quickly (diabatically), the transition hops over the splitting, effectively ignoring the splitting. If swept at an intermediate rate, the transition probability is given by a well defined probability.</p>
-<p><img alt="alt text 2" src="../../../_images/LZ_transition.png" /></p>
+<img alt="alt text 2" src="../../../_images/LZ_transition.png" />
 <p>Figure 1. Sketch of two crossing energy levels with an avoided crossing along a parameter z. Image credit: Wikipedia</p>
 </section>
 <section id="Section-1---Implementing-time-dependent-terms">
@@ -1225,7 +1257,7 @@ g &amp; \alpha t
 <p>In this section we will now look at a much larger quantum system, considering a 1-D chain of 10 spins according to the Heisenberg Hamiltonian, adding a time-dependent transverse magnetic field after a delay. We can use this system to model quantum quench dynamics.</p>
 <p>$:nbsphinx-math:<cite>hat `H = J_{ij}:nbsphinx-math:</cite>sum <cite>S_i :nbsphinx-math:</cite>cdot <cite>S_j + B_x (t) :nbsphinx-math:</cite>sum <cite>:nbsphinx-math:</cite>sigma`^x_i $</p>
 <p>For this example, we consider the case where the <span class="math notranslate nohighlight">\(\sigma^z_i \sigma^z_{i+1}\)</span> coupling is dominant, and prepare the system in an alternating spin up and down state, the approximate ground state.</p>
-<p><img alt="alt text 1" src="../../../_images/Spin_chain.png" /></p>
+<img alt="alt text 1" src="../../../_images/Spin_chain.png" />
 <p>image credit: Wikipedia</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:

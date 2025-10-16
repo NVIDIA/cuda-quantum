@@ -279,6 +279,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -514,6 +523,29 @@
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
 </ul>
@@ -8181,6 +8213,18 @@ like this:</p>
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform18get_codegen_configEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1aa40fb381af70556167aa88d6b01e506d"></span><a class="reference internal" href="#_CPPv4N5cudaq13CodeGenConfigE" title="cudaq::CodeGenConfig"><span class="n"><span class="pre">CodeGenConfig</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_codegen_config</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get code generation configuration values. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv">
+<span class="target" id="classcudaq_1_1quantum__platform_1a8a41da355efc883b837bc5ca5be49c02"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13RuntimeTargetE" title="cudaq::RuntimeTarget"><span class="n"><span class="pre">RuntimeTarget</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">get_runtime_target</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Get runtime target information. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform11reset_noiseEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1a39b49eb99f389ffbf2d6aa64698e6110"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reset_noise</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform11reset_noiseEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Turn off any noise models. </p>
@@ -8332,6 +8376,18 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15KernelThunkTypeE">
 <span class="target" id="ThunkInterface_8h_1a94674b30c58e63bc8a5ad3d9f24c3f71"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">KernelThunkType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq21KernelThunkResultTypeE" title="cudaq::KernelThunkResultType"><span class="n"><span class="pre">KernelThunkResultType</span></span></a><span class="w"> </span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">(</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N5cudaq15KernelThunkTypeE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The universal signature of a kernel thunk. </p>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13CodeGenConfigE">
+<span class="target" id="structcudaq_1_1CodeGenConfig"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">CodeGenConfig</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13CodeGenConfigE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">Codegen</span></code> configuration. Note: it is currently flattened to contain all possible options for all possible platforms. </p>
+</dd></dl>
+
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13RuntimeTargetE">
+<span class="target" id="structcudaq_1_1RuntimeTarget"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RuntimeTarget</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13RuntimeTargetE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>A <a class="reference internal" href="#structcudaq_1_1RuntimeTarget"><span class="std std-ref">RuntimeTarget</span></a> encapsulates an available backend simulator and <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> for CUDA-Q kernel execution. </p>
 </dd></dl>
 
 </section>
