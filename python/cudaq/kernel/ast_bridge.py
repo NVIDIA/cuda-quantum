@@ -3406,7 +3406,7 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(pyval, ast.UnaryOp) and \
                 isinstance(pyval.op, ast.Not):
                 return IntegerType.get_signless(1)
-            # limiting to add, sub, and mult here for now -
+            # limiting to `add`, `sub`, and `mult` here for now -
             # be careful and test with different bitwidths if more is enabled
             elif isinstance(pyval, ast.BinOp) and \
                 isinstance(pyval.op, (ast.Add, ast.Sub, ast.Mult)):
@@ -3480,17 +3480,24 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(element.value)
                 evalElem = self.popValue()
                 if not quake.VeqType.isinstance(evalElem.type):
-                    self.emitFatalError("unpack operator `*` is only supported on qvectors", node)
+                    self.emitFatalError(
+                        "unpack operator `*` is only supported on qvectors",
+                        node)
                 listElementValues.append(evalElem)
             else:
                 self.visit(element)
                 # We do not store lists of pointers
                 evalElem = self.ifPointerThenLoad(self.popValue())
-                if self.isQuantumType(evalElem.type) and not quake.RefType.isinstance(evalElem.type):
-                    self.emitFatalError("list must not contain a qvector or quantum struct - use `*` operator to unpack qvectors", node)
+                if self.isQuantumType(
+                        evalElem.type) and not quake.RefType.isinstance(
+                            evalElem.type):
+                    self.emitFatalError(
+                        "list must not contain a qvector or quantum struct - use `*` operator to unpack qvectors",
+                        node)
                 listElementValues.append(evalElem)
 
-        numQuantumTs = sum((self.isQuantumType(v.type) for v in listElementValues))
+        numQuantumTs = sum(
+            (self.isQuantumType(v.type) for v in listElementValues))
         if numQuantumTs != 0:
             if len(listElementValues) == 1:
                 self.pushValue(listElementValues[0])
@@ -3737,7 +3744,8 @@ class PyASTBridge(ast.NodeVisitor):
         # (i.e. no updating of Tuples).
         if cc.StructType.isinstance(var.type):
             if self.subscriptPushPointerValue:
-                self.emitFatalError("indexing into struct elements must not modify value", node)
+                self.emitFatalError(
+                    "indexing into struct elements must not modify value", node)
 
             # Handle the case where we have a tuple member extraction, memory semantics
             memberTys = cc.StructType.getTypes(var.type)
@@ -3759,7 +3767,8 @@ class PyASTBridge(ast.NodeVisitor):
         # (i.e. no updating of `Struqs`).
         if quake.StruqType.isinstance(var.type):
             if self.subscriptPushPointerValue:
-                self.emitFatalError("indexing into struct elements must not modify value", node)
+                self.emitFatalError(
+                    "indexing into struct elements must not modify value", node)
 
             memberTys = quake.StruqType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
@@ -4733,9 +4742,9 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if isinstance(value, (list, np.ndarray)) and isinstance(
-                    value[0], (int, bool, float, np.int32, np.int64,
-                               np.float32, np.float64, complexType,
-                               np.complex64, np.complex128)):
+                    value[0],
+                (int, bool, float, np.int32, np.int64, np.float32, np.float64,
+                 complexType, np.complex64, np.complex128)):
                 elementValues = None
                 if isinstance(value[0], bool):
                     elementValues = [self.getConstantInt(el, 1) for el in value]

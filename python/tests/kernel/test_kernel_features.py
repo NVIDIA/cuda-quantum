@@ -1568,7 +1568,7 @@ def test_cast_error_1451():
         return N / 2
 
     # Test is that this compiles
-    out = test_kernel (5)
+    out = test_kernel(5)
     assert out == 2.5
 
     @cudaq.kernel

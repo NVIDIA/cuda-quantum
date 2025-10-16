@@ -568,7 +568,8 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_tuple_int_float_error, 2, (-13, 11.5))
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(e.value)
+    assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(
+        e.value)
 
 
 def test_return_tuple_float_int():
@@ -585,6 +586,7 @@ def test_return_tuple_float_int():
                                                 int]) -> tuple[float, int]:
         qubits = cudaq.qvector(n)
         return t
+
     result = cudaq.run(simple_tuple_float_int, 2, (42.3, 13), shots_count=1)
     assert len(result) == 1 and result[0] == (42.3, 13)
 
@@ -633,7 +635,8 @@ def test_return_tuple_int32_bool():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_tuple_int32_bool_no_args)
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(e.value)
+    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
+        e.value)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
@@ -667,7 +670,9 @@ def test_return_tuple_bool_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    result = cudaq.run(simple_tuple_bool_int_float, 2, (True, 13, 42.3), shots_count=1)
+    result = cudaq.run(simple_tuple_bool_int_float,
+                       2, (True, 13, 42.3),
+                       shots_count=1)
     assert len(result) == 1 and result[0] == (True, 13, 42.3)
 
 

@@ -450,7 +450,8 @@ def test_return_tuple_int32_bool():
         simple_tuple_int32_bool_no_args()
     # Note: it may make sense to support that if/since we support
     # the cast for the individual item types.
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(e.value)
+    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
+        e.value)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:

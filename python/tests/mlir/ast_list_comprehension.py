@@ -882,7 +882,7 @@ def test_list_comprehension_expressions():
     assert (len(out) == 1 and out[0] == True)
     print(kernel5
          )  # keep after assert, such that we have no output if assert fails
-    
+
     @cudaq.kernel
     def kernel6() -> float:
         vals1 = [0.5, 1.0, 1.5]
@@ -891,12 +891,11 @@ def test_list_comprehension_expressions():
         for a in ang:
             sum += a
         return sum
-    
+
     out = cudaq.run(kernel6, shots_count=1)
     assert (len(out) == 1 and out[0] == 2.)
     print(kernel6
          )  # keep after assert, such that we have no output if assert fails
-
     '''
     # FIXME: This is exactly an example where the non-hierarchical nature of the value
     # stack leads to an incorrect error...
