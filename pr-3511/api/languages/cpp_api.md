@@ -12560,6 +12560,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1quantum__platform_1a8a41da355efc883b837bc5ca5be49c02 .target}[[const]{.pre}]{.k}[ ]{.w}[[[RuntimeTarget]{.pre}]{.n}](#_CPPv4N5cudaq13RuntimeTargetE "cudaq::RuntimeTarget"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[get_runtime_target]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv "Permalink to this definition"){.headerlink}\
+
+    :   Get runtime target information.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1quantum__platform_1a39b49eb99f389ffbf2d6aa64698e6110 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11reset_noiseEv "Permalink to this definition"){.headerlink}\
 
     :   Turn off any noise models.
@@ -12773,6 +12781,19 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 :   [`Codegen`{.docutils .literal .notranslate}]{.pre} configuration.
     Note: it is currently flattened to contain all possible options for
     all possible platforms.
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1RuntimeTarget .target}[[struct]{.pre}]{.k}[ ]{.w}[[[RuntimeTarget]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13RuntimeTargetE "Permalink to this definition"){.headerlink}\
+
+:   A [[RuntimeTarget]{.std
+    .std-ref}](#structcudaq_1_1RuntimeTarget){.reference .internal}
+    encapsulates an available backend simulator and
+    [[quantum_platform]{.std
+    .std-ref}](#classcudaq_1_1quantum__platform){.reference .internal}
+    for CUDA-Q kernel execution.
 :::
 
 ::: {#utilities .section}

@@ -1033,7 +1033,7 @@ so. If you are not already using Conda, you can install a minimal version
 following <a class="reference external" href="https://docs.anaconda.com/miniconda/">miniconda instructions here</a>.
 The following commands will create and activate a complete environment for
 CUDA-Q with all its dependencies:</p>
-<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 11.x (where x &gt;= 8) or 12.x</span>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cuda_version=12.4.0 # set this variable to version 12.x or 13.x</span>
 <span class="go">conda create -y -n cudaq-env python=3.11 pip</span>
 <span class="go">conda install -y -n cudaq-env -c &quot;nvidia/label/cuda-${cuda_version}&quot; cuda</span>
 <span class="go">conda install -y -n cudaq-env -c conda-forge mpi4py openmpi&quot;&gt;=5.0.3&quot; cxx-compiler</span>
