@@ -387,6 +387,10 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   return std::unique_ptr<CuDensityMatState>(state);
 }
 
+std::unique_ptr<SimulationState> CuDensityMatState::clone() const {
+  return CuDensityMatState::clone(*this);
+}
+
 CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
     : isDensityMatrix(other.isDensityMatrix), dimension(other.dimension),
       devicePtr(other.devicePtr), cudmState(other.cudmState),

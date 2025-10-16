@@ -151,6 +151,16 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   virtual void generateMSM() {}
 
+  /// @brief Return the internal state representation. This
+  /// is meant for subtypes to override
+  virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() = 0;
+
+  /// @brief Get the current simulation state.
+  /// The method returns the current state of the simulation without flushing
+  /// the gate queue.
+  virtual std::unique_ptr<cudaq::SimulationState>
+  getCurrentSimulationState() = 0;
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -538,6 +548,14 @@ protected:
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
   virtual std::unique_ptr<cudaq::SimulationState> getSimulationState() {
+    throw std::runtime_error(
+        "Simulation data not available for this simulator backend.");
+  }
+
+  /// @brief Get the current simulation state.
+  /// The method returns the current state of the simulation without flushing
+  /// the gate queue.
+  virtual std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() {
     throw std::runtime_error(
         "Simulation data not available for this simulator backend.");
   }
