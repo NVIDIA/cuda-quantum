@@ -4475,9 +4475,7 @@ class PyASTBridge(ast.NodeVisitor):
         right = self.ifPointerThenLoad(right)
 
         # type promotion for anything except pow to match Python behavior
-        if not issubclass(
-                nodeType,
-            (ast.Pow, ast.Mod)):  # FIXME: remove modulo here and fix it below
+        if not issubclass(nodeType, ast.Pow):
             superiorTy = self.__get_superior_type(left.type, right.type)
             if superiorTy is not None:
                 left = self.changeOperandToType(superiorTy,
@@ -4587,18 +4585,16 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.currentNode)
 
         if issubclass(nodeType, ast.Mod):
-            # FIXME: This should be revised to
-            # 1) properly fail when we have a complex number
-            # 2) use `arith.RemFOp` for floating point
-            # (these changes are split out into a separate PR
-            # per review request)
-            if F64Type.isinstance(left.type):
-                left = arith.FPToSIOp(self.getIntegerType(), left).result
-            if F64Type.isinstance(right.type):
-                right = arith.FPToSIOp(self.getIntegerType(), right).result
-
-            self.pushValue(arith.RemUIOp(left, right).result)
-            return
+            if IntegerType.isinstance(left.type):
+                self.pushValue(arith.RemUIOp(left, right).result)
+                return
+            if F64Type.isinstance(left.type) or \
+                F32Type.isinstance(left.type):
+                self.pushValue(arith.RemFOp(left, right).result)
+                return
+            else:
+                self.emitFatalError("unhandled BinOp.Mod types",
+                                    self.currentNode)
 
         if issubclass(nodeType, ast.LShift):
             if IntegerType.isinstance(left.type):
