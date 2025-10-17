@@ -52,7 +52,7 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
             handleOutput(cudaq::split(lines[j], '\t'));
         }
       } else {
-        CUDAQ_INFO("Discarding shot data due to non-zero END status.");
+        CUDAQ_DBG("Discarding shot data due to non-zero END status.");
       }
       processingShot = false;
       shotStart = 0;
