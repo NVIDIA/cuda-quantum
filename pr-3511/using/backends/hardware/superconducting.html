@@ -1243,10 +1243,33 @@ program:</p>
 </pre></div>
 </div>
 <p>To run on AquSim, simply execute the script using your Python interpreter.</p>
+<p>To specify which QCI machine to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The default machine is AquSim</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;AquSim&#39;</span><span class="p">)</span>
+<span class="c1"># or</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;Seeker&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can control the execution method using the <code class="code docutils literal notranslate"><span class="pre">method</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For simulation (default)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;Seeker&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;simulate&#39;</span><span class="p">)</span>
+<span class="c1"># For hardware execution</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;Seeker&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;execute&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For noisy simulation, you can enable the <code class="code docutils literal notranslate"><span class="pre">noisy</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">noisy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When collecting shots, you can ensure the requested number of shots are obtained
+by enabling the <code class="code docutils literal notranslate"><span class="pre">repeat_until_shots_requested</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">repeat_until_shots_requested</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <p>When executing programs in C++, they must first be compiled using the
-CUDA-Q nvq++ compiler, and then submitted to run on AquSim.</p>
+CUDA-Q nvq++ compiler, and then submitted to run on the device.</p>
 <p>Note that your token is fetched from your environment at run time, not at compile time.</p>
 <p>In the example below, the compilation step shows two flags being passed to the nvq++
 compiler: the Quantum Circuits target <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">qci</span></code>, and the output file
@@ -1254,6 +1277,29 @@ compiler: the Quantum Circuits target <code class="code docutils literal notrans
 shell commands in full:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>example.cpp<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>-o<span class="w"> </span>example.x
 ./example.x
+</pre></div>
+</div>
+<p>To specify which QCI machine to use, pass the <code class="docutils literal notranslate"><span class="pre">--qci-machine</span></code> flag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># The default machine is AquSim</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>AquSim<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+<span class="c1"># or</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>Seeker<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
+</div>
+<p>You can control the execution method using the <code class="docutils literal notranslate"><span class="pre">--qci-method</span></code> flag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># For simulation (default)</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>Seeker<span class="w"> </span>--qci-method<span class="w"> </span>simulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+<span class="c1"># For hardware execution</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>Seeker<span class="w"> </span>--qci-method<span class="w"> </span>execute<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
+</div>
+<p>For noisy simulation, you can set the <code class="docutils literal notranslate"><span class="pre">--qci-noisy</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">true</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-noisy<span class="w"> </span><span class="nb">true</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
+</div>
+<p>When collecting shots, you can ensure the requested number of shots are obtained
+with the <code class="docutils literal notranslate"><span class="pre">--qci-repeat_until_shots_requested</span></code> argument:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-repeat_until_shots_requested<span class="w"> </span><span class="nb">true</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
 </pre></div>
 </div>
 </div>
