@@ -193,7 +193,8 @@ ServerJobPayload
 QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<ServerMessage> messages;
 
-  // Note that the options can be set as string dictionary from other application(s) which call the CUDA-Q client.
+  // Note that the options can be set as string dictionary from other
+  // application(s) which call the CUDA-Q client.
   // Ref: https://github.com/NVIDIA/cuda-quantum/issues/3525
   auto toBool = [](const std::string &value) {
     return value == "True" || value == "true" || value == "1";
