@@ -382,7 +382,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         simple_tuple_int_float_assign(2, (-13, 42.3))
-    assert 'indexing into struct elements must not modify value' in str(e.value)
+    assert 'indexing into tuple or dataclass must not modify value' in str(e.value)
 
 
 def test_return_tuple_float_int():
@@ -462,6 +462,7 @@ def test_return_tuple_int32_bool():
     # values return type as "tuple" {i32, i1}, but we don't
     # actually create numpy values even when these are requested
     # in the signature.
+    # See https://github.com/NVIDIA/cuda-quantum/issues/3524
     assert result == (-13, True)
 
     @cudaq.kernel
@@ -475,6 +476,7 @@ def test_return_tuple_int32_bool():
     # values return type as "tuple" {i32, i1}, but we don't
     # actually create numpy values even when these are requested
     # in the signature.
+    # See https://github.com/NVIDIA/cuda-quantum/issues/3524
     assert result == (-13, True)
 
 
