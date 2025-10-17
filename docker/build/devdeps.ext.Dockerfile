@@ -175,7 +175,12 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==13.4.1 cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.09 && \
+    if [ "$(echo $CUDA_VERSION | cut -d . -f1)" = "13" ]; then \
+        cupy_version=13.6.0; \
+    else \
+        cupy_version=13.4.1; \
+    fi && \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.09 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
         echo "expecting Python version 3.12"; \
     fi
