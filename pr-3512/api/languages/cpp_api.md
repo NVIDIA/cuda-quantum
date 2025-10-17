@@ -345,6 +345,26 @@ pr-3512
         -   [Determining the ground state energy of the
             subspace](../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../../applications/python/qsci.html){.reference
+        .internal}
+        -   [0. Problem
+            definition](../../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
         Algorithm](../../applications/python/bernstein_vazirani.html){.reference
         .internal}
@@ -12540,6 +12560,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1quantum__platform_1a8a41da355efc883b837bc5ca5be49c02 .target}[[const]{.pre}]{.k}[ ]{.w}[[[RuntimeTarget]{.pre}]{.n}](#_CPPv4N5cudaq13RuntimeTargetE "cudaq::RuntimeTarget"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[get_runtime_target]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv "Permalink to this definition"){.headerlink}\
+
+    :   Get runtime target information.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1quantum__platform_1a39b49eb99f389ffbf2d6aa64698e6110 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11reset_noiseEv "Permalink to this definition"){.headerlink}\
 
     :   Turn off any noise models.
@@ -12753,6 +12781,19 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 :   [`Codegen`{.docutils .literal .notranslate}]{.pre} configuration.
     Note: it is currently flattened to contain all possible options for
     all possible platforms.
+
+```{=html}
+<!-- -->
+```
+
+[]{#structcudaq_1_1RuntimeTarget .target}[[struct]{.pre}]{.k}[ ]{.w}[[[RuntimeTarget]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13RuntimeTargetE "Permalink to this definition"){.headerlink}\
+
+:   A [[RuntimeTarget]{.std
+    .std-ref}](#structcudaq_1_1RuntimeTarget){.reference .internal}
+    encapsulates an available backend simulator and
+    [[quantum_platform]{.std
+    .std-ref}](#classcudaq_1_1quantum__platform){.reference .internal}
+    for CUDA-Q kernel execution.
 :::
 
 ::: {#utilities .section}
