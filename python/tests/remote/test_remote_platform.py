@@ -395,7 +395,7 @@ def test_math_exp():
     @cudaq.kernel
     def iqft(register: cudaq.qview):
         N = register.size()
-        for i in range(N / 2):
+        for i in range(int(N / 2)):
             swap(register[i], register[N - i - 1])
 
         for i in range(N - 1):
