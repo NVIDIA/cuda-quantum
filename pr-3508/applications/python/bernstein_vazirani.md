@@ -342,6 +342,24 @@ pr-3508
         -   [Determining the ground state energy of the
             subspace](krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](qsci.html){.reference .internal}
+        -   [0. Problem
+            definition](qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani Algorithm](#){.current .reference .internal}
         -   [Classical case](#Classical-case){.reference .internal}
         -   [Quantum case](#Quantum-case){.reference .internal}
@@ -1656,7 +1674,7 @@ pr-3508
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](krylov.html "Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule"){.btn
+Previous](qsci.html "Quantum-Selected Configuration Interaction (QSCI)"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](cost_minimization.html "Cost Minimization"){.btn
@@ -1977,7 +1995,7 @@ below and verify that the procedure guessed the correct bitstring.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](krylov.html "Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule"){.btn
+Previous](qsci.html "Quantum-Selected Configuration Interaction (QSCI)"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](cost_minimization.html "Cost Minimization"){.btn
