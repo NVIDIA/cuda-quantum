@@ -43,8 +43,8 @@ class JobRequest(BaseModel):
     mappingReorderIdx: Optional[list[int]] = None
     name: str
     outputNames: Optional[Any] = None
-    shots: int
     userData: Optional[Any] = None
+    options: dict[str, Any] = {}
 
 
 llvm.initialize()
@@ -108,10 +108,11 @@ async def postJob(job: JobRequest,
     if token == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
 
-    print('Posting job with shots = ', job.shots)
+    n_shots = job.options.get("aqusim", {}).get("shots", 1000)
+    print('Posting job with shots = ', n_shots)
     jobId = str(uuid.uuid4())
     jobName = job.name
-    shots = job.shots
+    shots = n_shots
     program = job.code
     decoded = base64.b64decode(program)
     m = llvm.module.parse_bitcode(decoded)

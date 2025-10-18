@@ -333,11 +333,43 @@ named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program.
             [... your Python here]
 
         To run on AquSim, simply execute the script using your Python interpreter.
+        
+        To specify which QCI machine to use, set the :code:`machine` parameter:
+
+        .. code:: python
+
+            # The default machine is AquSim
+            cudaq.set_target('qci', machine='AquSim') 
+            # or
+            cudaq.set_target('qci', machine='Seeker')
+
+        You can control the execution method using the :code:`method` parameter:
+
+        .. code:: python
+
+            # For simulation (default)
+            cudaq.set_target('Seeker', method='simulate')
+            # For hardware execution
+            cudaq.set_target('Seeker', method='execute')
+
+        For noisy simulation, you can enable the :code:`noisy` parameter:
+
+        .. code:: python
+
+            cudaq.set_target('qci', noisy=True)
+
+        When collecting shots, you can ensure the requested number of shots are obtained
+        by enabling the :code:`repeat_until_shots_requested` parameter:
+
+        .. code:: python
+
+            cudaq.set_target('qci', repeat_until_shots_requested=True)
+
 
 .. tab:: C++
 
         When executing programs in C++, they must first be compiled using the
-        CUDA-Q nvq++ compiler, and then submitted to run on AquSim.
+        CUDA-Q nvq++ compiler, and then submitted to run on the device.
 
         Note that your token is fetched from your environment at run time, not at compile time.
 
@@ -350,6 +382,38 @@ named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program.
 
             nvq++ example.cpp --target qci -o example.x
             ./example.x
+
+        To specify which QCI machine to use, pass the ``--qci-machine`` flag:
+
+        .. code:: bash
+
+            # The default machine is AquSim
+            nvq++ --target qci --qci-machine AquSim src.cpp -o example.x
+            # or
+            nvq++ --target qci --qci-machine Seeker src.cpp -o example.x
+
+        You can control the execution method using the ``--qci-method`` flag:
+
+        .. code:: bash
+
+            # For simulation (default)
+            nvq++ --target qci --qci-machine Seeker --qci-method simulate src.cpp -o example.x
+            # For hardware execution
+            nvq++ --target qci --qci-machine Seeker --qci-method execute src.cpp -o example.x
+
+        For noisy simulation, you can set the ``--qci-noisy`` argument to `true`:
+
+        .. code:: bash
+
+            nvq++ --target qci --qci-noisy true src.cpp -o example.x
+
+        When collecting shots, you can ensure the requested number of shots are obtained
+        with the ``--qci-repeat_until_shots_requested`` argument:
+
+        .. code:: bash
+
+            nvq++ --target qci --qci-repeat_until_shots_requested true src.cpp -o example.x
+
 
 To see a complete example of using Quantum Circuits' backends, please take a look at the
 :ref:`Quantum Circuits examples <quantum-circuits-examples>`.

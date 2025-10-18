@@ -51,3 +51,13 @@ target-arguments:
     type: string
     platform-arg: method
     help-string: "Specify the circuit execution type - simulate (default) or execute."
+  - key: noisy
+    required: false
+    type: string
+    platform-arg: noisy
+    help-string: "If enabled, perform noisy simulation. Disabled by default."
+  - key: repeat_until_shots_requested
+    required: false
+    type: string
+    platform-arg: repeat_until_shots_requested
+    help-string: "If enabled, repeat execution until the requested number of shots is collected. Disabled by default."
