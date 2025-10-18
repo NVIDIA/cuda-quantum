@@ -1408,7 +1408,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'control operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for control operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1419,7 +1419,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1430,7 +1430,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1439,7 +1439,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'control operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for control operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1448,7 +1448,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1457,7 +1457,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'control operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for control operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1466,7 +1466,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1475,7 +1475,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'control operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for control operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1484,7 +1484,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1493,7 +1493,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1502,7 +1502,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'control operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for control operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1511,7 +1511,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'control operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for control operand' in repr(e)
 
     @cudaq.kernel
     def test_kernel(nQubits: int):
@@ -1520,7 +1520,7 @@ def test_ctrl_wrong_dtype_1447():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'target operand 0 is not of quantum type' in repr(e)
+    assert 'invalid argument type for target operand' in repr(e)
 
 
 def test_math_module_pi_1448():
@@ -1564,9 +1564,19 @@ def test_missing_paren_1450():
 def test_cast_error_1451():
 
     @cudaq.kernel
+    def test_kernel(N: int) -> float:
+        return N / 2
+
+    # Test is that this compiles
+    out = test_kernel(5)
+    assert out == 2.5
+
+    @cudaq.kernel
     def test_kernel(N: int):
         q = cudaq.qvector(N)
-        for i in range(0, N / 2):
+        # range fails for non-integer values,
+        # matching Python behavior
+        for i in range(0, int(N / 2)):
             swap(q[i], q[N - i - 1])
 
     # Test is that this compiles
@@ -1583,7 +1593,8 @@ def test_bad_attr_call_error():
 
     with pytest.raises(RuntimeError) as e:
         test_state.compile()
-    assert "Invalid function call - 'kernel' is unknown." in repr(e)
+    assert "unknown function call" in repr(e)
+    assert "offending source -> kernel.h(q[0])" in repr(e)
 
 
 def test_bad_return_value_with_stdvec_arg():
@@ -1657,7 +1668,7 @@ def test_measure_variadic_qubits():
     def test():
         q = cudaq.qvector(5)
         x(q[0], q[2])
-        mz(q[0], [q[1], q[2]])
+        mz([q[0], *q[1:3]])
 
     counts = cudaq.sample(test)
     assert len(counts) == 1 and '101' in counts
@@ -2159,7 +2170,7 @@ def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
         print(wrong_type)
-    assert 'target operand 0 is not of quantum type' in repr(error)
+    assert 'invalid argument type for target operand' in repr(error)
 
     @cudaq.kernel
     def invalid_ctrl():
