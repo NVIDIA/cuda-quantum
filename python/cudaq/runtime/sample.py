@@ -120,8 +120,9 @@ Returns:
     while counts.get_total_shots() < shots_count:
         kernel(*args)
         cudaq_runtime.resetExecutionContext()
-        if counts.get_total_shots() == 0 and ctx.result.get_total_shots(
-        ) == shots_count:
+        # If the platform is a hardware QPU, launch only once
+        if (counts.get_total_shots() == 0 and ctx.result.get_total_shots()
+                == shots_count) or cudaq_runtime.isQuantumDevice():
             # Early return for case where all shots were gathered in the first
             # time through this loop. This avoids an additional copy.
             cudaq_runtime.unset_noise()
