@@ -2136,23 +2136,22 @@ To see a complete example, take a look at [[OQC examples]{.std
 ::: {#quantum-circuits-inc .section}
 ## Quantum Circuits, Inc.[¶](#quantum-circuits-inc "Permalink to this heading"){.headerlink}
 
-As part of its first phase of integration with CUDA-Q, [Quantum
-Circuits](https://quantumcircuits.com/){.reference .external} offers
-users the ability to simulate CUDA-Q programs using its simulator,
-AquSim. AquSim is the first simulator that models error detection and
-real-time control of Quantum Circuits' Dual-Rail Cavity Qubit systems,
-and uses a Monte Carlo approach to do so on a shot-by-shot basis.
+As part of the integration with CUDA-Q, [Quantum
+Circuits](https://quantumcircuits.com/){.reference .external} provides
+the ability to simulate CUDA-Q programs using its AquSim simulator or
+execute them on the Seeker QPU. AquSim is the first simulator to model
+error detection and real-time control of Quantum Circuits' Dual-Rail
+Cavity Qubit systems, using a Monte Carlo approach for shot-by-shot
+simulation. Seeker, the industry's first Dual-Rail Cavity Qubit quantum
+computing system, supports all core operations of a universal quantum
+computer.
 
-In this first phase, the supported features include all of the single
+In the initial phase, the supported features include all of the single
 and two-qubit gates offered by CUDA-Q, together with real-time
-conditional logic enabled by feed-forward capability. AquSim is
-currently wired to support ideal simulations only and noise models will
-be added in future iterations.
-
-With C++ and Python programming supported, users are able to prototype,
-test and explore quantum applications in CUDA-Q in preparation for
-upcoming releases targeting Quantum Circuits QPUs. Examples are provided
-to get started.
+conditional logic enabled by feed-forward capability. With C++ and
+Python programming supported, users are able to prototype, test and
+explore quantum applications in CUDA-Q targeting Quantum Circuits QPUs.
+Examples are provided to get started.
 
 Users who wish to get started with running CUDA-Q on AquSim should visit
 our [Explore](https://quantumcircuits.com/explore/){.reference
@@ -2311,6 +2310,16 @@ obtained with the [`--qci-repeat_until_shots_requested`{.docutils
 :::
 :::
 :::
+:::
+
+::: {.admonition .note}
+Note
+
+By default, only successful shots are presented to the user and may be
+fewer than the requested number. Enabling
+[`repeat_until_shots_requested`{.code .docutils .literal
+.notranslate}]{.pre} ensures the full requested shot count is collected,
+at the cost of increased execution time.
 :::
 
 To see a complete example of using Quantum Circuits' backends, please
