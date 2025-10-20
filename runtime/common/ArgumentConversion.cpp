@@ -562,8 +562,7 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
           return genConstant(builder, *static_cast<std::int64_t *>(p));
         default:
           mlir::emitError(unknownLoc,
-                          "unsupported integer width " +
-                          std::to_string(width));
+                          "unsupported integer width " + std::to_string(width));
           return {};
         }
       })
@@ -644,6 +643,10 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
   auto unknownLoc = builder.getUnknownLoc();
   if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
     stepBy = sizeof(VectorType);
+    if (auto intTy = dyn_cast<IntegerType>(innerTy.getElementType())) {
+      if (intTy.getWidth() == 1)
+        mlir::emitError(unknownLoc, "std::vector<std::vector<bool>> is not currently supported");
+    }
     genAttr = [&](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout);
     };
@@ -673,8 +676,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
         break;
       default:
         mlir::emitError(unknownLoc,
-                        "unsupported integer width " +
-                        std::to_string(width));
+                        "unsupported integer width " + std::to_string(width));
       }
       return IntegerAttr::get(intTy, val);
     };
@@ -903,9 +905,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               case 64:
                 return buildSubst(*static_cast<std::int64_t *>(argPtr));
               default:
-                mlir::emitError(unknownLoc,
-                                "unsupported integer width " +
-                                std::to_string(width));
+                mlir::emitError(unknownLoc, "unsupported integer width " +
+                                                std::to_string(width));
                 return {};
               }
             })

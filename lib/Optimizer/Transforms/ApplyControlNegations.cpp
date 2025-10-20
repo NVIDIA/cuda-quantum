@@ -50,8 +50,9 @@ public:
           op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
           op.getPauli(), op.getPauliLiteralAttr());
     } else if constexpr (std::is_same_v<Op, quake::CustomUnitarySymbolOp>) {
-      rewriter.create<Op>(loc, op.getGeneratorAttr(), op.getIsAdj(), op.getParameters(),
-                          op.getControls(), op.getTargets());
+      rewriter.create<Op>(loc, op.getGeneratorAttr(), op.getIsAdj(),
+                          op.getParameters(), op.getControls(),
+                          op.getTargets());
     } else {
       rewriter.create<Op>(loc, op.getIsAdj(), op.getParameters(),
                           op.getControls(), op.getTargets());

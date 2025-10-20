@@ -440,6 +440,15 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i64 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i64>>
 // CHECK:         }
   // clang-format on
+
+  // TODO: enable
+  /*
+  {
+    std::vector<std::vector<bool>> x = {
+        {true, true, false, true}, {false, false, false, true}, {true, false, false, true}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<i1>>", v);
+  } */
 }
 
 void test_aggregates(mlir::MLIRContext *ctx) {
