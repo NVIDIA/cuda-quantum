@@ -445,8 +445,8 @@ void test_vectors(mlir::MLIRContext *ctx) {
   /*
   {
     std::vector<std::vector<bool>> x = {
-        {true, true, false, true}, {false, false, false, true}, {true, false, false, true}};
-    std::vector<void *> v = {static_cast<void *>(&x)};
+        {true, true, false, true}, {false, false, false, true}, {true, false,
+  false, true}}; std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<i1>>", v);
   } */
 }

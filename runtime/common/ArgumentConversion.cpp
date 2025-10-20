@@ -645,7 +645,9 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
     stepBy = sizeof(VectorType);
     if (auto intTy = dyn_cast<IntegerType>(innerTy.getElementType())) {
       if (intTy.getWidth() == 1)
-        mlir::emitError(unknownLoc, "std::vector<std::vector<bool>> is not currently supported");
+        mlir::emitError(
+            unknownLoc,
+            "std::vector<std::vector<bool>> is not currently supported");
     }
     genAttr = [&](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout);
