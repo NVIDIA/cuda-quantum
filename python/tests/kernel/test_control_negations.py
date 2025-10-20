@@ -195,7 +195,7 @@ def test_ctrl_attribute():
 def test_cudaq_control():
 
     @cudaq.kernel
-    def custom_x(q : cudaq.qubit):
+    def custom_x(q: cudaq.qubit):
         x(q)
 
     @cudaq.kernel
@@ -248,17 +248,19 @@ def test_unsupported_calls():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(control_registered_operation)
-    assert "calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported" in str(
+        e.value)
 
     @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         cudaq.control(ry, ~c, np.pi, q)
-        cudaq.control(ry, c , np.pi, q)
+        cudaq.control(ry, c, np.pi, q)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(control_rotation_gate)
-    assert "calling cudaq.control or cudaq.adjoint on a built-in gate is not supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a built-in gate is not supported" in str(
+        e.value)
 
     @cudaq.kernel
     def control_simple_gate():
@@ -269,7 +271,8 @@ def test_unsupported_calls():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(control_simple_gate)
-    assert "unary operator ~ is only supported for values of type qubit" in str(e.value)
+    assert "unary operator ~ is only supported for values of type qubit" in str(
+        e.value)
 
 
 # leave for gdb debugging

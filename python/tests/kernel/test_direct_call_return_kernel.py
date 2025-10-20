@@ -382,7 +382,8 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         simple_tuple_int_float_assign(2, (-13, 42.3))
-    assert 'indexing into tuple or dataclass must not modify value' in str(e.value)
+    assert 'indexing into tuple or dataclass must not modify value' in str(
+        e.value)
 
 
 def test_return_tuple_float_int():

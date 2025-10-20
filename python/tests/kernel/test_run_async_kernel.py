@@ -573,7 +573,8 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'indexing into tuple or dataclass must not modify value' in str(e.value)
+    assert 'indexing into tuple or dataclass must not modify value' in str(
+        e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float_error(

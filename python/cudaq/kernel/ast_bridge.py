@@ -1677,8 +1677,7 @@ class PyASTBridge(ast.NodeVisitor):
                 negCtrlBools = [None] * len(controls)
                 for i, c in enumerate(controls):
                     negCtrlBools[i] = c in self.controlNegations
-                negatedControlQubits = DenseBoolArrayAttr.get(
-                    negCtrlBools)
+                negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBools)
                 self.controlNegations.clear()
             return negatedControlQubits
 
@@ -1715,9 +1714,14 @@ class PyASTBridge(ast.NodeVisitor):
                 kwargs["callee"] = FlatSymbolRefAttr.get(nvqppPrefix +
                                                          otherFuncName)
             elif otherFuncName in globalRegisteredOperations:
-                self.emitFatalError(f"calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported", node)
-            elif self.__isUnitaryGate(otherFuncName) or self.__isMeasurementGate(otherFuncName):
-                self.emitFatalError(f"calling cudaq.control or cudaq.adjoint on a built-in gate is not supported", node)
+                self.emitFatalError(
+                    f"calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported",
+                    node)
+            elif self.__isUnitaryGate(
+                    otherFuncName) or self.__isMeasurementGate(otherFuncName):
+                self.emitFatalError(
+                    f"calling cudaq.control or cudaq.adjoint on a built-in gate is not supported",
+                    node)
             else:
                 self.emitFatalError(
                     f"{otherFuncName} is not a known quantum kernel - maybe a cudaq.kernel attribute is missing?.",
@@ -1730,7 +1734,7 @@ class PyASTBridge(ast.NodeVisitor):
             controls = values[:numControlArgs]
             invert_controls = lambda: None
             if len(controls) != 0:
-                assert(len(controls) == 1)
+                assert (len(controls) == 1)
                 if not quake.RefType.isinstance(controls[0].type) and \
                     not quake.VeqType.isinstance(controls[0].type):
                     self.emitFatalError(
@@ -1738,7 +1742,8 @@ class PyASTBridge(ast.NodeVisitor):
                 # TODO: it would be cleaner to add support for negated control
                 # qubits to `quake.ApplyOp`
                 if controls[0] in self.controlNegations:
-                    invert_controls = lambda: self.__applyQuantumOperation('x', [], controls)
+                    invert_controls = lambda: self.__applyQuantumOperation(
+                        'x', [], controls)
                     self.controlNegations.clear()
             args = convertArguments(inputTys, values[numControlArgs:])
             if len(outputTys) != 0:
@@ -3000,7 +3005,8 @@ class PyASTBridge(ast.NodeVisitor):
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
                     checkControlAndTargetTypes(controls, [targetA, targetB])
-                    opCtor([], [], controls, [targetA, targetB],
+                    opCtor([], [],
+                           controls, [targetA, targetB],
                            negated_qubit_controls=negatedControlQubits)
                     return
 
@@ -3027,7 +3033,8 @@ class PyASTBridge(ast.NodeVisitor):
                         opCtor = getattr(
                             quake, '{}Op'.format(node.func.value.id.title()))
                         checkControlAndTargetTypes(controls, [target])
-                        opCtor([], [param], controls, [target],
+                        opCtor([], [param],
+                               controls, [target],
                                negated_qubit_controls=negatedControlQubits)
                         return
 
@@ -3770,7 +3777,8 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.StructType.isinstance(var.type):
             if self.subscriptPushPointerValue:
                 self.emitFatalError(
-                    "indexing into tuple or dataclass must not modify value", node)
+                    "indexing into tuple or dataclass must not modify value",
+                    node)
 
             # Handle the case where we have a tuple member extraction, memory semantics
             memberTys = cc.StructType.getTypes(var.type)
@@ -3793,7 +3801,8 @@ class PyASTBridge(ast.NodeVisitor):
         if quake.StruqType.isinstance(var.type):
             if self.subscriptPushPointerValue:
                 self.emitFatalError(
-                    "indexing into quantum tuple or dataclass must not modify value", node)
+                    "indexing into quantum tuple or dataclass must not modify value",
+                    node)
 
             memberTys = quake.StruqType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
@@ -4411,7 +4420,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(operand)
                 return
             else:
-                self.emitFatalError("unary operator ~ is only supported for values of type qubit", node)
+                self.emitFatalError(
+                    "unary operator ~ is only supported for values of type qubit",
+                    node)
 
         if isinstance(node.op, ast.USub):
             # Make our lives easier for -1 used in variable subscript extraction
@@ -4842,7 +4853,7 @@ class PyASTBridge(ast.NodeVisitor):
         if node.id in globalKernelRegistry or \
             node.id in globalRegisteredOperations:
             return
-        
+
         if self.__isUnitaryGate(node.id) or \
             self.__isMeasurementGate(node.id):
             return
