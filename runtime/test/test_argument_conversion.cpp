@@ -389,6 +389,18 @@ void test_vectors(mlir::MLIRContext *ctx) {
   // clang-format on
 
   {
+    std::vector<bool> x = {true, false};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i1>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array [true, false] : !cc.array<i1 x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<i1 x ?>) -> !cc.stdvec<i1>
+ // CHECK:         }
+  // clang-format on
+
+  {
     std::vector<std::vector<cudaq::pauli_word>> x = {
         {cudaq::pauli_word{"XX"}, cudaq::pauli_word{"XY"}},
         {cudaq::pauli_word{"ZI"}, cudaq::pauli_word{"YY"}},
