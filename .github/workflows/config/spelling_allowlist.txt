@@ -155,7 +155,8 @@ bernstein
 bitcode
 bitstring
 bitstrings
-bmatrix
+bitwidth
+bitwidths
 bool
 boolean
 boson
@@ -236,10 +237,10 @@ extensibility
 extremal
 fermionic
 fermioniq
-fmt
 fourier
 frontend
 frontends
+functors
 grovers
 hadamard
 hamiltonian
@@ -320,7 +321,6 @@ selectable
 sexualized
 shifter
 shifters
-shors
 splitter
 splitters
 sqale
@@ -338,6 +338,7 @@ subexpression
 subexpressions
 subfolder
 submodule
+submodules
 subscriptable
 subscripted
 subtype
@@ -369,13 +370,11 @@ upvote
 variadic
 variational
 vazirani
-vdots
 vectorization
 verifier
 vertices
 vqe
 waveforms
 wavefunction
-wf
 workflow
 zener
