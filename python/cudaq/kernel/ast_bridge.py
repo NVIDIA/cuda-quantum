@@ -1728,21 +1728,26 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     "missing control qubit(s) argument in cudaq.control", node)
             controls = values[:numControlArgs]
+            invert_controls = lambda: None
             if len(controls) != 0:
                 assert(len(controls) == 1)
                 if not quake.RefType.isinstance(controls[0].type) and \
                     not quake.VeqType.isinstance(controls[0].type):
                     self.emitFatalError(
                         f'invalid argument type for control operand', node)
-                # TODO: We could support that by applying x to the control qubit...
+                # TODO: it would be cleaner to add support for negated control
+                # qubits to `quake.ApplyOp`
                 if controls[0] in self.controlNegations:
-                    self.emitFatalError("negating controls is not currently supported for cudaq.control calls", node)
+                    invert_controls = lambda: self.__applyQuantumOperation('x', [], controls)
+                    self.controlNegations.clear()
             args = convertArguments(inputTys, values[numControlArgs:])
             if len(outputTys) != 0:
                 self.emitFatalError(
                     f'cannot take {attrName} of kernel {otherFuncName} that returns a value',
                     node)
+            invert_controls()
             quake.ApplyOp([], indirectCallee, controls, args, **kwargs)
+            invert_controls()
 
         def processFunctionCall(fType, nrValsToPop):
             if len(fType.inputs) != nrValsToPop:
@@ -4699,22 +4704,6 @@ class PyASTBridge(ast.NodeVisitor):
         table.
         """
 
-        if node.id in globalKernelRegistry or \
-            node.id in globalRegisteredOperations:
-            return
-        
-        if self.__isUnitaryGate(node.id) or \
-            self.__isMeasurementGate(node.id):
-            return
-
-        if node.id == 'complex':
-            self.pushValue(self.getComplexType())
-            return
-
-        if node.id == 'float':
-            self.pushValue(self.getFloatType())
-            return
-
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
             if cc.PointerType.isinstance(value.type):
@@ -4844,9 +4833,27 @@ class PyASTBridge(ast.NodeVisitor):
             except TypeError:
                 pass
 
-            self.emitFatalError(
-                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
-                node)
+            if node.id not in globalKernelRegistry and \
+                node.id not in globalRegisteredOperations:
+                self.emitFatalError(
+                    f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
+                    node)
+
+        if node.id in globalKernelRegistry or \
+            node.id in globalRegisteredOperations:
+            return
+        
+        if self.__isUnitaryGate(node.id) or \
+            self.__isMeasurementGate(node.id):
+            return
+
+        if node.id == 'complex':
+            self.pushValue(self.getComplexType())
+            return
+
+        if node.id == 'float':
+            self.pushValue(self.getFloatType())
+            return
 
         # Throw an exception for the case that the name is not
         # in the symbol table

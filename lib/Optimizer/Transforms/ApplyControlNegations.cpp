@@ -49,6 +49,9 @@ public:
           loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
           op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
           op.getPauli(), op.getPauliLiteralAttr());
+    } else if constexpr (std::is_same_v<Op, quake::CustomUnitarySymbolOp>) {
+      rewriter.create<Op>(loc, op.getGeneratorAttr(), op.getIsAdj(), op.getParameters(),
+                          op.getControls(), op.getTargets());
     } else {
       rewriter.create<Op>(loc, op.getIsAdj(), op.getParameters(),
                           op.getControls(), op.getTargets());
@@ -84,7 +87,10 @@ struct ApplyControlNegationsPass
         ReplaceNegativeControl<quake::RyOp>,
         ReplaceNegativeControl<quake::RzOp>,
         ReplaceNegativeControl<quake::R1Op>,
-        ReplaceNegativeControl<quake::ExpPauliOp>>(ctx);
+        ReplaceNegativeControl<quake::U3Op>,
+        ReplaceNegativeControl<quake::SwapOp>,
+        ReplaceNegativeControl<quake::ExpPauliOp>,
+        ReplaceNegativeControl<quake::CustomUnitarySymbolOp>>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::cc::CCDialect, arith::ArithDialect,
                            LLVM::LLVMDialect>();
