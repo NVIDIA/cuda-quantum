@@ -183,8 +183,8 @@ __qpu__ auto kernel(int num_qubits, int num_rounds) {
 
 int main() {
 
-  int num_qubits = 2;
-  int num_rounds = 1;
+  int num_qubits = 6;
+  int num_rounds = 2;
 
   double noise_bf_prob = 1.;
 

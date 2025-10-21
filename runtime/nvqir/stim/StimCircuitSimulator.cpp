@@ -204,12 +204,6 @@ protected:
     a_padded.resize(max_size, 0);
     b_padded.resize(max_size, 0);
 
-    // Optional: print for debugging
-    for (size_t i = 0; i < max_size; i++) {
-      printf("a[%zu] = %d, b[%zu] = %d\n", i, static_cast<int>(a_padded[i]), i,
-             static_cast<int>(b_padded[i]));
-    }
-
     // XOR element-wise
     std::vector<uint8_t> result(max_size);
     for (size_t i = 0; i < max_size; ++i) {
@@ -233,20 +227,21 @@ protected:
 
   StimData serialize_frame_simulator(stim::FrameSimulator<W> *sampleSim) {
     StimData data;
+    CUDAQ_INFO("Serializing Stim Frame Simulator data");
 
     auto *executionContext = getExecutionContext();
     auto batch_size = executionContext->shots;
-    std::cout << "batch_size: " << batch_size << "\n";
+    CUDAQ_INFO("batch_size: {}", batch_size);
     std::size_t num_qubits = sampleSim->num_qubits;
 
     // 0: num_qubits
     std::size_t *num_qubits_ptr = new std::size_t(num_qubits);
-    std::cout << "num_qubits: " << *num_qubits_ptr << "\n";
+    CUDAQ_INFO("num_qubits: {}", *num_qubits_ptr);
     data.push_back({num_qubits_ptr, 1});
 
     // 1: msm_err_count
     std::size_t *msm_err_count_ptr = new std::size_t(msm_err_count);
-    std::cout << "msm_err_count: " << *msm_err_count_ptr << "\n";
+    CUDAQ_INFO("msm_err_count: {}", *msm_err_count_ptr);
     data.push_back({msm_err_count_ptr, 1});
 
     // 2,3: x_output and z_output
@@ -255,9 +250,9 @@ protected:
 
     for (int shot = 0; shot < batch_size; shot++) {
       for (std::size_t q = 0; q < num_qubits; q++) {
-        printf("q %zu: x = %d, z = %d\n", q,
-               static_cast<int>(sampleSim->x_table[q][shot]),
-               static_cast<int>(sampleSim->z_table[q][shot]));
+        CUDAQ_INFO("q {}: x = {}, z = {}", q,
+                    static_cast<int>(sampleSim->x_table[q][shot]),
+                    static_cast<int>(sampleSim->z_table[q][shot]));
 
         x_output[q + shot * num_qubits] = sampleSim->x_table[q][shot] ? 1 : 0;
         z_output[q + shot * num_qubits] = sampleSim->z_table[q][shot] ? 1 : 0;
@@ -521,12 +516,16 @@ protected:
         }
         msm_id_counter++;
       } else if (is_generate_data_mode) {
+        CUDAQ_INFO("Generating data for noise operation ID {}",
+                   error_log_vec_index);
+
         // allocate the qubits if needed
         if (sampleSim->num_qubits < max_qubit + 1)
           applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
 
-        std::cout << "Applying noise operation " << res->stim_name
-                  << " to qubits ";
+        CUDAQ_INFO("Applying noise operation {} to qubits {}", res->stim_name,
+                   fmt::join(qubits, ", "));
+
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
                                channel.parameters);
@@ -592,6 +591,9 @@ protected:
 
         error_log_vec_index++;
       } else if (is_replay_errors_mode) {
+        CUDAQ_INFO("In replay mode: Noise application index: {}", noise_application_index);
+        CUDAQ_INFO("Replaying errors for noise operation ID {}", error_log_vec_index);
+
         if (sampleSim->num_qubits < max_qubit + 1)
           applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
 
@@ -631,8 +633,7 @@ protected:
 
         // Get the number of shots to replay
         size_t num_shots = x_errors_per_shot.size();
-        CUDAQ_INFO("Replaying {} shots for error ID {}", num_shots,
-                   error_log_vec_index);
+        CUDAQ_INFO("Replaying {} shots for error ID {}", num_shots, error_log_vec_index);
 
         if (last_column_touched + num_shots > getBatchSize()) {
           throw std::runtime_error(fmt::format(
@@ -661,6 +662,8 @@ protected:
         // Move to the next error entry
         noise_application_index++;
         error_log_vec_index++;
+        CUDAQ_INFO("Finished replaying errors for noise operation ID {}",
+                   error_log_vec_index - 1);
       } else {
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
@@ -786,7 +789,7 @@ public:
   }
 
   std::unique_ptr<cudaq::SimulationState> getCurrentSimulationState() override {
-    printf("Getting current simulation state from stim simulator\n");
+    CUDAQ_INFO("Getting current simulation state from stim simulator");
     flushGateQueue();
     StimData data = serialize_frame_simulator(sampleSim.get());
     return std::make_unique<StimState>(data);

@@ -840,19 +840,19 @@ void __quantum__qis__apply_kraus_channel_generalized(
 }
 
 extern "C" void __quantum__qis__save_state() {
-  printf("NVQIR: saving state\n");
+  CUDAQ_INFO("NVQIR:: saving state");
   auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
   if (!ctx) {
-    printf("No execution context, cannot save state\n");
+    CUDAQ_INFO("NVQIR::No execution context, cannot save state");
     return;
   }
-  printf("Context name: %s\n", ctx->name.c_str());
+
+  CUDAQ_INFO("NVQIR::Context name: {}", ctx->name.c_str());
 
   std::unique_ptr<cudaq::SimulationState> state =
       nvqir::getCircuitSimulatorInternal()->getCurrentSimulationState();
-
-  printf("simulator name : %s\n",
-         nvqir::getCircuitSimulatorInternal()->name().c_str());
+  
+  CUDAQ_INFO("NVQIR::simulator name : {}", nvqir::getCircuitSimulatorInternal()->name().c_str());
 
   ctx->save_state(state.get());
 }

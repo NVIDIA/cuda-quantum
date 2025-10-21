@@ -36,7 +36,6 @@ struct RecordStorage {
   std::vector<std::unique_ptr<SimulationState>> recordedStates;
 
   void save_state(SimulationState *state) {
-    printf("Recording state\n");
     recordedStates.push_back(clone_state(state));
   }
   const std::vector<std::unique_ptr<SimulationState>> &
@@ -66,8 +65,8 @@ struct RecordStorage {
       printf(" Error Index: %zu\n", index);
       printf("---------------------------------------\n");
 
-      // X error sets
-      printf("  X Error Sets (%zu):\n", x_errors.size());
+      // X error Shots
+      printf("  X Error Shots (%zu):\n", x_errors.size());
       if (x_errors.empty()) {
         printf("    (none)\n");
       } else {
@@ -79,8 +78,8 @@ struct RecordStorage {
         }
       }
 
-      // Z error sets
-      printf("  Z Error Sets (%zu):\n", z_errors.size());
+      // Z error Shots
+      printf("  Z Error Shots (%zu):\n", z_errors.size());
       if (z_errors.empty()) {
         printf("    (none)\n");
       } else {
