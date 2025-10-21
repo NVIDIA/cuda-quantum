@@ -356,6 +356,8 @@ Platform
 
 .. doxygenstruct:: cudaq::CodeGenConfig
 
+.. doxygenstruct:: cudaq::RuntimeTarget
+
 Utilities
 =========
 

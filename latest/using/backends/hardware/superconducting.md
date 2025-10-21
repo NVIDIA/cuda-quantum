@@ -342,6 +342,26 @@ latest
         -   [Determining the ground state energy of the
             subspace](../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../../../applications/python/qsci.html){.reference
+        .internal}
+        -   [0. Problem
+            definition](../../../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../../../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../../../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
         Algorithm](../../../applications/python/bernstein_vazirani.html){.reference
         .internal}
@@ -2116,23 +2136,22 @@ To see a complete example, take a look at [[OQC examples]{.std
 ::: {#quantum-circuits-inc .section}
 ## Quantum Circuits, Inc.[¶](#quantum-circuits-inc "Permalink to this heading"){.headerlink}
 
-As part of its first phase of integration with CUDA-Q, [Quantum
-Circuits](https://quantumcircuits.com/){.reference .external} offers
-users the ability to simulate CUDA-Q programs using its simulator,
-AquSim. AquSim is the first simulator that models error detection and
-real-time control of Quantum Circuits' Dual-Rail Cavity Qubit systems,
-and uses a Monte Carlo approach to do so on a shot-by-shot basis.
+As part of the integration with CUDA-Q, [Quantum
+Circuits](https://quantumcircuits.com/){.reference .external} provides
+the ability to simulate CUDA-Q programs using its AquSim simulator or
+execute them on the Seeker QPU. AquSim is the first simulator to model
+error detection and real-time control of Quantum Circuits' Dual-Rail
+Cavity Qubit systems, using a Monte Carlo approach for shot-by-shot
+simulation. Seeker, the industry's first Dual-Rail Cavity Qubit quantum
+computing system, supports all core operations of a universal quantum
+computer.
 
-In this first phase, the supported features include all of the single
+In the initial phase, the supported features include all of the single
 and two-qubit gates offered by CUDA-Q, together with real-time
-conditional logic enabled by feed-forward capability. AquSim is
-currently wired to support ideal simulations only and noise models will
-be added in future iterations.
-
-With C++ and Python programming supported, users are able to prototype,
-test and explore quantum applications in CUDA-Q in preparation for
-upcoming releases targeting Quantum Circuits QPUs. Examples are provided
-to get started.
+conditional logic enabled by feed-forward capability. With C++ and
+Python programming supported, users are able to prototype, test and
+explore quantum applications in CUDA-Q targeting Quantum Circuits QPUs.
+Examples are provided to get started.
 
 Users who wish to get started with running CUDA-Q on AquSim should visit
 our [Explore](https://quantumcircuits.com/explore/){.reference
@@ -2176,13 +2195,56 @@ program:
 
 To run on AquSim, simply execute the script using your Python
 interpreter.
+
+To specify which QCI machine to use, set the [`machine`{.code .docutils
+.literal .notranslate}]{.pre} parameter:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    # The default machine is AquSim
+    cudaq.set_target('qci', machine='AquSim')
+    # or
+    cudaq.set_target('qci', machine='Seeker')
+:::
+:::
+
+You can control the execution method using the [`method`{.code .docutils
+.literal .notranslate}]{.pre} parameter:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    # For simulation (default)
+    cudaq.set_target('Seeker', method='simulate')
+    # For hardware execution
+    cudaq.set_target('Seeker', method='execute')
+:::
+:::
+
+For noisy simulation, you can enable the [`noisy`{.code .docutils
+.literal .notranslate}]{.pre} parameter:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('qci', noisy=True)
+:::
+:::
+
+When collecting shots, you can ensure the requested number of shots are
+obtained by enabling the [`repeat_until_shots_requested`{.code .docutils
+.literal .notranslate}]{.pre} parameter:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('qci', repeat_until_shots_requested=True)
+:::
+:::
 :::
 
 C++
 
 ::: {.tab-content .docutils}
 When executing programs in C++, they must first be compiled using the
-CUDA-Q nvq++ compiler, and then submitted to run on AquSim.
+CUDA-Q nvq++ compiler, and then submitted to run on the device.
 
 Note that your token is fetched from your environment at run time, not
 at compile time.
@@ -2203,7 +2265,61 @@ commands in full:
     ./example.x
 :::
 :::
+
+To specify which QCI machine to use, pass the [`--qci-machine`{.docutils
+.literal .notranslate}]{.pre} flag:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    # The default machine is AquSim
+    nvq++ --target qci --qci-machine AquSim src.cpp -o example.x
+    # or
+    nvq++ --target qci --qci-machine Seeker src.cpp -o example.x
 :::
+:::
+
+You can control the execution method using the [`--qci-method`{.docutils
+.literal .notranslate}]{.pre} flag:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    # For simulation (default)
+    nvq++ --target qci --qci-machine Seeker --qci-method simulate src.cpp -o example.x
+    # For hardware execution
+    nvq++ --target qci --qci-machine Seeker --qci-method execute src.cpp -o example.x
+:::
+:::
+
+For noisy simulation, you can set the [`--qci-noisy`{.docutils .literal
+.notranslate}]{.pre} argument to [`true`{.code .docutils .literal
+.notranslate}]{.pre}:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target qci --qci-noisy true src.cpp -o example.x
+:::
+:::
+
+When collecting shots, you can ensure the requested number of shots are
+obtained with the [`--qci-repeat_until_shots_requested`{.docutils
+.literal .notranslate}]{.pre} argument:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target qci --qci-repeat_until_shots_requested true src.cpp -o example.x
+:::
+:::
+:::
+:::
+
+::: {.admonition .note}
+Note
+
+By default, only successful shots are presented to the user and may be
+fewer than the requested number. Enabling
+[`repeat_until_shots_requested`{.code .docutils .literal
+.notranslate}]{.pre} ensures the full requested shot count is collected,
+at the cost of increased execution time.
 :::
 
 To see a complete example of using Quantum Circuits' backends, please

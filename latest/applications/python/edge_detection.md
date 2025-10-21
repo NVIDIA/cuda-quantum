@@ -342,6 +342,24 @@ latest
         -   [Determining the ground state energy of the
             subspace](krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](qsci.html){.reference .internal}
+        -   [0. Problem
+            definition](qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](qsci.html#Reference){.reference .internal}
     -   [Bernstein-Vazirani
         Algorithm](bernstein_vazirani.html){.reference .internal}
         -   [Classical
@@ -1760,7 +1778,7 @@ each pixel with its position
 
 <div>
 
-![a279877f64f6400787d021b599135fc8](../../_images/pixels-img.png){.no-scaled-link
+![e56d5db2884e473bb39ca69b3fe69ffd](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

@@ -279,6 +279,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -1588,12 +1597,12 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 </div>
 <p>More detailed instructions for your platform can be found in the online documentation
 linked for that <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
-Please make sure to install CUDA version 11.8 or newer, and confirm that your
+Please make sure to install CUDA version 12.0 or newer, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-12-0</span></code>) that also
-includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 11,
-built against version 11.8, and for CUDA 12, built against version 12.6.</p>
+includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 12,
+built against version 12.6, and for CUDA 13, built against version 13.0.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
@@ -1719,13 +1728,13 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p>GPU Architectures</p></td>
-<td><p>Volta, Turing, Ampere, Ada, Hopper</p></td>
+<td><p>Turing, Ampere, Ada, Hopper, Blackwell (Blackwell supported for CUDA 13.x only)</p></td>
 </tr>
 <tr class="row-even"><td><p>NVIDIA GPU with Compute Capability</p></td>
-<td><p>7.0+</p></td>
+<td><p>7.5+</p></td>
 </tr>
 <tr class="row-odd"><td><p>CUDA</p></td>
-<td><p>11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)</p></td>
+<td><p>12.x (Driver 525.60.13+), 13.x (Driver 580.65.06+)</p></td>
 </tr>
 </tbody>
 </table>

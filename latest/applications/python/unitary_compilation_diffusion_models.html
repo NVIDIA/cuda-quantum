@@ -282,6 +282,15 @@
 <li class="toctree-l3"><a class="reference internal" href="krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -1030,6 +1039,9 @@ convert them back into the circuit form. An overview of these steps is provided 
 import torch
 import numpy as np
 import genQC
+import os
+
+os.environ[&#39;HF_HUB_DISABLE_PROGRESS_BARS&#39;] = &#39;1&#39;
 
 import genQC.utils.misc_utils as util
 from genQC.pipeline.diffusion_pipeline import DiffusionPipeline
@@ -1044,7 +1056,7 @@ from genQC.inference.sampling \
             import decode_tensors_to_backend, generate_compilation_tensors
 from genQC.inference.evaluation_helper import get_unitaries
 from genQC.inference.eval_metrics import UnitaryInfidelityNorm
-</pre></div>
+<br/><br/></pre></div>
 </div>
 </div>
 <div class="nbinput docutils container">

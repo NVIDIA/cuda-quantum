@@ -329,6 +329,25 @@ latest
         -   [Determining the ground state energy of the
             subspace](../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../applications/python/qsci.html){.reference .internal}
+        -   [0. Problem
+            definition](../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
         Algorithm](../applications/python/bernstein_vazirani.html){.reference
         .internal}
@@ -1752,7 +1771,7 @@ CUDA-Q with all its dependencies:
 
 ::: {.highlight-console .notranslate}
 ::: highlight
-    cuda_version=12.4.0 # set this variable to version 11.x (where x >= 8) or 12.x
+    cuda_version=12.4.0 # set this variable to version 12.x or 13.x
     conda create -y -n cudaq-env python=3.11 pip
     conda install -y -n cudaq-env -c "nvidia/label/cuda-${cuda_version}" cuda
     conda install -y -n cudaq-env -c conda-forge mpi4py openmpi">=5.0.3" cxx-compiler

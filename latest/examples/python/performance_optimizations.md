@@ -332,6 +332,26 @@ latest
         -   [Determining the ground state energy of the
             subspace](../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace){.reference
             .internal}
+    -   [Quantum-Selected Configuration Interaction
+        (QSCI)](../../applications/python/qsci.html){.reference
+        .internal}
+        -   [0. Problem
+            definition](../../applications/python/qsci.html#0.-Problem-definition){.reference
+            .internal}
+        -   [1. Prepare an Approximate Quantum
+            State](../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State){.reference
+            .internal}
+        -   [2 Quantum Sampling to Select
+            Configuration](../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration){.reference
+            .internal}
+        -   [3. Classical Diagonalization on the Selected
+            Subspace](../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace){.reference
+            .internal}
+        -   [5. Compuare
+            results](../../applications/python/qsci.html#5.-Compuare-results){.reference
+            .internal}
+        -   [Reference](../../applications/python/qsci.html#Reference){.reference
+            .internal}
     -   [Bernstein-Vazirani
         Algorithm](../../applications/python/bernstein_vazirani.html){.reference
         .internal}
@@ -1735,14 +1755,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![9d7055c5ca6246fabd61c7af063298ac](../../_images/gate-fuse.png)
+![07b3e51793b44386894757b388494c6e](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![fcddda7de5b94365b73d0ac571fc701d](../../_images/gatefusion.png)
+![96f400912f5147d2941c6862e43451d8](../../_images/gatefusion.png)
 :::
 :::
 :::
