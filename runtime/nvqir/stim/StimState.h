@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -36,12 +36,12 @@ private:
   };
 
   // Disable copying to prevent shallow copy issues
-  StimState(const StimState&) = delete;
-  StimState& operator=(const StimState&) = delete;
-  
+  StimState(const StimState &) = delete;
+  StimState &operator=(const StimState &) = delete;
+
   // Allow moving
-  StimState(StimState&&) = delete;
-  StimState& operator=(StimState&&) = delete;
+  StimState(StimState &&) = delete;
+  StimState &operator=(StimState &&) = delete;
 
 public:
   /// @brief Construct from StimData (may copy).
@@ -97,42 +97,42 @@ public:
     return *static_cast<const std::size_t *>(data_[1].first);
   }
 
-/// @brief Get batch size (number of shots)
-std::size_t getBatchSize() const {
+  /// @brief Get batch size (number of shots)
+  std::size_t getBatchSize() const {
     std::size_t nq = getNumQubits();
     if (data_.size() > 2 && data_[2].first && data_[2].second > 0) {
-        return data_[2].second / nq;
+      return data_[2].second / nq;
     }
     return 0;
-}
+  }
 
-/// @brief Get X value for a specific shot and qubit
-uint8_t getXValue(std::size_t shot, std::size_t qubit) const {
+  /// @brief Get X value for a specific shot and qubit
+  uint8_t getXValue(std::size_t shot, std::size_t qubit) const {
     if (data_.size() <= 2 || !data_[2].first) {
-        throw std::runtime_error("[StimState] No X output data");
+      throw std::runtime_error("[StimState] No X output data");
     }
     std::size_t nq = getNumQubits();
     std::size_t idx = qubit + shot * nq;
     if (idx >= data_[2].second) {
-        throw std::out_of_range("[StimState] Index out of bounds");
+      throw std::out_of_range("[StimState] Index out of bounds");
     }
-    const auto* x_data = static_cast<const uint8_t*>(data_[2].first);
+    const auto *x_data = static_cast<const uint8_t *>(data_[2].first);
     return x_data[idx];
-}
+  }
 
-/// @brief Get Z value for a specific shot and qubit
-uint8_t getZValue(std::size_t shot, std::size_t qubit) const {
+  /// @brief Get Z value for a specific shot and qubit
+  uint8_t getZValue(std::size_t shot, std::size_t qubit) const {
     if (data_.size() <= 3 || !data_[3].first) {
-        throw std::runtime_error("[StimState] No Z output data");
+      throw std::runtime_error("[StimState] No Z output data");
     }
     std::size_t nq = getNumQubits();
     std::size_t idx = qubit + shot * nq;
     if (idx >= data_[3].second) {
-        throw std::out_of_range("[StimState] Index out of bounds");
+      throw std::out_of_range("[StimState] Index out of bounds");
     }
-    const auto* z_data = static_cast<const uint8_t*>(data_[3].first);
+    const auto *z_data = static_cast<const uint8_t *>(data_[3].first);
     return z_data[idx];
-}
+  }
 
   /// @brief Tensor interface not supported for StimState.
   Tensor getTensor(std::size_t idx = 0) const override {
@@ -154,71 +154,74 @@ uint8_t getZValue(std::size_t shot, std::size_t qubit) const {
         "[StimState] amplitudes not supported for stabilizer states.");
   }
 
-void dump(std::ostream &os) const override {
-  if (data_.size() < 2) {
-    os << "StimState { Invalid/empty data }";
-    return;
-  }
+  void dump(std::ostream &os) const override {
+    if (data_.size() < 2) {
+      os << "StimState { Invalid/empty data }";
+      return;
+    }
 
-  os << "StimState { qubits=" << getNumQubits()
-     << ", msm_err_count=" << getMsmErrorCount();
-  
-  // Display batch size if data is available
-  std::size_t batch_size = getBatchSize();
-  if (batch_size > 0) {
-    os << ", batch_size=" << batch_size;
-  }
-  os << " }\n";
+    os << "StimState { qubits=" << getNumQubits()
+       << ", msm_err_count=" << getMsmErrorCount();
 
-  // Display X and Z output sizes
-  if (data_.size() > 2 && data_[2].first) {
-    os << "X output size: " << data_[2].second << "\n";
-  }
-  if (data_.size() > 3 && data_[3].first) {
-    os << "Z output size: " << data_[3].second << "\n";
-  }
+    // Display batch size if data is available
+    std::size_t batch_size = getBatchSize();
+    if (batch_size > 0) {
+      os << ", batch_size=" << batch_size;
+    }
+    os << " }\n";
 
-  // Display sample data for first few shots (if available)
-  if (batch_size > 0) {
-    std::size_t nq = getNumQubits();
-    std::size_t shots_to_display = std::min(batch_size, std::size_t(5));
-    
-    os << "\nSample data (first " << shots_to_display << " shots):\n";
-    for (std::size_t shot = 0; shot < shots_to_display; ++shot) {
-      os << "Shot " << shot << ": X=[";
-      for (std::size_t qubit = 0; qubit < nq; ++qubit) {
-        if (qubit > 0) os << " ";
-        os << static_cast<int>(getXValue(shot, qubit));
+    // Display X and Z output sizes
+    if (data_.size() > 2 && data_[2].first) {
+      os << "X output size: " << data_[2].second << "\n";
+    }
+    if (data_.size() > 3 && data_[3].first) {
+      os << "Z output size: " << data_[3].second << "\n";
+    }
+
+    // Display sample data for first few shots (if available)
+    if (batch_size > 0) {
+      std::size_t nq = getNumQubits();
+      std::size_t shots_to_display = std::min(batch_size, std::size_t(5));
+
+      os << "\nSample data (first " << shots_to_display << " shots):\n";
+      for (std::size_t shot = 0; shot < shots_to_display; ++shot) {
+        os << "Shot " << shot << ": X=[";
+        for (std::size_t qubit = 0; qubit < nq; ++qubit) {
+          if (qubit > 0)
+            os << " ";
+          os << static_cast<int>(getXValue(shot, qubit));
+        }
+        os << "] Z=[";
+        for (std::size_t qubit = 0; qubit < nq; ++qubit) {
+          if (qubit > 0)
+            os << " ";
+          os << static_cast<int>(getZValue(shot, qubit));
+        }
+        os << "]\n\n\n";
       }
-      os << "] Z=[";
-      for (std::size_t qubit = 0; qubit < nq; ++qubit) {
-        if (qubit > 0) os << " ";
-        os << static_cast<int>(getZValue(shot, qubit));
-      }
-      os << "]\n\n\n";
     }
   }
-}
-
 
   /// @brief Precision is always double for stabilizer/Stim data.
   precision getPrecision() const override { return precision::fp64; }
 
   /// @brief Destroy any resources.
-  void destroyState() override {       // Free all allocated memory in StimData
-      for (auto& [ptr, size] : data_) {
-          if (ptr) {
-              // Elements 0 and 1 are single std::size_t values
-              if (&ptr == &data_[0].first || &ptr == &data_[1].first) {
-                  delete static_cast<std::size_t*>(ptr);
-              }
-              // Elements 2 and 3 are uint8_t arrays
-              else if ((&ptr == &data_[2].first || &ptr == &data_[3].first) && size > 0) {
-                  delete[] static_cast<uint8_t*>(ptr);
-              }
-          }
+  void destroyState() override { // Free all allocated memory in StimData
+    for (auto &[ptr, size] : data_) {
+      if (ptr) {
+        // Elements 0 and 1 are single std::size_t values
+        if (&ptr == &data_[0].first || &ptr == &data_[1].first) {
+          delete static_cast<std::size_t *>(ptr);
+        }
+        // Elements 2 and 3 are uint8_t arrays
+        else if ((&ptr == &data_[2].first || &ptr == &data_[3].first) &&
+                 size > 0) {
+          delete[] static_cast<uint8_t *>(ptr);
+        }
       }
-      std::cout << "StimState destroyed and memory freed.\n"; }
+    }
+    std::cout << "StimState destroyed and memory freed.\n";
+  }
 };
 
 } // namespace cudaq

@@ -1,6 +1,5 @@
 #include <cudaq.h>
 
-
 /*
 
 std::vector<std::vector<uint8_t>>  detection_matrix(
@@ -162,32 +161,25 @@ std::vector<std::vector<uint8_t>>  detection_matrix(
 }
 */
 
-__qpu__ int sx(cudaq::qview<> qubits, cudaq::qview<> ancillas) { 
+__qpu__ int sx(cudaq::qview<> qubits, cudaq::qview<> ancillas) {}
 
-
- }
-
-__qpu__ int sz(cudaq::qview<> qubits, cudaq::qview<> ancillas) {
-
-
- }
-
+__qpu__ int sz(cudaq::qview<> qubits, cudaq::qview<> ancillas) {}
 
 __qpu__ auto kernel(int num_qubits, int num_rounds) {
-    cudaq::qvector q(num_qubits);
-     
-    for (int i = 0; i < num_qubits; i++) {
-      cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, q[i]);
-    }
+  cudaq::qvector q(num_qubits);
 
-    for (int i = 0; i < num_rounds; i++){
-        h(q[1]);
-        cudaq::save_state();  
-        x<cudaq::ctrl>(q[1], q[0]);
-        cudaq::save_state(); 
-    }
-    return cudaq::to_integer(mz(q));
+  for (int i = 0; i < num_qubits; i++) {
+    cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, q[i]);
   }
+
+  for (int i = 0; i < num_rounds; i++) {
+    h(q[1]);
+    cudaq::save_state();
+    x<cudaq::ctrl>(q[1], q[0]);
+    cudaq::save_state();
+  }
+  return cudaq::to_integer(mz(q));
+}
 
 int main() {
 
@@ -202,7 +194,6 @@ int main() {
   noise.add_channel<cudaq::types::h>({0}, depolarization);
   noise.add_channel<cudaq::types::h>({1}, depolarization);
   noise.add_channel<cudaq::types::x>({0}, depolarization);
-
 
   cudaq::set_noise(noise);
 
@@ -224,7 +215,6 @@ int main() {
   printf("Total errors recorded: %zu\n", errors.size());
   printf("+++++++++++++++++++++++++++++++++\n");
   printf("+++++++++++++++++++++++++++++++++\n");
-  
 
   cudaq::ExecutionContext ctx_rep("replay_errors", 2);
   platform2.set_exec_ctx(&ctx_rep);
@@ -236,8 +226,7 @@ int main() {
   printf(" ------------------ Result after replaying errors:  %d\n", m2);
 
   ctx_rep.dump_recorded_states();
-  ctx_rep.dump_error_data();  
+  ctx_rep.dump_error_data();
   platform2.reset_exec_ctx();
   return 0;
 }
-
