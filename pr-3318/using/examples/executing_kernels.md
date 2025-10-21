@@ -1936,12 +1936,12 @@ Python
             x.ctrl(qubits[0], qubits[i])
 
         # Measure and return total number of qubits in state |1⟩
-        result = 0
+        res = 0
         for i in range(num_qubits):
             if mz(qubits[i]):
-                result += 1
+                res += 1
 
-        return result
+        return res
 
 
     # Execute the kernel 20 times
