@@ -855,27 +855,35 @@ class PyASTBridge(ast.NodeVisitor):
             MLIR Type representing the superior type
         """
 
-        def complex_type(ct, ot):
-            et1 = ComplexType(ct).element_type
-            if IntegerType.isinstance(ot):
-                return ct
-            elif F64Type.isinstance(ot) or F32Type.isinstance(ot):
-                et2 = ot
-            elif ComplexType.isinstance(ot):
-                et2 = ComplexType(ot).element_type
-            else:
+        def fp_type(fpt, ot):
+            assert (F64Type.isinstance(fpt) or F32Type.isinstance(fpt))
+            if F64Type.isinstance(ot):
+                return ot
+            if F32Type.isinstance(ot):
+                return fpt
+            if not IntegerType.isinstance(ot):
                 return None
-            return self.getComplexTypeWithElementType(
-                self.__get_superior_type(et1, et2))
+            if IntegerType(ot).width > 32:
+                # matching Python behavior
+                return F64Type.get()
+            return fpt
+
+        def complex_type(ct, ot):
+            if ComplexType.isinstance(ot):
+                ot = ComplexType(ot).element_type
+            et = fp_type(ComplexType(ct).element_type, ot)
+            if et is None:
+                return None
+            return self.getComplexTypeWithElementType(et)
 
         if ComplexType.isinstance(t1):
             return complex_type(t1, t2)
         if ComplexType.isinstance(t2):
             return complex_type(t2, t1)
-        if F64Type.isinstance(t1) or F64Type.isinstance(t2):
-            return F64Type.get()
-        if F32Type.isinstance(t1) or F32Type.isinstance(t2):
-            return F32Type.get()
+        if F64Type.isinstance(t1) or F32Type.isinstance(t1):
+            return fp_type(t1, t2)
+        if F64Type.isinstance(t2) or F32Type.isinstance(t2):
+            return fp_type(t2, t1)
         if IntegerType.isinstance(t1) and IntegerType.isinstance(t2):
             return self.getIntegerType(
                 max(IntegerType(t1).width,
@@ -1567,6 +1575,10 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(self.getFloatType(width=64))
                 elif node.attr == 'float32':
                     self.pushValue(self.getFloatType(width=32))
+                elif node.attr == 'int64':
+                    self.pushValue(self.getIntegerType(width=64))
+                elif node.attr == 'int32':
+                    self.pushValue(self.getIntegerType(width=32))
                 elif node.attr == 'pi':
                     self.pushValue(self.getConstantFloat(np.pi))
                 elif node.attr == 'e':
@@ -1741,6 +1753,16 @@ class PyASTBridge(ast.NodeVisitor):
                 args.append(arg)
             return args
 
+        def getNegatedControlQubits(controls):
+            negatedControlQubits = None
+            if len(self.controlNegations):
+                negCtrlBools = [None] * len(controls)
+                for i, c in enumerate(controls):
+                    negCtrlBools[i] = c in self.controlNegations
+                negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBools)
+                self.controlNegations.clear()
+            return negatedControlQubits
+
         def processControlAndAdjoint(pyFuncVal, attrName):
             # NOTE: We currently generally don't have the means in the
             # compiler to handle composition of control and adjoint, since
@@ -1773,6 +1795,15 @@ class PyASTBridge(ast.NodeVisitor):
                 inputTys, outputTys = otherFunc.arguments.types, otherFunc.results.types
                 kwargs["callee"] = FlatSymbolRefAttr.get(nvqppPrefix +
                                                          otherFuncName)
+            elif otherFuncName in globalRegisteredOperations:
+                self.emitFatalError(
+                    f"calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported",
+                    node)
+            elif self.__isUnitaryGate(
+                    otherFuncName) or self.__isMeasurementGate(otherFuncName):
+                self.emitFatalError(
+                    f"calling cudaq.control or cudaq.adjoint on a built-in gate is not supported",
+                    node)
             else:
                 self.emitFatalError(
                     f"{otherFuncName} is not a known quantum kernel - maybe a cudaq.kernel attribute is missing?.",
@@ -1783,17 +1814,27 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     "missing control qubit(s) argument in cudaq.control", node)
             controls = values[:numControlArgs]
-            if len(controls) == 1 and \
-                not quake.RefType.isinstance(controls[0].type) and \
-                not quake.VeqType.isinstance(controls[0].type):
-                self.emitFatalError(
-                    f'invalid argument type for control operand', node)
+            invert_controls = lambda: None
+            if len(controls) != 0:
+                assert (len(controls) == 1)
+                if not quake.RefType.isinstance(controls[0].type) and \
+                    not quake.VeqType.isinstance(controls[0].type):
+                    self.emitFatalError(
+                        f'invalid argument type for control operand', node)
+                # TODO: it would be cleaner to add support for negated control
+                # qubits to `quake.ApplyOp`
+                if controls[0] in self.controlNegations:
+                    invert_controls = lambda: self.__applyQuantumOperation(
+                        'x', [], controls)
+                    self.controlNegations.clear()
             args = convertArguments(inputTys, values[numControlArgs:])
             if len(outputTys) != 0:
                 self.emitFatalError(
                     f'cannot take {attrName} of kernel {otherFuncName} that returns a value',
                     node)
+            invert_controls()
             quake.ApplyOp([], indirectCallee, controls, args, **kwargs)
+            invert_controls()
 
         def processFunctionCall(fType, nrValsToPop):
             if len(fType.inputs) != nrValsToPop:
@@ -1945,8 +1986,11 @@ class PyASTBridge(ast.NodeVisitor):
         # FIXME: This whole thing is widely inconsistent;
         # For example; we pop all values on the value stack for a simple gate
         # and allow x(q1, q2, q3, ...) here, but for a simple adjoint gate we
-        # only ever pop a single value. I'll tackle this as part of revising
-        # the value stack, which should be a proper stack.
+        # only ever pop a single value. Then there are the control qubits,
+        # where we also allow to pass individual qubits instead of a vector.
+        # I'll tackle this as part of revising the value stack.
+        # FIXME: Expand the tests in test_control_negations as needed after
+        # revising this.
         if isinstance(node.func, ast.Name):
             # Just visit the arguments, we know the name
             self.valueStack.pushFrame()
@@ -2172,12 +2216,7 @@ class PyASTBridge(ast.NodeVisitor):
                 target = self.popValue()
                 control = self.popValue()
                 self.valueStack.popFrame()
-
-                negatedControlQubits = None
-                if len(self.controlNegations):
-                    negCtrlBool = control in self.controlNegations
-                    negatedControlQubits = DenseBoolArrayAttr.get(negCtrlBool)
-                    self.controlNegations.clear()
+                negatedControlQubits = getNegatedControlQubits([control])
                 checkControlAndTargetTypes([control], [target])
                 # Map `cx` to `XOp`...
                 opCtor = getattr(
@@ -2217,6 +2256,7 @@ class PyASTBridge(ast.NodeVisitor):
                         .format(node.func.id, len(node.args), MAX_ARGS))
                 target = self.popValue()
                 control = self.popValue()
+                negatedControlQubits = getNegatedControlQubits([control])
                 checkControlAndTargetTypes([control], [target])
                 param = self.popValue()
                 self.valueStack.popFrame()
@@ -2229,7 +2269,8 @@ class PyASTBridge(ast.NodeVisitor):
                 # Map `crx` to `RxOp`...
                 opCtor = getattr(
                     quake, '{}Op'.format(node.func.id.title()[1:].capitalize()))
-                opCtor([], [param], [control], [target])
+                opCtor([], [param], [control], [target],
+                       negated_qubit_controls=negatedControlQubits)
                 return
 
             if self.__isAdjointSimpleGate(node.func.id):
@@ -2729,9 +2770,19 @@ class PyASTBridge(ast.NodeVisitor):
 
                     if node.func.attr in ['float64', 'float32']:
                         if node.func.attr == 'float64':
-                            ty = self.getFloatType()
+                            ty = self.getFloatType(width=64)
                         if node.func.attr == 'float32':
                             ty = self.getFloatType(width=32)
+
+                        value = self.changeOperandToType(ty, value)
+                        self.pushValue(value)
+                        return
+
+                    if node.func.attr in ['int64', 'int32']:
+                        if node.func.attr == 'int64':
+                            ty = self.getIntegerType(width=64)
+                        if node.func.attr == 'int32':
+                            ty = self.getIntegerType(width=32)
 
                         value = self.changeOperandToType(ty, value)
                         self.pushValue(value)
@@ -2745,7 +2796,8 @@ class PyASTBridge(ast.NodeVisitor):
                         elif IntegerType.isinstance(value.type):
                             value = self.changeOperandToType(
                                 self.getFloatType(), value)
-                        else:
+                        elif not F64Type.isinstance(value.type) and \
+                            not F32Type.isinstance(value.type):
                             self.emitFatalError(
                                 "invalid type {} for call to numpy function {}".
                                 format(value.type, node.func.attr), node)
@@ -2804,7 +2856,7 @@ class PyASTBridge(ast.NodeVisitor):
                         f"unsupported NumPy call ({node.func.attr})", node)
 
                 self.valueStack.pushFrame()
-                self.generic_visit(node)
+                [self.visit(arg) for arg in node.args]
 
                 if node.func.value.id == 'cudaq':
                     if node.func.attr == 'complex':
@@ -2888,6 +2940,7 @@ class PyASTBridge(ast.NodeVisitor):
                             # TODO: Dynamically check if number of qubits is power of 2
                             # and if the state is normalized
 
+                            ptrTy = cc.PointerType.get(eleTy)
                             arrTy = cc.ArrayType.get(eleTy)
                             ptrArrTy = cc.PointerType.get(arrTy)
                             veqTy = quake.VeqType.get()
@@ -3048,14 +3101,7 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 'controlled operation requested without any control argument(s).',
                                 node)
-                        negatedControlQubits = None
-                        if len(self.controlNegations):
-                            negCtrlBools = [None] * len(controls)
-                            for i, c in enumerate(controls):
-                                negCtrlBools[i] = c in self.controlNegations
-                            negatedControlQubits = DenseBoolArrayAttr.get(
-                                negCtrlBools)
-                            self.controlNegations.clear()
+                        negatedControlQubits = getNegatedControlQubits(controls)
 
                         opCtor = getattr(
                             quake, '{}Op'.format(node.func.value.id.title()))
@@ -3109,10 +3155,13 @@ class PyASTBridge(ast.NodeVisitor):
                         self.emitFatalError(
                             'controlled operation requested without any control argument(s).',
                             node)
+                    negatedControlQubits = getNegatedControlQubits(controls)
                     opCtor = getattr(quake,
                                      '{}Op'.format(node.func.value.id.title()))
                     checkControlAndTargetTypes(controls, [targetA, targetB])
-                    opCtor([], [], controls, [targetA, targetB])
+                    opCtor([], [],
+                           controls, [targetA, targetB],
+                           negated_qubit_controls=negatedControlQubits)
                     return
 
                 if self.__isRotationGate(node.func.value.id):
@@ -3129,6 +3178,7 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 'controlled operation requested without any control argument(s).',
                                 node)
+                        negatedControlQubits = getNegatedControlQubits(controls)
                         if IntegerType.isinstance(param.type):
                             param = arith.SIToFPOp(self.getFloatType(),
                                                    param).result
@@ -3139,7 +3189,9 @@ class PyASTBridge(ast.NodeVisitor):
                         opCtor = getattr(
                             quake, '{}Op'.format(node.func.value.id.title()))
                         checkControlAndTargetTypes(controls, [target])
-                        opCtor([], [param], controls, [target])
+                        opCtor([], [param],
+                               controls, [target],
+                               negated_qubit_controls=negatedControlQubits)
                         return
 
                     if node.func.attr == 'adj':
@@ -3197,6 +3249,7 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 'controlled operation requested without any control argument(s).',
                                 node)
+                        negatedControlQubits = getNegatedControlQubits(controls)
                         params = other_args[-3:]
                         params.reverse()
                         for idx, val in enumerate(params):
@@ -3207,14 +3260,6 @@ class PyASTBridge(ast.NodeVisitor):
                                 self.emitFatalError(
                                     'rotational parameter must be a float, or int.',
                                     node)
-                        negatedControlQubits = None
-                        if len(self.controlNegations):
-                            negCtrlBools = [None] * len(controls)
-                            for i, c in enumerate(controls):
-                                negCtrlBools[i] = c in self.controlNegations
-                            negatedControlQubits = DenseBoolArrayAttr.get(
-                                negCtrlBools)
-                            self.controlNegations.clear()
 
                         checkControlAndTargetTypes(controls, [target])
                         opCtor([],
@@ -3301,14 +3346,7 @@ class PyASTBridge(ast.NodeVisitor):
                             self.emitFatalError(
                                 'controlled operation requested without any control argument(s).',
                                 node)
-                        negatedControlQubits = None
-                        if len(self.controlNegations):
-                            negCtrlBools = [None] * len(controls)
-                            for i, c in enumerate(controls):
-                                negCtrlBools[i] = c in self.controlNegations
-                            negatedControlQubits = DenseBoolArrayAttr.get(
-                                negCtrlBools)
-                            self.controlNegations.clear()
+                        negatedControlQubits = getNegatedControlQubits(controls)
                     if node.func.attr == 'adj':
                         is_adj = True
 
@@ -3542,6 +3580,22 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(pyval, ast.UnaryOp) and \
                 isinstance(pyval.op, ast.Not):
                 return IntegerType.get_signless(1)
+            elif isinstance(pyval, ast.BinOp):
+                # division and power are special, everything else
+                # strictly creates a value of superior type
+                if isinstance(pyval.op, ast.Pow):
+                    # determining the correct type is messy, left as TODO for now...
+                    self.emitFatalError(
+                        "BinOp.Pow is not currently supported in list comprehension expressions",
+                        node)
+                leftTy = get_item_type(pyval.left)
+                rightTy = get_item_type(pyval.right)
+                superiorTy = self.__get_superior_type(leftTy, rightTy)
+                # division converts integer type to `FP64` and preserves the superior type otherwise
+                if isinstance(pyval.op,
+                              ast.Div) and IntegerType.isinstance(superiorTy):
+                    return F64Type.get()
+                return superiorTy
             else:
                 self.emitFatalError(
                     "Only variables, constants, and some calls can be used to populate values in list comprehension expressions",
@@ -3605,37 +3659,43 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError(
                 "creating empty lists is not supported in CUDA-Q", node)
 
-        self.valueStack.pushFrame()
-        self.generic_visit(node)
+        listElementValues = []
+        for element in node.elts:
+            if isinstance(element, ast.Starred):
+                self.valueStack.pushFrame()
+                self.visit(element.value)
+                evalElem = self.popValue()
+                self.valueStack.popFrame()
+                if not quake.VeqType.isinstance(evalElem.type):
+                    self.emitFatalError(
+                        "unpack operator `*` is only supported on qvectors",
+                        node)
+                listElementValues.append(evalElem)
+            else:
+                self.valueStack.pushFrame()
+                self.visit(element)
+                # We do not store lists of pointers
+                evalElem = self.ifPointerThenLoad(self.popValue())
+                self.valueStack.popFrame()
+                if self.isQuantumType(
+                        evalElem.type) and not quake.RefType.isinstance(
+                            evalElem.type):
+                    self.emitFatalError(
+                        "list must not contain a qvector or quantum struct - use `*` operator to unpack qvectors",
+                        node)
+                listElementValues.append(evalElem)
 
-        listElementValues = [self.popValue() for _ in range(len(node.elts))]
-        listElementValues.reverse()
-        self.valueStack.popFrame()
-
-        valueTys = [
-            quake.VeqType.isinstance(v.type) or quake.RefType.isinstance(v.type)
-            for v in listElementValues
-        ]
-        if False not in valueTys:
-            # this is a list of quantum types,
-            # concatenate them into a `veq`
-
-            # FIXME: REALLY?? 
-            # FLATTENING A LIST OF VECTORS AND ITEMS IS NOT PROPER PYTHON BEHAVIOR
-            # INSTEAD, WE SHOULD SUPPORT A PROPER CONCATENATION...
+        numQuantumTs = sum(
+            (self.isQuantumType(v.type) for v in listElementValues))
+        if numQuantumTs != 0:
             if len(listElementValues) == 1:
                 self.pushValue(listElementValues[0])
-            else:
-                self.pushValue(
-                    quake.ConcatOp(self.getVeqType(), listElementValues).result)
+                return
+            if numQuantumTs != len(listElementValues):
+                self.emitFatalError("non-homogenous list not allowed", node)
+            self.pushValue(
+                quake.ConcatOp(self.getVeqType(), listElementValues).result)
             return
-
-        # We do not store lists of pointers
-        listElementValues = [
-            cc.LoadOp(ele).result
-            if cc.PointerType.isinstance(ele.type) else ele
-            for ele in listElementValues
-        ]
 
         # not a list of quantum types
         # Get the first element
@@ -3877,7 +3937,14 @@ class PyASTBridge(ast.NodeVisitor):
                                     node)
             return idxValue
 
+        # We allow subscripts into `Structs`, but only if we don't need a pointer
+        # (i.e. no updating of Tuples).
         if cc.StructType.isinstance(var.type):
+            if self.subscriptPushPointerValue:
+                self.emitFatalError(
+                    "indexing into tuple or dataclass must not modify value",
+                    node)
+
             # Handle the case where we have a tuple member extraction, memory semantics
             memberTys = cc.StructType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
@@ -3894,10 +3961,14 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(cc.LoadOp(eleAddr).result)
             return
 
-        # Let's allow subscripts into `Struqs``, but only if we don't need a pointer
+        # Let's allow subscripts into `Struqs`, but only if we don't need a pointer
         # (i.e. no updating of `Struqs`).
-        if not self.subscriptPushPointerValue and \
-            quake.StruqType.isinstance(var.type):
+        if quake.StruqType.isinstance(var.type):
+            if self.subscriptPushPointerValue:
+                self.emitFatalError(
+                    "indexing into quantum tuple or dataclass must not modify value",
+                    node)
+
             memberTys = quake.StruqType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
 
@@ -4398,6 +4469,9 @@ class PyASTBridge(ast.NodeVisitor):
         # To understand the integer attributes used here (the predicates)
         # see `arith::CmpIPredicate` and `arith::CmpFPredicate`.
 
+        # To understand the integer attributes used here (the predicates)
+        # see `arith::CmpIPredicate` and `arith::CmpFPredicate`.
+
         if self.getIntegerType(1) != condition.type:
             if IntegerType.isinstance(condition.type):
                 condPred = IntegerAttr.get(self.getIntegerType(), 1)
@@ -4552,6 +4626,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.controlNegations.append(operand)
                 self.pushValue(operand)
                 return
+            else:
+                self.emitFatalError(
+                    "unary operator ~ is only supported for values of type qubit",
+                    node)
 
         if isinstance(node.op, ast.USub):
             # Make our lives easier for -1 used in variable subscript extraction
@@ -4621,19 +4699,13 @@ class PyASTBridge(ast.NodeVisitor):
         MLIR. This method handles arithmetic operations between values. 
         """
 
-        if cc.PointerType.isinstance(left.type):
-            left = cc.LoadOp(left).result
-        if cc.PointerType.isinstance(right.type):
-            right = cc.LoadOp(right).result
+        left = self.ifPointerThenLoad(left)
+        right = self.ifPointerThenLoad(right)
 
-        if not self.isArithmeticType(left.type) or not self.isArithmeticType(
-                right.type):
-            self.emitFatalError(
-                "Invalid type for Binary Op {} ({}, {})".format(
-                    nodeType, left, right), self.currentNode)
-
-        # Type promotion for addition, subtraction, multiplication, or division
-        if issubclass(nodeType, (ast.Add, ast.Sub, ast.Mult, ast.Div)):
+        # type promotion for anything except pow to match Python behavior
+        if not issubclass(
+                nodeType,
+            (ast.Pow, ast.Mod)):  # FIXME: remove modulo here and fix it below
             superiorTy = self.__get_superior_type(left.type, right.type)
             if superiorTy is not None:
                 left = self.changeOperandToType(superiorTy,
@@ -4642,6 +4714,14 @@ class PyASTBridge(ast.NodeVisitor):
                 right = self.changeOperandToType(superiorTy,
                                                  right,
                                                  allowDemotion=False)
+
+        # Note: including support for any non-arithmetic types
+        # (e.g. addition on lists) needs to be tested/implemented
+        # also when used in list comprehension expressions.
+        if not self.isArithmeticType(left.type) or not self.isArithmeticType(
+                right.type):
+            self.emitFatalError(f'Invalid type for {nodeType}',
+                                self.currentNode)
 
         # Based on the op type and the leaf types, create the MLIR operator
         if issubclass(nodeType, ast.Add):
@@ -4685,13 +4765,12 @@ class PyASTBridge(ast.NodeVisitor):
         if issubclass(nodeType, ast.Div):
             if IntegerType.isinstance(left.type):
                 left = arith.SIToFPOp(self.getFloatType(), left).result
-            if IntegerType.isinstance(right.type):
                 right = arith.SIToFPOp(self.getFloatType(), right).result
-            elif F64Type.isinstance(left.type) or \
+            if F64Type.isinstance(left.type) or \
                 F32Type.isinstance(left.type):
                 self.pushValue(arith.DivFOp(left, right).result)
                 return
-            if ComplexType.isinstance(left.type):
+            elif ComplexType.isinstance(left.type):
                 self.pushValue(complex.DivOp(left, right).result)
                 return
             else:
@@ -4736,32 +4815,21 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.currentNode)
 
         if issubclass(nodeType, ast.Mod):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                self.pushValue(arith.RemUIOp(left, right).result)
-                return
-            if IntegerType.isinstance(right.type):
-                if F32Type.isinstance(left.type) or F64Type.isinstance(
-                        left.type):
-                    right = arith.SIToFPOp(left.type, right).result
-            if IntegerType.isinstance(left.type):
-                if F32Type.isinstance(right.type) or F64Type.isinstance(
-                        right.type):
-                    left = arith.SIToFPOp(right.type, left).result
-            if F64Type.isinstance(left.type) or \
-                F32Type.isinstance(left.type):
-                self.pushValue(arith.RemFOp(left, right).result)
-                return
-            else:
-                self.emitFatalError(
-                    "unhandled BinOp.Mod types; only integers are supported",
-                    self.currentNode)
+            # FIXME: This should be revised to
+            # 1) properly fail when we have a complex number
+            # 2) use `arith.RemFOp` for floating point
+            # (these changes are split out into a separate PR
+            # per review request)
+            if F64Type.isinstance(left.type):
+                left = arith.FPToSIOp(self.getIntegerType(), left).result
+            if F64Type.isinstance(right.type):
+                right = arith.FPToSIOp(self.getIntegerType(), right).result
+
+            self.pushValue(arith.RemUIOp(left, right).result)
+            return
 
         if issubclass(nodeType, ast.LShift):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.ShLIOp(left, right).result)
                 return
             else:
@@ -4770,10 +4838,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.RShift):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.ShRSIOp(left, right).result)
                 return
             else:
@@ -4782,10 +4847,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.BitAnd):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.AndIOp(left, right).result)
                 return
             else:
@@ -4794,10 +4856,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.BitOr):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.OrIOp(left, right).result)
                 return
             else:
@@ -4806,10 +4865,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentNode)
 
         if issubclass(nodeType, ast.BitXor):
-            if IntegerType.isinstance(left.type) and IntegerType.isinstance(
-                    right.type):
-                left = self.changeOperandToType(self.getIntegerType(), left)
-                right = self.changeOperandToType(self.getIntegerType(), right)
+            if IntegerType.isinstance(left.type):
                 self.pushValue(arith.XOrIOp(left, right).result)
                 return
             else:
@@ -4873,17 +4929,6 @@ class PyASTBridge(ast.NodeVisitor):
         table.
         """
 
-        if node.id in globalKernelRegistry:
-            return
-
-        if node.id == 'complex':
-            self.pushValue(self.getComplexType())
-            return
-
-        if node.id == 'float':
-            self.pushValue(self.getFloatType())
-            return
-
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
             if cc.PointerType.isinstance(value.type):
@@ -4921,12 +4966,17 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if isinstance(value, (list, np.ndarray)) and isinstance(
-                    value[0], (int, bool, float, np.float32, np.float64,
-                               complexType, np.complex64, np.complex128)):
+                    value[0],
+                (int, bool, float, np.int32, np.int64, np.float32, np.float64,
+                 complexType, np.complex64, np.complex128)):
                 elementValues = None
                 if isinstance(value[0], bool):
                     elementValues = [self.getConstantInt(el, 1) for el in value]
-                elif isinstance(value[0], int):
+                elif isinstance(value[0], np.int32):
+                    elementValues = [
+                        self.getConstantInt(el, width=32) for el in value
+                    ]
+                elif isinstance(value[0], (int, np.int64)):
                     elementValues = [self.getConstantInt(el) for el in value]
                 elif isinstance(value[0], np.float32):
                     elementValues = [
@@ -4958,7 +5008,9 @@ class PyASTBridge(ast.NodeVisitor):
             self.dependentCaptureVars[node.id] = value
             if isinstance(value, bool):
                 mlirValCreator = lambda: self.getConstantInt(value, 1)
-            elif isinstance(value, int):
+            elif isinstance(value, np.int32):
+                mlirValCreator = lambda: self.getConstantInt(value, width=32)
+            elif isinstance(value, (int, np.int64)):
                 mlirValCreator = lambda: self.getConstantInt(value)
             elif isinstance(value, np.float32):
                 mlirValCreator = lambda: self.getConstantFloat(value, width=32)
@@ -5006,9 +5058,27 @@ class PyASTBridge(ast.NodeVisitor):
             except TypeError:
                 pass
 
-            self.emitFatalError(
-                f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
-                node)
+            if node.id not in globalKernelRegistry and \
+                node.id not in globalRegisteredOperations:
+                self.emitFatalError(
+                    f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
+                    node)
+
+        if node.id in globalKernelRegistry or \
+            node.id in globalRegisteredOperations:
+            return
+
+        if self.__isUnitaryGate(node.id) or \
+            self.__isMeasurementGate(node.id):
+            return
+
+        if node.id == 'complex':
+            self.pushValue(self.getComplexType())
+            return
+
+        if node.id == 'float':
+            self.pushValue(self.getFloatType())
+            return
 
         # Throw an exception for the case that the name is not
         # in the symbol table

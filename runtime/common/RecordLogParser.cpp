@@ -52,7 +52,7 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
             handleOutput(cudaq::split(lines[j], '\t'));
         }
       } else {
-        CUDAQ_INFO("Discarding shot data due to non-zero END status.");
+        CUDAQ_DBG("Discarding shot data due to non-zero END status.");
       }
       processingShot = false;
       shotStart = 0;
@@ -103,6 +103,7 @@ void cudaq::RecordLogParser::handleOutput(
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
+  cudaq::trim(recLabel);
   if (recType == "RESULT") {
     // Sample-type QIR output, where we have an array of `RESULT` per shot. For
     // example,
@@ -128,11 +129,18 @@ void cudaq::RecordLogParser::handleOutput(
       preallocateArray();
     }
 
-    // Note: we expect the results are sequential in the same order that mz
-    // operations are called. This may include results in named registers
-    // (specified in kernel code) and other auto-generated register names.
-    processArrayEntry(recValue,
-                      fmt::format("[{}]", containerMeta.processedElements));
+    // Get the index from the label, if available.
+    if (!recLabel.empty() && recLabel[0] == 'r' && recLabel.back() >= '0' &&
+        recLabel.back() <= '9') {
+      recLabel = recLabel.substr(1);
+    } else {
+      // Note: we expect the results are sequential in the same order that mz
+      // operations are called. This may include results in named registers
+      // (specified in kernel code) and other auto-generated register names.
+      recLabel = std::to_string(containerMeta.processedElements);
+    }
+
+    processArrayEntry(recValue, fmt::format("[{}]", recLabel));
     containerMeta.processedElements++;
     return;
   }

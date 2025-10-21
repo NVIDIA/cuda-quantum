@@ -545,6 +545,7 @@ static bool isSupportedRecursiveSpan(cudaq::cc::StdvecType ty) {
 Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
                       llvm::DataLayout &layout) {
   auto *ctx = builder.getContext();
+  auto unknownLoc = builder.getUnknownLoc();
   return TypeSwitch<Type, Value>(ty)
       .Case([&](IntegerType intTy) -> Value {
         auto width = intTy.getIntOrFloatBitWidth();
@@ -560,8 +561,9 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         case 64:
           return genConstant(builder, *static_cast<std::int64_t *>(p));
         default:
-          throw std::runtime_error("unsupported integer width " +
-                                   std::to_string(width));
+          mlir::emitError(unknownLoc,
+                          "unsupported integer width " + std::to_string(width));
+          return {};
         }
       })
       .Case([&](Float32Type fltTy) {
@@ -638,8 +640,15 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
     return {};
   unsigned stepBy = 0;
   std::function<Attribute(char *)> genAttr;
+  auto unknownLoc = builder.getUnknownLoc();
   if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
     stepBy = sizeof(VectorType);
+    if (auto intTy = dyn_cast<IntegerType>(innerTy.getElementType())) {
+      if (intTy.getWidth() == 1)
+        mlir::emitError(
+            unknownLoc,
+            "std::vector<std::vector<bool>> is not currently supported");
+    }
     genAttr = [&](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout);
     };
@@ -668,8 +677,8 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
         val = *(reinterpret_cast<std::uint64_t *>(p));
         break;
       default:
-        throw std::runtime_error("unsupported integer width " +
-                                 std::to_string(width));
+        mlir::emitError(unknownLoc,
+                        "unsupported integer width " + std::to_string(width));
       }
       return IntegerAttr::get(intTy, val);
     };
@@ -881,6 +890,7 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
       dataLayoutSpec = cast<StringAttr>(attr);
     llvm::DataLayout dataLayout{dataLayoutSpec};
 
+    auto unknownLoc = builder.getUnknownLoc();
     auto subst =
         TypeSwitch<Type, cc::ArgumentSubstitutionOp>(argTy)
             .Case([&](IntegerType intTy) -> cc::ArgumentSubstitutionOp {
@@ -897,8 +907,9 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               case 64:
                 return buildSubst(*static_cast<std::int64_t *>(argPtr));
               default:
-                throw std::runtime_error("unsupported integer width " +
-                                         std::to_string(width));
+                mlir::emitError(unknownLoc, "unsupported integer width " +
+                                                std::to_string(width));
+                return {};
               }
             })
             .Case([&](Float32Type fltTy) {

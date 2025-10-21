@@ -548,8 +548,6 @@ def test_list_comprehension_tuple():
     def kernel1() -> bool:
         first_idx = [i for i in range(3)]
         snd_idx = [i for i in range(3, 6)]
-        # [(i, i + 3) for i in range(3)] is currently not supported
-        # since inferring the type of an expression i + 3 is not implemented
         pairs = [(first_idx[i], snd_idx[i]) for i in range(3)]
         correct = True
         for v1, v2 in pairs:
@@ -597,10 +595,26 @@ def test_list_comprehension_tuple():
     print(kernel3
          )  # keep after assert, such that we have no output if assert fails
 
+    @cudaq.kernel
+    def kernel4() -> bool:
+        # [(i, i + 3) for i in range(3)] is currently not supported
+        # since inferring the type of an expression i + 3 is not implemented
+        pairs = [(i, i + 3) for i in range(3)]
+        correct = True
+        for v1, v2 in pairs:
+            correct = correct and (v2 - v1 == 3)
+        return correct
+
+    out = cudaq.run(kernel4, shots_count=1)
+    assert (len(out) == 1 and out[0] == True)
+    print(kernel4
+         )  # keep after assert, such that we have no output if assert fails
+
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 
 def test_list_comprehension_indirect_tuple():
@@ -868,6 +882,20 @@ def test_list_comprehension_expressions():
     assert (len(out) == 1 and out[0] == True)
     print(kernel5
          )  # keep after assert, such that we have no output if assert fails
+
+    @cudaq.kernel
+    def kernel6() -> float:
+        vals1 = [0.5, 1.0, 1.5]
+        ang = [v * vals1[idx] for idx, v in enumerate(vals1[1:])]
+        sum = 0.
+        for a in ang:
+            sum += a
+        return sum
+
+    out = cudaq.run(kernel6, shots_count=1)
+    assert (len(out) == 1 and out[0] == 2.)
+    print(kernel6
+         )  # keep after assert, such that we have no output if assert fails
     '''
     # FIXME: This is exactly an example where the non-hierarchical nature of the value
     # stack leads to an incorrect error...
@@ -897,6 +925,7 @@ def test_list_comprehension_expressions():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel6() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 
 def test_list_comprehension_failures():

@@ -187,15 +187,20 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=11.11 && \
-        cusparse_version=11.7 && \
-        sed -i "s/-cu12/-cu11/g" pyproject.toml && \
-        sed -i "s/-cuda12/-cuda11/g" pyproject.toml && \
+    if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
+        cublas_version=12.0 && \
+        cusolver_version=11.4 && \
+        cuda_runtime_version=12.0 && \
+        cuda_nvrtc_version=12.0 && \
+        cupy_version=13.4.1 && \
+        sed -i "s/-cu13/-cu12/g" pyproject.toml && \
+        sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
+        sed -i -E "s/cupy-cuda[0-9]+x/cupy-cuda12x/g" pyproject.toml && \
+        sed -i -E "s/(cupy-cuda[0-9]+x? ~= )[0-9\.]*/\1${cupy_version}/g" pyproject.toml && \
         sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cusparse-cu[0-9]* ~= )[0-9\.]*/\1${cusparse_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml; \
+        sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_nvrtc_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml; \
     fi && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
