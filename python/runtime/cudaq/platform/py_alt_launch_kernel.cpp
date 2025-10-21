@@ -120,7 +120,6 @@ OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
   auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
                                py::object &arg) {
     if (py::hasattr(arg, "module") || py::hasattr(arg, "__call__")) {
-      printf("Handling callable argument.\n");
       // Just give it some dummy data that will not be used.
       // We synthesize away all callables, the block argument
       // remains but it is not used, so just give argsCreator
@@ -961,7 +960,6 @@ void bindAltLaunchKernel(py::module &mod,
   auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
                                py::object &arg) {
     if (py::hasattr(arg, "module") || py::hasattr(arg, "__call__")) {
-      printf("Handling callable argument.\n");
       // Just give it some dummy data that will not be used.
       // We synthesize away all callables, the block argument
       // remains but it is not used, so just give argsCreator

@@ -2555,17 +2555,22 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(stackSlot)
                 return
             # Check generic callable objects that may be C++ kernels
-            elif hasattr(var, '__call__') and hasattr(var, '__module__') and hasattr(var, '__name__'):
-                    # This is a callable object, likely a C++ kernel
-                    devKey = f"{var.__module__}.{var.__name__}"
-                    if cudaq_runtime.isRegisteredDeviceModule(devKey):
-                        maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                            self.module, devKey)
-                        if maybeKernelName != None:
-                            otherKernel = SymbolTable(
-                                self.module.operation)[maybeKernelName]
-                            processFunctionCall(otherKernel.type, len(node.args))
-                            return
+            elif hasattr(var, '__call__'):
+                # This is a callable object, which could be a C++ kernel
+                # Get the full module + name key and see if it is registered
+                modulePath = str(var.__module__) if hasattr(
+                    var, '__module__') else ''
+                funcName = str(var.__name__) if hasattr(
+                    var, '__name__') else ''
+                devKey = f"{modulePath}.{funcName}"
+                if cudaq_runtime.isRegisteredDeviceModule(devKey):
+                    maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
+                        self.module, devKey)
+                    if maybeKernelName != None:
+                        otherKernel = SymbolTable(
+                            self.module.operation)[maybeKernelName]
+                        processFunctionCall(otherKernel.type, len(node.args))
+                        return
             else:
                 self.emitFatalError(
                     "unhandled function call - {}, known kernels are {}".format(
