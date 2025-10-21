@@ -61,8 +61,8 @@ protected:
   /// for speed)
   bool is_msm_mode = false;
 
-  /// @brief Whether or not the execution context name is "generate_data" (value is
-  /// cached for speed)
+  /// @brief Whether or not the execution context name is "generate_data" (value
+  /// is cached for speed)
   bool is_generate_data_mode = false;
   std::size_t replay_columns = 0;
 
@@ -72,7 +72,7 @@ protected:
   size_t noise_application_index = 0;
   size_t last_column_touched = 0;
 
-  ExecutionContext* exe_ctx;
+  ExecutionContext *exe_ctx;
 
   ErrorLogType error_log;
 
@@ -163,36 +163,37 @@ protected:
     return std::nullopt;
   }
 
-std::pair<std::vector<std::vector<uint8_t>>, std::vector<std::vector<uint8_t>>> 
-get_x_z_tables_as_vectors(stim::FrameSimulator<W>* sampleSim) {
-    auto* executionContext = getExecutionContext();
+  std::pair<std::vector<std::vector<uint8_t>>,
+            std::vector<std::vector<uint8_t>>>
+  get_x_z_tables_as_vectors(stim::FrameSimulator<W> *sampleSim) {
+    auto *executionContext = getExecutionContext();
     auto batch_size = executionContext->shots;
     auto num_qubits = sampleSim->num_qubits;
 
     std::vector<std::vector<uint8_t>> x_run;
     std::vector<std::vector<uint8_t>> z_run;
-    
+
     x_run.reserve(batch_size);
     z_run.reserve(batch_size);
 
     for (size_t shot = 0; shot < batch_size; shot++) {
-        std::vector<uint8_t> x_shot(num_qubits);
-        std::vector<uint8_t> z_shot(num_qubits);
+      std::vector<uint8_t> x_shot(num_qubits);
+      std::vector<uint8_t> z_shot(num_qubits);
 
-        for (std::size_t q = 0; q < num_qubits; q++) {
-            x_shot[q] = sampleSim->x_table[q][shot] ? 1 : 0;
-            z_shot[q] = sampleSim->z_table[q][shot] ? 1 : 0;
-        }
+      for (std::size_t q = 0; q < num_qubits; q++) {
+        x_shot[q] = sampleSim->x_table[q][shot] ? 1 : 0;
+        z_shot[q] = sampleSim->z_table[q][shot] ? 1 : 0;
+      }
 
-        x_run.push_back(std::move(x_shot));
-        z_run.push_back(std::move(z_shot));
+      x_run.push_back(std::move(x_shot));
+      z_run.push_back(std::move(z_shot));
     }
 
     return std::make_pair(std::move(x_run), std::move(z_run));
-}
+  }
 
-
-std::vector<uint8_t> xor_vectors(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b) {
+  std::vector<uint8_t> xor_vectors(const std::vector<uint8_t> &a,
+                                   const std::vector<uint8_t> &b) {
     // Determine the length of the longer vector
     size_t max_size = std::max(a.size(), b.size());
 
@@ -205,69 +206,69 @@ std::vector<uint8_t> xor_vectors(const std::vector<uint8_t>& a, const std::vecto
 
     // Optional: print for debugging
     for (size_t i = 0; i < max_size; i++) {
-        printf("a[%zu] = %d, b[%zu] = %d\n", i, static_cast<int>(a_padded[i]), i, static_cast<int>(b_padded[i]));
+      printf("a[%zu] = %d, b[%zu] = %d\n", i, static_cast<int>(a_padded[i]), i,
+             static_cast<int>(b_padded[i]));
     }
 
     // XOR element-wise
     std::vector<uint8_t> result(max_size);
     for (size_t i = 0; i < max_size; ++i) {
-        result[i] = a_padded[i] ^ b_padded[i];
+      result[i] = a_padded[i] ^ b_padded[i];
     }
 
     return result;
-}
+  }
 
-/// @brief Find indices where vector elements equal 1
-std::vector<size_t> find_one_indices(const std::vector<uint8_t>& vec) const {
+  /// @brief Find indices where vector elements equal 1
+  std::vector<size_t> find_one_indices(const std::vector<uint8_t> &vec) const {
     std::vector<size_t> indices;
-    indices.reserve(vec.size());  // Optimize allocation
+    indices.reserve(vec.size()); // Optimize allocation
     for (size_t i = 0; i < vec.size(); i++) {
-        if (vec[i] == 1) {
-            indices.push_back(i);
-        }
+      if (vec[i] == 1) {
+        indices.push_back(i);
+      }
     }
     return indices;
-}
+  }
 
-StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
+  StimData serialize_frame_simulator(stim::FrameSimulator<W> *sampleSim) {
     StimData data;
 
-    auto* executionContext = getExecutionContext();
+    auto *executionContext = getExecutionContext();
     auto batch_size = executionContext->shots;
     std::cout << "batch_size: " << batch_size << "\n";
     std::size_t num_qubits = sampleSim->num_qubits;
 
     // 0: num_qubits
-    std::size_t* num_qubits_ptr = new std::size_t(num_qubits);
+    std::size_t *num_qubits_ptr = new std::size_t(num_qubits);
     std::cout << "num_qubits: " << *num_qubits_ptr << "\n";
     data.push_back({num_qubits_ptr, 1});
 
     // 1: msm_err_count
-    std::size_t* msm_err_count_ptr = new std::size_t(msm_err_count);
+    std::size_t *msm_err_count_ptr = new std::size_t(msm_err_count);
     std::cout << "msm_err_count: " << *msm_err_count_ptr << "\n";
     data.push_back({msm_err_count_ptr, 1});
 
     // 2,3: x_output and z_output
-    uint8_t* x_output = new uint8_t[num_qubits * batch_size];
-    uint8_t* z_output = new uint8_t[num_qubits * batch_size];
+    uint8_t *x_output = new uint8_t[num_qubits * batch_size];
+    uint8_t *z_output = new uint8_t[num_qubits * batch_size];
 
     for (int shot = 0; shot < batch_size; shot++) {
-        for (std::size_t q = 0; q < num_qubits; q++) {
-            printf("q %zu: x = %d, z = %d\n", q,
-                   static_cast<int>(sampleSim->x_table[q][shot]),
-                   static_cast<int>(sampleSim->z_table[q][shot]));
+      for (std::size_t q = 0; q < num_qubits; q++) {
+        printf("q %zu: x = %d, z = %d\n", q,
+               static_cast<int>(sampleSim->x_table[q][shot]),
+               static_cast<int>(sampleSim->z_table[q][shot]));
 
-            x_output[q + shot * num_qubits] = sampleSim->x_table[q][shot] ? 1 : 0;
-            z_output[q + shot * num_qubits] = sampleSim->z_table[q][shot] ? 1 : 0;
-        }
+        x_output[q + shot * num_qubits] = sampleSim->x_table[q][shot] ? 1 : 0;
+        z_output[q + shot * num_qubits] = sampleSim->z_table[q][shot] ? 1 : 0;
+      }
     }
 
     data.push_back({x_output, num_qubits * batch_size});
     data.push_back({z_output, num_qubits * batch_size});
 
     return data;
-}
-
+  }
 
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
@@ -281,7 +282,9 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "msm")
-      batch_size = executionContext->msm_dimensions.value_or(std::make_pair(1, 1)).second;
+      batch_size =
+          executionContext->msm_dimensions.value_or(std::make_pair(1, 1))
+              .second;
     else if (executionContext && executionContext->name == "generate_data")
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "replay_errors")
@@ -343,7 +346,8 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
       std::size_t anticipated_num_measurements = 0;
       std::size_t num_msm_cols = 0;
       if (is_msm_mode) {
-        auto dims = executionContext->msm_dimensions.value_or(std::make_pair(1, 1));
+        auto dims =
+            executionContext->msm_dimensions.value_or(std::make_pair(1, 1));
         anticipated_num_measurements = dims.first;
         num_msm_cols = dims.second;
         executionContext->msm_probabilities.emplace();
@@ -351,23 +355,23 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
         executionContext->msm_prob_err_id.emplace();
         executionContext->msm_prob_err_id->reserve(num_msm_cols);
       }
-      is_generate_data_mode = executionContext && 
-                              executionContext->name == "generate_data";
-      is_replay_errors_mode = executionContext && 
-                              executionContext->name == "replay_errors" && 
+      is_generate_data_mode =
+          executionContext && executionContext->name == "generate_data";
+      is_replay_errors_mode = executionContext &&
+                              executionContext->name == "replay_errors" &&
                               !executionContext->get_error_data().empty();
 
       if (is_generate_data_mode) {
-          CUDAQ_INFO("Generate data mode enabled");
-          noise_application_index = 0;      // Reset for generation
+        CUDAQ_INFO("Generate data mode enabled");
+        noise_application_index = 0; // Reset for generation
       }
 
       if (is_replay_errors_mode) {
-          CUDAQ_INFO("Replay errors mode enabled with {} logged errors", 
-                    executionContext->get_error_data().size());
-          noise_application_index = 0;      // Reset for replay matching
-          error_log_vec_index = 0;          // Reset replay cursor to start
-          last_column_touched = 0;
+        CUDAQ_INFO("Replay errors mode enabled with {} logged errors",
+                   executionContext->get_error_data().size());
+        noise_application_index = 0; // Reset for replay matching
+        error_log_vec_index = 0;     // Reset replay cursor to start
+        last_column_touched = 0;
       }
 
       // If possible, provide a non-empty stim::CircuitStats in order to avoid
@@ -380,7 +384,8 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
                  batch_size);
       // Bump the randomEngine before cloning and giving to the sample
       // simulator.
-      randomEngine.discard(std::uniform_int_distribution<int>(1, 30)(randomEngine));
+      randomEngine.discard(
+          std::uniform_int_distribution<int>(1, 30)(randomEngine));
 
       sampleSim = std::make_unique<stim::FrameSimulator<W>>(
           circuit_stats, stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY,
@@ -520,10 +525,11 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
         if (sampleSim->num_qubits < max_qubit + 1)
           applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
 
-        std::cout << "Applying noise operation " << res->stim_name << " to qubits ";
+        std::cout << "Applying noise operation " << res->stim_name
+                  << " to qubits ";
         stim::Circuit noiseOps;
-        noiseOps.safe_append_u(res.value().stim_name, qubits, channel.parameters);
-
+        noiseOps.safe_append_u(res.value().stim_name, qubits,
+                               channel.parameters);
 
         auto tables = get_x_z_tables_as_vectors(sampleSim.get());
         // Only apply the noise operations to the sample simulator (not the
@@ -531,7 +537,7 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
         sampleSim->safe_do_circuit(noiseOps);
 
         auto tables_after = get_x_z_tables_as_vectors(sampleSim.get());
-        
+
         // Initialize the log entry for this noise operation
         ErrorByShotLogEntry error_log_entry;
 
@@ -540,118 +546,122 @@ StimData serialize_frame_simulator(stim::FrameSimulator<W>* sampleSim) {
 
         // tables[0] = all X data, tables[1] = all Z data
         // Each is a vector of shots, each shot is a vector of qubits
-        const auto& x_before = tables.first;   // vector of shots
-        const auto& z_before = tables.second;
-        const auto& x_after = tables_after.first;
-        const auto& z_after = tables_after.second;
+        const auto &x_before = tables.first; // vector of shots
+        const auto &z_before = tables.second;
+        const auto &x_after = tables_after.first;
+        const auto &z_after = tables_after.second;
 
         // Process each shot
         for (size_t shot = 0; shot < batch_size; shot++) {
-            // XOR to find which qubits flipped in this shot
-            auto x_diff = xor_vectors(x_before[shot], x_after[shot]);
-            auto z_diff = xor_vectors(z_before[shot], z_after[shot]);
-            
-            // Extract the qubit indices where flips occurred
-            auto x_flipped_qubits = find_one_indices(x_diff);
-            auto z_flipped_qubits = find_one_indices(z_diff);
-            
-            // Debug output
-            if (!x_flipped_qubits.empty() || !z_flipped_qubits.empty()) {
-                CUDAQ_INFO("Shot {}: X errors on qubits [{}], Z errors on qubits [{}]",
-                          shot,
-                          fmt::join(x_flipped_qubits, ", "),
-                          fmt::join(z_flipped_qubits, ", "));
-            }
-            
-            // Store the indices for this shot (even if empty - maintains shot alignment)
-            if (!x_flipped_qubits.empty() && !z_flipped_qubits.empty()) {
-              error_log_entry.first.push_back(x_flipped_qubits);
-              error_log_entry.second.push_back(z_flipped_qubits);
-              replay_columns += 2;
-            }
+          // XOR to find which qubits flipped in this shot
+          auto x_diff = xor_vectors(x_before[shot], x_after[shot]);
+          auto z_diff = xor_vectors(z_before[shot], z_after[shot]);
+
+          // Extract the qubit indices where flips occurred
+          auto x_flipped_qubits = find_one_indices(x_diff);
+          auto z_flipped_qubits = find_one_indices(z_diff);
+
+          // Debug output
+          if (!x_flipped_qubits.empty() || !z_flipped_qubits.empty()) {
+            CUDAQ_INFO(
+                "Shot {}: X errors on qubits [{}], Z errors on qubits [{}]",
+                shot, fmt::join(x_flipped_qubits, ", "),
+                fmt::join(z_flipped_qubits, ", "));
+          }
+
+          // Store the indices for this shot (even if empty - maintains shot
+          // alignment)
+          if (!x_flipped_qubits.empty() && !z_flipped_qubits.empty()) {
+            error_log_entry.first.push_back(x_flipped_qubits);
+            error_log_entry.second.push_back(z_flipped_qubits);
+            replay_columns += 2;
+          }
         }
 
         // Record the entire batch of errors under one ID
         if (error_log_entry.first.empty() && error_log_entry.second.empty()) {
-            CUDAQ_INFO("No errors occurred for noise operation ID {}", error_log_vec_index);
+          CUDAQ_INFO("No errors occurred for noise operation ID {}",
+                     error_log_vec_index);
         } else {
-            CUDAQ_INFO("Recording errors for noise operation ID {}", error_log_vec_index);
-            executionContext->record_error_data(error_log_vec_index, error_log_entry);
-            executionContext->update_replay_columns(replay_columns);
+          CUDAQ_INFO("Recording errors for noise operation ID {}",
+                     error_log_vec_index);
+          executionContext->record_error_data(error_log_vec_index,
+                                              error_log_entry);
+          executionContext->update_replay_columns(replay_columns);
         }
-        
+
         error_log_vec_index++;
-      }
-      else if (is_replay_errors_mode) {
+      } else if (is_replay_errors_mode) {
         if (sampleSim->num_qubits < max_qubit + 1)
           applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
 
         // Ensure we have errors to replay
-        const auto& errors_to_replay = executionContext->get_error_data();
+        const auto &errors_to_replay = executionContext->get_error_data();
         if (errors_to_replay.empty()) {
-            CUDAQ_INFO("No errors to replay");
-            return;
+          CUDAQ_INFO("No errors to replay");
+          return;
         }
 
         // Check if we've exhausted the error log
         if (noise_application_index >= errors_to_replay.size()) {
-            CUDAQ_INFO("All logged errors have been replayed");
-            return;
+          CUDAQ_INFO("All logged errors have been replayed");
+          return;
         }
 
-        // wrong: CUDAQ_INFO("Replaying error entry {} of {}", noise_application_index, errors_to_replay.size());
+        // wrong: CUDAQ_INFO("Replaying error entry {} of {}",
+        // noise_application_index, errors_to_replay.size());
 
         // Fetch the error entry for this noise operation
-        const auto& error_entry = errors_to_replay[error_log_vec_index];
+        const auto &error_entry = errors_to_replay[error_log_vec_index];
         const size_t logged_error_id = std::get<0>(error_entry);
-        const auto& error_log_entry = std::get<1>(error_entry);
+        const auto &error_log_entry = std::get<1>(error_entry);
 
         // Verify this is the correct error to replay
         if (noise_application_index != logged_error_id) {
-            CUDAQ_INFO("Skipping - current noise application index {} doesn't match logged ID {}", 
-                      noise_application_index, logged_error_id);
-            noise_application_index++;
-            return;
+          CUDAQ_INFO("Skipping - current noise application index {} doesn't "
+                     "match logged ID {}",
+                     noise_application_index, logged_error_id);
+          noise_application_index++;
+          return;
         }
 
         // Extract X and Z error data
-        const auto& x_errors_per_shot = error_log_entry.first;
-        const auto& z_errors_per_shot = error_log_entry.second;
+        const auto &x_errors_per_shot = error_log_entry.first;
+        const auto &z_errors_per_shot = error_log_entry.second;
 
         // Get the number of shots to replay
         size_t num_shots = x_errors_per_shot.size();
-        CUDAQ_INFO("Replaying {} shots for error ID {}", num_shots, error_log_vec_index);
+        CUDAQ_INFO("Replaying {} shots for error ID {}", num_shots,
+                   error_log_vec_index);
 
         if (last_column_touched + num_shots > getBatchSize()) {
-            throw std::runtime_error(
-                fmt::format("Not enough columns in Stim FrameSimulator to replay errors. "
-                            "Needed {}, but only have {}.",
-                            last_column_touched + num_shots,
-                            getBatchSize()));
+          throw std::runtime_error(fmt::format(
+              "Not enough columns in Stim FrameSimulator to replay errors. "
+              "Needed {}, but only have {}.",
+              last_column_touched + num_shots, getBatchSize()));
         }
         // Apply the logged errors to each shot
         for (size_t shot = 0; shot < num_shots; shot++) {
-            const auto& x_qubits = x_errors_per_shot[shot];
-            const auto& z_qubits = z_errors_per_shot[shot];
-            
-            // Apply X errors
-            for (uint8_t qubit : x_qubits) {
-                sampleSim->x_table[qubit][last_column_touched + shot] ^= 1;
-                CUDAQ_INFO("  Shot {}: Applied X error to qubit {}", shot, qubit);
-            }
-            
-            // Apply Z errors
-            for (uint8_t qubit : z_qubits) {
-                sampleSim->z_table[qubit][last_column_touched + shot] ^= 1;
-                CUDAQ_INFO("  Shot {}: Applied Z error to qubit {}", shot, qubit);
-            }
+          const auto &x_qubits = x_errors_per_shot[shot];
+          const auto &z_qubits = z_errors_per_shot[shot];
+
+          // Apply X errors
+          for (uint8_t qubit : x_qubits) {
+            sampleSim->x_table[qubit][last_column_touched + shot] ^= 1;
+            CUDAQ_INFO("  Shot {}: Applied X error to qubit {}", shot, qubit);
+          }
+
+          // Apply Z errors
+          for (uint8_t qubit : z_qubits) {
+            sampleSim->z_table[qubit][last_column_touched + shot] ^= 1;
+            CUDAQ_INFO("  Shot {}: Applied Z error to qubit {}", shot, qubit);
+          }
         }
         last_column_touched += num_shots;
         // Move to the next error entry
         noise_application_index++;
         error_log_vec_index++;
-      }
-      else {
+      } else {
         stim::Circuit noiseOps;
         noiseOps.safe_append_u(res.value().stim_name, qubits,
                                channel.parameters);
@@ -746,9 +756,10 @@ public:
     supportsBufferedSample = true;
 
     auto exe_ctx = getExecutionContext();
-    if (exe_ctx && exe_ctx->randomSeed != 0){
+    if (exe_ctx && exe_ctx->randomSeed != 0) {
       setRandomSeed(exe_ctx->randomSeed);
-      CUDAQ_INFO("Setting random seed to {} in Stim simulator", exe_ctx->randomSeed);
+      CUDAQ_INFO("Setting random seed to {} in Stim simulator",
+                 exe_ctx->randomSeed);
     }
   }
   virtual ~StimCircuitSimulator() = default;

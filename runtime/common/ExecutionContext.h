@@ -22,9 +22,9 @@
 #include "nvqir/stim/StimState.h"
 
 namespace cudaq {
-  using ErrorByShotLogEntry = std::pair<std::vector<std::vector<size_t>>, std::vector<std::vector<size_t>>> ;
-  using ErrorLogType = std::vector<std::tuple<size_t, ErrorByShotLogEntry>>;
-
+using ErrorByShotLogEntry = std::pair<std::vector<std::vector<size_t>>,
+                                      std::vector<std::vector<size_t>>>;
+using ErrorLogType = std::vector<std::tuple<size_t, ErrorByShotLogEntry>>;
 
 struct RecordStorage {
 
@@ -51,55 +51,52 @@ struct RecordStorage {
     }
   }
 
-void dump_error_data() const {
-  printf("=== Error Data Dump ===\n");
-  if (error_data.empty()) {
-    printf("(no error data)\n");
-    return;
-  }
+  void dump_error_data() const {
+    printf("=== Error Data Dump ===\n");
+    if (error_data.empty()) {
+      printf("(no error data)\n");
+      return;
+    }
 
-  for (const auto& [index, entry] : error_data) {
-    const auto& [x_errors, z_errors] = entry; // both are vector<vector<size_t>>
+    for (const auto &[index, entry] : error_data) {
+      const auto &[x_errors, z_errors] =
+          entry; // both are vector<vector<size_t>>
 
-    printf("\n---------------------------------------\n");
-    printf(" Error Index: %zu\n", index);
-    printf("---------------------------------------\n");
+      printf("\n---------------------------------------\n");
+      printf(" Error Index: %zu\n", index);
+      printf("---------------------------------------\n");
 
-    // X error sets
-    printf("  X Error Sets (%zu):\n", x_errors.size());
-    if (x_errors.empty()) {
-      printf("    (none)\n");
-    } else {
-      for (std::size_t i = 0; i < x_errors.size(); ++i) {
-        printf("    - Set %zu (%zu elements): ", i, x_errors[i].size());
-        for (const auto& q : x_errors[i])
-          printf("%zu ", q);
-        printf("\n");
+      // X error sets
+      printf("  X Error Sets (%zu):\n", x_errors.size());
+      if (x_errors.empty()) {
+        printf("    (none)\n");
+      } else {
+        for (std::size_t i = 0; i < x_errors.size(); ++i) {
+          printf("    - Set %zu (%zu elements): ", i, x_errors[i].size());
+          for (const auto &q : x_errors[i])
+            printf("%zu ", q);
+          printf("\n");
+        }
+      }
+
+      // Z error sets
+      printf("  Z Error Sets (%zu):\n", z_errors.size());
+      if (z_errors.empty()) {
+        printf("    (none)\n");
+      } else {
+        for (std::size_t i = 0; i < z_errors.size(); ++i) {
+          printf("    - Set %zu (%zu elements): ", i, z_errors[i].size());
+          for (const auto &q : z_errors[i])
+            printf("%zu ", q);
+          printf("\n");
+        }
       }
     }
 
-    // Z error sets
-    printf("  Z Error Sets (%zu):\n", z_errors.size());
-    if (z_errors.empty()) {
-      printf("    (none)\n");
-    } else {
-      for (std::size_t i = 0; i < z_errors.size(); ++i) {
-        printf("    - Set %zu (%zu elements): ", i, z_errors[i].size());
-        for (const auto& q : z_errors[i])
-          printf("%zu ", q);
-        printf("\n");
-      }
-    }
+    printf("\n=== End of Error Data ===\n");
   }
 
-  printf("\n=== End of Error Data ===\n");
-}
-
-
-
-
-
-  void record_error_data(const size_t index, const ErrorByShotLogEntry& entry) {
+  void record_error_data(const size_t index, const ErrorByShotLogEntry &entry) {
     error_data.emplace_back(index, entry);
   }
   ~RecordStorage() {
@@ -321,16 +318,17 @@ public:
 
   void dump_error_data() const { recordStorage.dump_error_data(); }
 
-void record_error_data(const size_t index, 
-                      const ErrorByShotLogEntry& entry) {
+  void record_error_data(const size_t index, const ErrorByShotLogEntry &entry) {
     recordStorage.record_error_data(index, entry);
-}
+  }
 
-  const auto& get_error_data() const { return recordStorage.error_data; }
-  void set_error_data(const ErrorLogType &data) { recordStorage.error_data = data; }
+  const auto &get_error_data() const { return recordStorage.error_data; }
+  void set_error_data(const ErrorLogType &data) {
+    recordStorage.error_data = data;
+  }
   void update_replay_columns(std::size_t cols) { replay_columns = cols; }
   std::size_t get_replay_columns() const { return replay_columns; }
 
-  void set_seed(std::size_t seed) { randomSeed  = seed; }
+  void set_seed(std::size_t seed) { randomSeed = seed; }
 };
 } // namespace cudaq
