@@ -1147,12 +1147,12 @@ q1 : ─────┤ x ├
         <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
     <span class="c1"># Measure and return total number of qubits in state |1⟩</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-            <span class="n">result</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="mi">1</span>
 
-    <span class="k">return</span> <span class="n">result</span>
+    <span class="k">return</span> <span class="n">res</span>
 
 
 <span class="c1"># Execute the kernel 20 times</span>
