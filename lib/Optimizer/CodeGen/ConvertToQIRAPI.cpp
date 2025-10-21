@@ -1524,11 +1524,10 @@ struct ReturnOpPattern : public OpConversionPattern<func::ReturnOp> {
   matchAndRewrite(func::ReturnOp op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<func::ReturnOp>(op, adaptor.getOperands());
-                  }
+    return success();
+  }
 };
 
-struct SaveStateOpRewrite
-    : public OpConversionPattern<quake::SaveStateOp> {
 struct SaveStateOpRewrite : public OpConversionPattern<quake::SaveStateOp> {
   using OpConversionPattern::OpConversionPattern;
 
