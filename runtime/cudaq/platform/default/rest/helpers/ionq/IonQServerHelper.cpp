@@ -70,6 +70,10 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
+  /// @brief extract the job shots url from jobs returned by Ion API
+  std::string getShotsUrl(nlohmann::json_v3_11_1::json &jobs, 
+                          const char *DEFAULT_URL);
+
 private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
@@ -126,6 +130,10 @@ void IonQServerHelper::initialize(BackendConfig config) {
     backendConfig["sharpen"] = config["sharpen"];
   if (config.find("format") != config.end())
     backendConfig["format"] = config["format"];
+
+  // Enable memory (return shot-wise bitstrings instead of counts)
+  if (config.find("memory") != config.end())
+    backendConfig["memory"] = config["memory"];
 }
 
 // Implementation of the getValueOrDefault function
@@ -351,6 +359,19 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobs[0].at("status").get<std::string>() == "completed";
 }
 
+std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs, 
+                                          const char *DEFAULT_URL) {
+  std::string shotsUrl = "";
+  if (
+      jobs[0].contains("results") &&
+      jobs[0].at("results").contains("shots") &&
+      jobs[0].at("results").at("shots").contains("url")) {
+      shotsUrl = std::string(DEFAULT_URL) + 
+        jobs[0].at("results").at("shots").at("url").get<std::string>();
+  }
+  return shotsUrl;
+}
+
 // Process the results from a job
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse,
@@ -448,9 +469,33 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     execResults.emplace_back(regCounts, info.registerName);
   }
 
+  auto shotsUrl = getShotsUrl(jobs, DEFAULT_URL);
+  printf("SHOTS URL: %s\n", shotsUrl.c_str());
+
+  auto res = getResults(shotsUrl);
+  printf("SHOT RESULTS %s", res.dump().c_str());
+
+  bool targetHasMemoryOption = keyExists("memory") && backendConfig["memory"] == "true";
+  if (targetHasMemoryOption) {
+
+    std::vector<std::string> bitStrings;
+
+    for (const auto &element : results.items()) {
+      uint64_t s = std::stoull(element.key());
+      std::string newkey = std::bitset<64>(s).to_string();
+      std::reverse(newkey.begin(), newkey.end()); // perform endian swap
+      newkey.resize(nQubits);
+      bitStrings.push_back(newkey);
+    }
+
+    if (!execResults.empty())
+        execResults[0].sequentialData = std::move(bitStrings);
+  }
+
   // Return a sample result including the global register and all individual
   // registers.
   auto ret = cudaq::sample_result(execResults);
+
   return ret;
 }
 
