@@ -44,7 +44,7 @@ def test_elif():
 # CHECK:             %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 # CHECK:             %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]]{{\[}}%[[VAL_9]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_12:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:             %[[VAL_13:.*]] = arith.sitofp %[[VAL_9]] : i64 to f64
+# CHECK:             %[[VAL_13:.*]] = cc.cast signed %[[VAL_9]] : (i64) -> f64
 # CHECK:             %[[VAL_14:.*]] = arith.remf %[[VAL_13]], %[[VAL_12]] : f64
 # CHECK:             %[[VAL_15:.*]] = arith.constant 0.000000e+00 : f64
 # CHECK:             %[[VAL_16:.*]] = arith.cmpf une, %[[VAL_14]], %[[VAL_15]] : f64
@@ -86,7 +86,7 @@ def test_elif():
 # CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
 # CHECK:             %[[VAL_11:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 # CHECK:             %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
-# CHECK:             %[[VAL_13:.*]] = arith.sitofp %[[VAL_10]] : i64 to f64
+# CHECK:             %[[VAL_13:.*]] = cc.cast signed %[[VAL_10]] : (i64) -> f64
 # CHECK:             %[[VAL_14:.*]] = arith.remf %[[VAL_13]], %[[VAL_1]] : f64
 # CHECK:             %[[VAL_15:.*]] = arith.cmpf une, %[[VAL_14]], %[[VAL]] : f64
 # CHECK:             cc.if(%[[VAL_15]]) {
