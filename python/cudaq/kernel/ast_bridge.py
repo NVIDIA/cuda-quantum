@@ -1157,7 +1157,13 @@ class PyASTBridge(ast.NodeVisitor):
         self.indent_level += 1
         parentNode = self.currentNode
         self.currentNode = node
+        self.valueStack.pushFrame()
         super().visit(node)
+        frame = self.valueStack.popFrame()
+        if len(frame) != 0:
+            self.valueStack.pushValue(frame.pop())
+        if len(frame) != 0:
+            self.emitFatalError("processing error - some values were not correctly processed")
         self.currentNode = parentNode
         self.indent_level -= 1
 
@@ -1191,7 +1197,6 @@ class PyASTBridge(ast.NodeVisitor):
         MLIR name, prefixed with the __nvqpp__mlirgen__ prefix.
         """
 
-        self.valueStack.pushFrame()
         if self.buildingEntryPoint:
             # This is an inner function def, we will
             # treat it as a cc.callable (cc.create_lambda)
@@ -1213,8 +1218,6 @@ class PyASTBridge(ast.NodeVisitor):
                 [self.visit(n) for n in node.body]
                 cc.ReturnOp([])
             self.symbolTable[node.name] = createLambda.result
-            #assert self.valueStack.currentNumValues == 0
-            self.valueStack.popFrame()
             return
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
@@ -1319,15 +1322,14 @@ class PyASTBridge(ast.NodeVisitor):
 
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
-            #assert self.valueStack.currentNumValues == 0
-            self.valueStack.popFrame()
-            if not self.valueStack.isEmpty:
+            # FIXME: ADD VALIDATIONS FOR THE STATE HERE
+            #if not self.valueStack.isEmpty:
                 # FIXME: if we support functions inside functions, 
                 # this is too early to check... -> check we have the same numbers
                 # of frames we had before, check we have zero frames after the module completes
                 # (also, we have an earlier return above that does not do this check)
                 # (also, we clearly don't have a test for functions inside functions)
-                raise RuntimeError(f'internal error in compilation of {node.name} - value stack should be empty')
+                #raise RuntimeError(f'internal error in compilation of {node.name} - value stack should be empty')
 
             self.knownResultType = parentResultType
 
@@ -1369,7 +1371,6 @@ class PyASTBridge(ast.NodeVisitor):
         if len(arguments):
             self.emitFatalError("CUDA-Q lambdas cannot have arguments.", node)
 
-        self.valueStack.pushFrame()
         ty = cc.CallableType.get([])
         createLambda = cc.CreateLambdaOp(ty)
         initBlock = Block.create_at_start(createLambda.initRegion, [])
@@ -1384,7 +1385,6 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(
                     node.body)  # only one statement in a python lambda :(
             cc.ReturnOp([])
-        self.valueStack.popFrame()
         self.pushValue(createLambda.result)
         return
 
@@ -1590,14 +1590,9 @@ class PyASTBridge(ast.NodeVisitor):
                         'ZError', 'XError', 'YError', 'Pauli1', 'Pauli2',
                         'Depolarization1', 'Depolarization2'
                 ]:
-                    cudaq_module = importlib.import_module('cudaq')
-                    channel_class = getattr(cudaq_module, node.attr)
-                    self.pushValue(
-                        self.getConstantInt(channel_class.num_parameters))
-                    self.pushValue(self.getConstantInt(hash(channel_class)))
-                    return
+                    self.emitFatalError("noise channels may only be used as part of call expressions", node)
 
-                # Any other cudaq attributes should be handled by the parent
+                # must be handled by the parent
                 return
 
             if node.attr == 'ctrl' or node.attr == 'adj':
@@ -2793,17 +2788,16 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                self.valueStack.pushFrame()
-                [self.visit(arg) for arg in node.args]
-
                 if node.func.value.id == 'cudaq':
                     if node.func.attr == 'complex':
                         # FIXME: CHECK THAT WE HAVE NO ARGUMENTS
                         self.pushValue(self.simulationDType())
-                        self.valueStack.popFrame()
                         return
 
                     if node.func.attr == 'amplitudes':
+                        # CHECK one arg
+                        self.valueStack.pushFrame()
+                        self.visit(node.args[0])
                         value = self.popValue()
                         self.valueStack.popFrame()
 
@@ -2820,11 +2814,14 @@ class PyASTBridge(ast.NodeVisitor):
                             node)
 
                     if node.func.attr == 'qvector':
-                        if self.valueStack.currentNumValues == 0:
+                        if len(node.args) == 0:
                             self.emitFatalError(
                                 'qvector does not have default constructor. Init from size or existing state.',
                                 node)
+                        # FIXME: OTHER NR ARGS NOT VALID
 
+                        self.valueStack.pushFrame()
+                        self.visit(node.args[0])
                         valueOrPtr = self.popValue()
                         self.valueStack.popFrame()
                         initializerTy = valueOrPtr.type
@@ -2912,42 +2909,52 @@ class PyASTBridge(ast.NodeVisitor):
                             node)
 
                     if node.func.attr == "qubit":
-                        if self.valueStack.currentNumValues != 0:
+                        if len(node.args) != 0:
                             self.emitFatalError(
                                 'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
                             )
-                        self.valueStack.popFrame()
                         self.pushValue(quake.AllocaOp(self.getRefType()).result)
                         return
 
                     if node.func.attr == 'adjoint' or node.func.attr == 'control':
+                        self.valueStack.pushFrame()
+                        [self.visit(arg) for arg in node.args]
                         processControlAndAdjoint(node.args[0], node.func.attr)
                         self.valueStack.popFrame()
                         return
 
                     if node.func.attr == 'apply_noise':
-                        # Pop off all the arguments we need
+
+                        # The first argument must be the Kraus channel
+                        # TODO: I AM NOT SURE CUSTOM REGISTERED CHANNELS WERE 
+                        # EVER PROPERLY PROCESSED BY THE BRIDGE...
+                        # FIXME check we have at least one arg
+
+                        supportedChannels = [
+                            'DepolarizationChannel', 'AmplitudeDampingChannel',
+                            'PhaseFlipChannel', 'BitFlipChannel', 'PhaseDamping',
+                            'ZError', 'XError', 'YError', 'Pauli1', 'Pauli2',
+                            'Depolarization1', 'Depolarization2'
+                        ]
+                        if isinstance(node.args[0], ast.Attribute) and \
+                            node.args[0].value.id == 'cudaq' and \
+                            node.args[0].attr in supportedChannels:
+
+                            cudaq_module = importlib.import_module('cudaq')
+                            channel_class = getattr(cudaq_module, node.args[0].attr)
+                            numParams = channel_class.num_parameters
+                            key = self.getConstantInt(hash(channel_class))
+                        else:
+                            self.emitFatalError("currently, only built-in channels are supported for apply_noise", node)
+                        
+
+                        self.valueStack.pushFrame()
+                        [self.visit(arg) for arg in node.args[1:]]
                         values = [
                             self.popValue() for _ in range(self.valueStack.currentNumValues)
                         ]
-                        self.valueStack.popFrame()
-
-                        # They are in reverse order
                         values.reverse()
-                        # First one should be the number of Kraus channel parameters
-                        numParamsVal = values[0]
-                        # Shrink the arguments down
-                        values = values[1:]
-
-                        # Need to get the number of parameters as an integer
-                        concreteIntAttr = IntegerAttr(
-                            numParamsVal.owner.attributes['value'])
-                        numParams = concreteIntAttr.value
-
-                        # Next Value is our generated key for the channel
-                        # Get it and shrink the list
-                        key = values[0]
-                        values = values[1:]
+                        self.valueStack.popFrame()
 
                         # Now we know the next `numParams` arguments are
                         # our Kraus channel parameters
@@ -2970,6 +2977,8 @@ class PyASTBridge(ast.NodeVisitor):
 
                     if node.func.attr == 'compute_action':
                         # There can only be 2 arguments here.
+                        # FIXME CHECK THAT WE HAVE TWO ARGS
+
                         action = None
                         compute = None
                         actionArg = node.args[1]
@@ -2982,7 +2991,10 @@ class PyASTBridge(ast.NodeVisitor):
                                     "could not find action lambda / function in the symbol table.",
                                     node)
                         else:
+                            self.valueStack.pushFrame()
+                            self.visit(actionArg)
                             action = self.popValue()
+                            self.valueStack.popFrame()
 
                         computeArg = node.args[0]
                         if isinstance(computeArg, ast.Name):
@@ -2994,9 +3006,11 @@ class PyASTBridge(ast.NodeVisitor):
                                     "could not find compute lambda / function in the symbol table.",
                                     node)
                         else:
+                            self.valueStack.pushFrame()
+                            self.visit(computeArg)
                             compute = self.popValue()
+                            self.valueStack.popFrame()
 
-                        self.valueStack.popFrame()
                         quake.ComputeActionOp(compute, action)
                         return
 
@@ -3023,6 +3037,9 @@ class PyASTBridge(ast.NodeVisitor):
                         return f'Did you mean {opName}.adj(...)?'
 
                     return ''
+
+                self.valueStack.pushFrame()
+                [self.visit(arg) for arg in node.args]
 
                 # We have a `func_name.ctrl`
                 if self.__isSimpleGate(node.func.value.id):
