@@ -271,8 +271,8 @@ def test_list_comprehension_list_of_constant():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i64
-# CHECK:            %[[VAL_1:.*]] = arith.constant true
+# CHECK-DAG:        %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK-DAG:        %[[VAL_1:.*]] = arith.constant true
 # CHECK:            %[[VAL_2:.*]] = cc.alloca !cc.array<!cc.stdvec<i1> x 5>
 # CHECK:            %[[VAL_3:.*]] = cc.alloca !cc.array<i1 x 1>
 # CHECK:            %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<i1 x 1>>) -> !cc.ptr<!cc.array<i1 x ?>>
@@ -283,8 +283,8 @@ def test_list_comprehension_list_of_constant():
 # CHECK:            cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.stdvec<i1>>
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i64
-# CHECK:            %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f64
+# CHECK-DAG:        %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK-DAG:        %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f64
 # CHECK:            %[[VAL_2:.*]] = cc.alloca !cc.array<!cc.stdvec<f64> x 5>
 # CHECK:            %[[VAL_3:.*]] = cc.alloca !cc.array<f64 x 1>
 # CHECK:            %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 1>>) -> !cc.ptr<!cc.array<f64 x ?>>
@@ -295,8 +295,8 @@ def test_list_comprehension_list_of_constant():
 # CHECK:            cc.store %[[VAL_6]], %[[VAL_7]] : !cc.ptr<!cc.stdvec<f64>>
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i64
-# CHECK:            %[[VAL_1:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
+# CHECK-DAG:        %[[VAL_0:.*]] = arith.constant 1 : i64
+# CHECK-DAG:        %[[VAL_1:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
 # CHECK:            %[[VAL_2:.*]] = cc.alloca !cc.array<!cc.stdvec<complex<f64>> x 5>
 # CHECK:            %[[VAL_3:.*]] = cc.alloca !cc.array<complex<f64> x 1>
 # CHECK:            %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<complex<f64> x 1>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>

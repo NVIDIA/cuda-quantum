@@ -839,6 +839,124 @@ def test_list_boundaries():
     assert len(counts) == 1
     assert '0101' in counts
 
+    @cudaq.kernel
+    def kernel7():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(2, 5)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel7)
+    assert len(counts) == 1
+    assert '00111' in counts
+
+    @cudaq.kernel
+    def kernel8():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(2, 6, 2)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel8)
+    assert len(counts) == 1
+    assert '00101' in counts
+
+    @cudaq.kernel
+    def kernel9():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(6, 2, 2)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel9)
+    assert len(counts) == 1
+    assert '00000' in counts
+
+    @cudaq.kernel
+    def kernel10():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(3, 0, -2)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel10)
+    assert len(counts) == 1
+    assert '01010' in counts
+
+    @cudaq.kernel
+    def kernel11():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(-5, -2, -2)]
+        for i in r:
+            x(qubits[i])
+
+    counts = cudaq.sample(kernel11)
+    assert len(counts) == 1
+    assert '00000' in counts
+
+    @cudaq.kernel
+    def kernel12():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(-1, -5, -2)]
+        for i in r:
+            x(qubits[-i])
+
+    counts = cudaq.sample(kernel12)
+    assert len(counts) == 1
+    assert '01010' in counts
+
+    @cudaq.kernel
+    def kernel13():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(1, -4, -1)]
+        for i in r:
+            if i < 0:
+                x(qubits[-i])
+            else:
+                x(qubits[i])
+
+    counts = cudaq.sample(kernel13)
+    assert len(counts) == 1
+    assert '10110' in counts
+
+    @cudaq.kernel
+    def kernel14():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(-2, 6, 2)]
+        for i in r:
+            if i < 0:
+                x(qubits[-i])
+            else:
+                x(qubits[i])
+
+    counts = cudaq.sample(kernel14)
+    assert len(counts) == 1
+    assert '10001' in counts
+
+    @cudaq.kernel
+    def kernel15():
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(1, 4, 0)]
+        for i in r:
+            x(qubits[i])
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel15)
+    assert "range step value must be non-zero" in str(e.value)
+    assert "offending source -> range(1, 4, 0)" in str(e.value)
+
+    @cudaq.kernel
+    def kernel16(v : int):
+        qubits = cudaq.qvector(5)
+        r = [i for i in range(1, 4, v)]
+        for i in r:
+            x(qubits[i])
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(kernel16)
+    assert "range step value must be a constant" in str(e.value)
+    assert "offending source -> range(1, 4, v)" in str(e.value)
+
 
 def test_array_value_assignment():
 
