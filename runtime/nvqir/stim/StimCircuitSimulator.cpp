@@ -251,8 +251,8 @@ protected:
     for (int shot = 0; shot < batch_size; shot++) {
       for (std::size_t q = 0; q < num_qubits; q++) {
         CUDAQ_INFO("q {}: x = {}, z = {}", q,
-                    static_cast<int>(sampleSim->x_table[q][shot]),
-                    static_cast<int>(sampleSim->z_table[q][shot]));
+                   static_cast<int>(sampleSim->x_table[q][shot]),
+                   static_cast<int>(sampleSim->z_table[q][shot]));
 
         x_output[q + shot * num_qubits] = sampleSim->x_table[q][shot] ? 1 : 0;
         z_output[q + shot * num_qubits] = sampleSim->z_table[q][shot] ? 1 : 0;
@@ -591,8 +591,10 @@ protected:
 
         error_log_vec_index++;
       } else if (is_replay_errors_mode) {
-        CUDAQ_INFO("In replay mode: Noise application index: {}", noise_application_index);
-        CUDAQ_INFO("Replaying errors for noise operation ID {}", error_log_vec_index);
+        CUDAQ_INFO("In replay mode: Noise application index: {}",
+                   noise_application_index);
+        CUDAQ_INFO("Replaying errors for noise operation ID {}",
+                   error_log_vec_index);
 
         if (sampleSim->num_qubits < max_qubit + 1)
           applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
@@ -633,7 +635,8 @@ protected:
 
         // Get the number of shots to replay
         size_t num_shots = x_errors_per_shot.size();
-        CUDAQ_INFO("Replaying {} shots for error ID {}", num_shots, error_log_vec_index);
+        CUDAQ_INFO("Replaying {} shots for error ID {}", num_shots,
+                   error_log_vec_index);
 
         if (last_column_touched + num_shots > getBatchSize()) {
           throw std::runtime_error(fmt::format(

@@ -852,8 +852,9 @@ extern "C" void __quantum__qis__save_state() {
 
   std::unique_ptr<cudaq::SimulationState> state =
       nvqir::getCircuitSimulatorInternal()->getCurrentSimulationState();
-  
-  CUDAQ_INFO("NVQIR::simulator name : {}", nvqir::getCircuitSimulatorInternal()->name().c_str());
+
+  CUDAQ_INFO("NVQIR::simulator name : {}",
+             nvqir::getCircuitSimulatorInternal()->name().c_str());
 
   ctx->save_state(state.get());
 }
