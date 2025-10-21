@@ -22,12 +22,15 @@
 #include "nvqir/stim/StimState.h"
 
 namespace cudaq {
+  using ErrorByShotLogEntry = std::pair<std::vector<std::vector<size_t>>, std::vector<std::vector<size_t>>> ;
+  using ErrorLogType = std::vector<std::tuple<size_t, ErrorByShotLogEntry>>;
+
 
 struct RecordStorage {
 
   size_t memory_limit;
   size_t current_memory;
-  std::vector<std::tuple<std::size_t, std::vector<uint8_t>, std::vector<uint8_t>>> error_data;
+  ErrorLogType error_data;
   RecordStorage(size_t limit = 1e9) : memory_limit(limit), current_memory(0) {}
 
   std::vector<std::unique_ptr<SimulationState>> recordedStates;
@@ -48,23 +51,56 @@ struct RecordStorage {
     }
   }
 
-  void dump_error_data() const {
-    for (const auto& [id, x_indices, z_indices] : error_data) {
-        std::cout << "Error ID: " << id << "\n";
-        std::cout << "X error indices: ";
-        for (const auto& idx : x_indices) {
-            std::cout << static_cast<int>(idx) << " ";
-        }
-        std::cout << "\nZ error indices: ";
-        for (const auto& idx : z_indices) {
-            std::cout << static_cast<int>(idx) << " ";
-        }
-        std::cout << "\n";
+void dump_error_data() const {
+  printf("=== Error Data Dump ===\n");
+  if (error_data.empty()) {
+    printf("(no error data)\n");
+    return;
+  }
+
+  for (const auto& [index, entry] : error_data) {
+    const auto& [x_errors, z_errors] = entry; // both are vector<vector<size_t>>
+
+    printf("\n---------------------------------------\n");
+    printf(" Error Index: %zu\n", index);
+    printf("---------------------------------------\n");
+
+    // X error sets
+    printf("  X Error Sets (%zu):\n", x_errors.size());
+    if (x_errors.empty()) {
+      printf("    (none)\n");
+    } else {
+      for (std::size_t i = 0; i < x_errors.size(); ++i) {
+        printf("    - Set %zu (%zu elements): ", i, x_errors[i].size());
+        for (const auto& q : x_errors[i])
+          printf("%zu ", q);
+        printf("\n");
+      }
+    }
+
+    // Z error sets
+    printf("  Z Error Sets (%zu):\n", z_errors.size());
+    if (z_errors.empty()) {
+      printf("    (none)\n");
+    } else {
+      for (std::size_t i = 0; i < z_errors.size(); ++i) {
+        printf("    - Set %zu (%zu elements): ", i, z_errors[i].size());
+        for (const auto& q : z_errors[i])
+          printf("%zu ", q);
+        printf("\n");
+      }
     }
   }
 
-  void record_error_data(std::size_t msm_id_counter, std::vector<uint8_t>& x_indices, std::vector<uint8_t>& z_indices) {
-    error_data.push_back({msm_id_counter, x_indices, z_indices});
+  printf("\n=== End of Error Data ===\n");
+}
+
+
+
+
+
+  void record_error_data(const size_t index, const ErrorByShotLogEntry& entry) {
+    error_data.emplace_back(index, entry);
   }
   ~RecordStorage() {
     std::cout << "Destroying RecordStorage with " << recordedStates.size()
@@ -266,6 +302,8 @@ public:
 
   std::size_t randomSeed = 0;
 
+  std::size_t replay_columns = 0;
+
   /// @brief Save the current simulation state in the recorded states storage.
   void save_state(SimulationState *state) { recordStorage.save_state(state); }
 
@@ -282,10 +320,16 @@ public:
   void dump_recorded_states() const { recordStorage.dump_recorded_states(); }
 
   void dump_error_data() const { recordStorage.dump_error_data(); }
-  
-  void record_error_data(std::size_t msm_id_counter, std::vector<uint8_t>& x_indices, std::vector<uint8_t>& z_indices) { 
-    recordStorage.record_error_data(msm_id_counter, x_indices, z_indices);
-  }
+
+void record_error_data(const size_t index, 
+                      const ErrorByShotLogEntry& entry) {
+    recordStorage.record_error_data(index, entry);
+}
+
+  const auto& get_error_data() const { return recordStorage.error_data; }
+  void set_error_data(const ErrorLogType &data) { recordStorage.error_data = data; }
+  void update_replay_columns(std::size_t cols) { replay_columns = cols; }
+  std::size_t get_replay_columns() const { return replay_columns; }
 
   void set_seed(std::size_t seed) { randomSeed  = seed; }
 };
