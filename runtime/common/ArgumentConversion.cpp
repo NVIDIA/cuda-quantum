@@ -545,9 +545,11 @@ static bool isSupportedRecursiveSpan(cudaq::cc::StdvecType ty) {
 Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
                       llvm::DataLayout &layout) {
   auto *ctx = builder.getContext();
+  auto unknownLoc = builder.getUnknownLoc();
   return TypeSwitch<Type, Value>(ty)
       .Case([&](IntegerType intTy) -> Value {
-        switch (intTy.getIntOrFloatBitWidth()) {
+        auto width = intTy.getIntOrFloatBitWidth();
+        switch (width) {
         case 1:
           return genConstant(builder, *static_cast<bool *>(p));
         case 8:
@@ -559,6 +561,8 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         case 64:
           return genConstant(builder, *static_cast<std::int64_t *>(p));
         default:
+          mlir::emitError(unknownLoc,
+                          "unsupported integer width " + std::to_string(width));
           return {};
         }
       })
@@ -614,16 +618,37 @@ static std::size_t getHostSideElementSize(Type eleTy,
 ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
                                     cudaq::cc::StdvecType vecTy, void *p,
                                     llvm::DataLayout &layout) {
+
+  auto eleTy = vecTy.getElementType();
+  // Need special handling for boolean arrays
+  if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
+    if (intTy.getWidth() == 1) {
+      SmallVector<Attribute> members;
+      auto *vecPtr = static_cast<std::vector<bool> *>(p);
+      auto vect = *vecPtr;
+      for (auto val : vect) {
+        members.push_back(IntegerAttr::get(intTy, val));
+      }
+      return ArrayAttr::get(builder.getContext(), members);
+    }
+  }
+
   typedef const char *VectorType[3];
   VectorType *vecPtr = static_cast<VectorType *>(p);
   auto delta = (*vecPtr)[1] - (*vecPtr)[0];
   if (!delta)
     return {};
-  auto eleTy = vecTy.getElementType();
   unsigned stepBy = 0;
   std::function<Attribute(char *)> genAttr;
+  auto unknownLoc = builder.getUnknownLoc();
   if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
     stepBy = sizeof(VectorType);
+    if (auto intTy = dyn_cast<IntegerType>(innerTy.getElementType())) {
+      if (intTy.getWidth() == 1)
+        mlir::emitError(
+            unknownLoc,
+            "std::vector<std::vector<bool>> is not currently supported");
+    }
     genAttr = [&](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout);
     };
@@ -639,9 +664,6 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
     genAttr = [=](char *p) -> Attribute {
       std::uint64_t val = 0;
       switch (width) {
-      case 1:
-        val = *p != '\0';
-        break;
       case 8:
         val = *(reinterpret_cast<std::uint8_t *>(p));
         break;
@@ -654,6 +676,9 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
       case 64:
         val = *(reinterpret_cast<std::uint64_t *>(p));
         break;
+      default:
+        mlir::emitError(unknownLoc,
+                        "unsupported integer width " + std::to_string(width));
       }
       return IntegerAttr::get(intTy, val);
     };
@@ -671,7 +696,8 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
         return FloatAttr::get(eleTy, APFloat{val});
       }
       default:
-        return FloatAttr::get(eleTy, APFloat{0.0});
+        throw std::runtime_error("unsupported floating point width " +
+                                 std::to_string(width));
       }
     };
   } else {
@@ -864,10 +890,12 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
       dataLayoutSpec = cast<StringAttr>(attr);
     llvm::DataLayout dataLayout{dataLayoutSpec};
 
+    auto unknownLoc = builder.getUnknownLoc();
     auto subst =
         TypeSwitch<Type, cc::ArgumentSubstitutionOp>(argTy)
             .Case([&](IntegerType intTy) -> cc::ArgumentSubstitutionOp {
-              switch (intTy.getIntOrFloatBitWidth()) {
+              auto width = intTy.getIntOrFloatBitWidth();
+              switch (width) {
               case 1:
                 return buildSubst(*static_cast<bool *>(argPtr));
               case 8:
@@ -879,6 +907,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               case 64:
                 return buildSubst(*static_cast<std::int64_t *>(argPtr));
               default:
+                mlir::emitError(unknownLoc, "unsupported integer width " +
+                                                std::to_string(width));
                 return {};
               }
             })

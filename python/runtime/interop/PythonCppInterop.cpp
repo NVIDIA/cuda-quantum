@@ -10,7 +10,7 @@
 
 namespace cudaq::python {
 
-std::string getKernelName(std::string &input) {
+std::string getKernelName(const std::string &input) {
   size_t pos = 0;
   std::string result = "";
   while (true) {
@@ -56,15 +56,57 @@ std::string extractSubstring(const std::string &input,
   return input.substr(startPos, endPos - startPos);
 }
 
+// Helper to extract all external calls from the MLIR code.
+static std::vector<std::string> getExternalCall(const std::string &mlirCode) {
+  std::vector<std::string> externCalls;
+  // Split the code into lines
+  const auto lines = cudaq::split(mlirCode, '\n');
+
+  for (auto &line : lines) {
+    // find these external calls, e.g. `call @malloc` or `device_call
+    // @device_kernel`
+    auto start = line.find("call @");
+    if (start == std::string::npos)
+      continue;
+    start += 6; // Move to the end of "call @"
+    const auto end = line.find("(", start);
+    if (end == std::string::npos)
+      continue;
+    const std::string callFuncName = line.substr(start, end - start);
+    externCalls.emplace_back(callFuncName);
+  }
+
+  return externCalls;
+}
+
+// Helper to find the function declaration in the MLIR code.
+static std::string findFuncDecl(const std::string &mlirCode,
+                                const std::string &funcName) {
+  const auto start = mlirCode.find("func.func private @" + funcName);
+  if (start == std::string::npos)
+    return "";
+  const auto end = mlirCode.find("\n", start);
+  if (end == std::string::npos)
+    return "";
+  return mlirCode.substr(start, end - start);
+}
+
 std::tuple<std::string, std::string>
 getMLIRCodeAndName(const std::string &name, const std::string mangledArgs) {
-  auto cppMLIRCode =
+  const auto originalCppMLIRCode =
       cudaq::get_quake(std::remove_cvref_t<decltype(name)>(name), mangledArgs);
-  auto kernelName = cudaq::python::getKernelName(cppMLIRCode);
-  cppMLIRCode =
-      "module {\nfunc.func @" + kernelName +
-      extractSubstring(cppMLIRCode, "func.func @" + kernelName, "func.func") +
-      "\n}";
+  auto kernelName = cudaq::python::getKernelName(originalCppMLIRCode);
+  auto cppMLIRCode = "module {\nfunc.func @" + kernelName +
+                     extractSubstring(originalCppMLIRCode,
+                                      "func.func @" + kernelName, "func.func") +
+                     "\n";
+  // If there are external calls, we need to find their declarations
+  // and add them to the MLIR code.
+  const auto externalCalls = getExternalCall(cppMLIRCode);
+  for (const auto &externalCall : externalCalls) {
+    cppMLIRCode += findFuncDecl(originalCppMLIRCode, externalCall);
+  }
+  cppMLIRCode += "\n}";
   return std::make_tuple(kernelName, cppMLIRCode);
 }
 

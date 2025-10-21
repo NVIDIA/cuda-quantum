@@ -29,11 +29,35 @@ config:
   # Lower the generated IR to base + feed forward.
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "qci-gate-set-mapping"
-  codegen-emission: qir-adaptive
+  codegen-emission: qir-adaptive:1.0:int_computations,float_computations,output_log
 
 target-arguments:
   - key: machine
     required: false
-    type: string
+    type: machine-config
     platform-arg: machine
-    help-string: Specify a QCI QPU identifier. Omit or specify "simulator" for QCI's hardware simulator.
+    help-string: Specify a QCI QPU identifier. Omit for QCI's hardware simulator.
+    machine-config:
+      - machine-names:
+          - AquSim
+        config:
+          codegen-emission: qir-adaptive:1.0:int_computations,float_computations,output_log
+      - machine-names:
+          - Seeker
+        config:
+          codegen-emission: qir-base
+  - key: method
+    required: false
+    type: string
+    platform-arg: method
+    help-string: "Specify the circuit execution type - simulate (default) or execute."
+  - key: noisy
+    required: false
+    type: string
+    platform-arg: noisy
+    help-string: "If enabled, perform noisy simulation. Disabled by default."
+  - key: repeat_until_shots_requested
+    required: false
+    type: string
+    platform-arg: repeat_until_shots_requested
+    help-string: "If enabled, repeat execution until the requested number of shots is collected. Disabled by default."

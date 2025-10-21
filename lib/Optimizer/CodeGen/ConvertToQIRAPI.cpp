@@ -587,7 +587,7 @@ struct DiscriminateOpRewrite
 };
 
 // Supported QIR versions.
-enum struct QirVersion { version_0_1, version_0_2 };
+enum struct QirVersion { version_0_1, version_1_0 };
 
 template <typename M>
 struct DiscriminateOpToCallRewrite
@@ -598,9 +598,9 @@ struct DiscriminateOpToCallRewrite
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if constexpr (M::discriminateToClassical) {
-      if constexpr (M::qirVersion == QirVersion::version_0_2) {
+      if constexpr (M::qirVersion == QirVersion::version_1_0) {
         rewriter.replaceOpWithNewOp<func::CallOp>(
-            disc, rewriter.getI1Type(), cudaq::opt::qir0_2::ReadResult,
+            disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
             adaptor.getOperands());
       } else {
         rewriter.replaceOpWithNewOp<func::CallOp>(
@@ -1172,8 +1172,8 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
         // here as the verifier will raise an error.
         rewriter.setInsertionPoint(rewriter.getBlock()->getTerminator());
       }
-      auto mod = mz->getParentOfType<ModuleOp>();
-      if (!mod->hasAttr(cudaq::runtime::enableCudaqRun)) {
+      auto func = mz->getParentOfType<func::FuncOp>();
+      if (!func->hasAttr(cudaq::runtime::enableCudaqRun)) {
         auto recOut = rewriter.create<func::CallOp>(
             loc, TypeRange{}, cudaq::opt::QIRRecordOutput,
             ArrayRef<Value>{res, cstringGlobal});
@@ -1516,6 +1516,18 @@ struct AllocaOpPattern : public OpConversionPattern<cudaq::cc::AllocaOp> {
   }
 };
 
+struct ReturnOpPattern : public OpConversionPattern<func::ReturnOp> {
+  using Base = OpConversionPattern<func::ReturnOp>;
+  using Base::Base;
+
+  LogicalResult
+  matchAndRewrite(func::ReturnOp op, typename Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    rewriter.replaceOpWithNewOp<func::ReturnOp>(op, adaptor.getOperands());
+    return success();
+  }
+};
+
 struct SaveStateOpRewrite : public OpConversionPattern<quake::SaveStateOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -1630,6 +1642,7 @@ using LoadOpPattern = OpInterfacePattern<cudaq::cc::LoadOp>;
 using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
+using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
 
 struct InstantiateCallablePattern
     : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
@@ -1743,14 +1756,16 @@ static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                   CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
                   FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
                   InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
-                  StoreOpPattern, UndefOpPattern>(typeConverter, ctx);
+                  SelectOpPattern, StoreOpPattern, UndefOpPattern>(
+      typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
                                         TypeConverter &typeConverter,
                                         MLIRContext *ctx) {
   patterns.insert<ApplyOpTrap, GetMemberOpRewrite, MakeStruqOpRewrite,
-                  RelaxSizeOpErase, VeqSizeOpRewrite>(typeConverter, ctx);
+                  ReturnOpPattern, RelaxSizeOpErase, VeqSizeOpRewrite>(
+      typeConverter, ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1999,6 +2014,9 @@ struct QuakeToQIRAPIPass
         [&](cudaq::cc::AllocaOp op) {
           return !hasQuakeType(op.getElementType());
         });
+    target.addDynamicallyLegalOp<arith::SelectOp>([&](arith::SelectOp op) {
+      return !hasQuakeType(op.getResult().getType());
+    });
     target.addDynamicallyLegalOp<cf::BranchOp, cf::CondBranchOp>(
         [&](Operation *op) {
           for (auto opnd : op->getOperands())
@@ -2007,19 +2025,19 @@ struct QuakeToQIRAPIPass
           return true;
         });
     target.addDynamicallyLegalOp<
-        func::CallOp, func::CallIndirectOp, cudaq::cc::NoInlineCallOp,
-        cudaq::cc::VarargCallOp, cudaq::cc::CallCallableOp,
-        cudaq::cc::CallIndirectCallableOp, cudaq::cc::CastOp,
-        cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp, cudaq::cc::LoadOp>(
-        [&](Operation *op) {
-          for (auto opnd : op->getOperands())
-            if (hasQuakeType(opnd.getType()))
-              return false;
-          for (auto res : op->getResults())
-            if (hasQuakeType(res.getType()))
-              return false;
-          return true;
-        });
+        func::CallOp, func::CallIndirectOp, func::ReturnOp,
+        cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
+        cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
+        cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
+        cudaq::cc::LoadOp>([&](Operation *op) {
+      for (auto opnd : op->getOperands())
+        if (hasQuakeType(opnd.getType()))
+          return false;
+      for (auto res : op->getResults())
+        if (hasQuakeType(res.getType()))
+          return false;
+      return true;
+    });
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
       signalPassFailure();
@@ -2056,14 +2074,14 @@ struct QuakeToQIRAPIPass
       else
         processOperation<FullQIR</*opaquePtr=*/false>>(typeConverter);
     } else if (apiField[0] == "base-profile") {
-      if (apiField.size() > 1 && apiField[1] == "0.2") {
+      if (apiField.size() > 1 && apiField[1] == "1.0") {
         if (opaquePtr)
           processOperation<
-              BaseProfileQIR</*opaquePtr=*/true, QirVersion::version_0_2>>(
+              BaseProfileQIR</*opaquePtr=*/true, QirVersion::version_1_0>>(
               typeConverter);
         else
           processOperation<
-              BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
+              BaseProfileQIR</*opaquePtr=*/false, QirVersion::version_1_0>>(
               typeConverter);
       } else {
         if (opaquePtr)
@@ -2076,14 +2094,14 @@ struct QuakeToQIRAPIPass
               typeConverter);
       }
     } else if (apiField[0] == "adaptive-profile") {
-      if (apiField.size() > 1 && apiField[1] == "0.2") {
+      if (apiField.size() > 1 && apiField[1] == "1.0") {
         if (opaquePtr)
           processOperation<
-              AdaptiveProfileQIR</*opaquePtr=*/true, QirVersion::version_0_2>>(
+              AdaptiveProfileQIR</*opaquePtr=*/true, QirVersion::version_1_0>>(
               typeConverter);
         else
           processOperation<
-              AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_0_2>>(
+              AdaptiveProfileQIR</*opaquePtr=*/false, QirVersion::version_1_0>>(
               typeConverter);
       } else {
         if (opaquePtr)
@@ -2272,14 +2290,14 @@ struct QuakeToQIRAPIPrepPass
   }
 
   static StringRef getRequiredQubitsAttrName(StringRef version) {
-    if (version == "0.2")
-      return cudaq::opt::qir0_2::RequiredQubitsAttrName;
+    if (version == "1.0")
+      return cudaq::opt::qir1_0::RequiredQubitsAttrName;
     return cudaq::opt::qir0_1::RequiredQubitsAttrName;
   }
 
   static StringRef getRequiredResultsAttrName(StringRef version) {
-    if (version == "0.2")
-      return cudaq::opt::qir0_2::RequiredResultsAttrName;
+    if (version == "1.0")
+      return cudaq::opt::qir1_0::RequiredResultsAttrName;
     return cudaq::opt::qir0_1::RequiredResultsAttrName;
   }
 

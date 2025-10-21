@@ -9,7 +9,6 @@
 #include "QuantinuumHelper.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/Logger.h"
-#include "common/RecordLogParser.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -46,6 +45,8 @@ protected:
   std::optional<int> maxCost;
   /// @brief Enable/disable noisy simulation on emulator.
   std::optional<bool> noisySim;
+  /// @brief The type of simulator to use if machine is a simulator.
+  std::string simulator;
   /// @brief The Nexus project ID
   std::string projectId = "";
   /// @brief Time string, when the last tokens were retrieved
@@ -94,6 +95,11 @@ protected:
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override;
 
+  /// @brief Helper to determine if a completed job returns a result.
+  // Some jobs, such as syntax checker jobs, may complete without returning a
+  // result.
+  bool jobReturnsResult(ServerMessage &postJobResponse) const;
+
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
@@ -125,6 +131,11 @@ public:
         throw std::runtime_error("noisy_simulation must be true or false.");
       noisySim = (iter->second == "true");
     }
+
+    // Simulator name
+    iter = backendConfig.find("simulator");
+    if (iter != backendConfig.end())
+      simulator = iter->second;
 
     // Set an alternate base URL if provided
     iter = backendConfig.find("url");
@@ -375,6 +386,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
       j["data"]["attributes"]["definition"]["backend_config"]
        ["noisy_simulation"] = noisySim.value() ? "true" : "false";
 
+    if (!simulator.empty())
+      j["data"]["attributes"]["definition"]["backend_config"]["simulator"] =
+          simulator;
+
     // Add program items
     j["data"]["attributes"]["definition"]["items"] = ServerMessage::array();
     ServerMessage item = ServerMessage::object();
@@ -454,6 +469,8 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("Job was cancelled.");
   }
   if (jobStatus == "COMPLETED") {
+    if (!jobReturnsResult(getJobResponse))
+      return true;
     // Check if the response contains the result ID
     // In some cases, the status may be "COMPLETED" but the result ID
     // is not yet available, so we will check for that.
@@ -498,7 +515,10 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    if (!jobReturnsResult(jobResponse))
+      return cudaq::sample_result(cudaq::ExecutionResult());
+    else
+      throw std::runtime_error("Job completed but no result ID found.");
   }
   const std::string resultPath =
       resultType == QuantinuumServerHelper::ResultType::QSYS
@@ -540,37 +560,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
         resultResponse["data"]["attributes"]["results"];
     CUDAQ_DBG("Count result data: {}", qirResults);
 
-    cudaq::RecordLogParser parser;
-    parser.parse(qirResults);
-
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    std::size_t bufferSize = parser.getBufferSize();
-    char *buffer = static_cast<char *>(malloc(bufferSize));
-    std::memcpy(buffer, origBuffer, bufferSize);
-
-    std::vector<std::vector<bool>> results = {
-        reinterpret_cast<std::vector<bool> *>(buffer),
-        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
-    const auto numShots = results.size();
-    // Get the result
-    cudaq::CountsDictionary globalCounts;
-    std::vector<std::string> globalSequentialData;
-    globalSequentialData.reserve(numShots);
-    for (const auto &shotResult : results) {
-      // Each QSYS shot is an array of tagged results
-      std::string bitString;
-      for (const auto &bitVal : shotResult) {
-        bitString.append(bitVal ? "1" : "0");
-      }
-      // Global register results
-      globalCounts[bitString]++;
-      globalSequentialData.push_back(bitString);
-    }
-
-    // Add the global register results
-    cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
-    return cudaq::sample_result({result});
+    return createSampleResultFromQirOutput(qirResults);
   }
 }
 
@@ -579,7 +569,12 @@ std::string QuantinuumServerHelper::extractOutputLog(ServerMessage &jobResponse,
                                                      std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    if (!jobReturnsResult(jobResponse)) {
+      CUDAQ_INFO("Syntax checker job completed, no output to extract.");
+      return "";
+    } else {
+      throw std::runtime_error("Job completed but no result ID found.");
+    }
   }
   if (resultType != QuantinuumServerHelper::ResultType::QSYS) {
     throw std::runtime_error(
@@ -704,6 +699,20 @@ cudaq::ExtraPayloadProvider *QuantinuumServerHelper::getExtraPayloadProvider() {
   return it->get();
 }
 
+bool QuantinuumServerHelper::jobReturnsResult(
+    ServerMessage &jobResponse) const {
+  // Retrieve the device name if available.
+  auto deviceNamePath =
+      "/data/attributes/definition/backend_config/device_name"_json_pointer;
+  if (!jobResponse.contains(deviceNamePath))
+    return true;
+  const std::string deviceName = jobResponse[deviceNamePath].get<std::string>();
+  // Helios (NG device) syntax checker jobs won't return a result.
+  if (deviceName.starts_with("Helios") && deviceName.ends_with("SC"))
+    return false;
+
+  return true;
+}
 } // namespace cudaq
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QuantinuumServerHelper,

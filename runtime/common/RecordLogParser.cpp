@@ -9,6 +9,7 @@
 #include "RecordLogParser.h"
 #include "Logger.h"
 #include "Timing.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
@@ -16,29 +17,50 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
-  for (const auto &line : lines) {
+
+  // Collect log from a single shot and process it only if it is successful.
+  bool processingShot = false;
+  // Maintain the starting index of each shot's data
+  std::size_t shotStart = 0;
+
+  for (std::size_t idx = 0; idx < lines.size(); ++idx) {
+    const auto &line = lines[idx];
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
-    handleRecord(entries);
-  }
-}
 
-void cudaq::RecordLogParser::handleRecord(
-    const std::vector<std::string> &entries) {
-  const std::string &recordType = entries[0];
-  if (recordType == "HEADER")
-    handleHeader(entries);
-  else if (recordType == "METADATA")
-    handleMetadata(entries);
-  else if (recordType == "START")
-    handleStart(entries);
-  else if (recordType == "OUTPUT")
-    handleOutput(entries);
-  else if (recordType == "END")
-    handleEnd(entries);
-  else
-    throw std::runtime_error("Invalid record type: " + recordType);
+    const std::string &recordType = entries[0];
+    if (recordType == "HEADER")
+      handleHeader(entries);
+    else if (recordType == "METADATA")
+      handleMetadata(entries);
+    else if (recordType == "START") {
+      processingShot = true;
+      shotStart = 0;
+    } else if (recordType == "OUTPUT") {
+      if (processingShot)
+        shotStart = shotStart == 0 ? idx : shotStart;
+      else
+        handleOutput(entries);
+    } else if (recordType == "END") {
+      if (entries.size() < 2)
+        throw std::runtime_error("Missing shot status");
+      if (entries[1] == "0") {
+        if (processingShot) {
+          // Successful shot, process it
+          for (std::size_t j = shotStart; j < idx; ++j)
+            handleOutput(cudaq::split(lines[j], '\t'));
+        }
+      } else {
+        CUDAQ_DBG("Discarding shot data due to non-zero END status.");
+      }
+      processingShot = false;
+      shotStart = 0;
+      containerMeta.reset();
+    } else {
+      throw std::runtime_error("Invalid record type: " + recordType);
+    }
+  }
 }
 
 void cudaq::RecordLogParser::handleHeader(
@@ -60,23 +82,16 @@ void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
   if (entries.size() < 2 || entries.size() > 3)
     cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
-  metadata[entries[1]] = entries.size() == 3 ? entries[2] : "";
-}
-
-void cudaq::RecordLogParser::handleStart(
-    const std::vector<std::string> &entries) {
-  // Ignore start of a shot for now
-}
-
-void cudaq::RecordLogParser::handleEnd(
-    const std::vector<std::string> &entries) {
-  if (entries.size() < 2)
-    throw std::runtime_error("Missing shot status");
-  if ("0" != entries[1])
-    throw std::runtime_error("Cannot handle unsuccessful shot");
-
-  // Always reset the container metadata when finishing a shot
-  containerMeta.reset();
+  if (entries.size() == 3) {
+    if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
+        entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
+      metadata[ResultCountMetadataName] = entries[2];
+    } else {
+      metadata[entries[1]] = entries[2];
+    }
+  } else {
+    metadata[entries[1]] = "";
+  }
 }
 
 void cudaq::RecordLogParser::handleOutput(
@@ -88,6 +103,7 @@ void cudaq::RecordLogParser::handleOutput(
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
+  cudaq::trim(recLabel);
   if (recType == "RESULT") {
     // Sample-type QIR output, where we have an array of `RESULT` per shot. For
     // example,
@@ -107,23 +123,24 @@ void cudaq::RecordLogParser::handleOutput(
       // records, not wrapped in an ARRAY. Hence, we treat it as an array of
       // results.
       containerMeta.m_type = ContainerType::ARRAY;
-      const auto it = metadata.find("required_num_results");
-      if (it != metadata.end()) {
-        containerMeta.elementCount = std::stoul(it->second);
-      } else {
-        cudaq::info("No required_num_results metadata found, defaulting to 1.");
-        containerMeta.elementCount = 1;
-      }
-
+      containerMeta.elementCount =
+          std::stoul(metadata[ResultCountMetadataName]);
       containerMeta.arrayType = "i1";
       preallocateArray();
     }
 
-    // Note: we expect the results are sequential in the same order that mz
-    // operations are called. This may include results in named registers
-    // (specified in kernel code) and other auto-generated register names.
-    processArrayEntry(recValue,
-                      fmt::format("[{}]", containerMeta.processedElements));
+    // Get the index from the label, if available.
+    if (!recLabel.empty() && recLabel[0] == 'r' && recLabel.back() >= '0' &&
+        recLabel.back() <= '9') {
+      recLabel = recLabel.substr(1);
+    } else {
+      // Note: we expect the results are sequential in the same order that mz
+      // operations are called. This may include results in named registers
+      // (specified in kernel code) and other auto-generated register names.
+      recLabel = std::to_string(containerMeta.processedElements);
+    }
+
+    processArrayEntry(recValue, fmt::format("[{}]", recLabel));
     containerMeta.processedElements++;
     return;
   }

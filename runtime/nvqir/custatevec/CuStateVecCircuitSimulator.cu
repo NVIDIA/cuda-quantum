@@ -188,10 +188,7 @@ initializeDeviceStateVector<cuDoubleComplex>(uint32_t n_blocks,
 
 /// @brief Custom functor for the thrust inner product.
 template <typename ScalarType>
-struct AdotConjB
-    : public thrust::binary_function<thrust::complex<ScalarType>, 
-                                     thrust::complex<ScalarType>,
-                                     thrust::complex<ScalarType>> {
+struct AdotConjB {
   __host__ __device__ thrust::complex<ScalarType>
   operator()(thrust::complex<ScalarType> a, thrust::complex<ScalarType> b) {
     return a * thrust::conj(b);
