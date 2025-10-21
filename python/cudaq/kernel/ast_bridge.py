@@ -418,13 +418,17 @@ class PyASTBridge(ast.NodeVisitor):
         if self.getIntegerType(1) == value.type:
             return value
         if IntegerType.isinstance(value.type):
+            zero = self.getConstantInt(0, width=IntegerType(value.type).width)
             condPred = IntegerAttr.get(self.getIntegerType(), 1)
-            return arith.CmpIOp(condPred, value,
-                                        self.getConstantInt(0)).result
-        elif F64Type.isinstance(value.type):
+            return arith.CmpIOp(condPred, value, zero).result
+        elif F32Type.isinstance(value.type):
+            zero = self.getConstantFloat(0, width=32)
             condPred = IntegerAttr.get(self.getIntegerType(), 13)
-            return arith.CmpFOp(condPred, value,
-                                        self.getConstantFloat(0)).result
+            return arith.CmpFOp(condPred, value, zero).result
+        elif F64Type.isinstance(value.type):
+            zero = self.getConstantFloat(0, width=64)
+            condPred = IntegerAttr.get(self.getIntegerType(), 13)
+            return arith.CmpFOp(condPred, value, zero).result
         else:
             self.emitFatalError("value cannot be converted to bool",
                                 self.currentNode)
