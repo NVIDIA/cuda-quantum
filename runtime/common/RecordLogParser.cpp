@@ -145,8 +145,14 @@ void cudaq::RecordLogParser::handleOutput(
       std::size_t percentPos = recLabel.find('%');
       if (percentPos != std::string::npos) {
         idxLabel = recLabel.substr(percentPos + 1);
-      } else if (recLabel[0] == 'r' && recLabel.back() >= '0' &&
-                 recLabel.back() <= '9') {
+      }
+      // This logic is fragile; for example user may have only one mz assigned
+      // to variable like r00001 and it will be interpreted as index 1, and
+      // cause `Array index out of bounds` error. The proper fix is to disallow
+      // explicit mz operations in sampled kernels. Also, `run` is appropriate
+      // for getting sub-register results.
+      else if (recLabel.size() == 6 && recLabel[0] == 'r' &&
+               recLabel.back() >= '0' && recLabel.back() <= '9') {
         idxLabel = recLabel.substr(1);
       }
     }
