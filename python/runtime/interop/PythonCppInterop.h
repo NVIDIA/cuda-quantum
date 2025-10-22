@@ -7,6 +7,8 @@
  ******************************************************************************/
 #pragma once
 
+#include "cudaq/qis/qkernel.h"
+#include "cudaq/utils/registry.h"
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -165,5 +167,29 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
   cudaq::python::registerDeviceKernel(sub.attr("__name__").cast<std::string>(),
                                       kernelName, mangledArgs);
   return;
+}
+
+// Specialization for qkernel
+template <typename R, typename... Args>
+py::object convertQkernel(py::module_ &m, cudaq::qkernel<R(Args...)> &qkernel,
+                          const std::string &docstring = "") {
+  const char *qkernelName = cudaq::registry::getLinkableKernelNameOrNull(
+      cudaq::registry::__cudaq_getLinkableKernelKey(&qkernel));
+  if (!qkernelName)
+    throw std::runtime_error(
+        "Invalid `qkernel` passed, could not find registered kernel.");
+  std::string kernelName = qkernelName;
+  // Rremove "function_" prefix if exists
+  if (kernelName.starts_with("function_"))
+    kernelName = kernelName.substr(std::string("function_").length());
+  const std::string docStr =
+      docstring.empty()
+          ? "Auto-generated kernel from C++ " + kernelName + " qkernel."
+          : docstring;
+  m.def(
+      kernelName.c_str(), [](Args...) {}, docStr.c_str());
+  cudaq::python::registerDeviceKernel(m.attr("__name__").cast<std::string>(),
+                                      kernelName, "");
+  return m.attr(kernelName.c_str());
 }
 } // namespace cudaq::python

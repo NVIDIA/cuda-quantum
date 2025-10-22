@@ -31,7 +31,7 @@ from .captured_data import CapturedDataStorage
 from .utils import (Color, globalAstRegistry, globalKernelRegistry,
                     globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
-                    mlirTypeToPyType, mlirTryCreateStructType)
+                    mlirTypeToPyType, mlirTryCreateStructType, getInteropKernelNameIfFound)
 
 State = cudaq_runtime.State
 
@@ -434,7 +434,6 @@ class PyASTBridge(ast.NodeVisitor):
                                  operand,
                                  sint=operand_width != 1,
                                  zint=operand_width == 1).result
-        
         
         self.emitFatalError(
             f'cannot convert value of type {operand.type} to the requested type {ty}',
@@ -2412,6 +2411,15 @@ class PyASTBridge(ast.NodeVisitor):
                     # kernel registry correctly for the next conditional check
                     if var.name in globalKernelRegistry:
                         node.func.id = var.name
+                # Check generic callable objects that may be C++ `qkernel` (with its MLIR code registered)
+                elif hasattr(var, '__call__'):
+                    # Check if this is a registered C++ kernel 
+                    maybeKernelName = getInteropKernelNameIfFound(var, self.module)
+                    if maybeKernelName != None:
+                        otherKernel = SymbolTable(
+                            self.module.operation)[maybeKernelName]
+                        processFunctionCall(otherKernel.type, len(node.args))
+                        return
 
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
@@ -2493,8 +2501,10 @@ class PyASTBridge(ast.NodeVisitor):
                     for _, v in annotations.items()
                 ]
 
+                unnamed_struct = "__repr__" not in cls.__dict__
+                struct_name = node.func.id if not unnamed_struct else ""
                 structTy = mlirTryCreateStructType(structTys,
-                                                   name=node.func.id,
+                                                   name=struct_name,
                                                    context=self.ctx)
                 if structTy is None:
                     self.emitFatalError(

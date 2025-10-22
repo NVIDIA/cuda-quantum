@@ -8,12 +8,29 @@
 
 #include "cudaq.h"
 #include "cudaq/algorithms/sample.h"
+#include "cudaq/qis/qkernel.h"
 #include "quantum_lib/quantum_lib.h"
 #include "runtime/interop/PythonCppInterop.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 namespace py = pybind11;
+
+namespace {
+static std::unordered_map<std::string,
+                          cudaq::qkernel<void(cudaq::qview<>, std::size_t)>>
+    g_cppKernels_1;
+
+static std::unordered_map<std::string, cudaq::qkernel<void(patch)>>
+    g_cppKernels_2;
+
+static const bool initKernels = []() {
+  g_cppKernels_1.insert(std::make_pair("uccsd", cudaq::uccsd));
+  g_cppKernels_2.insert(std::make_pair("reset", cudaq::reset_group));
+  g_cppKernels_2.insert(std::make_pair("x", cudaq::x_group));
+  return true;
+}();
+} // namespace
 
 PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
 
@@ -49,4 +66,26 @@ PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
 
   cudaq::python::addDeviceKernelInterop<cudaq::qview<>, std::size_t>(
       m, "qstd", "uccsd", "");
+
+  // Convert the C++ kernel registry to Python-accessible kernels
+  auto interopSubMod = m.def_submodule("_cpp_interop_kernels");
+  static std::unordered_map<std::string, py::object> g_py_kernels;
+
+  for (auto &[name, kernel] : g_cppKernels_1) {
+    g_py_kernels.insert(std::make_pair(
+        name, cudaq::python::convertQkernel(interopSubMod, kernel)));
+  }
+
+  for (auto &[name, kernel] : g_cppKernels_2) {
+    g_py_kernels.insert(std::make_pair(
+        name, cudaq::python::convertQkernel(interopSubMod, kernel)));
+  }
+
+  m.def("get_cpp_kernel", [](const std::string &name) {
+    auto it = g_py_kernels.find(name);
+    if (it == g_py_kernels.end())
+      throw std::runtime_error("No C++ kernel registered for requested name.");
+
+    return it->second;
+  });
 }
