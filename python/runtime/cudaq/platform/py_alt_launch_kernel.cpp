@@ -117,21 +117,8 @@ OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
   auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
   setDataLayout(mod);
-  auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
-                               py::object &arg) {
-    if (py::hasattr(arg, "module") || py::hasattr(arg, "__call__")) {
-      // Just give it some dummy data that will not be used.
-      // We synthesize away all callables, the block argument
-      // remains but it is not used, so just give argsCreator
-      // something, and we'll make sure its cleaned up.
-      long *ourAllocatedArg = new long();
-      argData.emplace_back(ourAllocatedArg,
-                           [](void *ptr) { delete static_cast<long *>(ptr); });
-      return true;
-    }
-    return false;
-  };
-  cudaq::packArgs(*argData, args, kernelFunc, callableArgHandler);
+  cudaq::packArgs(*argData, args, kernelFunc,
+                  [](OpaqueArguments &, py::object &) { return false; });
   return argData;
 }
 
@@ -170,6 +157,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.startingArgIdx = startingArgIdx}));
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
+    pm.addPass(cudaq::opt::createReturnToOutputLog());
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
     pm.addPass(cudaq::opt::createDistributedDeviceCall());
     std::string tl = getTransportLayer();
@@ -959,7 +947,7 @@ void bindAltLaunchKernel(py::module &mod,
 
   auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
                                py::object &arg) {
-    if (py::hasattr(arg, "module") || py::hasattr(arg, "__call__")) {
+    if (py::hasattr(arg, "module")) {
       // Just give it some dummy data that will not be used.
       // We synthesize away all callables, the block argument
       // remains but it is not used, so just give argsCreator

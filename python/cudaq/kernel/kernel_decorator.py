@@ -451,24 +451,6 @@ class PyKernelDecorator(object):
 
         return arg
 
-    def getCallableNames(self, *args):
-        callableNames = []
-        for arg in args:
-            if isinstance(arg, PyKernelDecorator):
-                callableNames.append(arg.name)
-            else:
-                if hasattr(arg, '__call__') and hasattr(arg, '__module__') and hasattr(arg, '__name__'):
-                    # This is a callable object, likely a C++ kernel
-                    devKey = f"{arg.__module__}.{arg.__name__}"
-                    if cudaq_runtime.isRegisteredDeviceModule(devKey):                        
-                        maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                            self.module, devKey)
-                        if maybeKernelName != None:
-                            # Remove "__nvqpp__mlirgen__" prefix
-                            maybeKernelName = maybeKernelName.replace("__nvqpp__mlirgen__", "")
-                            callableNames.append(maybeKernelName)
-        return callableNames
-    
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
@@ -499,8 +481,7 @@ class PyKernelDecorator(object):
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,
-                                          argTypeToCompareTo=self.argTypes[i],
-                                          module=self.module)
+                                          argTypeToCompareTo=self.argTypes[i])
 
             if self.isCastablePyType(mlirType, self.argTypes[i]):
                 processedArgs.append(
@@ -515,39 +496,19 @@ class PyKernelDecorator(object):
                 )
 
             if cc.CallableType.isinstance(mlirType):
-                if isinstance(arg, PyKernelDecorator):
-                    # Assume this is a PyKernelDecorator
-                    callableNames.append(arg.name)
-                    # It may be that the provided input callable kernel
-                    # is not currently in the ModuleOp. Need to add it
-                    # if that is the case, we have to use the AST
-                    # so that it shares self.module's MLIR Context
-                    symbols = SymbolTable(self.module.operation)
-                    if nvqppPrefix + arg.name not in symbols:
-                        tmpBridge = PyASTBridge(self.capturedDataStorage,
-                                                existingModule=self.module,
-                                                disableEntryPointTag=True)
-                        tmpBridge.visit(globalAstRegistry[arg.name][0])
-                else:
-                    if hasattr(arg, '__call__') and hasattr(arg, '__module__') and hasattr(arg, '__name__'):
-                        # This is a callable object, likely a C++ kernel
-                        devKey = f"{arg.__module__}.{arg.__name__}"
-                        if cudaq_runtime.isRegisteredDeviceModule(devKey):
-                            print("111Found registered device module for callable object:", devKey)
-                            
-                            maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                                self.module, devKey)
-                            if maybeKernelName != None:
-                                otherKernel = SymbolTable(
-                                    self.module.operation)[maybeKernelName]
-                                print("Found Other kernel:", otherKernel)
-                                # Remove "__nvqpp__mlirgen__" prefix
-                                maybeKernelName = maybeKernelName.replace("__nvqpp__mlirgen__", "")
-                                callableNames.append(maybeKernelName)
-                    else:
-                        emitFatalError(
-                            "Invalid callable argument provided to kernel."
-                        )
+                # Assume this is a PyKernelDecorator
+                callableNames.append(arg.name)
+                # It may be that the provided input callable kernel
+                # is not currently in the ModuleOp. Need to add it
+                # if that is the case, we have to use the AST
+                # so that it shares self.module's MLIR Context
+                symbols = SymbolTable(self.module.operation)
+                if nvqppPrefix + arg.name not in symbols:
+                    tmpBridge = PyASTBridge(self.capturedDataStorage,
+                                            existingModule=self.module,
+                                            disableEntryPointTag=True)
+                    tmpBridge.visit(globalAstRegistry[arg.name][0])
+
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 if arg.ndim != 1:

@@ -7,8 +7,6 @@
 # ============================================================================ #
 
 import cudaq, pytest
-from typing import Callable
-from dataclasses import dataclass
 
 cudaq_test_cpp_algo = pytest.importorskip('cudaq_test_cpp_algo')
 
@@ -244,59 +242,3 @@ def test_capture():
         takesCapture(spin)
 
     entry.compile()
-
-def test_cpp_qkernel():
-  # Test the `qkernel` provided in C++ via a map-like registry.
-  # This is provided as a function-like callable.
-  kernel_from_cpp_registry = cudaq_test_cpp_algo.get_cpp_kernel("uccsd")
-  
-  # Use as a capture
-  @cudaq.kernel
-  def cpp_qkernel():
-    q = cudaq.qvector(4)
-    kernel_from_cpp_registry(q, 0)
-
-  cpp_qkernel()
-
-
-  # Use as a callable argument
-  @cudaq.kernel
-  def caller(k: Callable[[cudaq.qview, int], None]):
-    q = cudaq.qvector(4)
-    k(q, 0)
-
-  caller(kernel_from_cpp_registry)
-
-
-def test_cpp_custom_struct(): 
-  # Define a struct in Python that matches the C++ struct
-  @dataclass(slots=True)
-  class patch:
-    data: cudaq.qvector
-    aux: cudaq.qvector
-  
-  reset_qkernel = cudaq_test_cpp_algo.get_cpp_kernel("reset")
-  x_qkernel = cudaq_test_cpp_algo.get_cpp_kernel("x")
-
-  # Use as a capture
-  @cudaq.kernel
-  def cpp_qkernel_struct():
-    q = cudaq.qvector(4)
-    r = cudaq.qvector(2)
-    x(q)
-    reset_qkernel(patch(q, r))
-
-  counts = cudaq.sample(cpp_qkernel_struct)
-  counts.dump()
-  assert len(counts) == 1 and '000000' in counts
-
-  @cudaq.kernel
-  def cpp_qkernel_struct_x():
-    q = cudaq.qvector(4)
-    r = cudaq.qvector(2)
-    x_qkernel(patch(q, r))
-
-  counts = cudaq.sample(cpp_qkernel_struct_x)
-  counts.dump()
-  assert len(counts) == 1 and '111100' in counts
-

@@ -15,8 +15,8 @@ from typing import get_origin, Callable, List
 import types
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.dialects import quake, cc, func
-from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType, SymbolTable
+from cudaq.mlir.dialects import quake, cc
+from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
@@ -442,28 +442,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
-            if hasattr(argInstance, 'argTypes'):
-                return cc.CallableType.get(argInstance.argTypes, ctx)
-            elif hasattr(argInstance, '__call__') and hasattr(argInstance, '__module__') and hasattr(argInstance, '__name__'):
-                # This is a callable object, likely a C++ kernel
-                devKey = f"{argInstance.__module__}.{argInstance.__name__}"
-                if cudaq_runtime.isRegisteredDeviceModule(devKey):
-                    if "module" in kwargs:
-                        module = kwargs['module']
-                        maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                            module, devKey)
-                        if maybeKernelName != None:
-                            otherKernel = SymbolTable(
-                                module.operation)[maybeKernelName]
-                            if isinstance(otherKernel, func.FuncOp):
-                                argTypes = []
-                                for arg in otherKernel.arguments:
-                                    argTypes.append(arg.type)
-                                return cc.CallableType.get(argTypes, ctx)
-                            else:
-                                emitFatalError(
-                                    f"Registered C++ kernel '{maybeKernelName}' is not of CallableType."
-                                )
+            return cc.CallableType.get(argInstance.argTypes, ctx)
 
     for name in globalRegisteredTypes.classes:
         customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)

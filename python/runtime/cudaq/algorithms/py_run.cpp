@@ -39,8 +39,7 @@ static std::vector<py::object> readRunResults(mlir::ModuleOp module,
 }
 
 static std::tuple<std::string, MlirModule, OpaqueArguments *,
-                  mlir::func::FuncOp, std::string, mlir::func::FuncOp,
-                  std::vector<std::string>>
+                  mlir::func::FuncOp, std::string, mlir::func::FuncOp>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (!py::hasattr(kernel, "arguments"))
     throw std::runtime_error(
@@ -52,11 +51,6 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
-
-  std::vector<std::string> callableNames;
-  if (py::hasattr(kernel, "getCallableNames"))
-    callableNames =
-        kernel.attr("getCallableNames")(*args).cast<std::vector<std::string>>();
 
   auto origKernName = kernel.attr("name").cast<std::string>();
   auto kernelName = origKernName + ".run";
@@ -84,8 +78,7 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   }
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
   auto funcOp = getKernelFuncOp(kernelMod, kernelName);
-  return {kernelName,   kernelMod, argData,      funcOp,
-          origKernName, origKern,  callableNames};
+  return {kernelName, kernelMod, argData, funcOp, origKernName, origKern};
 }
 
 static details::RunResultSpan
@@ -93,7 +86,6 @@ pyRunTheKernel(const std::string &name, const std::string &origName,
                MlirModule module, mlir::func::FuncOp funcOp,
                mlir::func::FuncOp origKernel, OpaqueArguments &runtimeArgs,
                quantum_platform &platform, std::size_t shots_count,
-               const std::vector<std::string> &callableNames,
                std::size_t qpu_id = 0) {
   auto returnTypes = origKernel.getResultTypes();
   if (returnTypes.empty() || returnTypes.size() > 1)
@@ -112,13 +104,13 @@ pyRunTheKernel(const std::string &name, const std::string &origName,
 
   auto mod = unwrap(module);
 
-  auto [rawArgs, size, returnOffset, thunk] = pyAltLaunchKernelBase(
-      name, module, returnTy, runtimeArgs, callableNames, 0, false);
+  auto [rawArgs, size, returnOffset, thunk] =
+      pyAltLaunchKernelBase(name, module, returnTy, runtimeArgs, {}, 0, false);
 
   auto results = details::runTheKernel(
       [&]() mutable {
         pyLaunchKernel(name, thunk, mod, runtimeArgs, rawArgs, size,
-                       returnOffset, callableNames);
+                       returnOffset, {});
       },
       platform, name, origName, shots_count, qpu_id);
 
@@ -144,7 +136,7 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   if (shots_count == 0)
     return {};
 
-  auto [name, module, argData, func, origName, origKern, callableNames] =
+  auto [name, module, argData, func, origName, origKern] =
       getKernelLaunchParameters(kernel, args);
 
   auto mod = unwrap(module);
@@ -160,7 +152,7 @@ std::vector<py::object> pyRun(py::object &kernel, py::args args,
   }
 
   auto span = pyRunTheKernel(name, origName, module, func, origKern, *argData,
-                             platform, shots_count, callableNames);
+                             platform, shots_count);
   delete argData;
   auto results = pyReadResults(span, module, func, origKern, shots_count);
 
@@ -195,7 +187,7 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
                              ") exceeds the number of available QPUs (" +
                              std::to_string(numQPUs) + ")");
 
-  auto [name, module, argData, func, origName, origKern, callableNames] =
+  auto [name, module, argData, func, origName, origKern] =
       getKernelLaunchParameters(kernel, args);
 
   auto mod = unwrap(module);
@@ -230,7 +222,7 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
     QuantumTask wrapped = detail::make_copyable_function(
         [sp = std::move(spanPromise), ep = std::move(errorPromise), shots_count,
          qpu_id, argData, name, module, func, origKern, origName,
-         noise_model = std::move(noise_model), callableNames]() mutable {
+         noise_model = std::move(noise_model)]() mutable {
           auto &platform = get_platform();
 
           // Launch the kernel in the appropriate context.
@@ -238,9 +230,8 @@ async_run_result pyRunAsync(py::object &kernel, py::args args,
             platform.set_noise(&noise_model.value());
 
           try {
-            auto span =
-                pyRunTheKernel(name, origName, module, func, origKern, *argData,
-                               platform, shots_count, callableNames, qpu_id);
+            auto span = pyRunTheKernel(name, origName, module, func, origKern,
+                                       *argData, platform, shots_count, qpu_id);
             delete argData;
             sp.set_value(span);
             ep.set_value("");

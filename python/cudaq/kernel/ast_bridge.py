@@ -435,24 +435,6 @@ class PyASTBridge(ast.NodeVisitor):
                                  sint=operand_width != 1,
                                  zint=operand_width == 1).result
         
-        if quake.StruqType.isinstance(ty):
-            if quake.StruqType.isinstance(operand.type):
-                # Check that the struct types are the same, only the name may differ.
-                targetMemberType = quake.StruqType.getTypes(ty)
-                operandMemberType = quake.StruqType.getTypes(operand.type)
-                if len(targetMemberType) != len(operandMemberType):
-                    self.emitFatalError(
-                        f'cannot convert value of type {operand.type} to the requested type {ty}',
-                        self.currentNode)
-                for i in range(len(targetMemberType)):
-                    if targetMemberType[i] != operandMemberType[i]:
-                        self.emitFatalError(
-                            f'cannot convert value of type {operand.type} to the requested type {ty}',
-                            self.currentNode)
-                # It is the same struct, do a cast
-                structPtr = self.ifNotPointerThenStore(operand)
-                castedPtr =  cc.CastOp(cc.PointerType.get(ty), structPtr).result
-                return self.ifPointerThenLoad(castedPtr)
         
         self.emitFatalError(
             f'cannot convert value of type {operand.type} to the requested type {ty}',
@@ -2430,23 +2412,6 @@ class PyASTBridge(ast.NodeVisitor):
                     # kernel registry correctly for the next conditional check
                     if var.name in globalKernelRegistry:
                         node.func.id = var.name
-                # Check generic callable objects that may be C++ `qkernel` (with its MLIR code registered)
-                elif hasattr(var, '__call__'):
-                    # This is a callable object, which could be a C++ kernel
-                    # Get the full module + name key and see if it is registered
-                    modulePath = str(var.__module__) if hasattr(
-                        var, '__module__') else ''
-                    funcName = str(var.__name__) if hasattr(
-                        var, '__name__') else ''
-                    devKey = f"{modulePath}.{funcName}"
-                    if cudaq_runtime.isRegisteredDeviceModule(devKey):
-                        maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
-                            self.module, devKey)
-                        if maybeKernelName != None:
-                            otherKernel = SymbolTable(
-                                self.module.operation)[maybeKernelName]
-                            processFunctionCall(otherKernel.type, len(node.args))
-                            return
 
             if node.func.id in globalKernelRegistry:
                 # If in `globalKernelRegistry`, it has to be in this Module
