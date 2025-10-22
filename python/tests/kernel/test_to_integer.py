@@ -9,7 +9,9 @@ import pytest
 import os
 import cudaq
 
+
 def testToInteger():
+
     @cudaq.kernel
     def toIntegerKernel(applyX: list[int]) -> int:
         q = cudaq.qvector(len(applyX))
@@ -17,7 +19,7 @@ def testToInteger():
             if applyX[i]:
                 x(q[i])
         return cudaq.to_integer(mz(q))
-    
+
     test_cases = [
         [1, 1, 1],
         [1, 1, 1, 1],

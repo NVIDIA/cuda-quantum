@@ -356,7 +356,9 @@ def test_return_list_bool():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run_async(simple_list_bool_args, 2, [True, False, True], shots_count=2).get()
+    results = cudaq.run_async(simple_list_bool_args,
+                              2, [True, False, True],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [True, False, True]
     assert results[1] == [True, False, True]
@@ -367,10 +369,12 @@ def test_return_list_bool():
         return t
 
     results = cudaq.run_async(simple_list_bool_args_no_broadcast,
-                        [True, False, True], shots_count=2).get()
+                              [True, False, True],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [True, False, True]
     assert results[1] == [True, False, True]
+
 
 def test_return_list_int():
 
@@ -388,8 +392,8 @@ def test_return_list_int():
         qubits = cudaq.qvector(n)
         return t
 
-
-    results = cudaq.run_async(simple_list_int, 2, [-13, 5, 42], shots_count=2).get()
+    results = cudaq.run_async(simple_list_int, 2, [-13, 5, 42],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [-13, 5, 42]
     assert results[1] == [-13, 5, 42]
@@ -401,7 +405,6 @@ def test_return_list_int8():
     def simple_list_int8_no_args() -> list[np.int8]:
         return [-13, 5, 42]
 
-    
     results = cudaq.run_async(simple_list_int8_no_args, shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [-13, 5, 42]
@@ -412,8 +415,8 @@ def test_return_list_int8():
         qubits = cudaq.qvector(n)
         return t
 
-    
-    results = cudaq.run_async(simple_list_int8, 2, [-13, 5, 42], shots_count=2).get()
+    results = cudaq.run_async(simple_list_int8, 2, [-13, 5, 42],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [-13, 5, 42]
     assert results[1] == [-13, 5, 42]
@@ -435,7 +438,8 @@ def test_return_list_int16():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run_async(simple_list_int16, 2, [-13, 5, 42], shots_count=2).get()
+    results = cudaq.run_async(simple_list_int16, 2, [-13, 5, 42],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [-13, 5, 42]
     assert results[1] == [-13, 5, 42]
@@ -457,7 +461,8 @@ def test_return_list_int32():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run_async(simple_list_int32, 2, [-13, 5, 42], shots_count=2).get()
+    results = cudaq.run_async(simple_list_int32, 2, [-13, 5, 42],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [-13, 5, 42]
     assert results[1] == [-13, 5, 42]
@@ -479,7 +484,8 @@ def test_return_list_int64():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run_async(simple_list_int64, 2, [-13, 5, 42], shots_count=2).get()
+    results = cudaq.run_async(simple_list_int64, 2, [-13, 5, 42],
+                              shots_count=2).get()
     assert len(results) == 2
     assert results[0] == [-13, 5, 42]
     assert results[1] == [-13, 5, 42]
@@ -502,8 +508,8 @@ def test_return_list_float():
         return t
 
     results = cudaq.run_async(simple_list_float,
-                        2, [-13.2, 5.0, 42.99],
-                        shots_count=2).get()
+                              2, [-13.2, 5.0, 42.99],
+                              shots_count=2).get()
     assert len(results) == 2
     assert np.allclose(results[0], [-13.2, 5., 42.99])
     assert np.allclose(results[1], [-13.2, 5., 42.99])
@@ -526,8 +532,8 @@ def test_return_list_float32():
         return t
 
     results = cudaq.run_async(simple_list_float32,
-                        2, [-13.2, 5.0, 42.99],
-                        shots_count=2).get()
+                              2, [-13.2, 5.0, 42.99],
+                              shots_count=2).get()
     assert len(results) == 2
     assert np.allclose(results[0], [-13.2, 5., 42.99])
     assert np.allclose(results[1], [-13.2, 5., 42.99])
@@ -550,11 +556,12 @@ def test_return_list_float64():
         return t
 
     results = cudaq.run_async(simple_list_float64,
-                        2, [-13.2, 5.0, 42.99],
-                        shots_count=2).get()
+                              2, [-13.2, 5.0, 42.99],
+                              shots_count=2).get()
     assert len(results) == 2
     assert np.allclose(results[0], [-13.2, 5., 42.99])
     assert np.allclose(results[1], [-13.2, 5., 42.99])
+
 
 # Test tuples
 # TODO: Define spec for using tuples in kernels

@@ -434,8 +434,7 @@ class PyASTBridge(ast.NodeVisitor):
                                  operand,
                                  sint=operand_width != 1,
                                  zint=operand_width == 1).result
-        
-        
+
         self.emitFatalError(
             f'cannot convert value of type {operand.type} to the requested type {ty}',
             self.currentNode)
@@ -601,8 +600,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         for i, v in enumerate(listElementValues):
             eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(elemTy), alloca,
-                [self.getConstantInt(i)],
+                cc.PointerType.get(elemTy), alloca, [self.getConstantInt(i)],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                       context=self.ctx)).result
             if isBool:
@@ -610,9 +608,9 @@ class PyASTBridge(ast.NodeVisitor):
                 v = self.changeOperandToType(self.getIntegerType(8), v)
             cc.StoreOp(v, eleAddr)
 
-        # Create the `StdVec<T>` from the alloca
+        # Create the `StdVec<T>` from the `alloca`
         # We still use `i1` as the vector element type if the
-        # original list was of booleans.
+        # original list was of `bool` type.
         vecTy = elemTy if not isBool else self.getIntegerType(1)
         if cc.PointerType.isinstance(vecTy):
             vecTy = cc.PointerType.getElementType(vecTy)
@@ -812,16 +810,15 @@ class PyASTBridge(ast.NodeVisitor):
                 # `i1` elements are stored as `i8` in the underlying array.
                 elem_ty = self.getIntegerType(8)
             data_ptr = cc.StdvecDataOp(
-                cc.PointerType.get(
-                    cc.ArrayType.get(elem_ty)), vector).result
+                cc.PointerType.get(cc.ArrayType.get(elem_ty)), vector).result
             load_val = cc.LoadOp(
-                cc.ComputePtrOp(
-                    cc.PointerType.get(elem_ty), data_ptr, [index],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex]))).result
+                cc.ComputePtrOp(cc.PointerType.get(elem_ty), data_ptr, [index],
+                                DenseI32ArrayAttr.get([kDynamicPtrIndex
+                                                      ]))).result
             if is_bool:
                 # Cast back to `i1` if the original vector element type was `i1`.
                 load_val = self.changeOperandToType(self.getIntegerType(1),
-                                                   load_val)
+                                                    load_val)
             return load_val
         return cc.LoadOp(
             cc.ComputePtrOp(
@@ -1477,7 +1474,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(node.value)
                 valueToStore = self.popValue()
                 # Cast if necessary
-                valueToStore = self.changeOperandToType(ptrEleType, valueToStore)
+                valueToStore = self.changeOperandToType(ptrEleType,
+                                                        valueToStore)
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 return target.value, None
@@ -1501,7 +1499,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(node.value)
                 valueToStore = self.popValue()
                 # Cast if necessary
-                valueToStore = self.changeOperandToType(cc.PointerType.getElementType(ptrVal.type), valueToStore)
+                valueToStore = self.changeOperandToType(
+                    cc.PointerType.getElementType(ptrVal.type), valueToStore)
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 return target.value, None
@@ -1818,11 +1817,15 @@ class PyASTBridge(ast.NodeVisitor):
                     elemTy = cc.StdvecType.getElementType(result.type)
                     if elemTy == self.getIntegerType(1):
                         elemTy = self.getIntegerType(8)
-                    data = cc.StdvecDataOp(cc.PointerType.get(elemTy), result).result
+                    data = cc.StdvecDataOp(cc.PointerType.get(elemTy),
+                                           result).result
                     i64Ty = self.getIntegerType(64)
                     length = cc.StdvecSizeOp(i64Ty, result).result
                     elemSize = cc.SizeOfOp(i64Ty, TypeAttr.get(elemTy)).result
-                    buffer = cc.AllocaOp(cc.PointerType.get(cc.ArrayType.get(elemTy)), TypeAttr.get(elemTy), seqSize=length).result
+                    buffer = cc.AllocaOp(cc.PointerType.get(
+                        cc.ArrayType.get(elemTy)),
+                                         TypeAttr.get(elemTy),
+                                         seqSize=length).result
                     i8PtrTy = cc.PointerType.get(self.getIntegerType(8))
                     cbuffer = cc.CastOp(i8PtrTy, buffer).result
                     cdata = cc.CastOp(i8PtrTy, data).result
@@ -1831,8 +1834,9 @@ class PyASTBridge(ast.NodeVisitor):
                     sizeInBytes = arith.MulIOp(length, elemSize).result
                     func.CallOp([], symName, [cbuffer, cdata, sizeInBytes])
                     # Replace result with the stack buffer-backed vector
-                    result = cc.StdvecInitOp(result.type, buffer, length=length).result                
-                
+                    result = cc.StdvecInitOp(result.type, buffer,
+                                             length=length).result
+
                 self.pushValue(result)
 
         def checkControlAndTargetTypes(controls, targets):
@@ -2981,22 +2985,21 @@ class PyASTBridge(ast.NodeVisitor):
                         boolVec = self.ifPointerThenLoad(boolVec)
                         if not cc.StdvecType.isinstance(boolVec.type):
                             self.emitFatalError(
-                                "to_integer expects a vector of booleans. Got type {}".format(
-                                    boolVec.type),
-                                node)
+                                "to_integer expects a vector of booleans. Got type {}"
+                                .format(boolVec.type), node)
                         elemTy = cc.StdvecType.getElementType(boolVec.type)
                         if elemTy != self.getIntegerType(1):
                             self.emitFatalError(
-                                "to_integer expects a vector of booleans. Got type {}".format(
-                                    boolVec.type),
-                                node)
+                                "to_integer expects a vector of booleans. Got type {}"
+                                .format(boolVec.type), node)
                         cudaqConvertToInteger = "__nvqpp_cudaqConvertToInteger"
                         # Load the intrinsic
                         load_intrinsic(self.module, cudaqConvertToInteger)
                         # Signature:
                         # `func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64`
                         resultTy = self.getIntegerType(64)
-                        result = func.CallOp([resultTy], cudaqConvertToInteger, [boolVec]).result
+                        result = func.CallOp([resultTy], cudaqConvertToInteger,
+                                             [boolVec]).result
                         self.pushValue(result)
                         return
 
@@ -3538,7 +3541,7 @@ class PyASTBridge(ast.NodeVisitor):
         listElemTy = get_item_type(node.elt)
         if listElemTy is None:
             return
-        
+
         resultVecTy = cc.StdvecType.get(listElemTy)
         isBool = listElemTy == self.getIntegerType(1)
         if isBool:
@@ -3572,17 +3575,16 @@ class PyASTBridge(ast.NodeVisitor):
             listValueAddr = cc.ComputePtrOp(
                 cc.PointerType.get(listElemTy), listValue, [iterVar],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-            
+
             if isBool:
-                result = self.changeOperandToType(self.getIntegerType(8), result)
+                result = self.changeOperandToType(self.getIntegerType(8),
+                                                  result)
             cc.StoreOp(result, listValueAddr)
             self.symbolTable.popScope()
 
         self.createInvariantForLoop(iterableSize, bodyBuilder)
         self.pushValue(
-            cc.StdvecInitOp(resultVecTy,
-                            listValue,
-                            length=iterableSize).result)
+            cc.StdvecInitOp(resultVecTy, listValue, length=iterableSize).result)
         return
 
     def visit_List(self, node):
@@ -4065,6 +4067,7 @@ class PyASTBridge(ast.NodeVisitor):
                 isBool = iterEleTy == self.getIntegerType(1)
                 if isBool:
                     iterEleTy = self.getIntegerType(8)
+
                 def functor(iter, idxVal):
                     elePtrTy = cc.PointerType.get(iterEleTy)
                     arrTy = cc.ArrayType.get(iterEleTy)
@@ -4076,7 +4079,8 @@ class PyASTBridge(ast.NodeVisitor):
                                               context=self.ctx)).result
                     result = cc.LoadOp(eleAddr).result
                     if isBool:
-                        result = self.changeOperandToType(self.getIntegerType(1), result)
+                        result = self.changeOperandToType(
+                            self.getIntegerType(1), result)
                     return result
 
                 extractFunctor = functor

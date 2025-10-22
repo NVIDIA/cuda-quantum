@@ -351,8 +351,9 @@ def test_return_list_bool():
         qubits = cudaq.qvector(n)
         return t
 
-
-    results = cudaq.run(simple_list_bool_args, 2, [True, False, True], shots_count=2)
+    results = cudaq.run(simple_list_bool_args,
+                        2, [True, False, True],
+                        shots_count=2)
     assert len(results) == 2
     assert results[0] == [True, False, True]
     assert results[1] == [True, False, True]
@@ -362,7 +363,8 @@ def test_return_list_bool():
         qubits = cudaq.qvector(2)
         return t
 
-    results = cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True], shots_count=2)
+    results = cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True],
+                        shots_count=2)
     assert len(results) == 2
     assert results[0] == [True, False, True]
     assert results[1] == [True, False, True]
@@ -401,7 +403,6 @@ def test_return_list_int8():
     assert results[0] == [-13, 5, 42]
     assert results[1] == [-13, 5, 42]
 
-
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
@@ -418,7 +419,6 @@ def test_return_list_int16():
     @cudaq.kernel
     def simple_list_int16_no_args() -> list[np.int16]:
         return [-13, 5, 42]
-
 
     results = cudaq.run(simple_list_int16_no_args, shots_count=2)
     assert len(results) == 2
@@ -496,7 +496,9 @@ def test_return_list_float():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_float, 2, [-13.2, 5.0, 42.99], shots_count=2)
+    results = cudaq.run(simple_list_float,
+                        2, [-13.2, 5.0, 42.99],
+                        shots_count=2)
     assert len(results) == 2
     assert is_close_array(results[0], [-13.2, 5., 42.99])
     assert is_close_array(results[1], [-13.2, 5., 42.99])
@@ -518,7 +520,9 @@ def test_return_list_float32():
         qubits = cudaq.qvector(n)
         return t
 
-    results = cudaq.run(simple_list_float32, 2, [-13.2, 5.0, 42.99], shots_count=2)
+    results = cudaq.run(simple_list_float32,
+                        2, [-13.2, 5.0, 42.99],
+                        shots_count=2)
     assert len(results) == 2
     assert is_close_array(results[0], [-13.2, 5., 42.99])
     assert is_close_array(results[1], [-13.2, 5., 42.99])
@@ -540,40 +544,51 @@ def test_return_list_float64():
         qubits = cudaq.qvector(n)
         return t
 
-    
-    results = cudaq.run(simple_list_float64, 2, [-13.2, 5.0, 42.99], shots_count=2)
+    results = cudaq.run(simple_list_float64,
+                        2, [-13.2, 5.0, 42.99],
+                        shots_count=2)
     assert len(results) == 2
     assert is_close_array(results[0], [-13.2, 5., 42.99])
     assert is_close_array(results[1], [-13.2, 5., 42.99])
 
+
 def test_return_list_large_size():
     # Returns a large list (dynamic size) to stress test the code generation
-    
+
     @cudaq.kernel
     def kernel_with_dynamic_int_array_input(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
         return t
 
     @cudaq.kernel
-    def kernel_with_dynamic_float_array_input(n: int, t: list[float]) -> list[float]:
+    def kernel_with_dynamic_float_array_input(n: int,
+                                              t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
         return t
-    
+
     @cudaq.kernel
-    def kernel_with_dynamic_bool_array_input(n: int, t: list[bool]) -> list[bool]:
+    def kernel_with_dynamic_bool_array_input(n: int,
+                                             t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
         return t
 
     # Test with various sizes (validate dynamic output logging)
     for array_size in [10, 15, 100, 167, 1000]:
         input_array = list(np.random.randint(-1000, 1000, size=array_size))
-        results = cudaq.run(kernel_with_dynamic_int_array_input, 2, input_array, shots_count=2)
+        results = cudaq.run(kernel_with_dynamic_int_array_input,
+                            2,
+                            input_array,
+                            shots_count=2)
         assert len(results) == 2
         assert results[0] == input_array
         assert results[1] == input_array
 
-        input_array_float = list(np.random.uniform(-1000.0, 1000.0, size=array_size))
-        results = cudaq.run(kernel_with_dynamic_float_array_input, 2, input_array_float, shots_count=2)
+        input_array_float = list(
+            np.random.uniform(-1000.0, 1000.0, size=array_size))
+        results = cudaq.run(kernel_with_dynamic_float_array_input,
+                            2,
+                            input_array_float,
+                            shots_count=2)
         assert len(results) == 2
         assert is_close_array(results[0], input_array_float)
         assert is_close_array(results[1], input_array_float)
@@ -581,12 +596,17 @@ def test_return_list_large_size():
         input_array_bool = []
         for _ in range(array_size):
             input_array_bool.append(True if np.random.rand() > 0.5 else False)
-        results = cudaq.run(kernel_with_dynamic_bool_array_input, 2, input_array_bool, shots_count=2)
+        results = cudaq.run(kernel_with_dynamic_bool_array_input,
+                            2,
+                            input_array_bool,
+                            shots_count=2)
         assert len(results) == 2
         assert results[0] == input_array_bool
         assert results[1] == input_array_bool
 
+
 def test_return_dynamics_measure_results():
+
     @cudaq.kernel
     def measure_all_qubits(numQubits: int) -> list[bool]:
         # Number of qubits is dynamic
@@ -608,6 +628,7 @@ def test_return_dynamics_measure_results():
                     assert res[i] == True
                 else:
                     assert res[i] == False
+
 
 # Test tuples
 # TODO: Define spec for using tuples in kernels
