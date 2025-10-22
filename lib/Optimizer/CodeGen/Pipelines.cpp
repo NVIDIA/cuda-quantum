@@ -98,6 +98,7 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   ::addQIRConversionPipeline(pm, options.target);
   pm.addPass(cudaq::opt::createReturnToOutputLog());
+  cudaq::opt::addLowerToCFG(pm);
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());
