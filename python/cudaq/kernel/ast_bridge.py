@@ -104,46 +104,89 @@ class CompilerError(RuntimeError):
         RuntimeError.__init__(self, *args, **kwargs)
 
 
-# TODO: Can potentially be replace by tapping into
-# Python infrastructure (see prototype).
 class PyStack(object):
+    '''
+    Takes care of managing values produced while vising Python
+    AST nodes. Each visit to a node is expected to match one
+    stack frame, and must produce (meaning push) no more than
+    one value. Values produced by child frames are accessible 
+    (meaning can be popped) by the parent. A frame cannot access
+    the value it produced (it is owned by the parent).
+    '''
     class Frame(object):
-        def __init__(self, previous = None):
-            self.entries = deque()
-            self.previous = previous
+        def __init__(self, parent = None):
+            self.entries = None
+            self.parent = parent
 
-    def __init__(self):
-        self.current = None
+    def __init__(self, error_handler = None):
+        def default_error_handler(msg):
+            raise RuntimeError(msg)
+        self._frame = None
+        self._extensible = True
+        self.emitError = error_handler or default_error_handler
 
     def pushFrame(self):
-        self.current = PyStack.Frame(previous = self.current)
+        '''
+        A new frame should be pushed to process a new node in the AST.
+        '''
+        if self._frame and not self._frame.entries:
+            self._frame.entries = deque()
+        self._frame = PyStack.Frame(parent = self._frame)
 
     def popFrame(self):
-        if not self.current:
-            raise RuntimeError("cannot pop an empty stack")
-        frame = self.current
-        self.current = frame.previous
-        return frame.entries
+        '''
+        A frame should be popped once a node in the AST has been processed.
+        '''
+        if not self._frame:
+            self.emitError("stack has no frames to pop")
+        elif self._frame.entries:
+            self.emitError("all values must be processed before popping a frame")
+        else:
+            self._extensible = True
+            self._frame = self._frame.parent
 
     def pushValue(self, value):
-        if not self.current:
-            raise RuntimeError("cannot push value to empty stack")
-        self.current.entries.append(value)
+        '''
+        Pushes a value to the make it available to the parent frame.
+        '''
+        if not self._frame:
+            self.emitError("cannot push value to empty stack")
+        elif not self._frame.parent:
+            self.emitError("no parent frame is defined to push values to")
+        elif not self._extensible:
+            self.emitError("must not generate more one value at a time in each frame")
+        else:
+            self._frame.parent.entries.append(value)
+            self._extensible = False
 
     def popValue(self):
-        if not self.current:
-            raise RuntimeError("cannot pop value from empty stack")
-        return self.current.entries.pop()
+        '''
+        Pops the most recently produced (pushed) value by a child frame.
+        '''
+        if not self._frame:
+            self.emitError("value stack is empty")
+        elif not self._frame.entries:
+            self.emitError("no values to pop; either this frame has not had a child or the child did not produce any values")
+        else:
+            return self._frame.entries.pop()
 
     @property
     def isEmpty(self):
-        return not self.current
+        '''
+        Returns true if and only if there are no remaining stack frames.
+        '''
+        return not self._frame
     
     @property
     def currentNumValues(self):
-        if not self.current:
-            raise RuntimeError("no frame defined for empty stack")
-        return len(self.current.entries)
+        '''
+        Returns the number of values that are accessible for processing by the current frame.
+        '''
+        if not self._frame:
+            self.emitError("no frame defined for empty stack")
+        elif self._frame.entries: 
+            return len(self._frame.entries)
+        return 0
 
 
 class PyASTBridge(ast.NodeVisitor):
@@ -169,7 +212,7 @@ class PyASTBridge(ast.NodeVisitor):
         `mlir.Module` that we will be building upon. This class keeps track of a 
         symbol table, which maps variable names to constructed `mlir.Values`. 
         """
-        self.valueStack = PyStack()
+        self.valueStack = PyStack(lambda msg: self.emitFatalError(f'processing error - {msg}', self.currentNode))
         self.knownResultType = kwargs[
             'knownResultType'] if 'knownResultType' in kwargs else None
         if 'existingModule' in kwargs:
@@ -1159,11 +1202,9 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = node
         self.valueStack.pushFrame()
         super().visit(node)
-        frame = self.valueStack.popFrame()
-        if len(frame) != 0:
-            self.valueStack.pushValue(frame.pop())
-        if len(frame) != 0:
-            self.emitFatalError("processing error - some values were not correctly processed")
+        self.valueStack.popFrame()
+        if isinstance(node, ast.Module) and not self.valueStack.isEmpty:
+            raise RuntimeError("processing error - unprocessed frame(s) in value stack")
         self.currentNode = parentNode
         self.indent_level -= 1
 
@@ -1322,15 +1363,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
-            # FIXME: ADD VALIDATIONS FOR THE STATE HERE
-            #if not self.valueStack.isEmpty:
-                # FIXME: if we support functions inside functions, 
-                # this is too early to check... -> check we have the same numbers
-                # of frames we had before, check we have zero frames after the module completes
-                # (also, we have an earlier return above that does not do this check)
-                # (also, we clearly don't have a test for functions inside functions)
-                #raise RuntimeError(f'internal error in compilation of {node.name} - value stack should be empty')
-
             self.knownResultType = parentResultType
 
     def visit_Expr(self, node):
@@ -1348,6 +1380,13 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
         self.visit(node.value)
+        if self.valueStack.currentNumValues > 0:
+            # An `ast.Expr` object is created when an expression
+            # is used as a statement. This expression may produce
+            # a value, which is ignored (not assigned) in the 
+            # Python code. We hence need to pop that value to
+            # match that behavior and ignore it.
+            self.popValue()
 
     def visit_Lambda(self, node):
         """
@@ -2507,6 +2546,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handled in the Attribute visit,
                 # since `numpy` arrays have a size attribute
                 self.visit(node.func)
+                self.pushValue(self.popValue())
                 return
 
             if self.__isSupportedVectorFunction(node.func.attr):
@@ -3948,58 +3988,47 @@ class PyASTBridge(ast.NodeVisitor):
                     return
 
         self.visit(node.iter)
-        assert self.valueStack.currentNumValues > 0 and self.valueStack.currentNumValues < 3
+        if self.valueStack.currentNumValues != 1:
+            self.emitFatalError(f'unsupported value in iteration', node)
 
-        totalSize = None
-        iterable = None
-        extractFunctor = None
-
-        # It could be that its the only value we have,
-        # in which case we know we have for var in iterable,
-        # but we could also have another value on the stack,
-        # the total size of the iterable, produced by range() / enumerate()
-        if self.valueStack.currentNumValues == 1:
-            # Get the iterable from the stack
-            iterable = self.ifPointerThenLoad(self.popValue())
-            # we currently handle `veq` and `stdvec` types
-            if quake.VeqType.isinstance(iterable.type):
-                size = quake.VeqType.getSize(iterable.type)
-                if quake.VeqType.hasSpecifiedSize(iterable.type):
-                    totalSize = self.getConstantInt(size)
-                else:
-                    totalSize = quake.VeqSizeOp(self.getIntegerType(64),
-                                                iterable).result
-
-                def functor(iter, idx):
-                    return quake.ExtractRefOp(self.getRefType(),
-                                              iter,
-                                              -1,
-                                              index=idx).result
-
-                extractFunctor = functor
-            elif cc.StdvecType.isinstance(iterable.type):
-                iterEleTy = cc.StdvecType.getElementType(iterable.type)
-                totalSize = cc.StdvecSizeOp(self.getIntegerType(),
+        # Get the iterable from the stack
+        iterable = self.ifPointerThenLoad(self.popValue())
+        # we currently handle `veq` and `stdvec` types
+        if quake.VeqType.isinstance(iterable.type):
+            size = quake.VeqType.getSize(iterable.type)
+            if quake.VeqType.hasSpecifiedSize(iterable.type):
+                totalSize = self.getConstantInt(size)
+            else:
+                totalSize = quake.VeqSizeOp(self.getIntegerType(64),
                                             iterable).result
 
-                def functor(iter, idxVal):
-                    elePtrTy = cc.PointerType.get(iterEleTy)
-                    arrTy = cc.ArrayType.get(iterEleTy)
-                    ptrArrTy = cc.PointerType.get(arrTy)
-                    vecPtr = cc.StdvecDataOp(ptrArrTy, iter).result
-                    eleAddr = cc.ComputePtrOp(
-                        elePtrTy, vecPtr, [idxVal],
-                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                              context=self.ctx)).result
-                    return cc.LoadOp(eleAddr).result
+            def functor(iter, idx):
+                return quake.ExtractRefOp(self.getRefType(),
+                                            iter,
+                                            -1,
+                                            index=idx).result
 
-                extractFunctor = functor
+            extractFunctor = functor
+        elif cc.StdvecType.isinstance(iterable.type):
+            iterEleTy = cc.StdvecType.getElementType(iterable.type)
+            totalSize = cc.StdvecSizeOp(self.getIntegerType(),
+                                        iterable).result
 
-            else:
-                self.emitFatalError('{} iterable type not supported.', node)
+            def functor(iter, idxVal):
+                elePtrTy = cc.PointerType.get(iterEleTy)
+                arrTy = cc.ArrayType.get(iterEleTy)
+                ptrArrTy = cc.PointerType.get(arrTy)
+                vecPtr = cc.StdvecDataOp(ptrArrTy, iter).result
+                eleAddr = cc.ComputePtrOp(
+                    elePtrTy, vecPtr, [idxVal],
+                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                            context=self.ctx)).result
+                return cc.LoadOp(eleAddr).result
+
+            extractFunctor = functor
 
         else:
-            self.emitFatalError(f'unsupported value in iteration', node)
+            self.emitFatalError('{} iterable type not supported.', node)
 
         def bodyBuilder(iterVar):
             self.symbolTable.pushScope()
@@ -4685,7 +4714,9 @@ class PyASTBridge(ast.NodeVisitor):
         value = self.popValue()
         loaded = cc.LoadOp(target).result
 
+        self.valueStack.pushFrame()
         self.__process_binary_op(loaded, value, type(node.op))
+        self.valueStack.popFrame()
         res = self.popValue()
         # FIXME: aug assign is usually defined as producing a value, 
         # which we are not doing here. Now that we add proper stacks 

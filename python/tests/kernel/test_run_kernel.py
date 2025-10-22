@@ -311,7 +311,7 @@ def test_return_list_from_device_kernel():
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
         result = arg
         for i in result:
-            incrementer(i)
+            incrementer(i) # FIXME: THIS IS NOT HOW PYTHON SHOULD BEHAVE...!
         return result
 
     @cudaq.kernel
