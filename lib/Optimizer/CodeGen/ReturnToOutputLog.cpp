@@ -162,6 +162,7 @@ public:
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
                 genOutputLog(loc, rewriter, w, offset);
               }
+              return;
             }
 
           // If we reach here and we cannot determine the constant size of the
