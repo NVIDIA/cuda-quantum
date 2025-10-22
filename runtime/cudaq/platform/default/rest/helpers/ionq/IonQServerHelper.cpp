@@ -74,6 +74,9 @@ public:
   std::string getShotsUrl(nlohmann::json_v3_11_1::json &jobs, 
                           const char *DEFAULT_URL);
 
+  /// @brief Verify if shot-wise output was requested by user and can be extracted
+  bool shotWiseOutputIsNeeded(nlohmann::json_v3_11_1::json &jobs);
+
 private:
   /// @brief RestClient used for HTTP requests.
   RestClient client;
@@ -372,6 +375,29 @@ std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
   return shotsUrl;
 }
 
+bool IonQServerHelper::shotWiseOutputIsNeeded(nlohmann::json_v3_11_1::json &jobs) {
+  std::string noiseModel = "ideal";
+  if (!jobs.empty() && jobs[0].contains("noise") &&
+      jobs[0]["noise"].contains("model")) {
+    noiseModel = jobs[0]["noise"]["model"].get<std::string>();
+  } else if (keyExists("noise_model")) {
+    noiseModel = backendConfig["noise_model"];
+  }
+
+  std::string target = "simulator";
+  if (!jobs.empty() && jobs[0].contains("target")) {
+      target = jobs[0]["target"].get<std::string>();
+  } else if (keyExists("target")) {
+    target = backendConfig["target"];
+  }
+
+  bool targetHasMemoryOption = keyExists("memory") && backendConfig["memory"] == "true";
+  bool targetHasNoiseModel = noiseModel != "ideal";
+  bool targetIsNotSimulator = target != "simulator";
+
+  return targetHasMemoryOption && (targetHasNoiseModel || targetIsNotSimulator);
+}
+
 // Process the results from a job
 cudaq::sample_result
 IonQServerHelper::processResults(ServerMessage &postJobResponse,
@@ -469,23 +495,25 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     execResults.emplace_back(regCounts, info.registerName);
   }
 
+  // Add shot-wise output if requested by user
+  bool extractShots = shotWiseOutputIsNeeded(jobs);
   auto shotsUrl = getShotsUrl(jobs, DEFAULT_URL);
-  printf("SHOTS URL: %s\n", shotsUrl.c_str());
-
-  auto res = getResults(shotsUrl);
-  printf("SHOT RESULTS %s", res.dump().c_str());
-
-  bool targetHasMemoryOption = keyExists("memory") && backendConfig["memory"] == "true";
-  if (targetHasMemoryOption) {
+  if (extractShots && shotsUrl != "") {
 
     std::vector<std::string> bitStrings;
+    auto shotsResults = getResults(shotsUrl);
 
-    for (const auto &element : results.items()) {
-      uint64_t s = std::stoull(element.key());
-      std::string newkey = std::bitset<64>(s).to_string();
-      std::reverse(newkey.begin(), newkey.end()); // perform endian swap
-      newkey.resize(nQubits);
-      bitStrings.push_back(newkey);
+    for (const auto &element : shotsResults.items()) {
+      assert(nQubits <= 64);
+      int64_t s = std::stoull(element.value().get<std::string>());
+      std::string bitString = std::bitset<64>(s).to_string();
+      auto firstone = bitString.find_first_not_of('0');
+      bitString = (firstone == std::string::npos) ? "0" : bitString.substr(firstone);
+      if (bitString.size() < static_cast<size_t>(nQubits)) {
+          bitString.insert(bitString.begin(),
+          static_cast<size_t>(nQubits) - bitString.size(), '0');
+        }
+      bitStrings.push_back(bitString);
     }
 
     if (!execResults.empty())
