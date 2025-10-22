@@ -1676,7 +1676,8 @@ def test_missing_paren_1450():
 
     with pytest.raises(RuntimeError) as e:
         test_kernel.compile()
-    assert 'invalid assignment detected.' in repr(e)
+    assert 'no valid value was created' in repr(e)
+    assert '(offending source -> state_reg = cudaq.qubit)' in repr(e)
 
 
 def test_cast_error_1451():
@@ -2269,8 +2270,9 @@ def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
         print(less_arguments)
-    assert 'invalid number of arguments (1) passed to rx (requires at least 2 arguments)' in repr(
+    assert 'missing argument for target operand' in repr(
         error)
+    assert '(offending source -> rx(3.14))' in repr(error)
 
     @cudaq.kernel
     def wrong_arguments():

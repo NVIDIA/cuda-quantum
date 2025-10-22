@@ -743,7 +743,7 @@ def test_return_dataclass_int_bool():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments passed in call to MyClass (0 vs required 2)' in repr(
+    assert 'invalid number of arguments' in repr(
         e)
 
     @cudaq.kernel
@@ -752,7 +752,7 @@ def test_return_dataclass_int_bool():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments passed in call to MyClass (0 vs required 2)' in repr(
+    assert 'invalid number of arguments' in repr(
         e)
 
 
