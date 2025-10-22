@@ -404,6 +404,38 @@ void storeCapturedData(ExecutionEngine *jit, const std::string &kernelName) {
   }
 }
 
+// NB: this is a backdoor marshaling of `std::vector<bool>` and it must be kept
+// in synch with `__nvqpp_vector_bool_to_initializer_list()`.
+static bool marshalRuntimeArgs(mlir::IntegerType i1Ty,
+                               cudaq::OpaqueArguments &newArgs,
+                               const std::vector<void *> &origArgs,
+                               mlir::TypeRange inputTys) {
+  // FIXME: this ignores recursive types!
+  assert(origArgs.size() == inputTys.size());
+  for (auto [ptr, ty] : llvm::zip(origArgs, inputTys)) {
+    if (auto vecTy = mlir::dyn_cast<cc::StdvecType>(ty)) {
+      if (vecTy.getElementType() == i1Ty) {
+        auto *vbp = reinterpret_cast<std::vector<bool> *>(ptr);
+        // Add a deleter for this new allocation.
+        auto *initList = new std::vector<char>;
+        for (bool b : *vbp)
+          initList->emplace_back(static_cast<char>(b));
+        newArgs.emplace_back(initList, [](void *p) {
+          delete static_cast<std::vector<char> *>(p);
+        });
+        continue;
+      }
+      if (mlir::isa<cc::StdvecType>(vecTy.getElementType())) {
+        // Can't handle recursive lists!
+        return false;
+      }
+    }
+    // NB: do _not_ delete copied pointers as they are deleted elsewhere!
+    newArgs.emplace_back(ptr, [](void *) {});
+  }
+  return true;
+}
+
 void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
                     mlir::ModuleOp mod, cudaq::OpaqueArguments &runtimeArgs,
                     void *rawArgs, std::size_t size, std::uint32_t returnOffset,
@@ -427,10 +459,27 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
   } else if (isQuantumDevice) {
     // Quantum devices or their emulation - we can use streamlinedLaunchKernel
     // as quantum platform do not support direct returns.
-    auto dynamicResult =
-        cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
-    if (dynamicResult.data_buffer || dynamicResult.size)
-      throw std::runtime_error("not implemented: support dynamic results");
+    auto fn = mod.lookupSymbol<mlir::func::FuncOp>(runtime::cudaqGenPrefixName +
+                                                   name);
+    if (!fn)
+      throw std::runtime_error("cannot find kernel " + name);
+    OpaqueArguments marshaledArgs;
+    bool ok = marshalRuntimeArgs(mlir::IntegerType::get(mod.getContext(), 1),
+                                 marshaledArgs, runtimeArgs.getArgs(),
+                                 fn.getFunctionType().getInputs());
+    if (ok) {
+      auto dynamicResult =
+          cudaq::streamlinedLaunchKernel(name.c_str(), marshaledArgs.getArgs());
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
+    } else {
+      // Backdoor approach to marshaling the arguments failed, so use the
+      // compiler generated code.
+      auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
+                                                  size, returnOffset);
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
+    }
   } else {
     // Local simulator - use altLaunchKernel with the thunk function.
     auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
