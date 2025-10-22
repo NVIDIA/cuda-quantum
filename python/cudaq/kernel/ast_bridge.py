@@ -579,7 +579,6 @@ class PyASTBridge(ast.NodeVisitor):
         if not cc.PointerType.isinstance(value.type):
             slot = cc.AllocaOp(cc.PointerType.get(value.type),
                                TypeAttr.get(value.type)).result
-            assert cc.PointerType.get(value.type) == slot.type
             cc.StoreOp(value, slot)
             return slot
         return value
@@ -704,7 +703,6 @@ class PyASTBridge(ast.NodeVisitor):
                                                  allowDemotion=allowDemotion)
             targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
                                             [iterVar], rawIndex).result
-            assert cc.PointerType.get(targetEleType) == targetEleAddr.type
             cc.StoreOp(castedEle, targetEleAddr)
 
         self.createInvariantForLoop(sourceSize, bodyBuilder)
@@ -1439,7 +1437,6 @@ class PyASTBridge(ast.NodeVisitor):
                     # We should allocate and store
                     alloca = cc.AllocaOp(cc.PointerType.get(value.type),
                                          TypeAttr.get(value.type)).result
-                    assert cc.PointerType.get(value.type) == alloca.type
                     cc.StoreOp(value, alloca)
                     return target, alloca
 
