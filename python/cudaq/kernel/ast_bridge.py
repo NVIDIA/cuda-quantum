@@ -1523,6 +1523,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.visit(target)
                 # Reset the push pointer value flag
                 self.subscriptPushPointerValue = False
+
+                # FIXME: CHECK THIS
                 ptrVal = self.popValue()
 
                 if not cc.PointerType.isinstance(ptrVal.type):
@@ -2121,6 +2123,11 @@ class PyASTBridge(ast.NodeVisitor):
 
             if self.__isControlledSimpleGate(node.func.id):
                 # These are single target controlled quantum operations
+                # FIXME: DECONSTRUCTION LIKE THIS LEADS TO A RATHER CRYPTIC ERROR
+                # IF WE HAPPEN TO HAVE A NODE ARGUMENT THAT IS NOT PROCESSED BY
+                # BY THE BRIDGE - GENERALIZE PROCESSNODEARGS TO TAKE A LIST OF
+                # VALUES FOR HOW TO BUNDLE AND SEE IF WE CAN REDUCE AMOUNT OF
+                # CODE FOR ALL GATES
                 control, target = processNodeArguments(2)
                 negatedControlQubits = getNegatedControlQubits([control])
                 checkControlAndTargetTypes([control], [target])
@@ -4614,9 +4621,6 @@ class PyASTBridge(ast.NodeVisitor):
                     return
                 loaded = cc.LoadOp(value).result
                 self.pushValue(loaded)
-            # Note: removing a None return here for `cc.CallableType`` that
-            # is not a `BlockArgument`. This case is no different than when
-            # we have a lambda expression in the code. 
             else:
                 self.pushValue(value)
             return
