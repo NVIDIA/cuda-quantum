@@ -112,7 +112,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -141,7 +141,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:

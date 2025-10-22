@@ -24,9 +24,9 @@ def test_elif():
             else:
                 rx(theta, q[i % 4])
 
-    print(cost)
     cost(np.asarray([1., 2., 3., 4., 5., 6.]))
     cost([1., 2., 3., 4., 5., 6.])
+    print(cost)
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
