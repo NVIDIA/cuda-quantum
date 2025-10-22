@@ -151,9 +151,18 @@ void cudaq::RecordLogParser::handleOutput(
       // cause `Array index out of bounds` error. The proper fix is to disallow
       // explicit mz operations in sampled kernels. Also, `run` is appropriate
       // for getting sub-register results.
-      else if (recLabel.size() == 6 && recLabel[0] == 'r' &&
-               recLabel.back() >= '0' && recLabel.back() <= '9') {
-        idxLabel = recLabel.substr(1);
+      else if (recLabel.size() == 6 && recLabel[0] == 'r') {
+        // check that the last 5 characters are all digits
+        bool allDigits = true;
+        for (std::size_t i = 1; i < 6; ++i) {
+          if (recLabel[i] < '0' || recLabel[i] > '9') {
+            allDigits = false;
+            break;
+          }
+        }
+        if (allDigits) {
+          idxLabel = recLabel.substr(1);
+        }
       }
     }
 
