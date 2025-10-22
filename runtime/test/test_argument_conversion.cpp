@@ -455,7 +455,7 @@ void test_vectors(mlir::MLIRContext *ctx) {
   }
   // clang-format off
 // CHECK-LABEL:   cc.arg_subst[0] {
-// CHECK: %[[VAL_0:.*]] = cc.const_array [[true, true, false, true], [false, false, false, true], [true, false, false, true]] : !cc.array<!cc.array<i1 x ?> x ?>
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[true, true, false, true], [false, false, false, true], [true, false, false, true]] : !cc.array<!cc.array<i1 x ?> x ?>
 // CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i1 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i1>>
 // CHECK:         }
   // clang-format on
