@@ -61,6 +61,13 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       .isBaseProfile = codeGenName == "qir-base",
   };
 
+  // Default version for base profile is 1.0
+  if (config.isBaseProfile) {
+    config.version = QirVersion::version_1_0;
+    config.qir_major_version = 1;
+    config.qir_minor_version = 0;
+  }
+
   if (config.isAdaptiveProfile) {
     for (auto option : codeGenOptions) {
       if (option == "int_computations") {
