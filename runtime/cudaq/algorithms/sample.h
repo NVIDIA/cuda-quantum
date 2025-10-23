@@ -95,6 +95,10 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   platform.set_exec_ctx(ctx.get(), qpu_id);
   platform.set_current_qpu(qpu_id);
 
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto isQuantumDevice =
+      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+
   // Loop until all shots are returned.
   cudaq::sample_result counts;
   while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
@@ -104,6 +108,11 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       return std::nullopt;
     }
     platform.reset_exec_ctx(qpu_id);
+
+    // If target is hardware backend, need to launch only once, hence exit early
+    if (isQuantumDevice)
+      return ctx->result;
+
     if (counts.get_total_shots() == 0)
       counts = std::move(ctx->result); // optimize for first iteration
     else
