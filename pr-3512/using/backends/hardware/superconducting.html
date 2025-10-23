@@ -1209,18 +1209,18 @@ You can set this to be either <code class="docutils literal notranslate"><span c
 </section>
 <section id="quantum-circuits-inc">
 <h2>Quantum Circuits, Inc.<a class="headerlink" href="#quantum-circuits-inc" title="Permalink to this heading">¶</a></h2>
-<p id="qci-backend">As part of its first phase of integration with CUDA-Q,
-<a class="reference external" href="https://quantumcircuits.com/">Quantum Circuits</a> offers users the ability to simulate CUDA-Q
-programs using its simulator, AquSim. AquSim is the first simulator that models error detection and
-real-time control of Quantum Circuits’ Dual-Rail Cavity Qubit systems, and uses a Monte Carlo
-approach to do so on a shot-by-shot basis.</p>
-<p>In this first phase, the supported features include all of the single and two-qubit gates offered by
-CUDA-Q, together with real-time conditional logic enabled by feed-forward capability. AquSim is
-currently wired to support ideal simulations only and noise models will be added in future
-iterations.</p>
-<p>With C++ and Python programming supported, users are able to prototype, test and explore quantum
-applications in CUDA-Q in preparation for upcoming releases targeting Quantum Circuits QPUs.
-Examples are provided to get started.</p>
+<p id="qci-backend">As part of the integration with CUDA-Q, <a class="reference external" href="https://quantumcircuits.com/">Quantum Circuits</a>
+provides the ability to simulate CUDA-Q programs using its AquSim simulator or
+execute them on the Seeker QPU. AquSim is the first simulator to model error
+detection and real-time control of Quantum Circuits’ Dual-Rail Cavity Qubit
+systems, using a Monte Carlo approach for shot-by-shot simulation. Seeker, the
+industry’s first Dual-Rail Cavity Qubit quantum computing system, supports all
+core operations of a universal quantum computer.</p>
+<p>In the initial phase, the supported features include all of the single and
+two-qubit gates offered by CUDA-Q, together with real-time conditional logic
+enabled by feed-forward capability. With C++ and Python programming supported,
+users are able to prototype, test and explore quantum applications in CUDA-Q
+targeting Quantum Circuits QPUs. Examples are provided to get started.</p>
 <p>Users who wish to get started with running CUDA-Q on AquSim should visit our
 <a class="reference external" href="https://quantumcircuits.com/explore/">Explore</a> page to learn more about the Quantum Circuits
 Strategic Quantum Release Program.</p>
@@ -1243,10 +1243,33 @@ program:</p>
 </pre></div>
 </div>
 <p>To run on AquSim, simply execute the script using your Python interpreter.</p>
+<p>To specify which QCI machine to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The default machine is AquSim</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;AquSim&#39;</span><span class="p">)</span>
+<span class="c1"># or</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;Seeker&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can control the execution method using the <code class="code docutils literal notranslate"><span class="pre">method</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># For simulation (default)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;Seeker&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;simulate&#39;</span><span class="p">)</span>
+<span class="c1"># For hardware execution</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;Seeker&#39;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;execute&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For noisy simulation, you can enable the <code class="code docutils literal notranslate"><span class="pre">noisy</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">noisy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When collecting shots, you can ensure the requested number of shots are obtained
+by enabling the <code class="code docutils literal notranslate"><span class="pre">repeat_until_shots_requested</span></code> parameter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;qci&#39;</span><span class="p">,</span> <span class="n">repeat_until_shots_requested</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 <input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <p>When executing programs in C++, they must first be compiled using the
-CUDA-Q nvq++ compiler, and then submitted to run on AquSim.</p>
+CUDA-Q nvq++ compiler, and then submitted to run on the device.</p>
 <p>Note that your token is fetched from your environment at run time, not at compile time.</p>
 <p>In the example below, the compilation step shows two flags being passed to the nvq++
 compiler: the Quantum Circuits target <code class="code docutils literal notranslate"><span class="pre">--target</span> <span class="pre">qci</span></code>, and the output file
@@ -1256,7 +1279,36 @@ shell commands in full:</p>
 ./example.x
 </pre></div>
 </div>
+<p>To specify which QCI machine to use, pass the <code class="docutils literal notranslate"><span class="pre">--qci-machine</span></code> flag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># The default machine is AquSim</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>AquSim<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+<span class="c1"># or</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>Seeker<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
 </div>
+<p>You can control the execution method using the <code class="docutils literal notranslate"><span class="pre">--qci-method</span></code> flag:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># For simulation (default)</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>Seeker<span class="w"> </span>--qci-method<span class="w"> </span>simulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+<span class="c1"># For hardware execution</span>
+nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-machine<span class="w"> </span>Seeker<span class="w"> </span>--qci-method<span class="w"> </span>execute<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
+</div>
+<p>For noisy simulation, you can set the <code class="docutils literal notranslate"><span class="pre">--qci-noisy</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">true</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-noisy<span class="w"> </span><span class="nb">true</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
+</div>
+<p>When collecting shots, you can ensure the requested number of shots are obtained
+with the <code class="docutils literal notranslate"><span class="pre">--qci-repeat_until_shots_requested</span></code> argument:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>qci<span class="w"> </span>--qci-repeat_until_shots_requested<span class="w"> </span><span class="nb">true</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>example.x
+</pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, only successful shots are presented to the user and may be fewer than the
+requested number. Enabling <code class="code docutils literal notranslate"><span class="pre">repeat_until_shots_requested</span></code> ensures the full
+requested shot count is collected, at the cost of increased execution time.</p>
 </div>
 <p>To see a complete example of using Quantum Circuits’ backends, please take a look at the
 <a class="reference internal" href="../../examples/hardware_providers.html#quantum-circuits-examples"><span class="std std-ref">Quantum Circuits examples</span></a>.</p>
