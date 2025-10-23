@@ -144,7 +144,7 @@ fi
 # Create Python readme from template
 echo "Creating README.md for cudaq package"
 package_name=cudaq
-cuda_version_requirement="11.x (where x >= 8) or 12.x"
+cuda_version_requirement="12.x or 13.x"
 cuda_version_conda=12.4.0 # only used as example in the install script
 deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."
 cat "$repo_root/python/README.md.in" > "$repo_root/python/README.md"

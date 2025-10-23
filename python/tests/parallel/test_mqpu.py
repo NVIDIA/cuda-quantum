@@ -8,6 +8,7 @@
 
 import os
 import random
+import time
 import timeit
 
 import cudaq
@@ -24,6 +25,11 @@ skipIfNoMQPU = pytest.mark.skipif(
 def setup_test_environment():
     cudaq.__clearKernelRegistries()
     cudaq.set_target('nvidia-mqpu')
+    try:
+        assert cudaq.get_target().num_qpus(
+        ) > 0, "No QPUs available after target set"
+    except Exception as e:
+        pytest.skip(f"MQPU setup failed: {str(e)}")
     yield
     cudaq.reset_target()
 
@@ -160,12 +166,6 @@ def testLargeProblem_kernel():
 
 
 def check_accuracy(entity):
-    target = cudaq.get_target()
-    numQpus = target.num_qpus()
-    if numQpus == 0:
-        pytest.skip("No QPUs available for target, skipping test")
-    else:
-        print(f"Target: {target}, NumQPUs: {numQpus}")
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)

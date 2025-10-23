@@ -242,7 +242,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
-
+    {cudaq::runtime::cleanupArrays, {}, R"#(
+  func.func private @__nvqpp_cleanup_arrays() -> ()
+)#"},
     {"__nvqpp_createDynamicResult",
      /* arguments:
           arg0: original buffer ptr
@@ -427,7 +429,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
 )#"},
     {cudaq::opt::QIRBoolRecordOutput, {}, R"#(
-  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
+  func.func private @__quantum__rt__bool_record_output(i1 {llvm.zeroext}, !cc.ptr<i8>)
 )#"},
     {cudaq::opt::QIRDoubleRecordOutput, {}, R"#(
   func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)

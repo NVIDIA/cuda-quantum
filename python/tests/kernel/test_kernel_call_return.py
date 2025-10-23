@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import pytest
 import cudaq
 import pytest
 
@@ -48,8 +49,10 @@ def test_call_with_return_bool():
     result = caller()
     assert result == True or result == False
 
-    counts = cudaq.sample(caller)
-    assert '1' in counts and len(counts) == 1
+    with pytest.raises(RuntimeError) as error:
+        cudaq.sample(caller)
+    assert ("The `sample` API only supports kernels that return None (void)"
+            in repr(error))
 
 
 def test_call_with_return_bool2():
@@ -75,7 +78,7 @@ def test_call_with_return_bool2():
                 if z_stabilizers[zi * len(logicalQubit.data) + di] == 1:
                     x.ctrl(logicalQubit.data[di], logicalQubit.ancz[zi])
 
-        results = mz(logicalQubit.ancx, logicalQubit.ancz)
+        results = mz([*logicalQubit.ancx, *logicalQubit.ancz])
 
         reset(logicalQubit.ancx)
         reset(logicalQubit.ancz)
@@ -96,9 +99,9 @@ def test_call_with_return_bool2():
     result = run()
     assert result == True or result == False
 
-    sample_result = cudaq.sample(run)
-    counts = sample_result.get_register_counts("results")
-    assert len(counts) == 4
+    with pytest.raises(RuntimeError) as error:
+        cudaq.sample(run)
+    assert "Kernel 'run' has return type '<class 'bool'>'" in repr(error)
 
 
 def test_None_annotation():
