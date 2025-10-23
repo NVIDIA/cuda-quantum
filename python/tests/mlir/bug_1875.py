@@ -49,9 +49,8 @@ def test_bug_1875():
 # CHECK:           %[[VAL_7:.*]] = quake.mz %[[VAL_3]] name "aux_2" : (!quake.ref) -> !quake.measure
 # CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_7]] : (!quake.measure) -> i1
 # CHECK:           %[[VAL_9:.*]] = cc.cast unsigned %[[VAL_6]] : (i1) -> i64
-# CHECK:           %[[VAL_10:.*]] = arith.cmpi eq, %[[VAL_9]], %[[VAL_1]] : i64
-# CHECK:           %[[VAL_11:.*]] = arith.cmpi eq, %[[VAL_10]], %[[VAL_0]] : i1
-# CHECK:           %[[VAL_12:.*]] = cc.if(%[[VAL_11]]) -> i1 {
+# CHECK:           %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_1]] : i64
+# CHECK:           %[[VAL_12:.*]] = cc.if(%[[VAL_10]]) -> i1 {
 # CHECK:             cc.continue %[[VAL_0]] : i1
 # CHECK:           } else {
 # CHECK:             %[[VAL_13:.*]] = cc.cast unsigned %[[VAL_8]] : (i1) -> i64
