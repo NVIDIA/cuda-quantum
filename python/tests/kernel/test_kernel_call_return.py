@@ -71,7 +71,7 @@ def test_call_with_return_bool2():
                 if z_stabilizers[zi * len(logicalQubit.data) + di] == 1:
                     x.ctrl(logicalQubit.data[di], logicalQubit.ancz[zi])
 
-        results = mz(logicalQubit.ancx, logicalQubit.ancz)
+        results = mz([*logicalQubit.ancx, *logicalQubit.ancz])
 
         reset(logicalQubit.ancx)
         reset(logicalQubit.ancz)
