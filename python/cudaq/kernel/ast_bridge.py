@@ -1003,6 +1003,7 @@ class PyASTBridge(ast.NodeVisitor):
                     cc.ContinueOp(elseBlock.arguments)
                 self.symbolTable.popScope()
 
+        # FIXME: remove or make sure this is actually correct...
         loop.attributes.__setitem__('invariant', UnitAttr.get())
         return
 
@@ -1091,8 +1092,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError("unsupported target in tuple deconstruction",
                                 self.currentNode)
 
-    # FIXME: either visit the arg nodes here, or eliminate the need to pass arg nodes
-    def __processRangeLoopIterationBounds(self, argumentNodes):
+    def __processRangeLoopIterationBounds(self, pyVals):
         """
         Analyze `range(...)` bounds and return the start, end, and step values,
         as well as whether or not this a decrementing range.
@@ -1100,17 +1100,19 @@ class PyASTBridge(ast.NodeVisitor):
         iTy = self.getIntegerType(64)
         zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
         one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
+        values = self.__groupValues(pyVals, [(1, 3)])
+
         isDecrementing = False
-        if len(argumentNodes) == 3:
+        if len(pyVals) == 3:
             # Find the step val and we need to know if its decrementing can be
             # incrementing or decrementing
-            stepVal = self.popValue()
-            if isinstance(argumentNodes[2], ast.Constant):
-                pyStepVal = argumentNodes[2].value
-            elif isinstance(argumentNodes[2], ast.UnaryOp) and \
-                isinstance(argumentNodes[2].op, ast.USub) and \
-                isinstance(argumentNodes[2].operand, ast.Constant):
-                pyStepVal = -argumentNodes[2].operand.value
+            stepVal = values[2]
+            if isinstance(pyVals[2], ast.Constant):
+                pyStepVal = pyVals[2].value
+            elif isinstance(pyVals[2], ast.UnaryOp) and \
+                isinstance(pyVals[2].op, ast.USub) and \
+                isinstance(pyVals[2].operand, ast.Constant):
+                pyStepVal = -pyVals[2].operand.value
             else:
                 self.emitFatalError(
                     'range step value must be a constant', self.currentNode)
@@ -1119,18 +1121,18 @@ class PyASTBridge(ast.NodeVisitor):
             isDecrementing = pyStepVal < 0
 
             # exclusive end
-            endVal = self.popValue()
+            endVal = values[1]
 
             # inclusive start
-            startVal = self.popValue()
+            startVal = values[0]
 
-        elif len(argumentNodes) == 2:
+        elif len(pyVals) == 2:
             stepVal = one
-            endVal = self.popValue()
-            startVal = self.popValue()
+            endVal = values[1]
+            startVal = values[0]
         else:
             stepVal = one
-            endVal = self.popValue()
+            endVal = values[0]
             startVal = zero
 
         startVal = self.ifPointerThenLoad(startVal)
@@ -1142,7 +1144,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # matching Python behavior to error on non-integer values
                 self.emitFatalError(
                     "non-integer value in range expression",
-                    argumentNodes[idx if len(argumentNodes) > 1 else 0])
+                    pyVals[idx if len(pyVals) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
 
     def __groupValues(self, pyvals, groups: list[int | tuple[int, int]]):
@@ -1971,11 +1973,6 @@ class PyASTBridge(ast.NodeVisitor):
                     "__len__ not supported on variables of this type.", node)
 
             if node.func.id == 'range':
-                args = self.__groupValues(node.args, [(1, 3)])
-                # FIXME: ...
-                if not node.args or len(node.args) > 3:
-                    self.emitFatalError("invalid number of arguments", node)
-                [self.visit(arg) for arg in node.args]
                 startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.args)
 
@@ -3774,7 +3771,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # This is a range(N) for loop, we just need
                 # the upper bound N for this loop
 
-                [self.visit(arg) for arg in node.iter.args]
                 startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.iter.args)
 

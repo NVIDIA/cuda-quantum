@@ -307,11 +307,14 @@ def test_return_list_from_device_kernel():
     def incrementer(i: int) -> int:
         return i + 1
 
+    # FIXME:
+    # add more tests to validate the behavior of passing lists
+    # to make sure it matches Python behavior.
     @cudaq.kernel
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
         result = arg
         for i in result:
-            incrementer(i) # FIXME: THIS IS NOT HOW PYTHON SHOULD BEHAVE...!
+            incrementer(i)
         return result
 
     @cudaq.kernel
