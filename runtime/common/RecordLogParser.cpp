@@ -129,18 +129,44 @@ void cudaq::RecordLogParser::handleOutput(
       preallocateArray();
     }
 
-    // Get the index from the label, if available.
-    if (!recLabel.empty() && recLabel[0] == 'r' && recLabel.back() >= '0' &&
-        recLabel.back() <= '9') {
-      recLabel = recLabel.substr(1);
-    } else {
-      // Note: we expect the results are sequential in the same order that mz
-      // operations are called. This may include results in named registers
-      // (specified in kernel code) and other auto-generated register names.
-      recLabel = std::to_string(containerMeta.processedElements);
+    // Note: For ordered schema, we expect the results are sequential in the
+    // same order that mz operations are called. This may include results in
+    // named registers (specified in kernel code) and other auto-generated
+    // register names. If index cannot be extracted from the label, we fall back
+    // to using this mechanism.
+    auto idxLabel = std::to_string(containerMeta.processedElements);
+
+    // Get the index from the label, if feasible.
+    /// TODO: The `sample` API should be updated to not allow explicit
+    /// measurement operations in the kernel when targeting hardware backends.
+    // Until then, we handle both cases here - auto-generated labels like
+    // r00000, r00001, ... and named results like result%0, result%1, ...
+    if (!recLabel.empty()) {
+      std::size_t percentPos = recLabel.find('%');
+      if (percentPos != std::string::npos) {
+        idxLabel = recLabel.substr(percentPos + 1);
+      }
+      // This logic is fragile; for example user may have only one mz assigned
+      // to variable like r00001 and it will be interpreted as index 1, and
+      // cause `Array index out of bounds` error. The proper fix is to disallow
+      // explicit mz operations in sampled kernels. Also, `run` is appropriate
+      // for getting sub-register results.
+      else if (recLabel.size() == 6 && recLabel[0] == 'r') {
+        // check that the last 5 characters are all digits
+        bool allDigits = true;
+        for (std::size_t i = 1; i < 6; ++i) {
+          if (recLabel[i] < '0' || recLabel[i] > '9') {
+            allDigits = false;
+            break;
+          }
+        }
+        if (allDigits) {
+          idxLabel = recLabel.substr(1);
+        }
+      }
     }
 
-    processArrayEntry(recValue, fmt::format("[{}]", recLabel));
+    processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
     containerMeta.processedElements++;
     return;
   }
