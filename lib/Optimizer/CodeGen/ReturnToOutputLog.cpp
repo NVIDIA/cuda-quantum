@@ -166,7 +166,7 @@ public:
             }
 
           // If we reach here and we cannot determine the constant size of the
-          // buffer, then we will not generate dynamic output logging with a for
+          // buffer, then we will generate dynamic output logging with a for
           // loop.
           Value vecSz = rewriter.template create<cudaq::cc::StdvecSizeOp>(
               loc, rewriter.getI64Type(), val);
