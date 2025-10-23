@@ -279,6 +279,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -1145,6 +1154,19 @@ You do not need to specify project or machine when emulating.</p>
 </pre></div>
 </div>
 </div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Quantinuum’s syntax checker for Helios (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1SC</span></code>) only performs QIR code validation and does not return any results.
+Thus, it always returns an empty result set. This is different from other Quantinuum backends (e.g., <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>) where the syntax checker returns dummy results.
+As a result, when using the Helios syntax checker, we may receive this warning message:</p>
+<blockquote>
+<div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING: this kernel invocation produced 0 shots worth of results when executed.
+</pre></div>
+</div>
+<p>It means that the kernel was successfully validated, but no execution results are available.
+To get results, please submit to the Helios emulator (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1E</span></code>) or the actual quantum device (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1</span></code>).</p>
+</div></blockquote>
 </div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quantinuum-examples"><span class="std std-ref">Quantinuum examples</span></a>.</p>
 </section>

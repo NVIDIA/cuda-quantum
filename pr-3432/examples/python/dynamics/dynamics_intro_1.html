@@ -282,6 +282,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
@@ -992,7 +1001,7 @@
 quantum systems.</p>
 <p>To make a classical analogy, the logic of a classical computer can be modeled using binary logic gates applied to transistor states, analogous to simulating the application of quantum logic gates to qubits. Dynamics simulations are an abstraction layer below this. Classically, to design better and higher-performing transistors, it’s useful to fully model the device physics of the transistor itself, including fluctuations in voltage, capacitance, and current. Analogously, quantum dyanmics
 simulations can fully capture the physics of components beyond just the qubits, including drive pulses, resonators, couplers, and noise.</p>
-<p><img alt="alt text 2" src="../../../_images/Benchmarks.png" /></p>
+<img alt="alt text 2" src="../../../_images/Benchmarks.png" />
 <p>Figure 1. Classical computing can be a helpful analogy for understanding the difference between algorithm and dynamics simulations. Image credits: Fredrik Brange (top right) and qutip-qip (bottom right)</p>
 </section>
 <section id="Functionality">
@@ -1012,7 +1021,7 @@ single GPU (H100), or 1.5 days to 2 minutes.</p>
 <h2>Section 1 - Simulating the Jaynes-Cummings Hamiltonian<a class="headerlink" href="#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian" title="Permalink to this heading">¶</a></h2>
 <p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Jaynes%E2%80%93Cummings_model">Jaynes-Cummings</a> (JC) Hamiltonian is a important theoretical model describing a two-level system interacting with a resonator. It describes how an atom or qubit fundamentally interacts with light. It is a powerful building block for modeling and designing many superconducting qubit systems and can be extended to describe many of the interactions in a superconducting qubit system. In practice, it describes the physics by which
 qubits can be controlled by external control pulses and the readout process used to determine their state.</p>
-<p><img alt="alt text 1" src="../../../_images/JC_model.png" /></p>
+<img alt="alt text 1" src="../../../_images/JC_model.png" />
 <p>Figure 2. A two-level quantum system such as a qubit or an atom interacting with a light field confined by a resonator. The JC model describes this interaction. Image credit: Wikipedia.</p>
 <p>The Hamiltonian can be simplified into the following three principal terms, by taking the rotating wave approximation, and dropping constant terms.</p>
 <p>$:nbsphinx-math:<cite>hat{H}</cite><em>{JC} = :nbsphinx-math:`hat{H}`</em>{cavity} +:nbsphinx-math:<cite>hat{H}</cite><em>{qubit} +:nbsphinx-math:`hat{H}`</em>{interaction} $</p>
