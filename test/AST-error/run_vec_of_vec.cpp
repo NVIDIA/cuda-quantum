@@ -12,7 +12,9 @@
 #include <iostream>
 
 __qpu__ std::vector<std::vector<int>> vec_of_vec() { 
-  return {{1, 2}, {3, 4}}; // expected-error{{unhandled vector element type is not yet supported}} // expected-error{{statement not supported in qpu kernel}}
+  // expected-error@+2 {{unhandled vector element type is not yet supported}}
+  // expected-error@+1 {{statement not supported in qpu kernel}}
+  return {{1, 2}, {3, 4}};
 }
 
 int main() {
