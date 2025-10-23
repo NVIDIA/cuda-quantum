@@ -371,6 +371,136 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::stdvecBoolCtorFromInitList, {}, R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
+    {"__nvqpp_internal_number_of_digits", {}, R"#(
+  func.func private @__nvqpp_internal_number_of_digits(%arg0: i64) -> i64 {
+    %c10_i64 = arith.constant 10 : i64 
+    %c0_i64 = arith.constant 0 : i64 
+    %c1_i64 = arith.constant 1 : i64 
+    %0 = cc.alloca i64 
+    cc.store %arg0, %0 : !cc.ptr<i64> 
+    %1 = cc.load %0 : !cc.ptr<i64> 
+    %2 = cc.alloca i64 
+    cc.store %c0_i64, %2 : !cc.ptr<i64> 
+    %3 = arith.cmpi eq, %1, %c0_i64 : i64 
+    cc.if(%3) {
+      cc.store %c1_i64, %2 : !cc.ptr<i64> 
+    } 
+    cc.loop while {
+      %5 = cc.load %0 : !cc.ptr<i64> 
+      %6 = arith.cmpi sgt, %5, %c0_i64 : i64 
+      cc.condition %6 
+    } do {
+      %5 = cc.load %0 : !cc.ptr<i64> 
+      %6 = arith.divsi %5, %c10_i64 : i64 
+      cc.store %6, %0 : !cc.ptr<i64> 
+      %7 = cc.load %2 : !cc.ptr<i64> 
+      %8 = arith.addi %7, %c1_i64 : i64 
+      cc.store %8, %2 : !cc.ptr<i64> 
+      cc.continue 
+    } 
+    %4 = cc.load %2 : !cc.ptr<i64> 
+    return %4 : i64 
+  } 
+  )#"},
+
+    // __nvqpp_internal_tostring
+    {"__nvqpp_internal_tostring", {}, R"#(
+  func.func private @__nvqpp_internal_tostring(%buf: !cc.stdvec<i8>, %val: i64) {
+    %c48_i64 = arith.constant 48 : i64 
+    %c48_i32 = arith.constant 48 : i32 
+    %c0_i64 = arith.constant 0 : i64 
+    %c10_i64 = arith.constant 10 : i64 
+    %c1_i64 = arith.constant 1 : i64 
+    %c48_i8 = arith.constant 48 : i8 
+    %false = arith.constant false 
+    %c0_i8 = arith.constant 0 : i8 
+    %0 = cc.alloca i64 
+    cc.store %val, %0 : !cc.ptr<i64> 
+    %1 = cc.alloca i64 
+    cc.store %c10_i64, %1 : !cc.ptr<i64> 
+    %2 = cc.stdvec_size %buf : (!cc.stdvec<i8>) -> i64 
+    %3 = cc.alloca i64 
+    cc.store %2, %3 : !cc.ptr<i64> 
+    %4 = cc.load %3 : !cc.ptr<i64> 
+    %5 = arith.subi %4, %c1_i64 : i64 
+    %6 = cc.alloca i64 
+    cc.store %5, %6 : !cc.ptr<i64> 
+    %7 = cc.load %6 : !cc.ptr<i64> 
+    %8 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>> 
+    %9 = cc.compute_ptr %8[%7] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8> 
+    cc.store %c0_i8, %9 : !cc.ptr<i8> 
+    %10 = cc.load %6 : !cc.ptr<i64> 
+    %11 = arith.subi %10, %c1_i64 : i64 
+    cc.store %11, %6 : !cc.ptr<i64> 
+    cc.loop while {
+      %18 = cc.load %0 : !cc.ptr<i64> 
+      %19 = cc.load %1 : !cc.ptr<i64> 
+      %20 = arith.cmpi sge, %18, %19 : i64 
+      %21 = arith.cmpi eq, %20, %false : i1 
+      %22 = cc.if(%21) -> i1 {
+        cc.continue %false : i1 
+      } else {
+        %23 = cc.load %6 : !cc.ptr<i64> 
+        %24 = arith.cmpi sge, %23, %c0_i64 : i64 
+        cc.continue %24 : i1 
+      } 
+      cc.condition %22 
+    } do {
+      cc.scope {
+        %18 = cc.load %0 : !cc.ptr<i64> 
+        %19 = cc.load %1 : !cc.ptr<i64> 
+        %20 = arith.remsi %18, %19 : i64 
+        %21 = cc.cast %20 : (i64) -> i32 
+        %22 = cc.alloca i32 
+        cc.store %21, %22 : !cc.ptr<i32> 
+        %23 = cc.load %1 : !cc.ptr<i64> 
+        %24 = cc.load %0 : !cc.ptr<i64> 
+        %25 = arith.divsi %24, %23 : i64 
+        cc.store %25, %0 : !cc.ptr<i64> 
+        %26 = cc.load %6 : !cc.ptr<i64> 
+        %27 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>> 
+        %28 = cc.compute_ptr %27[%26] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8> 
+        %29 = cc.load %22 : !cc.ptr<i32> 
+        %30 = arith.addi %29, %c48_i32 : i32 
+        %31 = cc.cast %30 : (i32) -> i8 
+        cc.store %31, %28 : !cc.ptr<i8> 
+        %32 = cc.load %6 : !cc.ptr<i64> 
+        %33 = arith.subi %32, %c1_i64 : i64 
+        cc.store %33, %6 : !cc.ptr<i64> 
+      }
+      cc.continue
+    }
+    %12 = cc.load %6 : !cc.ptr<i64>
+    %13 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+    %14 = cc.compute_ptr %13[%12] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+    %15 = cc.load %0 : !cc.ptr<i64>
+    %16 = arith.addi %15, %c48_i64 : i64
+    %17 = cc.cast %16 : (i64) -> i8
+    cc.store %17, %14 : !cc.ptr<i8>
+    cc.scope {
+      %18 = cc.alloca i64
+      cc.store %c0_i64, %18 : !cc.ptr<i64>
+      cc.loop while {
+        %19 = cc.load %18 : !cc.ptr<i64>
+        %20 = cc.load %6 : !cc.ptr<i64>
+        %21 = arith.cmpi slt, %19, %20 : i64
+        cc.condition %21
+      } do {
+        %19 = cc.load %18 : !cc.ptr<i64>
+        %20 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+        %21 = cc.compute_ptr %20[%19] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+        cc.store %c48_i8, %21 : !cc.ptr<i8>
+        cc.continue
+      } step {
+        %19 = cc.load %18 : !cc.ptr<i64>
+        %20 = arith.addi %19, %c1_i64 : i64
+        cc.store %20, %18 : !cc.ptr<i64>
+      }
+    }
+    return
+  }
+  )#"},
+
     // This helper function copies a buffer off the stack to the heap. This is
     // required when the data on the stack is about to go out of scope but is
     // still live.

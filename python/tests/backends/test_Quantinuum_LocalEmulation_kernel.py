@@ -456,6 +456,51 @@ def test_run():
             non_zero_count += 1
     assert non_zero_count > 0
 
+    # Kernel that returns a vector
+    @cudaq.kernel
+    def vector_kernel(state: list[bool]) -> list[bool]:
+        qubits = cudaq.qvector(len(state))
+        for i, bit in enumerate(state):
+            if bit:
+                x(qubits[i])
+        return mz(qubits)
+
+    num_qubits = [1, 3, 6, 12]
+    for n in num_qubits:
+        init_state = [False if i % 2 == 0 else True for i in range(n)]
+        shots = 2
+        results = cudaq.run(vector_kernel, init_state, shots_count=shots)
+        print(f"Results for {n} qubits: {results}")
+        assert len(results) == shots
+        for result in results:
+            assert result == init_state
+
+    @cudaq.kernel
+    def vector_int_kernel(state: list[bool]) -> list[int]:
+        qubits = cudaq.qvector(len(state))
+        for i, bit in enumerate(state):
+            if bit:
+                x(qubits[i])
+        meas = mz(qubits)
+        res = [0 for _ in range(len(state))]
+        for i, bit in enumerate(meas):
+            if bit:
+                res[i] = 1 + i
+        return res
+
+    num_qubits = [1, 3, 6, 12]
+    for n in num_qubits:
+        init_state = [False if i % 2 == 0 else True for i in range(n)]
+        shots = 2
+        results = cudaq.run(vector_int_kernel, init_state, shots_count=shots)
+        print(f"Results for {n} qubits: {results}")
+        assert len(results) == shots
+        expected_results = [
+            0 if not bit else 1 + i for i, bit in enumerate(init_state)
+        ]
+        for result in results:
+            assert result == expected_results
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
