@@ -59,7 +59,7 @@ public:
   operator int() const { return result; }
   operator bool() const { return __nvqpp__MeasureResultBoolConversion(result); }
 
-  inline static std::vector<bool>
+  static std::vector<bool>
   to_bool_vector(const std::vector<measure_result> &results) {
     std::vector<bool> boolResults;
     boolResults.reserve(results.size());
