@@ -1101,13 +1101,13 @@ can be controlled with the <code class="docutils literal notranslate"><span clas
 Submission to the syntax checker merely validates the program; the kernels are not executed.</p>
 <p>To execute your kernels, specify which machine to submit quantum kernels to
 by setting the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter of the target.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;H1-2&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;H2-2&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">H1-2</span></code> is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-2E</span></code>). For
+<p>where <code class="docutils literal notranslate"><span class="pre">H2-2</span></code> is an example of a physical QPU. Hardware specific
+emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-2E</span></code>). For
 access to the syntax checker for the provided machine, you may append an <code class="docutils literal notranslate"><span class="pre">SC</span></code>
-to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>).</p>
+to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-1SC</span></code>).</p>
 <p>For a comprehensive list of available machines, login to your <a class="reference external" href="https://nexus.quantinuum.com/">Quantinuum Nexus user account</a>
 and navigate to the “Profile” tab, where you should find a table titled “Quantinuum Systems Access”.</p>
 <p>To emulate the Quantinuum machine locally, without submitting through the cloud,
@@ -1137,13 +1137,13 @@ nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span cla
 </div>
 <p>To execute your kernels, pass the <code class="docutils literal notranslate"><span class="pre">--quantinuum-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
 to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>--quantinuum-machine<span class="w"> </span>H1-2<span class="w"> </span>src.cpp<span class="w"> </span>...
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>--quantinuum-machine<span class="w"> </span>H2-2<span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">H1-2</span></code> is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-2E</span></code>). For
+<p>where <code class="docutils literal notranslate"><span class="pre">H2-2</span></code> is an example of a physical QPU. Hardware specific
+emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-2E</span></code>). For
 access to the syntax checker for the provided machine, you may append an <code class="docutils literal notranslate"><span class="pre">SC</span></code>
-to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>).</p>
+to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-1SC</span></code>).</p>
 <p>For a comprehensive list of available machines, login to your <a class="reference external" href="https://nexus.quantinuum.com/">Quantinuum Nexus user account</a>
 and navigate to the “Profile” tab, where you should find a table titled “Quantinuum Systems Access”.</p>
 <p>To emulate the Quantinuum machine locally, without submitting through the cloud,
@@ -1158,7 +1158,7 @@ You do not need to specify project or machine when emulating.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Quantinuum’s syntax checker for Helios (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1SC</span></code>) only performs QIR code validation and does not return any results.
-Thus, it always returns an empty result set. This is different from other Quantinuum backends (e.g., <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>) where the syntax checker returns dummy results.
+Thus, it always returns an empty result set. This is different from other Quantinuum backends (e.g., <code class="docutils literal notranslate"><span class="pre">H2-1SC</span></code>) where the syntax checker returns dummy results.
 As a result, when using the Helios syntax checker, we may receive this warning message:</p>
 <blockquote>
 <div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING: this kernel invocation produced 0 shots worth of results when executed.
