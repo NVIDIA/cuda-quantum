@@ -34,7 +34,7 @@ on:
       target_machine:
         type: string
         required: false
-        description: 'Target machine (e.g., H1-1E).'
+        description: 'Target machine (e.g., H2-1E).'
       cudaq_test_image:
         type: string
         required: false
@@ -407,7 +407,7 @@ jobs:
             case $filename in
               targettests/quantinuum/*)
                 [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
+                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
