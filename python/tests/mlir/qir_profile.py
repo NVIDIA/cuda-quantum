@@ -21,7 +21,7 @@ def test_qir_profile():
         mz(q)
 
     # This device requires qir:0.1
-    cudaq.set_target('quantinuum', emulate=True, machine='H1-2E')
+    cudaq.set_target('quantinuum', emulate=True, machine='H2-2E')
     result = cudaq.sample(my_kernel)
 
 
