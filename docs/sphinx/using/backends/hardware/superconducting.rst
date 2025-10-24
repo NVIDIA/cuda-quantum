@@ -483,7 +483,8 @@ Submitting
 
         In the example below, the compilation step shows two flags being passed to the nvq++
         compiler: the Quantum Circuits target :code:`--target qci`, and the output file
-        :code:`-o example.x`.  The second line executes the program against AquSim. Here are the shell commands in full:
+        :code:`-o example.x`.  The second line executes the program against AquSim. Here are the
+        shell commands in full:
 
         .. code:: bash
 
