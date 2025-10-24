@@ -3225,6 +3225,7 @@ class PyASTBridge(ast.NodeVisitor):
             forNode.target = node.generators[0].target
             forNode.body = [node.elt]
             forNode.orelse = []
+            # FIXME: this loop is/should be invariant but visit_for can't know that
             self.visit_For(forNode)
 
         target_types = {}
@@ -3777,12 +3778,7 @@ class PyASTBridge(ast.NodeVisitor):
         enumerate().
         """
 
-        def blockBuilder(values, stmts):
-            self.symbolTable.pushScope()
-            self.__deconstructAssignment(node.target, values)
-            [self.visit(b) for b in stmts]
-            self.symbolTable.popScope()
-
+        getValues = None
         if isinstance(node.iter, ast.Call):
             self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
 
@@ -3790,122 +3786,82 @@ class PyASTBridge(ast.NodeVisitor):
             # by just building a for loop with N as the upper value,
             # no need to generate an array from the `range` call.
             if node.iter.func.id == 'range':
-                # This is a range(N) for loop, we just need
-                # the upper bound N for this loop
-
+                iterable = None
                 startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.iter.args)
-
-                if not isinstance(node.target, ast.Name):
-                    self.emitFatalError(
-                        "iteration variable must be a single name", node)
-
-                self.createMonotonicForLoop(lambda iterVar: blockBuilder(iterVar, node.body),
-                                   startVal=startVal,
-                                   stepVal=stepVal,
-                                   endVal=endVal,
-                                   isDecrementing=isDecrementing,
-                                   orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(iterVar, node.orelse))
-                return
+                getValues = lambda iterVar: iterVar
 
             # We can simplify `for i,j in enumerate(L)` MLIR code immensely
             # by just building a for loop over the iterable object L and using
             # the index into that iterable and the element.
-            if node.iter.func.id == 'enumerate':
+            elif node.iter.func.id == 'enumerate':
                 if len(node.iter.args) != 1:
                     self.emitFatalError("invalid number of arguments to enumerate - expecting 1 argument", node)
                 
                 self.visit(node.iter.args[0])
                 iterable = self.ifPointerThenLoad(self.popValue())
+                getValues = lambda iterVar, v: (iterVar, v)
 
-                totalSize = None
-                beEfficient = False
+        if not getValues:
+            self.visit(node.iter)
+            iterable = self.ifPointerThenLoad(self.popValue())
 
-                if quake.VeqType.isinstance(iterable.type):
-                    totalSize = quake.VeqSizeOp(self.getIntegerType(),
+        if iterable:
+
+            isDecrementing = False
+            startVal = self.getConstantInt(0)
+            stepVal = self.getConstantInt(1)
+            relevantVals = getValues or (lambda iterVar, v: v)
+
+            # we currently handle `veq` and `stdvec` types
+            if quake.VeqType.isinstance(iterable.type):
+                size = quake.VeqType.getSize(iterable.type)
+                if quake.VeqType.hasSpecifiedSize(iterable.type):
+                    endVal = self.getConstantInt(size)
+                else:
+                    endVal = quake.VeqSizeOp(self.getIntegerType(),
                                                 iterable).result
-                    def getValue(seq, idx):
-                        q = quake.ExtractRefOp(self.getRefType(),
-                                               seq,
-                                               -1,
-                                               index=idx).result
-                        return [idx, q]
-                    beEfficient = True
+                def loadElement(iterVar):
+                    val = quake.ExtractRefOp(self.getRefType(),
+                                                iterable,
+                                                -1,
+                                                index=iterVar).result
+                    return relevantVals(iterVar, val)
+                getValues = loadElement
 
-                elif cc.StdvecType.isinstance(iterable.type):
-                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                                iterable).result
-                    def getValue(seq, idx):
-                        vecTy = cc.StdvecType.getElementType(seq.type)
-                        dataTy = cc.PointerType.get(vecTy)
-                        arrTy = vecTy
-                        if not cc.ArrayType.isinstance(arrTy):
-                            arrTy = cc.ArrayType.get(vecTy)
-                        dataArrTy = cc.PointerType.get(arrTy)
-                        data = cc.StdvecDataOp(dataArrTy, seq).result
-                        v = cc.ComputePtrOp(
-                            dataTy, data, [idx],
-                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                  context=self.ctx)).result
-                        return [idx, v]
-                    beEfficient = True
-
-                if beEfficient:
-
-                    if not isinstance(node.target, ast.Tuple) or \
-                        len(node.target.elts) != 2:
-                        self.emitFatalError(
-                            "iteration variable must be a tuple of two items",
-                            node)
-
-                    self.createMonotonicForLoop(lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.body),
-                                    startVal=self.getConstantInt(0),
-                                    stepVal=self.getConstantInt(1),
-                                    endVal=totalSize,
-                                    isDecrementing=False,
-                                    orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.orelse))
-                    return
-
-        self.visit(node.iter)
-        iterable = self.ifPointerThenLoad(self.popValue())
-
-        # we currently handle `veq` and `stdvec` types
-        if quake.VeqType.isinstance(iterable.type):
-            size = quake.VeqType.getSize(iterable.type)
-            if quake.VeqType.hasSpecifiedSize(iterable.type):
-                totalSize = self.getConstantInt(size)
-            else:
-                totalSize = quake.VeqSizeOp(self.getIntegerType(64),
+            elif cc.StdvecType.isinstance(iterable.type):
+                iterEleTy = cc.StdvecType.getElementType(iterable.type)
+                endVal = cc.StdvecSizeOp(self.getIntegerType(),
                                             iterable).result
-            def getValue(iter, idx):
-                return quake.ExtractRefOp(self.getRefType(),
-                                            iter,
-                                            -1,
-                                            index=idx).result
-        elif cc.StdvecType.isinstance(iterable.type):
-            iterEleTy = cc.StdvecType.getElementType(iterable.type)
-            totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                        iterable).result
-            def getValue(iter, idxVal):
-                elePtrTy = cc.PointerType.get(iterEleTy)
-                arrTy = cc.ArrayType.get(iterEleTy)
-                ptrArrTy = cc.PointerType.get(arrTy)
-                vecPtr = cc.StdvecDataOp(ptrArrTy, iter).result
-                eleAddr = cc.ComputePtrOp(
-                    elePtrTy, vecPtr, [idxVal],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                            context=self.ctx)).result
-                return cc.LoadOp(eleAddr).result
+                def loadElement(iterVar):
+                    elePtrTy = cc.PointerType.get(iterEleTy)
+                    arrTy = cc.ArrayType.get(iterEleTy)
+                    ptrArrTy = cc.PointerType.get(arrTy)
+                    vecPtr = cc.StdvecDataOp(ptrArrTy, iterable).result
+                    eleAddr = cc.ComputePtrOp(
+                        elePtrTy, vecPtr, [iterVar],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                context=self.ctx)).result
+                    val = cc.LoadOp(eleAddr).result
+                    return relevantVals(iterVar, val)
+                getValues = loadElement
 
-        else:
-            self.emitFatalError('{} iterable type not supported.', node)
+            else:
+                self.emitFatalError('{} iterable type not supported.', node)
 
-        self.createMonotonicForLoop(lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.body),
-                        startVal=self.getConstantInt(0),
-                        stepVal=self.getConstantInt(1),
-                        endVal=totalSize,
-                        isDecrementing=False,
-                        orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.orelse))
+        def blockBuilder(iterVar, stmts):
+            self.symbolTable.pushScope()
+            values = getValues(iterVar)
+            self.__deconstructAssignment(node.target, values)
+            [self.visit(b) for b in stmts]
+            self.symbolTable.popScope()
+
+        self.createMonotonicForLoop(lambda iterVar: blockBuilder(iterVar, node.body),
+                        startVal=startVal,
+                        stepVal=stepVal,
+                        endVal=endVal,
+                        isDecrementing=isDecrementing,
+                        orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(iterVar, node.orelse))
 
     def visit_While(self, node):
         """

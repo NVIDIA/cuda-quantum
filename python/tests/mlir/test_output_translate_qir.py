@@ -46,10 +46,10 @@ def test_synth_and_translate():
 # CHECK:       :                                         ; preds = %[[VAL_17]], %[[VAL_20:.*]]
 # CHECK:         %[[VAL_29:.*]] = phi i64 [ %[[VAL_30:.*]], %[[VAL_20]] ], [ 0, %[[VAL_17]] ]
 # CHECK:         %[[VAL_31:.*]] = getelementptr i64, i64* %[[VAL_8]], i64 %[[VAL_29]]
+# CHECK:         %[[VAL_34:.*]] = load i64, i64* %[[VAL_31]]
 # CHECK:         %[[VAL_35:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_1]], i64 %[[VAL_29]])
 # CHECK:         %[[VAL_36:.*]] = bitcast %Qubit** %[[VAL_35]] to i8**
 # CHECK:         %[[VAL_37:.*]] = load i8*, i8** %[[VAL_36]]
-# CHECK:         %[[VAL_34:.*]] = load i64, i64* %[[VAL_31]]
 # CHECK:         %[[VAL_38:.*]] = add i64 %[[VAL_34]], 1
 # CHECK:         %[[VAL_39:.*]] = tail call %Qubit** @__quantum__rt__array_get_element_ptr_1d(%Array* %[[VAL_1]], i64 %[[VAL_38]])
 # CHECK:         %[[VAL_40:.*]] = bitcast %Qubit** %[[VAL_39]] to i8**
