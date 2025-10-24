@@ -1019,12 +1019,31 @@ std::string getASM(const std::string &name, MlirModule module,
   return str;
 }
 
+std::vector<std::string> getCallableNames(py::object &kernel, py::args &args) {
+  // Handle callable arguments, if any, similar to `PyKernelDecorator.__call__`,
+  // so that the callable arguments are properly packed for `pyAltLaunchKernel`
+  // as if it's launched from Python.
+  std::vector<std::string> callableNames;
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    auto arg = args[i];
+    // If this is a `PyKernelDecorator` callable:
+    if (py::hasattr(arg, "__call__") && py::hasattr(arg, "module") &&
+        py::hasattr(arg, "name")) {
+      if (py::hasattr(arg, "compile"))
+        arg.attr("compile")();
+
+      if (py::hasattr(kernel, "processCallableArg"))
+        kernel.attr("processCallableArg")(arg);
+      callableNames.push_back(arg.attr("name").cast<std::string>());
+    }
+  }
+  return callableNames;
+}
+
 void bindAltLaunchKernel(py::module &mod,
                          std::function<std::string()> &&getTL) {
   jitCache = std::make_unique<JITExecutionCache>();
   getTransportLayer = std::move(getTL);
-
-  auto callableArgHandler = getCallableArgHandler();
 
   mod.def(
       "pyAltLaunchKernel",
@@ -1034,7 +1053,7 @@ void bindAltLaunchKernel(py::module &mod,
 
         cudaq::OpaqueArguments args;
         setDataLayout(module);
-        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, getCallableArgHandler());
         pyAltLaunchKernel(kernelName, module, args, callable_names);
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
@@ -1048,7 +1067,7 @@ void bindAltLaunchKernel(py::module &mod,
 
         cudaq::OpaqueArguments args;
         setDataLayout(module);
-        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, getCallableArgHandler());
         return pyAltLaunchKernelR(kernelName, module, returnType, args,
                                   callable_names);
       },

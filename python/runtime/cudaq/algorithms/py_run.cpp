@@ -53,23 +53,8 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
-  // Handle callable arguments, if any, similar to `PyKernelDecorator.__call__`,
-  // so that the callable arguments are properly packed for `pyAltLaunchKernel`
-  // as if it's launched from Python.
-  std::vector<std::string> callableNames;
-  for (std::size_t i = 0; i < args.size(); ++i) {
-    auto arg = args[i];
-    // If this is a `PyKernelDecorator` callable:
-    if (py::hasattr(arg, "__call__") && py::hasattr(arg, "module") &&
-        py::hasattr(arg, "name")) {
-      if (py::hasattr(arg, "compile"))
-        arg.attr("compile")();
-
-      if (py::hasattr(kernel, "processCallableArg"))
-        kernel.attr("processCallableArg")(arg);
-      callableNames.push_back(arg.attr("name").cast<std::string>());
-    }
-  }
+  // Process any callable args
+  const auto callableNames = getCallableNames(kernel, args);
 
   auto origKernName = kernel.attr("name").cast<std::string>();
   auto kernelName = origKernName + ".run";

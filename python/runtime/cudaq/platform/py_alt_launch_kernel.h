@@ -30,6 +30,12 @@ void setDataLayout(MlirModule module);
 std::function<bool(OpaqueArguments &argData, py::object &arg)>
 getCallableArgHandler();
 
+/// @brief Get the names of callable arguments from the given kernel and
+/// arguments.
+// As we process the arguments, we also perform any extra processing required
+// for callable arguments.
+std::vector<std::string> getCallableNames(py::object &kernel, py::args &args);
+
 /// @brief Create a new OpaqueArguments pointer and pack the
 /// python arguments in it. Clients must delete the memory.
 OpaqueArguments *
