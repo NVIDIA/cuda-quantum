@@ -9,7 +9,7 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
-
+import numpy
 
 def test_continue():
 
@@ -65,6 +65,22 @@ def test_continue():
 # CHECK:           ^bb0(%[[VAL_23:.*]]: i64):
 # CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_24]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
+
+def test_continue2():
+
+    @cudaq.kernel(verbose=False)
+    def kernel(x: float):
+        qs = cudaq.qvector(6)
+        for idx, q in enumerate(qs):
+            if idx < 3:
+                continue
+            ry(x, q)
+
+    res = cudaq.sample(kernel, numpy.pi)
+    assert len(res) == 1 and '000111' in res
+    print(f"output test1: {res}" )
+
+# CHECK-LABEL:  output test1: { 000111:1000 }

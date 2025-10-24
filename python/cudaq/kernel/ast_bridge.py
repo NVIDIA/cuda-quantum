@@ -108,10 +108,9 @@ class PyStack(object):
     '''
     Takes care of managing values produced while vising Python
     AST nodes. Each visit to a node is expected to match one
-    stack frame, and must produce (meaning push) no more than
-    one value. Values produced by child frames are accessible 
-    (meaning can be popped) by the parent. A frame cannot access
-    the value it produced (it is owned by the parent).
+    stack frame. Values produced (meaning pushed) by child frames
+    are accessible (meaning can be popped) by the parent. A frame
+    cannot access the value it produced (it is owned by the parent).
     '''
     class Frame(object):
         def __init__(self, parent = None):
@@ -796,7 +795,7 @@ class PyASTBridge(ast.NodeVisitor):
                                             [iterVar], rawIndex).result
             cc.StoreOp(castedEle, targetEleAddr)
 
-        self.createInvariantForLoop(sourceSize, bodyBuilder)
+        self.createInvariantForLoop(bodyBuilder, sourceSize)
         return cc.StdvecInitOp(targetVecTy, targetPtr, length=sourceSize).result
 
     def __insertDbgStmt(self, value, dbgStmt):
@@ -951,61 +950,73 @@ class PyASTBridge(ast.NodeVisitor):
         if msg is not None:
             self.emitFatalError(msg, annotation)
 
-    def createInvariantForLoop(self,
-                               endVal,
-                               bodyBuilder,
-                               startVal=None,
-                               stepVal=None,
-                               isDecrementing=False,
-                               elseStmts=None):
-        """
-        Create an invariant loop using the CC dialect. 
-        """
-        startVal = self.getConstantInt(0) if startVal == None else startVal
-        stepVal = self.getConstantInt(1) if stepVal == None else stepVal
+    def createForLoop(self, argTypes, bodyBuilder, inputs, evalCond, evalStep, orElseBuilder = None):
 
-        iTy = self.getIntegerType()
-        inputs = [startVal]
-        resultTys = [iTy]
+        # post-conditional would be a do-while loop
+        isPostConditional = BoolAttr.get(False)
+        loop = cc.LoopOp(argTypes, inputs, isPostConditional)
 
-        loop = cc.LoopOp(resultTys, inputs, BoolAttr.get(False))
-
-        whileBlock = Block.create_at_start(loop.whileRegion, [iTy])
+        whileBlock = Block.create_at_start(loop.whileRegion, argTypes)
         with InsertionPoint(whileBlock):
-            condPred = IntegerAttr.get(
-                iTy, 2) if not isDecrementing else IntegerAttr.get(iTy, 4)
-            cc.ConditionOp(
-                arith.CmpIOp(condPred, whileBlock.arguments[0], endVal).result,
-                whileBlock.arguments)
+            condVal = evalCond(whileBlock.arguments)
+            cc.ConditionOp(condVal, whileBlock.arguments)
 
-        bodyBlock = Block.create_at_start(loop.bodyRegion, [iTy])
+        bodyBlock = Block.create_at_start(loop.bodyRegion, argTypes)
         with InsertionPoint(bodyBlock):
             self.symbolTable.pushScope()
             self.pushForBodyStack(bodyBlock.arguments)
-            bodyBuilder(bodyBlock.arguments[0])
+            bodyBuilder(bodyBlock.arguments)
             if not self.hasTerminator(bodyBlock):
                 cc.ContinueOp(bodyBlock.arguments)
             self.popForBodyStack()
             self.symbolTable.popScope()
 
-        stepBlock = Block.create_at_start(loop.stepRegion, [iTy])
+        stepBlock = Block.create_at_start(loop.stepRegion, argTypes)
         with InsertionPoint(stepBlock):
-            incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
-            cc.ContinueOp([incr])
+            stepVals = evalStep(stepBlock.arguments)
+            cc.ContinueOp(stepVals)
 
-        if elseStmts:
-            elseBlock = Block.create_at_start(loop.elseRegion, [iTy])
+        if orElseBuilder:
+            elseBlock = Block.create_at_start(loop.elseRegion, argTypes)
             with InsertionPoint(elseBlock):
                 self.symbolTable.pushScope()
-                for stmt in elseStmts:
-                    self.visit(stmt)
+                orElseBuilder(elseBlock.arguments)
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp(elseBlock.arguments)
                 self.symbolTable.popScope()
 
-        # FIXME: remove or make sure this is actually correct...
+        return loop
+
+    def createMonotonicForLoop(self, bodyBuilder, startVal, stepVal, endVal, isDecrementing=False, orElseBuilder = None):
+
+        iTy = self.getIntegerType()
+        assert startVal.type == iTy
+        assert stepVal.type == iTy
+        assert endVal.type == iTy
+        
+        condPred = IntegerAttr.get(iTy, 4) if isDecrementing else IntegerAttr.get(iTy, 2)
+        if orElseBuilder:
+            orElseBuilder = lambda args: orElseBuilder(args[0])
+        return self.createForLoop([iTy], 
+                                 lambda args: bodyBuilder(args[0]),
+                                 [startVal], 
+                                 lambda args: arith.CmpIOp(condPred, args[0], endVal).result,
+                                 lambda args: [arith.AddIOp(args[0], stepVal).result], 
+                                 orElseBuilder)
+
+    def createInvariantForLoop(self, bodyBuilder, endVal):
+        """
+        Create an invariant loop using the CC dialect. 
+        """
+
+        startVal = self.getConstantInt(0)
+        stepVal = self.getConstantInt(1)
+
+        loop = self.createMonotonicForLoop(bodyBuilder, 
+                                      startVal=startVal, 
+                                      stepVal=stepVal, 
+                                      endVal=endVal)
         loop.attributes.__setitem__('invariant', UnitAttr.get())
-        return
 
     def __applyQuantumOperation(self, opName, parameters, targets):
         # FIXME: WHY CAN'T WE SIMPLY PUT THESE OP CONSTRUCTORS INTO THE SYMBOL TABLE?
@@ -1022,7 +1033,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                           quantumValue).result
-                self.createInvariantForLoop(veqSize, bodyBuilder)
+                self.createInvariantForLoop(bodyBuilder, veqSize)
             elif quake.RefType.isinstance(quantumValue.type):
                 opCtor([], parameters, [], [quantumValue])
             else:
@@ -1042,6 +1053,10 @@ class PyASTBridge(ast.NodeVisitor):
                 isinstance(value, ast.List):
                 nrArgs = len(value.elts)
                 getItem = lambda idx: value.elts[idx]
+            elif isinstance(value, tuple) or \
+                isinstance(value, list):
+                nrArgs = len(value)
+                getItem = lambda idx: value[idx]
             else:
                 value = self.ifPointerThenLoad(value)
                 if cc.StructType.isinstance(value.type):
@@ -2013,11 +2028,11 @@ class PyASTBridge(ast.NodeVisitor):
                     incrementedCounter = arith.AddIOp(loadedCounter, one).result
                     cc.StoreOp(incrementedCounter, counter)
 
-                self.createInvariantForLoop(endVal,
-                                            bodyBuilder,
-                                            startVal=startVal,
-                                            stepVal=stepVal,
-                                            isDecrementing=isDecrementing)
+                self.createMonotonicForLoop(bodyBuilder, 
+                                   startVal=startVal,
+                                   stepVal=stepVal,
+                                   endVal=endVal,
+                                   isDecrementing=isDecrementing)
 
                 vect = cc.StdvecInitOp(cc.StdvecType.get(iTy), iterable, length=totalSize).result
                 self.pushValue(vect)
@@ -2088,7 +2103,7 @@ class PyASTBridge(ast.NodeVisitor):
                         DenseI64ArrayAttr.get([1], context=self.ctx)).result
                     cc.StoreOp(element, eleAddr)
 
-                self.createInvariantForLoop(totalSize, bodyBuilder)
+                self.createInvariantForLoop(bodyBuilder, totalSize)
                 vect = cc.StdvecInitOp(cc.StdvecType.get(structTy), enumIterable, length=totalSize).result
                 self.pushValue(vect)
                 return
@@ -2175,7 +2190,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                     veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                               target).result
-                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    self.createInvariantForLoop(bodyBuilder, veqSize)
                     return
                 elif quake.RefType.isinstance(target.type):
                     opCtor([], [], [], [target], is_adj=True)
@@ -2258,7 +2273,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                     veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                               target).result
-                    self.createInvariantForLoop(veqSize, bodyBuilder)
+                    self.createInvariantForLoop(bodyBuilder, veqSize)
                     return
                 self.emitFatalError(
                     'reset quantum operation on incorrect type {}.'.format(
@@ -2977,7 +2992,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                             veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                                       target).result
-                            self.createInvariantForLoop(veqSize, bodyBuilder)
+                            self.createInvariantForLoop(bodyBuilder, veqSize)
                             return
                         elif quake.RefType.isinstance(target.type):
                             opCtor([], [], [], [target], is_adj=True)
@@ -3046,7 +3061,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                             veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                                       target).result
-                            self.createInvariantForLoop(veqSize, bodyBuilder)
+                            self.createInvariantForLoop(bodyBuilder, veqSize)
                             return
                         elif quake.RefType.isinstance(target.type):
                             opCtor([], [param], [], [target], is_adj=True)
@@ -3106,7 +3121,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                             veqSize = quake.VeqSizeOp(self.getIntegerType(),
                                                       target).result
-                            self.createInvariantForLoop(veqSize, bodyBuilder)
+                            self.createInvariantForLoop(bodyBuilder, veqSize)
                             return
                         elif quake.RefType.isinstance(target.type):
                             opCtor([], params, [], [target], is_adj=True)
@@ -3424,7 +3439,7 @@ class PyASTBridge(ast.NodeVisitor):
             cc.StoreOp(result, listValueAddr)
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(iterableSize, bodyBuilder)
+        self.createInvariantForLoop(bodyBuilder, iterableSize)
         self.pushValue(
             cc.StdvecInitOp(cc.StdvecType.get(listElemTy),
                             listValue,
@@ -3761,6 +3776,13 @@ class PyASTBridge(ast.NodeVisitor):
         `veq` type, the `stdvec` type, and the result of range() and
         enumerate().
         """
+
+        def blockBuilder(values, stmts):
+            self.symbolTable.pushScope()
+            self.__deconstructAssignment(node.target, values)
+            [self.visit(b) for b in stmts]
+            self.symbolTable.popScope()
+
         if isinstance(node.iter, ast.Call):
             self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
 
@@ -3778,19 +3800,12 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         "iteration variable must be a single name", node)
 
-                def bodyBuilder(iterVar):
-                    self.symbolTable.pushScope()
-                    self.symbolTable.add(node.target.id, iterVar)
-                    [self.visit(b) for b in node.body]
-                    self.symbolTable.popScope()
-
-                self.createInvariantForLoop(endVal,
-                                            bodyBuilder,
-                                            startVal=startVal,
-                                            stepVal=stepVal,
-                                            isDecrementing=isDecrementing,
-                                            elseStmts=node.orelse)
-
+                self.createMonotonicForLoop(lambda iterVar: blockBuilder(iterVar, node.body),
+                                   startVal=startVal,
+                                   stepVal=stepVal,
+                                   endVal=endVal,
+                                   isDecrementing=isDecrementing,
+                                   orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(iterVar, node.orelse))
                 return
 
             # We can simplify `for i,j in enumerate(L)` MLIR code immensely
@@ -3804,27 +3819,23 @@ class PyASTBridge(ast.NodeVisitor):
                 iterable = self.ifPointerThenLoad(self.popValue())
 
                 totalSize = None
-                extractFunctor = None
-
                 beEfficient = False
+
                 if quake.VeqType.isinstance(iterable.type):
                     totalSize = quake.VeqSizeOp(self.getIntegerType(),
                                                 iterable).result
-
-                    def functor(seq, idx):
+                    def getValue(seq, idx):
                         q = quake.ExtractRefOp(self.getRefType(),
                                                seq,
                                                -1,
                                                index=idx).result
                         return [idx, q]
-
-                    extractFunctor = functor
                     beEfficient = True
+
                 elif cc.StdvecType.isinstance(iterable.type):
                     totalSize = cc.StdvecSizeOp(self.getIntegerType(),
                                                 iterable).result
-
-                    def functor(seq, idx):
+                    def getValue(seq, idx):
                         vecTy = cc.StdvecType.getElementType(seq.type)
                         dataTy = cc.PointerType.get(vecTy)
                         arrTy = vecTy
@@ -3837,8 +3848,6 @@ class PyASTBridge(ast.NodeVisitor):
                             DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                                   context=self.ctx)).result
                         return [idx, v]
-
-                    extractFunctor = functor
                     beEfficient = True
 
                 if beEfficient:
@@ -3849,18 +3858,12 @@ class PyASTBridge(ast.NodeVisitor):
                             "iteration variable must be a tuple of two items",
                             node)
 
-                    def bodyBuilder(iterVar):
-                        self.symbolTable.pushScope()
-                        values = extractFunctor(iterable, iterVar)
-                        assert (len(values) == 2)
-                        for i, v in enumerate(values):
-                            self.__deconstructAssignment(node.target.elts[i], v)
-                        [self.visit(b) for b in node.body]
-                        self.symbolTable.popScope()
-
-                    self.createInvariantForLoop(totalSize,
-                                                bodyBuilder,
-                                                elseStmts=node.orelse)
+                    self.createMonotonicForLoop(lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.body),
+                                    startVal=self.getConstantInt(0),
+                                    stepVal=self.getConstantInt(1),
+                                    endVal=totalSize,
+                                    isDecrementing=False,
+                                    orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.orelse))
                     return
 
         self.visit(node.iter)
@@ -3874,20 +3877,16 @@ class PyASTBridge(ast.NodeVisitor):
             else:
                 totalSize = quake.VeqSizeOp(self.getIntegerType(64),
                                             iterable).result
-
-            def functor(iter, idx):
+            def getValue(iter, idx):
                 return quake.ExtractRefOp(self.getRefType(),
                                             iter,
                                             -1,
                                             index=idx).result
-
-            extractFunctor = functor
         elif cc.StdvecType.isinstance(iterable.type):
             iterEleTy = cc.StdvecType.getElementType(iterable.type)
             totalSize = cc.StdvecSizeOp(self.getIntegerType(),
                                         iterable).result
-
-            def functor(iter, idxVal):
+            def getValue(iter, idxVal):
                 elePtrTy = cc.PointerType.get(iterEleTy)
                 arrTy = cc.ArrayType.get(iterEleTy)
                 ptrArrTy = cc.PointerType.get(arrTy)
@@ -3898,63 +3897,32 @@ class PyASTBridge(ast.NodeVisitor):
                                             context=self.ctx)).result
                 return cc.LoadOp(eleAddr).result
 
-            extractFunctor = functor
-
         else:
             self.emitFatalError('{} iterable type not supported.', node)
 
-        def bodyBuilder(iterVar):
-            self.symbolTable.pushScope()
-            # we set the extract functor above, use it here
-            value = extractFunctor(iterable, iterVar)
-            self.__deconstructAssignment(node.target, value)
-            [self.visit(b) for b in node.body]
-            self.symbolTable.popScope()
-
-        self.createInvariantForLoop(totalSize,
-                                    bodyBuilder,
-                                    elseStmts=node.orelse)
+        self.createMonotonicForLoop(lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.body),
+                        startVal=self.getConstantInt(0),
+                        stepVal=self.getConstantInt(1),
+                        endVal=totalSize,
+                        isDecrementing=False,
+                        orElseBuilder= None if not node.orelse else lambda iterVar: blockBuilder(getValue(iterable, iterVar), node.orelse))
 
     def visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-        loop = cc.LoopOp([], [], BoolAttr.get(False))
-        whileBlock = Block.create_at_start(loop.whileRegion, [])
-        with InsertionPoint(whileBlock):
+        def evalCond(args):
             # BUG you cannot print MLIR values while building the cc `LoopOp` while region.
             # verify will get called, no terminator yet, CCOps.cpp:520
             v = self.verbose
             self.verbose = False
             self.visit(node.test)
-            condition = self.popValue()
-            condition = self.__arithmetic_to_bool(condition)
-            cc.ConditionOp(condition, [])
+            condition = self.__arithmetic_to_bool(self.popValue())
             self.verbose = v
+            return condition
 
-        bodyBlock = Block.create_at_start(loop.bodyRegion, [])
-        with InsertionPoint(bodyBlock):
-            self.symbolTable.pushScope()
-            self.pushForBodyStack([])
-            [self.visit(b) for b in node.body]
-            if not self.hasTerminator(bodyBlock):
-                cc.ContinueOp([])
-            self.popForBodyStack()
-            self.symbolTable.popScope()
-
-        stepBlock = Block.create_at_start(loop.stepRegion, [])
-        with InsertionPoint(stepBlock):
-            cc.ContinueOp([])
-
-        if node.orelse:
-            elseBlock = Block.create_at_start(loop.elseRegion, [])
-            with InsertionPoint(elseBlock):
-                self.symbolTable.pushScope()
-                for stmt in node.orelse:
-                    self.visit(stmt)
-                if not self.hasTerminator(elseBlock):
-                    cc.ContinueOp(elseBlock.arguments)
-                self.symbolTable.popScope()
+        self.createForLoop([], lambda _: [self.visit(b) for b in node.body], [], evalCond, lambda _: [],
+                          None if not node.orelse else lambda _: [self.visit(stmt) for stmt in node.orelse])
 
     def visit_BoolOp(self, node):
         """
@@ -4148,23 +4116,34 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Loop setup
             i1_type = self.getIntegerType(1)
+            trueVal = self.getConstantInt(1, 1)
             accumulator = cc.AllocaOp(cc.PointerType.get(i1_type),
                                       TypeAttr.get(i1_type)).result
-            cc.StoreOp(self.getConstantInt(0, 1), accumulator)
+            cc.StoreOp(trueVal, accumulator)
 
             # Element comparison loop
-            def check_element(idx):
-                element = self.__load_vector_element(right, idx)
+            def check_element(args):
+                element = self.__load_vector_element(right, args[0])
                 compRes = compare_equality(left, element)
+                neqRes = arith.XOrIOp(compRes, trueVal).result
                 current = cc.LoadOp(accumulator).result
-                cc.StoreOp(arith.OrIOp(current, compRes), accumulator)
+                cc.StoreOp(arith.AndIOp(current, neqRes), accumulator)
 
-            self.createInvariantForLoop(vectSize, check_element)
+            def check_condition(args):
+                notListEnd = arith.CmpIOp(IntegerAttr.get(iTy, 2), args[0], vectSize).result
+                notFound = cc.LoadOp(accumulator).result
+                return arith.AndIOp(notListEnd, notFound).result
+
+            # Break early if we found the item
+            self.createForLoop([self.getIntegerType()],
+                               check_element,
+                               [self.getConstantInt(0)],
+                               check_condition,
+                               lambda args: [arith.AddIOp(args[0], self.getConstantInt(1)).result])
 
             final_result = cc.LoadOp(accumulator).result
-            if isinstance(op, ast.NotIn):
-                final_result = arith.XOrIOp(final_result,
-                                            self.getConstantInt(1, 1)).result
+            if isinstance(op, ast.In):
+                final_result = arith.XOrIOp(final_result, trueVal).result
             self.pushValue(final_result)
 
             return

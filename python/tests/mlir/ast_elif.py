@@ -66,7 +66,7 @@ def test_elif():
 # CHECK:           ^bb0(%[[VAL_25:.*]]: i64):
 # CHECK:             %[[VAL_26:.*]] = arith.addi %[[VAL_25]], %[[VAL_5]] : i64
 # CHECK:             cc.continue %[[VAL_26]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
 
@@ -105,6 +105,6 @@ def test_elif():
 # CHECK:           ^bb0(%[[VAL_22:.*]]: i64):
 # CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_22]], %[[VAL_2]] : i64
 # CHECK:             cc.continue %[[VAL_23]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }

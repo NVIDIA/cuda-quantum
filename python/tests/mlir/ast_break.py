@@ -9,6 +9,7 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
+import numpy
 
 
 def test_break():
@@ -22,8 +23,8 @@ def test_break():
                 break
             ry(x, q[i % 4])
 
-    print(kernel)
     kernel(1.2)
+    print(kernel)
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
@@ -61,6 +62,22 @@ def test_break():
 # CHECK:           ^bb0(%[[VAL_21:.*]]: i64):
 # CHECK:             %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_22]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
+
+def test_break2():
+
+    @cudaq.kernel(verbose=False)
+    def kernel(x: float):
+        qs = cudaq.qvector(6)
+        for idx, q in enumerate(qs):
+            if idx > 2:
+                break
+            ry(x, q)
+
+    res = cudaq.sample(kernel, numpy.pi)
+    assert len(res) == 1 and '111000' in res
+    print(f"output test1: {res}" )
+
+# CHECK-LABEL:  output test1: { 111000:1000 }
