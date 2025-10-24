@@ -29,4 +29,12 @@ __qpu__ void qft(cudaq::qview<> qubits, const std::vector<double> &x,
 __qpu__ void another(cudaq::qview<> qubits, std::size_t i) { x(qubits[i]); }
 
 __qpu__ void uccsd(cudaq::qview<> qubits, std::size_t) { h(qubits[0]); }
+
+__qpu__ void reset_group(patch p) {
+  for (std::size_t i = 0; i < p.data.size(); i++)
+    reset(p.data[i]);
+}
+
+__qpu__ void x_group(patch p) { x(p.data); }
+
 } // namespace cudaq

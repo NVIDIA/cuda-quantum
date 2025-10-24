@@ -15,8 +15,8 @@ from typing import get_origin, Callable, List
 import types
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.dialects import quake, cc
-from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType
+from cudaq.mlir.dialects import quake, cc, func
+from cudaq.mlir.ir import ComplexType, F32Type, F64Type, IntegerType, SymbolTable
 
 State = cudaq_runtime.State
 qvector = cudaq_runtime.qvector
@@ -119,8 +119,9 @@ def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
     if numQuantumMembers != len(mlirEleTypes) or \
         any((quake.StruqType.isinstance(t) for t in mlirEleTypes)):
         return None
-    return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
-
+    if len(name) > 0:
+        return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
+    return quake.StruqType.get(mlirEleTypes, context=context)
 
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
@@ -284,6 +285,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                     f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)."
                 )
 
+            unnamed_struct = "__repr__" not in pyType.__dict__
             if len({
                     k: v
                     for k, v in pyType.__dict__.items()
@@ -293,7 +295,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 localEmitFatalError(
                     'struct types with user specified methods are not allowed.')
 
-            tupleTy = mlirTryCreateStructType(structTys, name=id)
+            struct_name = id if not unnamed_struct else ""
+            tupleTy = mlirTryCreateStructType(structTys, name=struct_name) 
             if tupleTy is None:
                 localEmitFatalError(
                     "Hybrid quantum-classical data types and nested quantum structs are not allowed."
@@ -442,7 +445,19 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
-            return cc.CallableType.get(argInstance.argTypes, ctx)
+            if hasattr(argInstance, 'argTypes'):
+                return cc.CallableType.get(argInstance.argTypes, ctx)
+            elif "module" in kwargs and hasattr(argInstance, '__call__'):
+                # This is a callable object, check if it's a C++ `qkernel`
+                maybeKernelName = getInteropKernelNameIfFound(argInstance, kwargs['module'])
+                if maybeKernelName != None:
+                    otherKernel = SymbolTable(
+                        kwargs['module'].operation)[maybeKernelName]
+                    if isinstance(otherKernel, func.FuncOp):
+                        argTypes = []
+                        for arg in otherKernel.arguments:
+                            argTypes.append(arg.type)
+                        return cc.CallableType.get(argTypes, ctx)
 
     for name in globalRegisteredTypes.classes:
         customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
@@ -557,6 +572,27 @@ def mlirTypeToPyType(argType):
     emitFatalError(
         f"Cannot infer python type from provided CUDA-Q type ({argType})")
 
+def getInteropKernelNameIfFound(pyFunc, module):
+    """
+    Given a Python function and an MLIR module, check if the function
+    is registered as an interop kernel. If so, return the kernel name.
+    Otherwise, return None.
+    """
+    if not callable(pyFunc):
+        emitFatalError(
+            f"Provided argument is not a callable function ({pyFunc})"
+        )
+
+    modulePath = str(pyFunc.__module__) if hasattr(pyFunc, '__module__') else ''
+    funcName = str(pyFunc.__name__) if hasattr(pyFunc, '__name__') else ''
+    # Look up key
+    devKey = f"{modulePath}.{funcName}"
+    if cudaq_runtime.isRegisteredDeviceModule(devKey):
+        maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(module, devKey)
+        if maybeKernelName != None:
+            return maybeKernelName
+
+    return None
 
 def emitErrorIfInvalidPauli(pauliArg):
     """

@@ -9,6 +9,12 @@
 
 #include "cudaq/qis/qubit_qis.h"
 
+// Custom data structure
+struct patch {
+  cudaq::qview<> data;
+  cudaq::qview<> aux;
+};
+
 namespace cudaq {
 void entryPoint(const std::function<void(cudaq::qvector<> &)> &statePrep);
 
@@ -18,5 +24,9 @@ void qft(cudaq::qview<> qubits, const std::vector<double> &x, std::size_t k);
 void another(cudaq::qview<> qubits, std::size_t);
 
 void uccsd(cudaq::qview<> qubits, std::size_t);
+
+void reset_group(patch p);
+
+void x_group(patch p);
 
 } // namespace cudaq

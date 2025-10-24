@@ -21,7 +21,7 @@ from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
 from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
-                    nvqppPrefix)
+                    nvqppPrefix, getInteropKernelNameIfFound)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
@@ -451,6 +451,20 @@ class PyKernelDecorator(object):
 
         return arg
 
+    def getCallableNames(self, *args):
+        callableNames = []
+        for arg in args:
+            if isinstance(arg, PyKernelDecorator):
+                callableNames.append(arg.name)
+            else:
+                if hasattr(arg, '__call__'):
+                    maybeKernelName = getInteropKernelNameIfFound(arg, self.module)
+                    if maybeKernelName != None:
+                        # Remove "__nvqpp__mlirgen__" prefix when packing the list of callables
+                        maybeKernelName = maybeKernelName.replace("__nvqpp__mlirgen__", "")
+                        callableNames.append(maybeKernelName)
+        return callableNames
+    
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
@@ -481,7 +495,8 @@ class PyKernelDecorator(object):
             mlirType = mlirTypeFromPyType(type(arg),
                                           self.module.context,
                                           argInstance=arg,
-                                          argTypeToCompareTo=self.argTypes[i])
+                                          argTypeToCompareTo=self.argTypes[i],
+                                          module=self.module)
 
             if self.isCastablePyType(mlirType, self.argTypes[i]):
                 processedArgs.append(
@@ -496,19 +511,30 @@ class PyKernelDecorator(object):
                 )
 
             if cc.CallableType.isinstance(mlirType):
-                # Assume this is a PyKernelDecorator
-                callableNames.append(arg.name)
-                # It may be that the provided input callable kernel
-                # is not currently in the ModuleOp. Need to add it
-                # if that is the case, we have to use the AST
-                # so that it shares self.module's MLIR Context
-                symbols = SymbolTable(self.module.operation)
-                if nvqppPrefix + arg.name not in symbols:
-                    tmpBridge = PyASTBridge(self.capturedDataStorage,
-                                            existingModule=self.module,
-                                            disableEntryPointTag=True)
-                    tmpBridge.visit(globalAstRegistry[arg.name][0])
-
+                if isinstance(arg, PyKernelDecorator):
+                    # Assume this is a PyKernelDecorator
+                    callableNames.append(arg.name)
+                    # It may be that the provided input callable kernel
+                    # is not currently in the ModuleOp. Need to add it
+                    # if that is the case, we have to use the AST
+                    # so that it shares self.module's MLIR Context
+                    symbols = SymbolTable(self.module.operation)
+                    if nvqppPrefix + arg.name not in symbols:
+                        tmpBridge = PyASTBridge(self.capturedDataStorage,
+                                                existingModule=self.module,
+                                                disableEntryPointTag=True)
+                        tmpBridge.visit(globalAstRegistry[arg.name][0])
+                else:
+                    if hasattr(arg, '__call__'):
+                        maybeKernelName = getInteropKernelNameIfFound(arg, self.module)
+                        if maybeKernelName != None:   
+                            # Remove "__nvqpp__mlirgen__" prefix
+                            maybeKernelName = maybeKernelName.replace("__nvqpp__mlirgen__", "")
+                            callableNames.append(maybeKernelName)
+                    else:
+                        emitFatalError(
+                            "Invalid callable argument provided to kernel."
+                        )
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
                 if arg.ndim != 1:
