@@ -15,14 +15,167 @@
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
+#include <iostream>
 #include <optional>
 #include <string_view>
 
+#include "nvqir/stim/StimState.h"
+
 namespace cudaq {
+using ErrorByShotLogEntry = std::pair<std::vector<std::vector<size_t>>,
+                                      std::vector<std::vector<size_t>>>;
+using ErrorLogType = std::vector<std::tuple<size_t, ErrorByShotLogEntry>>;
+
+struct RecordStorage {
+
+  size_t memory_limit;
+  size_t current_memory;
+  ErrorLogType error_data;
+  RecordStorage(size_t limit = 1e9) : memory_limit(limit), current_memory(0) {}
+
+  std::vector<std::unique_ptr<SimulationState>> recordedStates;
+
+  void save_state(SimulationState *state) {
+    recordedStates.push_back(clone_state(state));
+  }
+  const std::vector<std::unique_ptr<SimulationState>> &
+  get_recorded_states() const {
+    return recordedStates;
+  }
+
+  void clear() { recordedStates.clear(); }
+  void dump_recorded_states() const {
+    for (std::size_t i = 0; i < recordedStates.size(); i++) {
+      recordedStates[i]->dump(std::cout);
+    }
+  }
+
+  void dump_error_data() const {
+    printf("=== Error Data Dump ===\n");
+    if (error_data.empty()) {
+      printf("(no error data)\n");
+      return;
+    }
+
+    for (const auto &[index, entry] : error_data) {
+      const auto &[x_errors, z_errors] =
+          entry; // both are vector<vector<size_t>>
+
+      printf("\n---------------------------------------\n");
+      printf(" Error Index: %zu\n", index);
+      printf("---------------------------------------\n");
+
+      // X error Shots
+      printf("  X Error Shots (%zu):\n", x_errors.size());
+      if (x_errors.empty()) {
+        printf("    (none)\n");
+      } else {
+        for (std::size_t i = 0; i < x_errors.size(); ++i) {
+          printf("    - Set %zu (%zu elements): ", i, x_errors[i].size());
+          for (const auto &q : x_errors[i])
+            printf("%zu ", q);
+          printf("\n");
+        }
+      }
+
+      // Z error Shots
+      printf("  Z Error Shots (%zu):\n", z_errors.size());
+      if (z_errors.empty()) {
+        printf("    (none)\n");
+      } else {
+        for (std::size_t i = 0; i < z_errors.size(); ++i) {
+          printf("    - Set %zu (%zu elements): ", i, z_errors[i].size());
+          for (const auto &q : z_errors[i])
+            printf("%zu ", q);
+          printf("\n");
+        }
+      }
+    }
+
+    printf("\n=== End of Error Data ===\n");
+  }
+
+  void record_error_data(const size_t index, const ErrorByShotLogEntry &entry) {
+    error_data.emplace_back(index, entry);
+  }
+  ~RecordStorage() {
+    std::cout << "Destroying RecordStorage with " << recordedStates.size()
+              << " recorded states.\n";
+  }
+
+private:
+  std::unique_ptr<SimulationState> clone_state(SimulationState *state) {
+    if (state->isArrayLike()) {
+      // Handle array-like states (CusvState, etc.)
+      return clone_array_like_state(state);
+    } else {
+      // Handle specialized states (CuDensityMatState, StimState, etc.)
+      return clone_specialized_state(state);
+    }
+  }
+
+  std::unique_ptr<SimulationState>
+  clone_array_like_state(SimulationState *state) {
+    auto numQubits = state->getNumQubits();
+    if (numQubits > 20) { // Prevent exponential explosion
+      throw std::runtime_error("State too large to clone via amplitudes");
+    }
+
+    // Generate all basis states
+    auto totalStates = 1ULL << numQubits;
+    std::vector<std::vector<int>> basisStates;
+    for (size_t i = 0; i < totalStates; ++i) {
+      std::vector<int> basis(numQubits);
+      for (size_t j = 0; j < numQubits; ++j) {
+        basis[j] = (i >> j) & 1;
+      }
+      basisStates.push_back(basis);
+    }
+
+    auto amplitudes = state->getAmplitudes(basisStates);
+
+    // Create new state with appropriate precision
+    if (state->getPrecision() == SimulationState::precision::fp32) {
+      std::vector<std::complex<float>> floatAmps;
+      for (const auto &amp : amplitudes) {
+        floatAmps.emplace_back(static_cast<float>(amp.real()),
+                               static_cast<float>(amp.imag()));
+      }
+      return state->createFromData(floatAmps);
+    } else {
+      return state->createFromData(amplitudes);
+    }
+  }
+
+  std::unique_ptr<SimulationState>
+  clone_specialized_state(SimulationState *state) {
+    // Try dynamic_cast to known types that have clone methods
+    // this triggerd fatal error: library_types.h: No such file or directory
+    // if (auto* densityState = dynamic_cast<const CuDensityMatState*>(state)) {
+    //    return CuDensityMatState::clone(*densityState);
+    //}
+
+    if (auto *cloneable = dynamic_cast<ClonableState *>(state)) {
+      return cloneable->clone();
+    }
+
+    // Fallback for non-cloneable specialized states
+    throw std::runtime_error("Specialized state type does not support cloning");
+    // For unknown specialized types, try createFromSizeAndPtr as fallback
+    // This might work for some specialized states
+    // auto tensor = state->getTensor(0);
+    // return state->createFromSizeAndPtr(tensor.get_num_elements(),
+    // tensor.data, 1);
+  }
+};
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
 class ExecutionContext {
+
+  ///@brief record storage for the states saved during execution
+  RecordStorage recordStorage;
+
 public:
   /// @brief The Constructor, takes the name of the context
   /// @param n The name of the context
@@ -142,5 +295,39 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  std::size_t randomSeed = 0;
+
+  std::size_t replay_columns = 0;
+
+  /// @brief Save the current simulation state in the recorded states storage.
+  void save_state(SimulationState *state) { recordStorage.save_state(state); }
+
+  /// @brief Get the recorded states saved during execution.
+  const std::vector<std::unique_ptr<SimulationState>> &
+  get_recorded_states() const {
+    return recordStorage.get_recorded_states();
+  }
+
+  /// @brief Clear the recorded states saved during execution.
+  void clear_recorded_states() { recordStorage.clear(); }
+
+  /// @brief Dump the recorded states saved during execution.
+  void dump_recorded_states() const { recordStorage.dump_recorded_states(); }
+
+  void dump_error_data() const { recordStorage.dump_error_data(); }
+
+  void record_error_data(const size_t index, const ErrorByShotLogEntry &entry) {
+    recordStorage.record_error_data(index, entry);
+  }
+
+  const auto &get_error_data() const { return recordStorage.error_data; }
+  void set_error_data(const ErrorLogType &data) {
+    recordStorage.error_data = data;
+  }
+  void update_replay_columns(std::size_t cols) { replay_columns = cols; }
+  std::size_t get_replay_columns() const { return replay_columns; }
+
+  void set_seed(std::size_t seed) { randomSeed = seed; }
 };
 } // namespace cudaq
