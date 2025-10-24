@@ -1938,17 +1938,17 @@ to by setting the [`machine`{.code .docutils .literal
 
 ::: {.highlight-python .notranslate}
 ::: highlight
-    cudaq.set_target('quantinuum', machine='H1-2')
+    cudaq.set_target('quantinuum', machine='H2-2')
 :::
 :::
 
-where [`H1-2`{.docutils .literal .notranslate}]{.pre} is an example of a
+where [`H2-2`{.docutils .literal .notranslate}]{.pre} is an example of a
 physical QPU. Hardware specific emulators may be accessed by appending
 an [`E`{.docutils .literal .notranslate}]{.pre} to the end (e.g,
-[`H1-2E`{.docutils .literal .notranslate}]{.pre}). For access to the
+[`H2-2E`{.docutils .literal .notranslate}]{.pre}). For access to the
 syntax checker for the provided machine, you may append an
 [`SC`{.docutils .literal .notranslate}]{.pre} to the end (e.g,
-[`H1-1SC`{.docutils .literal .notranslate}]{.pre}).
+[`H2-1SC`{.docutils .literal .notranslate}]{.pre}).
 
 For a comprehensive list of available machines, login to your
 [Quantinuum Nexus user
@@ -2011,17 +2011,17 @@ kernels to:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    nvq++ --target quantinuum --quantinuum-machine H1-2 src.cpp ...
+    nvq++ --target quantinuum --quantinuum-machine H2-2 src.cpp ...
 :::
 :::
 
-where [`H1-2`{.docutils .literal .notranslate}]{.pre} is an example of a
+where [`H2-2`{.docutils .literal .notranslate}]{.pre} is an example of a
 physical QPU. Hardware specific emulators may be accessed by appending
 an [`E`{.docutils .literal .notranslate}]{.pre} to the end (e.g,
-[`H1-2E`{.docutils .literal .notranslate}]{.pre}). For access to the
+[`H2-2E`{.docutils .literal .notranslate}]{.pre}). For access to the
 syntax checker for the provided machine, you may append an
 [`SC`{.docutils .literal .notranslate}]{.pre} to the end (e.g,
-[`H1-1SC`{.docutils .literal .notranslate}]{.pre}).
+[`H2-1SC`{.docutils .literal .notranslate}]{.pre}).
 
 For a comprehensive list of available machines, login to your
 [Quantinuum Nexus user
@@ -2051,7 +2051,7 @@ Quantinuum's syntax checker for Helios (e.g., [`Helios-1SC`{.docutils
 .literal .notranslate}]{.pre}) only performs QIR code validation and
 does not return any results. Thus, it always returns an empty result
 set. This is different from other Quantinuum backends (e.g.,
-[`H1-1SC`{.docutils .literal .notranslate}]{.pre}) where the syntax
+[`H2-1SC`{.docutils .literal .notranslate}]{.pre}) where the syntax
 checker returns dummy results. As a result, when using the Helios syntax
 checker, we may receive this warning message:
 
