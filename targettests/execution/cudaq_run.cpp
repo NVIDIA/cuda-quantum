@@ -42,6 +42,25 @@ __qpu__ std::vector<bool> vector_bool_test() {
   return vec;
 }
 
+__qpu__ bool mz_test() {
+  cudaq::qubit q;
+  h(q);
+  return mz(q);
+}
+
+struct vector_mz_test {
+  std::vector<bool> operator()() __qpu__ {
+    cudaq::qvector q(5);
+    cudaq::qubit p;
+    x(q);
+#ifdef CUDAQ_LIBRARY_MODE
+    return cudaq::measure_result::to_bool_vector(mz(q));
+#else
+    return mz(q);
+#endif
+  }
+};
+
 __qpu__ std::vector<int> vector_int_test() {
   std::vector<int> result(2);
   result[0] = 42;
@@ -76,27 +95,28 @@ auto struct_test = []() __qpu__ {
 };
 
 int main() {
+  std::size_t shots = 10;
   int c = 0;
   {
-    const auto results = cudaq::run(100, nullary_test);
-    if (results.size() != 100) {
-      printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
+    const auto results = cudaq::run(shots, nullary_test);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results)
         printf("%d: %d\n", c++, i);
-      printf("success!\n");
+      printf("success - nullary_test\n");
     }
   }
 
   {
-    const auto results = cudaq::run(50, unary_test, 4);
+    const auto results = cudaq::run(shots, unary_test, 4);
     c = 0;
-    if (results.size() != 50) {
-      printf("FAILED! Expected 50 shots. Got %lu\n", results.size());
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results)
         printf("%d: %d\n", c++, i);
-      printf("success!\n");
+      printf("success - unary_test\n");
     }
   }
 
@@ -124,98 +144,127 @@ int main() {
   // Run async
   {
     const auto results =
-        cudaq::run_async(/*qpu_id=*/0, 100, nullary_test).get();
-    if (results.size() != 100) {
-      printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
+        cudaq::run_async(/*qpu_id=*/0, shots, nullary_test).get();
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results)
         printf("%d: %d\n", c++, i);
-      printf("success!\n");
+      printf("success async - nullary_test\n");
     }
   }
 
   {
     const auto results =
-        cudaq::run_async(/*qpu_id=*/0, 50, unary_test, 4).get();
+        cudaq::run_async(/*qpu_id=*/0, shots, unary_test, 4).get();
     c = 0;
-    if (results.size() != 50) {
-      printf("FAILED! Expected 50 shots. Got %lu\n", results.size());
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results)
         printf("%d: %d\n", c++, i);
-      printf("success!\n");
+      printf("success async - unary_test\n");
     }
   }
 
-#if 0
-  // vector return types are not fully supported yet.
+  shots = 5;
   {
     const std::vector<std::vector<bool>> results =
-        cudaq::run(3, vector_bool_test);
+        cudaq::run(shots, vector_bool_test);
     c = 0;
-    if (results.size() != 3) {
-      printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results) {
         printf("%d: {%d , %d}\n", c++, (bool)i[0], (bool)i[1]);
         assert(i[0] == true);
         assert(i[1] == false);
       }
-      printf("success!\n");
+      printf("success - vector_bool_test\n");
+    }
+  }
+
+  {
+    const std::vector<bool> results = cudaq::run(shots, mz_test);
+    c = 0;
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      for (auto i : results)
+        printf("%d: %d\n", c++, (bool)i);
+      printf("success - mz_test\n");
+    }
+  }
+
+  {
+    const std::vector<std::vector<bool>> results =
+        cudaq::run(shots, vector_mz_test{});
+    c = 0;
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      for (auto i : results) {
+        printf("%d: {", c++);
+        for (auto b : i)
+          printf("%d ", (bool)b);
+        printf("}\n");
+      }
+      printf("success - vector_mz_test\n");
     }
   }
 
   {
     const std::vector<std::vector<int>> results =
-        cudaq::run(3, vector_int_test);
+        cudaq::run(shots, vector_int_test);
     c = 0;
-    if (results.size() != 3) {
-      printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results) {
         printf("%d: {%d , %d}\n", c++, i[0], i[1]);
         assert(i[0] == 42);
         assert(i[1] == -13);
       }
-      printf("success!\n");
+      printf("success - vector_int_test\n");
     }
   }
 
   {
     const std::vector<std::vector<float>> results =
-        cudaq::run(2, vector_float_test);
+        cudaq::run(shots, vector_float_test);
     c = 0;
-    if (results.size() != 2) {
-      printf("FAILED! Expected 2 shots. Got %lu\n", results.size());
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results)
         printf("%d: {%f , %f , %f}\n", c++, i[0], i[1], i[2]);
-      printf("success!\n");
+      printf("success - vector_float_test\n");
     }
   }
-#endif
 
   {
-    const auto results = cudaq::run(3, struct_test);
-    if (results.size() != 3) {
-      printf("FAILED! Expected 3 shots. Got %lu\n", results.size());
+    const auto results = cudaq::run(shots, struct_test);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       c = 0;
       for (auto i : results)
         printf("%d: {%s, %ld, %f}\n", c++, i.boolVal ? "true" : "false",
                i.i64Val, i.f64Val);
-      printf("success!\n");
+      printf("success - struct_test\n");
     }
   }
 
   return 0;
 }
 
-// CHECK: success!
-// CHECK: success!
-// CHECK: success!
-// CHECK: success!
-// XXECK: success!
-// XXECK: success!
-// XXECK: success!
-// CHECK: success!
+// CHECK: success - nullary_test
+// CHECK: success - unary_test
+// CHECK: success async - nullary_test
+// CHECK: success async - unary_test
+// CHECK: success - vector_bool_test
+// CHECK: success - mz_test
+// CHECK: success - vector_mz_test
+// CHECK: success - vector_int_test
+// CHECK: success - vector_float_test
+// CHECK: success - struct_test
