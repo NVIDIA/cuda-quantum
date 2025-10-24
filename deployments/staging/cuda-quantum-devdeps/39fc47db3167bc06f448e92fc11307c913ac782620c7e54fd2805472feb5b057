@@ -1,0 +1,10 @@
+source-sha: 67fd3236de7734c4b6023fe1d0a4df33bb12058c
+cuda-quantum-wheeldeps-image: ghcr.io/nvidia/cuda-quantum-devdeps@sha256:39fc47db3167bc06f448e92fc11307c913ac782620c7e54fd2805472feb5b057
+platform: linux/arm64
+cuda-version: 12.6
+nvidia-mgpu-repo: cuda-quantum/cuquantum-mgpu.git
+nvidia-mgpu-commit: ef144598fe5beab4b80edbd30e455906373e2e0e
+
+asset-name: python_arm64_cu12_publishing.txt
+release-id: 18787950992_python_arm64_cu12_publishing
+artifacts-url: https://api.github.com/repos/NVIDIA/cuda-quantum/actions/runs/18775996188/artifacts
