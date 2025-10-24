@@ -4609,8 +4609,8 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.RemUIOp(left, right).result)
                 return
-            if F64Type.isinstance(left.type) or \
-                F32Type.isinstance(left.type):
+            if (F64Type.isinstance(left.type) or 
+                F32Type.isinstance(left.type)):
                 self.pushValue(arith.RemFOp(left, right).result)
                 return
             else:
