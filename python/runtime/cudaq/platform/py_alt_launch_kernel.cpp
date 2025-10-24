@@ -109,16 +109,37 @@ void setDataLayout(MlirModule module) {
   }
 }
 
+std::function<bool(OpaqueArguments &argData, py::object &arg)>
+getCallableArgHandler() {
+  return [](cudaq::OpaqueArguments &argData, py::object &arg) {
+    if (py::hasattr(arg, "module")) {
+      // Just give it some dummy data that will not be used.
+      // We synthesize away all callables, the block argument
+      // remains but it is not used, so just give argsCreator
+      // something, and we'll make sure its cleaned up.
+      long *ourAllocatedArg = new long();
+      argData.emplace_back(ourAllocatedArg,
+                           [](void *ptr) { delete static_cast<long *>(ptr); });
+      return true;
+    }
+    return false;
+  };
+}
+
 /// @brief Create a new OpaqueArguments pointer and pack the python arguments
 /// in it. Clients must delete the memory.
-OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                              const std::string &name) {
+OpaqueArguments *
+toOpaqueArgs(py::args &args, MlirModule mod, const std::string &name,
+             const std::optional<
+                 std::function<bool(OpaqueArguments &argData, py::object &arg)>>
+                 &optionalBackupHandler) {
   auto kernelFunc = getKernelFuncOp(mod, name);
   auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
   setDataLayout(mod);
-  cudaq::packArgs(*argData, args, kernelFunc,
-                  [](OpaqueArguments &, py::object &) { return false; });
+  auto backupHandler = optionalBackupHandler.value_or(
+      [](OpaqueArguments &, py::object &) { return false; });
+  cudaq::packArgs(*argData, args, kernelFunc, backupHandler);
   return argData;
 }
 
@@ -1003,20 +1024,7 @@ void bindAltLaunchKernel(py::module &mod,
   jitCache = std::make_unique<JITExecutionCache>();
   getTransportLayer = std::move(getTL);
 
-  auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
-                               py::object &arg) {
-    if (py::hasattr(arg, "module")) {
-      // Just give it some dummy data that will not be used.
-      // We synthesize away all callables, the block argument
-      // remains but it is not used, so just give argsCreator
-      // something, and we'll make sure its cleaned up.
-      long *ourAllocatedArg = new long();
-      argData.emplace_back(ourAllocatedArg,
-                           [](void *ptr) { delete static_cast<long *>(ptr); });
-      return true;
-    }
-    return false;
-  };
+  auto callableArgHandler = getCallableArgHandler();
 
   mod.def(
       "pyAltLaunchKernel",

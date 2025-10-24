@@ -8,6 +8,7 @@
 
 import os
 from dataclasses import dataclass
+from typing import Callable
 
 import cudaq
 import numpy as np
@@ -1475,6 +1476,34 @@ def test_return_with_false_condition_with_variable_defined_outside_the_loop():
     results = cudaq.run(kernel, False, shots_count=1)
     assert len(results) == 1
     assert results[0] == 0
+
+
+def test_run_with_callable():
+    '''
+    Test running a kernel with a callable as a argument.
+    '''
+
+    @cudaq.kernel
+    def kernel(state_prep: Callable[[cudaq.qvector], None], N: int) -> int:
+        qubits = cudaq.qvector(N)
+        state_prep(qubits)
+        meas = mz(qubits)
+        res = 0
+        for m in meas:
+            if m:
+                res += 1
+        return res
+
+    @cudaq.kernel
+    def prep_1_state(qubits: cudaq.qvector):
+        x(qubits)
+
+    for num_qubits in [1, 2, 3, 4]:
+        results = cudaq.run(kernel, prep_1_state, num_qubits, shots_count=10)
+        print("Results for prep_1_state with", num_qubits, "qubits:", results)
+        assert len(results) == 10
+        for r in results:
+            assert r == num_qubits
 
 
 # leave for gdb debugging
