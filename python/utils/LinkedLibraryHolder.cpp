@@ -115,7 +115,7 @@ void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
     }
   }
   target.platformName = foundPlatformName.value_or("default");
-  target.simulatorName = foundSimulatorName.value_or("");
+  target.simulatorName = foundSimulatorName.value_or("qpp");
   target.precision = precision;
 }
 
@@ -448,13 +448,7 @@ void LinkedLibraryHolder::setTarget(
                                " doesn't define a simulator. Please check your "
                                "CUDAQ_DEFAULT_SIMULATOR environment variable.");
 
-    CUDAQ_INFO(
-        "Target {} doesn't define a simulator, using default target {}'s "
-        "simulator {}",
-        targetName, defaultTarget, simName);
-  }
-
-  __nvqir__setCircuitSimulator(getSimulator(simName));
+  __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
   auto *platform = getPlatform(target.platformName);
 
   // Pack the config into the backend string name

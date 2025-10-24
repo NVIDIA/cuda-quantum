@@ -11,7 +11,6 @@
 #include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "cudaq/platform.h"
-#include "cudaq/target_control.h"
 #include <functional>
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
@@ -187,11 +186,6 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "register_set_target_callback",
       [&](std::function<void(const cudaq::RuntimeTarget &)> callback,
           const std::string &id) {
-        // If we're in an environment that disallows target changes, do nothing.
-        // For example, this can happen when running C++ with an embedded Python
-        // plugin.
-        if (!cudaq::__internal__::canModifyTarget())
-          return;
         registerSetTargetCallback(callback, id);
         // Execute the callback on the current target
         callback(holder.getTarget());
@@ -201,12 +195,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "replacement/removal purposes.");
   mod.def(
       "unregister_set_target_callback",
-      [](const std::string &id) {
-        // If we're in an environment that disallows target changes, do nothing.
-        if (!cudaq::__internal__::canModifyTarget())
-          return;
-        unregisterSetTargetCallback(id);
-      },
+      [](const std::string &id) { unregisterSetTargetCallback(id); },
       "Unregister a callback identified by the input identifier.");
 
   py::module_::import("atexit").attr("register")(py::cpp_function([]() {
