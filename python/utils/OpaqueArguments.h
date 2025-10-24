@@ -46,14 +46,6 @@ public:
 
   const std::vector<void *> &getArgs() const { return args; }
 
-private:
-  /// @brief The opaque argument pointers
-  std::vector<void *> args;
-
-  /// @brief Deletion functions for the arguments.
-  std::vector<OpaqueArgDeleter> deleters;
-
-public:
   /// @brief Add an opaque argument and its `deleter` to this OpaqueArguments
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
@@ -75,6 +67,13 @@ public:
     args.clear();
     deleters.clear();
   }
+
+private:
+  /// @brief The opaque argument pointers
+  std::vector<void *> args;
+
+  /// @brief Deletion functions for the arguments.
+  std::vector<OpaqueArgDeleter> deleters;
 };
 
 /// @brief This function modifies input arguments to convert them into valid

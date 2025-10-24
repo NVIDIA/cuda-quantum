@@ -57,7 +57,7 @@ int main() {
 
   auto &platform = cudaq::get_platform();
 
-  // If you run this on quantinuum hardware (i.e. H1-1E), the following parity
+  // If you run this on quantinuum hardware (i.e. H2-1E), the following parity
   // check will check that the results look reasonable. Skip the parity check on
   // `--emulate` runs because the unnamed measurement is not saved and therefore
   // cannot be compared in a parity check.

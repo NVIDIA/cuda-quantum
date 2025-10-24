@@ -40,7 +40,7 @@ if (syntax_check):
 # Now we can update the target to the Quantinuum emulator and
 # execute our program.
 cudaq.set_target("quantinuum",
-                 machine="H1-1E",
+                 machine="H2-1E",
                  project=os.environ.get("QUANTINUUM_NEXUS_PROJECT", None))
 
 # Option B:

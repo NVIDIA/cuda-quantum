@@ -389,7 +389,12 @@ void test_vectors(mlir::MLIRContext *ctx) {
   // clang-format on
 
   {
-    std::vector<bool> x = {true, false};
+    // The code here is generated strictly for the device side. We will never
+    // have the template specialization of std::vector<bool> present in any form
+    // on the device side. Any such data will always be marshaled correctly. For
+    // the test, this means we use std::vector<char> here to avoid the
+    // template specialization.
+    std::vector<char> x = {true, false};
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<i1>", v);
   }
@@ -441,14 +446,19 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK:         }
   // clang-format on
 
-  // TODO: enable
-  /*
   {
-    std::vector<std::vector<bool>> x = {
-        {true, true, false, true}, {false, false, false, true}, {true, false,
-  false, true}}; std::vector<void *> v = {static_cast<void *>(&x)};
+    std::vector<std::vector<char>> x = {{true, true, false, true},
+                                        {false, false, false, true},
+                                        {true, false, false, true}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<i1>>", v);
-  } */
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[true, true, false, true], [false, false, false, true], [true, false, false, true]] : !cc.array<!cc.array<i1 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i1 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i1>>
+// CHECK:         }
+  // clang-format on
 }
 
 void test_aggregates(mlir::MLIRContext *ctx) {

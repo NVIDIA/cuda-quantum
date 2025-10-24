@@ -73,6 +73,16 @@ void bindExecutionContext(py::module &mod) {
     auto &self = cudaq::get_platform();
     return self.get_exec_ctx()->name;
   });
+  mod.def(
+      "isQuantumDevice",
+      [](std::size_t qpuId = 0) {
+        auto &platform = cudaq::get_platform();
+        auto isRemoteSimulator =
+            platform.get_remote_capabilities().isRemoteSimulator;
+        return !isRemoteSimulator &&
+               (platform.is_remote() || platform.is_emulated());
+      },
+      py::arg("qpuId") = 0);
   mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
   mod.def("decodeQirOutputLog",
