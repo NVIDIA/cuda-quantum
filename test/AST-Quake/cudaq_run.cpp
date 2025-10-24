@@ -12,7 +12,6 @@
 
 #include <cudaq.h>
 
-// FIXME: Results that are vectors are dropped on the floor!
 struct K9 {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
@@ -50,18 +49,16 @@ struct CliffHanger {
   Soap operator()() __qpu__ { return {true, 747}; }
 };
 
-// FIXME: Results that are vectors are dropped on the floor!
 __qpu__ std::vector<float> unary_test_list(int count) {
- cudaq::qvector v(count);
- std::vector<float> vec {0, 1};
- return vec;
+  cudaq::qvector v(count);
+  std::vector<float> vec{0, 1};
+  return vec;
 }
 
-// FIXME: Results that are vectors are dropped on the floor!
 __qpu__ std::vector<bool> unary_test_list2(int count) {
- cudaq::qvector v(count);
- std::vector<bool> vec {false, true};
- return vec;
+  cudaq::qvector v(count);
+  std::vector<bool> vec{false, true};
+  return vec;
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9.run()
