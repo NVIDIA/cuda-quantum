@@ -3771,8 +3771,8 @@ class PyASTBridge(ast.NodeVisitor):
                                    upper=upperVal).result)
             elif cc.StdvecType.isinstance(var.type):
                 eleTy = cc.StdvecType.getElementType(var.type)
-                isBool = eleTy == self.getIntegerType(1)
-                if isBool:
+                # Use `i8` for boolean elements
+                if eleTy == self.getIntegerType(1):
                     eleTy = self.getIntegerType(8)
                 ptrTy = cc.PointerType.get(eleTy)
                 arrTy = cc.ArrayType.get(eleTy)
