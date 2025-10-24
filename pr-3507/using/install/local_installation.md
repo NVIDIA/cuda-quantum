@@ -2823,7 +2823,7 @@ following commands, for example, install the necessary packages for RHEL
 More detailed instructions for your platform can be found in the online
 documentation linked for that [CUDA
 version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
-.external}. Please make sure to install CUDA version 11.8 or newer, and
+.external}. Please make sure to install CUDA version 12.0 or newer, and
 confirm that your [GPU
 driver](https://www.nvidia.com/download/index.aspx){.reference
 .external} supports that version. While the above packages are
@@ -2831,8 +2831,8 @@ sufficient to use GPU-acceleration within CUDA-Q, we recommend
 installing the complete CUDA toolkit ([`cuda-toolkit-12-0`{.code
 .docutils .literal .notranslate}]{.pre}) that also includes the
 [`nvcc`{.code .docutils .literal .notranslate}]{.pre} compiler. A
-separate CUDA-Q installer is available for CUDA 11, built against
-version 11.8, and for CUDA 12, built against version 12.6.
+separate CUDA-Q installer is available for CUDA 12, built against
+version 12.6, and for CUDA 13, built against version 13.0.
 :::
 :::
 
@@ -3040,13 +3040,14 @@ The following table summarizes the required components.
 Systems]{.caption-text}[¶](#id11 "Permalink to this table"){.headerlink}
 
 +--------------------------+--------------------------------------------+
-| GPU Architectures        | Volta, Turing, Ampere, Ada, Hopper         |
+| GPU Architectures        | Turing, Ampere, Ada, Hopper, Blackwell     |
+|                          | (Blackwell supported for CUDA 13.x only)   |
 +--------------------------+--------------------------------------------+
-| NVIDIA GPU with Compute  | 7.0+                                       |
+| NVIDIA GPU with Compute  | 7.5+                                       |
 | Capability               |                                            |
 +--------------------------+--------------------------------------------+
-| CUDA                     | 11.x (Driver 470.57.02+), 12.x (Driver     |
-|                          | 525.60.13+)                                |
+| CUDA                     | 12.x (Driver 525.60.13+), 13.x (Driver     |
+|                          | 580.65.06+)                                |
 +--------------------------+--------------------------------------------+
 
 : [Requirements for GPU
