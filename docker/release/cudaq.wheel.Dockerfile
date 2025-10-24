@@ -38,16 +38,21 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     bash /scripts/build_llvm.sh -c Release -v 
 
 # Patch the pyproject.toml file to change the CUDA version if needed
-RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=11.11 && \
-        cusparse_version=11.7 && \
-        sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
-        sed -i "s/-cuda12/-cuda11/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cusparse-cu[0-9]* ~= )[0-9\.]*/\1${cusparse_version}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
+RUN cd cuda-quantum && sed -i "s/README.md.in/README.md/g" pyproject.toml && \
+    if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
+        cublas_version=12.0 && \
+        cusolver_version=11.4 && \
+        cuda_runtime_version=12.0 && \
+        cuda_nvrtc_version=12.0 && \
+        cupy_version=13.4.1 && \
+        sed -i "s/-cu13/-cu12/g" pyproject.toml && \
+        sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
+        sed -i -E "s/cupy-cuda[0-9]+x/cupy-cuda12x/g" pyproject.toml && \
+        sed -i -E "s/(cupy-cuda[0-9]+x? ~= )[0-9\.]*/\1${cupy_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_nvrtc_version}/g" pyproject.toml && \
+        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml; \
     fi
 
 # Create the README
@@ -55,9 +60,6 @@ RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
     package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
     cuda_version_requirement="\>= ${CUDA_VERSION}" && \
     cuda_version_conda=${CUDA_VERSION}.0 && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."; \
-    fi && \
     for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do \
         sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
     done && \

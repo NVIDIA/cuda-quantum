@@ -23,7 +23,7 @@ def test_banjo():
             if i == 0:
                 x.ctrl(ancilla, qubits[0])
             else:
-                x.ctrl([ancilla, qubits[0:i]], qubits[i])
+                x.ctrl([ancilla, *qubits[0:i]], qubits[i])
 
     print(bar)
     shots = 10000

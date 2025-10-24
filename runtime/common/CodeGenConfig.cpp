@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -60,6 +60,13 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       .isAdaptiveProfile = codeGenName == "qir-adaptive",
       .isBaseProfile = codeGenName == "qir-base",
   };
+
+  // Default version for base profile is 1.0
+  if (config.isBaseProfile) {
+    config.version = QirVersion::version_1_0;
+    config.qir_major_version = 1;
+    config.qir_minor_version = 0;
+  }
 
   if (config.isAdaptiveProfile) {
     for (auto option : codeGenOptions) {

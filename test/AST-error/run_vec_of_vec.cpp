@@ -6,21 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: cudaq-quake -verify %s
 
 #include <cudaq.h>
+#include <iostream>
 
-__qpu__ void test(std::vector<double> inState) {
-  cudaq::qvector q = inState;
+__qpu__ std::vector<std::vector<int>> vec_of_vec() { 
+  // expected-error@+2 {{unhandled vector element type is not yet supported}}
+  // expected-error@+1 {{statement not supported in qpu kernel}}
+  return {{1, 2}, {3, 4}};
 }
 
 int main() {
-  std::vector<double> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
-  auto counts = cudaq::sample(test, vec);
-  counts.dump();
-
-  printf("size %zu\n", counts.size());
+  auto const result1 = cudaq::run(10, vec_of_vec); 
   return 0;
 }
-
-// CHECK: size {{[0-9]+}}
