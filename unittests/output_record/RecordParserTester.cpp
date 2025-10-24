@@ -741,3 +741,53 @@ CUDAQ_TEST(ParserTester, checkOrder) {
   buffer = nullptr;
   origBuffer = nullptr;
 }
+
+CUDAQ_TEST(ParserTester, checkNamedResults) {
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\n"
+      "HEADER\tschema_version\t1.0\n"
+      "START\n"
+      "METADATA\tentry_point\n"
+      "METADATA\toutput_labeling_schema\tschema_id\n"
+      "METADATA\toutput_names\t[[[0,[1,\"result%0\"]],[1,[2,\"result%1\"]],[2,["
+      "3,\"result%2\"]],[3,[4,\"result%3\"]]]]\n"
+      "METADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t5\n"
+      "METADATA\trequired_num_results\t4\n"
+      "OUTPUT\tRESULT\t1\tresult%0\n"
+      "OUTPUT\tRESULT\t1\tresult%1\n"
+      "OUTPUT\tRESULT\t1\tresult%2\n"
+      "OUTPUT\tRESULT\t0\tresult%3\n"
+      "END\t0\n"
+      "START\n"
+      "OUTPUT\tRESULT\t1\tresult%0\n"
+      "OUTPUT\tRESULT\t1\tresult%1\n"
+      "OUTPUT\tRESULT\t0\tresult%3\n"
+      "OUTPUT\tRESULT\t1\tresult%2\n"
+      "END\t0\n";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  // This is parsed as a vector of bool vectors
+  std::vector<std::vector<bool>> results = {
+      reinterpret_cast<std::vector<bool> *>(span.data),
+      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
+  // 2 shots
+  EXPECT_EQ(2, results.size());
+  for (const auto &result : results) {
+    // 4 measured bits each
+    EXPECT_EQ(4, result.size());
+    EXPECT_EQ(true, result[0]);  // result%0
+    EXPECT_EQ(true, result[1]);  // result%1
+    EXPECT_EQ(true, result[2]);  // result%2
+    EXPECT_EQ(false, result[3]); // result%3
+  }
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
