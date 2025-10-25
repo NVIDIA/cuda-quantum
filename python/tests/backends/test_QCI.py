@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,6 +8,7 @@
 
 import os
 from multiprocessing import Process
+import traceback
 
 import cudaq
 import numpy as np
@@ -17,8 +18,10 @@ from network_utils import check_server_connection
 
 try:
     from utils.mock_qpu.qci import startServer
-except:
-    print("Mock qpu not available, skipping QCI tests.")
+except ImportError as e:
+    print(f"Mock qpu not available, skipping QCI tests.")
+    print(f"Import error details: {e}")
+    print(f"Full traceback:\n{traceback.format_exc()}")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server

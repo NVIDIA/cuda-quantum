@@ -241,7 +241,7 @@ jobs:
             python3 -m venv "$VENV_DIR"
             . "$VENV_DIR/bin/activate"
 
-            pip install iqm-client -vvv
+            pip install iqm-client==16.1 -vvv
             pip install . -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
@@ -257,7 +257,7 @@ jobs:
               exit 1
             fi
             for backendTest in python/tests/backends/*.py; do
-              python -m pytest -v --durations=0  $backendTest
+              python -m pytest -vvv -rs  $backendTest
               pytest_status=$?
 
               # Exit code 5 indicates that no tests were collected,

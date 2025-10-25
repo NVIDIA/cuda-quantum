@@ -12,10 +12,14 @@ import numpy as np
 from typing import List
 from multiprocessing import Process
 from network_utils import check_server_connection
+import traceback
+    
 try:
     from utils.mock_qpu.ionq import startServer
-except:
-    print("Mock qpu not available, skipping IonQ tests.")
+except ImportError as e:
+    print(f"Mock qpu not available, skipping IonQ tests.")
+    print(f"Import error details: {e}")
+    print(f"Full traceback:\n{traceback.format_exc()}")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server

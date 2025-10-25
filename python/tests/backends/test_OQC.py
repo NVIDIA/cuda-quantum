@@ -11,6 +11,7 @@ from typing import List
 import pytest
 from multiprocessing import Process
 from network_utils import check_server_connection
+import traceback
 
 import cudaq
 from cudaq import spin
@@ -18,8 +19,10 @@ import numpy as np
 
 try:
     from utils.mock_qpu.oqc import startServer
-except:
-    print("Mock qpu not available, skipping OQC tests.")
+except ImportError as e:
+    print(f"Mock qpu not available, skipping OQC tests.")
+    print(f"Import error details: {e}")
+    print(f"Full traceback:\n{traceback.format_exc()}")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
 # Define the port for the mock server
