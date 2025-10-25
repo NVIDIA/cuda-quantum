@@ -29,6 +29,11 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
   // Check whether observe path reuse is enabled.
   m_reuseContractionPathObserve =
       cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
+
+  bool deterministic = cudaq::getEnvBool("CUDAQ_TENSORNET_DETERMINISTIC", false);
+  if (deterministic)
+    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS",
+           "1",1);
 }
 
 template <typename T>
@@ -549,6 +554,15 @@ void SimulatorTensorNetBase<ScalarType>::swap(
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::setRandomSeed(std::size_t randomSeed) {
   m_randomEngine = std::mt19937(randomSeed);
+  // Although we set the pathfinder seed here, it is only deterministic when
+  // the number of pathfinding threads is 1. Note that this does not override a
+  // user setting for this environment variable. cutensornet uses int32_t but
+  // requires the environment variable to be positive
+  int32_t rndSeed = m_randomEngine();
+  rndSeed = std::abs(rndSeed);
+  if (rndSeed == 0) rndSeed++;
+  setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SEED",
+         std::to_string(rndSeed).c_str(),0);
 }
 
 template <typename ScalarType>

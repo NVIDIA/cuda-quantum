@@ -86,6 +86,7 @@ protected:
   // This is a reference to the backend random number generator, which can be
   // reseeded by users.
   std::mt19937 &m_randomEngine;
+  static bool m_deterministic;
   bool m_hasNoiseChannel = false;
 
 public:
