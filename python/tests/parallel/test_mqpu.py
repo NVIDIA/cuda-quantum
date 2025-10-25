@@ -22,7 +22,8 @@ skipIfNoMQPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
     cudaq.set_target('nvidia-mqpu')
     try:
         assert cudaq.get_target().num_qpus(
@@ -30,7 +31,6 @@ def do_something():
     except Exception as e:
         pytest.skip(f"MQPU setup failed: {str(e)}")
     yield
-    cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
 

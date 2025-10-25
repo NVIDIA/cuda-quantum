@@ -7,15 +7,20 @@
 # ============================================================================ #
 import os
 
-import pytest
-import numpy as np
-
 import cudaq
+import numpy as np
+import pytest
 
 cp = pytest.importorskip('cupy')
 
 if cudaq.num_available_gpus() == 0:
     pytest.skip("Skipping GPU tests", allow_module_level=True)
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:

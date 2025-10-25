@@ -5,9 +5,11 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import os, pytest
+import os
+
 import cudaq
-from cudaq import operators, boson
+import pytest
+from cudaq import boson, operators
 
 if cudaq.num_available_gpus() == 0:
     pytest.skip("Skipping GPU tests", allow_module_level=True)
@@ -18,7 +20,7 @@ else:
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def setup_test_environment():
     cudaq.set_target("dynamics")
     yield
     cudaq.reset_target()

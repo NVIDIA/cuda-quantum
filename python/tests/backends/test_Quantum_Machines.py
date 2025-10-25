@@ -6,10 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq
 import os
-import pytest
 from multiprocessing import Process
+
+import cudaq
+import pytest
 from network_utils import check_server_connection
 
 try:

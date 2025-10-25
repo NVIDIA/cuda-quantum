@@ -11,6 +11,12 @@ import numpy as np
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
+
+
 # bool <-> int32
 def testBoolInt32():
 

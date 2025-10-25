@@ -6,9 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import numpy as np, operator, pytest
+import operator
+
+import numpy as np
+import pytest
+from cudaq import operators, spin
 from cudaq.operators import ScalarOperator
-from cudaq import spin, operators
 
 
 def test_construction():

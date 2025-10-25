@@ -7,8 +7,9 @@
 # ============================================================================ #
 
 import os
-import pytest
+
 import cudaq
+import pytest
 
 
 def cmpfop(predicate, left, right):

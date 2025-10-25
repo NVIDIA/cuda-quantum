@@ -8,6 +8,13 @@
 
 import pytest
 import cudaq
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment():
+    cudaq.__clearKernelRegistries()
+    yield
 
 
 def test_call_with_callee_return_bool():
