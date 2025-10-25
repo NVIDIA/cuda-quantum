@@ -1039,7 +1039,7 @@ jobs:
     strategy:
       matrix:
         platform: ['amd64-gpu-a100', 'arm64-gpu-a100']
-        cuda_major: ['', '11', '12']
+        cuda_major: ['', '12', '13']
       fail-fast: false
 
     runs-on: linux-${{ matrix.platform }}-latest-1
