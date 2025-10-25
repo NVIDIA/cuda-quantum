@@ -311,8 +311,12 @@ page to learn more about the Quantum Circuits Select Quantum Release Program.
 
 Installation & Getting Started
 ```````````````````````````````
+
+.. |:spellcheck-disable:| replace:: \
+.. |:spellcheck-enable:| replace:: \
+
 Until CUDA-Q release 0.13.0 is available, the integration with Quantum Circuits will be supported through the 
-`nightly build Docker images <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__.
+|:spellcheck-disable:| `nightly build Docker images <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__. |:spellcheck-enable:|
 
 Instructions on how to install and get started with CUDA-Q using Docker can be found :ref:`here <install-docker-image>`.
 
@@ -361,7 +365,7 @@ executed shots that are not rejected due to detected errors:
 
 .. math::
 
-   \text{yield} = \frac{\text{number of post-selected shots}}{\text{number of shots executed}}
+    \text{yield} = \frac{\text{number of post-selected shots}}{\text{number of shots executed}}
 
 The yield depends on the number of qubits and the depth of the circuit.
 
