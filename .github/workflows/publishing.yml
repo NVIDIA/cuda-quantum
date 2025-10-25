@@ -1092,7 +1092,7 @@ jobs:
           else
             pip install --upgrade pip
             pip install cudaq==${{ needs.assets.outputs.cudaq_version }} -v \
-              --find-links "file:///tmp/packages"
+              --find-links "file:///tmp/packages" \
             2>&1 | tee /tmp/install.out
 
             if [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then 
