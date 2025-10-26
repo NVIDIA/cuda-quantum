@@ -164,7 +164,8 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 
 ## [Python support]
 FROM prereqs AS python_build
-ADD "pyproject.toml" /cuda-quantum/pyproject.toml
+# Bring all possible templates into the image, then pick the exact one
+ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
 ADD "include" /cuda-quantum/include
