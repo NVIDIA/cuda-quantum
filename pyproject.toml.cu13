@@ -28,7 +28,7 @@ dependencies = [
   'nvidia-cuda-runtime ~= 13.0',
   'nvidia-cusolver ~= 12.0',
   'nvidia-cuda-nvrtc ~= 13.0',
-  'cupy-cuda13x ~= 13.4.1'
+  'cupy-cuda13x ~= 13.6.0'
 ]
 classifiers = [
     'Intended Audience :: Science/Research',
