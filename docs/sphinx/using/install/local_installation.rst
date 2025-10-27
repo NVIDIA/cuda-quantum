@@ -892,11 +892,10 @@ The following table summarizes the required components.
     * - NVIDIA GPU with Compute Capability
       - 7.5+
     * - CUDA
-      - 12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility
-
-        12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture
-
-        13.x (Driver 580.65.06+)
+      - • 12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility  
+        • 12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture  
+        • 13.x (Driver 580.65.06+)
+        
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__. For more information on GPU forward capabilities, please refer to `this page <https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html>`__.
 
 .. note::
