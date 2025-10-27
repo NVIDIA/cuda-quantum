@@ -1734,11 +1734,16 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <td><p>7.5+</p></td>
 </tr>
 <tr class="row-odd"><td><p>CUDA</p></td>
-<td><p>12.x (Driver 525.60.13+), 13.x (Driver 580.65.06+)</p></td>
+<td><ul class="simple">
+<li><p>12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility</p></li>
+<li><p>12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture</p></li>
+<li><p>13.x (Driver 580.65.06+)</p></li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
-<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
+<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>. For more information on GPU forward capabilities, please refer to <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html">this page</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Tegra devices (Jetson) are not supported in CUDA-Q at this time.</p>

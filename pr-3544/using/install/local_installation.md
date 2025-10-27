@@ -3046,8 +3046,14 @@ Systems]{.caption-text}[¶](#id11 "Permalink to this table"){.headerlink}
 | NVIDIA GPU with Compute  | 7.5+                                       |
 | Capability               |                                            |
 +--------------------------+--------------------------------------------+
-| CUDA                     | 12.x (Driver 525.60.13+), 13.x (Driver     |
-|                          | 580.65.06+)                                |
+| CUDA                     | -   12.x (Driver 525.60.13+) -- For GPUs   |
+|                          |     that support CUDA Forward              |
+|                          |     Compatibility                          |
+|                          |                                            |
+|                          | -   12.6+ (Driver 560.35.05+) -- For all   |
+|                          |     GPUs with supported architecture       |
+|                          |                                            |
+|                          | -   13.x (Driver 580.65.06+)               |
 +--------------------------+--------------------------------------------+
 
 : [Requirements for GPU
@@ -3056,6 +3062,9 @@ Simulation]{.caption-text}[¶](#id12 "Permalink to this table"){.headerlink}
 Detailed information about supported drivers for different CUDA versions
 and be found
 [here](https://docs.nvidia.com/deploy/cuda-compatibility/){.reference
+.external}. For more information on GPU forward capabilities, please
+refer to [this
+page](https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html){.reference
 .external}.
 
 ::: {.admonition .note}
