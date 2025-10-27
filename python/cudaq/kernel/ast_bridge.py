@@ -4820,7 +4820,6 @@ class PyASTBridge(ast.NodeVisitor):
         table.
         """
 
-        from .kernel_decorator import isa_kernel_decorator
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
             if cc.PointerType.isinstance(value.type):
@@ -4853,9 +4852,6 @@ class PyASTBridge(ast.NodeVisitor):
             complexType = type(1j)
             value = self.capturedVars[node.id]
 
-            if isa_kernel_decorator(value):
-                # not a variable
-                return
             if isinstance(value, State):
                 self.pushValue(self.capturedDataStorage.storeCudaqState(value))
                 return
