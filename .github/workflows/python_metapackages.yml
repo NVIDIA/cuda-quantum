@@ -82,7 +82,6 @@ jobs:
             echo "For more information, please see [CUDA-Q on PyPI](https://pypi.org/project/cudaq)." >> README.md
 
             echo "Building cuda-quantum metapackage ..."
-            cp pyproject.toml.cu13 pyproject.toml
             sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
             echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
             CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
