@@ -428,6 +428,11 @@ void LinkedLibraryHolder::setTarget(
     // We still need a simulator in case of local emulation.
     auto &defaultTargetInfo = targets[defaultTarget];
     simName = defaultTargetInfo.simulatorName;
+
+    // The precision should match the underlying local simulator that we
+    // selected.
+    target.precision = defaultTargetInfo.precision;
+
     // This is really a user error: e.g., using `CUDAQ_DEFAULT_SIMULATOR`
     // environment variable (meant for simulator) to change the default target
     // to some other targets that are not a simulator.
