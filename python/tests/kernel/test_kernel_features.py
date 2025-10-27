@@ -2270,7 +2270,7 @@ def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
         print(less_arguments)
-    assert 'missing argument for target operand' in repr(
+    assert 'missing value' in repr(
         error)
     assert '(offending source -> rx(3.14))' in repr(error)
 
@@ -2281,7 +2281,8 @@ def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
         print(wrong_arguments)
-    assert 'rotational parameter must be a float, or int' in repr(error)
+    assert 'cannot convert value' in repr(error)
+    assert "(offending source -> rx('random_argument', q))" in repr(error)
 
     @cudaq.kernel
     def wrong_type():
@@ -2299,9 +2300,10 @@ def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
         print(invalid_ctrl)
-    assert 'controlled operation requested without any control argument(s)' in repr(
-        error)
+    assert 'missing value' in repr(error)
+    assert '(offending source -> rx.ctrl(np.pi, q))' in repr(error)
 
+test_issue_1641()
 
 def test_control_then_adjoint():
 

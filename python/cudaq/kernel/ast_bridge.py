@@ -995,14 +995,12 @@ class PyASTBridge(ast.NodeVisitor):
         assert endVal.type == iTy
         
         condPred = IntegerAttr.get(iTy, 4) if isDecrementing else IntegerAttr.get(iTy, 2)
-        if orElseBuilder:
-            orElseBuilder = lambda args: orElseBuilder(args[0])
         return self.createForLoop([iTy], 
                                  lambda args: bodyBuilder(args[0]),
                                  [startVal], 
                                  lambda args: arith.CmpIOp(condPred, args[0], endVal).result,
                                  lambda args: [arith.AddIOp(args[0], stepVal).result], 
-                                 orElseBuilder)
+                                 None if orElseBuilder is None else (lambda args: orElseBuilder(args[0])))
 
     def createInvariantForLoop(self, bodyBuilder, endVal):
         """
@@ -1017,30 +1015,6 @@ class PyASTBridge(ast.NodeVisitor):
                                       stepVal=stepVal, 
                                       endVal=endVal)
         loop.attributes.__setitem__('invariant', UnitAttr.get())
-
-    def __applyQuantumOperation(self, opName, parameters, targets):
-        # FIXME: WHY CAN'T WE SIMPLY PUT THESE OP CONSTRUCTORS INTO THE SYMBOL TABLE?
-        opCtor = getattr(quake, '{}Op'.format(opName.title()))
-        for quantumValue in targets:
-            if quake.VeqType.isinstance(quantumValue.type):
-
-                def bodyBuilder(iterVal):
-                    q = quake.ExtractRefOp(self.getRefType(),
-                                           quantumValue,
-                                           -1,
-                                           index=iterVal).result
-                    opCtor([], parameters, [], [q])
-
-                veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                          quantumValue).result
-                self.createInvariantForLoop(bodyBuilder, veqSize)
-            elif quake.RefType.isinstance(quantumValue.type):
-                opCtor([], parameters, [], [quantumValue])
-            else:
-                self.emitFatalError(
-                    f'quantum operation {opName} on incorrect quantum type {quantumValue.type}.'
-                )
-        return
 
     def __deconstructAssignment(self, target, value, process=None):
         if process is not None:
@@ -1839,6 +1813,26 @@ class PyASTBridge(ast.NodeVisitor):
                 return
             return func.CallOp(otherKernel, values).result
 
+        def processQuantumOperation(opName, controls, targets, *args, broadcast = lambda q: [q], **kwargs):
+            opCtor = getattr(quake, f'{opName}Op')
+            checkControlAndTargetTypes(controls, targets)
+            if not broadcast:
+                return opCtor(*args, controls, targets, **kwargs)
+            elif quake.VeqType.isinstance(targets[0].type):
+                assert len(targets) == 1
+                def bodyBuilder(iterVal):
+                    q = quake.ExtractRefOp(self.getRefType(),
+                                           targets[0],
+                                           -1,
+                                           index=iterVal).result
+                    opCtor(*args, controls, broadcast(q), **kwargs)
+                veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                          targets[0]).result
+                self.createInvariantForLoop(bodyBuilder, veqSize)
+            else:
+                for target in targets:
+                    opCtor(*args, controls, broadcast(target), **kwargs)                    
+
         def checkControlAndTargetTypes(controls, targets):
             """
             Check that the provided control and target operands are 
@@ -1954,14 +1948,6 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(res)
                     return
 
-        # FIXME: This whole thing is widely inconsistent;
-        # For example; we pop all values on the value stack for a simple gate
-        # and allow x(q1, q2, q3, ...) here, but for a simple adjoint gate we
-        # only ever pop a single value. Then there are the control qubits,
-        # where we also allow to pass individual qubits instead of a vector.
-        # I'll tackle this as part of revising the value stack.
-        # FIXME: Expand the tests in test_control_negations as needed after
-        # revising this.
         if isinstance(node.func, ast.Name):
 
             namedArgs = {}
@@ -1975,6 +1961,7 @@ class PyASTBridge(ast.NodeVisitor):
                 listVal = self.__groupValues(node.args, [1])
                 listVal = self.ifPointerThenLoad(listVal)
 
+                # FIXME: split out into helper function
                 if cc.StdvecType.isinstance(listVal.type):
                     self.pushValue(
                         cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
@@ -2044,6 +2031,8 @@ class PyASTBridge(ast.NodeVisitor):
                 iterable = self.__groupValues(node.args, [1])
                 iterable = self.ifPointerThenLoad(iterable)
 
+                # FIXME: leverage visit_for instead
+                
                 # Create a new iterable, `alloca cc.struct<i64, T>`
                 if quake.VeqType.isinstance(iterable.type):
                     iterEleTy = self.getRefType()
@@ -2125,80 +2114,37 @@ class PyASTBridge(ast.NodeVisitor):
             if self.__isSimpleGate(node.func.id):
                 # Here we enable application of the op on all the
                 # provided arguments, e.g. `x(qubit)`, `x(qvector)`, `x(q, r)`, etc.
-                qubitTargets = self.__groupValues(node.args, [-1])
-                checkControlAndTargetTypes([], qubitTargets)
-                self.__applyQuantumOperation(node.func.id, [], qubitTargets)
+                targets = self.__groupValues(node.args, [(1, -1)])
+                processQuantumOperation(node.func.id.title(), [], targets, [], [])
+                return
+
+            if self.__isAdjointSimpleGate(node.func.id):
+                targets = self.__groupValues(node.args, [(1, -1)])
+                processQuantumOperation(node.func.id[0].title(), [], targets, [], [], is_adj=True)
                 return
 
             if self.__isControlledSimpleGate(node.func.id):
                 # These are single target controlled quantum operations
-                control, target = self.__groupValues(node.args, [1, 1])
-                negatedControlQubits = getNegatedControlQubits([control])
-                checkControlAndTargetTypes([control], [target])
-                # Map `cx` to `XOp`...
-                opCtor = getattr(
-                    quake, '{}Op'.format(node.func.id.title()[1:].upper()))
-                opCtor([], [], [control], [target],
-                       negated_qubit_controls=negatedControlQubits)
+                # FIXME: ADD TESTS FOR MULTIPLE CONTROLS HERE
+                controls, target = self.__groupValues(node.args, [(1, -1), 1])
+                negatedControlQubits = getNegatedControlQubits(controls)
+                processQuantumOperation(node.func.id[1:].title(), controls, [target], [], [],
+                                        negated_qubit_controls=negatedControlQubits)
                 return
 
             if self.__isRotationGate(node.func.id):
-                param, qubitTargets = self.__groupValues(node.args, [1, -1])
-
-                if IntegerType.isinstance(param.type):
-                    param = arith.SIToFPOp(self.getFloatType(), param).result
-                elif not F64Type.isinstance(param.type):
-                    self.emitFatalError(
-                        'rotational parameter must be a float, or int.', node)
-                checkControlAndTargetTypes([], qubitTargets)
-                self.__applyQuantumOperation(node.func.id, [param],
-                                             qubitTargets)
+                param, targets = self.__groupValues(node.args, [1, (1, -1)])
+                param = self.changeOperandToType(self.getFloatType(), param)
+                processQuantumOperation(node.func.id.title(), [], targets, [], [param])
                 return
 
             if self.__isControlledRotationGate(node.func.id):
                 ## These are single target, one parameter, controlled quantum operations
-                param, control, target = self.__groupValues(node.args, [1, 1, 1])
-                negatedControlQubits = getNegatedControlQubits([control])
-                checkControlAndTargetTypes([control], [target])
-
-                if IntegerType.isinstance(param.type):
-                    param = arith.SIToFPOp(self.getFloatType(), param).result
-                elif not F64Type.isinstance(param.type):
-                    self.emitFatalError(
-                        'rotational parameter must be a float, or int.', node)
-                # Map `crx` to `RxOp`...
-                opCtor = getattr(
-                    quake, '{}Op'.format(node.func.id.title()[1:].capitalize()))
-                opCtor([], [param], [control], [target],
-                       negated_qubit_controls=negatedControlQubits)
-                return
-
-            if self.__isAdjointSimpleGate(node.func.id):
-                target = self.__groupValues(node.args, [1])
-
-                checkControlAndTargetTypes([], [target])
-                # Map `sdg` to `SOp`...
-                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()[0]))
-                if quake.VeqType.isinstance(target.type):
-
-                    def bodyBuilder(iterVal):
-                        q = quake.ExtractRefOp(self.getRefType(),
-                                               target,
-                                               -1,
-                                               index=iterVal).result
-                        opCtor([], [], [], [q], is_adj=True)
-
-                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                              target).result
-                    self.createInvariantForLoop(bodyBuilder, veqSize)
-                    return
-                elif quake.RefType.isinstance(target.type):
-                    opCtor([], [], [], [target], is_adj=True)
-                    return
-                else:
-                    self.emitFatalError(
-                        'adj quantum operation on incorrect type {}.'.format(
-                            target.type), node)
+                param, controls, target = self.__groupValues(node.args, [1, (1, -1), 1])
+                param = self.changeOperandToType(self.getFloatType(), param)
+                negatedControlQubits = getNegatedControlQubits(controls)
+                processQuantumOperation(node.func.id[1:].title(), controls, [target], [], [param],
+                                        negated_qubit_controls=negatedControlQubits)
                 return
 
             if self.__isMeasurementGate(node.func.id):
@@ -2223,24 +2169,18 @@ class PyASTBridge(ast.NodeVisitor):
                         self.debug_msg(lambda: f'[(Inline) Visit Constant]',
                                        userProvidedRegName.value)
                         registerName = userProvidedRegName.value.value
-                qubits = self.__groupValues(node.args, [-1])
 
-                checkControlAndTargetTypes([], qubits)
-                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
-                i1Ty = self.getIntegerType(1)
-                resTy = i1Ty if len(qubits) == 1 and quake.RefType.isinstance(
-                    qubits[0].type) else cc.StdvecType.get(i1Ty)
-                measTy = quake.MeasureType.get(
-                ) if len(qubits) == 1 and quake.RefType.isinstance(
-                    qubits[0].type) else cc.StdvecType.get(
-                        quake.MeasureType.get())
-                label = registerName
-                if not label:
-                    label = None
-                measureResult = opCtor(measTy, [], qubits,
-                                       registerName=label).result
-                # FIXME: PROBABLY NEEDS TO BE REVISED WHEN WE PROPERLY
-                # DISTINGUISH MEASUREMENT TYPES
+                qubits = self.__groupValues(node.args, [(1, -1)])
+                label = registerName or None
+                if len(qubits) == 1 and quake.RefType.isinstance(qubits[0].type):
+                    measTy = quake.MeasureType.get()
+                    resTy = self.getIntegerType(1)
+                else:
+                    measTy = cc.StdvecType.get(quake.MeasureType.get())
+                    resTy = cc.StdvecType.get(self.getIntegerType(1))
+                measureResult = processQuantumOperation(node.func.id.title(), [], qubits, measTy, broadcast=False, registerName=label).result
+
+                # FIXME: needs to be revised when we properly distinguish measurement types
                 if pushResultToStack:
                     self.pushValue(
                         quake.DiscriminateOp(resTy, measureResult).result)
@@ -2248,59 +2188,27 @@ class PyASTBridge(ast.NodeVisitor):
 
             if node.func.id == 'swap':
                 qubitA, qubitB = self.__groupValues(node.args, [2])
-
-                checkControlAndTargetTypes([], [qubitA, qubitB])
-                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
-                opCtor([], [], [], [qubitA, qubitB])
+                processQuantumOperation(node.func.id.title(), [], [qubitA, qubitB], [], [], broadcast=False)
                 return
 
             if node.func.id == 'reset':
-                target = self.__groupValues(node.args, [1])
-
-                checkControlAndTargetTypes([], [target])
-                if quake.RefType.isinstance(target.type):
-                    quake.ResetOp([], target)
-                    return
-                if quake.VeqType.isinstance(target.type):
-
-                    def bodyBuilder(iterVal):
-                        q = quake.ExtractRefOp(
-                            self.getRefType(),
-                            target,
-                            -1,  # `kDynamicIndex`
-                            index=iterVal).result
-                        quake.ResetOp([], q)
-
-                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                              target).result
-                    self.createInvariantForLoop(bodyBuilder, veqSize)
-                    return
-                self.emitFatalError(
-                    'reset quantum operation on incorrect type {}.'.format(
-                        target.type), node)
+                targets = self.__groupValues(node.args, [(1, -1)])
+                processQuantumOperation(node.func.id.title(), [], targets, broadcast= lambda q: q)
+                return
 
             if node.func.id == 'u3':
                 # Single target, three parameters `u3(θ,φ,λ)`
-                params, qubitTargets = self.__groupValues(node.args, [3, (1, -1)])
-                checkControlAndTargetTypes([], qubitTargets)
-                for idx, val in enumerate(params):
-                    if IntegerType.isinstance(val.type):
-                        params[idx] = arith.SIToFPOp(self.getFloatType(),
-                                                     val).result
-                    elif not F64Type.isinstance(val.type):
-                        self.emitFatalError(
-                            'rotational parameter must be a float, or int.',
-                            node)
-                self.__applyQuantumOperation(node.func.id, params, qubitTargets)
+                params, targets = self.__groupValues(node.args, [3, (1, -1)])
+                params = [self.changeOperandToType(self.getFloatType(), param) for param in params]
+                processQuantumOperation(node.func.id.title(), [], targets, [], params)
                 return
 
             if node.func.id == 'exp_pauli':
-                theta, qubits, pauliWord =  self.__groupValues(node.args, [1, 1, 1])
-                checkControlAndTargetTypes([], [qubits])
-
-                if IntegerType.isinstance(theta.type):
-                    theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                quake.ExpPauliOp([], [theta], [], [qubits], pauli=pauliWord)
+                # Note: C++ also has a constructor that takes an `f64`, `string`,
+                # any any number of qubits. We don't support this here.
+                theta, target, pauliWord =  self.__groupValues(node.args, [1, 1, 1])
+                theta = self.changeOperandToType(self.getFloatType(), theta)
+                processQuantumOperation("ExpPauli", [], [target], [], [theta], broadcast=False, pauli=pauliWord)
                 return
 
             if node.func.id in globalRegisteredOperations:
@@ -2573,6 +2481,8 @@ class PyASTBridge(ast.NodeVisitor):
                     value = self.__groupValues(node.args, [1])
                     namedArgs = {}
                     for keyword in node.keywords:
+                        # FIXME: CHECK THAT WE DON'T HAVE SPARE VALUES
+                        # (OR REMOVE THIS, SINCE WE ONLY EVER ACCEPT A SINGLE ARGUMENT?)
                         self.visit(keyword.value)
                         namedArgs[keyword.arg] = self.popValue()
 
@@ -2865,18 +2775,20 @@ class PyASTBridge(ast.NodeVisitor):
                         numArgs = len(inputTys)
                         invert_controls = lambda: None
                         if node.func.attr == 'control':
+                            # FIXME: CHECK MULTIPLE CONTROLS
                             controls, args = self.__groupValues(
-                                node.args[1:], [(1, 1), (numArgs, numArgs)])
-                            if not quake.RefType.isinstance(controls[0].type) and \
-                                not quake.VeqType.isinstance(controls[0].type):
+                                node.args[1:], [(1, -1), (numArgs, numArgs)])
+                            qvec_or_qubits = all((quake.RefType.isinstance(v.type) for v in controls)) or \
+                                (len(controls) == 1 and quake.VeqType.isinstance(controls[0].type))
+                            if not qvec_or_qubits:
                                 self.emitFatalError(
                                     f'invalid argument type for control operand', node)
                             # TODO: it would be cleaner to add support for negated control
                             # qubits to `quake.ApplyOp`
-                            if controls[0] in self.controlNegations:
-                                invert_controls = lambda: self.__applyQuantumOperation(
-                                    'x', [], controls)
-                                self.controlNegations.clear()
+                            negatedControlQubits = self.controlNegations.copy()
+                            self.controlNegations.clear()
+                            if negatedControlQubits:
+                                invert_controls = lambda: processQuantumOperation('X', [], negatedControlQubits, [], [])                                
                         else:
                             controls, args = self.__groupValues(
                                 node.args[1:], [(0, 0), (numArgs, numArgs)])
@@ -2967,170 +2879,55 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == 'ctrl':
                         controls, target = self.__groupValues(node.args, [(1, -1), 1])
                         negatedControlQubits = getNegatedControlQubits(controls)
-
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        checkControlAndTargetTypes(controls, [target])
-                        opCtor([], [],
-                               controls, [target],
-                               negated_qubit_controls=negatedControlQubits)
+                        processQuantumOperation(node.func.value.id.title(), controls, [target], [], [],
+                                                negated_qubit_controls=negatedControlQubits)
                         return
                     if node.func.attr == 'adj':
-                        target = self.__groupValues(node.args, [1])
-
-                        checkControlAndTargetTypes([], [target])
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        if quake.VeqType.isinstance(target.type):
-
-                            def bodyBuilder(iterVal):
-                                q = quake.ExtractRefOp(self.getRefType(),
-                                                       target,
-                                                       -1,
-                                                       index=iterVal).result
-                                opCtor([], [], [], [q], is_adj=True)
-
-                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                      target).result
-                            self.createInvariantForLoop(bodyBuilder, veqSize)
-                            return
-                        elif quake.RefType.isinstance(target.type):
-                            opCtor([], [], [], [target], is_adj=True)
-                            return
-                        else:
-                            self.emitFatalError(
-                                'adj quantum operation on incorrect type {}.'.
-                                format(target.type), node)
-
+                        targets = self.__groupValues(node.args, [(1, -1)])
+                        processQuantumOperation(node.func.value.id.title(), [], targets, [], [], is_adj=True)
+                        return
                     self.emitFatalError(
                         f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                     )
-
-                # We have a `func_name.ctrl`
-                if node.func.value.id == 'swap' and node.func.attr == 'ctrl':
-                    controls, targetA, targetB = self.__groupValues(node.args, [(1, -1), 1, 1])
-                    negatedControlQubits = getNegatedControlQubits(controls)
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-                    checkControlAndTargetTypes(controls, [targetA, targetB])
-                    opCtor([], [],
-                           controls, [targetA, targetB],
-                           negated_qubit_controls=negatedControlQubits)
-                    return
 
                 if self.__isRotationGate(node.func.value.id):
                     if node.func.attr == 'ctrl':
                         param, controls, target = self.__groupValues(node.args, [1, (1, -1), 1])
+                        param = self.changeOperandToType(self.getFloatType(), param)
                         negatedControlQubits = getNegatedControlQubits(controls)
-                        if IntegerType.isinstance(param.type):
-                            param = arith.SIToFPOp(self.getFloatType(),
-                                                   param).result
-                        elif not F64Type.isinstance(param.type):
-                            self.emitFatalError(
-                                'rotational parameter must be a float, or int.',
-                                node)
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        checkControlAndTargetTypes(controls, [target])
-                        opCtor([], [param],
-                               controls, [target],
-                               negated_qubit_controls=negatedControlQubits)
+                        processQuantumOperation(node.func.value.id.title(), controls, [target], [], [param],
+                                                negated_qubit_controls=negatedControlQubits)
                         return
-
                     if node.func.attr == 'adj':
-                        param, target = self.__groupValues(node.args, [2])
-
-                        if IntegerType.isinstance(param.type):
-                            param = arith.SIToFPOp(self.getFloatType(),
-                                                   param).result
-                        elif not F64Type.isinstance(param.type):
-                            self.emitFatalError(
-                                'rotational parameter must be a float, or int.',
-                                node)
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        checkControlAndTargetTypes([], [target])
-                        if quake.VeqType.isinstance(target.type):
-
-                            def bodyBuilder(iterVal):
-                                q = quake.ExtractRefOp(self.getRefType(),
-                                                       target,
-                                                       -1,
-                                                       index=iterVal).result
-                                opCtor([], [param], [], [q], is_adj=True)
-
-                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                      target).result
-                            self.createInvariantForLoop(bodyBuilder, veqSize)
-                            return
-                        elif quake.RefType.isinstance(target.type):
-                            opCtor([], [param], [], [target], is_adj=True)
-                            return
-                        else:
-                            self.emitFatalError(
-                                'adj quantum operation on incorrect type {}.'.
-                                format(target.type), node)
-
+                        param, targets = self.__groupValues(node.args, [1, (1, -1)])
+                        param = self.changeOperandToType(self.getFloatType(), param)
+                        processQuantumOperation(node.func.value.id.title(), [], targets, [], [param], is_adj=True)
+                        return
                     self.emitFatalError(
                         f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                     )
 
-                if node.func.value.id == 'u3':
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
+                if node.func.value.id == 'swap' and node.func.attr == 'ctrl':
+                    controls, targetA, targetB = self.__groupValues(node.args, [(1, -1), 1, 1])
+                    negatedControlQubits = getNegatedControlQubits(controls)
+                    processQuantumOperation(node.func.value.id.title(), controls, [targetA, targetB], [], [],
+                                            broadcast=False,
+                                            negated_qubit_controls=negatedControlQubits)
+                    return
 
+                if node.func.value.id == 'u3':
                     if node.func.attr == 'ctrl':
                         params, controls, target = self.__groupValues(node.args, [3, (1, -1), 1])
+                        params = [self.changeOperandToType(self.getFloatType(), param) for param in params]
                         negatedControlQubits = getNegatedControlQubits(controls)
-                        for idx, val in enumerate(params):
-                            if IntegerType.isinstance(val.type):
-                                params[idx] = arith.SIToFPOp(
-                                    self.getFloatType(), val).result
-                            elif not F64Type.isinstance(val.type):
-                                self.emitFatalError(
-                                    'rotational parameter must be a float, or int.',
-                                    node)
-
-                        checkControlAndTargetTypes(controls, [target])
-                        opCtor([],
-                               params,
-                               controls, [target],
-                               negated_qubit_controls=negatedControlQubits)
+                        processQuantumOperation(node.func.value.id.title(), controls, [target], [], params,
+                                                negated_qubit_controls=negatedControlQubits)
                         return
-
                     if node.func.attr == 'adj':
-                        params, target = self.__groupValues(node.args, [3, 1])                        
-                        for idx, val in enumerate(params):
-                            if IntegerType.isinstance(val.type):
-                                params[idx] = arith.SIToFPOp(
-                                    self.getFloatType(), val).result
-                            elif not F64Type.isinstance(val.type):
-                                self.emitFatalError(
-                                    'rotational parameter must be a float, or int.',
-                                    node)
-
-                        checkControlAndTargetTypes([], [target])
-                        if quake.VeqType.isinstance(target.type):
-
-                            def bodyBuilder(iterVal):
-                                q = quake.ExtractRefOp(self.getRefType(),
-                                                       target,
-                                                       -1,
-                                                       index=iterVal).result
-                                opCtor([], params, [], [q], is_adj=True)
-
-                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                      target).result
-                            self.createInvariantForLoop(bodyBuilder, veqSize)
-                            return
-                        elif quake.RefType.isinstance(target.type):
-                            opCtor([], params, [], [target], is_adj=True)
-                            return
-                        else:
-                            self.emitFatalError(
-                                'adj quantum operation on incorrect type {}.'.
-                                format(target.type), node)
-
+                        params, targets = self.__groupValues(node.args, [3, (1, -1)])                        
+                        params = [self.changeOperandToType(self.getFloatType(), param) for param in params]
+                        processQuantumOperation(node.func.value.id.title(), [], targets, [], params, is_adj=True)
+                        return
                     self.emitFatalError(
                         f'unknown attribute {node.func.attr} on u3', node)
 
