@@ -743,8 +743,7 @@ def test_return_dataclass_int_bool():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments' in repr(
-        e)
+    assert 'keyword arguments for data classes are not yet supported' in repr(e)
 
     @cudaq.kernel
     def simple_dataclass_int_bool_error() -> MyClass:
@@ -752,8 +751,7 @@ def test_return_dataclass_int_bool():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments' in repr(
-        e)
+    assert 'keyword arguments for data classes are not yet supported' in repr(e)
 
 
 def test_return_dataclass_bool_int():
