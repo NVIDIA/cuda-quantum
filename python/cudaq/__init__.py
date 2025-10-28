@@ -54,6 +54,7 @@ from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
 from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
+from .kernel.utils import globalKernelDecorators
 from .runtime.sample import sample
 from .runtime.observe import observe
 from .runtime.run import run_async
@@ -212,6 +213,11 @@ def __clearKernelRegistries():
     globalAstRegistry.clear()
     globalRegisteredOperations.clear()
 
+
+cudaq_runtime.register_set_target_callback(
+    lambda _:
+    [setattr(kernel, "module", None) for kernel in globalKernelDecorators],
+    "clearKernelDecoratorModules")
 
 # Expose chemistry domain functions
 from .domains import chemistry
