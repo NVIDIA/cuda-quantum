@@ -92,8 +92,18 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
             print(cuda_nvrtc_path)
             print()
 
+            cublas_libs = get_library_path(f"nvidia-cublas")
+            print(cuda_nvrtc_libs)
+            cublas_path = os.path.join(cuda_nvrtc_libs,
+                                        f"libcublas.so.{cuda_major}")
+            cublaslt_path = os.path.join(cuda_nvrtc_libs,
+                                        f"libcublasLt.so.{cuda_major}")
+            print(cublas_path)
+            print(cublaslt_path)
+            print()
+
             os.environ[
-                "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
+                "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}:{cublas_path}:{cublaslt_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
