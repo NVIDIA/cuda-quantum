@@ -9,6 +9,7 @@
 import os
 import time
 from dataclasses import dataclass
+from typing import Callable
 
 import cudaq
 import numpy as np
@@ -1013,6 +1014,33 @@ def test_shots_count():
     assert len(results) == 100  # default shots count
     results = cudaq.run_async(kernel, shots_count=37).get()
     assert len(results) == 37
+
+
+def test_run_async_with_callable():
+
+    @cudaq.kernel
+    def kernel(state_prep: Callable[[cudaq.qvector], None], N: int) -> int:
+        qubits = cudaq.qvector(N)
+        state_prep(qubits)
+        meas = mz(qubits)
+        res = 0
+        for m in meas:
+            if m:
+                res += 1
+        return res
+
+    @cudaq.kernel
+    def prep_1_state(qubits: cudaq.qvector):
+        x(qubits)
+
+    for num_qubits in [1, 2, 3, 4]:
+        results = cudaq.run_async(kernel,
+                                  prep_1_state,
+                                  num_qubits,
+                                  shots_count=10).get()
+        assert len(results) == 10
+        for r in results:
+            assert r == num_qubits
 
 
 # leave for gdb debugging
