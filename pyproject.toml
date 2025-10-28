@@ -22,12 +22,12 @@ dependencies = [
   'numpy >= 1.24',
   'scipy >= 1.10.1',
   'requests >= 2.31',
-  'nvidia-cublas-cu12 ~= 12.6',
+  'nvidia-cublas-cu12 >= 12.6',
   'nvidia-curand-cu12 ~= 10.3',
   'nvidia-cusparse-cu12 ~= 12.5',
-  'nvidia-cuda-runtime-cu12 ~= 12.6',
+  'nvidia-cuda-runtime-cu12 >= 12.6',
   'nvidia-cusolver-cu12 ~= 11.7',
-  'nvidia-cuda-nvrtc-cu12 ~= 12.6',
+  'nvidia-cuda-nvrtc-cu12 >= 12.6',
   'cupy-cuda13x ~= 13.6.0'
 ]
 classifiers = [
