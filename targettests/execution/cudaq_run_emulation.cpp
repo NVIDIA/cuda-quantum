@@ -28,21 +28,44 @@ __qpu__ int test_kernel(int count) {
   return result;
 }
 
+__qpu__ std::vector<bool> mz_test(int count) {
+  cudaq::qvector v(count);
+  h(v);
+  return mz(v);
+}
+
 int main() {
+  size_t shots = 20;
   int c = 0;
   {
     constexpr int numQubits = 4;
-    auto results = cudaq::run(100, test_kernel, numQubits);
-    if (results.size() != 100) {
-      printf("FAILED! Expected 100 shots. Got %lu\n", results.size());
+    auto results = cudaq::run(shots, test_kernel, numQubits);
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
     } else {
       for (auto i : results) {
         printf("%d: %d\n", c++, i);
         if (i != 0 && i != 4)
           break;
       }
-      if (c == 100)
+      if (c == shots)
         printf("success!\n");
+    }
+  }
+
+  // Also test asynchronous API
+  {
+    const auto results =
+        cudaq::run_async(/*qpu_id=*/0, shots, mz_test, 2).get();
+    c = 0;
+    if (results.size() != shots) {
+      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
+    } else {
+      for (auto i : results) {
+        printf("%d: %d %d\n", c++, (bool)i[0], (bool)i[1]);
+      }
+      if (c == shots)
+        printf("success async!\n");
     }
   }
 
@@ -51,3 +74,4 @@ int main() {
 
 // FAIL: `run` is not yet supported on this target
 // CHECK: success!
+// CHECK: success async!

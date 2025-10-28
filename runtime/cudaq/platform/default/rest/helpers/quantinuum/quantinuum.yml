@@ -40,12 +40,7 @@ target-arguments:
     machine-config:
       - arch-name: H-series
         machine-names: 
-          - H1-1
-          - H1-1SC
-          - H1-1E
-          - H1-2
-          - H1-2SC
-          - H1-2E
+          - H2-1SC
           - H2-1
           - H2-1SC
           - H2-1E
