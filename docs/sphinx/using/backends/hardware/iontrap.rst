@@ -152,12 +152,12 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
         .. code:: python
 
-            cudaq.set_target('quantinuum', machine='H1-2')
+            cudaq.set_target('quantinuum', machine='H2-2')
 
-        where ``H1-2`` is an example of a physical QPU. Hardware specific
-        emulators may be accessed by appending an ``E`` to the end (e.g, ``H1-2E``). For 
+        where ``H2-2`` is an example of a physical QPU. Hardware specific
+        emulators may be accessed by appending an ``E`` to the end (e.g, ``H2-2E``). For 
         access to the syntax checker for the provided machine, you may append an ``SC`` 
-        to the end (e.g, ``H1-1SC``).
+        to the end (e.g, ``H2-1SC``).
 
         For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__ 
         and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
@@ -199,12 +199,12 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
         .. code:: bash
 
-            nvq++ --target quantinuum --quantinuum-machine H1-2 src.cpp ...
+            nvq++ --target quantinuum --quantinuum-machine H2-2 src.cpp ...
 
-        where ``H1-2`` is an example of a physical QPU. Hardware specific
-        emulators may be accessed by appending an ``E`` to the end (e.g, ``H1-2E``). For 
+        where ``H2-2`` is an example of a physical QPU. Hardware specific
+        emulators may be accessed by appending an ``E`` to the end (e.g, ``H2-2E``). For 
         access to the syntax checker for the provided machine, you may append an ``SC`` 
-        to the end (e.g, ``H1-1SC``).
+        to the end (e.g, ``H2-1SC``).
 
         For a comprehensive list of available machines, login to your `Quantinuum Nexus user account <https://nexus.quantinuum.com/>`__ 
         and navigate to the "Profile" tab, where you should find a table titled "Quantinuum Systems Access".
@@ -217,5 +217,20 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
         .. code:: bash
 
             nvq++ --emulate --target quantinuum src.cpp
+
+.. note:: 
+
+       Quantinuum's syntax checker for Helios (e.g., ``Helios-1SC``) only performs QIR code validation and does not return any results.
+       Thus, it always returns an empty result set. This is different from other Quantinuum backends (e.g., ``H2-1SC``) where the syntax checker returns dummy results.
+       As a result, when using the Helios syntax checker, we may receive this warning message:
+
+        .. code:: text
+    
+                WARNING: this kernel invocation produced 0 shots worth of results when executed. 
+
+        It means that the kernel was successfully validated, but no execution results are available.
+        To get results, please submit to the Helios emulator (e.g., ``Helios-1E``) or the actual quantum device (e.g., ``Helios-1``).
+
+
 
 To see a complete example, take a look at :ref:`Quantinuum examples <quantinuum-examples>`.

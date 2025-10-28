@@ -336,12 +336,12 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
           cudaq::opt::qir0_1::RequiredQubitsAttrName, NotFound);
       if (required_num_qubits == NotFound)
         required_num_qubits = func.getFnAttributeAsParsedInteger(
-            cudaq::opt::qir0_2::RequiredQubitsAttrName, 0);
+            cudaq::opt::qir1_0::RequiredQubitsAttrName, 0);
       required_num_results = func.getFnAttributeAsParsedInteger(
           cudaq::opt::qir0_1::RequiredResultsAttrName, NotFound);
       if (required_num_results == NotFound)
         required_num_results = func.getFnAttributeAsParsedInteger(
-            cudaq::opt::qir0_2::RequiredResultsAttrName, 0);
+            cudaq::opt::qir1_0::RequiredResultsAttrName, 0);
       break; // no need to keep looking
     }
   }
@@ -578,20 +578,20 @@ mlir::LogicalResult qirProfileTranslationFunction(
         llvm::Constant *intPrecisionValue =
             llvm::ConstantDataArray::getString(*llvmContext, "i64", false);
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  cudaq::opt::qir0_2::IntComputationsFlagName,
+                                  cudaq::opt::qir1_0::IntComputationsFlagName,
                                   intPrecisionValue);
       }
       if (config.floatComputations) {
         llvm::Constant *floatPrecisionValue =
             llvm::ConstantDataArray::getString(*llvmContext, "f64", false);
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  cudaq::opt::qir0_2::FloatComputationsFlagName,
+                                  cudaq::opt::qir1_0::FloatComputationsFlagName,
                                   floatPrecisionValue);
       }
       auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
           llvm::Type::getIntNTy(*llvmContext, 2), llvm::APInt(2, 0, false));
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                cudaq::opt::qir0_2::BackwardsBranchingFlagName,
+                                cudaq::opt::qir1_0::BackwardsBranchingFlagName,
                                 backwardsBranchingValue);
     }
   }
@@ -765,7 +765,7 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
             cudaq::opt::qir0_1::RequiredQubitsAttrName))
       requiredQubits.strref().getAsInteger(10, num_qubits);
     else if (auto requiredQubits = func->getAttrOfType<mlir::StringAttr>(
-                 cudaq::opt::qir0_2::RequiredQubitsAttrName))
+                 cudaq::opt::qir1_0::RequiredQubitsAttrName))
       requiredQubits.strref().getAsInteger(10, num_qubits);
 
     // Further processing on funcOp if needed

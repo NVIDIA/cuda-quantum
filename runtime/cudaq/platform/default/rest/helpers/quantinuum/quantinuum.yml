@@ -39,12 +39,7 @@ target-arguments:
     machine-config:
       - arch-name: H-series
         machine-names: 
-          - H1-1
-          - H1-1SC
-          - H1-1E
-          - H1-2
-          - H1-2SC
-          - H1-2E
+          - H2-1SC
           - H2-1
           - H2-1SC
           - H2-1E
@@ -56,7 +51,7 @@ target-arguments:
       - arch-name: Helios
         pattern: Helios.*
         config: 
-          codegen-emission: qir-adaptive:0.2:int_computations,float_computations,output_log
+          codegen-emission: qir-adaptive:1.0:int_computations,float_computations,output_log
   - key: project
     required: true
     type: string
