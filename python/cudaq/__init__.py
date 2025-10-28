@@ -50,67 +50,48 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
             os.environ[
                 "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
         else:  # CUDA 13
-            print(cuda_major)
-
             custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
-            print(custatevec_libs)
             custatevec_path = os.path.join(custatevec_libs,
                                            "libcustatevec.so.1")
-            print(custatevec_path)
-            print()
 
             cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
-            print(cutensornet_libs)
             cutensornet_path = os.path.join(cutensornet_libs,
                                             "libcutensornet.so.2")
-            print(cutensornet_path)
-            print()
 
             cudensitymat_libs = get_library_path(f"cudensitymat-cu{cuda_major}")
-            print(cudensitymat_libs)
             cudensitymat_path = os.path.join(cudensitymat_libs,
                                              "libcudensitymat.so.0")
-            print(cudensitymat_path)
-            print()
 
             cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
-            print(cutensor_libs)
             cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
-            print(cutensor_path)
-            print()
 
             curand_libs = get_library_path(f"nvidia-curand")
-            print(curand_libs)
             curand_path = os.path.join(curand_libs, "libcurand.so.10")
-            print(curand_path)
-            print()
 
             cudart_libs = get_library_path(f"nvidia-cuda_runtime")
-            print(cudart_libs)
             cudart_path = os.path.join(cudart_libs,
                                        f"libcudart.so.{cuda_major}")
-            print(cudart_path)
-            print()
 
             cuda_nvrtc_libs = get_library_path(f"nvidia-cuda_nvrtc")
-            print(cuda_nvrtc_libs)
             cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
                                            f"libnvrtc.so.{cuda_major}")
-            print(cuda_nvrtc_path)
-            print()
+            cuda_nvrtc_builtin_path = os.path.join(cuda_nvrtc_libs,
+                                           f"libnvrtc-builtins.so.{cuda_major}.0")
 
             cublas_libs = get_library_path(f"nvidia-cublas")
-            print(cuda_nvrtc_libs)
-            cublas_path = os.path.join(cuda_nvrtc_libs,
+            cublas_path = os.path.join(cublas_libs,
                                        f"libcublas.so.{cuda_major}")
-            cublaslt_path = os.path.join(cuda_nvrtc_libs,
+            cublaslt_path = os.path.join(cublas_libs,
                                          f"libcublasLt.so.{cuda_major}")
-            print(cublas_path)
-            print(cublaslt_path)
-            print()
+
+            cusolver_libs = get_library_path(f"nvidia-cusolver")
+            cusolver_path = os.path.join(cusolver_libs,
+                                       f"libcusolver.so.12")
+            cusolvermg_path = os.path.join(cusolver_libs,
+                                         f"libcusolverMg.so.12")
 
             os.environ[
-                "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}:{cublas_path}:{cublaslt_path}"
+                "CUDAQ_DYNLIBS"] = f"{cudart_path}:{curand_path}:{cuda_nvrtc_path}:{cuda_nvrtc_builtin_path}:{cublas_path}:{cublaslt_path}:{cusolver_path}:{cusolvermg_path}:{cutensor_path}:{custatevec_path}:{cutensornet_path}:{cudensitymat_path}"
     except:
         import importlib.util
         package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
