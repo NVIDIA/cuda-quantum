@@ -1500,7 +1500,6 @@ def test_run_with_callable():
 
     for num_qubits in [1, 2, 3, 4]:
         results = cudaq.run(kernel, prep_1_state, num_qubits, shots_count=10)
-        print("Results for prep_1_state with", num_qubits, "qubits:", results)
         assert len(results) == 10
         for r in results:
             assert r == num_qubits

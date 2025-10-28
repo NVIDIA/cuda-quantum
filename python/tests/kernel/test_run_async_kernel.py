@@ -1038,7 +1038,6 @@ def test_run_async_with_callable():
                                   prep_1_state,
                                   num_qubits,
                                   shots_count=10).get()
-        print("Results for prep_1_state with", num_qubits, "qubits:", results)
         assert len(results) == 10
         for r in results:
             assert r == num_qubits
