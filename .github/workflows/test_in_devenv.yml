@@ -242,7 +242,6 @@ jobs:
             . "$VENV_DIR/bin/activate"
 
             pip install iqm-client -vvv
-            cp pyproject.toml.cu13 pyproject.toml
             pip install . -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then

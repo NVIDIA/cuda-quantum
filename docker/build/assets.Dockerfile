@@ -190,8 +190,8 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
 RUN cd /cuda-quantum && \
     . scripts/configure_build.sh && \
     case "${CUDA_VERSION%%.*}" in \
-      12) cp pyproject.toml.cu12 pyproject.toml ;; \
-      13) cp pyproject.toml.cu13 pyproject.toml ;; \
+      12) cp pyproject.toml.cu12 pyproject.toml || true ;; \
+      13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
       *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
     esac && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings

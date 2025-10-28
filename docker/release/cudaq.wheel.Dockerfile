@@ -41,8 +41,8 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
 RUN cd /cuda-quantum && \
     . scripts/configure_build.sh && \
     case "${CUDA_VERSION%%.*}" in \
-      12) cp pyproject.toml.cu12 pyproject.toml ;; \
-      13) cp pyproject.toml.cu13 pyproject.toml ;; \
+      12) cp pyproject.toml.cu12 pyproject.toml || true ;; \
+      13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
       *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
     esac
 
