@@ -46,7 +46,7 @@ def get_library_path(package_name):
 
     dirname = os.path.join(package_location, subdir, "lib")
     if not os.path.isdir(dirname):
-        # In cuda 13, path looks like /**/site-packages/nvidia/cu13/lib
+        # Check for cu13 layout
         dirname = os.path.join(package_location, subdir, "cu13/lib")
     print("dirname: ", dirname)
     assert os.path.isdir(dirname)
