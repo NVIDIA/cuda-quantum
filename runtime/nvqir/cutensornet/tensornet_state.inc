@@ -17,7 +17,7 @@
 namespace nvqir {
 template <typename ScalarType>
 std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
-  constexpr int32_t defaultNumHyperSamples = 8;
+  constexpr int32_t defaultNumHyperSamples = 512;
   if (auto envVal = std::getenv("CUDAQ_TENSORNET_NUM_HYPER_SAMPLES")) {
     int32_t specifiedNumHyperSamples = 0;
     try {
