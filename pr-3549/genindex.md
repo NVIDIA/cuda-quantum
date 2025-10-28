@@ -4898,53 +4898,53 @@ pr-3549
 ## P {#P}
 
 +-----------------------------------+-----------------------------------+
-| -   [parameters                   | -   [Pauli (class in              |
-|     (cu                           |     cudaq.spin)](api/languages/   |
-| daq.operators.boson.BosonOperator | python_api.html#cudaq.spin.Pauli) |
-|     property)](api/languag        | -   [Pauli1 (class in             |
+| -   [parameters                   | -   [Pauli1 (class in             |
+|     (cu                           |     cudaq)](api/langua            |
+| daq.operators.boson.BosonOperator | ges/python_api.html#cudaq.Pauli1) |
+|     property)](api/languag        | -   [Pauli2 (class in             |
 | es/python_api.html#cudaq.operator |     cudaq)](api/langua            |
-| s.boson.BosonOperator.parameters) | ges/python_api.html#cudaq.Pauli1) |
-|     -   [(cudaq.                  | -   [Pauli2 (class in             |
-| operators.boson.BosonOperatorTerm |     cudaq)](api/langua            |
-|                                   | ges/python_api.html#cudaq.Pauli2) |
-|        property)](api/languages/p | -   [PhaseDamping (class in       |
-| ython_api.html#cudaq.operators.bo |     cudaq)](api/languages/py      |
-| son.BosonOperatorTerm.parameters) | thon_api.html#cudaq.PhaseDamping) |
-|     -   [(cudaq.                  | -   [PhaseFlipChannel (class in   |
-| operators.fermion.FermionOperator |     cudaq)](api/languages/python  |
-|                                   | _api.html#cudaq.PhaseFlipChannel) |
-|        property)](api/languages/p | -   [platform (cudaq.Target       |
-| ython_api.html#cudaq.operators.fe |                                   |
-| rmion.FermionOperator.parameters) |    property)](api/languages/pytho |
-|     -   [(cudaq.oper              | n_api.html#cudaq.Target.platform) |
-| ators.fermion.FermionOperatorTerm | -   [plus() (in module            |
-|                                   |     cudaq.spin)](api/languages    |
-|    property)](api/languages/pytho | /python_api.html#cudaq.spin.plus) |
-| n_api.html#cudaq.operators.fermio | -   [position() (in module        |
-| n.FermionOperatorTerm.parameters) |                                   |
-|     -                             |  cudaq.boson)](api/languages/pyth |
-|  [(cudaq.operators.MatrixOperator | on_api.html#cudaq.boson.position) |
-|         property)](api/la         |     -   [(in module               |
-| nguages/python_api.html#cudaq.ope |         cudaq.operators.custo     |
-| rators.MatrixOperator.parameters) | m)](api/languages/python_api.html |
-|     -   [(cuda                    | #cudaq.operators.custom.position) |
-| q.operators.MatrixOperatorElement | -   [probability()                |
-|         property)](api/languages  |     (cudaq.SampleResult           |
-| /python_api.html#cudaq.operators. |     meth                          |
-| MatrixOperatorElement.parameters) | od)](api/languages/python_api.htm |
-|     -   [(c                       | l#cudaq.SampleResult.probability) |
-| udaq.operators.MatrixOperatorTerm | -   [ProductOperator (in module   |
-|         property)](api/langua     |     cudaq.operator                |
-| ges/python_api.html#cudaq.operato | s)](api/languages/python_api.html |
-| rs.MatrixOperatorTerm.parameters) | #cudaq.operators.ProductOperator) |
-|     -                             | -   [PyKernel (class in           |
-|  [(cudaq.operators.ScalarOperator |     cudaq)](api/language          |
-|         property)](api/la         | s/python_api.html#cudaq.PyKernel) |
-| nguages/python_api.html#cudaq.ope | -   [PyKernelDecorator (class in  |
-| rators.ScalarOperator.parameters) |     cudaq)](api/languages/python_ |
-|     -   [(                        | api.html#cudaq.PyKernelDecorator) |
-| cudaq.operators.spin.SpinOperator |                                   |
-|         property)](api/langu      |                                   |
+| s.boson.BosonOperator.parameters) | ges/python_api.html#cudaq.Pauli2) |
+|     -   [(cudaq.                  | -   [PhaseDamping (class in       |
+| operators.boson.BosonOperatorTerm |     cudaq)](api/languages/py      |
+|                                   | thon_api.html#cudaq.PhaseDamping) |
+|        property)](api/languages/p | -   [PhaseFlipChannel (class in   |
+| ython_api.html#cudaq.operators.bo |     cudaq)](api/languages/python  |
+| son.BosonOperatorTerm.parameters) | _api.html#cudaq.PhaseFlipChannel) |
+|     -   [(cudaq.                  | -   [platform (cudaq.Target       |
+| operators.fermion.FermionOperator |                                   |
+|                                   |    property)](api/languages/pytho |
+|        property)](api/languages/p | n_api.html#cudaq.Target.platform) |
+| ython_api.html#cudaq.operators.fe | -   [plus() (in module            |
+| rmion.FermionOperator.parameters) |     cudaq.spin)](api/languages    |
+|     -   [(cudaq.oper              | /python_api.html#cudaq.spin.plus) |
+| ators.fermion.FermionOperatorTerm | -   [position() (in module        |
+|                                   |                                   |
+|    property)](api/languages/pytho |  cudaq.boson)](api/languages/pyth |
+| n_api.html#cudaq.operators.fermio | on_api.html#cudaq.boson.position) |
+| n.FermionOperatorTerm.parameters) |     -   [(in module               |
+|     -                             |         cudaq.operators.custo     |
+|  [(cudaq.operators.MatrixOperator | m)](api/languages/python_api.html |
+|         property)](api/la         | #cudaq.operators.custom.position) |
+| nguages/python_api.html#cudaq.ope | -   [probability()                |
+| rators.MatrixOperator.parameters) |     (cudaq.SampleResult           |
+|     -   [(cuda                    |     meth                          |
+| q.operators.MatrixOperatorElement | od)](api/languages/python_api.htm |
+|         property)](api/languages  | l#cudaq.SampleResult.probability) |
+| /python_api.html#cudaq.operators. | -   [processCallableArg()         |
+| MatrixOperatorElement.parameters) |     (cudaq.PyKernelDecorator      |
+|     -   [(c                       |     method)](api/lan              |
+| udaq.operators.MatrixOperatorTerm | guages/python_api.html#cudaq.PyKe |
+|         property)](api/langua     | rnelDecorator.processCallableArg) |
+| ges/python_api.html#cudaq.operato | -   [ProductOperator (in module   |
+| rs.MatrixOperatorTerm.parameters) |     cudaq.operator                |
+|     -                             | s)](api/languages/python_api.html |
+|  [(cudaq.operators.ScalarOperator | #cudaq.operators.ProductOperator) |
+|         property)](api/la         | -   [PyKernel (class in           |
+| nguages/python_api.html#cudaq.ope |     cudaq)](api/language          |
+| rators.ScalarOperator.parameters) | s/python_api.html#cudaq.PyKernel) |
+|     -   [(                        | -   [PyKernelDecorator (class in  |
+| cudaq.operators.spin.SpinOperator |     cudaq)](api/languages/python_ |
+|         property)](api/langu      | api.html#cudaq.PyKernelDecorator) |
 | ages/python_api.html#cudaq.operat |                                   |
 | ors.spin.SpinOperator.parameters) |                                   |
 |     -   [(cuda                    |                                   |
@@ -4960,6 +4960,9 @@ pr-3549
 |     cudaq.operators.cus           |                                   |
 | tom)](api/languages/python_api.ht |                                   |
 | ml#cudaq.operators.custom.parity) |                                   |
+| -   [Pauli (class in              |                                   |
+|     cudaq.spin)](api/languages/   |                                   |
+| python_api.html#cudaq.spin.Pauli) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## Q {#Q}
