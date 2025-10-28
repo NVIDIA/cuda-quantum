@@ -2136,33 +2136,42 @@ To see a complete example, take a look at [[OQC examples]{.std
 ::: {#quantum-circuits-inc .section}
 ## Quantum Circuits, Inc.[¶](#quantum-circuits-inc "Permalink to this heading"){.headerlink}
 
-As part of the integration with CUDA-Q, [Quantum
-Circuits](https://quantumcircuits.com/){.reference .external} provides
-the ability to simulate CUDA-Q programs using its AquSim simulator or
-execute them on the Seeker QPU. AquSim is the first simulator to model
-error detection and real-time control of Quantum Circuits' Dual-Rail
-Cavity Qubit systems, using a Monte Carlo approach for shot-by-shot
-simulation. Seeker, the industry's first Dual-Rail Cavity Qubit quantum
-computing system, supports all core operations of a universal quantum
-computer.
+Quantum Circuits offers users the ability to execute CUDA-Q programs on
+its [Seeker QPU](https://quantumcircuits.com/product/#seeker){.reference
+.external} and simulate them using its simulator,
+[AquSim](https://quantumcircuits.com/product/#simulator){.reference
+.external}. The Seeker is the first dual-rail qubit QPU available over
+the cloud today, and through CUDA-Q users have access to its universal
+gate set, high fidelity operations, and fast throughput. Upcoming
+releases of CUDA-Q will continue to evolve these capabilities to include
+real-time control flow and access to an expanded collection of
+actionable data enabled by the Quantum Circuits error aware technology.
 
-In the initial phase, the supported features include all of the single
-and two-qubit gates offered by CUDA-Q, together with real-time
-conditional logic enabled by feed-forward capability. With C++ and
-Python programming supported, users are able to prototype, test and
-explore quantum applications in CUDA-Q targeting Quantum Circuits QPUs.
-Examples are provided to get started.
+AquSim models error detection and real-time control of Quantum Circuits'
+Dual-Rail Cavity Qubit systems, and uses a Monte Carlo approach to do so
+on a shot-by-shot basis. The supported features include all of the
+single and two-qubit gates offered by CUDA-Q. AquSim additionally
+supports real-time conditional logic enabled by feed-forward capability.
+Noise modeling is offered, effectively enabling users to emulate the
+execution of programs on the Seeker QPU and thereby providing a powerful
+application prototyping tool to be leveraged in advance of execution on
+hardware.
 
-Users who wish to get started with running CUDA-Q on AquSim should visit
-our [Explore](https://quantumcircuits.com/explore/){.reference
-.external} page to learn more about the Quantum Circuits Strategic
-Quantum Release Program.
+With C++ and Python programming supported, users are able to prototype,
+test and explore quantum applications in CUDA-Q on the Seeker and
+AquSim. Users who wish to get started with running CUDA-Q with Quantum
+Circuits should visit our
+[Explore](https://quantumcircuits.com/explore/){.reference .external}
+page to learn more about the Quantum Circuits Select Quantum Release
+Program.
 
-::: {#id5 .section}
-### Submitting[¶](#id5 "Permalink to this heading"){.headerlink}
+::: {#installation-getting-started .section}
+### Installation & Getting Started[¶](#installation-getting-started "Permalink to this heading"){.headerlink}
 
 Until CUDA-Q release 0.13.0 is available, the integration with Quantum
-Circuits will be supported through the nightly build Docker images.
+Circuits will be supported through the [nightly build Docker
+images](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags){.reference
+.external}.
 
 Instructions on how to install and get started with CUDA-Q using Docker
 can be found [[here]{.std
@@ -2173,11 +2182,153 @@ You may present your user token to Quantum Circuits via CUDA-Q by
 setting an environment variable named [`QCI_AUTH_TOKEN`{.code .docutils
 .literal .notranslate}]{.pre} before running your CUDA-Q program.
 
+For example:
+
 ::: {.highlight-bash .notranslate}
 ::: highlight
     export QCI_AUTH_TOKEN="example-token"
 :::
 :::
+
+Tokens are provided as part of the Strategic Quantum Release Program.
+Please visit our
+[Explore](https://quantumcircuits.com/explore/){.reference .external}
+page to learn more.
+:::
+
+::: {#using-cuda-q-with-quantum-circuits .section}
+### Using CUDA-Q with Quantum Circuits[¶](#using-cuda-q-with-quantum-circuits "Permalink to this heading"){.headerlink}
+
+Quantum Circuits' Seeker system detects errors in real-time and returns
+not just 0s and 1s as the measurement outcomes, but unique results
+tagged as -1, which indicate that an erasure was detected on the
+Dual-Rail Cavity Qubit. AquSim emulates this execution as well, enabling
+users to model error aware programs in advance of execution on the QPU.
+While -1 data is not yet available via the CUDA-Q API, the user still
+has insight into these dynamics through the number of shots that are
+collected in a given run.
+:::
+
+::: {#yield .section}
+### Yield[¶](#yield "Permalink to this heading"){.headerlink}
+
+Quantum Circuits architecture can detect errors in measurements. The
+target will return to the user the outcome from every measurement for
+every shot, regardless of whether errors were detected. However, the
+data from a shot in which any of the measurements had an error detected
+will:
+
+-   Every **RESULT** where an error is detected will be [`-1`{.docutils
+    .literal .notranslate}]{.pre} (instead of [`0`{.docutils .literal
+    .notranslate}]{.pre} or [`1`{.docutils .literal
+    .notranslate}]{.pre}).
+
+-   The shot will be marked with an **exit code** of [`1`{.docutils
+    .literal .notranslate}]{.pre} (instead of [`0`{.docutils .literal
+    .notranslate}]{.pre}).
+
+-   It will be **excluded** from the histogram.
+
+Apart from an ideal simulation, most jobs will include at least some
+shots for which errors were detected.
+
+The shots that have no errors detected are referred to as
+**post-selected** and will have an exit code of [`0`{.docutils .literal
+.notranslate}]{.pre}. The **yield** represents the fraction of executed
+shots that are not rejected due to detected errors:
+
+::: {.math .notranslate .nohighlight}
+\\\[\\text{yield} = \\frac{\\text{number of post-selected
+shots}}{\\text{number of shots executed}}\\\]
+:::
+
+The yield depends on the number of qubits and the depth of the circuit.
+:::
+
+::: {#options .section}
+### Options[¶](#options "Permalink to this heading"){.headerlink}
+
+**machine**
+
+:   This is a string option with 2 supported values.
+
+    -   **Seeker**
+
+        -   Name of the QPU supported by Quantum Circuits.
+
+        -   Supports up to **8 qubit** programs and the
+            [`base_profile`{.docutils .literal .notranslate}]{.pre}.
+
+        -   Regardless of whether the method is [`execute`{.docutils
+            .literal .notranslate}]{.pre} or [`simulate`{.docutils
+            .literal .notranslate}]{.pre}, the program will be **fully
+            compiled** for strict validation of suitability to run on
+            the QPU.
+
+    -   **AquSim**
+
+        -   This "machine" is not associated with a specific QPU and not
+            strictly validated.
+
+        -   Supports up to **25 qubits**, a **square grid coupling
+            map**, and the [`adaptive_profile`{.docutils .literal
+            .notranslate}]{.pre}.
+
+**method**
+
+:   This is a string option with 2 supported values.
+
+    -   **execute**
+
+        -   If [`machine="Seeker"`{.docutils .literal
+            .notranslate}]{.pre}, the program will run on the QPU
+            (depending on availability).
+
+        -   Not supported if [`machine="AquSim"`{.docutils .literal
+            .notranslate}]{.pre}.
+
+    -   **simulate**
+
+        -   The program will be run in [`AquSim`{.docutils .literal
+            .notranslate}]{.pre}.
+
+**noisy**
+
+:   This boolean option is only supported for
+    [`method="simulate"`{.docutils .literal .notranslate}]{.pre}.
+
+    -   **True**
+
+        -   [`AquSim`{.docutils .literal .notranslate}]{.pre} will
+            simulate noise and error detection using a **Dual-Rail
+            statevector-based noise model** on a transpiled program.
+
+    -   **False**
+
+        -   An **ideal simulation**.
+
+**repeat_until_shots_requested**
+
+:   This is a boolean option.
+
+    -   **True**
+
+        -   The machine will return as many post-selected shots as were
+            requested (unless an upper limit of shots executed is
+            encountered first).
+
+        -   The **execution time is proportional to 1 / yield**.
+
+    -   **False**
+
+        -   The machine will execute **exactly the number of shots
+            requested**, regardless of how many errors are detected.
+
+        -   The execution time does **not depend on yield**.
+:::
+
+::: {#id5 .section}
+### Submitting[¶](#id5 "Permalink to this heading"){.headerlink}
 
 ::: {.tab-set .docutils}
 Python
@@ -2196,8 +2347,8 @@ program:
 To run on AquSim, simply execute the script using your Python
 interpreter.
 
-To specify which QCI machine to use, set the [`machine`{.code .docutils
-.literal .notranslate}]{.pre} parameter:
+To specify which Quantum Circuits machine to use, set the
+[`machine`{.code .docutils .literal .notranslate}]{.pre} parameter:
 
 ::: {.highlight-python .notranslate}
 ::: highlight
@@ -2244,7 +2395,8 @@ C++
 
 ::: {.tab-content .docutils}
 When executing programs in C++, they must first be compiled using the
-CUDA-Q nvq++ compiler, and then submitted to run on the device.
+CUDA-Q nvq++ compiler, and then submitted to run on the Seeker or
+AquSim.
 
 Note that your token is fetched from your environment at run time, not
 at compile time.
@@ -2266,8 +2418,8 @@ commands in full:
 :::
 :::
 
-To specify which QCI machine to use, pass the [`--qci-machine`{.docutils
-.literal .notranslate}]{.pre} flag:
+To specify which Quantum Circuits machine to use, pass the
+[`--qci-machine`{.docutils .literal .notranslate}]{.pre} flag:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
