@@ -1122,15 +1122,39 @@ def test_capture_disallow_change_variable():
     n = 3
 
     @cudaq.kernel
-    def kernel() -> int:
+    def kernel1() -> int:
+        # Shadow n, no error
+        n = 4
+        return n
+    
+    res = kernel1()
+    assert res == 4
+
+    @cudaq.kernel
+    def kernel2() -> int:
         if True:
+            # Shadow n, no error
+            n = 4
+        # n is not defined in this scope, error
+        return n
+    
+    with pytest.raises(RuntimeError) as e:
+        kernel2()
+    assert "'n' is not defined" in repr(e)
+
+    @cudaq.kernel
+    def kernel3() -> int:
+        if True:
+            # causes the variable to be added to the symbol table
             cudaq.dbg.ast.print_i64(n)
             # Change n, emits an error
-            n = 4
+            n += 4
         return n
 
     with pytest.raises(RuntimeError) as e:
-        kernel()
+        kernel3()
+    assert "augment-assign target variable is not defined or cannot be assigned" in repr(e)
+    assert "(offending source -> n += 4)" in repr(e)
 
 
 def test_inner_function_capture():
@@ -2303,7 +2327,6 @@ def test_issue_1641():
     assert 'missing value' in repr(error)
     assert '(offending source -> rx.ctrl(np.pi, q))' in repr(error)
 
-test_issue_1641()
 
 def test_control_then_adjoint():
 

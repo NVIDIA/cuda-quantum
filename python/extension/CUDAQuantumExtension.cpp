@@ -281,11 +281,6 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
     return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });
-  // TODO: This is needed because with LLVM 16, it seems that the MLIR
-  // Python bindings do not expose cc::ArrayType::getSize to Python.
-  // This should be replaced by the automatically generated binding
-  // once it is available.
-  cudaqRuntime.def("ArrayTypeGetSize", &cudaq::cc::ArrayType::getSize);
 
   auto ahsSubmodule = cudaqRuntime.def_submodule("ahs");
   cudaq::bindAnalogHamiltonian(ahsSubmodule);

@@ -307,9 +307,6 @@ def test_return_list_from_device_kernel():
     def incrementer(i: int) -> int:
         return i + 1
 
-    # FIXME:
-    # add more tests to validate the behavior of passing lists
-    # to make sure it matches Python behavior.
     @cudaq.kernel
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
         result = arg
@@ -327,7 +324,7 @@ def test_return_list_from_device_kernel():
 
     results = cudaq.run(caller_kernel, [4, 5, 6], shots_count=1)
     assert len(results) == 1
-    assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
+    assert results[0] == 15  # 4 + 5 + 6 = 15
 
 
 def test_return_list_bool():
@@ -884,8 +881,25 @@ def test_modify_struct():
         y: bool
 
     @cudaq.kernel
-    def simple_strucA(t: MyClass) -> MyClass:
+    def simple_struc_err(t: MyClass) -> MyClass:
         q = cudaq.qubit()
+        # If we allowed this, the expected behavior for Python
+        # would be that t is modified also in the caller without
+        # having to return it. We hence give an error to make it
+        # clear that changes to structs don't propagate past
+        # past function boundaries.
+        t.x = 42
+        return t
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple_struc_err, MyClass(-13, True), shots_count=2)
+    assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in repr(e)
+    assert '(offending source -> t.x)' in repr(e)
+
+    @cudaq.kernel
+    def simple_strucA(arg: MyClass) -> MyClass:
+        q = cudaq.qubit()
+        t = arg.copy()
         t.x = 42
         return t
 
@@ -902,8 +916,9 @@ def test_modify_struct():
         z: int
 
     @cudaq.kernel
-    def kerneB(t: Foo) -> Foo:
+    def kerneB(arg: Foo) -> Foo:
         q = cudaq.qubit()
+        t = arg.copy()
         t.z = 100
         t.y = 3.14
         t.x = True

@@ -110,9 +110,11 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                              'attr') and node.func.attr in globalAstRegistry:
                     self.depKernels[node.func.attr] = globalAstRegistry[
                         node.func.attr]
-                elif node.func.value.id == 'cudaq' and node.func.attr in [
-                        'control', 'adjoint'
-                ] and node.args[0].id in globalAstRegistry:
+                elif isinstance(node.func.value, ast.Name) and \
+                    node.func.value.id == 'cudaq' and \
+                    node.func.attr in ['control', 'adjoint'] and \
+                    isinstance(node.args[0], ast.Name) and \
+                    node.args[0].id in globalAstRegistry:
                     self.depKernels[node.args[0].id] = globalAstRegistry[
                         node.args[0].id]
 
