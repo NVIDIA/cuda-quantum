@@ -139,7 +139,12 @@ async def getJob(id: str):
         "jobs": [{
             "status": "completed",
             "qubits": numQubitsRequired,
-            "results_url": "/v0.3/jobs/{}/results".format(id)
+            "results_url": "/v0.3/jobs/{}/results".format(id),
+            "results": {
+                "shots": {
+                    "url": "/v0.4/jobs/{}/results/shots".format(id)
+                }
+            }
         }]
     }
     return res
@@ -164,6 +169,22 @@ async def getResults(jobId: str):
     res = retData
     return res
 
+
+@app.get("/v0.4/jobs/{jobId}/results/shots")
+async def getResults(jobId: str):
+    global countJobGetRequests, createdJobs
+
+    counts = createdJobs[jobId]
+    counts.dump()
+    retData = []
+    # Note, the real IonQ backend reverses the bitstring relative to what the
+    # simulator does, so flip the bitstring with [::-1].
+    for bits, count in counts.items():
+        for _ in range(count):
+            retData.append(str(int(bits[::-1], 2)))
+
+    res = retData
+    return res
 
 def startServer(port):
     import uvicorn

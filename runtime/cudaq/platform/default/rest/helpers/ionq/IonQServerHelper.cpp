@@ -110,6 +110,8 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Retrieve the noise model setting (if provided)
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
+  else if (config.find("noise_model") != config.end())
+    backendConfig["noise_model"] = config["noise_model"];
   // Retrieve the API key from the environment variables
   bool isTokenRequired = [&]() {
     auto it = config.find("emulate");
@@ -364,14 +366,20 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 
 std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs, 
                                           const char *DEFAULT_URL) {
+  if (!keyExists("url"))
+    throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
+
+  std::string base_url = backendConfig.at("url");
   std::string shotsUrl = "";
-  if (
+
+  if (!jobs.empty() &&
       jobs[0].contains("results") &&
       jobs[0].at("results").contains("shots") &&
       jobs[0].at("results").at("shots").contains("url")) {
-      shotsUrl = std::string(DEFAULT_URL) + 
+      shotsUrl = base_url +
         jobs[0].at("results").at("shots").at("url").get<std::string>();
   }
+
   return shotsUrl;
 }
 

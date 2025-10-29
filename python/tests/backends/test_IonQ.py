@@ -327,6 +327,48 @@ def test_2q_unitary_synthesis():
     assert counts["0010011"] == 1000
 
 
+def test_shot_wise_output_with_memory_and_noise_model():
+
+    cudaq.set_target("ionq", url="http://localhost:{}".format(port), noise='forte-enterprise-1', memory=True)
+
+    @cudaq.kernel
+    def bell_state():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    results = cudaq.sample(bell_state, shots_count=3)
+    assert(results.get_sequential_data() == ['011', '011', '011'])
+
+
+def test_shot_wise_output_with_memory_but_no_noise_model():
+
+    cudaq.set_target("ionq", url="http://localhost:{}".format(port), noise='ideal', memory=True)
+
+    @cudaq.kernel
+    def bell_state():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    results = cudaq.sample(bell_state, shots_count=3)
+    assert(results.get_sequential_data() == [])
+
+
+def test_shot_wise_output_with_noise_model_but_no_memory():
+
+    cudaq.set_target("ionq", url="http://localhost:{}".format(port), noise='forte-enterprise-1', memory=False)
+
+    @cudaq.kernel
+    def bell_state():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    results = cudaq.sample(bell_state, shots_count=3)
+    assert(results.get_sequential_data() == [])
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
