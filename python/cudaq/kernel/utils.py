@@ -11,7 +11,7 @@ import re
 import sys
 import traceback
 import numpy as np
-from typing import get_origin, Callable, List
+from typing import get_origin, get_args, Callable, List
 import types
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -363,12 +363,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return cc.PointerType.get(cc.StateType.get(ctx), ctx)
 
     if get_origin(argType) == list:
-        result = re.search(r'ist\[(.*)\]', str(argType))
-        eleTyName = result.group(1)
+        pyEleTy = get_args(argType)
+        if len(pyEleTy) == 1:
+            eleTy = mlirTypeFromPyType(pyEleTy[0], ctx)
+            return cc.StdvecType.get(eleTy, ctx)
         argType = list
-        inst = pyInstanceFromName(eleTyName)
-        if (inst != None):
-            kwargs['argInstance'] = [inst]
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -401,18 +400,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                                  ctx)
 
     if get_origin(argType) == tuple:
-        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
-        eleTyNames = result.group('names')
         eleTypes = []
-        while eleTyNames != None:
-            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
-            eleTyName = result.group('name') if result != None else eleTyNames
-            eleTyNames = result.group('names') if result != None else None
-            pyInstance = pyInstanceFromName(eleTyName)
-            if pyInstance == None:
-                emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
-        eleTypes.reverse()
+        for pyEleTy in get_args(argType):
+            eleTypes.append(mlirTypeFromPyType(pyEleTy, ctx))
         tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         if tupleTy is None:
             emitFatalError(

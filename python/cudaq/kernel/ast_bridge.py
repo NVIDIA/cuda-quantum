@@ -507,10 +507,23 @@ class PyASTBridge(ast.NodeVisitor):
                 return complex.CreateOp(complexType, real, imag).result
 
         if (cc.StdvecType.isinstance(ty)):
-            eleTy = cc.StdvecType.getElementType(ty)
             if cc.StdvecType.isinstance(operand.type):
-                return self.__copyVectorAndCastElements(
+                eleTy = cc.StdvecType.getElementType(ty)
+                return self.__copyVectorAndConvertElements(
                     operand, eleTy, allowDemotion=allowDemotion)
+        
+        if (cc.StructType.isinstance(ty)):
+            operand = self.ifPointerThenLoad(operand)
+            if cc.StructType.isinstance(operand.type):
+                expectedEleTys = cc.StructType.getTypes(ty)
+                currentEleTys = cc.StructType.getTypes(operand.type)
+                if len(expectedEleTys) == len(currentEleTys):
+                    def conversion(idx, value):
+                        return self.changeOperandToType(
+                            expectedEleTys[idx], value,
+                            allowDemotion=allowDemotion)                    
+                    return self.__copyStructAndConvertElements(
+                        operand, expectedTy=ty, conversion=conversion)
 
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
@@ -743,8 +756,31 @@ class PyASTBridge(ast.NodeVisitor):
             )
         return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
 
+    def __copyStructAndConvertElements(self, struct, expectedTy = None, conversion=None):
+        assert expectedTy or conversion
+        assert cc.StructType.isinstance(struct.type)
+        if not expectedTy:
+            expectedTy = struct.type
+        assert cc.StructType.isinstance(expectedTy)
+        eleTys = cc.StructType.getTypes(struct.type)
+        assert len(eleTys) == len(cc.StructType.getTypes(expectedTy))
+
+        returnVal = cc.UndefOp(expectedTy)
+        for idx, eleTy in enumerate(eleTys):
+            element = cc.ExtractValueOp(
+                eleTy, struct, [],
+                DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+            returnVal = cc.InsertValueOp(
+                expectedTy, returnVal, conversion(idx, element) if conversion else element,
+                DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+        return returnVal
+            
+        # FIXME: CREATE STRUCTS LIKE THIS ALWAYS, AND LET THE ASSIGNMENT
+        # HANDLE THE POINTER CREATION.
+        # FIXME: check that list comp works with pointer as expected, and should create list of ptr
+
     # Create a new vector with source elements converted to the target element type if needed.
-    def __copyVectorAndCastElements(self,
+    def __copyVectorAndConvertElements(self,
                                     source,
                                     targetEleType,
                                     allowDemotion=False):
@@ -1606,7 +1642,9 @@ class PyASTBridge(ast.NodeVisitor):
                 # FIXME: WE NEED TO FOLLOW SIMILAR LOGIC AS ABOVE;
                 # LOAD IF NEEDED, CAST TYPE, CHECK WE DON'T CREATE
                 # AN ALIAS OF A REFERENCE IF WE NEED TO LOAD
-                valueToStore = self.popValue()
+
+                # FIXME: WHAT IF WE HAVE A LIST OF POINTERS? CAN WE HAVE THAT?
+                valueToStore = self.ifPointerThenLoad(self.popValue())
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 return target_root, None
@@ -1635,7 +1673,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # FIXME: WE NEED TO FOLLOW SIMILAR LOGIC AS ABOVE;
                 # LOAD IF NEEDED, CAST TYPE, CHECK WE DON'T CREATE
                 # AN ALIAS OF A REFERENCE IF WE NEED TO LOAD
-                valueToStore = self.popValue()
+                valueToStore = self.ifPointerThenLoad(self.popValue())
                 # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 return target_root, None
@@ -2561,7 +2599,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                         # Convert the vector to the provided data type if needed.
                         self.pushValue(
-                            self.__copyVectorAndCastElements(
+                            self.__copyVectorAndConvertElements(
                                 value, dTy, allowDemotion=True))
                         return
 
@@ -3981,10 +4019,45 @@ class PyASTBridge(ast.NodeVisitor):
         result = self.changeOperandToType(self.knownResultType,
                                           result,
                                           allowDemotion=True)
+        def contains_list(ty):
+            if cc.StdvecType.isinstance(ty):
+                return True
+            if not cc.StructType.isinstance(ty):
+                return False
+            eleTys = cc.StructType.getTypes(ty)
+            return any((contains_list(t) for t in eleTys))
 
-        # FIXME: This logic needs to be updated.
+        def copy_list_to_heap(value):
+            symName = '__nvqpp_vectorCopyCtor'
+            load_intrinsic(self.module, symName)
+            eleTy = cc.StdvecType.getElementType(value.type)
+            ptrTy = cc.PointerType.get(self.getIntegerType(8))
+            arrTy = cc.ArrayType.get(self.getIntegerType(8))
+            ptrArrTy = cc.PointerType.get(arrTy)
+            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
+            # FIXME: ...
+            if ComplexType.isinstance(eleTy):
+                eleSize = self.getConstantInt(16)
+            elif cc.StructType.isinstance(eleTy):
+                eleSize = cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(eleTy))
+            else:
+                eleSize = self.getConstantInt(8)
+            dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+            resBuf = cc.CastOp(ptrTy, resBuf)
+            heapCopy = func.CallOp([ptrTy], symName,
+                                [resBuf, dynSize, eleSize]).result
+            return cc.StdvecInitOp(value.type, heapCopy, length=dynSize).result
+        
+        def contains_list(ty):
+            if cc.StdvecType.isinstance(ty):
+                return True
+            if not cc.StructType.isinstance(ty):
+                return False
+            eleTy = cc.StructType.getTypes(ty)
+            return any((contains_list(t) for t in eleTy))
+
         # Generally, anything that was allocated locally on the stack
-        # needs to be copied to the heap to ensure it outlives the
+        # needs to be copied to the heap to ensure it lives past the
         # the function. This holds recursively; if we have a struct
         # that contains a list, then the list data may need to be
         # copied if it was allocated inside the function.
@@ -3992,36 +4065,48 @@ class PyASTBridge(ast.NodeVisitor):
         # is indeed a reference type passed as argument to the function,
         # then we need to make sure to keep that reference as is to
         # ensure correct behavior (i.e. behavior consistent with Python).
-        if cc.StdvecType.isinstance(result.type):
-            returnIsFunctionArg = BlockArgument.isinstance(result) and \
-                isinstance(result.owner.owner, func.FuncOp)
+        # The logic below handles this with the commented caveat(s).
+        def create_return_value(res):
+            if cc.StdvecType.isinstance(res.type):                
+                eleTy = cc.StdvecType.getElementType(res.type) # iterty
+                if contains_list(eleTy):
+                    # Need to make sure all inner lists live past
+                    # this function as well.
+                    size = cc.StdvecSizeOp(self.getIntegerType(), res).result
+                    ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
+                    iterable = cc.StdvecDataOp(ptrTy, res).result
+                    # We can do an in-place update since the data array type/size
+                    # does not change. We have to do an in-place update to 
+                    # have list arguments that were modified and returned behave
+                    # properly (i.e. they should still reference the same data
+                    # such that updates to them after return are still reflecting
+                    # in everything else that references the same data).
+                    def bodyBuilder(iterVar):
+                        eleAddr = cc.ComputePtrOp(
+                            cc.PointerType.get(eleTy), iterable, [iterVar],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+                        loadedEle = cc.LoadOp(eleAddr).result
+                        # We don't do support anything within list comprehensions that would
+                        element = create_return_value(loadedEle)
+                        cc.StoreOp(element, eleAddr)
+                    self.createInvariantForLoop(bodyBuilder, size)
+                    
+                isFunctionArg = BlockArgument.isinstance(res) and \
+                    isinstance(res.owner.owner, func.FuncOp)
+                # FIXME: VECTORS OF STRUCTS WON'T PROPERLY PRESERVE REFERENCES TO STRUCT
+                # FIXME: CHECK IF WE CAN HAVE A LIST OF LISTS - 
+                # IF SO, SAME PROBLEM AS FOR STRUCTS CONTAINING LISTS
+                return res if isFunctionArg else copy_list_to_heap(res)
+            if not cc.StructType.isinstance(res.type):
+                return res
+            return self.__copyStructAndConvertElements(
+                res, conversion = lambda _, v: create_return_value(v))
 
-            # FIXME: VECTORS OF STRUCTS AND STRUCTS OF VECTORS...
-            # FIXME: add proper tests for that...
-            # (currently not tested since device kernels are inlined
-            # and entry point kernels can't return structs of lists)
-            if not returnIsFunctionArg:
-                symName = '__nvqpp_vectorCopyCtor'
-                load_intrinsic(self.module, symName)
-                eleTy = cc.StdvecType.getElementType(result.type)
-                ptrTy = cc.PointerType.get(self.getIntegerType(8))
-                arrTy = cc.ArrayType.get(self.getIntegerType(8))
-                ptrArrTy = cc.PointerType.get(arrTy)
-                resBuf = cc.StdvecDataOp(ptrArrTy, result).result
-                # TODO Revisit this calculation
-                byteWidth = 16 if ComplexType.isinstance(eleTy) else 8
-                eleSize = self.getConstantInt(byteWidth)
-                dynSize = cc.StdvecSizeOp(self.getIntegerType(), result).result
-                resBuf = cc.CastOp(ptrTy, resBuf)
-                heapCopy = func.CallOp([ptrTy], symName,
-                                    [resBuf, dynSize, eleSize]).result
-                result = cc.StdvecInitOp(result.type, heapCopy, length=dynSize).result
-
+        result = create_return_value(result)
         if self.symbolTable.numLevels() > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
-
         func.ReturnOp([result])
 
     def visit_Tuple(self, node):
