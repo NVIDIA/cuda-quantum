@@ -15,10 +15,12 @@ void no_reuse() __qpu__ {
   mz(q);
 }
 
-// CHECK:   func.func @__nvqpp__mlirgen__function_no_reuse
-// CHECK: quake.h
-// CHECK-NEXT: quake.mz
-// CHECK-NEXT: return
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_no_reuse._Z8no_reusev() 
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// clang-format on
 
 void explicit_reset_after_mz() __qpu__ {
   cudaq::qubit q;
@@ -28,12 +30,14 @@ void explicit_reset_after_mz() __qpu__ {
   x(q);     // Reuse
 }
 
-// CHECK:   func.func @__nvqpp__mlirgen__function_explicit_reset_after_mz
-// CHECK: quake.h
-// CHECK-NEXT: quake.mz
-// CHECK-NEXT: quake.reset
-// CHECK-NEXT: quake.x
-// CHECK-NEXT: return
+// clang-format off
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_explicit_reset_after_mz._Z23explicit_reset_after_mzv() 
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// clang-format on
 
 void reuse1() __qpu__ {
   cudaq::qubit q;
@@ -44,16 +48,16 @@ void reuse1() __qpu__ {
 }
 
 // clang-format off
-// CHECK:   func.func @__nvqpp__mlirgen__function_reuse1
-// CHECK: quake.h
-// CHECK-NEXT: %[[RES:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT:[0-9]+]] : (!quake.ref) -> !quake.measure
-// CHECK-NEXT: quake.reset %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT: %[[BIT:[0-9]+]] = quake.discriminate %[[RES]] : (!quake.measure) -> i1
-// CHECK-NEXT: cc.if(%[[BIT]]) {
-// CHECK-NEXT: quake.x %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT:  }
-// CHECK-NEXT: quake.h %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT: return
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_reuse1._Z6reuse1v() 
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_2]]) {
+// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
 // clang-format on
 
 void reuse2() __qpu__ {
@@ -66,25 +70,21 @@ void reuse2() __qpu__ {
 }
 
 // clang-format off
-// CHECK:   func.func @__nvqpp__mlirgen__function_reuse2
-// CHECK: quake.h
-// This is our automatic injection
-// CHECK-NEXT: %[[RES:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT:[0-9]+]] name "res" : (!quake.ref) -> !quake.measure
-// CHECK-NEXT: quake.reset %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT: %[[BIT:[0-9]+]] = quake.discriminate %[[RES]] : (!quake.measure) -> i1
-// CHECK-NEXT: cc.if(%[[BIT]]) {
-// CHECK-NEXT: quake.x %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT:  }
-
-// This reset-by-conditional-x pattern is also a reuse. Effectively, we now
-// perform a `reset - x - x` sequence == reset.
-// CHECK-NEXT: cc.alloca
-// CHECK-NEXT: cc.store
-// CHECK-NEXT: cc.load
-// CHECK-NEXT: cc.if
-// CHECK-NEXT: quake.x %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT:  }
-// CHECK-NEXT: return
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_reuse2._Z6reuse2v() 
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !quake.measure
+// CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_2]]) {
+// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           %[[VAL_3:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i1>
+// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           }
 // clang-format on
 
 void reuse3() __qpu__ {
@@ -101,26 +101,22 @@ void reuse3() __qpu__ {
 }
 
 // clang-format off
-// CHECK:   func.func @__nvqpp__mlirgen__function_reuse3
-// CHECK: quake.h
-// CHECK-NEXT: quake.x [%[[QUBIT:[0-9]+]]] %[[QUBIT_1:[0-9]+]] : (!quake.ref, !quake.ref) -> ()
-// This is our automatic injection
-// CHECK-NEXT: %[[RES:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT:[0-9]+]] name "res" : (!quake.ref) -> !quake.measure
-// CHECK-NEXT: quake.reset %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT: %[[BIT:[0-9]+]] = quake.discriminate %[[RES]] : (!quake.measure) -> i1
-// CHECK-NEXT: cc.if(%[[BIT]]) {
-// CHECK-NEXT: quake.x %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT:  }
-
-// This reset-by-conditional-x pattern is also a reuse. Effectively, we now
-// perform a `reset - x - x` sequence == reset.
-// clang-format off
-// CHECK-NEXT: cc.alloca
-// CHECK-NEXT: cc.store
-// CHECK-NEXT: cc.load
-// CHECK-NEXT: cc.if
-// CHECK-NEXT: quake.x %[[QUBIT]] : (!quake.ref) -> ()
-// CHECK-NEXT: quake.x %[[QUBIT_1]] : (!quake.ref) -> ()
-// CHECK-NEXT:  }
-// CHECK-NEXT: return
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_reuse3._Z6reuse3v() 
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[VAL_0]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !quake.measure
+// CHECK:           quake.reset %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
+// CHECK:           cc.if(%[[VAL_3]]) {
+// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           }
+// CHECK:           %[[VAL_4:.*]] = cc.alloca i1
+// CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i1>
+// CHECK:           cc.if(%[[VAL_5]]) {
+// CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           }
 // clang-format on
