@@ -534,3 +534,13 @@ Submitting
 
 To see a complete example of using Quantum Circuits' backends, please take a look at the
 :ref:`Quantum Circuits examples <quantum-circuits-examples>`.
+
+.. note:: 
+
+        In local emulation mode (``emulate`` flag set to ``True``), the program will be executed on the :ref:`default simulator <default-simulator>`.
+        The environment variable ``CUDAQ_DEFAULT_SIMULATOR`` can be used to change the emulation simulator. 
+        
+        For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
+        depend on the selected simulator.  
+        
+        Any environment variables must be set prior to setting the target or running "`import cudaq`".
