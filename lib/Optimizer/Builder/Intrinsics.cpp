@@ -394,7 +394,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // argument 0: buffer from cc.alloca !cc.array<i8 x 32>
     // argument 1: the unsigned value
     {"__nvqpp_internal_tostring", {}, R"#(
-  func.func @__nvqpp_internal_tostring(%arg0: !cc.ptr<!cc.array<i8 x ?>>, %arg1: i64) {
+  func.func private @__nvqpp_internal_tostring(%arg0: !cc.ptr<!cc.array<i8 x ?>>, %arg1: i64) {
     %c48_i64 = arith.constant 48 : i64
     %c0_i8 = arith.constant 0 : i8
     %c10_i64 = arith.constant 10 : i64
