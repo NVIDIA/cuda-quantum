@@ -98,6 +98,8 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   ::addQIRConversionPipeline(pm, options.target);
   pm.addPass(cudaq::opt::createReturnToOutputLog());
+  // In the ReturnToOutputLog pass, we may create a for loop to iterate over
+  // unknown array size. Hence, that loop (if any) needs to be lowered to CFG.
   cudaq::opt::addLowerToCFG(pm);
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());

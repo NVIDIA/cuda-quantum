@@ -24,77 +24,74 @@ std::vector<int> kernel_that_return_unknown_size_vector(std::size_t N) __qpu__ {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_that_return_unknown_size_vector._Z38kernel_that_return_unknown_size_vectorm.run(
 // CHECK-SAME:                                                                                                                                 %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_2:.*]] = arith.constant 32 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 14 : i64
 // CHECK:           %[[VAL_4:.*]] = arith.constant 12 : i64
 // CHECK:           %[[VAL_5:.*]] = arith.constant false
 // CHECK:           %[[VAL_6:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_7:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_8:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_9:.*]] = cc.alloca i64
-// CHECK:           cc.store %[[VAL_0]], %[[VAL_9]] : !cc.ptr<i64>
-// CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<i64>
-// CHECK:           %[[VAL_11:.*]] = cc.alloca i32{{\[}}%[[VAL_10]] : i64]
-// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_13:.*]] = arith.muli %[[VAL_10]], %[[VAL_8]] : i64
-// CHECK:           %[[VAL_14:.*]] = call @malloc(%[[VAL_13]]) : (i64) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_14]], %[[VAL_12]], %[[VAL_13]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:           %[[VAL_15:.*]] = cc.stdvec_init %[[VAL_14]], %[[VAL_10]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i32>
-// CHECK:           %[[VAL_16:.*]] = cc.stdvec_size %[[VAL_15]] : (!cc.stdvec<i32>) -> i64
-// CHECK:           %[[VAL_17:.*]] = call @__nvqpp_internal_number_of_digits(%[[VAL_16]]) : (i64) -> i64
-// CHECK:           %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_2]] : i64
-// CHECK:           %[[VAL_19:.*]] = cc.alloca i8{{\[}}%[[VAL_18]] : i64]
-// CHECK:           %[[VAL_20:.*]] = cc.stdvec_init %[[VAL_19]], %[[VAL_18]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i8>
-// CHECK:           call @__nvqpp_internal_tostring(%[[VAL_20]], %[[VAL_16]]) : (!cc.stdvec<i8>, i64) -> ()
-// CHECK:           %[[VAL_21:.*]] = cc.cast %[[VAL_19]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_22:.*]] = cc.string_literal "array<i32 x " : !cc.ptr<!cc.array<i8 x 13>>
-// CHECK:           %[[VAL_23:.*]] = cc.cast %[[VAL_22]] : (!cc.ptr<!cc.array<i8 x 13>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_24:.*]] = cc.string_literal ">" : !cc.ptr<!cc.array<i8 x 2>>
-// CHECK:           %[[VAL_25:.*]] = cc.cast %[[VAL_24]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_26:.*]] = arith.addi %[[VAL_17]], %[[VAL_3]] : i64
-// CHECK:           %[[VAL_27:.*]] = cc.alloca i8{{\[}}%[[VAL_26]] : i64]
-// CHECK:           %[[VAL_28:.*]] = cc.cast %[[VAL_27]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_28]], %[[VAL_23]], %[[VAL_4]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:           %[[VAL_29:.*]] = cc.compute_ptr %[[VAL_27]][12] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_29]], %[[VAL_21]], %[[VAL_17]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:           %[[VAL_30:.*]] = arith.addi %[[VAL_17]], %[[VAL_4]] : i64
-// CHECK:           %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_27]]{{\[}}%[[VAL_30]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_31]], %[[VAL_25]], %[[VAL_6]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:           call @__quantum__rt__array_record_output(%[[VAL_16]], %[[VAL_28]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:           %[[VAL_32:.*]] = cc.stdvec_data %[[VAL_15]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
-// CHECK:           %[[VAL_33:.*]] = cc.loop while ((%[[VAL_34:.*]] = %[[VAL_7]]) -> (i64)) {
-// CHECK:             %[[VAL_35:.*]] = arith.cmpi slt, %[[VAL_34]], %[[VAL_16]] : i64
-// CHECK:             cc.condition %[[VAL_35]](%[[VAL_34]] : i64)
+// CHECK:           %[[VAL_8:.*]] = arith.constant 1 : i64
+// CHECK:           %[[VAL_9:.*]] = arith.constant 4 : i64
+// CHECK:           %[[VAL_10:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[VAL_0]], %[[VAL_10]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_11:.*]] = cc.load %[[VAL_10]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_12:.*]] = cc.alloca i32{{\[}}%[[VAL_11]] : i64]
+// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_12]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_14:.*]] = arith.muli %[[VAL_11]], %[[VAL_9]] : i64
+// CHECK:           %[[VAL_15:.*]] = call @malloc(%[[VAL_14]]) : (i64) -> !cc.ptr<i8>
+// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_15]], %[[VAL_13]], %[[VAL_14]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           %[[VAL_16:.*]] = cc.stdvec_init %[[VAL_15]], %[[VAL_11]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<i32>
+// CHECK:           %[[VAL_17:.*]] = cc.stdvec_size %[[VAL_16]] : (!cc.stdvec<i32>) -> i64
+// CHECK:           %[[VAL_18:.*]] = call @__nvqpp_internal_number_of_digits(%[[VAL_17]]) : (i64) -> i64
+// CHECK:           %[[VAL_19:.*]] = cc.alloca i8{{\[}}%[[VAL_2]] : i64]
+// CHECK:           call @__nvqpp_internal_tostring(%[[VAL_19]], %[[VAL_17]]) : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> ()
+// CHECK:           %[[VAL_20:.*]] = cc.cast %[[VAL_19]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_21:.*]] = cc.string_literal "array<i32 x " : !cc.ptr<!cc.array<i8 x 13>>
+// CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.array<i8 x 13>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_23:.*]] = cc.string_literal ">" : !cc.ptr<!cc.array<i8 x 2>>
+// CHECK:           %[[VAL_24:.*]] = cc.cast %[[VAL_23]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_25:.*]] = arith.addi %[[VAL_18]], %[[VAL_3]] : i64
+// CHECK:           %[[VAL_26:.*]] = cc.alloca i8{{\[}}%[[VAL_25]] : i64]
+// CHECK:           %[[VAL_27:.*]] = cc.cast %[[VAL_26]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_27]], %[[VAL_22]], %[[VAL_4]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           %[[VAL_28:.*]] = cc.compute_ptr %[[VAL_26]][12] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_28]], %[[VAL_20]], %[[VAL_18]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           %[[VAL_29:.*]] = arith.addi %[[VAL_18]], %[[VAL_4]] : i64
+// CHECK:           %[[VAL_30:.*]] = cc.compute_ptr %[[VAL_26]]{{\[}}%[[VAL_29]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_30]], %[[VAL_24]], %[[VAL_6]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           call @__quantum__rt__array_record_output(%[[VAL_17]], %[[VAL_27]]) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_31:.*]] = cc.stdvec_data %[[VAL_16]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK:           %[[VAL_32:.*]] = cc.loop while ((%[[VAL_33:.*]] = %[[VAL_7]]) -> (i64)) {
+// CHECK:             %[[VAL_34:.*]] = arith.cmpi slt, %[[VAL_33]], %[[VAL_17]] : i64
+// CHECK:             cc.condition %[[VAL_34]](%[[VAL_33]] : i64)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_36:.*]]: i64):
-// CHECK:             %[[VAL_37:.*]] = cc.compute_ptr %[[VAL_32]]{{\[}}%[[VAL_36]]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
-// CHECK:             %[[VAL_38:.*]] = cc.load %[[VAL_37]] : !cc.ptr<i32>
-// CHECK:             %[[VAL_39:.*]] = func.call @__nvqpp_internal_number_of_digits(%[[VAL_36]]) : (i64) -> i64
-// CHECK:             %[[VAL_40:.*]] = arith.addi %[[VAL_39]], %[[VAL_2]] : i64
-// CHECK:             %[[VAL_41:.*]] = cc.alloca i8{{\[}}%[[VAL_40]] : i64]
-// CHECK:             %[[VAL_42:.*]] = cc.stdvec_init %[[VAL_41]], %[[VAL_40]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i8>
-// CHECK:             func.call @__nvqpp_internal_tostring(%[[VAL_42]], %[[VAL_36]]) : (!cc.stdvec<i8>, i64) -> ()
-// CHECK:             %[[VAL_43:.*]] = cc.cast %[[VAL_41]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:             %[[VAL_44:.*]] = cc.string_literal "[" : !cc.ptr<!cc.array<i8 x 2>>
-// CHECK:             %[[VAL_45:.*]] = cc.cast %[[VAL_44]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// CHECK:             %[[VAL_46:.*]] = cc.string_literal "]" : !cc.ptr<!cc.array<i8 x 2>>
-// CHECK:             %[[VAL_47:.*]] = cc.cast %[[VAL_46]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// CHECK:             %[[VAL_48:.*]] = arith.addi %[[VAL_39]], %[[VAL_1]] : i64
-// CHECK:             %[[VAL_49:.*]] = cc.alloca i8{{\[}}%[[VAL_48]] : i64]
-// CHECK:             %[[VAL_50:.*]] = cc.cast %[[VAL_49]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:             func.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_50]], %[[VAL_45]], %[[VAL_2]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:             %[[VAL_51:.*]] = cc.compute_ptr %[[VAL_49]][1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-// CHECK:             func.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_51]], %[[VAL_43]], %[[VAL_39]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:             %[[VAL_52:.*]] = arith.addi %[[VAL_39]], %[[VAL_2]] : i64
-// CHECK:             %[[VAL_53:.*]] = cc.compute_ptr %[[VAL_49]]{{\[}}%[[VAL_52]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:             func.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_53]], %[[VAL_47]], %[[VAL_6]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
-// CHECK:             %[[VAL_54:.*]] = cc.cast signed %[[VAL_38]] : (i32) -> i64
-// CHECK:             func.call @__quantum__rt__int_record_output(%[[VAL_54]], %[[VAL_50]]) : (i64, !cc.ptr<i8>) -> ()
-// CHECK:             cc.continue %[[VAL_36]] : i64
+// CHECK:           ^bb0(%[[VAL_35:.*]]: i64):
+// CHECK:             %[[VAL_36:.*]] = cc.compute_ptr %[[VAL_31]]{{\[}}%[[VAL_35]]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
+// CHECK:             %[[VAL_37:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
+// CHECK:             %[[VAL_38:.*]] = func.call @__nvqpp_internal_number_of_digits(%[[VAL_35]]) : (i64) -> i64
+// CHECK:             %[[VAL_39:.*]] = cc.alloca i8{{\[}}%[[VAL_2]] : i64]
+// CHECK:             func.call @__nvqpp_internal_tostring(%[[VAL_39]], %[[VAL_35]]) : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> ()
+// CHECK:             %[[VAL_40:.*]] = cc.cast %[[VAL_39]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:             %[[VAL_41:.*]] = cc.string_literal "[" : !cc.ptr<!cc.array<i8 x 2>>
+// CHECK:             %[[VAL_42:.*]] = cc.cast %[[VAL_41]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:             %[[VAL_43:.*]] = cc.string_literal "]" : !cc.ptr<!cc.array<i8 x 2>>
+// CHECK:             %[[VAL_44:.*]] = cc.cast %[[VAL_43]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CHECK:             %[[VAL_45:.*]] = arith.addi %[[VAL_38]], %[[VAL_1]] : i64
+// CHECK:             %[[VAL_46:.*]] = cc.alloca i8{{\[}}%[[VAL_45]] : i64]
+// CHECK:             %[[VAL_47:.*]] = cc.cast %[[VAL_46]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:             func.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_47]], %[[VAL_42]], %[[VAL_8]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:             %[[VAL_48:.*]] = cc.compute_ptr %[[VAL_46]][1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:             func.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_48]], %[[VAL_40]], %[[VAL_38]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:             %[[VAL_49:.*]] = arith.addi %[[VAL_38]], %[[VAL_8]] : i64
+// CHECK:             %[[VAL_50:.*]] = cc.compute_ptr %[[VAL_46]]{{\[}}%[[VAL_49]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             func.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_50]], %[[VAL_44]], %[[VAL_6]], %[[VAL_5]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:             %[[VAL_51:.*]] = cc.cast signed %[[VAL_37]] : (i32) -> i64
+// CHECK:             func.call @__quantum__rt__int_record_output(%[[VAL_51]], %[[VAL_47]]) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:             cc.continue %[[VAL_35]] : i64
 // CHECK:           } step {
-// CHECK:           ^bb0(%[[VAL_55:.*]]: i64):
-// CHECK:             %[[VAL_56:.*]] = arith.addi %[[VAL_55]], %[[VAL_2]] : i64
-// CHECK:             cc.continue %[[VAL_56]] : i64
+// CHECK:           ^bb0(%[[VAL_52:.*]]: i64):
+// CHECK:             %[[VAL_53:.*]] = arith.addi %[[VAL_52]], %[[VAL_8]] : i64
+// CHECK:             cc.continue %[[VAL_53]] : i64
 // CHECK:           } {invariant}
 // CHECK:           return
 // CHECK:         }

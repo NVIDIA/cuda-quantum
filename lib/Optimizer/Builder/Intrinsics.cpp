@@ -371,132 +371,86 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::stdvecBoolCtorFromInitList, {}, R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
+    // Compute the number of digits in base 10 of a non-negative i64 value.
+    // argument 0: the unsigned value
     {"__nvqpp_internal_number_of_digits", {}, R"#(
   func.func private @__nvqpp_internal_number_of_digits(%arg0: i64) -> i64 {
-    %c10_i64 = arith.constant 10 : i64 
-    %c0_i64 = arith.constant 0 : i64 
-    %c1_i64 = arith.constant 1 : i64 
-    %0 = cc.alloca i64 
-    cc.store %arg0, %0 : !cc.ptr<i64> 
-    %1 = cc.load %0 : !cc.ptr<i64> 
-    %2 = cc.alloca i64 
-    cc.store %c0_i64, %2 : !cc.ptr<i64> 
-    %3 = arith.cmpi eq, %1, %c0_i64 : i64 
-    cc.if(%3) {
-      cc.store %c1_i64, %2 : !cc.ptr<i64> 
-    } 
-    cc.loop while {
-      %5 = cc.load %0 : !cc.ptr<i64> 
-      %6 = arith.cmpi sgt, %5, %c0_i64 : i64 
-      cc.condition %6 
-    } do {
-      %5 = cc.load %0 : !cc.ptr<i64> 
-      %6 = arith.divsi %5, %c10_i64 : i64 
-      cc.store %6, %0 : !cc.ptr<i64> 
-      %7 = cc.load %2 : !cc.ptr<i64> 
-      %8 = arith.addi %7, %c1_i64 : i64 
-      cc.store %8, %2 : !cc.ptr<i64> 
-      cc.continue 
-    } 
-    %4 = cc.load %2 : !cc.ptr<i64> 
-    return %4 : i64 
+    %c10_i64 = arith.constant 10 : i64
+    %c1_i64 = arith.constant 1 : i64
+    cf.br ^bb1(%arg0, %c1_i64 : i64, i64)
+  ^bb1(%0: i64, %1: i64):  // 2 preds: ^bb0, ^bb2
+    %2 = arith.cmpi uge, %0, %c10_i64 : i64
+    cf.cond_br %2, ^bb2(%0, %1 : i64, i64), ^bb3(%1 : i64)
+  ^bb2(%3: i64, %4: i64):  // pred: ^bb1
+    %5 = arith.divui %3, %c10_i64 : i64
+    %6 = arith.addi %4, %c1_i64 : i64
+    cf.br ^bb1(%5, %6 : i64, i64)
+  ^bb3(%7: i64):  // pred: ^bb1
+    return %7 : i64
   } 
   )#"},
 
-    // __nvqpp_internal_tostring
+    // Convert a non-negative i64 value to a string base 10 for printing.
+    // argument 0: buffer from cc.alloca !cc.array<i8 x 32>
+    // argument 1: the unsigned value
     {"__nvqpp_internal_tostring", {}, R"#(
-  func.func private @__nvqpp_internal_tostring(%buf: !cc.stdvec<i8>, %val: i64) {
-    %c48_i64 = arith.constant 48 : i64 
-    %c48_i32 = arith.constant 48 : i32 
-    %c0_i64 = arith.constant 0 : i64 
-    %c10_i64 = arith.constant 10 : i64 
-    %c1_i64 = arith.constant 1 : i64 
-    %c48_i8 = arith.constant 48 : i8 
-    %false = arith.constant false 
-    %c0_i8 = arith.constant 0 : i8 
-    %0 = cc.alloca i64 
-    cc.store %val, %0 : !cc.ptr<i64> 
-    %1 = cc.alloca i64 
-    cc.store %c10_i64, %1 : !cc.ptr<i64> 
-    %2 = cc.stdvec_size %buf : (!cc.stdvec<i8>) -> i64 
-    %3 = cc.alloca i64 
-    cc.store %2, %3 : !cc.ptr<i64> 
-    %4 = cc.load %3 : !cc.ptr<i64> 
-    %5 = arith.subi %4, %c1_i64 : i64 
-    %6 = cc.alloca i64 
-    cc.store %5, %6 : !cc.ptr<i64> 
-    %7 = cc.load %6 : !cc.ptr<i64> 
-    %8 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>> 
-    %9 = cc.compute_ptr %8[%7] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8> 
-    cc.store %c0_i8, %9 : !cc.ptr<i8> 
-    %10 = cc.load %6 : !cc.ptr<i64> 
-    %11 = arith.subi %10, %c1_i64 : i64 
-    cc.store %11, %6 : !cc.ptr<i64> 
-    cc.loop while {
-      %18 = cc.load %0 : !cc.ptr<i64> 
-      %19 = cc.load %1 : !cc.ptr<i64> 
-      %20 = arith.cmpi sge, %18, %19 : i64 
-      %21 = arith.cmpi eq, %20, %false : i1 
-      %22 = cc.if(%21) -> i1 {
-        cc.continue %false : i1 
-      } else {
-        %23 = cc.load %6 : !cc.ptr<i64> 
-        %24 = arith.cmpi sge, %23, %c0_i64 : i64 
-        cc.continue %24 : i1 
-      } 
-      cc.condition %22 
-    } do {
-      cc.scope {
-        %18 = cc.load %0 : !cc.ptr<i64> 
-        %19 = cc.load %1 : !cc.ptr<i64> 
-        %20 = arith.remsi %18, %19 : i64 
-        %21 = cc.cast %20 : (i64) -> i32 
-        %22 = cc.alloca i32 
-        cc.store %21, %22 : !cc.ptr<i32> 
-        %23 = cc.load %1 : !cc.ptr<i64> 
-        %24 = cc.load %0 : !cc.ptr<i64> 
-        %25 = arith.divsi %24, %23 : i64 
-        cc.store %25, %0 : !cc.ptr<i64> 
-        %26 = cc.load %6 : !cc.ptr<i64> 
-        %27 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>> 
-        %28 = cc.compute_ptr %27[%26] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8> 
-        %29 = cc.load %22 : !cc.ptr<i32> 
-        %30 = arith.addi %29, %c48_i32 : i32 
-        %31 = cc.cast %30 : (i32) -> i8 
-        cc.store %31, %28 : !cc.ptr<i8> 
-        %32 = cc.load %6 : !cc.ptr<i64> 
-        %33 = arith.subi %32, %c1_i64 : i64 
-        cc.store %33, %6 : !cc.ptr<i64> 
-      }
-      cc.continue
-    }
-    %12 = cc.load %6 : !cc.ptr<i64>
-    %13 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-    %14 = cc.compute_ptr %13[%12] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-    %15 = cc.load %0 : !cc.ptr<i64>
-    %16 = arith.addi %15, %c48_i64 : i64
-    %17 = cc.cast %16 : (i64) -> i8
-    cc.store %17, %14 : !cc.ptr<i8>
-    cc.scope {
-      %18 = cc.alloca i64
-      cc.store %c0_i64, %18 : !cc.ptr<i64>
-      cc.loop while {
-        %19 = cc.load %18 : !cc.ptr<i64>
-        %20 = cc.load %6 : !cc.ptr<i64>
-        %21 = arith.cmpi slt, %19, %20 : i64
-        cc.condition %21
-      } do {
-        %19 = cc.load %18 : !cc.ptr<i64>
-        %20 = cc.stdvec_data %buf : (!cc.stdvec<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
-        %21 = cc.compute_ptr %20[%19] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-        cc.store %c48_i8, %21 : !cc.ptr<i8>
-        cc.continue
-      } step {
-        %19 = cc.load %18 : !cc.ptr<i64>
-        %20 = arith.addi %19, %c1_i64 : i64
-        cc.store %20, %18 : !cc.ptr<i64>
-      }
-    }
+  func.func @__nvqpp_internal_tostring(%arg0: !cc.ptr<!cc.array<i8 x ?>>, %arg1: i64) {
+    %c48_i64 = arith.constant 48 : i64
+    %c0_i8 = arith.constant 0 : i8
+    %c10_i64 = arith.constant 10 : i64
+    %c1_i32 = arith.constant 1 : i32
+    %c31_i32 = arith.constant 31 : i32
+    %false = arith.constant false
+    %c0_i64 = arith.constant 0 : i64
+    %c48_i8 = arith.constant 48 : i8
+    %c0_i32 = arith.constant 0 : i32
+    %0 = cc.cast %arg0 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %c48_i8, %0 : !cc.ptr<i8>
+    cf.br ^bb1(%c0_i32, %arg1 : i32, i64)
+  ^bb1(%1: i32, %2: i64):  // 2 preds: ^bb0, ^bb4
+    %3 = arith.cmpi ne, %2, %c0_i64 : i64
+    %4 = arith.cmpi eq, %3, %false : i1
+    cf.cond_br %4, ^bb3(%false : i1), ^bb2
+  ^bb2:  // pred: ^bb1
+    %5 = arith.cmpi slt, %1, %c31_i32 : i32
+    cf.br ^bb3(%5 : i1)
+  ^bb3(%6: i1):  // 2 preds: ^bb1, ^bb2
+    cf.cond_br %6, ^bb4(%1, %2 : i32, i64), ^bb5(%1 : i32)
+  ^bb4(%7: i32, %8: i64):  // pred: ^bb3
+    %9 = arith.addi %7, %c1_i32 : i32
+    %10 = cc.compute_ptr %arg0[%7] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    %11 = arith.remui %8, %c10_i64 : i64
+    %12 = arith.addi %11, %c48_i64 : i64
+    %13 = cc.cast %12 : (i64) -> i8
+    cc.store %13, %10 : !cc.ptr<i8>
+    %14 = arith.divui %8, %c10_i64 : i64
+    cf.br ^bb1(%9, %14 : i32, i64)
+  ^bb5(%15: i32):  // pred: ^bb3
+    %16 = arith.cmpi eq, %15, %c0_i32 : i32
+    cf.cond_br %16, ^bb6, ^bb7(%15 : i32)
+  ^bb6:  // pred: ^bb5
+    %17 = cc.compute_ptr %arg0[1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %c0_i8, %17 : !cc.ptr<i8>
+    return
+  ^bb7(%18: i32):  // pred: ^bb5
+    %19 = cc.compute_ptr %arg0[%18] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    cc.store %c0_i8, %19 : !cc.ptr<i8>
+    %20 = arith.subi %18, %c1_i32 : i32
+    cf.br ^bb8(%20, %c0_i32 : i32, i32)
+  ^bb8(%21: i32, %22: i32):  // 2 preds: ^bb7, ^bb9
+    %23 = arith.cmpi slt, %22, %21 : i32
+    cf.cond_br %23, ^bb9(%21, %22 : i32, i32), ^bb10
+  ^bb9(%24: i32, %25: i32):  // pred: ^bb8
+    %26 = cc.compute_ptr %arg0[%25] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    %27 = cc.load %26 : !cc.ptr<i8>
+    %28 = cc.compute_ptr %arg0[%24] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    %29 = cc.load %28 : !cc.ptr<i8>
+    cc.store %29, %26 : !cc.ptr<i8>
+    %30 = arith.subi %24, %c1_i32 : i32
+    cc.store %27, %28 : !cc.ptr<i8>
+    %31 = arith.addi %25, %c1_i32 : i32
+    cf.br ^bb8(%30, %31 : i32, i32)
+  ^bb10:  // pred: ^bb8
     return
   }
   )#"},

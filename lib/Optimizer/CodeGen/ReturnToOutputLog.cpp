@@ -275,22 +275,12 @@ public:
                               loc, i64Ty, "__nvqpp_internal_number_of_digits",
                               ArrayRef<Value>{val})
                           .getResult(0);
-    Value valStrBuf = [&]() {
-      // Convert integer value to string
-      auto strSize = rewriter.create<arith::AddIOp>(
-          loc, numDigits,
-          rewriter.create<arith::ConstantIntOp>(loc, 1,
-                                                64)); // Add null terminator
-      auto buffer = rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, strSize);
-      auto stdvecTy = cudaq::cc::StdvecType::get(i8Ty);
-      auto stringCharVec = rewriter.create<cudaq::cc::StdvecInitOp>(
-          loc, stdvecTy, buffer, strSize);
-      rewriter.create<func::CallOp>(loc, TypeRange{},
-                                    "__nvqpp_internal_tostring",
-                                    ArrayRef<Value>{stringCharVec, val});
-      return rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
-    }();
-
+    // Allocate a <i8 x 32> buffer
+    auto bufferSize = rewriter.create<arith::ConstantIntOp>(loc, 32, 64);
+    auto buffer = rewriter.create<cudaq::cc::AllocaOp>(loc, i8Ty, bufferSize);
+    rewriter.create<func::CallOp>(loc, TypeRange{}, "__nvqpp_internal_tostring",
+                                  ArrayRef<Value>{buffer, val});
+    auto valStrBuf = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
     Value arrayPrefix = makeLabel(loc, rewriter, prefix);
     Value arrayPostfix = makeLabel(loc, rewriter, postFix);
     const int preFixLen = prefix.size();
