@@ -69,8 +69,10 @@ struct ResourceCountPreprocessPass
     if (auto loop = dyn_cast<cudaq::cc::LoopOp>(op)) {
       cudaq::opt::LoopComponents comp;
       if (cudaq::opt::isaInvariantLoop(loop, true, false, &comp)) {
-        auto iterations = comp.getIterationsConstant().value();
-
+        auto loopSize = comp.getIterationsConstant();
+        if (!loopSize.has_value())
+          return;
+        auto iterations = loopSize.value();
         for (auto &b : loop.getBodyRegion().getBlocks())
           for (auto &op : b.getOperations())
             preprocessOp(&op, to_add * iterations);
