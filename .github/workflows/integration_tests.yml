@@ -403,64 +403,136 @@ jobs:
           case "${{ matrix.provider }}" in
             anyon)
               echo "### Setting up Anyon account" >> $GITHUB_STEP_SUMMARY
-              curl -X POST --user "${{ secrets.ANYON_USERNAME }}:${{ secrets.ANYON_PASSWORD }}" \
-                -H "Content-Type: application/json" https://api.anyon.cloud:5000/login > credentials.json
-              id_token=`cat credentials.json | jq -r '."id_token"'`
-              refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
-              echo "key: $id_token" > ~/.anyon_config
-              echo "refresh: $refresh_token" >> ~/.anyon_config
+              echo "::add-mask::${{ secrets.ANYON_USERNAME }}"
+              echo "::add-mask::${{ secrets.ANYON_PASSWORD }}"
+              TEMP_NETRC=$(mktemp)
+              chmod 600 "$TEMP_NETRC"
+              cat > "$TEMP_NETRC" << EOF
+              machine api.anyon.cloud
+              login ${{ secrets.ANYON_USERNAME }}
+              password ${{ secrets.ANYON_PASSWORD }}
+              EOF
+              response=$(curl -sS --netrc-file "$TEMP_NETRC" -X POST \
+                -H "Content-Type: application/json" \
+                https://api.anyon.cloud:5000/login 2>&1) || {
+                echo "::error::Failed to authenticate with Anyon"
+                rm -f "$TEMP_NETRC"
+                exit 1
+              }              
+              rm -f "$TEMP_NETRC"              
+              read -r id_token refresh_token < <(echo "$response" | jq -r '.id_token, .refresh_token')
+              echo "::add-mask::$id_token"
+              echo "::add-mask::$refresh_token"
+              printf "key: %s\nrefresh: %s\n" "$id_token" "$refresh_token" > "$HOME/.anyon_config"
+              chmod 600 "$HOME/.anyon_config"
               ;;
             fermioniq)
               echo "### Setting up Fermioniq account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}"
+              echo "::add-mask::${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}"
               echo "FERMIONIQ_ACCESS_TOKEN_ID=${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}" >> $GITHUB_ENV
               echo "FERMIONIQ_ACCESS_TOKEN_SECRET=${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
               echo "FERMIONIQ_PROJECT_ID=c86e2cb8-d776-41ae-8240-d3d55e18b7c3" >> $GITHUB_ENV
               ;;
             infleqtion)
               echo "### Setting up Infleqtion account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.SUPERSTAQ_API_KEY }}"
               echo "SUPERSTAQ_API_KEY=${{ secrets.SUPERSTAQ_API_KEY }}" >> $GITHUB_ENV
               ;;
             ionq)
               echo "### Setting up IonQ account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.IONQ_API_KEY }}"
               echo "IONQ_API_KEY=${{ secrets.IONQ_API_KEY }}" >> $GITHUB_ENV
               ;;
             iqm)
               echo "### Setting up IQM account" >> $GITHUB_STEP_SUMMARY
-              echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
-              echo "IQM_TOKENS_FILE=.resonance.api-token.json" >> $GITHUB_ENV
+              echo "::add-mask::${{ secrets.IQM_TOKEN }}"
+              IQM_TOKEN_FILE="$(mktemp --suffix=.json)"
+              printf '{ "access_token": "%s" }' "${{ secrets.IQM_TOKEN }}" > "$IQM_TOKEN_FILE"
+              chmod 600 "$IQM_TOKEN_FILE"
+              echo "IQM_TOKENS_FILE=$IQM_TOKEN_FILE" >> "$GITHUB_ENV"
               echo "IQM_SERVER_URL=https://cocos.resonance.meetiqm.com/pyrite:test" >> $GITHUB_ENV
               ;;
             oqc)
               echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
+              echo "::add-mask::${{ secrets.OQC_PASSWORD }}"
               echo "OQC_EMAIL=${{ secrets.BACKEND_LOGIN_EMAIL }}" >> $GITHUB_ENV
               echo "OQC_PASSWORD=${{ secrets.OQC_PASSWORD }}" >> $GITHUB_ENV
               ;;
             orca)
               echo "### Setting up ORCA account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.ORCA_ACCESS_URL }}"
               echo "ORCA_ACCESS_URL=${{ secrets.ORCA_ACCESS_URL }}" >> $GITHUB_ENV
               ;;
           pasqal)
-            echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
-            python3 -m pip install pasqal-cloud
-            PASQAL_AUTH_TOKEN=$(python3 -c "from pasqal_cloud import SDK; import sys; sdk = SDK(username='${{ secrets.PASQAL_USERNAME }}', password='${{ secrets.PASQAL_PASSWORD }}'); sys.stdout.write(str(sdk.user_token()))")
-            echo "PASQAL_USERNAME=${{ secrets.PASQAL_USERNAME }}" >> $GITHUB_ENV
-            echo "PASQAL_PASSWORD=${{ secrets.PASQAL_PASSWORD }}" >> $GITHUB_ENV
-            echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
-            echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
-            echo "PASQAL_AUTH_TOKEN=$PASQAL_AUTH_TOKEN" >> $GITHUB_ENV
-            ;;
+              echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
+              python3 -m pip install pasqal-cloud
+              echo "::add-mask::${{ secrets.PASQAL_USERNAME }}"
+              echo "::add-mask::${{ secrets.PASQAL_PASSWORD }}"
+              echo "::add-mask::${{ secrets.PASQAL_PROJECT_ID }}"
+              TEMP_SCRIPT=$(mktemp --suffix=.py)
+              chmod 600 "$TEMP_SCRIPT"
+              cat > "$TEMP_SCRIPT" << 'PYEOF'
+              import os
+              import sys
+              from pasqal_cloud import SDK
+              try:
+                  sdk = SDK(username=os.environ['PASQAL_USER'], password=os.environ['PASQAL_PASS'])
+                  sys.stdout.write(str(sdk.user_token()))
+              except Exception as e:
+                  sys.stderr.write("Authentication failed\n")
+                  sys.exit(1)
+              PYEOF            
+              PASQAL_AUTH_TOKEN=$(PASQAL_USER="${{ secrets.PASQAL_USERNAME }}" \
+                                  PASQAL_PASS="${{ secrets.PASQAL_PASSWORD }}" \
+                                  python3 "$TEMP_SCRIPT" 2>/dev/null) || {
+                echo "::error::Failed to authenticate with Pasqal"
+                rm -f "$TEMP_SCRIPT"
+                exit 1
+              }            
+              rm -f "$TEMP_SCRIPT"            
+              echo "::add-mask::$PASQAL_AUTH_TOKEN"
+              echo "PASQAL_AUTH_TOKEN=$PASQAL_AUTH_TOKEN" >> $GITHUB_ENV
+              echo "PASQAL_USERNAME=${{ secrets.PASQAL_USERNAME }}" >> $GITHUB_ENV
+              echo "PASQAL_PASSWORD=${{ secrets.PASQAL_PASSWORD }}" >> $GITHUB_ENV
+              echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
+              ;;
             qci)
               echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.QCI_AUTH_TOKEN }}"
               echo "QCI_AUTH_TOKEN=${{ secrets.QCI_AUTH_TOKEN }}" >> $GITHUB_ENV
               ;;
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
-              curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login \
+              echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
+              echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"              
+              TEMP_JSON=$(mktemp)
+              chmod 600 "$TEMP_JSON"
+              cat > "$TEMP_JSON" << 'EOF'
+              {"email":"EMAIL_PLACEHOLDER","password":"PASSWORD_PLACEHOLDER"}
+              EOF              
+              sed -i "s|EMAIL_PLACEHOLDER|${{ secrets.BACKEND_LOGIN_EMAIL }}|g" "$TEMP_JSON"
+              sed -i "s|PASSWORD_PLACEHOLDER|${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}|g" "$TEMP_JSON"
+              HTTP_CODE=$(curl -sS -w "%{http_code}" -o "$HOME/.quantinuum_cookies.txt" \
+                -c "$HOME/.quantinuum_cookies.txt" \
+                -X POST https://nexus.quantinuum.com/auth/login \
                 -H "Content-Type: application/json" \
-                -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
-              awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' \
-                ~/.quantinuum_cookies.txt > ~/.quantinuum_config
-              rm ~/.quantinuum_cookies.txt
+                -d @"$TEMP_JSON" 2>&1)
+              rm -f "$TEMP_JSON"
+              if [ "$HTTP_CODE" -ne 200 ]; then
+                echo "::error::Failed to authenticate with Quantinuum (HTTP $HTTP_CODE)"
+                rm -f "$HOME/.quantinuum_cookies.txt"
+                exit 1
+              fi              
+              awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {
+                system("echo ::add-mask::" key);
+                system("echo ::add-mask::" refresh);
+                print "key: " key "\nrefresh: " refresh
+              }' "$HOME/.quantinuum_cookies.txt" > "$HOME/.quantinuum_config"
+              chmod 600 "$HOME/.quantinuum_config"
+              rm -f "$HOME/.quantinuum_cookies.txt"
               ;;
           esac
         shell: bash
@@ -759,6 +831,8 @@ jobs:
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
             exit 1
           fi
+          # Clean up
+          rm -f "$HOME/.anyon_config" "$HOME/.quantinuum_config"
         shell: bash
 
   nvqc_integration_docker_test:
@@ -784,14 +858,16 @@ jobs:
 
     steps:
       - name: Skip NVQC Docker tests (temporary)
+        id: skip_check
         run: |
           echo "### Submit to NVQC" >> $GITHUB_STEP_SUMMARY
           echo ":warning: NVQC Docker integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
           echo "::warning::NVQC Docker integration tests are temporarily skipped"
-          exit 0
+          echo "skipped=true" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Get code
+        if: steps.skip_check.outputs.skipped != 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
@@ -952,14 +1028,16 @@ jobs:
 
     steps:
       - name: Skip NVQC wheel tests (temporary)
+        id: skip_check
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           echo ":warning: NVQC Python wheel integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
           echo "::warning::NVQC Python wheel integration tests are temporarily skipped"
-          exit 0
+          echo "skipped=true" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Get code
+        if: steps.skip_check.outputs.skipped != 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
