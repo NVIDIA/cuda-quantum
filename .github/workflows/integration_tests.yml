@@ -332,7 +332,7 @@ jobs:
       fail-fast: false
       matrix:
         provider: ${{ fromJson(needs.provider_matrix_setup.outputs.providers) }}
-    
+
     # Must have environment protection for the secrets
     environment: backend-validation
     container:
@@ -341,7 +341,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ github.token }}
-    
+
     steps:
       - name: Get code
         uses: actions/checkout@v4
@@ -356,7 +356,7 @@ jobs:
             if [ -e "${{ inputs.single_test_name }}" ]; then
               echo "testlist=${{ inputs.single_test_name }}" >> $GITHUB_OUTPUT
             else
-              echo "::error::File ${{ inputs.single_test_name}} not found"
+              echo "::error::File ${{ inputs.single_test_name }} not found"
               exit 1
             fi
           else
@@ -407,19 +407,15 @@ jobs:
               echo "::add-mask::${{ secrets.ANYON_PASSWORD }}"
               TEMP_NETRC=$(mktemp)
               chmod 600 "$TEMP_NETRC"
-              cat > "$TEMP_NETRC" << EOF
-              machine api.anyon.cloud
-              login ${{ secrets.ANYON_USERNAME }}
-              password ${{ secrets.ANYON_PASSWORD }}
-              EOF
+              printf "machine api.anyon.cloud\nlogin %s\npassword %s\n" "${{ secrets.ANYON_USERNAME }}" "${{ secrets.ANYON_PASSWORD }}" > "$TEMP_NETRC"
               response=$(curl -sS --netrc-file "$TEMP_NETRC" -X POST \
                 -H "Content-Type: application/json" \
                 https://api.anyon.cloud:5000/login 2>&1) || {
                 echo "::error::Failed to authenticate with Anyon"
                 rm -f "$TEMP_NETRC"
                 exit 1
-              }              
-              rm -f "$TEMP_NETRC"              
+              }
+              rm -f "$TEMP_NETRC"
               read -r id_token refresh_token < <(echo "$response" | jq -r '.id_token, .refresh_token')
               echo "::add-mask::$id_token"
               echo "::add-mask::$refresh_token"
@@ -455,8 +451,10 @@ jobs:
               ;;
             oqc)
               echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.OQC_URL }}"
               echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
               echo "::add-mask::${{ secrets.OQC_PASSWORD }}"
+              echo "OQC_URL=${{ secrets.OQC_URL }}" >> $GITHUB_ENV
               echo "OQC_EMAIL=${{ secrets.BACKEND_LOGIN_EMAIL }}" >> $GITHUB_ENV
               echo "OQC_PASSWORD=${{ secrets.OQC_PASSWORD }}" >> $GITHUB_ENV
               ;;
@@ -465,7 +463,7 @@ jobs:
               echo "::add-mask::${{ secrets.ORCA_ACCESS_URL }}"
               echo "ORCA_ACCESS_URL=${{ secrets.ORCA_ACCESS_URL }}" >> $GITHUB_ENV
               ;;
-          pasqal)
+            pasqal)
               echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
               python3 -m pip install pasqal-cloud
               echo "::add-mask::${{ secrets.PASQAL_USERNAME }}"
@@ -473,25 +471,24 @@ jobs:
               echo "::add-mask::${{ secrets.PASQAL_PROJECT_ID }}"
               TEMP_SCRIPT=$(mktemp --suffix=.py)
               chmod 600 "$TEMP_SCRIPT"
-              cat > "$TEMP_SCRIPT" << 'PYEOF'
-              import os
-              import sys
-              from pasqal_cloud import SDK
-              try:
-                  sdk = SDK(username=os.environ['PASQAL_USER'], password=os.environ['PASQAL_PASS'])
-                  sys.stdout.write(str(sdk.user_token()))
-              except Exception as e:
-                  sys.stderr.write("Authentication failed\n")
-                  sys.exit(1)
-              PYEOF            
+              printf '%s\n' \
+                "import os" \
+                "import sys" \
+                "from pasqal_cloud import SDK" \
+                "try:" \
+                "    sdk = SDK(username=os.environ['PASQAL_USER'], password=os.environ['PASQAL_PASS'])" \
+                "    sys.stdout.write(str(sdk.user_token()))" \
+                "except Exception as e:" \
+                "    sys.stderr.write('Authentication failed\n')" \
+                "    sys.exit(1)" > "$TEMP_SCRIPT"
               PASQAL_AUTH_TOKEN=$(PASQAL_USER="${{ secrets.PASQAL_USERNAME }}" \
                                   PASQAL_PASS="${{ secrets.PASQAL_PASSWORD }}" \
                                   python3 "$TEMP_SCRIPT" 2>/dev/null) || {
                 echo "::error::Failed to authenticate with Pasqal"
                 rm -f "$TEMP_SCRIPT"
                 exit 1
-              }            
-              rm -f "$TEMP_SCRIPT"            
+              }
+              rm -f "$TEMP_SCRIPT"
               echo "::add-mask::$PASQAL_AUTH_TOKEN"
               echo "PASQAL_AUTH_TOKEN=$PASQAL_AUTH_TOKEN" >> $GITHUB_ENV
               echo "PASQAL_USERNAME=${{ secrets.PASQAL_USERNAME }}" >> $GITHUB_ENV
@@ -507,36 +504,15 @@ jobs:
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
-              echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"              
-              TEMP_JSON=$(mktemp)
-              chmod 600 "$TEMP_JSON"
-              cat > "$TEMP_JSON" << 'EOF'
-              {"email":"EMAIL_PLACEHOLDER","password":"PASSWORD_PLACEHOLDER"}
-              EOF              
-              sed -i "s|EMAIL_PLACEHOLDER|${{ secrets.BACKEND_LOGIN_EMAIL }}|g" "$TEMP_JSON"
-              sed -i "s|PASSWORD_PLACEHOLDER|${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}|g" "$TEMP_JSON"
-              HTTP_CODE=$(curl -sS -w "%{http_code}" -o "$HOME/.quantinuum_cookies.txt" \
-                -c "$HOME/.quantinuum_cookies.txt" \
-                -X POST https://nexus.quantinuum.com/auth/login \
-                -H "Content-Type: application/json" \
-                -d @"$TEMP_JSON" 2>&1)
-              rm -f "$TEMP_JSON"
-              if [ "$HTTP_CODE" -ne 200 ]; then
-                echo "::error::Failed to authenticate with Quantinuum (HTTP $HTTP_CODE)"
-                rm -f "$HOME/.quantinuum_cookies.txt"
-                exit 1
-              fi              
-              awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {
-                system("echo ::add-mask::" key);
-                system("echo ::add-mask::" refresh);
-                print "key: " key "\nrefresh: " refresh
-              }' "$HOME/.quantinuum_cookies.txt" > "$HOME/.quantinuum_config"
-              chmod 600 "$HOME/.quantinuum_config"
-              rm -f "$HOME/.quantinuum_cookies.txt"
+              echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"
+              curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
+              awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
+              chmod 600 ~/.quantinuum_config
+              rm ~/.quantinuum_cookies.txt
               ;;
           esac
         shell: bash
-      
+
       # Run the provider-specific tests
       - name: Run tests for ${{ matrix.provider }}
         run: |
@@ -545,7 +521,7 @@ jobs:
           set +e # Allow script to keep going through errors
           test_err_sum=0
           test_skip_sum=0
-          
+
           # Single loop handles both C++ and Python tests
           for filename in ${{ steps.gettests.outputs.testlist }}; do
             # Check if file exists
@@ -555,7 +531,7 @@ jobs:
               test_skip_sum=$((test_skip_sum+1))
               continue
             fi
-            
+
             case "${{ matrix.provider }}" in
               anyon)
                 nvq++ -v $filename -DSYNTAX_CHECK --target anyon --anyon-machine telegraph-8q
@@ -574,7 +550,7 @@ jobs:
                   test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
-                
+
               fermioniq)
                 if [[ "$filename" == *.cpp ]]; then
                   nvq++ --target fermioniq --fermioniq-project-id $FERMIONIQ_PROJECT_ID $filename
@@ -607,7 +583,7 @@ jobs:
                   test_skip_sum=$((test_skip_sum+1))
                 fi
                 ;;
-                
+
               infleqtion)
                 if [[ "$filename" == *.cpp ]]; then
                   nvq++ --target infleqtion $filename
@@ -640,7 +616,7 @@ jobs:
                   test_skip_sum=$((test_skip_sum+1))
                 fi
                 ;;
-                
+
               ionq)
                 nvq++ -v $filename --target ionq
                 test_status=$?
@@ -658,7 +634,7 @@ jobs:
                   test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
-                
+
               iqm)
                 nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
                 test_status=$?
@@ -676,7 +652,7 @@ jobs:
                   test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
-                
+
               oqc)
                 nvq++ -DSYNTAX_CHECK --target oqc $filename
                 test_status=$?
@@ -694,7 +670,7 @@ jobs:
                   test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
-                
+
               orca)
                 if [[ "$filename" == *.cpp ]]; then
                   nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
@@ -727,7 +703,7 @@ jobs:
                   test_skip_sum=$((test_skip_sum+1))
                 fi
                 ;;
-                
+
               pasqal)
                 if [[ "$filename" == *.cpp ]]; then
                   nvq++ --target pasqal --pasqal-machine $PASQAL_MACHINE_TARGET $filename
@@ -760,7 +736,7 @@ jobs:
                   test_skip_sum=$((test_skip_sum+1))
                 fi
                 ;;
-                
+
               qci)
                 nvq++ -v $filename --target qci
                 test_status=$?
@@ -778,7 +754,7 @@ jobs:
                   test_err_sum=$((test_err_sum+1))
                 fi
                 ;;
-                
+
               quantinuum)
                 if [[ "$filename" == *.cpp ]]; then
                   if [[ "$filename" == *"quantinuum_ng/"* ]]; then
@@ -820,12 +796,12 @@ jobs:
                 ;;
             esac
           done
-          
+
           # Print summary
           if [ $test_skip_sum -gt 0 ]; then
             echo "::warning::${test_skip_sum} tests skipped"
           fi
-          
+
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
