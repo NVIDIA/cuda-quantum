@@ -1610,6 +1610,45 @@ def test_run_with_callable():
             assert r == num_qubits
 
 
+def test_return_nested_lists():
+    """
+    Test returning nested lists from a kernel. 
+    This is currently unsupported and should raise an error.
+    """
+
+    @cudaq.kernel
+    def nested_list_kernel() -> list[list[int]]:
+        return [[1, 2], [3, 4]]
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(nested_list_kernel, shots_count=2)
+
+    assert "`cudaq.run` does not yet support returning nested `list`" in str(
+        e.value)
+
+
+def test_return_list_of_structs():
+    """
+    Test returning a list of dataclass structs from a kernel. 
+    This is currently unsupported and should raise an error.
+    """
+
+    @dataclass(slots=True)
+    class SomeStruct:
+        a: int
+        b: bool
+
+    @cudaq.kernel
+    def list_of_structs_kernel() -> list[SomeStruct]:
+        return [SomeStruct(1, True), SomeStruct(2, False)]
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(list_of_structs_kernel, shots_count=2)
+
+    assert "`cudaq.run` does not yet support returning `list` of `dataclass`" in str(
+        e.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
