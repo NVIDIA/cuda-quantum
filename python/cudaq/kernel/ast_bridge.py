@@ -514,6 +514,8 @@ class PyASTBridge(ast.NodeVisitor):
         
         if (cc.StructType.isinstance(ty)):
             operand = self.ifPointerThenLoad(operand)
+            if ty == operand.type:
+                return operand
             if cc.StructType.isinstance(operand.type):
                 expectedEleTys = cc.StructType.getTypes(ty)
                 currentEleTys = cc.StructType.getTypes(operand.type)
@@ -3957,11 +3959,7 @@ class PyASTBridge(ast.NodeVisitor):
         if self.valueStack.currentNumValues == 0:
             return
 
-        # FIXME: WHY TWO INDIRECTIONS? 
-        # IT SEEMS WE EITHER SHOULD HAVE AT MOST ONE INDIRECTION,
-        # OR WE CAN HAVE AN ARBITRARY NUMBER OF INDIRECTIONS
         result = self.ifPointerThenLoad(self.popValue())
-        result = self.ifPointerThenLoad(result)
         result = self.changeOperandToType(self.knownResultType,
                                           result,
                                           allowDemotion=True)
