@@ -1117,46 +1117,6 @@ def test_capture_vars():
                       atol=1e-3)
 
 
-def test_capture_disallow_change_variable():
-
-    n = 3
-
-    @cudaq.kernel
-    def kernel1() -> int:
-        # Shadow n, no error
-        n = 4
-        return n
-    
-    res = kernel1()
-    assert res == 4
-
-    @cudaq.kernel
-    def kernel2() -> int:
-        if True:
-            # Shadow n, no error
-            n = 4
-        # n is not defined in this scope, error
-        return n
-    
-    with pytest.raises(RuntimeError) as e:
-        kernel2()
-    assert "'n' is not defined" in repr(e)
-
-    @cudaq.kernel
-    def kernel3() -> int:
-        if True:
-            # causes the variable to be added to the symbol table
-            cudaq.dbg.ast.print_i64(n)
-            # Change n, emits an error
-            n += 4
-        return n
-
-    with pytest.raises(RuntimeError) as e:
-        kernel3()
-    assert "augment-assign target variable is not defined or cannot be assigned" in repr(e)
-    assert "(offending source -> n += 4)" in repr(e)
-
-
 def test_inner_function_capture():
 
     n = 3

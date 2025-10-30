@@ -382,7 +382,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         simple_tuple_int_float_assign(2, (-13, 42.3))
-    assert 'indexing into tuple or dataclass must not modify value' in str(
+    assert 'indexing into tuple or dataclass does not produce a modifiable value' in str(
         e.value)
 
 
@@ -447,12 +447,9 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        simple_tuple_int32_bool_no_args()
-    # Note: it may make sense to support that if/since we support
-    # the cast for the individual item types.
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
-        e.value)
+    result = simple_tuple_int32_bool_no_args()
+    # See https://github.com/NVIDIA/cuda-quantum/issues/3524
+    assert result == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
@@ -473,10 +470,6 @@ def test_return_tuple_int32_bool():
         return t
 
     result = simple_tuple_int32_bool(2, (np.int32(-13), True))
-    # Note: printing the kernel correctly shows the MLIR
-    # values return type as "tuple" {i32, i1}, but we don't
-    # actually create numpy values even when these are requested
-    # in the signature.
     # See https://github.com/NVIDIA/cuda-quantum/issues/3524
     assert result == (-13, True)
 

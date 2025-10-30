@@ -223,7 +223,6 @@ def test_list_of_tuple_updates():
             res[2 * idx] = l[idx][0]
             res[2 * idx + 1] = l[idx][1]
         return res
-        #return [0]
 
     print(test11())
     assert test11() == [3, 3, 4, 4, 1, 2]
@@ -232,7 +231,7 @@ def test_list_of_tuple_updates():
     def test2() -> list[int]:
         t = (1, 2)
         l = get_list_of_int_tuple(t, 2)
-        # Error: indexing into tuple or dataclass must not modify value
+        # Error: indexing into tuple or dataclass does not produce a modifiable value
         #l[1][0] = 4
         res = [0 for _ in range(6)]
         for idx in range(3):
@@ -305,14 +304,14 @@ def test_dataclass_update():
         t.angle = 5.
 
     @cudaq.kernel
-    def test1() -> MyTuple:
+    def kernel1() -> MyTuple:
         t = MyTuple(0., 0)
         update_tuple1(t)
         return t
     
-    out = cudaq.run(test1, shots_count=1)
+    out = cudaq.run(kernel1, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(0., 0)
-    print("result test1: " + str(out[0]))
+    print("result kernel1: " + str(out[0]))
 
     @cudaq.kernel
     def update_tuple2(arg : MyTuple) -> MyTuple:
@@ -321,13 +320,23 @@ def test_dataclass_update():
         return t
 
     @cudaq.kernel
-    def test2() -> MyTuple:
+    def kernel2() -> MyTuple:
         t = MyTuple(0., 0)
         return update_tuple2(t)
     
-    out = cudaq.run(test2, shots_count=1)
+    out = cudaq.run(kernel2, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(5., 0)
-    print("result test2: " + str(out[0]))
+    print("result kernel2: " + str(out[0]))
+
+    @cudaq.kernel
+    def kernel3(arg : MyTuple) -> MyTuple:
+        t = arg.copy()
+        t.angle += 5.
+        return t
+
+    out = cudaq.run(kernel3, MyTuple(1, 1), shots_count=1)
+    assert len(out) == 1 and out[0] == MyTuple(6., 1)
+    print("result kernel3: " + str(out[0]))
 
 
 def test_dataclass_update_failures():
@@ -345,8 +354,8 @@ def test_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(test1)
-    assert 'quantum data type cannot be updated' in str(e.value)
-    assert '(offending source -> t.controls = controls)' in str(e.value)
+    assert 'accessing attribute of quantum tuple or dataclass does not produce a modifiable value' in str(e.value)
+    assert '(offending source -> t.controls)' in str(e.value)
 
     @cudaq.kernel
     def test2(arg : MyQTuple, controls: cudaq.qview):
@@ -390,12 +399,83 @@ def test_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(test4)
-    assert 'augment-assign target variable is not defined or cannot be assigned to' in str(e.value)
-    assert '(offending source -> t.angle += 5.0)' in str(e.value)
+    assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
+    assert '(offending source -> t.angle)' in str(e.value)
+
+
+def test_disallow_update_capture():
+
+    n = 3
+    ls = [1, 2, 3]
+
+    @cudaq.kernel
+    def kernel1() -> int:
+        # Shadow n, no error
+        n = 4
+        return n
+    
+    res = kernel1()
+    assert res == 4
+
+    @cudaq.kernel
+    def kernel2() -> int:
+        if True:
+            # Shadow n, no error
+            n = 4
+        # n is not defined in this scope, error
+        return n
+    
+    with pytest.raises(RuntimeError) as e:
+        kernel2()
+    assert "'n' is not defined" in repr(e)
+
+    @cudaq.kernel
+    def kernel3() -> int:
+        if True:
+            # causes the variable to be added to the symbol table
+            cudaq.dbg.ast.print_i64(n)
+            # Change n, emits an error
+            n += 4
+        return n
+
+    with pytest.raises(RuntimeError) as e:
+        kernel3()
+    assert "CUDA-Q does not allow assignments to variables captured from parent scope" in str(e.value)
+    assert "(offending source -> n)" in str(e.value)
+
+    @cudaq.kernel
+    def kernel4() -> list[int]:
+        vals = ls
+        vals[0] = 5
+        return vals
+
+    assert kernel4() == [5, 2, 3] and ls == [1, 2, 3]
+
+    @cudaq.kernel
+    def kernel5():
+        ls[0] = 5
+
+    with pytest.raises(RuntimeError) as e:
+        kernel5()
+    assert "CUDA-Q does not allow assignments to variables captured from parent scope" in str(e.value)
+    assert "(offending source -> ls)" in str(e.value)
+
+    tp = (1, 5)
+
+    @cudaq.kernel
+    def kernel6() -> tuple[int, int]:
+        # Capturing tuples is not currently supported.
+        # If support is enabled, add test to check that it
+        # cannot be modified inside the kernel.
+        return tp
+
+    with pytest.raises(RuntimeError) as e:
+        kernel6()
+    assert "Invalid type for variable (tp) captured from parent scope" in str(e.value)
+    assert "(offending source -> tp)" in str(e.value)
 
 
 # leave for gdb debugging
 if __name__ == "__main__":
-    #loc = os.path.abspath(__file__)
-    #pytest.main([loc, "-rP"])
-    test_list_of_tuple_updates()
+    loc = os.path.abspath(__file__)
+    pytest.main([loc, "-rP"])

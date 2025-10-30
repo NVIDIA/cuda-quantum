@@ -558,19 +558,17 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'indexing into tuple or dataclass must not modify value' in str(
+    assert 'indexing into tuple or dataclass does not produce a modifiable value' in str(
         e.value)
 
     @cudaq.kernel
-    def simple_tuple_int_float_error(
+    def simple_tuple_int_float_conversion(
             n: int, t: tuple[int, float]) -> tuple[bool, float]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_tuple_int_float_error, 2, (-13, 11.5))
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(
-        e.value)
+    result = cudaq.run(simple_tuple_int_float_conversion, 2, (-13, 42.3), shots_count=1)
+    assert len(result) == 1 and result[0] == (True, 42.3)
 
 
 def test_return_tuple_float_int():
@@ -634,10 +632,8 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_tuple_int32_bool_no_args)
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
-        e.value)
+    result = cudaq.run(simple_tuple_int32_bool_no_args, shots_count=1)
+    assert len(result) == 1 and result[0] == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:

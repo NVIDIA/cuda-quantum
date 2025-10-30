@@ -774,10 +774,6 @@ class PyASTBridge(ast.NodeVisitor):
                 expectedTy, returnVal, conversion(idx, element) if conversion else element,
                 DenseI64ArrayAttr.get([idx], context=self.ctx)).result
         return returnVal
-            
-        # FIXME: CREATE STRUCTS LIKE THIS ALWAYS, AND LET THE ASSIGNMENT
-        # HANDLE THE POINTER CREATION.
-        # FIXME: check that list comp works with pointer as expected, and should create list of ptr
 
     # Create a new vector with source elements converted to the target element type if needed.
     def __copyVectorAndConvertElements(self,
@@ -1267,22 +1263,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = parentNode
         self.indent_level -= 1
 
-    # FIXME: using generic_visit the way we do seems incredibly dangerous;
-    # we use this and make assumptions about what values are on the value stack
-    # without any validation that we got the right values.
-    # The whole value stack needs to be revised; we need to properly push and pop
-    # not just individual values but groups of values to ensure that the right
-    # pieces get the right arguments (and give a proper error otherwise).
-    def generic_visit(self, node):
-        self.debug_msg(lambda: f'[Generic Visit]', node)
-        for field, value in reversed(list(ast.iter_fields(node))):
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, ast.AST):
-                        self.visit(item)
-            elif isinstance(value, ast.AST):
-                self.visit(value)
-
     def visit_FunctionDef(self, node):
         """
         Create an MLIR `func.FuncOp` for the given FunctionDef AST node. For the
@@ -1491,12 +1471,6 @@ class PyASTBridge(ast.NodeVisitor):
         the symbol table.
         """
 
-        def check_not_captured(name):
-            if name in self.capturedVars:
-                self.emitFatalError(
-                    "CUDA-Q does not allow assignment to variable {} captured from parent scope."
-                    .format(name), node)
-
         def process_assignment(target, value):
             if isinstance(target, ast.Tuple):
 
@@ -1616,28 +1590,14 @@ class PyASTBridge(ast.NodeVisitor):
                 target_root = target_root.value
 
             # Handle assignments like `listVar[IDX] = expr`
-            if isinstance(target, ast.Subscript) and \
-                isinstance(target_root, ast.Name) and \
-                target_root.id in self.symbolTable:
-                check_not_captured(target_root.id)
+            if isinstance(target_root, ast.Name):
 
-                # Visit_Subscript will try to load any pointer and return it
-                # but here we want the pointer, so flip that flag
                 self.pushPointerValue = True
-                # Visit the subscript node, get the pointer value
                 self.visit(target)
-                # Reset the push pointer value flag
                 self.pushPointerValue = False
-
                 ptrVal = self.popValue()
-                if self.isQuantumType(ptrVal.type):
-                    self.emitFatalError("quantum data type cannot be updated", node)
-                if not cc.PointerType.isinstance(ptrVal.type):
-                    self.emitFatalError(
-                        "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
-                        node)
+                assert cc.PointerType.isinstance(ptrVal.type)
 
-                # Visit the value being assigned
                 self.visit(node.value)
                 # FIXME: WE NEED TO FOLLOW SIMILAR LOGIC AS ABOVE;
                 # LOAD IF NEEDED, CAST TYPE, CHECK WE DON'T CREATE
@@ -1645,36 +1605,6 @@ class PyASTBridge(ast.NodeVisitor):
 
                 # FIXME: WHAT IF WE HAVE A LIST OF POINTERS? CAN WE HAVE THAT?
                 valueToStore = self.ifPointerThenLoad(self.popValue())
-                # Store the value
-                cc.StoreOp(valueToStore, ptrVal)
-                return target_root, None
-
-            # Handle assignments like `classVar.attr = expr`
-            if isinstance(target, ast.Attribute) and \
-                isinstance(target_root, ast.Name) and \
-                target_root.id in self.symbolTable:
-                
-                check_not_captured(target_root.id)
-
-                self.pushPointerValue = True
-                # Visit the attribute node, get the pointer value
-                self.visit(target)
-                # Reset the push pointer value flag
-                self.pushPointerValue = False
-
-                ptrVal = self.popValue()
-                if self.isQuantumType(ptrVal.type):
-                    self.emitFatalError("quantum data type cannot be updated", node)
-                if not cc.PointerType.isinstance(ptrVal.type):
-                    self.emitFatalError("invalid CUDA-Q attribute assignment",
-                                        node)
-                # Visit the value being assigned
-                self.visit(node.value)
-                # FIXME: WE NEED TO FOLLOW SIMILAR LOGIC AS ABOVE;
-                # LOAD IF NEEDED, CAST TYPE, CHECK WE DON'T CREATE
-                # AN ALIAS OF A REFERENCE IF WE NEED TO LOAD
-                valueToStore = self.ifPointerThenLoad(self.popValue())
-                # Store the value
                 cc.StoreOp(valueToStore, ptrVal)
                 return target_root, None
 
@@ -1753,6 +1683,10 @@ class PyASTBridge(ast.NodeVisitor):
                 valType = cc.PointerType.getElementType(valType)
 
             if quake.StruqType.isinstance(valType):
+                if self.pushPointerValue:
+                    self.emitFatalError(
+                        "accessing attribute of quantum tuple or dataclass does not produce a modifiable value",
+                        node)
                 # Need to extract value instead of load from compute pointer.
                 structIdx, memberTy = self.getStructMemberIdx(
                     node.attr, value.type)
@@ -2474,6 +2408,7 @@ class PyASTBridge(ast.NodeVisitor):
                 funcVal = self.ifPointerThenLoad(self.popValue())
 
                 if cc.StructType.isinstance(funcVal.type):
+                    self.__groupValues(node.args, [0])
                     slot = cc.AllocaOp(cc.PointerType.get(funcVal.type), TypeAttr.get(funcVal.type)).result
                     cc.StoreOp(funcVal, slot)                    
                     self.pushValue(slot)
@@ -3471,6 +3406,10 @@ class PyASTBridge(ast.NodeVisitor):
         # handle complex slice, VAR[lower:upper]
         if isinstance(node.slice, ast.Slice):
             self.debug_msg(lambda: f'[(Inline) Visit Slice]', node.slice)
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "slicing a list or qvector does not produce a modifiable value",
+                    node)
 
             self.visit(node.value)
             var = self.ifPointerThenLoad(self.popValue())
@@ -3531,15 +3470,22 @@ class PyASTBridge(ast.NodeVisitor):
 
             return
 
-        # FIXME: get rid of generic visit and replace assertion below
-        self.generic_visit(node)
-        assert self.valueStack.currentNumValues == 2
 
-        # get the last name, should be name of var being subscripted
+        self.visit(node.value)
         var = self.ifPointerThenLoad(self.popValue())
+
+        pushPtr = self.pushPointerValue
+        self.pushPointerValue = False
+        self.visit(node.slice)
         idx = self.popValue()
+        self.pushPointerValue = pushPtr
 
         if quake.VeqType.isinstance(var.type):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "indexing into a qvector does not produce a modifyable value",
+                    node)
+
             if not IntegerType.isinstance(idx.type):
                 self.emitFatalError(
                     f'invalid index variable type used for qvector extraction ({idx.type})',
@@ -3590,7 +3536,7 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.StructType.isinstance(var.type):
             if self.pushPointerValue:
                 self.emitFatalError(
-                    "indexing into tuple or dataclass must not modify value",
+                    "indexing into tuple or dataclass does not produce a modifiable value",
                     node)
 
             memberTys = cc.StructType.getTypes(var.type)
@@ -3608,7 +3554,7 @@ class PyASTBridge(ast.NodeVisitor):
         if quake.StruqType.isinstance(var.type):
             if self.pushPointerValue:
                 self.emitFatalError(
-                    "indexing into quantum tuple or dataclass must not modify value",
+                    "indexing into quantum tuple or dataclass does not produce a modifiable value",
                     node)
 
             memberTys = quake.StruqType.getTypes(var.type)
@@ -4113,15 +4059,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Map tuples in the Python AST to equivalents in MLIR.
         """
-        # FIXME: The handling of tuples in Python likely needs to be examined carefully;
-        # The corresponding issue to clarify the expected behavior is
-        # https://github.com/NVIDIA/cuda-quantum/issues/3031
-        # I re-enabled the tuple support in kernel signatures, given that we were already
-        # allowing the use of data classes everywhere, and supporting tuple use within a
-        # kernel. It hence seems that any issues with tuples also apply to named structs.
 
-        self.generic_visit(node)
-
+        [self.visit(el) for el in node.elts]
         elementValues = self.popAllValues(len(node.elts))
         elementValues.reverse()
 
@@ -4141,28 +4080,21 @@ class PyASTBridge(ast.NodeVisitor):
 
         if quake.StruqType.isinstance(structTy):
             self.pushValue(quake.MakeStruqOp(structTy, elementValues).result)
-        else:
-            stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
-                                    TypeAttr.get(structTy)).result
-
-            # loop over each type and `compute_ptr` / store
-            for i, ty in enumerate(structTys):
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(ty), stackSlot, [],
-                    DenseI32ArrayAttr.get([i], context=self.ctx)).result
-                cc.StoreOp(elementValues[i], eleAddr)
-
-            self.pushValue(stackSlot)
             return
+
+        struct = cc.UndefOp(structTy)
+        for idx, element in enumerate(elementValues):
+            struct = cc.InsertValueOp(
+                structTy, struct, element,
+                DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+        self.pushValue(struct)
 
     def visit_UnaryOp(self, node):
         """
         Map unary operations in the Python AST to equivalents in MLIR.
         """
 
-        self.generic_visit(node)
-        # FIXME: REPLACE THIS
-        assert self.valueStack.currentNumValues == 1
+        self.visit(node.operand)
         operand = self.popValue()
 
         # Handle qubit negations
@@ -4430,28 +4362,32 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Visit augment-assign operations (e.g. +=). 
         """
-        target = None
-        if isinstance(node.target, ast.Name) and \
-            node.target.id in self.symbolTable and \
-            not node.target.id in self.capturedVars:
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.target)
-            target = self.symbolTable[node.target.id]
-        if not target or not cc.PointerType.isinstance(target.type):
+
+        self.pushPointerValue = True
+        self.visit(node.target)
+        self.pushPointerValue = False
+        target = self.popValue()
+
+        if not cc.PointerType.isinstance(target.type):
             self.emitFatalError(
-                "augment-assign target variable is not defined or cannot be assigned to.",
+                "augment-assign target variable cannot be assigned to",
                 node)
 
         self.visit(node.value)
         value = self.popValue()
         loaded = cc.LoadOp(target).result
 
+        # NOTE: aug assign is usually defined as producing a value, 
+        # which we are not doing here. However, if this produces
+        # a value, then we need to start worrying that arbitrary
+        # expressions might contain assignments, which would require
+        # updates to the bridge in a bunch of places and add some
+        # complexity. We hence effectively dissallow using
+        # any kind of assignment as expression.
         self.valueStack.pushFrame()
         self.__process_binary_op(loaded, value, type(node.op))
         self.valueStack.popFrame()
         res = self.popValue()
-        # FIXME: aug assign is usually defined as producing a value, 
-        # which we are not doing here. Now that we add proper stacks 
-        # for values, we can/should probably push res back on the stack
 
         if res.type != loaded.type:
             self.emitFatalError(
@@ -4466,48 +4402,51 @@ class PyASTBridge(ast.NodeVisitor):
 
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
-            if cc.PointerType.isinstance(value.type):
-                eleTy = cc.PointerType.getElementType(value.type)
-
-                # Retain types that corresponds to Python reference
-                # types as pointers
-                if cc.StructType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-                if cc.StdvecType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-
-                # Always retain array types (used for strings)
-                if cc.ArrayType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-                # Always retain `ptr<i8>` (used for `dbg` functions)
-                if IntegerType.isinstance(eleTy) and IntegerType(
-                        eleTy).width == 8:
-                    self.pushValue(value)
-                    return
-                # Retain state types as pointers
-                if cc.StateType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-
-                loaded = cc.LoadOp(value).result
-                self.pushValue(loaded)
-            else:
+            if self.pushPointerValue or \
+                not cc.PointerType.isinstance(value.type):
                 self.pushValue(value)
+                return
+
+            eleTy = cc.PointerType.getElementType(value.type)
+
+            # Retain types that corresponds to Python reference
+            # types as pointers
+            if cc.StructType.isinstance(eleTy):
+                self.pushValue(value)
+                return
+            if cc.StdvecType.isinstance(eleTy):
+                self.pushValue(value)
+                return
+
+            # Always retain array types (used for strings)
+            if cc.ArrayType.isinstance(eleTy):
+                self.pushValue(value)
+                return
+            # Always retain `ptr<i8>` (used for `dbg` functions)
+            if IntegerType.isinstance(eleTy) and IntegerType(
+                    eleTy).width == 8:
+                self.pushValue(value)
+                return
+            # Retain state types as pointers
+            if cc.StateType.isinstance(eleTy):
+                self.pushValue(value)
+                return
+
+            loaded = cc.LoadOp(value).result
+            self.pushValue(loaded)
             return
 
         if node.id in self.capturedVars:
             # Only support a small subset of types here
             complexType = type(1j)
             value = self.capturedVars[node.id]
+            processed = False
 
             if isinstance(value, State):
                 self.pushValue(self.capturedDataStorage.storeCudaqState(value))
-                return
+                processed = True
 
-            if isinstance(value, (list, np.ndarray)) and isinstance(
+            elif isinstance(value, (list, np.ndarray)) and isinstance(
                     value[0],
                 (int, bool, float, np.int32, np.int64, np.float32, np.float64,
                  complexType, np.complex64, np.complex128)):
@@ -4546,54 +4485,60 @@ class PyASTBridge(ast.NodeVisitor):
                     # we only ever create one copy of a captured value.
                     self.symbolTable.add(node.id, mlirVal, 0)
                     self.pushValue(mlirVal)
-                    return
+                    processed = True
 
-            mlirVal = None
-            self.dependentCaptureVars[node.id] = value
-            if isinstance(value, bool):
-                mlirVal = self.getConstantInt(value, 1)
-            elif isinstance(value, np.int32):
-                mlirVal = self.getConstantInt(value, width=32)
-            elif isinstance(value, (int, np.int64)):
-                mlirVal = self.getConstantInt(value)
-            elif isinstance(value, np.float32):
-                mlirVal = self.getConstantFloat(value, width=32)
-            elif isinstance(value, (float, np.float64)):
-                mlirVal = self.getConstantFloat(value)
-            elif isinstance(value, np.complex64):
-                mlirVal = self.getConstantComplex(value, width=32)
-            elif isinstance(value, complexType) or isinstance(
-                    value, np.complex128):
-                mlirVal = self.getConstantComplex(value, width=64)
+            else:
 
-            if mlirVal != None:
-                self.pushValue(mlirVal)
+                mlirVal = None
+                self.dependentCaptureVars[node.id] = value
+                if isinstance(value, bool):
+                    mlirVal = self.getConstantInt(value, 1)
+                elif isinstance(value, np.int32):
+                    mlirVal = self.getConstantInt(value, width=32)
+                elif isinstance(value, (int, np.int64)):
+                    mlirVal = self.getConstantInt(value)
+                elif isinstance(value, np.float32):
+                    mlirVal = self.getConstantFloat(value, width=32)
+                elif isinstance(value, (float, np.float64)):
+                    mlirVal = self.getConstantFloat(value)
+                elif isinstance(value, np.complex64):
+                    mlirVal = self.getConstantComplex(value, width=32)
+                elif isinstance(value, complexType) or isinstance(
+                        value, np.complex128):
+                    mlirVal = self.getConstantComplex(value, width=64)
+
+                if mlirVal != None:
+                    self.pushValue(mlirVal)
+                    processed = True
+                else:
+                    try:
+                        if issubclass(value, cudaq_runtime.KrausChannel):
+                            # Here we have a KrausChannel as part of the AST.  We want
+                            # to create a hash value from it, and we then want to push
+                            # the number of parameters and that hash value. This can
+                            # only be used with apply_noise.
+                            if not hasattr(value, 'num_parameters'):
+                                self.emitFatalError(
+                                    'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
+                                )
+
+                            # FIXME: THIS IS PROBABLY HOW THAT WORKED WITH CUSTOM CHANNELS...
+                            self.pushValue(self.getConstantInt(value.num_parameters))
+                            self.pushValue(self.getConstantInt(hash(value)))
+                            processed = True
+                    except TypeError:
+                        pass
+
+            if processed:
+                if self.pushPointerValue:
+                    self.emitFatalError("CUDA-Q does not allow assignments to variables captured from parent scope", node)
                 return
-
-            errorType = type(value).__name__
-            if (isinstance(value, list)):
-                errorType = f"{errorType}[{type(value[0]).__name__}]"
-
-            try:
-                if issubclass(value, cudaq_runtime.KrausChannel):
-                    # Here we have a KrausChannel as part of the AST.  We want
-                    # to create a hash value from it, and we then want to push
-                    # the number of parameters and that hash value. This can
-                    # only be used with apply_noise.
-                    if not hasattr(value, 'num_parameters'):
-                        self.emitFatalError(
-                            'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
-                        )
-
-                    # FIXME: THIS IS PROBABLY HOW THAT WORKED WITH CUSTOM CHANNELS...
-                    self.pushValue(self.getConstantInt(value.num_parameters))
-                    self.pushValue(self.getConstantInt(hash(value)))
-                    return
-            except TypeError:
-                pass
 
             if node.id not in globalKernelRegistry and \
                 node.id not in globalRegisteredOperations:
+                errorType = type(value).__name__
+                if (isinstance(value, list)):
+                    errorType = f"{errorType}[{type(value[0]).__name__}]"
                 self.emitFatalError(
                     f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
                     node)
