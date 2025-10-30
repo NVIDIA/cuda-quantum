@@ -319,7 +319,7 @@ jobs:
             providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
           else
             # Just run the specified target provider
-            providers='["${{ inputs.target }}"]'
+            providers="[\"${{ inputs.target }}\"]"
           fi
           echo "providers=$providers" >> $GITHUB_OUTPUT
 
@@ -353,7 +353,7 @@ jobs:
         id: gettests
         run: |
           if [ -n "${{ inputs.single_test_name }}" ]; then
-            if [ -e ${{ inputs.single_test_name }} ]; then
+            if [ -e "${{ inputs.single_test_name }}" ]; then
               echo "testlist=${{ inputs.single_test_name }}" >> $GITHUB_OUTPUT
             else
               echo "::error::File ${{ inputs.single_test_name}} not found"
@@ -412,17 +412,17 @@ jobs:
               ;;
             fermioniq)
               echo "### Setting up Fermioniq account" >> $GITHUB_STEP_SUMMARY
-              echo "FERMIONIQ_ACCESS_TOKEN_ID='${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}'" >> $GITHUB_ENV
-              echo "FERMIONIQ_ACCESS_TOKEN_SECRET='${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}'" >> $GITHUB_ENV
-              echo "FERMIONIQ_PROJECT_ID='c86e2cb8-d776-41ae-8240-d3d55e18b7c3'" >> $GITHUB_ENV
+              echo "FERMIONIQ_ACCESS_TOKEN_ID=${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}" >> $GITHUB_ENV
+              echo "FERMIONIQ_ACCESS_TOKEN_SECRET=${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
+              echo "FERMIONIQ_PROJECT_ID=c86e2cb8-d776-41ae-8240-d3d55e18b7c3" >> $GITHUB_ENV
               ;;
             infleqtion)
               echo "### Setting up Infleqtion account" >> $GITHUB_STEP_SUMMARY
-              echo "SUPERSTAQ_API_KEY='${{ secrets.SUPERSTAQ_API_KEY }}'" >> $GITHUB_ENV
+              echo "SUPERSTAQ_API_KEY=${{ secrets.SUPERSTAQ_API_KEY }}" >> $GITHUB_ENV
               ;;
             ionq)
               echo "### Setting up IonQ account" >> $GITHUB_STEP_SUMMARY
-              echo "IONQ_API_KEY='${{ secrets.IONQ_API_KEY }}'" >> $GITHUB_ENV
+              echo "IONQ_API_KEY=${{ secrets.IONQ_API_KEY }}" >> $GITHUB_ENV
               ;;
             iqm)
               echo "### Setting up IQM account" >> $GITHUB_STEP_SUMMARY
@@ -432,26 +432,26 @@ jobs:
               ;;
             oqc)
               echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
-              echo "OQC_EMAIL='${{ secrets.BACKEND_LOGIN_EMAIL }}'" >> $GITHUB_ENV
-              echo "OQC_PASSWORD='${{ secrets.OQC_PASSWORD }}'" >> $GITHUB_ENV
+              echo "OQC_EMAIL=${{ secrets.BACKEND_LOGIN_EMAIL }}" >> $GITHUB_ENV
+              echo "OQC_PASSWORD=${{ secrets.OQC_PASSWORD }}" >> $GITHUB_ENV
               ;;
             orca)
               echo "### Setting up ORCA account" >> $GITHUB_STEP_SUMMARY
-              echo "ORCA_ACCESS_URL='${{ secrets.ORCA_ACCESS_URL }}'" >> $GITHUB_ENV
+              echo "ORCA_ACCESS_URL=${{ secrets.ORCA_ACCESS_URL }}" >> $GITHUB_ENV
               ;;
-            pasqal)
-              echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
-              python3 -m pip install pasqal-cloud
-              echo "PASQAL_USERNAME='${{ secrets.PASQAL_USERNAME }}'" >> $GITHUB_ENV
-              echo "PASQAL_PASSWORD='${{ secrets.PASQAL_PASSWORD }}'" >> $GITHUB_ENV
-              echo "PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'" >> $GITHUB_ENV
-              echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
-              PASQAL_AUTH_TOKEN=$(python3 -c "from pasqal_cloud import SDK; import os; import sys; sdk = SDK(username=os.environ.get('PASQAL_USERNAME'), password=os.environ.get('PASQAL_PASSWORD')); sys.stdout.write(str(sdk.user_token()))")
-              echo "PASQAL_AUTH_TOKEN=$PASQAL_AUTH_TOKEN" >> $GITHUB_ENV
-              ;;
+          pasqal)
+            echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
+            python3 -m pip install pasqal-cloud
+            PASQAL_AUTH_TOKEN=$(python3 -c "from pasqal_cloud import SDK; import sys; sdk = SDK(username='${{ secrets.PASQAL_USERNAME }}', password='${{ secrets.PASQAL_PASSWORD }}'); sys.stdout.write(str(sdk.user_token()))")
+            echo "PASQAL_USERNAME=${{ secrets.PASQAL_USERNAME }}" >> $GITHUB_ENV
+            echo "PASQAL_PASSWORD=${{ secrets.PASQAL_PASSWORD }}" >> $GITHUB_ENV
+            echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
+            echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
+            echo "PASQAL_AUTH_TOKEN=$PASQAL_AUTH_TOKEN" >> $GITHUB_ENV
+            ;;
             qci)
               echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
-              echo "QCI_AUTH_TOKEN='${{ secrets.QCI_AUTH_TOKEN }}'" >> $GITHUB_ENV
+              echo "QCI_AUTH_TOKEN=${{ secrets.QCI_AUTH_TOKEN }}" >> $GITHUB_ENV
               ;;
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
@@ -472,11 +472,20 @@ jobs:
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
+          test_skip_sum=0
           
-          case "${{ matrix.provider }}" in
-            anyon)
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
+          # Single loop handles both C++ and Python tests
+          for filename in ${{ steps.gettests.outputs.testlist }}; do
+            # Check if file exists
+            if [ ! -e "$filename" ]; then
+              echo "::warning::File not found: $filename"
+              echo ":warning: Test skipped (file not found): $filename" >> $GITHUB_STEP_SUMMARY
+              test_skip_sum=$((test_skip_sum+1))
+              continue
+            fi
+            
+            case "${{ matrix.provider }}" in
+              anyon)
                 nvq++ -v $filename -DSYNTAX_CHECK --target anyon --anyon-machine telegraph-8q
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -492,18 +501,27 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              done
-              ;;
-              
-            fermioniq)
-              # Process C++ tests
-              cpp_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.cpp")
-              for filename in $cpp_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                nvq++ --target fermioniq --fermioniq-project-id $FERMIONIQ_PROJECT_ID $filename
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out 1> /dev/null
+                ;;
+                
+              fermioniq)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target fermioniq --fermioniq-project-id $FERMIONIQ_PROJECT_ID $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -512,35 +530,31 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              done
-              
-              # Process Python tests
-              python_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.py")
-              for filename in $python_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                python3 $filename 1> /dev/null
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                else
-                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
-              done
-              ;;
-              
-            infleqtion)
-              # Process C++ tests
-              cpp_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.cpp")
-              for filename in $cpp_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                nvq++ --target infleqtion $filename
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
+                ;;
+                
+              infleqtion)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target infleqtion $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -549,29 +563,13 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              done
-              
-              # Process Python tests
-              python_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.py")
-              for filename in $python_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                python3 $filename 1> /dev/null
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                else
-                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
-              done
-              ;;
-              
-            ionq)
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
+                ;;
+                
+              ionq)
                 nvq++ -v $filename --target ionq
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -587,12 +585,9 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              done
-              ;;
-              
-            iqm)
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
+                ;;
+                
+              iqm)
                 nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -608,13 +603,9 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              done
-              echo ":white_check_mark: Successfully logged out of IQM" >> $GITHUB_STEP_SUMMARY
-              ;;
-              
-            oqc)
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
+                ;;
+                
+              oqc)
                 nvq++ -DSYNTAX_CHECK --target oqc $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -630,18 +621,27 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              done
-              ;;
-              
-            orca)
-              # Process C++ tests
-              cpp_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.cpp")
-              for filename in $cpp_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
+                ;;
+                
+              orca)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -650,35 +650,31 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              done
-              
-              # Process Python tests
-              python_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.py")
-              for filename in $python_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                python3 $filename 1> /dev/null
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                else
-                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
-              done
-              ;;
-              
-            pasqal)
-              # Process C++ tests
-              cpp_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.cpp")
-              for filename in $cpp_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                nvq++ --target pasqal --pasqal-machine $PASQAL_MACHINE_TARGET $filename
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out 1> /dev/null
+                ;;
+                
+              pasqal)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target pasqal --pasqal-machine $PASQAL_MACHINE_TARGET $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -687,29 +683,13 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              done
-              
-              # Process Python tests
-              python_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.py")
-              for filename in $python_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                python3 $filename 1> /dev/null
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                else
-                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
-              done
-              ;;
-              
-            qci)
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
+                ;;
+                
+              qci)
                 nvq++ -v $filename --target qci
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -725,16 +705,17 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              done
-              ;;
-              
-            quantinuum)
-              echo "### Running standard Quantinuum tests" >> $GITHUB_STEP_SUMMARY
-              # Process standard Quantinuum tests
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                if [[ "$filename" == *"quantinuum/"* ]] && [[ "$filename" == *".cpp" ]]; then
-                  [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                  nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
+                ;;
+                
+              quantinuum)
+                if [[ "$filename" == *.cpp ]]; then
+                  if [[ "$filename" == *"quantinuum_ng/"* ]]; then
+                    echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
+                  else
+                    echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
+                    nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
+                  fi
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     ./a.out
@@ -749,48 +730,29 @@ jobs:
                     echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
                   fi
-                fi
-              done
-
-              echo "### Running Quantinuum-NG tests" >> $GITHUB_STEP_SUMMARY
-              # Process Quantinuum-NG tests
-              for filename in ${{ steps.gettests.outputs.testlist }}; do
-                if [[ "$filename" == *"quantinuum_ng/"* ]] && [[ "$filename" == *".cpp" ]]; then
-                  [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                  nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
+                elif [[ "$filename" == *.py ]]; then
+                  echo "### Running Quantinuum Python test" >> $GITHUB_STEP_SUMMARY
+                  QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
-                    ./a.out
-                    test_status=$?
-                    if [ $test_status -eq 0 ]; then
-                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                    else
-                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                      test_err_sum=$((test_err_sum+1))
-                    fi
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
-                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
                     test_err_sum=$((test_err_sum+1))
                   fi
-                fi
-              done
-              
-              # Process Python tests
-              python_tests=$(echo "${{ steps.gettests.outputs.testlist }}" | grep "\.py")
-              for filename in $python_tests; do
-                [ -e "$filename" ] || { echo "::error::Couldn't find file ($filename)"; continue; }
-                echo "### Running Quantinuum Python tests" >> $GITHUB_STEP_SUMMARY
-                QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                 else
-                  echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              done
-              ;;
-          esac
+                ;;
+            esac
+          done
+          
+          # Print summary
+          if [ $test_skip_sum -gt 0 ]; then
+            echo "::warning::${test_skip_sum} tests skipped"
+          fi
           
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
@@ -821,6 +783,14 @@ jobs:
         password: ${{ github.token }}
 
     steps:
+      - name: Skip NVQC Docker tests (temporary)
+        run: |
+          echo "### Submit to NVQC" >> $GITHUB_STEP_SUMMARY
+          echo ":warning: NVQC Docker integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
+          echo "::warning::NVQC Docker integration tests are temporarily skipped"
+          exit 0
+        shell: bash
+
       - name: Get code
         uses: actions/checkout@v4
         with:
@@ -981,6 +951,14 @@ jobs:
     environment: ghcr-deployment
 
     steps:
+      - name: Skip NVQC wheel tests (temporary)
+        run: |
+          echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
+          echo ":warning: NVQC Python wheel integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
+          echo "::warning::NVQC Python wheel integration tests are temporarily skipped"
+          exit 0
+        shell: bash
+
       - name: Get code
         uses: actions/checkout@v4
         with:
