@@ -2966,14 +2966,14 @@ Note
 
 Please check if you have an existing installation of the
 [`cuda-quantum`{.code .docutils .literal .notranslate}]{.pre},
-[`cudaq-quantum-cu11`{.code .docutils .literal .notranslate}]{.pre}, or
-[`cuda-quantum-cu12`{.code .docutils .literal .notranslate}]{.pre}
+[`cudaq-quantum-cu12`{.code .docutils .literal .notranslate}]{.pre}, or
+[`cuda-quantum-cu13`{.code .docutils .literal .notranslate}]{.pre}
 package, and uninstall it prior to installing [`cudaq`{.code .docutils
 .literal .notranslate}]{.pre}. The [`cudaq`{.code .docutils .literal
 .notranslate}]{.pre} package supersedes the [`cuda-quantum`{.code
 .docutils .literal .notranslate}]{.pre} package and will install a
-suitable binary distribution (either [`cuda-quantum-cu11`{.code
-.docutils .literal .notranslate}]{.pre} or [`cuda-quantum-cu12`{.code
+suitable binary distribution (either [`cuda-quantum-cu12`{.code
+.docutils .literal .notranslate}]{.pre} or [`cuda-quantum-cu13`{.code
 .docutils .literal .notranslate}]{.pre}) for your system. Multiple
 versions of a CUDA-Q binary distribution will conflict with each other
 and not work properly.

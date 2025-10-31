@@ -834,10 +834,10 @@ by running the command
 .. note::
 
   Please check if you have an existing installation of the `cuda-quantum`, 
-  `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, 
+  `cudaq-quantum-cu12`, or `cuda-quantum-cu13` package, 
   and uninstall it prior to installing `cudaq`. The `cudaq` package supersedes the
   `cuda-quantum` package and will install a suitable binary distribution (either 
-  `cuda-quantum-cu11` or `cuda-quantum-cu12`) for your system. Multiple versions 
+  `cuda-quantum-cu12` or `cuda-quantum-cu13`) for your system. Multiple versions 
   of a CUDA-Q binary distribution will conflict with each other and not work properly.
 
 If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your 
