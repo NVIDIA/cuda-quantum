@@ -1169,6 +1169,14 @@ To get results, please submit to the Helios emulator (e.g., <code class="docutil
 </div></blockquote>
 </div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quantinuum-examples"><span class="std std-ref">Quantinuum examples</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In local emulation mode (<code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag set to <code class="docutils literal notranslate"><span class="pre">True</span></code>), the program will be executed on the <a class="reference internal" href="../sims/svsims.html#default-simulator"><span class="std std-ref">default simulator</span></a>.
+The environment variable <code class="docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> can be used to change the emulation simulator.</p>
+<p>For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
+depend on the selected simulator.</p>
+<p>Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
+</div>
 </section>
 </section>
 </section>

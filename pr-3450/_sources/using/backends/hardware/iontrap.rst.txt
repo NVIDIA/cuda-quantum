@@ -234,3 +234,13 @@ Create a project in the Nexus portal. You can find the project ID in the URL of 
 
 
 To see a complete example, take a look at :ref:`Quantinuum examples <quantinuum-examples>`.
+
+.. note:: 
+
+        In local emulation mode (``emulate`` flag set to ``True``), the program will be executed on the :ref:`default simulator <default-simulator>`.
+        The environment variable ``CUDAQ_DEFAULT_SIMULATOR`` can be used to change the emulation simulator. 
+        
+        For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
+        depend on the selected simulator.  
+        
+        Any environment variables must be set prior to setting the target or running "`import cudaq`".
