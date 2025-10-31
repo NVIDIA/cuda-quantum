@@ -390,7 +390,13 @@ def cc_IfOp : CCOp<"if",
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
                               "mlir::Region &)>":$thenBuilder,
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
-           "mlir::Region &)>", "nullptr">:$elseBuilder)>
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
+    OpBuilder<(ins "mlir::TypeRange":$resultTypes, "mlir::Value":$cond,
+      "mlir::ValueRange":$linearVals,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$thenBuilder,
+      CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
   ];
 
   let hasCustomAssemblyFormat = 1;
