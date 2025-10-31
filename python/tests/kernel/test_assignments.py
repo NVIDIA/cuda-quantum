@@ -479,3 +479,44 @@ def test_disallow_update_capture():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
+
+'''
+t1 = MyTuple(1, 1)
+t2 = t1
+t3 = MyTuple(2, 2)
+t1 = t3
+t3.first = 5
+
+should produce 
+>>> t1
+MyTuple(first=5, second=2)
+>>> t2
+MyTuple(first=1, second=1)
+>>> t3
+MyTuple(first=5, second=2)
+
+# l = [MyTuple(1, 1)]
+# t = MyTuple(2, 2)
+# l[0] = t
+# t.first = 3
+# should output l is [MyTuple(first=3, second=2)]
+# l[0].second = 4
+# t should be MyTuple(first=3, second=4)
+
+# case 1:
+# struct passed as arg should not be assignable (allowed with the solution below)
+# case 2:
+# struct is in symbol table -> should fail because not well behaved
+# case 3: 
+# struct literal in kernel -> should be ok 
+# case 4:
+# assign an int that is entry in another list
+# case a:
+# ptrVal is pointer to pointer
+# case b:
+# ptrVal is pointer to value
+
+OVERALL SOLUTION:
+- don't allow the creation of lists of ptr type, or structs with ptr elements
+- do not autoconvert mutable struct to immutable ones but give a comprehensive error instead
+'''

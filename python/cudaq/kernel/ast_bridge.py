@@ -513,9 +513,6 @@ class PyASTBridge(ast.NodeVisitor):
                     operand, eleTy, allowDemotion=allowDemotion)
         
         if (cc.StructType.isinstance(ty)):
-            operand = self.ifPointerThenLoad(operand)
-            if ty == operand.type:
-                return operand
             if cc.StructType.isinstance(operand.type):
                 expectedEleTys = cc.StructType.getTypes(ty)
                 currentEleTys = cc.StructType.getTypes(operand.type)
@@ -1473,6 +1470,28 @@ class PyASTBridge(ast.NodeVisitor):
         the symbol table.
         """
 
+        def storeAsValue(valueT):
+            varTy = valueT
+            if cc.PointerType.isinstance(varTy):
+                varTy = cc.PointerType.getElementType(varTy)
+            # FIXME: measure res types were also stored as vals,
+            # but not properly handled. Maybe to preserve their
+            # origin from discriminate?
+
+            # If `buildingEntryPoint` is not set we are processing function arguments.
+            # Function arguments are always passed by value and should hence be preserved
+            # as such to make sure they are not modified.
+            isValType = not self.buildingEntryPoint or \
+                self.isQuantumType(varTy) or \
+                cc.CallableType.isinstance(varTy) or \
+                cc.StdvecType.isinstance(varTy) or \
+                cc.StateType.isinstance(varTy)
+            # Nothing should ever produce a pointer
+            # to a value type. 
+            assert not isValType or \
+                not cc.PointerType.isinstance(valueT)
+            return isValType
+
         def process_assignment(target, value):
             if isinstance(target, ast.Tuple):
 
@@ -1481,108 +1500,21 @@ class PyASTBridge(ast.NodeVisitor):
                     return target, value
 
                 if isinstance(value, ast.AST):
+                    # NOTE: The way the assignment logic is processed,
+                    # including that we load this value for the purpose
+                    # of deconstruction, does not preserve any inner
+                    # references. There are a bunch of issues that 
+                    # prevent us from properly dealing with any
+                    # reference types stored as items in lists and
+                    # dataclasses. We hence currently prevent the
+                    # creation of such lists and dataclasses, and would
+                    # need to change the representation for dataclasses
+                    # to allow that. 
                     self.visit(value)
                     value = self.popValue()
                     return target, value
 
                 return target, value
-
-            # Handle simple `var = expr`
-            if isinstance(target, ast.Name):
-                if target.id in self.capturedVars:
-                    # Local variable shadows the captured one
-                    del self.capturedVars[target.id]
-
-                def processValue():
-                    # Retain the variable name for potential children (like `mz(q, registerName=...)`)
-                    self.currentAssignVariableName = target.id
-                    self.visit(value)
-                    self.currentAssignVariableName = None
-                    return self.popValue()
-
-                if not target.id in self.symbolTable or \
-                    target.id in self.symbolTable.symbolTable[-1]:
-                    if isinstance(value, ast.AST):
-                        value = processValue()
-
-                    # If `buildingEntryPoint` is not set we are processing function arguments.
-                    # Function arguments are always passed by value and should hence be preserved
-                    # as such to make sure they are not modified.
-                    storeAsValue = not self.buildingEntryPoint or \
-                        self.isQuantumType(value.type) or \
-                        cc.CallableType.isinstance(value.type) or \
-                        self.isMeasureResultType(value.type, value)
-
-                    # The target variable is not yet defined or has been 
-                    # defined within the current scope and we can simply
-                    # add or modify the symbol table entry.
-                    # If we have a pointer, we don't create a new copy;
-                    # Python behavior is to assign by pointer.
-                    if storeAsValue or cc.PointerType.isinstance(value.type):
-                        # FIXME: if the value is already in the symbol table, we need to
-                        # make sure that the *existing* reference is updated!
-                        return target, value
-                    if cc.StructType.isinstance(value.type) and \
-                        cc.StructType.getName(value.type) != 'tuple':
-                        # When we create structs locally, we create them as pointers.
-                        # For tuples, we prevent any modification by preventing
-                        # the creation of item pointers.
-                        # For dataclasses, their fields can be modified and that
-                        # any such modification is properly reflected in all values
-                        # that contain a reference to the same value.
-                        # However, when we pass dataclasses as function arguments,
-                        # or return them from functions, we pass them as values.
-                        # We hence want to give a proper error and enforce that
-                        # these values cannot be modified to avoid surprising (i.e.
-                        # non-Pythonic) behavior.
-                        self.emitFatalError("cannot create reference to dataclass passed to or returned from function - use `.copy()` to create a new value that can be assigned", node)
-                    address = cc.AllocaOp(cc.PointerType.get(value.type), TypeAttr.get(value.type)).result
-                    # FIXME: if the value is already in the symbol table, we need to
-                    # make sure that the *existing* reference is updated!
-                    cc.StoreOp(value, address)
-                    return target, address
-
-                # The target variable exists in a parent scope;
-                # if it is a pointer, we can update the pointer,
-                # and otherwise the assignment must fail;
-                # if we pushed an update to the innermost scope
-                # in the table, then that update is not reflected
-                # in the parent scope.
-                symbolTableEntry = self.symbolTable[target.id]
-                if cc.PointerType.isinstance(symbolTableEntry.type):
-                    expectedTy = cc.PointerType.getElementType(symbolTableEntry.type)
-                else:
-                    self.emitFatalError("variable captured from parent scope cannot be modified", node)
-
-                if isinstance(value, ast.AST):
-                    value = processValue()
-                if cc.PointerType.isinstance(value.type):
-                    valPtrElemTy = cc.PointerType.getElementType(value.type)
-                    if cc.StdvecType.isinstance(valPtrElemTy) or \
-                        cc.StructType.isinstance(valPtrElemTy):
-                        # Vectors and data classes are supposed to be assigned by reference,
-                        # but we cannot currently deal with this properly right now:
-                        # If we update the symbol table to contain the new reference,
-                        # then the change is either not reflected in the parent scope, or
-                        # reflected regardless of whether we ever entered the child scope
-                        # that does the update. If we load the value and store the new value
-                        # in the existing pointer defined in the parent scope, then any
-                        # future changes to the assigned value will not be reflected.
-                        self.emitFatalError("cannot assign a reference that could modify variable in parent scope", node)
-                '''
-                if cc.PointerType.isinstance(value.type):
-                    #l1 = [0]
-                    #if True:
-                    #    l2 = [1]
-                    #    l1 = l2
-                    #    l2[0] = 5
-                    # l1[0] and l2[0] should be 5 now
-                    # l1[0] = 3
-                    # l1[0] and l2[0] should be 3 now
-                '''
-                value = self.changeOperandToType(expectedTy, self.ifPointerThenLoad(value))
-                cc.StoreOp(value, symbolTableEntry)
-                return target, None 
 
             # Make sure we process arbitrary combinations
             # of subscript and attributes
@@ -1591,26 +1523,100 @@ class PyASTBridge(ast.NodeVisitor):
                 isinstance(target_root, ast.Attribute):
                 target_root = target_root.value
 
-            # Handle assignments like `listVar[IDX] = expr`
-            if isinstance(target_root, ast.Name):
+            if not isinstance(target_root, ast.Name):
+                self.emitFatalError("invalid target for assignment", node)
+            if target_root.id in self.symbolTable and \
+                target_root.id not in self.symbolTable.symbolTable[-1]:
+                # The target variable exists in a parent scope;
+                # We can't properly deal with this right now.
+                # I've added a bunch of test cases that would need
+                # to be covered if we try to support this. 
+                self.emitFatalError("variable defined in parent scope cannot be modified", node)
 
-                self.pushPointerValue = True
-                self.visit(target)
-                self.pushPointerValue = False
-                ptrVal = self.popValue()
-                assert cc.PointerType.isinstance(ptrVal.type)
+            # Handle assignment `var = expr`
+            if isinstance(target, ast.Name):
+                if target.id in self.capturedVars:
+                    # Local variable shadows the captured one
+                    del self.capturedVars[target.id]
 
-                self.visit(node.value)
-                # FIXME: WE NEED TO FOLLOW SIMILAR LOGIC AS ABOVE;
-                # LOAD IF NEEDED, CAST TYPE, CHECK WE DON'T CREATE
-                # AN ALIAS OF A REFERENCE IF WE NEED TO LOAD
+                if isinstance(value, ast.AST):
+                    # Retain the variable name for potential children (like `mz(q, registerName=...)`)
+                    self.currentAssignVariableName = target.id
+                    self.pushPointerValue = True
+                    self.visit(value)
+                    value = self.popValue()
+                    self.pushPointerValue = False
+                    self.currentAssignVariableName = None
+                
+                # The target variable has either not been defined
+                # or is defined within the current scope;
+                # we can simply modify the symbol table entry.
+                if storeAsValue(value.type) or cc.PointerType.isinstance(value.type):
+                    # If we have a new pointer, then that pointer
+                    # replaces the current pointer in the symbol table.
+                    return target, value
+                address = cc.AllocaOp(cc.PointerType.get(value.type), TypeAttr.get(value.type)).result
+                cc.StoreOp(value, address)
+                return target, address
 
-                # FIXME: WHAT IF WE HAVE A LIST OF POINTERS? CAN WE HAVE THAT?
-                valueToStore = self.ifPointerThenLoad(self.popValue())
-                cc.StoreOp(valueToStore, ptrVal)
-                return target_root, None
+            # Handle updates of existing variables 
+            # (target is a combination of attribute and subscript)
+            self.pushPointerValue = True
+            self.visit(target)
+            ptrVal = self.popValue()
+            self.pushPointerValue = False
 
-            self.emitFatalError("Invalid target for assignment", node)
+            # We should have a pointer since we requested a pointer.
+            assert cc.PointerType.isinstance(ptrVal.type)
+            itemType = cc.PointerType.getElementType(ptrVal.type)
+            # We prevent the creation of lists and structs that
+            # contain pointers, and prevent obtaining pointers to
+            # quantum types.
+            assert not cc.PointerType.isinstance(itemType)
+            assert not self.isQuantumType(itemType)
+
+            if not isinstance(value, ast.AST):
+                # Can arise if have something like `l[0], l[1] = getTuple()`
+                self.emitFatalError("updating lists or dataclasses as part of deconstruction is not supported", node)
+
+            self.visit(value)
+            itemVal = self.popValue()
+            assert not cc.PointerType.isinstance(itemVal.type)
+            
+            if cc.StructType.isinstance(itemType) and \
+                cc.StructType.getName(itemType) != 'tuple':
+                # We need to give a proper error if we try to assign
+                # a mutable dataclass to an item in a list or a dataclass.
+                # Allowing this would lead to incorrect behavior (i.e.
+                # inconsistent with Python) unless we change the
+                # representation of structs to be like `StdvecType`
+                # where we have a container that is passed by value
+                # wrapping the actual pointer, thus ensuring that the
+                # reference behavior actually works across function
+                # boundaries.
+                if isinstance(value, ast.Name) and \
+                    value.id in self.symbolTable:
+                    self.emitFatalError("only literals may be as items in lists and dataclasses - create a literal using the constructor", node)
+
+            if cc.StdvecType.isinstance(itemType):
+                # For lists that were created inside a kernel, we have to
+                # copy the stack allocated array to the heap when we return such a list.
+                # In the case where the list was created by the caller, we want to/have
+                # to avoid this copy to ensure correct behavior (i.e. matching Python).
+                # If we allow to assign lists passed as function arguments to inner items
+                # of other lists and dataclasses, we lose the information that this list
+                # was allocated by the parent. We hence forbid this.
+                isFunctionArg = BlockArgument.isinstance(itemVal) and \
+                    isinstance(itemVal.owner.owner, func.FuncOp)
+                if isFunctionArg:
+                    self.emitFatalError("lists passed as function arguments may not be assigned to list or dataclass elements - create a new list using list comprehension", node)
+
+            itemVal = self.changeOperandToType(itemType, itemVal, allowDemotion=False)
+            cc.StoreOp(itemVal, ptrVal)
+            # The returned target root has no effect here since no value 
+            # is returns to push to he symbol table. We merely need to make
+            # sure that it is an `ast.Name` object to break the recursion.
+            return target_root, None
 
         if len(node.targets) > 1:
             # I am not entirely sure what kinds of Python language constructs would
@@ -1675,80 +1681,85 @@ class PyASTBridge(ast.NodeVisitor):
                 # to be processed by the caller
                 return
 
-        def process_potential_ptr_types(value):
-            """
-            Helper function to process anything that the parent may assign to, 
-            depending on whether value is a pointer or not.
-            """
-            valType = value.type
-            if cc.PointerType.isinstance(valType):
-                valType = cc.PointerType.getElementType(valType)
+        # Only variable names, subscripts and attributes can
+        # produce modifiable values. Anything else produces an
+        # immutable value. We make sure the visit gets processed
+        # such that the rest of the code can give a proper error.
+        value_root = node.value
+        while isinstance(value_root, ast.Subscript) or \
+            isinstance(value_root, ast.Attribute):
+            value_root = value_root.value
+        if self.pushPointerValue and not isinstance(value_root, ast.Name):
+            self.pushPointerValue = False
+            self.visit(node.value)
+            value = self.popValue()
+            self.pushPointerValue = True
+        else:
+            self.visit(node.value)
+            value = self.popValue()
 
-            if quake.StruqType.isinstance(valType):
-                if self.pushPointerValue:
-                    self.emitFatalError(
-                        "accessing attribute of quantum tuple or dataclass does not produce a modifiable value",
-                        node)
-                # Need to extract value instead of load from compute pointer.
-                structIdx, memberTy = self.getStructMemberIdx(
-                    node.attr, value.type)
-                attr = IntegerAttr.get(self.getIntegerType(32), structIdx)
-                self.pushValue(quake.GetMemberOp(memberTy, value, attr).result)
-                return True
+        valType = value.type
+        if cc.PointerType.isinstance(valType):
+            valType = cc.PointerType.getElementType(valType)
 
-            if cc.PointerType.isinstance(value.type) and \
-                cc.StructType.isinstance(valType):
-                structIdx, memberTy = self.getStructMemberIdx(node.attr, valType)
-                eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
-                                        value, [],
-                                        DenseI32ArrayAttr.get([structIdx
-                                                                ])).result
+        if quake.StruqType.isinstance(valType):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "accessing attribute of quantum tuple or dataclass does not produce a modifiable value",
+                    node)
+            # Need to extract value instead of load from compute pointer.
+            structIdx, memberTy = self.getStructMemberIdx(
+                node.attr, value.type)
+            attr = IntegerAttr.get(self.getIntegerType(32), structIdx)
+            self.pushValue(quake.GetMemberOp(memberTy, value, attr).result)
+            return
 
-                if self.pushPointerValue:
-                    self.pushValue(eleAddr)
-                    return True
+        if cc.PointerType.isinstance(value.type) and \
+            cc.StructType.isinstance(valType):
+            assert self.pushPointerValue
+            structIdx, memberTy = self.getStructMemberIdx(node.attr, valType)
+            eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
+                                    value, [],
+                                    DenseI32ArrayAttr.get([structIdx
+                                                            ])).result
 
-                # Load the value
-                eleAddr = cc.LoadOp(eleAddr).result
+            if self.pushPointerValue:
                 self.pushValue(eleAddr)
-                return True
-
-            elif cc.StructType.isinstance(value.type):
-                if node.attr == 'copy':
-                    # needs to be handled by the caller
-                    return True
-
-                if self.pushPointerValue:
-                    self.emitFatalError("value cannot be modified - use `.copy()` to create a new value that can be modified", node)
-
-                # Handle direct struct value - use ExtractValueOp (more efficient)
-                structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
-                extractedValue = cc.ExtractValueOp(
-                    memberTy, value, [],
-                    DenseI32ArrayAttr.get([structIdx])).result
-
-                self.pushValue(extractedValue)
-                return True
-
-            elif quake.VeqType.isinstance(valType) or \
-                cc.StdvecType.isinstance(valType):
-                return self.__isSupportedVectorFunction(node.attr)
-
-            return False
-
-        # Make sure we preserve pointers for structs
-        if isinstance(node.value,
-                      ast.Name) and node.value.id in self.symbolTable:
-            value = self.symbolTable[node.value.id]
-            processed = process_potential_ptr_types(value)
-            if processed:
                 return
 
-        self.visit(node.value)
-        value = self.popValue()
-        if process_potential_ptr_types(value):
+            eleAddr = cc.LoadOp(eleAddr).result
+            self.pushValue(eleAddr)
             return
-        value = self.ifPointerThenLoad(value)
+
+        if cc.StructType.isinstance(value.type):
+            if node.attr == 'copy':
+                # needs to be handled by the caller
+                return
+
+            if self.pushPointerValue:
+                self.emitFatalError("value cannot be modified - use `.copy()` to create a new value that can be modified", node)
+
+            # Handle direct struct value - use ExtractValueOp (more efficient)
+            structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
+            extractedValue = cc.ExtractValueOp(
+                memberTy, value, [],
+                DenseI32ArrayAttr.get([structIdx])).result
+
+            self.pushValue(extractedValue)
+            return
+
+        if quake.VeqType.isinstance(valType) or \
+            cc.StdvecType.isinstance(valType):
+            if self.__isSupportedVectorFunction(node.attr):
+                if self.pushPointerValue:
+                    self.emitFatalError(
+                        "function call does not produce a modifiable value",
+                        node)
+                return
+       
+        # everything else does not produce a modifiable value
+        if self.pushPointerValue:
+            self.emitFatalError("attribute expression does not produce a modifiable value")
 
         if ComplexType.isinstance(value.type):
             if (node.attr == 'real'):
@@ -2335,7 +2346,6 @@ class PyASTBridge(ast.NodeVisitor):
                         f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
                         node)
 
-                # Alloca the struct
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
                     for _, v in annotations.items()
@@ -2374,16 +2384,12 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(quake.MakeStruqOp(structTy, ctorArgs).result)
                     return
 
-                stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
-                                        TypeAttr.get(structTy)).result
-
-                # loop over each type and `compute_ptr` / store
-                for i, ty in enumerate(structTys):
-                    eleAddr = cc.ComputePtrOp(
-                        cc.PointerType.get(ty), stackSlot, [],
-                        DenseI32ArrayAttr.get([i], context=self.ctx)).result
-                    cc.StoreOp(ctorArgs[i], eleAddr)
-                self.pushValue(stackSlot)
+                struct = cc.UndefOp(structTy)
+                for idx, element in enumerate(ctorArgs):
+                    struct = cc.InsertValueOp(
+                        structTy, struct, element,
+                        DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+                self.pushValue(struct)
                 return
 
             else:
@@ -2411,9 +2417,12 @@ class PyASTBridge(ast.NodeVisitor):
 
                 if cc.StructType.isinstance(funcVal.type):
                     self.__groupValues(node.args, [0])
-                    slot = cc.AllocaOp(cc.PointerType.get(funcVal.type), TypeAttr.get(funcVal.type)).result
-                    cc.StoreOp(funcVal, slot)                    
-                    self.pushValue(slot)
+                    if self.pushPointerValue:
+                        slot = cc.AllocaOp(cc.PointerType.get(funcVal.type), TypeAttr.get(funcVal.type)).result
+                        cc.StoreOp(funcVal, slot)                    
+                        self.pushValue(slot)
+                        return
+                    self.pushValue(funcVal)
                     return
 
                 self.emitFatalError(f'unsupported function {node.func.attr}',
@@ -3001,10 +3010,6 @@ class PyASTBridge(ast.NodeVisitor):
                 "CUDA-Q only supports single generators for list comprehension.",
                 node)
 
-        # Let's handle the following `listVar` types
-        # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
-        # or
-        # `    %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>`
         self.visit(node.generators[0].iter)
         iterable = self.ifPointerThenLoad(self.popValue())
         if cc.StdvecType.isinstance(iterable.type):
@@ -3181,9 +3186,8 @@ class PyASTBridge(ast.NodeVisitor):
                             return quake.StruqType.getNamed(
                                 pyval.func.id, structTys)
                         else:
-                            return cc.PointerType.get(
-                                cc.StructType.getNamed(pyval.func.id,
-                                                       structTys))
+                            return cc.StructType.getNamed(pyval.func.id,
+                                                       structTys)
                 elif isinstance(pyval.func, ast.Attribute) and \
                     (pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj'):
                     process_void_list()
@@ -3233,7 +3237,7 @@ class PyASTBridge(ast.NodeVisitor):
         def bodyBuilder(iterVar):
             self.symbolTable.pushScope()
             if quake.VeqType.isinstance(iterable.type):
-                loadedEle = quake.ExtractRefOp(iterTy,
+                iterVal = quake.ExtractRefOp(iterTy,
                                                iterable,
                                                -1,
                                                index=iterVar).result
@@ -3241,17 +3245,35 @@ class PyASTBridge(ast.NodeVisitor):
                 eleAddr = cc.ComputePtrOp(
                     cc.PointerType.get(iterTy), iterable, [iterVar],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                loadedEle = cc.LoadOp(eleAddr).result
+                iterVal = cc.LoadOp(eleAddr).result
+
             # We don't do support anything within list comprehensions that would
             # require being careful about assigning references, so simply
             # adding them to the symbol table is enough for list comprehension.
-            self.__deconstructAssignment(node.generators[0].target, loadedEle)
+            self.__deconstructAssignment(node.generators[0].target, iterVal)
             self.visit(node.elt)
-            result = self.popValue()
+            element = self.popValue()
+
+            # We do need to be careful, however, about validating the list elements.
+            # FIXME: split this check out into a helper function
+            assert not cc.PointerType.isinstance(element.type)
+            if cc.StructType.isinstance(element.type) and \
+                cc.StructType.getName(element.type) != 'tuple':
+                if isinstance(node.elt, ast.Name) and \
+                    node.elt.id in self.symbolTable and \
+                    node.elt.id not in self.symbolTable.symbolTable[-1]:
+                    self.emitFatalError("only literals may be as list elements - create a literal using the constructor", node)
+            if cc.StdvecType.isinstance(element.type):
+                isFunctionArg = BlockArgument.isinstance(element) and \
+                    isinstance(element.owner.owner, func.FuncOp)
+                if isFunctionArg:
+                    self.emitFatalError("lists passed as function arguments may used as list elements - create a new list using list comprehension", node)
+
             listValueAddr = cc.ComputePtrOp(
                 cc.PointerType.get(listElemTy), listValue, [iterVar],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-            cc.StoreOp(result, listValueAddr)
+            self.changeOperandToType(listElemTy, element, allowDemotion=False)
+            cc.StoreOp(element, listValueAddr)
             self.symbolTable.popScope()
 
         self.createInvariantForLoop(bodyBuilder, iterableSize)
@@ -3287,14 +3309,28 @@ class PyASTBridge(ast.NodeVisitor):
                 listElementValues.append(evalElem)
             else:
                 self.visit(element)
-                # We do not store lists of pointers
-                evalElem = self.ifPointerThenLoad(self.popValue())
+                evalElem = self.popValue()
                 if self.isQuantumType(
                         evalElem.type) and not quake.RefType.isinstance(
                             evalElem.type):
                     self.emitFatalError(
                         "list must not contain a qvector or quantum struct - use `*` operator to unpack qvectors",
                         node)
+                # We do not allow to create structs that store pointers.
+                # See comments on `visit_Assign` as well as test case for
+                # more context as to why we can't allow that.
+                # FIXME: split this check out into a helper function
+                assert not cc.PointerType.isinstance(evalElem.type)
+                if cc.StructType.isinstance(evalElem.type) and \
+                    cc.StructType.getName(evalElem.type) != 'tuple':
+                    if isinstance(element, ast.Name) and \
+                        element.id in self.symbolTable:
+                        self.emitFatalError("only literals may be as list elements - create a literal using the constructor", node)
+                if cc.StdvecType.isinstance(evalElem.type):
+                    isFunctionArg = BlockArgument.isinstance(evalElem) and \
+                        isinstance(evalElem.owner.owner, func.FuncOp)
+                    if isFunctionArg:
+                        self.emitFatalError("lists passed as function arguments may used as list elements - create a new list using list comprehension", node)
                 listElementValues.append(evalElem)
 
         numQuantumTs = sum(
@@ -3473,8 +3509,22 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
 
-        self.visit(node.value)
-        var = self.ifPointerThenLoad(self.popValue())
+        # Only variable names, subscripts and attributes can
+        # produce modifiable values. Anything else produces an
+        # immutable value. We make sure the visit gets processed
+        # such that the rest of the code can give a proper error.
+        value_root = node.value
+        while isinstance(value_root, ast.Subscript) or \
+            isinstance(value_root, ast.Attribute):
+            value_root = value_root.value
+        if self.pushPointerValue and not isinstance(value_root, ast.Name):
+            self.pushPointerValue = False
+            self.visit(node.value)
+            var = self.popValue()
+            self.pushPointerValue = True
+        else:
+            self.visit(node.value)
+            var = self.popValue()
 
         pushPtr = self.pushPointerValue
         self.pushPointerValue = False
@@ -3535,10 +3585,22 @@ class PyASTBridge(ast.NodeVisitor):
 
         # We allow subscripts into `Structs`, but only if we don't need a pointer
         # (i.e. no updating of Tuples).
+        if cc.PointerType.isinstance(var.type):
+            varType = cc.PointerType.getElementType(var.type)
+            if cc.StructType.isinstance(varType):
+                # We should only ever get a struct pointer if we explicitly asked for it.
+                assert self.pushPointerValue == True
+                if self.pushPointerValue:
+                    self.emitFatalError(
+                        "indexing into tuple or dataclass does not produce a modifiable value", node)
+
         if cc.StructType.isinstance(var.type):
             if self.pushPointerValue:
+                structName = cc.StructType.getName(var.type)
+                if structName == 'tuple':
+                    self.emitFatalError("tuple value cannot be modified", node)
                 self.emitFatalError(
-                    "indexing into tuple or dataclass does not produce a modifiable value",
+                    f"{structName} value cannot be modified - use `.copy()` to create a new value that can be modified",
                     node)
 
             memberTys = cc.StructType.getTypes(var.type)
@@ -3963,6 +4025,22 @@ class PyASTBridge(ast.NodeVisitor):
         result = self.changeOperandToType(self.knownResultType,
                                           result,
                                           allowDemotion=True)
+        
+        def getSize(ty):
+            fp_width = lambda t: 4 if F32Type.isinstance(t) else 8
+            if cc.StructType.isinstance(ty):
+                return cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(ty))
+            if ComplexType.isinstance(ty):
+                fType = ComplexType(ty).element_type
+                return self.getConstantInt(2 * fp_width(fType))
+            elif F32Type.isinstance(ty) or F64Type.isinstance(ty):
+                return self.getConstantInt(fp_width(ty))
+            elif IntegerType.isinstance(ty):
+                width = IntegerType(ty).width
+                return self.getConstantInt((width + 7) // 8)
+            # FIXME: revisit this
+            return self.getConstantInt(8)
+
         def contains_list(ty):
             if cc.StdvecType.isinstance(ty):
                 return True
@@ -3974,18 +4052,11 @@ class PyASTBridge(ast.NodeVisitor):
         def copy_list_to_heap(value):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
-            eleTy = cc.StdvecType.getElementType(value.type)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             arrTy = cc.ArrayType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(arrTy)
             resBuf = cc.StdvecDataOp(ptrArrTy, value).result
-            # FIXME: ...
-            if ComplexType.isinstance(eleTy):
-                eleSize = self.getConstantInt(16)
-            elif cc.StructType.isinstance(eleTy):
-                eleSize = cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(eleTy))
-            else:
-                eleSize = self.getConstantInt(8)
+            eleSize = getSize(cc.StdvecType.getElementType(value.type))
             dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
@@ -4009,7 +4080,10 @@ class PyASTBridge(ast.NodeVisitor):
         # is indeed a reference type passed as argument to the function,
         # then we need to make sure to keep that reference as is to
         # ensure correct behavior (i.e. behavior consistent with Python).
-        # The logic below handles this with the commented caveat(s).
+        # The logic below handles this, with the caveat that 
+        # 1. we rely on the fact that we can't have pointer types in the value
+        # 2. inner lists will always be copied; assignment of lists passed
+        #    as arguments to list elements must be prevented. 
         def create_return_value(res):
             if cc.StdvecType.isinstance(res.type):                
                 eleTy = cc.StdvecType.getElementType(res.type) # iterty
@@ -4030,18 +4104,15 @@ class PyASTBridge(ast.NodeVisitor):
                             cc.PointerType.get(eleTy), iterable, [iterVar],
                             DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
                         loadedEle = cc.LoadOp(eleAddr).result
-                        # We don't do support anything within list comprehensions that would
                         element = create_return_value(loadedEle)
                         cc.StoreOp(element, eleAddr)
                     self.createInvariantForLoop(bodyBuilder, size)
                     
                 isFunctionArg = BlockArgument.isinstance(res) and \
                     isinstance(res.owner.owner, func.FuncOp)
-                # FIXME: VECTORS OF STRUCTS WON'T PROPERLY PRESERVE REFERENCES TO STRUCT
-                # FIXME: CHECK IF WE CAN HAVE A LIST OF LISTS - 
-                # IF SO, SAME PROBLEM AS FOR STRUCTS CONTAINING LISTS
                 return res if isFunctionArg else copy_list_to_heap(res)
             if not cc.StructType.isinstance(res.type):
+                assert not cc.PointerType.isinstance(res.type)
                 return res
             return self.__copyStructAndConvertElements(
                 res, conversion = lambda _, v: create_return_value(v))
@@ -4062,19 +4133,29 @@ class PyASTBridge(ast.NodeVisitor):
         elementValues = self.popAllValues(len(node.elts))
         elementValues.reverse()
 
-        # We do not store structs of pointers
-        elementValues = [
-            cc.LoadOp(ele).result
-            if cc.PointerType.isinstance(ele.type) else ele
-            for ele in elementValues
-        ]
-
         structTys = [v.type for v in elementValues]
         structTy = mlirTryCreateStructType(structTys, context=self.ctx)
         if structTy is None:
             self.emitFatalError(
                 "hybrid quantum-classical data types and nested quantum structs are not allowed",
                 node)
+
+        # We do not allow to create structs that store pointers.
+        # See comments on `visit_Assign` as well as test case for
+        # more context as to why we can't allow that.
+        for idx, value in enumerate(elementValues):
+            # FIXME: split this check out into a helper function
+            assert not cc.PointerType.isinstance(value.type)
+            if cc.StructType.isinstance(value.type) and \
+                cc.StructType.getName(value.type) != 'tuple':
+                if isinstance(node.elts[idx], ast.Name) and \
+                    node.elts[idx].id in self.symbolTable:
+                    self.emitFatalError("only literals may be as items in tuples - create a literal using the constructor", node)
+            if cc.StdvecType.isinstance(value.type):
+                isFunctionArg = BlockArgument.isinstance(value) and \
+                    isinstance(value.owner.owner, func.FuncOp)
+                if isFunctionArg:
+                    self.emitFatalError("lists passed as function arguments may used as tuple elements - create a new list using list comprehension", node)
 
         if quake.StruqType.isinstance(structTy):
             self.pushValue(quake.MakeStruqOp(structTy, elementValues).result)
