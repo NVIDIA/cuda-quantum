@@ -183,7 +183,10 @@ def _infer_best_package() -> str:
     """
     # Find the existing wheel installation
     installed = []
-    for pkg in ['cuda-quantum', 'cuda-quantum-cu11', 'cuda-quantum-cu12', 'cuda-quantum-cu13']:
+    for pkg in [
+            'cuda-quantum', 'cuda-quantum-cu11', 'cuda-quantum-cu12',
+            'cuda-quantum-cu13'
+    ]:
         _log(f"Looking for existing installation of {pkg}.")
         if _check_package_installed(pkg):
             installed.append(pkg)
