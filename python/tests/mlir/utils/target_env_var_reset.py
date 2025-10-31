@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../ pytest -rP  %s
+# RUN: PYTHONPATH=../../.. pytest -rP  %s
 
 import os
 
@@ -17,44 +17,11 @@ import pytest
 import cudaq
 
 
-def test_default_target():
-    """Tests the default target set by environment variable"""
+def test_env_var_update():
+    """Tests that if the environment variable does not take effect on-the-fly : Builder mode"""
 
-    assert ("density-matrix-cpu" == cudaq.get_target().name)
-
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(2)
-    kernel.h(qubits[0])
-    kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
-
-    result = cudaq.sample(kernel)
-    result.dump()
-    assert '00' in result
-    assert '11' in result
-
-
-def test_env_var_with_emulate():
-    """Tests the target when emulating a hardware backend"""
-
-    assert ("density-matrix-cpu" == cudaq.get_target().name)
-    cudaq.set_target("quantinuum", emulate=True)
-    assert ("quantinuum" == cudaq.get_target().name)
-
-    kernel = cudaq.make_kernel()
-    qubits = kernel.qalloc(2)
-    kernel.h(qubits[0])
-    kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
-
-    result = cudaq.sample(kernel)
-    result.dump()
-    assert '00' in result
-    assert '11' in result
-
-
-def test_target_override():
-    """Tests the target set by environment variable is overridden by user setting"""
+    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "qpp-cpu"
+    assert ("qpp-cpu" != cudaq.get_target().name)
 
     cudaq.set_target("qpp-cpu")
     assert ("qpp-cpu" == cudaq.get_target().name)
@@ -70,16 +37,36 @@ def test_target_override():
     assert '00' in result
     assert '11' in result
 
+    cudaq.reset_target()
+    assert ("density-matrix-cpu" == cudaq.get_target().name)
+
+
+def test_env_var_update_kernel():
+    """Tests that if the environment variable does not take effect on-the-fly : MLIR mode"""
+
+    @cudaq.kernel
+    def simple():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        mz(qubits)
+
+    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "qpp-cpu"
+    assert ("qpp-cpu" != cudaq.get_target().name)
+
+    cudaq.set_target("qpp-cpu")
+    assert ("qpp-cpu" == cudaq.get_target().name)
+
+    result = cudaq.sample(simple)
+    result.dump()
+    assert '00' in result
+    assert '11' in result
+
+    cudaq.reset_target()
+    assert ("density-matrix-cpu" == cudaq.get_target().name)
+
 
 os.environ.pop("CUDAQ_DEFAULT_SIMULATOR")
-
-
-# This isn't really an environment variable test, but version checking could
-# loosely be interpreted as "environment" checking, so hence placing the test
-# here.
-def test_version():
-    assert "CUDA Quantum Version" in cudaq.__version__
-
 
 # leave for gdb debugging
 if __name__ == "__main__":

@@ -144,6 +144,30 @@ def test_sample_in_choice():
         cudaq.estimate_resources(mykernel, choice)
 
 
+def test_loop_with_args():
+
+    @cudaq.kernel
+    def callee(q: cudaq.qview, other_args: list[float]):
+        h(q[0])
+        for i, arg in enumerate(other_args):
+            rx(arg, q[i])
+
+    @cudaq.kernel
+    def caller(n: int, angles: list[float]):
+        q = cudaq.qvector(n)
+        callee(q, angles)
+        mz(q)
+
+    counts = cudaq.estimate_resources(caller, 3, [1.0, 2.0, 3.0])
+    assert counts.count("rx") == 3
+    assert counts.count("h") == 1
+
+    cudaq.set_target("qci", emulate=True)
+    counts = cudaq.estimate_resources(caller, 3, [4.0, 5.0, 6.0])
+    assert counts.count("rx") == 3
+    assert counts.count("h") == 1
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
