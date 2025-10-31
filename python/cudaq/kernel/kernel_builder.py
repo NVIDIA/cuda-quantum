@@ -1399,7 +1399,7 @@ class PyKernel(object):
             if self.getIntegerType(1) != conditional.type:
                 # not equal to 0, then compare with 1
                 condPred = IntegerAttr.get(self.getIntegerType(), 1)
-                conditional = arith.CmpIOp(condPred, condition,
+                conditional = arith.CmpIOp(condPred, conditional,
                                            self.getConstantInt(0)).result
 
             ifOp = cc.IfOp([], conditional, [])
