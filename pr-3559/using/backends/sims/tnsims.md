@@ -1911,8 +1911,8 @@ following of environment variables:
 
 -   **\`CUDAQ_TENSORNET_FIND_THREADS=X\`**: Used to control the number
     of threads on the host used for path-finding. The default value is
-    half of the available CPU hardware threads. For processors with 1 HW
-    thread per CPU core (no [`SMT`{.code .docutils .literal
+    half of the available CPU hardware threads. For processors with 1
+    hardware thread per CPU core (no [`SMT`{.code .docutils .literal
     .notranslate}]{.pre}), increasing this to equal the number of CPU
     cores can improve performance.
 
@@ -1941,8 +1941,10 @@ following of environment variables:
 ::: {.admonition .note}
 Note
 
-Setting the CUDAQ_TENSORNET\_\* environment variables will override any
-corresponding environment variables used by the cuTensorNet library.
+Setting the [`CUDAQ_TENSORNET_*`{.code .docutils .literal
+.notranslate}]{.pre} environment variables will override any
+corresponding environment variables used by the [`cuTensorNet`{.code
+.docutils .literal .notranslate}]{.pre} library.
 :::
 
 ::: {.admonition .note}
