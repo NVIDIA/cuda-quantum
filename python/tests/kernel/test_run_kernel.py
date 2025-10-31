@@ -883,7 +883,7 @@ def test_modify_struct():
         # would be that t is modified also in the caller without
         # having to return it. We hence give an error to make it
         # clear that changes to structs don't propagate past
-        # past function boundaries.
+        # function boundaries.
         t.x = 42
         return t
 
@@ -893,13 +893,13 @@ def test_modify_struct():
     assert '(offending source -> t.x)' in repr(e)
 
     @cudaq.kernel
-    def simple_strucA(arg: MyClass) -> MyClass:
+    def simple_structA(arg: MyClass) -> MyClass:
         q = cudaq.qubit()
         t = arg.copy()
         t.x = 42
         return t
 
-    results = cudaq.run(simple_strucA, MyClass(-13, True), shots_count=2)
+    results = cudaq.run(simple_structA, MyClass(-13, True), shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == MyClass(42, True)
@@ -912,7 +912,7 @@ def test_modify_struct():
         z: int
 
     @cudaq.kernel
-    def kerneB(arg: Foo) -> Foo:
+    def kernelB(arg: Foo) -> Foo:
         q = cudaq.qubit()
         t = arg.copy()
         t.z = 100
@@ -920,7 +920,7 @@ def test_modify_struct():
         t.x = True
         return t
 
-    results = cudaq.run(kerneB, Foo(False, 6.28, 17), shots_count=2)
+    results = cudaq.run(kernelB, Foo(False, 6.28, 17), shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == Foo(True, 3.14, 100)

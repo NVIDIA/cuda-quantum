@@ -927,13 +927,13 @@ def test_modify_struct():
         y: bool
 
     @cudaq.kernel
-    def simple_strucA(arg: MyClass) -> MyClass:
+    def simple_structA(arg: MyClass) -> MyClass:
         q = cudaq.qubit()
         t = arg.copy()
         t.x = 42
         return t
 
-    results = cudaq.run_async(simple_strucA, MyClass(-13, True),
+    results = cudaq.run_async(simple_structA, MyClass(-13, True),
                               shots_count=2).get()
     print(results)
     assert len(results) == 2
@@ -947,7 +947,7 @@ def test_modify_struct():
         z: int
 
     @cudaq.kernel
-    def kerneB(arg: Foo) -> Foo:
+    def kernelB(arg: Foo) -> Foo:
         q = cudaq.qubit()
         t = arg.copy()
         t.z = 100
@@ -955,7 +955,7 @@ def test_modify_struct():
         t.x = True
         return t
 
-    results = cudaq.run_async(kerneB, Foo(False, 6.28, 17), shots_count=2).get()
+    results = cudaq.run_async(kernelB, Foo(False, 6.28, 17), shots_count=2).get()
     print(results)
     assert len(results) == 2
     assert results[0] == Foo(True, 3.14, 100)
