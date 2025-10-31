@@ -117,11 +117,11 @@ cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
-if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
-  echo "CUDA version requirement not satisfied (required: >= 11.8, got: $cuda_version)."
+if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "12" ]; then
+  echo "CUDA version requirement not satisfied (required: >= 12.0, got: $cuda_version)."
   echo "GPU-accelerated components will be omitted from the build."
   unset cuda_driver
-else 
+else
   echo "CUDA version $cuda_version detected."
   if [ -z "$CUQUANTUM_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cuquantum-python-cu$cuda_major)" ]; then
     CUQUANTUM_INSTALL_PREFIX="$(pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cuquantum"

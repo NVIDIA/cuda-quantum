@@ -37,23 +37,14 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
     bash /scripts/build_llvm.sh -c Release -v 
 
-# Patch the pyproject.toml file to change the CUDA version if needed
-RUN cd cuda-quantum && sed -i "s/README.md.in/README.md/g" pyproject.toml && \
-    if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=12.0 && \
-        cusolver_version=11.4 && \
-        cuda_runtime_version=12.0 && \
-        cuda_nvrtc_version=12.0 && \
-        cupy_version=13.4.1 && \
-        sed -i "s/-cu13/-cu12/g" pyproject.toml && \
-        sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
-        sed -i -E "s/cupy-cuda[0-9]+x/cupy-cuda12x/g" pyproject.toml && \
-        sed -i -E "s/(cupy-cuda[0-9]+x? ~= )[0-9\.]*/\1${cupy_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_nvrtc_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml; \
-    fi
+# Configure the build based on the CUDA version
+RUN cd /cuda-quantum && \
+    . scripts/configure_build.sh && \
+    case "${CUDA_VERSION%%.*}" in \
+      12) cp pyproject.toml.cu12 pyproject.toml || true ;; \
+      13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
+      *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
+    esac
 
 # Create the README
 RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
