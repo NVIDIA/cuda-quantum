@@ -222,9 +222,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
 
     if (!libHandle) {
       char *error_msg = dlerror();
-      CUDAQ_INFO("Failed to load '{}': ERROR '{}'",
-                  p.string(),
-                  (error_msg ? std::string(error_msg) : "unknown."));
+      CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
+                 (error_msg ? std::string(error_msg) : "unknown."));
     }
   }
 
