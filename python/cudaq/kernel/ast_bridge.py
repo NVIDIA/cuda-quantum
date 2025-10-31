@@ -510,8 +510,10 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StdvecType.isinstance(operand.type):
                 eleTy = cc.StdvecType.getElementType(ty)
                 return self.__copyVectorAndConvertElements(
-                    operand, eleTy, allowDemotion=allowDemotion)
-        
+                    operand, eleTy, 
+                    allowDemotion=allowDemotion, 
+                    alwaysCopy=False)
+
         if (cc.StructType.isinstance(ty)):
             if cc.StructType.isinstance(operand.type):
                 expectedEleTys = cc.StructType.getTypes(ty)
@@ -777,58 +779,43 @@ class PyASTBridge(ast.NodeVisitor):
     def __copyVectorAndConvertElements(self,
                                     source,
                                     targetEleType,
-                                    allowDemotion=False):
-        if not cc.PointerType.isinstance(source.type):
-            if cc.StdvecType.isinstance(source.type):
-                # Exit early if no copy is needed to avoid an unneeded store.
-                sourceEleType = cc.StdvecType.getElementType(source.type)
-                if (sourceEleType == targetEleType):
-                    return source
+                                    allowDemotion = False,
+                                    alwaysCopy = False):
+        '''
+        Creates a new vector with the requested element type.
+        Returns the original vector if the requested element type already matches
+        current element type unless `alwaysCopy` is set to True.
+        If `alwaysCopy` is set to True, return a shallow copy of the vector.
+        '''
 
-        sourcePtr = source
-        if not cc.PointerType.isinstance(sourcePtr.type):
-            sourcePtr = self.ifNotPointerThenStore(sourcePtr)
+        if not cc.StdvecType.isinstance(source.type):
+            self.emitFatalError(f"expected vector type to copy and cast elements but received {source.type}", self.currentNode)
+        sourceEleType = cc.StdvecType.getElementType(source.type)
 
-        sourceType = cc.PointerType.getElementType(sourcePtr.type)
-        if not cc.StdvecType.isinstance(sourceType):
-            raise RuntimeError(
-                f"expected vector type to copy and cast elements but received {sourceType}"
-            )
+        if not alwaysCopy and sourceEleType == targetEleType:
+            return source
 
-        sourceEleType = cc.StdvecType.getElementType(sourceType)
-        if (sourceEleType == targetEleType):
-            return sourcePtr
-
-        sourceArrType = cc.ArrayType.get(sourceEleType)
-        sourceElePtrTy = cc.PointerType.get(sourceEleType)
-        sourceArrElePtrTy = cc.PointerType.get(sourceArrType)
-        sourceValue = self.ifPointerThenLoad(sourcePtr)
-        sourceDataPtr = cc.StdvecDataOp(sourceArrElePtrTy, sourceValue).result
-        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
-
-        targetElePtrType = cc.PointerType.get(targetEleType)
-        targetTy = cc.ArrayType.get(targetEleType)
-        targetArrElePtrTy = cc.PointerType.get(targetTy)
-        targetVecTy = cc.StdvecType.get(targetEleType)
-        targetPtr = cc.AllocaOp(targetArrElePtrTy,
+        sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
+        sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
+        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), source).result
+        targetPtr = cc.AllocaOp(cc.PointerType.get(cc.ArrayType.get(targetEleType)),
                                 TypeAttr.get(targetEleType),
                                 seqSize=sourceSize).result
 
         rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
-
         def bodyBuilder(iterVar):
-            eleAddr = cc.ComputePtrOp(sourceElePtrTy, sourceDataPtr, [iterVar],
+            eleAddr = cc.ComputePtrOp(cc.PointerType.get(sourceEleType), sourceDataPtr, [iterVar],
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
             castedEle = self.changeOperandToType(targetEleType,
                                                  loadedEle,
                                                  allowDemotion=allowDemotion)
-            targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
+            targetEleAddr = cc.ComputePtrOp(cc.PointerType.get(targetEleType), targetPtr,
                                             [iterVar], rawIndex).result
             cc.StoreOp(castedEle, targetEleAddr)
 
         self.createInvariantForLoop(bodyBuilder, sourceSize)
-        return cc.StdvecInitOp(targetVecTy, targetPtr, length=sourceSize).result
+        return cc.StdvecInitOp(cc.StdvecType.get(targetEleType), targetPtr, length=sourceSize).result
 
     def __insertDbgStmt(self, value, dbgStmt):
         """
@@ -890,7 +877,6 @@ class PyASTBridge(ast.NodeVisitor):
         func.CallOp(printFunc, [strLit, value])
         return
 
-    # FIXME: reorganize the vector and struct helpers
     def __load_vector_element(self, vector, index):
         """
         Load an element from a vector or array at the given index.
@@ -1080,7 +1066,6 @@ class PyASTBridge(ast.NodeVisitor):
                         IntegerAttr.get(self.getIntegerType(32), idx)).result
                 elif cc.StdvecType.isinstance(value.type):
                     # We will get a runtime error for out of bounds access
-                    # FIXME: WRITE HELPER FUNCTION FOR GET VECTOR ELEMENT PTR
                     eleTy = cc.StdvecType.getElementType(value.type)
                     elePtrTy = cc.PointerType.get(eleTy)
                     arrTy = cc.ArrayType.get(eleTy)
@@ -1513,7 +1498,7 @@ class PyASTBridge(ast.NodeVisitor):
         the symbol table.
         """
 
-        # FIXME: measure res types are also stored as vals
+        # FIXME: Measurement results are stored as values
         # to preserve their origin from discriminate.
         # This should be revised when we introduce the proper
         # type distinction.
@@ -2380,8 +2365,6 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             elif node.func.id == 'list':
-                # FIXME: To match python behavior, we should create a copy
-                # if the arg is in the symbol table...
                 value = self.__groupValues(node.args, [1])
                 valueTy = value.type
                 if cc.PointerType.isinstance(valueTy):
@@ -2389,6 +2372,16 @@ class PyASTBridge(ast.NodeVisitor):
                 if not cc.StdvecType.isinstance(valueTy):
                     self.emitFatalError('Invalid list() cast requested.', node)
 
+                # To match python behavior, we have to create a copy
+                # if the argument is not an `rvalue`.
+                # With the restrictions we impose on container elements
+                # (see __validate_container_entry), it is sufficient to
+                # check whether the argument is an existing variable.
+                if isinstance(node.args[0], ast.Name):
+                    eleTy = cc.StdvecType.getElementType(valueTy)
+                    copy = self.__copyVectorAndConvertElements(value, eleTy, alwaysCopy=True)
+                    self.pushValue(copy)
+                    return
                 self.pushValue(value)
                 return
 
@@ -2610,10 +2603,21 @@ class PyASTBridge(ast.NodeVisitor):
                             else:
                                 self.emitFatalError(f"unknown keyword {keyword}", node)
 
+                        # To match python behavior, we have to create a copy
+                        # if the argument is not an `rvalue`.
+                        # With the restrictions we impose on container elements
+                        # (see __validate_container_entry), it is sufficient to
+                        # check whether the argument is an existing variable.
+                        if isinstance(node.args[0], ast.Name):
+                            eleTy = cc.StdvecType.getElementType(valueTy)
+                            copy = self.__copyVectorAndConvertElements(
+                                value, dTy, allowDemotion=True, alwaysCopy=True)
+                            self.pushValue(copy)
+                            return
                         # Convert the vector to the provided data type if needed.
                         self.pushValue(
                             self.__copyVectorAndConvertElements(
-                                value, dTy, allowDemotion=True))
+                                value, dTy, allowDemotion=True, alwaysCopy=False))
                         return
 
                     value = self.ifPointerThenLoad(value)
@@ -2721,7 +2725,6 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(self.simulationDType())
                         return
 
-                    # FIXME: CHECK POINTER USAGE HERE
                     if node.func.attr == 'amplitudes':
                         value = self.__groupValues(node.args, [1])
 
