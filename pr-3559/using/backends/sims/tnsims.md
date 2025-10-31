@@ -1888,12 +1888,6 @@ following of environment variables:
     (Prepare) and contraction stage (Compute or Sample) are output for
     the user.
 
--   **\`CUDAQ_TENSORNET_FIND_THREADS=X\`**: Used to control the number
-    of threads on the host used for path-finding. The default value is
-    half of the available CPU HW threads. For processors with 1 HW
-    thread per CPU core (no SMT), increasing this to equal the number of
-    CPU cores can improve performance.
-
 -   **\`CUDAQ_TENSORNET_CONTROLLED_RANK=X\`**: Specify the number of
     controlled qubits whereby the full tensor body of the controlled
     gate is expanded. If the number of controlled qubits is greater than
@@ -1915,6 +1909,13 @@ following of environment variables:
     increase the path-finding time, but can decrease the contraction
     time if a better quality path is found (and vice versa).
 
+-   **\`CUDAQ_TENSORNET_FIND_THREADS=X\`**: Used to control the number
+    of threads on the host used for path-finding. The default value is
+    half of the available CPU hardware threads. For processors with 1 HW
+    thread per CPU core (no [`SMT`{.code .docutils .literal
+    .notranslate}]{.pre}), increasing this to equal the number of CPU
+    cores can improve performance.
+
 -   **\`CUDAQ_TENSORNET_FIND_LIMIT=X\`**: Set this environment variable
     to [`TRUE`{.code .docutils .literal .notranslate}]{.pre}
     ([`ON`{.code .docutils .literal .notranslate}]{.pre}) or
@@ -1926,15 +1927,16 @@ following of environment variables:
     the time limit. Default is [`ON`{.code .docutils .literal
     .notranslate}]{.pre}.
 
--   **\`CUDAQ_TENSORNET_DETERMINISTIC=X\`**: Set this environment
+-   **\`CUDAQ_TENSORNET_FIND_DETERMINISTIC=X\`**: Set this environment
     variable to [`TRUE`{.code .docutils .literal .notranslate}]{.pre}
     ([`ON`{.code .docutils .literal .notranslate}]{.pre}) or
     [`FALSE`{.code .docutils .literal .notranslate}]{.pre} ([`OFF`{.code
     .docutils .literal .notranslate}]{.pre}) to enable or disable
-    deterministic results as controlled by the CUDA-Q set_random_seed()
-    function. When on, the number of path-finding threads is limited to
-    1 and therefore this setting can significantly decrease performance.
-    Default is [`OFF`{.code .docutils .literal .notranslate}]{.pre}.
+    deterministic path-finding as controlled by the CUDA-Q
+    set_random_seed() function. When on, the number of path-finding
+    threads is limited to 1 and therefore this setting can significantly
+    decrease performance. Default is [`OFF`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
 ::: {.admonition .note}
 Note

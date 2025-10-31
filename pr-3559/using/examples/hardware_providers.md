@@ -3200,7 +3200,7 @@ C++
     // export QCI_AUTH_TOKEN="your token here"
     // ```
     //
-    // Then run against AquSim with:
+    // Then run against the Seeker or AquSim with:
     // ```
     // ./teleport.x
     // ```

@@ -1814,7 +1814,7 @@ First, we make sure we have a compatible version of [`genQC`{.docutils
 
 ::: {.input_area .highlight-none .notranslate}
 ::: highlight
-    !pip install genQC==0.2.3 torch --break-system-packages -q
+    !pip install genQC==0.2.3 huggingface-hub==0.36.0 torch --break-system-packages -q
 :::
 :::
 :::

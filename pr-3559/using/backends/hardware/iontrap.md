@@ -2075,6 +2075,27 @@ checker, we may receive this warning message:
 To see a complete example, take a look at [[Quantinuum examples]{.std
 .std-ref}](../../examples/hardware_providers.html#quantinuum-examples){.reference
 .internal}.
+
+::: {.admonition .note}
+Note
+
+In local emulation mode ([`emulate`{.docutils .literal
+.notranslate}]{.pre} flag set to [`True`{.docutils .literal
+.notranslate}]{.pre}), the program will be executed on the [[default
+simulator]{.std
+.std-ref}](../sims/svsims.html#default-simulator){.reference .internal}.
+The environment variable [`CUDAQ_DEFAULT_SIMULATOR`{.docutils .literal
+.notranslate}]{.pre} can be used to change the emulation simulator.
+
+For example, the simulation floating point accuracy and/or the
+simulation capabilities (e.g., maximum number of qubits, supported
+quantum gates), depend on the selected simulator.
+
+Any environment variables must be set prior to setting the target or
+running "[`import`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`cudaq`{.code .docutils .literal .notranslate}]{.pre}".
+:::
 :::
 :::
 :::
