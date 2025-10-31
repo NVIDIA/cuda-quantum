@@ -49,6 +49,9 @@ RUN if [ -x "$(command -v pip)" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \
     fi
+RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
+    pip install nvidia-curand-cu${cuda_version_suffix}
+
 # Make sure that apt-get remains updated at the end!;
 # If we don't do that, then apt-get will get confused when some CUDA
 # components are already installed but not all of them.
