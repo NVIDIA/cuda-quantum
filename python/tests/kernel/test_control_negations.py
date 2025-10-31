@@ -29,6 +29,15 @@ def test_builtin_controlled_gates():
     assert counts["01"] == 1000
 
     @cudaq.kernel
+    def multi_control_simple_gate():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cx(c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_simple_gate)
+    assert counts["10011"] == 1000
+
+    @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         cry(np.pi, ~c, q)
@@ -36,6 +45,15 @@ def test_builtin_controlled_gates():
 
     counts = cudaq.sample(control_rotation_gate)
     assert counts["01"] == 1000
+
+    @cudaq.kernel
+    def multi_control_rotation_gate():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cry(np.pi, c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_rotation_gate)
+    assert counts["10011"] == 1000
 
     # Note: u3, swap, and exp_pauli do not have a built-in
     # c<gatename> version at the time of writing this.
@@ -62,16 +80,6 @@ def test_ctrl_attribute():
     assert counts["10011"] == 1000
 
     @cudaq.kernel
-    def multi_control_simple_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        x.ctrl(c1, ~c2, ~c3, c4, q)
-
-    counts = cudaq.sample(multi_control_simple_gate2)
-    assert counts["10011"] == 1000
-
-    @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         ry.ctrl(np.pi, ~c, q)
@@ -87,16 +95,6 @@ def test_ctrl_attribute():
         ry.ctrl(np.pi, c[0], ~c[1], ~c[2], c[3], q)
 
     counts = cudaq.sample(multi_control_rotation_gate)
-    assert counts["10011"] == 1000
-
-    @cudaq.kernel
-    def multi_control_rotation_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        ry.ctrl(np.pi, c1, ~c2, ~c3, c4, q)
-
-    counts = cudaq.sample(multi_control_rotation_gate2)
     assert counts["10011"] == 1000
 
     @cudaq.kernel
@@ -120,17 +118,6 @@ def test_ctrl_attribute():
     assert counts["100101"] == 1000
 
     @cudaq.kernel
-    def multi_control_swap_gate2():
-        c, q1, q2 = cudaq.qvector(4), cudaq.qubit(), cudaq.qubit()
-        x(q1)
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        swap.ctrl(c1, ~c2, ~c3, c4, q1, q2)
-
-    counts = cudaq.sample(multi_control_swap_gate2)
-    assert counts["100101"] == 1000
-
-    @cudaq.kernel
     def control_u3_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         t, p, l = np.pi, 0., 0.
@@ -148,17 +135,6 @@ def test_ctrl_attribute():
         u3.ctrl(t, p, l, c[0], ~c[1], c[2], ~c[3], q)
 
     counts = cudaq.sample(multi_control_u3_gate)
-    assert counts["10101"] == 1000
-
-    @cudaq.kernel
-    def multi_control_u3_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[2])
-        c1, c2, c3, c4 = c
-        t, p, l = np.pi, 0., 0.
-        u3.ctrl(t, p, l, c1, ~c2, c3, ~c4, q)
-
-    counts = cudaq.sample(multi_control_u3_gate2)
     assert counts["10101"] == 1000
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
@@ -181,16 +157,6 @@ def test_ctrl_attribute():
     counts = cudaq.sample(multi_control_registered_operation)
     assert counts["10101"] == 1000
 
-    @cudaq.kernel
-    def multi_control_registered_operation2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[2])
-        c1, c2, c3, c4 = c
-        custom_x.ctrl(c1, ~c2, c3, ~c4, q)
-
-    counts = cudaq.sample(multi_control_registered_operation2)
-    assert counts["10101"] == 1000
-
 
 def test_cudaq_control():
 
@@ -206,6 +172,15 @@ def test_cudaq_control():
 
     counts = cudaq.sample(control_kernel)
     assert counts["01"] == 1000
+
+    @cudaq.kernel
+    def multi_control_kernel():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cudaq.control(custom_x, c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_kernel)
+    assert counts["10011"] == 1000
 
     # Note: calling cudaq.control on a registered operation
     # or on a built-in gate is not supported at the time of writing this

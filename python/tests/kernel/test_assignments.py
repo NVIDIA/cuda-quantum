@@ -304,11 +304,7 @@ def test_dataclass_update():
     @cudaq.kernel
     def kernel1() -> MyTuple:
         t = MyTuple(0., 0)
-        # We don't allow directly passing t here,
-        # since any changes to t in the called kernel
-        # would not be reflected here if we did.
-        # See test in test_dataclass_update_failures.
-        return update_tuple1(MyTuple(t.angle, t.idx))
+        return update_tuple1(t)
     
     out = cudaq.run(kernel1, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(0., 0)
@@ -316,7 +312,7 @@ def test_dataclass_update():
 
     @cudaq.kernel
     def update_tuple2(arg : MyTuple) -> MyTuple:
-        t = arg
+        t = arg.copy()
         t.angle = 5.
         return t
 
@@ -330,17 +326,13 @@ def test_dataclass_update():
 
     @cudaq.kernel
     def kernel3(arg : MyTuple) -> MyTuple:
-        t = arg
+        t = arg.copy()
         t.angle += 5.
         return t
 
     arg = MyTuple(1, 1)
     out = cudaq.run(kernel3, MyTuple(1, 1), shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(6., 1)
-    # TODO: we generally create a copy when passing values
-    # from host to kernel (with the exception of State).
-    # Changes hence won't currently be reflected in the 
-    # host code.
     assert arg == MyTuple(1, 1)
     print("result kernel3: " + str(out[0]))
 
@@ -421,8 +413,9 @@ def test_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(test5())
-    assert 'only literals may be used as function arguments - create a literal using the MyTuple constructor' in str(e.value)
-    assert '(offending source -> update_tuple3(t))' in str(e.value)
+    assert 'cannot assign dataclass passed as function argument to a local reference' in str(e.value)
+    assert 'use `.copy()` to create a new value that can be assigned' in str(e.value)
+    assert '(offending source -> t = arg)' in str(e.value)
 
 
 def test_disallow_update_capture():

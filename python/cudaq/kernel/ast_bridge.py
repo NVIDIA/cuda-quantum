@@ -756,7 +756,6 @@ class PyASTBridge(ast.NodeVisitor):
         return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
 
     def __copyStructAndConvertElements(self, struct, expectedTy = None, conversion=None):
-        assert expectedTy or conversion
         assert cc.StructType.isinstance(struct.type)
         if not expectedTy:
             expectedTy = struct.type
@@ -1592,8 +1591,15 @@ class PyASTBridge(ast.NodeVisitor):
                     # Local variable shadows the captured one
                     del self.capturedVars[target.id]
 
-                # FIXME: properly test that this is sufficient
-                # to preserve the references we have
+                # This is so that we properly preserve the references
+                # to local variables. These variables can be of a reference
+                # type and other values in the symbol table may be assigned
+                # to the same reference. It is hence important to keep the
+                # reference as is, since otherwise changes to it would not
+                # be reflected in other values.
+                # NOTE: we don't need to worry about any references in 
+                # values that are not `ast.Name` objects, since we don't
+                # allow containers to contain references.
                 if isinstance(value, ast.Name) and \
                     value.id in self.symbolTable:
                     value = self.symbolTable[value.id]
@@ -1615,9 +1621,23 @@ class PyASTBridge(ast.NodeVisitor):
                 # or is defined within the current scope;
                 # we can simply modify the symbol table entry.
                 if storeAsVal or cc.PointerType.isinstance(value.type):
-                    # If we have a new pointer, then that pointer
-                    # replaces the current pointer in the symbol table.
                     return target, value
+                
+                # To be consistent with Python behavior, we either have
+                # to force that an explicit copy is made of any dataclasses
+                # passed as function arguments, or we have to force that
+                # an explicit copy is made when you try to modify a
+                # dataclass argument or assign it to a local variable.
+                # The latter seems more comprehensive and also ensures that
+                # there is no unexpected behavior with regards to kernels
+                # not being able to modify dataclass values in host code.
+                if cc.StructType.isinstance(value.type):
+                    structName = cc.StructType.getName(value.type)
+                    isFunctionArg = BlockArgument.isinstance(value) and \
+                        isinstance(value.owner.owner, func.FuncOp)
+                    if structName != 'tuple' and isFunctionArg:
+                        self.emitFatalError(f"cannot assign dataclass passed as function argument to a local reference - use `.copy()` to create a new value that can be assigned", self.currentNode)
+                    
                 address = cc.AllocaOp(cc.PointerType.get(value.type), TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
                 return target, address
@@ -1643,16 +1663,16 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("updating lists or dataclasses as part of deconstruction is not supported", node)
 
             self.visit(value)
-            itemVal = self.popValue()
-            assert not cc.PointerType.isinstance(itemVal.type)
+            mlirVal = self.popValue()
+            assert not cc.PointerType.isinstance(mlirVal.type)
 
             if root_defined_in_parent_scope:
-                update_in_parent_scope(destination, itemVal)
+                update_in_parent_scope(destination, mlirVal)
                 return target_root, None
             
-            self.__validate_container_entry(itemVal, value)
-            itemVal = self.changeOperandToType(expectedTy, itemVal, allowDemotion=False)
-            cc.StoreOp(itemVal, destination)
+            self.__validate_container_entry(mlirVal, value)
+            mlirVal = self.changeOperandToType(expectedTy, mlirVal, allowDemotion=False)
+            cc.StoreOp(mlirVal, destination)
             # The returned target root has no effect here since no value 
             # is returns to push to he symbol table. We merely need to make
             # sure that it is an `ast.Name` object to break the recursion.
@@ -1854,15 +1874,6 @@ class PyASTBridge(ast.NodeVisitor):
                 arg = self.changeOperandToType(expectedTy,
                                                values[idx],
                                                allowDemotion=True)
-                # We need to check here for anything that is a reference
-                # type in Python but passed by value across kernels.
-                # See also `__validate_container_entry`.
-                if cc.StructType.isinstance(arg.type):
-                    structName = cc.StructType.getName(arg.type)
-                    if structName != 'tuple' and \
-                        isinstance(pyVals[idx], ast.Name) and \
-                        pyVals[idx].id in self.symbolTable:
-                        self.emitFatalError(f"only literals may be used as function arguments - create a literal using the {structName} constructor", self.currentNode)
                 args.append(arg)
             return args
 
@@ -2045,18 +2056,34 @@ class PyASTBridge(ast.NodeVisitor):
 
         if isinstance(node.func, ast.Name):
 
-            namedArgs = {}
-            for keyword in node.keywords:
-                self.visit(keyword.value)
-                # FIXME: ADD TEST TO MAKE SURE KW ARGS DON'T RESULT IN UNPROCESSED VALS
-                namedArgs[keyword.arg] = self.popValue()
+            if node.func.id == 'complex':
 
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func)
+                keywords = [kw.arg for kw in node.keywords]
+                kwreal = 'real' in keywords
+                kwimag = 'imag' in keywords 
+                real, imag = self.__groupValues(node.args, [not kwreal, not kwimag])
+                for keyword in node.keywords:
+                    self.visit(keyword.value)
+                    kwval = self.popValue()
+                    if keyword.arg == 'real':
+                        real = kwval
+                    elif keyword.arg == 'imag':
+                        imag = kwval
+                    else:
+                        self.emitFatalError(f"unknown keyword {keyword}", node)
+                if not real or not imag:
+                    self.emitFatalError("missing value", node)
+
+                imag = self.changeOperandToType(self.getFloatType(), imag)
+                real = self.changeOperandToType(self.getFloatType(), real)
+                self.pushValue(
+                    complex.CreateOp(self.getComplexType(), real, imag).result)
+                return
+
             if node.func.id == 'len':
                 listVal = self.__groupValues(node.args, [1])
                 listVal = self.ifPointerThenLoad(listVal)
 
-                # FIXME: split out into helper function
                 if cc.StdvecType.isinstance(listVal.type):
                     self.pushValue(
                         cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
@@ -2125,8 +2152,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # could be coming from `range()` or an iterable like `qvector`
                 iterable = self.__groupValues(node.args, [1])
                 iterable = self.ifPointerThenLoad(iterable)
-
-                # FIXME: leverage visit_for instead
                 
                 # Create a new iterable, `alloca cc.struct<i64, T>`
                 if quake.VeqType.isinstance(iterable.type):
@@ -2192,20 +2217,6 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(vect)
                 return
 
-            if node.func.id == 'complex':
-                if len(namedArgs) == 0:
-                    real, imag = self.__groupValues(node.args, [2])
-                else:
-                    # FIXME: NEED TO CHECK AND POP SPARE VALUES...
-                    imag = namedArgs['imag']
-                    real = namedArgs['real']
-
-                imag = self.changeOperandToType(self.getFloatType(), imag)
-                real = self.changeOperandToType(self.getFloatType(), real)
-                self.pushValue(
-                    complex.CreateOp(self.getComplexType(), real, imag).result)
-                return
-
             if self.__isSimpleGate(node.func.id):
                 processQuakeCtor(node.func.id.title(), node.args, isCtrl=False, isAdj=False)
                 return
@@ -2215,7 +2226,6 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if self.__isControlledSimpleGate(node.func.id):
-                # FIXME: ADD TESTS FOR MULTIPLE CONTROLS HERE
                 processQuakeCtor(node.func.id[1:].title(), node.args, isCtrl=True, isAdj=False)
                 return
 
@@ -2475,7 +2485,11 @@ class PyASTBridge(ast.NodeVisitor):
                         cc.StoreOp(funcVal, slot)                    
                         self.pushValue(slot)
                         return
-                    self.pushValue(funcVal)
+                    # We actually have to create the copy here just so that we can recognize
+                    # that this is indeed a locally created value. While this seems silly,
+                    # it should be easily optimized away in later compiler passes, and it
+                    # give the most comprehensive behavior for the user.
+                    self.pushValue(self.__copyStructAndConvertElements(funcVal))
                     return
 
                 self.emitFatalError(f'unsupported function {node.func.attr}',
@@ -2574,27 +2588,27 @@ class PyASTBridge(ast.NodeVisitor):
                 if node.func.value.id in ['numpy', 'np']:
 
                     value = self.__groupValues(node.args, [1])
-                    namedArgs = {}
-                    for keyword in node.keywords:
-                        # FIXME: CHECK THAT WE DON'T HAVE SPARE VALUES
-                        # (OR REMOVE THIS, SINCE WE ONLY EVER ACCEPT A SINGLE ARGUMENT?)
-                        self.visit(keyword.value)
-                        namedArgs[keyword.arg] = self.popValue()
 
                     if node.func.attr == 'array':
                         # `np.array(vec, <dtype = ty>)`
+
                         valueTy = value.type
                         if cc.PointerType.isinstance(value.type):
                             valueTy = cc.PointerType.getElementType(
                                 value.type)
-
                         if not cc.StdvecType.isinstance(valueTy):
                             raise self.emitFatalError(
                                 f"unexpected numpy array initializer type: {valueTy}",
                                 node)
 
-                        eleTy = cc.StdvecType.getElementType(valueTy)
-                        dTy = namedArgs['dtype'] if 'dtype' in namedArgs else eleTy
+                        dTy = cc.StdvecType.getElementType(valueTy)
+                        for keyword in node.keywords:
+                            self.visit(keyword.value)
+                            kwval = self.popValue()
+                            if keyword.arg == 'dtype':
+                                dTy = kwval
+                            else:
+                                self.emitFatalError(f"unknown keyword {keyword}", node)
 
                         # Convert the vector to the provided data type if needed.
                         self.pushValue(
@@ -2871,7 +2885,6 @@ class PyASTBridge(ast.NodeVisitor):
                         numArgs = len(inputTys)
                         invert_controls = lambda: None
                         if node.func.attr == 'control':
-                            # FIXME: CHECK MULTIPLE CONTROLS
                             controls, args = self.__groupValues(
                                 node.args[1:], [(1, -1), (numArgs, numArgs)])
                             qvec_or_qubits = all((quake.RefType.isinstance(v.type) for v in controls)) or \
@@ -2901,17 +2914,15 @@ class PyASTBridge(ast.NodeVisitor):
 
                     if node.func.attr == 'apply_noise':
 
-                        # The first argument must be the Kraus channel
-                        # TODO: I AM NOT SURE CUSTOM REGISTERED CHANNELS WERE 
-                        # EVER PROPERLY PROCESSED BY THE BRIDGE...
-                        # FIXME check we have at least one arg
-
                         supportedChannels = [
                             'DepolarizationChannel', 'AmplitudeDampingChannel',
                             'PhaseFlipChannel', 'BitFlipChannel', 'PhaseDamping',
                             'ZError', 'XError', 'YError', 'Pauli1', 'Pauli2',
                             'Depolarization1', 'Depolarization2'
                         ]
+
+                        # The first argument must be the Kraus channel
+                        numParams, key = 0, None
                         if isinstance(node.args[0], ast.Attribute) and \
                             node.args[0].value.id == 'cudaq' and \
                             node.args[0].attr in supportedChannels:
@@ -2920,8 +2931,18 @@ class PyASTBridge(ast.NodeVisitor):
                             channel_class = getattr(cudaq_module, node.args[0].attr)
                             numParams = channel_class.num_parameters
                             key = self.getConstantInt(hash(channel_class))
-                        else:
-                            self.emitFatalError("currently, only built-in channels are supported for apply_noise", node)
+                        elif isinstance(node.args[0], ast.Name) and \
+                            node.args[0].id in self.capturedVars:
+                            arg = self.capturedVars[node.args[0].id]
+                            try:
+                                # We should have a custom Kraus channel.
+                                if issubclass(arg, cudaq_runtime.KrausChannel):
+                                    numParams = arg.num_parameters
+                                    key = self.getConstantInt(hash(arg))
+                            except:
+                                pass
+                        if key is None:
+                            self.emitFatalError("unsupported argument for Kraus channel in apply_noise", node)
                         
                         # This currently requires at least one qubit argument
                         params, values = self.__groupValues(node.args[1:], [(numParams, numParams), (1, -1)])
@@ -3095,7 +3116,7 @@ class PyASTBridge(ast.NodeVisitor):
             forNode.body = [node.elt]
             forNode.orelse = []
             forNode.lineno = node.lineno
-            # FIXME: this loop is/should be invariant but visit_for can't know that
+            # this loop could be marked as invariant if we didn't use `visit_For`
             self.visit_For(forNode)
 
         target_types = {}
@@ -4074,7 +4095,6 @@ class PyASTBridge(ast.NodeVisitor):
             elif IntegerType.isinstance(ty):
                 width = IntegerType(ty).width
                 return self.getConstantInt((width + 7) // 8)
-            # FIXME: revisit this
             return self.getConstantInt(8)
 
         def contains_list(ty):
@@ -4602,24 +4622,6 @@ class PyASTBridge(ast.NodeVisitor):
                 if mlirVal != None:
                     self.pushValue(mlirVal)
                     processed = True
-                else:
-                    try:
-                        if issubclass(value, cudaq_runtime.KrausChannel):
-                            # Here we have a KrausChannel as part of the AST.  We want
-                            # to create a hash value from it, and we then want to push
-                            # the number of parameters and that hash value. This can
-                            # only be used with apply_noise.
-                            if not hasattr(value, 'num_parameters'):
-                                self.emitFatalError(
-                                    'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
-                                )
-
-                            # FIXME: THIS IS PROBABLY HOW THAT WORKED WITH CUSTOM CHANNELS...
-                            self.pushValue(self.getConstantInt(value.num_parameters))
-                            self.pushValue(self.getConstantInt(hash(value)))
-                            processed = True
-                    except TypeError:
-                        pass
 
             if processed:
                 if self.pushPointerValue:
