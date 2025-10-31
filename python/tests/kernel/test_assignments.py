@@ -155,118 +155,12 @@ def test_list_update():
     assert len(results) == 1 and results[0] == (4, 6, 3)
 
 
-def test_list_of_tuple_updates():
-
-    # FIXME: MAYBE WE SHOULD MAKE SURE ARRAYS DO NOT STORE REFS
-    # AND STRUCTS DO NOT STORE REFS; I.E. FORBID NESTED STRUCT (ALSO) WHEN CREATING THEM INSIDE KERNEL
-
-    @cudaq.kernel
-    def fill_back(l: list[tuple[int, int]], t: tuple[int, int], n: int):
-        for idx in range(len(l) - n, len(l)):
-            l[idx] = t
-
-    @cudaq.kernel
-    def test10() -> list[int]:
-        l = [(1, 1) for _ in range(3)]
-        # FIXME: this necessarily creates a copy of l due to the args conversion...
-        # -> FAIL THE CONVERSION IF LIST CONTAINS STRUCTS?
-        # -> STRUCTS THEMSELVES SHOULD BE HANDLED OK SINCE WE REQUIRE COPY WHEN YOU UPDATE
-        # -> make structs be loaded by default and only return pointer for assignment
-        # -> list comp type must be updated; 
-        #    how does list comp of variables vs list comp of const work?
-        #    allow list of ptr or not??? 
-        #    list element is loaded when iter over list?? 
-        #    if so, should be able to create new list by copy
-        #    may be confusing too, however, to get an implicit copy on list comp...
-        # -> maybe the "easy" solution is to not allow lists of structs on kernel signatures...
-        # SOLUTION:
-        # -> or don't allow to update lists passed as arguments if they contain tuples (list[tuple], list[list[tuple]] etc)!
-        # -> (maybe covered automatically if we just fix the todos in the assign subscript... but error would be cryptic...)
-        # -> in that case, return doesn't need to worry about avoiding the heap copy for structs in lists
-        # -> but we very much still need to worry about the copy for lists in structs
-        # FIXME: WE ALSO NEED TO PREVENT ASSIGNING A LIST WE GOT AS ARG TO A STRUCT, IN CASE IT IS RETURNED...
-        #fill_back(l, (2, 2), 2)
-        #res = [0 for _ in range(6)]
-        #for i in range(3):
-        #    res[2 * i] = l[i][0]
-        #    res[2 * i + 1] = l[i][1]
-        #return res
-        return [1]
-    
-    #print(test10)
-    #print(test10())
-
-    @cudaq.kernel
-    def get_list_of_int_tuple(t: tuple[int, int], size: int) -> list[tuple[int, int]]:
-        #t = arg.copy() # FIXME Make separate test
-        l = [t for _ in range(size + 1)]
-        l[0] = (3, 3)
-        return l
-    #print(get_list_of_int_tuple)
-    # FIXME: FAILS WITH 
-    # Expected a complex, floating, or integral type
-    #assert get_list_of_int_tuple((1, 2), 2) == [(3, 3), (1, 2), (1, 2)]
-
-    @cudaq.kernel
-    def test11() -> list[int]:
-        t = (1, 2)
-        l = get_list_of_int_tuple(t, 2)
-        l[1] = (4, 4)
-        res = [0 for _ in range(6)]
-        for idx in range(3):
-            res[2 * idx] = l[idx][0]
-            res[2 * idx + 1] = l[idx][1]
-        return res
-
-    print(test11())
-    assert test11() == [3, 3, 4, 4, 1, 2]
-
-    @cudaq.kernel
-    def test2() -> list[int]:
-        t = (1, 2)
-        l = get_list_of_int_tuple(t, 2)
-        # Error: indexing into tuple or dataclass does not produce a modifiable value
-        #l[1][0] = 4
-        res = [0 for _ in range(6)]
-        for idx in range(3):
-            res[2 * idx] = l[idx][0]
-            res[2 * idx + 1] = l[idx][1]
-        return res
-
-    print(test2())
-    #assert 'Unsupported element type in struct type' in str(e.value)
-
-    # FIXME: LIST OF DATA CLASSES DON'T STORE THEM AS REFERENCES...
-    '''
-    @cudaq.kernel
-    def get_MyTuple_list(t : MyTuple) -> list[MyTuple]:
-        return [t]
-
-    # FIXME: segfaults
-    # Something should complain about empty lists.
-    # Better, we could  properly handle them when we know
-    # the type; we can support empty lists if/when there
-    # are type annotations for it.
-    # get_MyTuple_list(MyTuple([], []))
-    # FIXME: segfaults as well....
-    #print(get_MyTuple_list(MyTuple([1], [1])))
-    print(get_MyTuple_list)
-    '''
-
-
 def test_list_update_failures():
 
     @dataclass(slots=True)
     class MyTuple:
         l1: list[int]
         l2: list[int]
-
-    @cudaq.kernel
-    def sum(l : list[int]) -> int:
-        total = 0
-        for item in l:
-            total += item
-        return total
 
     @cudaq.kernel
     def kernel1(l1 : list[int]) -> MyTuple:
@@ -286,6 +180,113 @@ def test_list_update_failures():
     assert 'Unsupported element type in struct type' in str(e.value)
     # FIXME: cudaq.run(get_MyTuple) currently results in a cryptic/incorrect
     # error 'Tuple size mismatch in value and label'
+
+
+def test_list_of_tuple_updates():
+
+    @cudaq.kernel
+    def fill_back(l: list[tuple[int, int]], t: tuple[int, int], n: int):
+        for idx in range(len(l) - n, len(l)):
+            l[idx] = t
+
+    @cudaq.kernel
+    def test10() -> list[int]:
+        l = [(1, 1) for _ in range(3)]
+        fill_back(l, (2, 2), 2)
+        res = [0 for _ in range(6)]
+        for i in range(3):
+            res[2 * i] = l[i][0]
+            res[2 * i + 1] = l[i][1]
+        return res
+    
+    assert test10() == [1, 1, 2, 2, 2, 2]
+
+    @cudaq.kernel
+    def get_list_of_int_tuple(t: tuple[int, int], size: int) -> list[tuple[int, int]]:
+        #t = arg.copy() # FIXME Make separate test
+        l = [t for _ in range(size + 1)]
+        l[0] = (3, 3)
+        return l
+    
+    # TODO: Not currently supported
+    #assert get_list_of_int_tuple((1, 2), 2) == [(3, 3), (1, 2), (1, 2)]
+
+    @cudaq.kernel
+    def test11() -> list[int]:
+        t = (1, 2)
+        l = get_list_of_int_tuple(t, 2)
+        l[1] = (4, 4)
+        res = [0 for _ in range(6)]
+        for idx in range(3):
+            res[2 * idx] = l[idx][0]
+            res[2 * idx + 1] = l[idx][1]
+        return res
+
+    assert test11() == [3, 3, 4, 4, 1, 2]
+
+
+def test_list_of_tuple_update_failures():
+
+    @cudaq.kernel
+    def get_list_of_int_tuple(t: tuple[int, int], size: int) -> list[tuple[int, int]]:
+        #t = arg.copy() # FIXME Make separate test
+        l = [t for _ in range(size + 1)]
+        l[0] = (3, 3)
+        return l
+    
+    with pytest.raises(RuntimeError) as e:
+        get_list_of_int_tuple((1, 2), 2)
+    assert 'Expected a complex, floating, or integral type' in str(e.value)
+
+    @cudaq.kernel
+    def test2() -> list[int]:
+        t = (1, 2)
+        l = get_list_of_int_tuple(t, 2)
+        l[1][0] = 4
+        res = [0 for _ in range(6)]
+        for idx in range(3):
+            res[2 * idx] = l[idx][0]
+            res[2 * idx + 1] = l[idx][1]
+        return res
+
+    with pytest.raises(RuntimeError) as e:
+        print(test2)
+    assert 'indexing into tuple or dataclass does not produce a modifiable value' in str(e.value)
+
+    @dataclass(slots=True)
+    class MyTuple:
+        l1: list[int]
+        l2: list[int]
+
+    @cudaq.kernel
+    def get_MyTuple_list(t : MyTuple) -> list[MyTuple]:
+        return [t]
+
+    with pytest.raises(RuntimeError) as e:
+        print(get_MyTuple_list)
+    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using the MyTuple constructor' in str(e.value)
+
+    @cudaq.kernel
+    def get_MyTuple_list2(t : MyTuple) -> list[MyTuple]:
+        return [MyTuple(t.l1, t.l2)]
+
+    # FIXME: segfaults
+    #print(get_MyTuple_list2(MyTuple([1], [1])))
+
+    @cudaq.kernel
+    def test3() -> list[int]: 
+        l = get_MyTuple_list2(MyTuple([1], [1]))
+        res = [0 for _ in range(4 * len(l))]
+        for idx, item in enumerate(l):
+            res[4 * idx] = len(item.l1)
+            res[4 * idx + 1] = item.l1[0]
+            res[4 * idx + 2] = len(item.l2)
+            res[4 * idx + 3] = item.l2[0]
+        return res
+
+    # FIXME: segfaults as well - likely an issue with the return of get_MyTuple_list2
+    #print(test3())
 
 
 def test_dataclass_update():
@@ -532,8 +533,4 @@ MyTuple(first=5, second=2)
 # ptrVal is pointer to pointer
 # case b:
 # ptrVal is pointer to value
-
-OVERALL SOLUTION:
-- don't allow the creation of lists of ptr type, or structs with ptr elements
-- do not autoconvert mutable struct to immutable ones but give a comprehensive error instead
 '''

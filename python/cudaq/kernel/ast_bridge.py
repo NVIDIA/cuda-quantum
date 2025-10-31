@@ -1524,7 +1524,7 @@ class PyASTBridge(ast.NodeVisitor):
         def update_in_parent_scope(destination, value):
             assert not cc.PointerType.isinstance(value.type)
             isContainer = cc.StdvecType.isinstance(value.type) or \
-                (cc.StructType.isinstance(value.type) and cc.StructType.getName != 'tuple')
+                (cc.StructType.isinstance(value.type) and cc.StructType.getName(value.type) != 'tuple')
             if isContainer or storedAsValue(destination):
                 # We can't properly deal with this.
                 # I've added a bunch of test cases that would need
@@ -3166,7 +3166,12 @@ class PyASTBridge(ast.NodeVisitor):
                 elts = [get_item_type(v) for v in pyval.elts]
                 if None in elts:
                     return None
-                return cc.PointerType.get(cc.StructType.getNamed("tuple", elts))
+                structTy = mlirTryCreateStructType(elts, context=self.ctx)
+                if not structTy:
+                    # we return anything here since, or rather to make sure that,
+                    # a comprehensive error is generated when `elt` is walked below.
+                    return cc.StructType.getNamed("tuple", elts)
+                return structTy
             elif isinstance(pyval, ast.Subscript) and \
                 IntegerType.isinstance(get_item_type(pyval.slice)):
                 parentType = get_item_type(pyval.value)
@@ -3252,20 +3257,16 @@ class PyASTBridge(ast.NodeVisitor):
                     elif pyval.func.id in globalRegisteredTypes.classes:
                         _, annotations = globalRegisteredTypes.getClassAttributes(
                             pyval.func.id)
-                        structTys = [
+                        elts = [
                             mlirTypeFromPyType(v, self.ctx)
                             for _, v in annotations.items()
                         ]
-                        # no need to do much verification on the validity of the type here -
-                        # this will be handled when we build the body
-                        isStruq = any(
-                            (self.isQuantumType(t) for t in structTys))
-                        if isStruq:
-                            return quake.StruqType.getNamed(
-                                pyval.func.id, structTys)
-                        else:
-                            return cc.StructType.getNamed(pyval.func.id,
-                                                       structTys)
+                        structTy = mlirTryCreateStructType(elts, pyval.func.id, context=self.ctx)
+                        if not structTy:
+                            # we return anything here since, or rather to make sure that,
+                            # a comprehensive error is generated when `elt` is walked below.
+                            return cc.StructType.getNamed(pyval.func.id, elts)
+                        return structTy
                 elif isinstance(pyval.func, ast.Attribute) and \
                     (pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj'):
                     process_void_list()
