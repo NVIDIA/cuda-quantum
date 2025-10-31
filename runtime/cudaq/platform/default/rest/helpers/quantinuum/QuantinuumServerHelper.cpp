@@ -381,18 +381,20 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     // On Helios devices, we need to specify max-cost and max-qubits unless it's
     // a syntax checker
     if (machine.starts_with("Helios") && !machine.ends_with("SC")) {
+      std::vector<std::string> errors;
       if (!maxCost.has_value())
-        throw std::runtime_error(
-            "Please specify a maximum cost (`--quantinuum-max-cost <val>` when "
-            "compiling with nvq++ or `max_cost=<val>` in Python `set_target`) "
-            "when using device: " +
-            machine);
+        errors.push_back("Please specify maximum HQC cost "
+                         "(`--quantinuum-max-cost <val>` when compiling with "
+                         "nvq++ or `max_cost=<val>` in Python `set_target`)");
       if (!maxQubits.has_value())
-        throw std::runtime_error("Please specify maximum number of qubits "
-                                 "(`--quantinuum-max-qubits <val>` when "
-                                 "compiling with nvq++ or `max_qubits=<val>` "
-                                 "in Python `set_target`) when using device: " +
-                                 machine);
+        errors.push_back(
+            "Please specify maximum number of qubits (`--quantinuum-max-qubits "
+            "<val>` when compiling with nvq++ or `max_qubits=<val>` in Python "
+            "`set_target`)");
+      if (!errors.empty())
+        throw std::runtime_error(
+            fmt::format("Missing required configuration for device '{}': {}",
+                        machine, fmt::join(errors, "; ")));
     }
 
     if (maxCost.has_value())
