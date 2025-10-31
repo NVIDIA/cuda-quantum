@@ -1778,7 +1778,7 @@ time!
         param_index = 0
 
         for layer in range(n):
-            for gate in range(n / 2):
+            for gate in range(n // 2):
                 su4_gate(reg[permutations[layer * n + gate * 2]],
                          reg[permutations[layer * n + gate * 2 + 1]],
                          params[param_index:param_index + 21])

@@ -1778,7 +1778,7 @@ each pixel with its position
 
 <div>
 
-![c28fc2aa956b4c22bde0c02f21a0402d](../../_images/pixels-img.png){.no-scaled-link
+![fd79d166ff8e4b569c43df545f2b2948](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>
@@ -2143,7 +2143,7 @@ We employ in this example QPIE to encode the image.
         x.ctrl(ancilla, qubits[0])
 
         for i in range(1, qubit_num):
-            x.ctrl([ancilla,qubits[0:i]], qubits[i])
+            x.ctrl([ancilla, *qubits[0:i]], qubits[i])
 
         h(ancilla)
 
