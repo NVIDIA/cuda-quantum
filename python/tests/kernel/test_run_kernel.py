@@ -15,8 +15,6 @@ import numpy as np
 import warnings
 import pytest
 
-list_err_msg = 'does not yet support returning `list` from entry-point kernels'
-
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
     reason='Could not find `braket` in installation')
@@ -334,36 +332,43 @@ def test_return_list_bool():
     def simple_list_bool_no_args() -> list[bool]:
         return [True, False, True]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_bool_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_bool_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [True, False, True]
+    assert results[1] == [True, False, True]
 
     @cudaq.kernel
     def simple_list_bool(n: int) -> list[bool]:
         qubits = cudaq.qvector(n)
         return [True, False, True]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_bool, 2, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_bool, 2, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [True, False, True]
+    assert results[1] == [True, False, True]
 
     @cudaq.kernel
     def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_bool_args, 2, [True, False, True])
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_bool_args,
+                        2, [True, False, True],
+                        shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [True, False, True]
+    assert results[1] == [True, False, True]
 
     @cudaq.kernel
     def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(2)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True])
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_bool_args_no_broadcast, [True, False, True],
+                        shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [True, False, True]
+    assert results[1] == [True, False, True]
 
 
 def test_return_list_int():
@@ -372,18 +377,20 @@ def test_return_list_int():
     def simple_list_int_no_args() -> list[int]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int, 2, [-13, 5, 42], shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
 
 def test_return_list_int8():
@@ -392,18 +399,20 @@ def test_return_list_int8():
     def simple_list_int8_no_args() -> list[np.int8]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int8_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int8_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int8, 2, [-13, 5, 42], shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
 
 def test_return_list_int16():
@@ -412,18 +421,20 @@ def test_return_list_int16():
     def simple_list_int16_no_args() -> list[np.int16]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int16_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int16_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int16, 2, [-13, 5, 42], shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
 
 def test_return_list_int32():
@@ -432,18 +443,20 @@ def test_return_list_int32():
     def simple_list_int32_no_args() -> list[np.int32]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int32_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int32_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int32, 2, [-13, 5, 42], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int32, 2, [-13, 5, 42], shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
 
 def test_return_list_int64():
@@ -452,18 +465,20 @@ def test_return_list_int64():
     def simple_list_int64_no_args() -> list[np.int64]:
         return [-13, 5, 42]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int64_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int64_no_args, shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_int64, 2, [-13, 5, 42], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_int64, 2, [-13, 5, 42], shots_count=2)
+    assert len(results) == 2
+    assert results[0] == [-13, 5, 42]
+    assert results[1] == [-13, 5, 42]
 
 
 def test_return_list_float():
@@ -472,18 +487,22 @@ def test_return_list_float():
     def simple_list_float_no_args() -> list[float]:
         return [-13.2, 5., 42.99]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_float_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_float_no_args, shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5., 42.99])
+    assert is_close_array(results[1], [-13.2, 5., 42.99])
 
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_float, 2, [-13.2, 5.0, 42.99], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_float,
+                        2, [-13.2, 5.0, 42.99],
+                        shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5., 42.99])
+    assert is_close_array(results[1], [-13.2, 5., 42.99])
 
 
 def test_return_list_float32():
@@ -492,18 +511,22 @@ def test_return_list_float32():
     def simple_list_float32_no_args() -> list[np.float32]:
         return [-13.2, 5., 42.99]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_float32_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_float32_no_args, shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5., 42.99])
+    assert is_close_array(results[1], [-13.2, 5., 42.99])
 
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_float32, 2, [-13.2, 5.0, 42.99], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_float32,
+                        2, [-13.2, 5.0, 42.99],
+                        shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5., 42.99])
+    assert is_close_array(results[1], [-13.2, 5., 42.99])
 
 
 def test_return_list_float64():
@@ -512,18 +535,100 @@ def test_return_list_float64():
     def simple_list_float64_no_args() -> list[np.float64]:
         return [-13.2, 5., 42.99]
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_float64_no_args, shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_float64_no_args, shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5., 42.99])
+    assert is_close_array(results[1], [-13.2, 5., 42.99])
 
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_list_float64, 2, [-13.2, 5.0, 42.99], shots_count=2)
-    assert list_err_msg in str(e.value)
+    results = cudaq.run(simple_list_float64,
+                        2, [-13.2, 5.0, 42.99],
+                        shots_count=2)
+    assert len(results) == 2
+    assert is_close_array(results[0], [-13.2, 5., 42.99])
+    assert is_close_array(results[1], [-13.2, 5., 42.99])
+
+
+def test_return_list_large_size():
+    # Returns a large list (dynamic size) to stress test the code generation
+
+    @cudaq.kernel
+    def kernel_with_dynamic_int_array_input(n: int, t: list[int]) -> list[int]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    @cudaq.kernel
+    def kernel_with_dynamic_float_array_input(n: int,
+                                              t: list[float]) -> list[float]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    @cudaq.kernel
+    def kernel_with_dynamic_bool_array_input(n: int,
+                                             t: list[bool]) -> list[bool]:
+        qubits = cudaq.qvector(n)
+        return t
+
+    # Test with various sizes (validate dynamic output logging)
+    for array_size in [10, 15, 100, 167, 1000]:
+        input_array = list(np.random.randint(-1000, 1000, size=array_size))
+        results = cudaq.run(kernel_with_dynamic_int_array_input,
+                            2,
+                            input_array,
+                            shots_count=2)
+        assert len(results) == 2
+        assert results[0] == input_array
+        assert results[1] == input_array
+
+        input_array_float = list(
+            np.random.uniform(-1000.0, 1000.0, size=array_size))
+        results = cudaq.run(kernel_with_dynamic_float_array_input,
+                            2,
+                            input_array_float,
+                            shots_count=2)
+        assert len(results) == 2
+        assert is_close_array(results[0], input_array_float)
+        assert is_close_array(results[1], input_array_float)
+
+        input_array_bool = []
+        for _ in range(array_size):
+            input_array_bool.append(True if np.random.rand() > 0.5 else False)
+        results = cudaq.run(kernel_with_dynamic_bool_array_input,
+                            2,
+                            input_array_bool,
+                            shots_count=2)
+        assert len(results) == 2
+        assert results[0] == input_array_bool
+        assert results[1] == input_array_bool
+
+
+def test_return_dynamics_measure_results():
+
+    @cudaq.kernel
+    def measure_all_qubits(numQubits: int) -> list[bool]:
+        # Number of qubits is dynamic
+        qubits = cudaq.qvector(numQubits)
+        for i in range(numQubits):
+            if i % 2 == 0:
+                x(qubits[i])
+
+        return mz(qubits)
+
+    for numQubits in [1, 3, 5, 11, 20]:
+        shots = 2
+        results = cudaq.run(measure_all_qubits, numQubits, shots_count=shots)
+        assert len(results) == shots
+        for res in results:
+            assert len(res) == numQubits
+            for i in range(numQubits):
+                if i % 2 == 0:
+                    assert res[i] == True
+                else:
+                    assert res[i] == False
 
 
 # Test tuples
@@ -1503,6 +1608,45 @@ def test_run_with_callable():
         assert len(results) == 10
         for r in results:
             assert r == num_qubits
+
+
+def test_return_nested_lists():
+    """
+    Test returning nested lists from a kernel. 
+    This is currently unsupported and should raise an error.
+    """
+
+    @cudaq.kernel
+    def nested_list_kernel() -> list[list[int]]:
+        return [[1, 2], [3, 4]]
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(nested_list_kernel, shots_count=2)
+
+    assert "`cudaq.run` does not yet support returning nested `list`" in str(
+        e.value)
+
+
+def test_return_list_of_structs():
+    """
+    Test returning a list of dataclass structs from a kernel. 
+    This is currently unsupported and should raise an error.
+    """
+
+    @dataclass(slots=True)
+    class SomeStruct:
+        a: int
+        b: bool
+
+    @cudaq.kernel
+    def list_of_structs_kernel() -> list[SomeStruct]:
+        return [SomeStruct(1, True), SomeStruct(2, False)]
+
+    with pytest.raises(RuntimeError) as e:
+        results = cudaq.run(list_of_structs_kernel, shots_count=2)
+
+    assert "`cudaq.run` does not yet support returning `list` of `dataclass`" in str(
+        e.value)
 
 
 # leave for gdb debugging
