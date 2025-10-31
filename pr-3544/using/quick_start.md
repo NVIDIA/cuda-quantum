@@ -1750,8 +1750,9 @@ able to use it without any further installation steps.
 >
 > **Important:** Please check if you have an existing installation of
 > the [`cuda-quantum`{.docutils .literal .notranslate}]{.pre},
-> [`cudaq-quantum-cu12`{.docutils .literal .notranslate}]{.pre}, or
-> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre} package,
+> [`cudaq-quantum-cu11`{.docutils .literal .notranslate}]{.pre},
+> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre}, or
+> [`cuda-quantum-cu13`{.docutils .literal .notranslate}]{.pre} package,
 > and uninstall it prior to installation. Different CUDA-Q binary
 > distributions may conflict with each other causing issues.
 >
