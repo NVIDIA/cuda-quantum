@@ -573,7 +573,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'indexing into tuple or dataclass does not produce a modifiable value' in str(
+    assert 'tuple value cannot be modified' in str(
         e.value)
 
     @cudaq.kernel
@@ -745,12 +745,13 @@ def test_return_dataclass_int_bool():
     assert 'keyword arguments for data classes are not yet supported' in repr(e)
 
     @cudaq.kernel
-    def simple_dataclass_int_bool_error() -> MyClass:
-        return MyClass(x=0.13, y=True)
+    def simple_dataclass_int_bool() -> MyClass:
+        return MyClass(2.13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'keyword arguments for data classes are not yet supported' in repr(e)
+    results = cudaq.run_async(simple_dataclass_int_bool, shots_count=2).get()
+    assert len(results) == 2
+    assert results[0] == MyClass(2, True)
+    assert results[1] == MyClass(2, True)
 
 
 def test_return_dataclass_bool_int():

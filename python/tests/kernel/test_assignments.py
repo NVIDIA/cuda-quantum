@@ -58,7 +58,10 @@ def test_list_update():
     arg = [4, 5, 6]
     results = cudaq.run(test2, arg, shots_count=1)
     assert len(results) == 1 and results[0] == 30  # 2 * (4 + 5 + 6) = 30
-    # NOTE: kernel invocations create a copy of their arguments!
+    # TODO: we generally create a copy when passing values
+    # from host to kernel (with the exception of State).
+    # Changes hence won't currently be reflected in the 
+    # host code.
     assert arg == [4, 5, 6]
 
     @cudaq.kernel
@@ -125,40 +128,31 @@ def test_list_update():
         l2: list[int]
 
     @cudaq.kernel
-    def get_MyTuple(l1 : list[int]) -> MyTuple:
-        return MyTuple(l1, [1,1])
+    def get_MyTuple(arg : list[int]) -> MyTuple:
+        return MyTuple([v for v in arg], [1,1])
     # Not currently supported
     # assert get_MyTuple([0, 0]) == MyTuple([0,0], [1,1])
 
     @cudaq.kernel
     def test7() -> tuple[int, int, int]:
         arg = [2, 2]
-        t = get_MyTuple(arg).copy()
+        t = get_MyTuple(arg)
         arg[0] = 3
         return sum(arg), sum(t.l1), sum(t.l2)
 
     results = cudaq.run(test7, shots_count=1)
-    # FIXME: NEED TO ERROR FOR MyTuple(l1, [1,1])
-    # SINCE WE COPY THE LIST ON RETURN IN CASE IT WAS STACK ALLOCATED
-    #assert len(results) == 1 and results[0] == (5, 5, 2)
-
-    # FIXME: something is going wrong here - 
-    # this should not be needed...
-    cudaq.__clearKernelRegistries()
+    assert len(results) == 1 and results[0] == (5, 4, 2)
 
     @cudaq.kernel
     def test8() -> tuple[int, int, int]:
         arg = [2, 2]
-        t = get_MyTuple(arg).copy()
+        t = get_MyTuple(arg)
         t.l1[0] = 4
         t.l2[1] = 2
         return sum(arg), sum(t.l1), sum(t.l2)
 
     results = cudaq.run(test8, shots_count=1)
-    # FIXME: SAME HERE
-    #assert len(results) == 1 and results[0] == (6, 6, 3)
-
-    # TODO: test list of list (outer new list, inner ref to same)
+    assert len(results) == 1 and results[0] == (4, 6, 3)
 
 
 def test_list_of_tuple_updates():
@@ -268,27 +262,30 @@ def test_list_update_failures():
         l2: list[int]
 
     @cudaq.kernel
-    def get_MyTuple(l1 : list[int]) -> MyTuple:
+    def sum(l : list[int]) -> int:
+        total = 0
+        for item in l:
+            total += item
+        return total
+
+    @cudaq.kernel
+    def kernel1(l1 : list[int]) -> MyTuple:
         return MyTuple(l1, [1,1])
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel1, [1, 2])
+    assert 'lists passed as function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert '(offending source -> MyTuple(l1, [1, 1]))' in str(e.value)
+
+    @cudaq.kernel
+    def get_MyTuple(l1 : list[int]) -> MyTuple:
+        return MyTuple([v for v in l1], [1,1])
 
     with pytest.raises(RuntimeError) as e:
         get_MyTuple([0, 0])
     assert 'Unsupported element type in struct type' in str(e.value)
     # FIXME: cudaq.run(get_MyTuple) currently results in a cryptic/incorrect
     # error 'Tuple size mismatch in value and label'
-
-    @cudaq.kernel
-    def test1() -> tuple[int, int]:
-        arg = [2, 2]
-        t = get_MyTuple(arg) # see test below for why we don't support this
-        arg[0] = 3
-        return sum(t.l1), sum(t.l2)
-
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(test1)
-    assert 'cannot create reference to dataclass passed to or returned from function' in str(e.value)
-    assert 'use `.copy()` to create a new value that can be assigned' in str(e.value)
-    assert '(offending source -> t = get_MyTuple(arg))' in str(e.value)
 
 
 def test_dataclass_update():
@@ -299,15 +296,19 @@ def test_dataclass_update():
         idx: int
 
     @cudaq.kernel
-    def update_tuple1(arg : MyTuple):
+    def update_tuple1(arg : MyTuple) -> MyTuple:
         t = arg.copy()
         t.angle = 5.
+        return arg
 
     @cudaq.kernel
     def kernel1() -> MyTuple:
         t = MyTuple(0., 0)
-        update_tuple1(t)
-        return t
+        # We don't allow directly passing t here,
+        # since any changes to t in the called kernel
+        # would not be reflected here if we did.
+        # See test in test_dataclass_update_failures.
+        return update_tuple1(MyTuple(t.angle, t.idx))
     
     out = cudaq.run(kernel1, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(0., 0)
@@ -315,14 +316,13 @@ def test_dataclass_update():
 
     @cudaq.kernel
     def update_tuple2(arg : MyTuple) -> MyTuple:
-        t = arg.copy()
+        t = arg
         t.angle = 5.
         return t
 
     @cudaq.kernel
     def kernel2() -> MyTuple:
-        t = MyTuple(0., 0)
-        return update_tuple2(t)
+        return update_tuple2(MyTuple(0., 0))
     
     out = cudaq.run(kernel2, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(5., 0)
@@ -330,12 +330,18 @@ def test_dataclass_update():
 
     @cudaq.kernel
     def kernel3(arg : MyTuple) -> MyTuple:
-        t = arg.copy()
+        t = arg
         t.angle += 5.
         return t
 
+    arg = MyTuple(1, 1)
     out = cudaq.run(kernel3, MyTuple(1, 1), shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(6., 1)
+    # TODO: we generally create a copy when passing values
+    # from host to kernel (with the exception of State).
+    # Changes hence won't currently be reflected in the 
+    # host code.
+    assert arg == MyTuple(1, 1)
     print("result kernel3: " + str(out[0]))
 
 
@@ -401,6 +407,22 @@ def test_dataclass_update_failures():
         print(test4)
     assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
     assert '(offending source -> t.angle)' in str(e.value)
+
+    @cudaq.kernel
+    def update_tuple3(arg : MyTuple):
+        t = arg
+        t.angle = 5.
+
+    @cudaq.kernel
+    def test5() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple3(t)
+        return t
+
+    with pytest.raises(RuntimeError) as e:
+        print(test5())
+    assert 'only literals may be used as function arguments - create a literal using the MyTuple constructor' in str(e.value)
+    assert '(offending source -> update_tuple3(t))' in str(e.value)
 
 
 def test_disallow_update_capture():
@@ -479,6 +501,8 @@ def test_disallow_update_capture():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
+
+# TODO: test list of list (outer new list, inner ref to same)
 
 '''
 t1 = MyTuple(1, 1)

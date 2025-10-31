@@ -896,28 +896,22 @@ def test_list_comprehension_expressions():
     assert (len(out) == 1 and out[0] == 2.)
     print(kernel6
          )  # keep after assert, such that we have no output if assert fails
-    '''
-    # FIXME: This is exactly an example where the non-hierarchical nature of the value
-    # stack leads to an incorrect error...
-    # This test will be enabled as part of the PR to revise the ast bridge value stack.
 
     @cudaq.kernel
-    def foo3(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], decompose_adj: bool):
-        targets = cudaq.qvector(len(adj))
-        if decompose_adj:
-            func(targets, 1, [not b for b in adj])
-        else:
-            cudaq.adjoint(func, targets, 1, adj)
-        mz(targets)
-
-    @cudaq.kernel
-    def baz(qs: cudaq.qvector, angle: float, adj: list[bool]):
+    def apply_rotations(qs: cudaq.qvector, angle: float, adj: list[bool]):
         for idx, is_adj in enumerate(adj):
-            if is_adj: ry(-angle, qs[idx])
-            else: ry(angle, qs[idx])
+            if is_adj:
+                ry(-angle, qs[idx])
+            else:
+                ry(angle, qs[idx])
 
-    out = cudaq.sample(foo5, baz, [True, False, True], False)    
-    '''
+    @cudaq.kernel
+    def kernel7(adj: list[bool]):
+        targets = cudaq.qvector(len(adj))
+        apply_rotations(targets, 1, [not b for b in adj])
+
+    out = cudaq.sample(kernel7, [True, False, True])    
+    assert len(out) == 8
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1() attributes {"cudaq-entrypoint", "cudaq-kernel"}
@@ -926,6 +920,7 @@ def test_list_comprehension_expressions():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel6() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel7() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 
 def test_list_comprehension_failures():

@@ -115,6 +115,8 @@ def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
 
     numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:
+        if any((cc.PointerType.isinstance(t) for t in mlirEleTypes)):
+            return None
         return cc.StructType.getNamed(name, mlirEleTypes, context=context)
     if numQuantumMembers != len(mlirEleTypes) or \
         any((quake.StruqType.isinstance(t) for t in mlirEleTypes)):
