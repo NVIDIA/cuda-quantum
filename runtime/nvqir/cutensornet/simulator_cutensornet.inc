@@ -36,7 +36,8 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
     setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SMART_OPTION","0",1);
   }
 
-  bool deterministic = cudaq::getEnvBool("CUDAQ_TENSORNET_DETERMINISTIC", false);
+  bool deterministic = cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_DETERMINISTIC",
+                                         false);
   if (deterministic) {
     CUDAQ_INFO("Enabling deterministic tensornet with 1 pathfinding thread");
     setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS",
@@ -47,7 +48,7 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
     const std::string nthreads_str(finder_threads);
     int nthreads = -1;
     try {
-      nthreads = std::stoi(std::string(finder_threads));
+      nthreads = std::stoi(nthreads_str);
     } catch (const std::invalid_argument &e) {
       nthreads = -1;
     } catch (const std::out_of_range &e) {
@@ -57,7 +58,7 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
       throw std::runtime_error("Invalid CUDAQ_TENSORNET_FIND_THREADS setting" +
                                nthreads_str);
     if (deterministic && nthreads > 1)
-      CUDAQ_WARN("Ignoring CUDAQ_TENSORNET_FIND_THREADS due to CUDAQ_TENSORNET_DETERMINISTIC");
+      CUDAQ_WARN("Ignoring CUDAQ_TENSORNET_FIND_THREADS due to CUDAQ_TENSORNET_FIND_DETERMINISTIC");
     else {
       CUDAQ_INFO("Setting the # of pathfinding threads to {}", finder_threads);
       setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS", finder_threads, 1);

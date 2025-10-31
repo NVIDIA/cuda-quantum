@@ -40,7 +40,7 @@ std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
 
 template <typename ScalarType>
 bool TensorNetState<ScalarType>::m_deterministic = []() {
-  return cudaq::getEnvBool("CUDAQ_TENSORNET_DETERMINISTIC", false);;
+  return cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_DETERMINISTIC", false);
 }();
 
 template <typename ScalarType>
@@ -269,13 +269,11 @@ TensorNetState<ScalarType>::prepareSample(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
   }
-  // Generate a random seed from the backend simulator's random engine.
-  // Note: Even after a random seed setting at the user's level,
-  // consecutive `cudaq::sample` calls will still return different results
-  // (yet deterministic), i.e., the seed that we send to cutensornet should
-  // not be the user's seed. The configure must be before the prepare call.
-  // Setting the deterministic attribute will limit # of pathfinding threads
-  // to 1 and can therefore cause significant performance impact
+  // Generate a random seed from the backend simulator's random engine to
+  // configure cutn for deterministic path-finding. Here the configure is
+  // before the prepare call so setting the deterministic attribute will
+  // limit # of pathfinding threads to 1 and can therefore cause significant
+  // performance impact
   if (m_deterministic) {
     const int32_t rndSeed = m_randomEngine();
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
@@ -360,6 +358,22 @@ TensorNetState<ScalarType>::executeSample(
   while (shotsToRun > 0) {
     const int64_t numShots = std::min(shotsToRun, MAX_SHOTS_PER_RUNS);
     std::vector<int64_t> samples(measuredBitIds.size() * numShots);
+    {
+      // Generate a random seed from the backend simulator's random engine.
+      // Note: Even after a random seed setting at the user's level,
+      // consecutive `cudaq::sample` calls will still return different results
+      // (yet deterministic), i.e., the seed that we send to cutensornet should
+      // not be the user's seed. Here the configure is after the prepare call so
+      // setting the deterministic attribute won't impact # of pathfinding
+      // threads. If m_deterministic is not set, there is some possibility of a
+      // small deviation in sampling results from finite precision on a
+      // different contraction path
+      const int32_t rndSeed = m_randomEngine();
+      HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
+          m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
+          &rndSeed, sizeof(rndSeed)));
+    }
+
     {
       ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
                              "cutensornetSamplerSample");
