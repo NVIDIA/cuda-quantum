@@ -212,6 +212,14 @@ if [ "$docs_exit_code" -eq "0" ]; then
         find "$sphinx_output_dir" -type f -name "*.md" \
             -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
         echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
+
+        # Copy llms.txt from the repository root to the docs install prefix
+        if [ -f "$CUDAQ_REPO_ROOT/llms.txt" ]; then
+            cp "$CUDAQ_REPO_ROOT/llms.txt" "$DOCS_INSTALL_PREFIX/"
+            echo "Copied llms.txt to $DOCS_INSTALL_PREFIX."
+        else
+            echo "Warning: llms.txt not found in $CUDAQ_REPO_ROOT, skipping copy."
+        fi
     else
         echo "Markdown documentation encountered issues."
     fi
