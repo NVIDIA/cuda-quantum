@@ -67,6 +67,11 @@ target-arguments:
     type: string
     platform-arg: max_cost
     help-string: "Specify the max HQC cost for a job submission."
+  - key: max-qubits
+    required: false
+    type: string
+    platform-arg: max_qubits
+    help-string: "Specify the maximum number of qubits for a job submission."
   - key: noisy-simulation
     required: false
     type: string

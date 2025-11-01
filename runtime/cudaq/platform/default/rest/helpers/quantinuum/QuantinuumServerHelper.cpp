@@ -43,6 +43,8 @@ protected:
   std::string machine = "H2-1SC";
   /// @brief Max HQC cost
   std::optional<int> maxCost;
+  /// @brief Maximum number of qubits
+  std::optional<int> maxQubits;
   /// @brief Enable/disable noisy simulation on emulator.
   std::optional<bool> noisySim;
   /// @brief The type of simulator to use if machine is a simulator.
@@ -122,6 +124,14 @@ public:
       maxCost = std::stoi(iter->second);
       if (maxCost.value() < 1)
         throw std::runtime_error("max_cost must be a positive integer.");
+    }
+
+    // Set max qubits
+    iter = backendConfig.find("max_qubits");
+    if (iter != backendConfig.end()) {
+      maxQubits = std::stoi(iter->second);
+      if (maxQubits.value() < 1)
+        throw std::runtime_error("max_qubits must be a positive integer.");
     }
 
     // Noisy simulation
@@ -368,19 +378,35 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
         "QuantinuumConfig";
     j["data"]["attributes"]["definition"]["backend_config"]["device_name"] =
         machine;
-    // On Helios devices, we need to specify max-cost unless it's a syntax
-    // checker
-    if (machine.starts_with("Helios") && !machine.ends_with("SC") &&
-        !maxCost.has_value())
-      throw std::runtime_error(
-          "Please specify a maximum cost (`--quantinuum-max-cost <val>` when "
-          "compiling with nvq++ or `max_cost=<val>` in Python `set_target`) "
-          "when using device: " +
-          machine);
+    // On Helios devices, we need to specify max-cost and max-qubits unless it's
+    // a syntax checker
+    if (machine.starts_with("Helios") && !machine.ends_with("SC")) {
+      std::vector<std::string> errors;
+      if (!maxCost.has_value())
+        errors.push_back("Please specify maximum HQC cost "
+                         "(`--quantinuum-max-cost <val>` when compiling with "
+                         "nvq++ or `max_cost=<val>` in Python `set_target`)");
+      if (!maxQubits.has_value())
+        errors.push_back(
+            "Please specify maximum number of qubits (`--quantinuum-max-qubits "
+            "<val>` when compiling with nvq++ or `max_qubits=<val>` in Python "
+            "`set_target`)");
+      if (!errors.empty())
+        throw std::runtime_error(
+            fmt::format("Missing required configuration for device '{}': {}",
+                        machine, fmt::join(errors, "; ")));
+    }
 
     if (maxCost.has_value())
       j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
           maxCost.value();
+
+    if (maxQubits.has_value()) {
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["compiler_options"] = ServerMessage::object();
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["compiler_options"]["max-qubits"] = maxQubits.value();
+    }
 
     if (noisySim.has_value() && machine.ends_with("E"))
       j["data"]["attributes"]["definition"]["backend_config"]

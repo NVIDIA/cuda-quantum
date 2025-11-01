@@ -759,7 +759,7 @@ jobs:
                 if [[ "$filename" == *.cpp ]]; then
                   if [[ "$filename" == *"quantinuum_ng/"* ]]; then
                     echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
-                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
                   else
                     echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
                     nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
