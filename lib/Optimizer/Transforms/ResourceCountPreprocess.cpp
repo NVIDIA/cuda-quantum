@@ -94,10 +94,14 @@ struct ResourceCountPreprocessPass
   void runOnOperation() override {
     auto func = getOperation();
 
-    for (auto &b : func.getBody())
+    for (auto &b : func.getBody()) {
+      // We only pre-process the main block as the other blocks may be
+      // conditional when the IR is lowered to CFG.
+      if (&b != &func.getBody().front())
+        continue;
       for (auto &op : b.getOperations())
         preprocessOp(&op);
-
+    }
     for (auto op : to_erase)
       op->erase();
 
