@@ -530,6 +530,17 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
   }];
 }
 
+def quake_SaveStateOp : QuakeOp<"save_state"> {
+  let summary = "Save quantum state representation compatible with the simulator.";
+  let description = [{
+    This operation provides support for the `cudaq::save_state`
+    function. This function is only valid in simulation contexts where the
+    simulator is part of the same process as the C++ host executable itself.
+  }];
+
+  // No arguments are needed.
+}
+
 //===----------------------------------------------------------------------===//
 // Memory and register conversion instructions: These operations are useful for
 // intermediate conversions between memory-SSA and value-SSA semantics and vice

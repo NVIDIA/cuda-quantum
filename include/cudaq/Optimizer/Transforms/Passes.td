@@ -459,6 +459,15 @@ def EraseNoise : Pass<"erase-noise"> {
   }];
 }
 
+def EraseSaveState : Pass<"erase-save-state"> {
+  let summary = "Erase the injection of save_state.";
+  let description = [{
+    Although CUDA-Q allows the user to save state representations, 
+    these are not needed and must be removed if the code is to
+    run on quantum hardware, for example.
+  }];
+}
+
 def EraseNopCalls : Pass<"erase-nop-calls"> {
   let summary = "Erase calls to any builtin intrinsics that are NOPs.";
   let description = [{
