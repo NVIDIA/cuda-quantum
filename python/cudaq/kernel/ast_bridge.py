@@ -205,15 +205,15 @@ class PyASTBridge(ast.NodeVisitor):
         codeFile = os.path.basename(self.locationOffset[0])
         if astNode == None:
             astNode = self.currentNode
-        lineNumber = '' if astNode == None else astNode.lineno + self.locationOffset[
-            1] - 1
+        lineNumber = ('' if astNode == None else astNode.lineno +
+                      self.locationOffset[1] - 1)
 
         print(Color.BOLD, end='')
-        msg = codeFile + ":" + str(
-            lineNumber
-        ) + ": " + Color.YELLOW + "warning: " + Color.END + Color.BOLD + msg + (
-            "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
-            hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
+        msg = (codeFile + ":" + str(lineNumber) + ": " + Color.YELLOW +
+               "warning: " + Color.END + Color.BOLD + msg +
+               ("\n\t (offending source -> " + ast.unparse(astNode) + ")"
+                if hasattr(ast, 'unparse') and astNode is not None else '') +
+               Color.END)
         print(msg)
 
     def emitFatalError(self, msg, astNode=None):
