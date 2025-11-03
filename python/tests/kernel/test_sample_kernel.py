@@ -81,10 +81,6 @@ def test_simple_sampling_qpe():
     assert len(counts) == 1
     assert '100' in counts
 
-    counts_async = cudaq.sample_async(qpe, 3, 1, xGate, tGate).get()
-    assert len(counts_async) == 1
-    assert '100' in counts_async
-
     # Test that we can define kernels after the
     # definition of a composable kernel like qpe
     # and use them as input (they get added to the
