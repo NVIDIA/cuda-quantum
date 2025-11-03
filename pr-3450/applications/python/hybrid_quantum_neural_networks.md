@@ -1716,7 +1716,7 @@ output is used to classify hand written digits.
 ::: highlight
     # Install the relevant packages.
 
-    !pip install matplotlib==3.8.4 torch==2.0.1+cu118 torchvision==0.15.2+cu118 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu118
+    !pip install matplotlib==3.8.4 torch==2.9.0+cu126 torchvision==0.24.0+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
 :::
 :::
 :::

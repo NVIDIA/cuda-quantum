@@ -1049,7 +1049,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="05e21f29191a4c7ca8d8ec4a80ff3a04" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="55af4984393e426fb3cba8e879ac3918" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>
@@ -1328,7 +1328,7 @@ retrieved image
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">ancilla</span><span class="p">,</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">):</span>
-        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">ancilla</span><span class="p">,</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">i</span><span class="p">]],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">ancilla</span><span class="p">,</span> <span class="o">*</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">i</span><span class="p">]],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 
     <span class="n">h</span><span class="p">(</span><span class="n">ancilla</span><span class="p">)</span>
 
