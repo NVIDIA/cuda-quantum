@@ -253,6 +253,64 @@ def test_list_of_tuple_update_failures():
         print(test2)
     assert 'indexing into tuple or dataclass does not produce a modifiable value' in str(e.value)
 
+
+def test_list_of_dataclass_updates():
+
+    @dataclass(slots=True)
+    class MyTuple:
+        l1: list[int]
+        l2: list[int]
+
+    @cudaq.kernel
+    def serialize(tlist: list[MyTuple]) -> list[int]:
+        tot_size = 2 * len(tlist)
+        for t in tlist:
+            tot_size += len(t.l1) + len(t.l2)
+        res = [0 for _ in range(tot_size)]
+        idx = 0
+        for t in tlist:
+            res[idx] = len(t.l1)
+            idx += 1
+            for i, v in enumerate(t.l1):
+                res[idx + i] = v
+            idx += len(t.l1)
+            res[idx] = len(t.l2)
+            idx += 1
+            for i, v in enumerate(t.l2):
+                res[idx + i] = v
+            idx += len(t.l2)
+        return res
+
+    @cudaq.kernel
+    def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
+        return [MyTuple(t.l1, t.l2) for _ in range(size)]
+
+    @cudaq.kernel
+    def test1() -> list[int]: 
+        l = populate_MyTuple_list(MyTuple([1], [1]), 2)
+        return serialize(l)
+
+    assert test1() == [1, 1, 1, 1, 1, 1, 1, 1]
+
+    @cudaq.kernel
+    def test2() -> list[int]: 
+        l = populate_MyTuple_list(MyTuple([1, 1], [1, 1]), 2)
+        l[0].l1 = [2]
+        return serialize(l)
+
+    assert test2() == [1, 2, 2, 1, 1, 2, 1, 1, 2, 1, 1]
+
+    @cudaq.kernel
+    def test3() -> list[int]: 
+        l = populate_MyTuple_list(MyTuple([1, 1], [1, 1]), 2)
+        l[1].l2[0] = 3
+        return serialize(l)
+
+    assert test3() == [2, 1, 1, 2, 1, 1, 2, 1, 1, 2, 3, 1]
+
+
+def test_list_of_tuple_update_failures():
+
     @dataclass(slots=True)
     class MyTuple:
         l1: list[int]
@@ -268,15 +326,16 @@ def test_list_of_tuple_update_failures():
     assert 'create a literal using the MyTuple constructor' in str(e.value)
 
     @cudaq.kernel
-    def get_MyTuple_list2(t : MyTuple) -> list[MyTuple]:
-        return [MyTuple(t.l1, t.l2)]
+    def get_MyTuple_list(size: int) -> list[MyTuple]:
+        return [MyTuple([1], [1]) for _ in range(size)]
 
-    # FIXME: segfaults
-    #print(get_MyTuple_list2(MyTuple([1], [1])))
+    with pytest.raises(RuntimeError) as e:
+        print(get_MyTuple_list(2))
+    assert 'Expected a complex, floating, or integral type' in str(e.value)
 
     @cudaq.kernel
-    def test3() -> list[int]: 
-        l = get_MyTuple_list2(MyTuple([1], [1]))
+    def test1(t : MyTuple, size: int) -> list[int]: 
+        l = [MyTuple(t.l1, t.l2) for _ in range(size)]
         res = [0 for _ in range(4 * len(l))]
         for idx, item in enumerate(l):
             res[4 * idx] = len(item.l1)
@@ -285,8 +344,27 @@ def test_list_of_tuple_update_failures():
             res[4 * idx + 3] = item.l2[0]
         return res
 
-    # FIXME: segfaults as well - likely an issue with the return of get_MyTuple_list2
-    #print(test3())
+    # TODO: I added a comprehensive error here, since the argsCreator
+    # at the time of writing produced a segfault. This should be revised
+    # and reenabled after broader updates to the argument handling.
+    #assert test3(MyTuple([1], [1]), 2) == [1, 1, 1, 1, 1, 1, 1, 1]
+
+    @cudaq.kernel
+    def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
+        return [MyTuple(t.l1, t.l2) for _ in range(size)]
+
+    # FIXME: segfaults
+    #print(populate_MyTuple_list(MyTuple([1], [1]), 2))
+
+    @cudaq.kernel
+    def test2() -> MyTuple: 
+        l = populate_MyTuple_list(MyTuple([1, 1], [1, 1]), 2)
+        l[0].l1 = [2]
+        return l[0]
+    
+    with pytest.raises(RuntimeError) as e:
+        test2()
+    assert 'Unsupported element type in struct type' in str(e.value)
 
 
 def test_dataclass_update():
@@ -495,7 +573,8 @@ def test_disallow_update_capture():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
-
+    #test_list_of_dataclass_updates()
+    #test_list_of_tuple_update_failures()
 # TODO: test list of list (outer new list, inner ref to same)
 
 '''

@@ -4090,7 +4090,7 @@ class PyASTBridge(ast.NodeVisitor):
         def getSize(ty):
             fp_width = lambda t: 4 if F32Type.isinstance(t) else 8
             if cc.StructType.isinstance(ty):
-                return cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(ty))
+                return cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(ty)).result
             if ComplexType.isinstance(ty):
                 fType = ComplexType(ty).element_type
                 return self.getConstantInt(2 * fp_width(fType))
