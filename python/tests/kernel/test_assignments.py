@@ -569,6 +569,42 @@ def test_disallow_update_capture():
     assert "(offending source -> tp)" in str(e.value)
 
 
+def test_value_updates():
+
+    @cudaq.kernel
+    def test1() -> list[bool]:
+        qs = cudaq.qvector(4)
+        c = qs[0]
+        if True:
+            c = qs[1]
+        x(c)
+        return mz(qs)
+
+    with pytest.raises(RuntimeError) as e:
+        test1()
+    assert 'variable defined in parent scope cannot be modified' in str(e.value)
+    assert '(offending source -> c = qs[1])' in str(e.value)
+
+    @cudaq.kernel
+    def test2() -> bool:
+        qs = cudaq.qvector(2)
+        res = mz(qs[0])
+        if True:
+            x(qs[1])
+            res = mz(qs[1])
+        return res
+
+    # TODO: The reason we cannot currently support this is 
+    # because we store measurement results as values in the 
+    # symbol table. This should be changed and supported when
+    # we do the change to properly distinguish measurement
+    # types from booleans.
+    with pytest.raises(RuntimeError) as e:
+        test2()
+    assert 'variable defined in parent scope cannot be modified' in str(e.value)
+    assert '(offending source -> res = mz(qs[1]))' in str(e.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
