@@ -120,7 +120,7 @@ There are some known Blackwell issues when using CUDA-Q.
 
     .. code-block:: console
 
-        pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12
+        pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand
 
 .. _blackwell-torch-dependences:
 

@@ -18,6 +18,10 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # LinkedLibraryHolder.
 if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
     try:
+        # common
+        curand_libs = get_library_path(f"nvidia-curand")
+        curand_path = os.path.join(curand_libs, "libcurand.so.10")
+        
         if cuda_major == 12:
             custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
             custatevec_path = os.path.join(custatevec_libs,
@@ -33,9 +37,6 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
 
             cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
             cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
-
-            curand_libs = get_library_path(f"nvidia-curand-cu{cuda_major}")
-            curand_path = os.path.join(curand_libs, "libcurand.so.10")
 
             cudart_libs = get_library_path(
                 f"nvidia-cuda_runtime-cu{cuda_major}")
@@ -64,9 +65,6 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
 
             cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
             cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
-
-            curand_libs = get_library_path(f"nvidia-curand")
-            curand_path = os.path.join(curand_libs, "libcurand.so.10")
 
             cudart_libs = get_library_path(f"nvidia-cuda_runtime")
             cudart_path = os.path.join(cudart_libs,
