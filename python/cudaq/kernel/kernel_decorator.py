@@ -65,10 +65,11 @@ class PyKernelDecorator(object):
             self.signature = signature
         else:
             self.kernelFunction = function
-            self.name = kernelName if kernelName != None else self.kernelFunction.__name__
-            self.location = (inspect.getfile(self.kernelFunction),
-                             inspect.getsourcelines(self.kernelFunction)[1]
-                            ) if self.kernelFunction is not None else ('', 0)
+            self.name = (kernelName if kernelName != None else
+                         self.kernelFunction.__name__)
+            self.location = ((inspect.getfile(self.kernelFunction),
+                              inspect.getsourcelines(self.kernelFunction)[1])
+                             if self.kernelFunction is not None else ('', 0))
 
         self.capturedDataStorage = None
 
