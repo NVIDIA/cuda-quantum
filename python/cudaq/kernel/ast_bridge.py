@@ -5,7 +5,9 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+
 import ast
+import inspect
 import importlib
 import graphlib
 import textwrap
@@ -106,26 +108,22 @@ class CompilerError(RuntimeError):
 
 class PyASTBridge(ast.NodeVisitor):
     """
-    The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert a 
-    python function definition (annotated with cudaq.kernel) to an MLIR `ModuleOp`
-    containing a `func.FuncOp` representative of the original python function but leveraging 
-    the Quake and CC dialects provided by CUDA-Q. This class keeps track of a 
-    MLIR Value stack that is pushed to and popped from during visitation of the 
-    function AST nodes. We leverage the auto-generated MLIR Python bindings for the internal 
-    C++ CUDA-Q dialects to build up the MLIR code. 
-
-    For kernels that call other kernels, we require that the `ModuleOp` contain the 
-    kernel being called. This is enabled via the `FindDepKernelsVisitor` in the local 
-    analysis module, and is handled by the below `compile_to_mlir` function. For 
-    callable block arguments, we leverage runtime-known callable argument function names 
-    and synthesize them away with an internal C++ MLIR pass. 
+    The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert a
+    python function definition (annotated with cudaq.kernel) to an MLIR
+    `ModuleOp` containing a `func.FuncOp` representative of the original python
+    function but leveraging the Quake and CC dialects provided by CUDA-Q. This
+    class keeps track of a MLIR Value stack that is pushed to and popped from
+    during visitation of the function AST nodes. We leverage the auto-generated
+    MLIR Python bindings for the internal C++ CUDA-Q dialects to build up the
+    MLIR code.
     """
 
     def __init__(self, capturedDataStorage: CapturedDataStorage, **kwargs):
         """
-        The constructor. Initializes the `mlir.Value` stack, the `mlir.Context`, and the 
-        `mlir.Module` that we will be building upon. This class keeps track of a 
-        symbol table, which maps variable names to constructed `mlir.Values`. 
+        The constructor. Initializes the `mlir.Value` stack, the `mlir.Context`,
+        and the `mlir.Module` that we will be building upon. This class keeps
+        track of a symbol table, which maps variable names to constructed
+        `mlir.Values`.
         """
         self.valueStack = deque()
         self.knownResultType = kwargs[
@@ -1774,7 +1772,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if (not quake.RefType.isinstance(controls[0].type) and
                         not quake.VeqType.isinstance(controls[0].type)):
                     self.emitFatalError(
-                        f'invalid argument type for control operand', node)
+                        'invalid argument type for control operand', node)
                 # TODO: it would be cleaner to add support for negated control
                 # qubits to `quake.ApplyOp`
                 if controls[0] in self.controlNegations:
@@ -1784,8 +1782,8 @@ class PyASTBridge(ast.NodeVisitor):
             args = convertArguments(inputTys, values[numControlArgs:])
             if len(outputTys) != 0:
                 self.emitFatalError(
-                    f'cannot take {attrName} of kernel {otherFuncName} that returns a value',
-                    node)
+                    f'cannot take {attrName} of kernel {otherFuncName} that '
+                    f'returns a value', node)
             invert_controls()
             quake.ApplyOp([], indirectCallee, controls, args, **kwargs)
             invert_controls()
@@ -1798,8 +1796,8 @@ class PyASTBridge(ast.NodeVisitor):
                 elif hasattr(node.func, 'attr'):
                     fName = node.func.attr
                 self.emitFatalError(
-                    f"invalid number of arguments passed in call to {fName} ({nrValsToPop} vs required {len(fType.inputs)})",
-                    node)
+                    f"invalid number of arguments passed in call to {fName} "
+                    f"({nrValsToPop} vs required {len(fType.inputs)})", node)
             values = [self.popValue() for _ in node.args]
             values.reverse()
             values = convertArguments([t for t in fType.inputs], values)
@@ -1935,8 +1933,8 @@ class PyASTBridge(ast.NodeVisitor):
                 [self.visit(arg) for arg in node.args]
                 if len(self.valueStack) != 1:
                     self.emitFatalError(
-                        f"cudaq.dbg.ast.{node.func.attr} call invalid - too many arguments passed.",
-                        node)
+                        f"cudaq.dbg.ast.{node.func.attr} call invalid - "
+                        f"too many arguments passed.", node)
 
                 self.__insertDbgStmt(self.popValue(), node.func.attr)
                 return
@@ -4799,8 +4797,8 @@ class PyASTBridge(ast.NodeVisitor):
             target = self.symbolTable[node.target.id]
         else:
             self.emitFatalError(
-                "augment-assign target variable is not defined or cannot be assigned to.",
-                node)
+                "augment-assign target variable is not defined or "
+                "cannot be assigned to.", node)
 
         self.visit(node.value)
         value = self.popValue()
@@ -4973,8 +4971,9 @@ class PyASTBridge(ast.NodeVisitor):
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
-            f"Invalid variable name requested - '{node.id}' is not defined within the quantum kernel it is used in.",
-            node)
+            f"Invalid variable name requested - '{node.id}' is "
+            f"not defined within the quantum kernel it is used "
+            f"in.", node)
 
 
 def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
@@ -5069,8 +5068,7 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
     try:
         pm.run(bridge.module)
     except:
-        raise RuntimeError("could not compile code for '{}'.".format(
-            bridge.name))
+        raise RuntimeError(f"could not compile code for '{bridge.name}'.")
 
     extraMetaData = {}
     if len(bridge.dependentCaptureVars):
