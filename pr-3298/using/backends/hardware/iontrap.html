@@ -213,6 +213,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -276,6 +277,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
@@ -460,16 +470,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html">Generating the electronic Hamiltonian</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.">Second Quantized formulation.</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#Computational-Implementation">Computational Implementation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Hartree Fock molecular orbitals</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:">Active space Hamiltonian:</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Restricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals">(b) Generate the molecular Hamiltonian using Unrestricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.">(a) Generate the active space hamiltonian using RHF molecular orbitals.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(b) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(c) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF">(d) Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF">(e) Generate electronic Hamiltonian using UHF</a></li>
 </ul>
 </li>
 </ul>
@@ -520,6 +527,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
@@ -563,6 +593,7 @@
 <li class="toctree-l4"><a class="reference internal" href="superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="superconducting.html#oqc">OQC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -819,6 +850,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.register_set_target_callback"><code class="docutils literal notranslate"><span class="pre">register_set_target_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.unregister_set_target_callback"><code class="docutils literal notranslate"><span class="pre">unregister_set_target_callback()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
@@ -1068,13 +1101,13 @@ can be controlled with the <code class="docutils literal notranslate"><span clas
 Submission to the syntax checker merely validates the program; the kernels are not executed.</p>
 <p>To execute your kernels, specify which machine to submit quantum kernels to
 by setting the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter of the target.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;H1-2&#39;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quantinuum&#39;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">&#39;H2-2&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">H1-2</span></code> is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-2E</span></code>). For
+<p>where <code class="docutils literal notranslate"><span class="pre">H2-2</span></code> is an example of a physical QPU. Hardware specific
+emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-2E</span></code>). For
 access to the syntax checker for the provided machine, you may append an <code class="docutils literal notranslate"><span class="pre">SC</span></code>
-to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>).</p>
+to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-1SC</span></code>).</p>
 <p>For a comprehensive list of available machines, login to your <a class="reference external" href="https://nexus.quantinuum.com/">Quantinuum Nexus user account</a>
 and navigate to the “Profile” tab, where you should find a table titled “Quantinuum Systems Access”.</p>
 <p>To emulate the Quantinuum machine locally, without submitting through the cloud,
@@ -1104,13 +1137,13 @@ nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span cla
 </div>
 <p>To execute your kernels, pass the <code class="docutils literal notranslate"><span class="pre">--quantinuum-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
 to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>--quantinuum-machine<span class="w"> </span>H1-2<span class="w"> </span>src.cpp<span class="w"> </span>...
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quantinuum<span class="w"> </span>--quantinuum-machine<span class="w"> </span>H2-2<span class="w"> </span>src.cpp<span class="w"> </span>...
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">H1-2</span></code> is an example of a physical QPU. Hardware specific
-emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-2E</span></code>). For
+<p>where <code class="docutils literal notranslate"><span class="pre">H2-2</span></code> is an example of a physical QPU. Hardware specific
+emulators may be accessed by appending an <code class="docutils literal notranslate"><span class="pre">E</span></code> to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-2E</span></code>). For
 access to the syntax checker for the provided machine, you may append an <code class="docutils literal notranslate"><span class="pre">SC</span></code>
-to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H1-1SC</span></code>).</p>
+to the end (e.g, <code class="docutils literal notranslate"><span class="pre">H2-1SC</span></code>).</p>
 <p>For a comprehensive list of available machines, login to your <a class="reference external" href="https://nexus.quantinuum.com/">Quantinuum Nexus user account</a>
 and navigate to the “Profile” tab, where you should find a table titled “Quantinuum Systems Access”.</p>
 <p>To emulate the Quantinuum machine locally, without submitting through the cloud,
@@ -1122,7 +1155,28 @@ You do not need to specify project or machine when emulating.</p>
 </div>
 </div>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Quantinuum’s syntax checker for Helios (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1SC</span></code>) only performs QIR code validation and does not return any results.
+Thus, it always returns an empty result set. This is different from other Quantinuum backends (e.g., <code class="docutils literal notranslate"><span class="pre">H2-1SC</span></code>) where the syntax checker returns dummy results.
+As a result, when using the Helios syntax checker, we may receive this warning message:</p>
+<blockquote>
+<div><div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING: this kernel invocation produced 0 shots worth of results when executed.
+</pre></div>
+</div>
+<p>It means that the kernel was successfully validated, but no execution results are available.
+To get results, please submit to the Helios emulator (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1E</span></code>) or the actual quantum device (e.g., <code class="docutils literal notranslate"><span class="pre">Helios-1</span></code>).</p>
+</div></blockquote>
+</div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quantinuum-examples"><span class="std std-ref">Quantinuum examples</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In local emulation mode (<code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag set to <code class="docutils literal notranslate"><span class="pre">True</span></code>), the program will be executed on the <a class="reference internal" href="../sims/svsims.html#default-simulator"><span class="std std-ref">default simulator</span></a>.
+The environment variable <code class="docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> can be used to change the emulation simulator.</p>
+<p>For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
+depend on the selected simulator.</p>
+<p>Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
+</div>
 </section>
 </section>
 </section>

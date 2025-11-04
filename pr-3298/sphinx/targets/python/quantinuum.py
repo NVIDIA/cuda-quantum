@@ -23,8 +23,6 @@ def kernel():
     qvector = cudaq.qvector(2)
     h(qvector[0])
     x.ctrl(qvector[0], qvector[1])
-    mz(qvector[0])
-    mz(qvector[1])
 
 
 # Submit to Quantinuum's endpoint and confirm the program is valid.
@@ -42,7 +40,7 @@ if (syntax_check):
 # Now we can update the target to the Quantinuum emulator and
 # execute our program.
 cudaq.set_target("quantinuum",
-                 machine="H1-1E",
+                 machine="H2-1E",
                  project=os.environ.get("QUANTINUUM_NEXUS_PROJECT", None))
 
 # Option B:

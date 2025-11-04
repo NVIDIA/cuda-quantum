@@ -213,6 +213,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
 </ul>
@@ -276,6 +277,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compuare-results">5. Compuare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
@@ -460,16 +470,13 @@
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html">Generating the electronic Hamiltonian</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.">Second Quantized formulation.</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Computational-Implementation">Computational Implementation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Hartree Fock molecular orbitals</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Active-space-Hamiltonian:">Active space Hamiltonian:</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-hamiltonian-using-HF-molecular-orbitals.">(b) Generate the active space hamiltonian using HF molecular orbitals.</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(c) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(d) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Generate-the-electronic-Hamiltonian-using-ROHF">Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Restricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals">(b) Generate the molecular Hamiltonian using Unrestricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.">(a) Generate the active space hamiltonian using RHF molecular orbitals.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(b) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(c) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF">(d) Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF">(e) Generate electronic Hamiltonian using UHF</a></li>
 </ul>
 </li>
 </ul>
@@ -520,6 +527,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm:-Matrix-Construction-Details">The SKQD Algorithm: Matrix Construction Details</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -563,6 +593,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -819,6 +850,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.register_set_target_callback"><code class="docutils literal notranslate"><span class="pre">register_set_target_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unregister_set_target_callback"><code class="docutils literal notranslate"><span class="pre">unregister_set_target_callback()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
@@ -1541,7 +1574,7 @@ After installing the <code class="code docutils literal notranslate"><span class
 the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.0</span><span class="si">}</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.6</span><span class="si">}</span>
 <span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
 <span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
@@ -1564,12 +1597,12 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 </div>
 <p>More detailed instructions for your platform can be found in the online documentation
 linked for that <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
-Please make sure to install CUDA version 11.8 or newer, and confirm that your
+Please make sure to install CUDA version 12.0 or newer, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-12-0</span></code>) that also
-includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 11,
-built against version 11.8, and for CUDA 12, built against version 12.0.</p>
+includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 12,
+built against version 12.6, and for CUDA 13, built against version 13.0.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
@@ -1638,10 +1671,10 @@ by running the command</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Please check if you have an existing installation of the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
-<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package,
+<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu12</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code> package,
 and uninstall it prior to installing <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code>. The <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> package supersedes the
 <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code> package and will install a suitable binary distribution (either
-<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu11</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code>) for your system. Multiple versions
+<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code>) for your system. Multiple versions
 of a CUDA-Q binary distribution will conflict with each other and not work properly.</p>
 </div>
 <p>If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your
@@ -1695,17 +1728,22 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p>GPU Architectures</p></td>
-<td><p>Volta, Turing, Ampere, Ada, Hopper</p></td>
+<td><p>Turing, Ampere, Ada, Hopper, Blackwell (Blackwell supported for CUDA 13.x only)</p></td>
 </tr>
 <tr class="row-even"><td><p>NVIDIA GPU with Compute Capability</p></td>
-<td><p>7.0+</p></td>
+<td><p>7.5+</p></td>
 </tr>
 <tr class="row-odd"><td><p>CUDA</p></td>
-<td><p>11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)</p></td>
+<td><ul class="simple">
+<li><p>12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility</p></li>
+<li><p>12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture</p></li>
+<li><p>13.x (Driver 580.65.06+)</p></li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
-<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
+<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>. For more information on GPU forward capabilities, please refer to <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html">this page</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Tegra devices (Jetson) are not supported in CUDA-Q at this time.</p>
