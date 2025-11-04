@@ -346,15 +346,14 @@ def test_list_of_tuple_update_failures():
 
     # TODO: I added a comprehensive error here, since the argsCreator
     # at the time of writing produced a segfault. This should be revised
-    # and reenabled after broader updates to the argument handling.
-    #assert test3(MyTuple([1], [1]), 2) == [1, 1, 1, 1, 1, 1, 1, 1]
+    # and re-enabled after broader updates to the argument handling.
+    with pytest.raises(RuntimeError) as e:
+        test1(MyTuple([1], [1]), 2)
+    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
 
     @cudaq.kernel
     def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
         return [MyTuple(t.l1, t.l2) for _ in range(size)]
-
-    # FIXME: segfaults
-    #print(populate_MyTuple_list(MyTuple([1], [1]), 2))
 
     @cudaq.kernel
     def test2() -> MyTuple: 
@@ -362,9 +361,12 @@ def test_list_of_tuple_update_failures():
         l[0].l1 = [2]
         return l[0]
     
+    # TODO: I added a comprehensive error here, since the argsCreator
+    # at the time of writing produced a segfault. This should be revised
+    # and re-enabled after broader updates to the return handling.
     with pytest.raises(RuntimeError) as e:
         test2()
-    assert 'Unsupported element type in struct type' in str(e.value)
+    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
 
 
 def test_dataclass_update():
@@ -569,7 +571,7 @@ def test_disallow_update_capture():
     assert "(offending source -> tp)" in str(e.value)
 
 
-def test_value_updates():
+def test_disallow_value_updates():
 
     @cudaq.kernel
     def test1() -> list[bool]:
@@ -609,8 +611,7 @@ def test_value_updates():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
-    #test_list_of_dataclass_updates()
-    #test_list_of_tuple_update_failures()
+
 # TODO: test list of list (outer new list, inner ref to same)
 
 '''

@@ -180,14 +180,26 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       cloned.getContext()->disableMultithreading();
       pm.enableIRPrinting();
     }
+    
+    std::string error_msg;
+    mlir::DiagnosticEngine& engine = context->getDiagEngine();
+    engine.registerHandler( 
+        [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+            if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+              error_msg += diag.str();
+              return mlir::failure(false);
+            }
+            return mlir::failure();
+      });
 
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
+
     if (failed(pm.run(cloned)))
       throw std::runtime_error(
-          "cudaq::builder failed to JIT compile the Quake representation.");
+          "failed to JIT compile the Quake representation\n" + error_msg);
     timingScope.stop();
 
     // The "fast" instruction selection compilation algorithm is actually very
@@ -826,9 +838,21 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
+
+  std::string error_msg;
+  mlir::DiagnosticEngine& engine = context->getDiagEngine();
+  engine.registerHandler( 
+      [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+            error_msg += diag.str();
+            return mlir::failure(false);
+          }
+          return mlir::failure();
+    });
+
   if (failed(pm.run(cloned)))
     throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+        "failed to JIT compile the Quake representation\n" + error_msg);
   timingScope.stop();
   std::free(rawArgs);
   return wrap(cloned);
