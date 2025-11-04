@@ -276,9 +276,12 @@ class PyASTBridge(ast.NodeVisitor):
         if self.verbose:
             print(f'{self.indent * self.indent_level}{msg()}')
             if node is not None:
-                print(
-                    textwrap.indent(ast.unparse(node),
-                                    (self.indent * (self.indent_level + 1))))
+                try:
+                    print(
+                        textwrap.indent(ast.unparse(node),
+                                        (self.indent * (self.indent_level + 1))))
+                except:
+                    pass
 
     def emitWarning(self, msg, astNode=None):
         """
@@ -1507,10 +1510,15 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.PointerType.isinstance(varTy):
                 varTy = cc.PointerType.getElementType(varTy)
             # If `buildingEntryPoint` is not set we are processing function arguments.
-            # Function arguments are always passed by value, except states, and 
-            # should hence be preserved as such to make sure they are not modified.
-            valTypeFuncArg = not (self.buildingEntryPoint or cc.StateType.isinstance(varTy))
-            storeAsVal = valTypeFuncArg or \
+            # Function arguments are always passed by value, except states.
+            # For value types in Python, we can treat them like any local variable
+            # and create a stack slot for them. For reference types in Python, on
+            # the other hand, we preserve them as values in the symbol table to
+            # make sure we can detect any attempt at modifying them and give a 
+            # comprehensive error.
+            refTypeImmutableFuncArg = not self.buildingEntryPoint and \
+                cc.StructType.isinstance(varTy) and cc.StructType.getName(varTy) != 'tuple'
+            storeAsVal = refTypeImmutableFuncArg or \
                 self.isQuantumType(varTy) or \
                 cc.CallableType.isinstance(varTy) or \
                 cc.StdvecType.isinstance(varTy) or \
@@ -1532,6 +1540,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # If the destination is a vector pointer, simply replacing 
                 # the value in the destination leads to the correct behavior
                 # since vectors are stored as values that contain a pointer.
+                # NOTE: We should be able to support direct assignment to an
+                # existing vector variable in the parent scope, but would need
+                # to make sure to write to its current data array, rather than
+                # replace the data array.
                 if not destIsVectorPtr and (storedAsValue(destination) or isDataclass):
                     # We can't properly deal with this.
                     # I've added a bunch of test cases that would need

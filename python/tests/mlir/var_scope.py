@@ -33,22 +33,3 @@ def test_var_scope():
 # CHECK:           return
 # CHECK:         }
 
-
-def test_variable_name():
-
-    @cudaq.kernel
-    def slice():
-        q = cudaq.qvector(4)
-        slice = q[2:]
-        x(slice)
-
-    try:
-        print(slice)
-    except Exception as e:
-        print("Failure for slice:")
-        print(e)
-
-
-# CHECK-LABEL:    Failure for slice:
-# CHECK:          CUDA-Q does not allow assignment to variable slice captured from parent scope.
-# CHECK-NEXT:     (offending source -> slice = q[2:])

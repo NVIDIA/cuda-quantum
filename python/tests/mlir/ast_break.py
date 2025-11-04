@@ -43,6 +43,8 @@ def test_break():
 # CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
+# CHECK:             %[[VAL_23:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_12]], %[[VAL_23]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_14:.*]] = math.fpowi %[[VAL_13]], %[[VAL_2]] : f64, i64
 # CHECK:             %[[VAL_15:.*]] = arith.addf %[[VAL_13]], %[[VAL_14]] : f64
@@ -54,7 +56,8 @@ def test_break():
 # CHECK:             cc.break %[[VAL_12]] : i64
 # CHECK:           ^bb2:
 # CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
-# CHECK:             %[[VAL_19:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
+# CHECK:             %[[VAL_24:.*]] = cc.load %[[VAL_23]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_19:.*]] = arith.remui %[[VAL_24]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_19]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_18]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_12]] : i64
@@ -65,6 +68,7 @@ def test_break():
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }
+
 
 def test_break2():
 
