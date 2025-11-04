@@ -48,8 +48,19 @@ if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
             cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
                                            f"libnvrtc.so.{cuda_major}")
 
+            cusolver_libs = get_library_path(f"nvidia-cusolver-cu{cuda_major}")
+            cusolver_path = os.path.join(cusolver_libs, f"libcusolver.so.11")
+            cusolvermg_path = os.path.join(cusolver_libs,
+                                           f"libcusolverMg.so.11")
+
+            cublas_libs = get_library_path(f"nvidia-cublas-cu{cuda_major}")
+            cublas_path = os.path.join(cublas_libs,
+                                       f"libcublas.so.{cuda_major}")
+            cublaslt_path = os.path.join(cublas_libs,
+                                         f"libcublasLt.so.{cuda_major}")
+
             os.environ[
-                "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
+                "CUDAQ_DYNLIBS"] = f"{cudart_path}:{curand_path}:{cuda_nvrtc_path}:{cublaslt_path}:{cublas_path}:{cusolver_path}:{cusolvermg_path}:{cutensor_path}:{custatevec_path}:{cutensornet_path}:{cudensitymat_path}"
         else:  # CUDA 13
             custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
             custatevec_path = os.path.join(custatevec_libs,
