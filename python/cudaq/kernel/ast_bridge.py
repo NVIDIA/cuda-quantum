@@ -1521,21 +1521,27 @@ class PyASTBridge(ast.NodeVisitor):
                 not cc.PointerType.isinstance(val.type)
             return storeAsVal
 
-        def update_in_parent_scope(destination, value):
-            assert not cc.PointerType.isinstance(value.type)
-            isContainer = cc.StdvecType.isinstance(value.type) or \
-                (cc.StructType.isinstance(value.type) and cc.StructType.getName(value.type) != 'tuple')
-            if isContainer or storedAsValue(destination):
-                # We can't properly deal with this.
-                # I've added a bunch of test cases that would need
-                # to be covered if we try to support this. 
-                self.emitFatalError("variable defined in parent scope cannot be modified", node)
-            assert cc.PointerType.isinstance(destination.type)
-            expectedTy = cc.PointerType.getElementType(destination.type)
-            value = self.changeOperandToType(expectedTy, value, allowDemotion=False)
-            cc.StoreOp(value, destination)
-
         def process_assignment(target, value):
+            def update_in_parent_scope(destination, value):
+                assert not cc.PointerType.isinstance(value.type)
+                isDataclass = (cc.StructType.isinstance(value.type) and cc.StructType.getName(value.type) != 'tuple')
+                destIsVectorPtr = cc.PointerType.isinstance(destination.type) and cc.StdvecType.isinstance(value.type)
+                # We should only ever get a pointer to a vector as part of
+                # updating a container element.
+                assert not destIsVectorPtr or isinstance(target, ast.Subscript) or isinstance(target, ast.Attribute)
+                # If the destination is a vector pointer, simply replacing 
+                # the value in the destination leads to the correct behavior
+                # since vectors are stored as values that contain a pointer.
+                if not destIsVectorPtr and (storedAsValue(destination) or isDataclass):
+                    # We can't properly deal with this.
+                    # I've added a bunch of test cases that would need
+                    # to be covered if we try to support this. 
+                    self.emitFatalError("variable defined in parent scope cannot be modified", node)
+                assert cc.PointerType.isinstance(destination.type)
+                expectedTy = cc.PointerType.getElementType(destination.type)
+                value = self.changeOperandToType(expectedTy, value, allowDemotion=False)
+                cc.StoreOp(value, destination)
+
             if isinstance(target, ast.Tuple):
 
                 if isinstance(value, ast.Tuple) or \

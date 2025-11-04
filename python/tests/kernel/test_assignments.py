@@ -130,8 +130,6 @@ def test_list_update():
     @cudaq.kernel
     def get_MyTuple(arg : list[int]) -> MyTuple:
         return MyTuple([v for v in arg], [1,1])
-    # Not currently supported
-    # assert get_MyTuple([0, 0]) == MyTuple([0,0], [1,1])
 
     @cudaq.kernel
     def test7() -> tuple[int, int, int]:
@@ -177,9 +175,197 @@ def test_list_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         get_MyTuple([0, 0])
-    assert 'Unsupported element type in struct type' in str(e.value)
-    # FIXME: cudaq.run(get_MyTuple) currently results in a cryptic/incorrect
-    # error 'Tuple size mismatch in value and label'
+    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(get_MyTuple, [0, 0])
+    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
+
+
+def test_dataclass_update():
+
+    @dataclass(slots=True)
+    class MyTuple:
+        angle: float
+        idx: int
+
+    @cudaq.kernel
+    def update_tuple1(arg : MyTuple) -> MyTuple:
+        t = arg.copy()
+        t.angle = 5.
+        return arg
+
+    @cudaq.kernel
+    def kernel1() -> MyTuple:
+        t = MyTuple(0., 0)
+        return update_tuple1(t)
+    
+    out = cudaq.run(kernel1, shots_count=1)
+    assert len(out) == 1 and out[0] == MyTuple(0., 0)
+    print("result kernel1: " + str(out[0]))
+
+    @cudaq.kernel
+    def update_tuple2(arg : MyTuple) -> MyTuple:
+        t = arg.copy()
+        t.angle = 5.
+        return t
+
+    @cudaq.kernel
+    def kernel2() -> MyTuple:
+        return update_tuple2(MyTuple(0., 0))
+    
+    out = cudaq.run(kernel2, shots_count=1)
+    assert len(out) == 1 and out[0] == MyTuple(5., 0)
+    print("result kernel2: " + str(out[0]))
+
+    @cudaq.kernel
+    def kernel3(arg : MyTuple) -> MyTuple:
+        t = arg.copy()
+        t.angle += 5.
+        return t
+
+    arg = MyTuple(1, 1)
+    out = cudaq.run(kernel3, MyTuple(1, 1), shots_count=1)
+    assert len(out) == 1 and out[0] == MyTuple(6., 1)
+    assert arg == MyTuple(1, 1)
+    print("result kernel3: " + str(out[0]))
+
+    @cudaq.kernel
+    def serialize(t1: MyTuple, t2: MyTuple, t3: MyTuple) -> list[float]:
+        return [t1.angle, t1.idx, t2.angle, t2.idx, t3.angle, t3.idx]
+
+    @cudaq.kernel
+    def kernel4() -> list[float]:
+        t1 = MyTuple(1, 1)
+        t2 = t1
+        t3 = MyTuple(2, 2)
+        t1 = t3
+        t3.angle = 5
+        return serialize(t1, t2, t3)
+
+    assert kernel4() == [5.0, 2.0, 1.0, 1.0, 5.0, 2.0]
+
+    @cudaq.kernel
+    def kernel5(cond: bool) -> list[float]:
+        t1 = MyTuple(1, 1)
+        t2 = t1
+        if cond:
+            t1.angle = 5
+        return [t1.angle, t1.idx, t2.angle, t2.idx]
+    
+    assert kernel5(True) == [5.0, 1.0, 5.0, 1.0]
+    assert kernel5(False) == [1.0, 1.0, 1.0, 1.0]
+
+
+def test_dataclass_update_failures():
+
+    @dataclass(slots=True)
+    class MyQTuple:
+        controls: cudaq.qview
+        target: cudaq.qubit
+
+    # We do not currently allow any kind of updates to
+    # quantum structs.
+    @cudaq.kernel
+    def test1(t : MyQTuple, controls: cudaq.qview):
+        t.controls = controls
+
+    with pytest.raises(RuntimeError) as e:
+        print(test1)
+    assert 'accessing attribute of quantum tuple or dataclass does not produce a modifiable value' in str(e.value)
+    assert '(offending source -> t.controls)' in str(e.value)
+
+    @cudaq.kernel
+    def test2(arg : MyQTuple, controls: cudaq.qview):
+        t = arg.copy()
+        t.controls = controls
+
+    with pytest.raises(RuntimeError) as e:
+        print(test2)
+    assert 'unsupported function copy' in str(e.value)
+    assert '(offending source -> arg.copy())' in str(e.value)
+
+    @dataclass(slots=True)
+    class MyTuple:
+        angle: float
+        idx: int
+
+    @cudaq.kernel
+    def update_tuple1(t : MyTuple):
+        t.angle = 5.
+
+    @cudaq.kernel
+    def test3() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple1(t)
+        return t
+
+    with pytest.raises(RuntimeError) as e:
+        print(test3)
+    assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
+    assert '(offending source -> t.angle)' in str(e.value)
+
+    @cudaq.kernel
+    def update_tuple2(t : MyTuple):
+        t.angle += 5.
+
+    @cudaq.kernel
+    def test4() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple2(t)
+        return t
+
+    with pytest.raises(RuntimeError) as e:
+        print(test4)
+    assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
+    assert '(offending source -> t.angle)' in str(e.value)
+
+    @cudaq.kernel
+    def update_tuple3(arg : MyTuple):
+        t = arg
+        t.angle = 5.
+
+    @cudaq.kernel
+    def test5() -> MyTuple:
+        t = MyTuple(0., 0)
+        update_tuple3(t)
+        return t
+
+    with pytest.raises(RuntimeError) as e:
+        print(test5())
+    assert 'cannot assign dataclass passed as function argument to a local reference' in str(e.value)
+    assert 'use `.copy()` to create a new value that can be assigned' in str(e.value)
+    assert '(offending source -> t = arg)' in str(e.value)
+
+    @dataclass(slots=True)
+    class NumberedMyTuple:
+        val: MyTuple
+        num: int
+
+    @cudaq.kernel
+    def test6() -> NumberedMyTuple:
+        t = MyTuple(0.5, 1)
+        return NumberedMyTuple(t, 0)
+
+    with pytest.raises(RuntimeError) as e:
+        test6()
+    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using the MyTuple constructor' in str(e.value)
+
+    @cudaq.kernel
+    def test7(cond: bool) -> tuple[MyTuple, MyTuple]:
+        t1 = MyTuple(1, 1)
+        t2 = t1
+        if cond:
+            t3 = MyTuple(2, 2)
+            t1 = t3
+            t3.angle = 5
+        return (t1, t2)
+
+    with pytest.raises(RuntimeError) as e:
+        test7(True)
+    assert 'variable defined in parent scope cannot be modified' in str(e.value)
+    assert '(offending source -> t1 = t3)' in str(e.value)
 
 
 def test_list_of_tuple_updates():
@@ -203,13 +389,9 @@ def test_list_of_tuple_updates():
 
     @cudaq.kernel
     def get_list_of_int_tuple(t: tuple[int, int], size: int) -> list[tuple[int, int]]:
-        #t = arg.copy() # FIXME Make separate test
         l = [t for _ in range(size + 1)]
         l[0] = (3, 3)
         return l
-    
-    # TODO: Not currently supported
-    #assert get_list_of_int_tuple((1, 2), 2) == [(3, 3), (1, 2), (1, 2)]
 
     @cudaq.kernel
     def test11() -> list[int]:
@@ -223,6 +405,26 @@ def test_list_of_tuple_updates():
         return res
 
     assert test11() == [3, 3, 4, 4, 1, 2]
+
+    @cudaq.kernel
+    def get_list_of_int_tuple2(arg: tuple[int, int], size: int) -> list[tuple[int, int]]:
+        t = arg.copy()
+        l = [t for _ in range(size + 1)]
+        l[0] = (3, 3)
+        return l
+
+    @cudaq.kernel
+    def test12() -> list[int]:
+        t = (1, 2)
+        l = get_list_of_int_tuple2(t, 2)
+        l[1] = (4, 4)
+        res = [0 for _ in range(6)]
+        for idx in range(3):
+            res[2 * idx] = l[idx][0]
+            res[2 * idx + 1] = l[idx][1]
+        return res
+
+    assert test12() == [3, 3, 4, 4, 1, 2]
 
 
 def test_list_of_tuple_update_failures():
@@ -308,8 +510,77 @@ def test_list_of_dataclass_updates():
 
     assert test3() == [2, 1, 1, 2, 1, 1, 2, 1, 1, 2, 3, 1]
 
+    @cudaq.kernel
+    def flatten(ls: list[list[int]]) -> list[int]:
+        size = 0
+        for l in ls:
+            size += len(l)
+        res = [0 for _ in range(size)]
+        idx = 0
+        for l in ls:
+            for i in l:
+                res[idx] = i
+                idx += 1
+        return res
 
-def test_list_of_tuple_update_failures():
+    @cudaq.kernel
+    def test4() -> list[int]:
+        l1 = [1, 1]
+        t = MyTuple(l1, l1)
+        l3 = [2, 2]
+        t.l1 = l3
+        l3[0] = 5
+        return flatten([t.l1, t.l2, l1, l3])
+    
+    assert test4() == [5, 2, 1, 1, 1, 1, 5, 2]
+
+    @cudaq.kernel
+    def test5(cond: bool) -> list[int]:
+        l1 = [1, 1]
+        t = MyTuple(l1, l1)
+        if cond:
+            t.l1 = [2, 2]
+        t.l1[0] = 5
+        return flatten([t.l1, t.l2, l1])
+    
+    assert test5(True) == [5, 2, 1, 1, 1, 1]
+    assert test5(False) == [5, 1, 5, 1, 5, 1]
+
+    @cudaq.kernel
+    def update_list(old: list[int], new: list[int]):
+        old = new
+
+    @cudaq.kernel
+    def test6(cond: bool) -> list[int]:
+        l1 = [1, 1]
+        t = MyTuple(l1, l1)
+        if cond:
+            update_list(t.l1, [2, 2])
+        t.l1[0] = 5
+        return flatten([t.l1, t.l2, l1])
+    
+    assert test6(True) == [5, 1, 5, 1, 5, 1]
+    assert test6(False) == [5, 1, 5, 1, 5, 1]    
+
+    @cudaq.kernel
+    def update_list2(old: list[int], new: list[int]):
+        for idx, v in enumerate(new):
+            old[idx] = v
+
+    @cudaq.kernel
+    def test7(cond: bool) -> list[int]:
+        l1 = [1, 1]
+        t = MyTuple(l1, l1)
+        if cond:
+            update_list2(t.l1, [2, 2])
+        t.l1[0] = 5
+        return flatten([t.l1, t.l2, l1])
+    
+    assert test7(True) == [5, 2, 5, 2, 5, 2]
+    assert test7(False) == [5, 1, 5, 1, 5, 1]    
+
+
+def test_list_of_dataclass_update_failures():
 
     @dataclass(slots=True)
     class MyTuple:
@@ -368,135 +639,171 @@ def test_list_of_tuple_update_failures():
         test2()
     assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
 
+    @cudaq.kernel
+    def test3() -> list[MyTuple]:
+        t1 = MyTuple([1, 1], [1, 1])
+        t2 = MyTuple([2, 2], [2, 2])
+        l = [t1, t2]
+        return l
 
-def test_dataclass_update():
-
-    @dataclass(slots=True)
-    class MyTuple:
-        angle: float
-        idx: int
+    with pytest.raises(RuntimeError) as e:
+        test3()
+    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using the MyTuple constructor' in str(e.value)
 
     @cudaq.kernel
-    def update_tuple1(arg : MyTuple) -> MyTuple:
-        t = arg.copy()
-        t.angle = 5.
-        return arg
+    def test4() -> list[MyTuple]:
+        t = MyTuple([2, 2], [2, 2])
+        l = [MyTuple([1, 1], [1, 1]) for _ in range(3)]
+        l[0] = t
+        return l
+
+    with pytest.raises(RuntimeError) as e:
+        test4()
+    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using the MyTuple constructor' in str(e.value)
 
     @cudaq.kernel
-    def kernel1() -> MyTuple:
-        t = MyTuple(0., 0)
-        return update_tuple1(t)
+    def test5() -> tuple[MyTuple, MyTuple]:
+        t1 = MyTuple([1, 1], [1, 1])
+        t2 = MyTuple([2, 2], [2, 2])
+        return (t1, t2)
+
+    with pytest.raises(RuntimeError) as e:
+        test5()
+    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using the MyTuple constructor' in str(e.value)
+
+    @cudaq.kernel
+    def test6() -> tuple[MyTuple, MyTuple]:
+        l = [MyTuple([1], [1])]
+        t = MyTuple([2], [2])
+        l[0] = t
+        t.first = [3]
+        l[0].second = 4
+        # If we allowed this, then
+        # t should be MyTuple(first=3, second=4) and 
+        # l should be [MyTuple(first=3, second=4)]
+        return (l[0], t)
     
-    out = cudaq.run(kernel1, shots_count=1)
-    assert len(out) == 1 and out[0] == MyTuple(0., 0)
-    print("result kernel1: " + str(out[0]))
+    with pytest.raises(RuntimeError) as e:
+        test6()
+    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using the MyTuple constructor' in str(e.value)
 
     @cudaq.kernel
-    def update_tuple2(arg : MyTuple) -> MyTuple:
-        t = arg.copy()
-        t.angle = 5.
-        return t
+    def update_list(old: MyTuple, new: list[int]):
+        for idx, v in enumerate(new):
+            old.l1[idx] = v
 
     @cudaq.kernel
-    def kernel2() -> MyTuple:
-        return update_tuple2(MyTuple(0., 0))
+    def test7(cond: bool) -> list[int]:
+        l1 = [1, 1]
+        t = MyTuple(l1, l1)
+        if cond:
+            update_list(t, [2, 2])
+        t.l1[0] = 5
+        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
     
-    out = cudaq.run(kernel2, shots_count=1)
-    assert len(out) == 1 and out[0] == MyTuple(5., 0)
-    print("result kernel2: " + str(out[0]))
-
-    @cudaq.kernel
-    def kernel3(arg : MyTuple) -> MyTuple:
-        t = arg.copy()
-        t.angle += 5.
-        return t
-
-    arg = MyTuple(1, 1)
-    out = cudaq.run(kernel3, MyTuple(1, 1), shots_count=1)
-    assert len(out) == 1 and out[0] == MyTuple(6., 1)
-    assert arg == MyTuple(1, 1)
-    print("result kernel3: " + str(out[0]))
-
-
-def test_dataclass_update_failures():
-
-    @dataclass(slots=True)
-    class MyQTuple:
-        controls: cudaq.qview
-        target: cudaq.qubit
-
-    # We do not currently allow any kind of updates to
-    # quantum structs.
-    @cudaq.kernel
-    def test1(t : MyQTuple, controls: cudaq.qview):
-        t.controls = controls
-
     with pytest.raises(RuntimeError) as e:
-        print(test1)
-    assert 'accessing attribute of quantum tuple or dataclass does not produce a modifiable value' in str(e.value)
-    assert '(offending source -> t.controls)' in str(e.value)
-
-    @cudaq.kernel
-    def test2(arg : MyQTuple, controls: cudaq.qview):
-        t = arg.copy()
-        t.controls = controls
-
-    with pytest.raises(RuntimeError) as e:
-        print(test2)
-    assert 'unsupported function copy' in str(e.value)
-    assert '(offending source -> arg.copy())' in str(e.value)
-
-    @dataclass(slots=True)
-    class MyTuple:
-        angle: float
-        idx: int
-
-    @cudaq.kernel
-    def update_tuple1(t : MyTuple):
-        t.angle = 5.
-
-    @cudaq.kernel
-    def test3() -> MyTuple:
-        t = MyTuple(0., 0)
-        update_tuple1(t)
-        return t
-
-    with pytest.raises(RuntimeError) as e:
-        print(test3)
+        test7()
     assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
-    assert '(offending source -> t.angle)' in str(e.value)
+    assert '(offending source -> old.l1)' in str(e.value)
+
+
+def test_list_of_list_updates():
 
     @cudaq.kernel
-    def update_tuple2(t : MyTuple):
-        t.angle += 5.
+    def flatten(ls: list[list[int]]) -> list[int]:
+        size = 0
+        for l in ls:
+            size += len(l)
+        res = [0 for _ in range(size)]
+        idx = 0
+        for l in ls:
+            for i in l:
+                res[idx] = i
+                idx += 1
+        return res
 
     @cudaq.kernel
-    def test4() -> MyTuple:
-        t = MyTuple(0., 0)
-        update_tuple2(t)
-        return t
+    def test1() -> list[int]:
+        l1 = [1, 1]
+        l2 = l1
+        l3 = [2, 2]
+        l1 = l3
+        l3[0] = 5
+        return flatten([l1, l2, l3])
+    
+    assert test1() == [5, 2, 1, 1, 5, 2]
+
+    @cudaq.kernel
+    def test2(cond: bool) -> list[int]:
+        element = [1, 1]
+        ls = [element, element]
+        if cond:
+            update = [2, 2]
+            ls[0] = update
+            update[0] = 5
+        return flatten([ls[0], ls[1], element])
+    
+    assert test2(True) == [5, 2, 1, 1, 1, 1]
+    assert test2(False) == [1, 1, 1, 1, 1, 1]
+
+    @cudaq.kernel
+    def test3(cond: bool) -> list[int]:
+        element = [1, 1]
+        ls = [element, element]
+        if cond:
+            ls[0][0] = 5
+        return flatten([ls[0], ls[1], element])
+    
+    assert test3(True) == [5, 1, 5, 1, 5, 1]
+    assert test3(False) == [1, 1, 1, 1, 1, 1]
+
+    @cudaq.kernel
+    def test4(cond: bool) -> list[int]:
+        element = [1, 1]
+        ls = [element]
+        copy = ls[0]
+        if cond:
+            ls[0][0] = 5
+        return flatten([ls[0], copy, element])
+    
+    assert test4(True) == [5, 1, 5, 1, 5, 1]
+    assert test4(False) == [1, 1, 1, 1, 1, 1]
+
+
+def test_list_of_list_update_failures():
+
+    @cudaq.kernel
+    def flatten(ls: list[list[int]]) -> list[int]:
+        size = 0
+        for l in ls:
+            size += len(l)
+        res = [0 for _ in range(size)]
+        idx = 0
+        for l in ls:
+            for i in l:
+                res[idx] = i
+                idx += 1
+        return res
+
+    @cudaq.kernel
+    def test1(cond: bool) -> list[int]:
+        l1 = [1, 1]
+        l2 = l1
+        if cond:
+            l3 = [2, 2]
+            l1 = l3
+            l3[0] = 5
+            return flatten([l1, l2, l3])
+        return flatten([l1, l2])
 
     with pytest.raises(RuntimeError) as e:
-        print(test4)
-    assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
-    assert '(offending source -> t.angle)' in str(e.value)
-
-    @cudaq.kernel
-    def update_tuple3(arg : MyTuple):
-        t = arg
-        t.angle = 5.
-
-    @cudaq.kernel
-    def test5() -> MyTuple:
-        t = MyTuple(0., 0)
-        update_tuple3(t)
-        return t
-
-    with pytest.raises(RuntimeError) as e:
-        print(test5())
-    assert 'cannot assign dataclass passed as function argument to a local reference' in str(e.value)
-    assert 'use `.copy()` to create a new value that can be assigned' in str(e.value)
-    assert '(offending source -> t = arg)' in str(e.value)
+        test1(True)
+    assert 'variable defined in parent scope cannot be modified' in str(e.value)
+    assert '(offending source -> l1 = l3)' in str(e.value)
 
 
 def test_disallow_update_capture():
@@ -611,42 +918,3 @@ def test_disallow_value_updates():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
-
-# TODO: test list of list (outer new list, inner ref to same)
-
-'''
-t1 = MyTuple(1, 1)
-t2 = t1
-t3 = MyTuple(2, 2)
-t1 = t3
-t3.first = 5
-
-should produce 
->>> t1
-MyTuple(first=5, second=2)
->>> t2
-MyTuple(first=1, second=1)
->>> t3
-MyTuple(first=5, second=2)
-
-# l = [MyTuple(1, 1)]
-# t = MyTuple(2, 2)
-# l[0] = t
-# t.first = 3
-# should output l is [MyTuple(first=3, second=2)]
-# l[0].second = 4
-# t should be MyTuple(first=3, second=4)
-
-# case 1:
-# struct passed as arg should not be assignable (allowed with the solution below)
-# case 2:
-# struct is in symbol table -> should fail because not well behaved
-# case 3: 
-# struct literal in kernel -> should be ok 
-# case 4:
-# assign an int that is entry in another list
-# case a:
-# ptrVal is pointer to pointer
-# case b:
-# ptrVal is pointer to value
-'''
