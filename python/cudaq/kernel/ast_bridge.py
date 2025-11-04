@@ -4970,9 +4970,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         # Throw an exception for the case that the name is not
         # in the symbol table
-        self.emitFatalError(f"Invalid variable name requested - '{node.id}' is "
-                            f"not defined within the quantum kernel it is used "
-                            f"in.", node)
+        self.emitFatalError(
+            f"Invalid variable name requested - '{node.id}' is "
+            f"not defined within the quantum kernel it is used "
+            f"in.", node)
 
 
 def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
