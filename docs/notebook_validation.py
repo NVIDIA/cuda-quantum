@@ -40,14 +40,6 @@ def validate(notebook_filename, available_backends):
 
 
 def execute(notebook_filename, jupyter_kernel=None):
-    """
-    Execute a Jupyter notebook.
-    
-    Args:
-        notebook_filename: Path to the .ipynb file
-        jupyter_kernel: Name of Jupyter kernel to use for execution
-                       (Note: This is the Python environment, not a quantum kernel)
-    """
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     try:
@@ -98,7 +90,7 @@ if __name__ == "__main__":
     jupyter_kernel = None
     args_to_process = sys.argv[1:]
 
-    # Check if first arg is a kernel name (not a .ipynb file)
+    # Check if first argument is a kernel name (not a `.ipynb` file)
     if args_to_process and not args_to_process[0].endswith('.ipynb'):
         jupyter_kernel = args_to_process[0]
         args_to_process = args_to_process[1:]
