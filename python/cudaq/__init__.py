@@ -109,8 +109,7 @@ def _configure_cuda_library_paths() -> None:
 
             library_paths.append(lib_path)
 
-        except Exception as exc:
-            warnings.warn(f"Error loading {lib_name}: {exc}.", RuntimeWarning)
+        except Exception:
             continue
 
     os.environ["CUDAQ_DYNLIBS"] = ":".join(library_paths)
@@ -120,9 +119,7 @@ def _configure_cuda_library_paths() -> None:
 # `LinkedLibraryHolder`.
 try:
     _configure_cuda_library_paths()
-except Exception as exc:
-    print(f"Error configuring CUDA libraries: {exc}.")
-
+except Exception:
     import importlib.util
     package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
     if not package_spec is None and not package_spec.loader is None:
