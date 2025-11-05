@@ -650,7 +650,7 @@ jobs:
     strategy:
       matrix:
         info_file: ${{ fromJson(needs.assets.outputs.python_wheels).info_files }}
-        python_version: ['3.10', '3.11', '3.12', '3.13']
+        python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
 
     runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
@@ -733,10 +733,10 @@ jobs:
       - name: Set retention days
         id: set_retention_days
         run: |
-          # Save the x86_64-py3.10-wheels for longer because our some of our
+          # Save the x86_64-py3.12-wheels for longer because our some of our
           # nightly jobs rely on them being present, even if we haven't done a
           # fresh publishing in the last 24 hours.
-          if [ "${{ steps.release_info.outputs.platform_arch }}" == "x86_64" ] && [ "${{ matrix.python_version }}" == "3.10" ]; then
+          if [ "${{ steps.release_info.outputs.platform_arch }}" == "x86_64" ] && [ "${{ matrix.python_version }}" == "3.12" ]; then
             echo "retention_days=7" >> $GITHUB_OUTPUT
           else
             echo "retention_days=1" >> $GITHUB_OUTPUT
@@ -782,8 +782,8 @@ jobs:
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.assets.outputs.cudaq_version }}
-      python_versions: "['3.10', '3.11', '3.12', '3.13']"
-      cuda_versions: "['', '11.8', '12.0']"
+      python_versions: "['3.11', '3.12', '3.13']"
+      cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: '*-wheels'
       github_commit: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -924,8 +924,8 @@ jobs:
 
     strategy:
       matrix:
-        os_image: ['redhat/ubi8:8.10', 'ubuntu:22.04']
-        cuda_version: ['11.8', '12.0']
+        os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
+        cuda_version: ['12.6', '13.0']
       fail-fast: false
 
     container:
@@ -964,24 +964,15 @@ jobs:
           dpkg -i cuda-keyring_1.1-1_all.deb
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
           apt-get update
-          if [ $(echo ${{ matrix.cuda_version }} | cut -d . -f1) -gt 11 ]; then
-            apt-get install -y --no-install-recommends \
-            cuda-cudart-$cuda_version_suffix \
-            cuda-nvrtc-$cuda_version_suffix \
-            libnvjitlink-$cuda_version_suffix \
-            libcurand-$cuda_version_suffix \
-            libcublas-$cuda_version_suffix \
-            libcusparse-$cuda_version_suffix \
-            libcusolver-$cuda_version_suffix
-          else
-            apt-get install -y --no-install-recommends \
-            cuda-cudart-$cuda_version_suffix \
-            cuda-nvrtc-$cuda_version_suffix \
-            libcurand-$cuda_version_suffix \
-            libcublas-$cuda_version_suffix \
-            libcusparse-$cuda_version_suffix \
-            libcusolver-$cuda_version_suffix
-          fi
+          apt-get install -y --no-install-recommends \
+          cuda-cudart-$cuda_version_suffix \
+          cuda-cudart-dev-$cuda_version_suffix \
+          cuda-nvrtc-$cuda_version_suffix \
+          libnvjitlink-$cuda_version_suffix \
+          libcurand-$cuda_version_suffix \
+          libcublas-$cuda_version_suffix \
+          libcusparse-$cuda_version_suffix \
+          libcusolver-$cuda_version_suffix
 
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
@@ -1048,13 +1039,13 @@ jobs:
     strategy:
       matrix:
         platform: ['amd64-gpu-a100', 'arm64-gpu-a100']
-        cuda_major: ['', '11', '12']
+        cuda_major: ['', '12', '13']
       fail-fast: false
 
     runs-on: linux-${{ matrix.platform }}-latest-1
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -1086,20 +1077,22 @@ jobs:
           # These simple steps are only expected to work for
           # test cases that don't require MPI.
           # Create clean python3 environment.
-          apt-get update && apt-get install -y --no-install-recommends python3 python3-pip
-          mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+          apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv
 
-          python3 -m pip install pypiserver
-          server=`find / -name pypi-server -executable -type f`
-          $server run -p 8080 /tmp/packages & 
+          # Make a place for local wheels
+          mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
           
+          # Create and activate virtual environment
+          python3 -m venv /opt/cudaq-venv
+          source /opt/cudaq-venv/bin/activate
+
           if [ -n "${{ matrix.cuda_major }}" ]; then
             pip install cuda-quantum-cu${{ matrix.cuda_major }}==${{ needs.assets.outputs.cudaq_version }} -v \
-              --extra-index-url http://localhost:8080 
+              --find-links "file:///tmp/packages"
           else
             pip install --upgrade pip
             pip install cudaq==${{ needs.assets.outputs.cudaq_version }} -v \
-              --extra-index-url http://localhost:8080 \
+              --find-links "file:///tmp/packages" \
             2>&1 | tee /tmp/install.out
 
             if [ -z "$(cat /tmp/install.out | grep -o 'Autodetection succeeded')" ]; then 
@@ -1143,7 +1136,7 @@ jobs:
 
     strategy:
       matrix:
-        cuda_version: ['11.8', '12.4']
+        cuda_version: ['12.4', '13.0']
       fail-fast: false
 
     # Must have environment to access environment secreats
@@ -1152,7 +1145,7 @@ jobs:
       url: ${{ vars.deployment_url }}
 
     container:
-      image: ubuntu:22.04
+      image: ubuntu:24.04
       options: --user root
       env:
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
@@ -1203,7 +1196,7 @@ jobs:
           source validate_pycudaq.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
-            -c ${{ matrix.cuda_version }} -p 3.10
+            -c ${{ matrix.cuda_version }} -p 3.12
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)

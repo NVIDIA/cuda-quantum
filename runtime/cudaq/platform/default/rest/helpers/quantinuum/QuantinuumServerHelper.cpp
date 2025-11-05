@@ -9,7 +9,6 @@
 #include "QuantinuumHelper.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/Logger.h"
-#include "common/RecordLogParser.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -44,6 +43,8 @@ protected:
   std::string machine = "H2-1SC";
   /// @brief Max HQC cost
   std::optional<int> maxCost;
+  /// @brief Maximum number of qubits
+  std::optional<int> maxQubits;
   /// @brief Enable/disable noisy simulation on emulator.
   std::optional<bool> noisySim;
   /// @brief The type of simulator to use if machine is a simulator.
@@ -96,6 +97,11 @@ protected:
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override;
 
+  /// @brief Helper to determine if a completed job returns a result.
+  // Some jobs, such as syntax checker jobs, may complete without returning a
+  // result.
+  bool jobReturnsResult(ServerMessage &postJobResponse) const;
+
 public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
@@ -118,6 +124,14 @@ public:
       maxCost = std::stoi(iter->second);
       if (maxCost.value() < 1)
         throw std::runtime_error("max_cost must be a positive integer.");
+    }
+
+    // Set max qubits
+    iter = backendConfig.find("max_qubits");
+    if (iter != backendConfig.end()) {
+      maxQubits = std::stoi(iter->second);
+      if (maxQubits.value() < 1)
+        throw std::runtime_error("max_qubits must be a positive integer.");
     }
 
     // Noisy simulation
@@ -364,19 +378,35 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
         "QuantinuumConfig";
     j["data"]["attributes"]["definition"]["backend_config"]["device_name"] =
         machine;
-    // On Helios devices, we need to specify max-cost unless it's a syntax
-    // checker
-    if (machine.starts_with("Helios") && !machine.ends_with("SC") &&
-        !maxCost.has_value())
-      throw std::runtime_error(
-          "Please specify a maximum cost (`--quantinuum-max-cost <val>` when "
-          "compiling with nvq++ or `max_cost=<val>` in Python `set_target`) "
-          "when using device: " +
-          machine);
+    // On Helios devices, we need to specify max-cost and max-qubits unless it's
+    // a syntax checker
+    if (machine.starts_with("Helios") && !machine.ends_with("SC")) {
+      std::vector<std::string> errors;
+      if (!maxCost.has_value())
+        errors.push_back("Please specify maximum HQC cost "
+                         "(`--quantinuum-max-cost <val>` when compiling with "
+                         "nvq++ or `max_cost=<val>` in Python `set_target`)");
+      if (!maxQubits.has_value())
+        errors.push_back(
+            "Please specify maximum number of qubits (`--quantinuum-max-qubits "
+            "<val>` when compiling with nvq++ or `max_qubits=<val>` in Python "
+            "`set_target`)");
+      if (!errors.empty())
+        throw std::runtime_error(
+            fmt::format("Missing required configuration for device '{}': {}",
+                        machine, fmt::join(errors, "; ")));
+    }
 
     if (maxCost.has_value())
       j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
           maxCost.value();
+
+    if (maxQubits.has_value()) {
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["compiler_options"] = ServerMessage::object();
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["compiler_options"]["max-qubits"] = maxQubits.value();
+    }
 
     if (noisySim.has_value() && machine.ends_with("E"))
       j["data"]["attributes"]["definition"]["backend_config"]
@@ -465,6 +495,8 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     throw std::runtime_error("Job was cancelled.");
   }
   if (jobStatus == "COMPLETED") {
+    if (!jobReturnsResult(getJobResponse))
+      return true;
     // Check if the response contains the result ID
     // In some cases, the status may be "COMPLETED" but the result ID
     // is not yet available, so we will check for that.
@@ -509,7 +541,10 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
                                        std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    if (!jobReturnsResult(jobResponse))
+      return cudaq::sample_result(cudaq::ExecutionResult());
+    else
+      throw std::runtime_error("Job completed but no result ID found.");
   }
   const std::string resultPath =
       resultType == QuantinuumServerHelper::ResultType::QSYS
@@ -551,37 +586,7 @@ QuantinuumServerHelper::processResults(ServerMessage &jobResponse,
         resultResponse["data"]["attributes"]["results"];
     CUDAQ_DBG("Count result data: {}", qirResults);
 
-    cudaq::RecordLogParser parser;
-    parser.parse(qirResults);
-
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    std::size_t bufferSize = parser.getBufferSize();
-    char *buffer = static_cast<char *>(malloc(bufferSize));
-    std::memcpy(buffer, origBuffer, bufferSize);
-
-    std::vector<std::vector<bool>> results = {
-        reinterpret_cast<std::vector<bool> *>(buffer),
-        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
-    const auto numShots = results.size();
-    // Get the result
-    cudaq::CountsDictionary globalCounts;
-    std::vector<std::string> globalSequentialData;
-    globalSequentialData.reserve(numShots);
-    for (const auto &shotResult : results) {
-      // Each QSYS shot is an array of tagged results
-      std::string bitString;
-      for (const auto &bitVal : shotResult) {
-        bitString.append(bitVal ? "1" : "0");
-      }
-      // Global register results
-      globalCounts[bitString]++;
-      globalSequentialData.push_back(bitString);
-    }
-
-    // Add the global register results
-    cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
-    return cudaq::sample_result({result});
+    return createSampleResultFromQirOutput(qirResults);
   }
 }
 
@@ -590,7 +595,12 @@ std::string QuantinuumServerHelper::extractOutputLog(ServerMessage &jobResponse,
                                                      std::string &jobId) {
   const auto [resultType, resultId] = getResultId(jobResponse);
   if (resultId.empty()) {
-    throw std::runtime_error("Job completed but no result ID found.");
+    if (!jobReturnsResult(jobResponse)) {
+      CUDAQ_INFO("Syntax checker job completed, no output to extract.");
+      return "";
+    } else {
+      throw std::runtime_error("Job completed but no result ID found.");
+    }
   }
   if (resultType != QuantinuumServerHelper::ResultType::QSYS) {
     throw std::runtime_error(
@@ -715,6 +725,20 @@ cudaq::ExtraPayloadProvider *QuantinuumServerHelper::getExtraPayloadProvider() {
   return it->get();
 }
 
+bool QuantinuumServerHelper::jobReturnsResult(
+    ServerMessage &jobResponse) const {
+  // Retrieve the device name if available.
+  auto deviceNamePath =
+      "/data/attributes/definition/backend_config/device_name"_json_pointer;
+  if (!jobResponse.contains(deviceNamePath))
+    return true;
+  const std::string deviceName = jobResponse[deviceNamePath].get<std::string>();
+  // Helios (NG device) syntax checker jobs won't return a result.
+  if (deviceName.starts_with("Helios") && deviceName.ends_with("SC"))
+    return false;
+
+  return true;
+}
 } // namespace cudaq
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QuantinuumServerHelper,

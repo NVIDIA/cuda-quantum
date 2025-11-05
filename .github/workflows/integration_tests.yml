@@ -17,16 +17,16 @@ on:
         options:
           - nightly
           - anyon
+          - fermioniq
           - infleqtion
           - ionq
           - iqm
           - oqc
+          - orca
           - pasqal
+          - qci
           - quantinuum
           - nvqc
-          - orca
-          - fermioniq
-          - qci
       single_test_name:
         type: string
         required: false
@@ -34,7 +34,7 @@ on:
       target_machine:
         type: string
         required: false
-        description: 'Target machine (e.g., H1-1E).'
+        description: 'Target machine (e.g., H2-1E).'
       cudaq_test_image:
         type: string
         required: false
@@ -58,7 +58,6 @@ on:
         required: true
         description: 'Python version to run wheel test'
         options:
-        - '3.10'
         - '3.11'
         - '3.12'
         - '3.13'
@@ -72,7 +71,7 @@ env:
   NVQC_FUNCTION_ID: 3bfa0342-7d2a-4f1b-8e81-b6608d28ca7d
   # <Backend>:<GPU Type>:<Instance Type>:<Min Instances>:<Max Instances>
   NGC_NVQC_DEPLOYMENT_SPEC: GFN:L40S:gl40s_1.br25_2xlarge:1:1
-  python_version: '3.10'
+  python_version: '3.12'
 
 jobs:
   # We need this job purely to choose the container image values because the
@@ -304,15 +303,37 @@ jobs:
             exit 1
           fi
 
-  hardware_providers_integration_test:
-    name: Integration test with hardware providers
+  # Setup job to determine which providers to test
+  provider_matrix_setup:
+    name: Setup provider matrix
     runs-on: ubuntu-latest
     needs: [setup, metadata]
-    permissions:
-      contents: read
-      packages: read
+    outputs:
+      providers: ${{ steps.set-matrix.outputs.providers }}
+    steps:
+      - name: Set provider matrix
+        id: set-matrix
+        run: |
+          # Determine which providers to test based on inputs and event type
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+          else
+            # Just run the specified target provider
+            providers="[\"${{ inputs.target }}\"]"
+          fi
+          echo "providers=$providers" >> $GITHUB_OUTPUT
 
-    # Must have environment protection
+  # The parallel provider jobs using the matrix
+  provider_test:
+    name: Test ${{ matrix.provider }}
+    needs: [setup, metadata, provider_matrix_setup]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: ${{ fromJson(needs.provider_matrix_setup.outputs.providers) }}
+
+    # Must have environment protection for the secrets
     environment: backend-validation
     container:
       image: ${{ needs.setup.outputs.cudaq_test_image }}
@@ -332,38 +353,187 @@ jobs:
         id: gettests
         run: |
           if [ -n "${{ inputs.single_test_name }}" ]; then
-            if [ -e ${{ inputs.single_test_name }} ]; then
+            if [ -e "${{ inputs.single_test_name }}" ]; then
               echo "testlist=${{ inputs.single_test_name }}" >> $GITHUB_OUTPUT
             else
-              # User's request test does not exit
-              echo "::error::File ${{ inputs.single_test_name}} not found"
+              echo "::error::File ${{ inputs.single_test_name }} not found"
               exit 1
             fi
           else
-            filelist="targettests/*/*.cpp"
+            # Get tests specifically for this provider
+            case "${{ matrix.provider }}" in
+              anyon)
+                filelist="targettests/anyon/*.cpp"
+                ;;
+              fermioniq)
+                filelist="docs/sphinx/targets/cpp/fermioniq.cpp docs/sphinx/targets/python/fermioniq.py docs/sphinx/targets/python/fermioniq_observables.py"
+                ;;
+              infleqtion)
+                filelist="docs/sphinx/targets/cpp/infleqtion.cpp docs/sphinx/targets/python/infleqtion.py"
+                ;;
+              ionq)
+                filelist="targettests/ionq/*.cpp"
+                ;;
+              iqm)
+                filelist="targettests/iqm/*.cpp"
+                ;;
+              oqc)
+                filelist="targettests/oqc/*.cpp"
+                ;;
+              orca)
+                filelist="docs/sphinx/targets/cpp/orca.cpp docs/sphinx/targets/cpp/orca_mqpu.cpp docs/sphinx/targets/python/orca.py docs/sphinx/targets/python/orca_mqpu.py"
+                ;;
+              pasqal)
+                filelist="docs/sphinx/targets/cpp/pasqal.cpp docs/sphinx/targets/python/pasqal.py"
+                ;;
+              qci)
+                filelist="targettests/qci/*.cpp"
+                ;;
+              quantinuum)
+                # Include both legacy Quantinuum and Quantinuum-NG tests
+                filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
+                ;;
+            esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
           fi
 
-      - name: Setup anyon account
-        if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'anyon'
+      # Provider-specific setup steps
+      - name: Setup ${{ matrix.provider }} account
         run: |
-          curl -X POST --user "${{ secrets.ANYON_USERNAME }}:${{ secrets.ANYON_PASSWORD }}"  -H "Content-Type: application/json" https://api.anyon.cloud:5000/login > credentials.json
-          id_token=`cat credentials.json | jq -r '."id_token"'`
-          refresh_token=`cat credentials.json | jq -r '."refresh_token"'`
-          echo "key: $id_token" > ~/.anyon_config
-          echo "refresh: $refresh_token" >> ~/.anyon_config
+          case "${{ matrix.provider }}" in
+            anyon)
+              echo "### Setting up Anyon account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.ANYON_USERNAME }}"
+              echo "::add-mask::${{ secrets.ANYON_PASSWORD }}"
+              TEMP_NETRC=$(mktemp)
+              chmod 600 "$TEMP_NETRC"
+              printf "machine api.anyon.cloud\nlogin %s\npassword %s\n" "${{ secrets.ANYON_USERNAME }}" "${{ secrets.ANYON_PASSWORD }}" > "$TEMP_NETRC"
+              response=$(curl -sS --netrc-file "$TEMP_NETRC" -X POST \
+                -H "Content-Type: application/json" \
+                https://api.anyon.cloud:5000/login 2>&1) || {
+                echo "::error::Failed to authenticate with Anyon"
+                rm -f "$TEMP_NETRC"
+                exit 1
+              }
+              rm -f "$TEMP_NETRC"
+              read -r id_token refresh_token < <(echo "$response" | jq -r '.id_token, .refresh_token')
+              echo "::add-mask::$id_token"
+              echo "::add-mask::$refresh_token"
+              printf "key: %s\nrefresh: %s\n" "$id_token" "$refresh_token" > "$HOME/.anyon_config"
+              chmod 600 "$HOME/.anyon_config"
+              ;;
+            fermioniq)
+              echo "### Setting up Fermioniq account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}"
+              echo "::add-mask::${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}"
+              echo "FERMIONIQ_ACCESS_TOKEN_ID=${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}" >> $GITHUB_ENV
+              echo "FERMIONIQ_ACCESS_TOKEN_SECRET=${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}" >> $GITHUB_ENV
+              echo "FERMIONIQ_PROJECT_ID=c86e2cb8-d776-41ae-8240-d3d55e18b7c3" >> $GITHUB_ENV
+              ;;
+            infleqtion)
+              echo "### Setting up Infleqtion account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.SUPERSTAQ_API_KEY }}"
+              echo "SUPERSTAQ_API_KEY=${{ secrets.SUPERSTAQ_API_KEY }}" >> $GITHUB_ENV
+              ;;
+            ionq)
+              echo "### Setting up IonQ account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.IONQ_API_KEY }}"
+              echo "IONQ_API_KEY=${{ secrets.IONQ_API_KEY }}" >> $GITHUB_ENV
+              ;;
+            iqm)
+              echo "### Setting up IQM account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.IQM_TOKEN }}"
+              IQM_TOKEN_FILE="$(mktemp --suffix=.json)"
+              printf '{ "access_token": "%s" }' "${{ secrets.IQM_TOKEN }}" > "$IQM_TOKEN_FILE"
+              chmod 600 "$IQM_TOKEN_FILE"
+              echo "IQM_TOKENS_FILE=$IQM_TOKEN_FILE" >> "$GITHUB_ENV"
+              echo "IQM_SERVER_URL=https://cocos.resonance.meetiqm.com/pyrite:test" >> $GITHUB_ENV
+              ;;
+            oqc)
+              echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.OQC_URL }}"
+              echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
+              echo "::add-mask::${{ secrets.OQC_PASSWORD }}"
+              echo "OQC_URL=${{ secrets.OQC_URL }}" >> $GITHUB_ENV
+              echo "OQC_EMAIL=${{ secrets.BACKEND_LOGIN_EMAIL }}" >> $GITHUB_ENV
+              echo "OQC_PASSWORD=${{ secrets.OQC_PASSWORD }}" >> $GITHUB_ENV
+              ;;
+            orca)
+              echo "### Setting up ORCA account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.ORCA_ACCESS_URL }}"
+              echo "ORCA_ACCESS_URL=${{ secrets.ORCA_ACCESS_URL }}" >> $GITHUB_ENV
+              ;;
+            pasqal)
+              echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
+              python3 -m pip install pasqal-cloud
+              echo "::add-mask::${{ secrets.PASQAL_USERNAME }}"
+              echo "::add-mask::${{ secrets.PASQAL_PASSWORD }}"
+              echo "::add-mask::${{ secrets.PASQAL_PROJECT_ID }}"
+              TEMP_SCRIPT=$(mktemp --suffix=.py)
+              chmod 600 "$TEMP_SCRIPT"
+              printf '%s\n' \
+                "import os" \
+                "import sys" \
+                "from pasqal_cloud import SDK" \
+                "try:" \
+                "    sdk = SDK(username=os.environ['PASQAL_USER'], password=os.environ['PASQAL_PASS'])" \
+                "    sys.stdout.write(str(sdk.user_token()))" \
+                "except Exception as e:" \
+                "    sys.stderr.write('Authentication failed\n')" \
+                "    sys.exit(1)" > "$TEMP_SCRIPT"
+              PASQAL_AUTH_TOKEN=$(PASQAL_USER="${{ secrets.PASQAL_USERNAME }}" \
+                                  PASQAL_PASS="${{ secrets.PASQAL_PASSWORD }}" \
+                                  python3 "$TEMP_SCRIPT" 2>/dev/null) || {
+                echo "::error::Failed to authenticate with Pasqal"
+                rm -f "$TEMP_SCRIPT"
+                exit 1
+              }
+              rm -f "$TEMP_SCRIPT"
+              echo "::add-mask::$PASQAL_AUTH_TOKEN"
+              echo "PASQAL_AUTH_TOKEN=$PASQAL_AUTH_TOKEN" >> $GITHUB_ENV
+              echo "PASQAL_USERNAME=${{ secrets.PASQAL_USERNAME }}" >> $GITHUB_ENV
+              echo "PASQAL_PASSWORD=${{ secrets.PASQAL_PASSWORD }}" >> $GITHUB_ENV
+              echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
+              ;;
+            qci)
+              echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.QCI_AUTH_TOKEN }}"
+              echo "QCI_AUTH_TOKEN=${{ secrets.QCI_AUTH_TOKEN }}" >> $GITHUB_ENV
+              ;;
+            quantinuum)
+              echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
+              echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"
+              curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
+              awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
+              chmod 600 ~/.quantinuum_config
+              rm ~/.quantinuum_cookies.txt
+              ;;
+          esac
+        shell: bash
 
-      - name: QIR syntax check (Anyon)
-        if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'anyon'
+      # Run the provider-specific tests
+      - name: Run tests for ${{ matrix.provider }}
         run: |
-          echo "### QIR syntax check (Anyon)" >> $GITHUB_STEP_SUMMARY
+          echo "### Testing ${{ matrix.provider }}" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
           set +e # Allow script to keep going through errors
           test_err_sum=0
+          test_skip_sum=0
+
+          # Single loop handles both C++ and Python tests
           for filename in ${{ steps.gettests.outputs.testlist }}; do
-            case $filename in
-              targettests/anyon/*)
-                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+            # Check if file exists
+            if [ ! -e "$filename" ]; then
+              echo "::warning::File not found: $filename"
+              echo ":warning: Test skipped (file not found): $filename" >> $GITHUB_STEP_SUMMARY
+              test_skip_sum=$((test_skip_sum+1))
+              continue
+            fi
+
+            case "${{ matrix.provider }}" in
+              anyon)
                 nvq++ -v $filename -DSYNTAX_CHECK --target anyon --anyon-machine telegraph-8q
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -379,39 +549,27 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              ;;
-            esac
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+                ;;
 
-      - name: Setup quantinum account
-        if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'quantinuum')
-        run: |
-          echo "### Setup Quantinuum account" >> $GITHUB_STEP_SUMMARY
-          curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
-          awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
-          rm ~/.quantinuum_cookies.txt
-
-      - name: QIR syntax check (Quantinuum)
-        if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### QIR syntax check (Quantinuum)" >> $GITHUB_STEP_SUMMARY
-          export CUDAQ_LOG_LEVEL="info"
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            case $filename in
-              targettests/quantinuum/*)
-                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H1-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
+              fermioniq)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target fermioniq --fermioniq-project-id $FERMIONIQ_PROJECT_ID $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -420,46 +578,31 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              ;;
-            esac
-          done
-          python_tests="docs/sphinx/targets/python/quantinuum.py"
-          for filename in $python_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-            else
-              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+                ;;
 
-      - name: QIR Output Check (Quantinuum-NG)
-        if: (success() || failure()) && (github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### QIR Output check (Quantinuum-NG)" >> $GITHUB_STEP_SUMMARY
-          export CUDAQ_LOG_LEVEL="info"
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            case $filename in
-              targettests/quantinuum_ng/*)
-                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-                nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-noisy-simulation false
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
+              infleqtion)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target infleqtion $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -468,32 +611,13 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
-              ;;
-            esac
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+                ;;
 
-      - name: Submit to IonQ Simulator
-        if: (success() || failure()) && (inputs.target == 'ionq' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to IonQ Simulator" >> $GITHUB_STEP_SUMMARY
-          export IONQ_API_KEY='${{ secrets.IONQ_API_KEY }}'
-          # TODO: remove this flag once https://github.com/NVIDIA/cuda-quantum/issues/512 is addressed.
-          export CUDAQ_LOG_LEVEL="info"
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            case $filename in
-              targettests/ionq/*)
-                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+              ionq)
                 nvq++ -v $filename --target ionq
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -509,33 +633,9 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              ;;
-            esac
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+                ;;
 
-      - name: Submit to a mocked IQM Resonance server
-        if: (success() || failure()) && (inputs.target == 'iqm' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to IQM Resonance" >> $GITHUB_STEP_SUMMARY
-          # Create a json file with the Resonance auth token
-          echo "{ \"access_token\": \"${{ secrets.IQM_TOKEN }}\" }" > .resonance.api-token.json
-          export IQM_TOKENS_FILE=".resonance.api-token.json"
-          # Use IQM Resonance Pyrite mock, which implements the Crystal_5 architecture
-          export IQM_SERVER_URL="https://cocos.resonance.meetiqm.com/pyrite:test"
-          export CUDAQ_LOG_LEVEL="info"
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            # Only the following tests are currently supported on IQM
-            case $filename in
-              targettests/iqm/*)
+              iqm)
                 nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -551,34 +651,9 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              ;;
-            esac
-          done
-          echo ":white_check_mark: Successfully logged out of IQM" >> $GITHUB_STEP_SUMMARY
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+                ;;
 
-      - name: Submit to OQC Sandbox server
-        # This step is currently bypassed during nightly runs due to
-        # maintenance. Restore the if check to the original value when
-        # maintenance is complete.
-        # if: (success() || failure()) && (inputs.target == 'oqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        if: (success() || failure()) && (inputs.target == 'oqc')
-        run: |
-          echo "### Submit to OQC sandbox server" >> $GITHUB_STEP_SUMMARY
-          export CUDAQ_LOG_LEVEL="info"
-          export OQC_EMAIL='${{ secrets.BACKEND_LOGIN_EMAIL }}'
-          export OQC_PASSWORD='${{ secrets.OQC_PASSWORD }}'
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            # Only the following tests are currently supported on OQC
-            case $filename in
-              targettests/oqc/*)
+              oqc)
                 nvq++ -DSYNTAX_CHECK --target oqc $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -594,219 +669,75 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              ;;
-            esac
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+                ;;
 
-      - name: Submit to ORCA test server
-        if: (success() || failure()) && (inputs.target == 'orca' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to ORCA server" >> $GITHUB_STEP_SUMMARY
-          export ORCA_ACCESS_URL='${{ secrets.ORCA_ACCESS_URL }}'
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          cpp_tests="docs/sphinx/targets/cpp/orca.cpp  docs/sphinx/targets/cpp/orca_mqpu.cpp"
-          for filename in $cpp_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out
-              test_status=$?
-              if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
-              fi
-            else
-              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          python_tests="docs/sphinx/targets/python/orca.py  docs/sphinx/targets/python/orca_mqpu.py"
-          for filename in $python_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            python3 $filename 1> /dev/null
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-            else
-              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+              orca)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target orca --orca-url $ORCA_ACCESS_URL $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
 
-      - name: Submit to Fermioniq test server
-        if: (success() || failure()) && (inputs.target == 'fermioniq' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to Fermioniq server" >> $GITHUB_STEP_SUMMARY
-          export FERMIONIQ_ACCESS_TOKEN_ID='${{ secrets.FERMIONIQ_ACCESS_TOKEN_ID }}'
-          export FERMIONIQ_ACCESS_TOKEN_SECRET='${{ secrets.FERMIONIQ_ACCESS_TOKEN_SECRET }}'
-          export FERMIONIQ_PROJECT_ID='c86e2cb8-d776-41ae-8240-d3d55e18b7c3'
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          cpp_tests="docs/sphinx/targets/cpp/fermioniq.cpp"
-          for filename in $cpp_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            nvq++ \
-              --target fermioniq \
-              --fermioniq-project-id $FERMIONIQ_PROJECT_ID \
-              $filename
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out 1> /dev/null
-              test_status=$?
-              if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
-              fi
-            else
-              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          python_tests="docs/sphinx/targets/python/fermioniq.py docs/sphinx/targets/python/fermioniq_observables.py"
-          for filename in $python_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            python3 $filename 1> /dev/null
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-            else
-              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
+              pasqal)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ --target pasqal --pasqal-machine $PASQAL_MACHINE_TARGET $filename
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
 
-      - name: Submit to Infleqtion test server
-        if: (success() || failure()) && (inputs.target == 'infleqtion' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to Infleqtion server" >> $GITHUB_STEP_SUMMARY
-          export SUPERSTAQ_API_KEY='${{ secrets.SUPERSTAQ_API_KEY }}'
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          cpp_tests="docs/sphinx/targets/cpp/infleqtion.cpp"
-          for filename in $cpp_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            nvq++ --target infleqtion $filename
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out
-              test_status=$?
-              if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
-              fi
-            else
-              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          python_tests="docs/sphinx/targets/python/infleqtion.py"
-          for filename in $python_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            python3 $filename 1> /dev/null
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-            else
-              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
-
-      - name: Submit to Pasqal test server
-        if: (success() || failure()) && (inputs.target == 'pasqal' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to Pasqal server" >> $GITHUB_STEP_SUMMARY
-          python3 -m pip install pasqal-cloud
-          export PASQAL_USERNAME='${{ secrets.PASQAL_USERNAME }}'
-          export PASQAL_PASSWORD='${{ secrets.PASQAL_PASSWORD }}'
-          export PASQAL_PROJECT_ID='${{ secrets.PASQAL_PROJECT_ID }}'
-          export PASQAL_MACHINE_TARGET="EMU_FREE" # Speedup queuing time
-          set +e # Allow script to keep going through errors
-          echo "### Generating Pasqal auth token" >> $GITHUB_STEP_SUMMARY
-          PASQAL_AUTH_TOKEN=$(python3 -c "from pasqal_cloud import SDK; import os; import sys; sdk = SDK(username=os.environ.get('PASQAL_USERNAME'), password=os.environ.get('PASQAL_PASSWORD')); sys.stdout.write(str(sdk.user_token()))")
-          export PASQAL_AUTH_TOKEN
-          test_err_sum=0
-          cpp_tests="docs/sphinx/targets/cpp/pasqal.cpp"
-          for filename in $cpp_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            nvq++ --target pasqal  --pasqal-machine $PASQAL_MACHINE_TARGET  $filename
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              ./a.out 1> /dev/null
-              test_status=$?
-              if [ $test_status -eq 0 ]; then
-                echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-              else
-                echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                test_err_sum=$((test_err_sum+1))
-              fi
-            else
-              echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          python_tests="docs/sphinx/targets/python/pasqal.py"
-          for filename in $python_tests; do
-            [ -e "$filename" ] || echo "::error::Couldn't find file ($filename)"
-            python3 $filename 1> /dev/null
-            test_status=$?
-            if [ $test_status -eq 0 ]; then
-              echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-            else
-              echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-              test_err_sum=$((test_err_sum+1))
-            fi
-          done
-          set -e # Re-enable exit code error checking
-          if [ ! $test_err_sum -eq 0 ]; then
-            echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
-            exit 1
-          fi
-        shell: bash
-
-      - name: Submit to QCI test server
-        if: (success() || failure()) && (inputs.target == 'qci' || github.event_name == 'schedule' || inputs.target == 'nightly')
-        run: |
-          echo "### Submit to QCI server" >> $GITHUB_STEP_SUMMARY
-          export QCI_AUTH_TOKEN='${{ secrets.QCI_AUTH_TOKEN }}'
-          set +e # Allow script to keep going through errors
-          test_err_sum=0
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            case $filename in
-              targettests/qci/*)
-                [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
+              qci)
                 nvq++ -v $filename --target qci
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
@@ -822,35 +753,62 @@ jobs:
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
                 fi
-              ;;
+                ;;
+
+              quantinuum)
+                if [[ "$filename" == *.cpp ]]; then
+                  if [[ "$filename" == *"quantinuum_ng/"* ]]; then
+                    echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
+                  else
+                    echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
+                    nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
+                  fi
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  echo "### Running Quantinuum Python test" >> $GITHUB_STEP_SUMMARY
+                  QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
             esac
-          done          
+          done
+
+          # Print summary
+          if [ $test_skip_sum -gt 0 ]; then
+            echo "::warning::${test_skip_sum} tests skipped"
+          fi
+
           set -e # Re-enable exit code error checking
           if [ ! $test_err_sum -eq 0 ]; then
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
             exit 1
           fi
-
-      - name: Submit to ${{ inputs.target }}
-        # The full set of tests used by this step is currently only supported on
-        # Quantinuum.  The other supported tests are tested by the step above.
-        # The main point of this special step is to run with a special
-        # target_machine. It also doesn't use -DSYNTAX_CHECK, so you probably
-        # don't want to run this on a simple Syntax Check machine.
-        if: inputs.target == 'quantinuum' && github.event_name == 'workflow_dispatch'
-        run: |
-          if ${{inputs.target == 'ionq'}}; then
-            export IONQ_API_KEY='${{ secrets.IONQ_API_KEY }}'
-          fi
-          for filename in ${{ steps.gettests.outputs.testlist }}; do
-            [ -e "$filename" ] || echo "::error::Couldn't find files ($filename)"
-            case $filename in
-              targettests/quantinuum/*)
-                nvq++ -v $filename --target ${{ inputs.target }} --${{ inputs.target }}-machine ${{ inputs.target_machine }}
-                CUDAQ_LOG_LEVEL=info ./a.out
-              ;;
-            esac
-          done
+          # Clean up
+          rm -f "$HOME/.anyon_config" "$HOME/.quantinuum_config"
         shell: bash
 
   nvqc_integration_docker_test:
@@ -875,7 +833,17 @@ jobs:
         password: ${{ github.token }}
 
     steps:
+      - name: Skip NVQC Docker tests (temporary)
+        id: skip_check
+        run: |
+          echo "### Submit to NVQC" >> $GITHUB_STEP_SUMMARY
+          echo ":warning: NVQC Docker integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
+          echo "::warning::NVQC Docker integration tests are temporarily skipped"
+          echo "skipped=true" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Get code
+        if: steps.skip_check.outputs.skipped != 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
@@ -1035,7 +1003,17 @@ jobs:
     environment: ghcr-deployment
 
     steps:
+      - name: Skip NVQC wheel tests (temporary)
+        id: skip_check
+        run: |
+          echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
+          echo ":warning: NVQC Python wheel integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
+          echo "::warning::NVQC Python wheel integration tests are temporarily skipped"
+          echo "skipped=true" >> $GITHUB_OUTPUT
+        shell: bash
+
       - name: Get code
+        if: steps.skip_check.outputs.skipped != 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}

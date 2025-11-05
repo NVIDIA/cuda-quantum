@@ -73,22 +73,27 @@ async_observe_result pyObserveAsync(py::object &kernel,
   if (py::hasattr(kernel, "compile"))
     kernel.attr("compile")();
 
+  if (!py::hasattr(kernel, "arguments"))
+    throw std::runtime_error(
+        "unrecognized kernel - did you forget the @kernel attribute?");
   auto kernelBlockArgs = kernel.attr("arguments");
   if (py::len(kernelBlockArgs) != args.size())
     throw std::runtime_error(
         "Invalid number of arguments passed to observe_async.");
-
+  // Process any callable args
+  const auto callableNames = getCallableNames(kernel, args);
   auto &platform = cudaq::get_platform();
   auto kernelName = kernel.attr("name").cast<std::string>();
   auto kernelMod = kernel.attr("module").cast<MlirModule>();
   args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
+  auto *argData =
+      toOpaqueArgs(args, kernelMod, kernelName, getCallableArgHandler());
 
   // Launch the asynchronous execution.
   py::gil_scoped_release release;
   return details::runObservationAsync(
-      [argData, kernelName, kernelMod]() mutable {
-        pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+      [argData, kernelName, kernelMod, callableNames]() mutable {
+        pyAltLaunchKernel(kernelName, kernelMod, *argData, callableNames);
         delete argData;
       },
       spin_operator, platform, shots, kernelName, qpu_id);

@@ -1,4 +1,4 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -28,7 +28,7 @@ std::vector<std::string> splitString(const std::string &s,
 
 /// @brief Helper to parse `codegen` translation, with optional feature
 /// annotation.
-// e.g., "qir-adaptive:0.2:int_computations,float_computations"
+// e.g., "qir-adaptive:1.0:int_computations,float_computations"
 static std::tuple<std::string, std::string, std::vector<std::string>>
 parseCodeGenTranslationString(const std::string &settingStr) {
   auto transportFields = splitString(settingStr, ':');
@@ -60,6 +60,13 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       .isAdaptiveProfile = codeGenName == "qir-adaptive",
       .isBaseProfile = codeGenName == "qir-base",
   };
+
+  // Default version for base profile is 1.0
+  if (config.isBaseProfile) {
+    config.version = QirVersion::version_1_0;
+    config.qir_major_version = 1;
+    config.qir_minor_version = 0;
+  }
 
   if (config.isAdaptiveProfile) {
     for (auto option : codeGenOptions) {
@@ -100,10 +107,10 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
       config.version = QirVersion::version_0_1;
       config.qir_major_version = 0;
       config.qir_minor_version = 1;
-    } else if (codeGenVersion == "0.2") {
-      config.version = QirVersion::version_0_2;
-      config.qir_major_version = 0;
-      config.qir_minor_version = 2;
+    } else if (codeGenVersion == "1.0") {
+      config.version = QirVersion::version_1_0;
+      config.qir_major_version = 1;
+      config.qir_minor_version = 0;
     } else {
       throw std::runtime_error(
           fmt::format("Unsupported QIR version '{}', codegen setting: {}",

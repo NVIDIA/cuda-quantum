@@ -749,12 +749,12 @@ commands, for example, install the necessary packages for RHEL 8:
 
 More detailed instructions for your platform can be found in the online documentation
 linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
-Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+Please make sure to install CUDA version 12.0 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
-includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 11, 
-built against version 11.8, and for CUDA 12, built against version 12.0.
+includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
+built against version 12.6, and for CUDA 13, built against version 13.0.
 
 .. _distributed-computing-with-mpi:
 
@@ -834,10 +834,10 @@ by running the command
 .. note::
 
   Please check if you have an existing installation of the `cuda-quantum`, 
-  `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, 
+  `cudaq-quantum-cu12`, or `cuda-quantum-cu13` package, 
   and uninstall it prior to installing `cudaq`. The `cudaq` package supersedes the
   `cuda-quantum` package and will install a suitable binary distribution (either 
-  `cuda-quantum-cu11` or `cuda-quantum-cu12`) for your system. Multiple versions 
+  `cuda-quantum-cu12` or `cuda-quantum-cu13`) for your system. Multiple versions 
   of a CUDA-Q binary distribution will conflict with each other and not work properly.
 
 If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your 
@@ -888,13 +888,15 @@ The following table summarizes the required components.
     :header-rows: 0
 
     * - GPU Architectures
-      - Volta, Turing, Ampere, Ada, Hopper
+      - Turing, Ampere, Ada, Hopper, Blackwell (Blackwell supported for CUDA 13.x only)
     * - NVIDIA GPU with Compute Capability
-      - 7.0+
+      - 7.5+
     * - CUDA
-      - 11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)
-
-Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
+      - • 12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility  
+        • 12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture  
+        • 13.x (Driver 580.65.06+)
+        
+Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__. For more information on GPU forward capabilities, please refer to `this page <https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html>`__.
 
 .. note::
 

@@ -651,20 +651,6 @@ public:
         pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
       }
       pm.addPass(mlir::createCanonicalizerPass());
-      if (executionContext && executionContext->name == "resource-count") {
-        // Each pass may run in a separate thread, so we have to make sure to
-        // grab this reference in this thread
-        auto resource_counts = nvqir::getResourceCounts();
-        std::function<void(std::string, size_t, size_t)> f =
-            [&](std::string gate, size_t nControls, size_t count) {
-              CUDAQ_INFO("Appending: {}", gate);
-              resource_counts->appendInstruction(gate, nControls, count);
-            };
-        cudaq::opt::ResourceCountPreprocessOptions opt{f};
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createResourceCountPreprocess(opt));
-        pm.addPass(mlir::createCanonicalizerPass());
-      }
       if (disableMLIRthreading || enablePrintMLIREachPass)
         moduleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
@@ -688,6 +674,29 @@ public:
     }
 
     runPassPipeline(passPipelineConfig, moduleOp);
+    // We need to run resource counting preprocessing after the pass pipeline as
+    // the pre-processing might change the IR structure (may interfere with
+    // other passes).
+    if (executionContext && executionContext->name == "resource-count") {
+      // Each pass may run in a separate thread, so we have to make sure to
+      // grab this reference in this thread
+      auto resource_counts = nvqir::getResourceCounts();
+      std::function<void(std::string, size_t, size_t)> f =
+          [&](std::string gate, size_t nControls, size_t count) {
+            CUDAQ_INFO("Appending: {}", gate);
+            resource_counts->appendInstruction(gate, nControls, count);
+          };
+      cudaq::opt::ResourceCountPreprocessOptions opt{f};
+      mlir::PassManager pm(&context);
+      pm.addNestedPass<mlir::func::FuncOp>(
+          opt::createResourceCountPreprocess(opt));
+      pm.addPass(mlir::createCanonicalizerPass());
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
+      if (failed(pm.run(moduleOp)))
+        throw std::runtime_error(
+            "Could not successfully apply resource count preprocess.");
+    }
 
     auto entryPointFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);

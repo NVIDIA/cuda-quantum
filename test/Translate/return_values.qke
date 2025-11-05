@@ -381,6 +381,7 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 // CHECK:         %[[VAL_2:.*]] = bitcast i8* %[[VAL_0]] to i32*
 // CHECK:         %[[VAL_3:.*]] = load i32, i32* %[[VAL_2]], align 4
 // CHECK:         %[[VAL_4:.*]] = tail call { i1*, i64 } @__nvqpp__mlirgen__test_0(i32 %[[VAL_3]])
+// CHECK:         tail call void @__nvqpp_cleanup_arrays()
 // CHECK:         %[[VAL_5:.*]] = getelementptr i8, i8* %[[VAL_0]], i64 8
 // CHECK:         %[[VAL_6:.*]] = bitcast i8* %[[VAL_5]] to i1**
 // CHECK:         %[[VAL_7:.*]] = extractvalue { i1*, i64 } %[[VAL_4]], 0
@@ -475,7 +476,8 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 
 // CHECK-LABEL: define { i8*, i64 } @test_2.thunk(i8* nocapture writeonly 
 // CHECK-SAME:                                                            %[[VAL_0:.*]], i1
-// CHECK-SAME:                                                            %[[VAL_1:.*]]) {{.*}} {
+// CHECK-SAME:                                                            %[[VAL_1:.*]]) {
+// CHECK:         tail call void @__nvqpp_cleanup_arrays()
 // CHECK:         %[[VAL_2:.*]] = bitcast i8* %[[VAL_0]] to { i16, float, double, i64 }*
 // CHECK:         store { i16, float, double, i64 } { i16 8, float 0x40159999A0000000, double 3.783000e+01, i64 1479 }, { i16, float, double, i64 }* %[[VAL_2]], align 8
 // CHECK:         ret { i8*, i64 } zeroinitializer
@@ -501,7 +503,8 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 
 // CHECK-LABEL: define { i8*, i64 } @test_3.thunk(i8* nocapture writeonly 
 // CHECK-SAME:                                                            %[[VAL_0:.*]], i1
-// CHECK-SAME:                                                            %[[VAL_1:.*]]) {{.*}} {
+// CHECK-SAME:                                                            %[[VAL_1:.*]]) {
+// CHECK:         tail call void @__nvqpp_cleanup_arrays()
 // CHECK:         %[[VAL_2:.*]] = bitcast i8* %[[VAL_0]] to i64*
 // CHECK:         store i64 5, i64* %[[VAL_2]], align 4
 // CHECK:         %[[VAL_3:.*]] = getelementptr inbounds i8, i8* %[[VAL_0]], i64 8
@@ -539,7 +542,8 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 
 // CHECK-LABEL: define { i8*, i64 } @test_4.thunk(i8* nocapture writeonly 
 // CHECK-SAME:                                                            %[[VAL_0:.*]], i1
-// CHECK-SAME:                                                            %[[VAL_1:.*]]) {{.*}} {
+// CHECK-SAME:                                                            %[[VAL_1:.*]]) {
+// CHECK:         tail call void @__nvqpp_cleanup_arrays()
 // CHECK:         %[[VAL_2:.*]] = bitcast i8* %[[VAL_0]] to i64*
 // CHECK:         store i64 537892, i64* %[[VAL_2]], align 4
 // CHECK:         %[[VAL_3:.*]] = getelementptr i8, i8* %[[VAL_0]], i64 8
@@ -568,7 +572,8 @@ func.func @test_5(%sret: !cc.ptr<!cc.struct<{i64, f64}>> {llvm.sret = !cc.struct
 
 // CHECK-LABEL: define { i8*, i64 } @test_5.thunk(i8* nocapture writeonly 
 // CHECK-SAME:                                                            %[[VAL_0:.*]], i1
-// CHECK-SAME:                                                            %[[VAL_1:.*]]) {{.*}} {
+// CHECK-SAME:                                                            %[[VAL_1:.*]]) {
+// CHECK:         tail call void @__nvqpp_cleanup_arrays()
 // CHECK:         %[[VAL_2:.*]] = bitcast i8* %[[VAL_0]] to i64*
 // CHECK:         store i64 537892, i64* %[[VAL_2]], align 4
 // CHECK:         %[[VAL_3:.*]] = getelementptr i8, i8* %[[VAL_0]], i64 8
