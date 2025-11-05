@@ -537,11 +537,6 @@ def test_return_list_float64():
     assert list_err_msg in str(e.value)
 
 
-# Test tuples
-# TODO: Define spec for using tuples in kernels
-# https://github.com/NVIDIA/cuda-quantum/issues/3031
-
-
 def test_return_tuple_int_float():
 
     @cudaq.kernel

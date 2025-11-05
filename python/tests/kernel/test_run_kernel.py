@@ -525,11 +525,6 @@ def test_return_list_float64():
     assert list_err_msg in str(e.value)
 
 
-# Test tuples
-# TODO: Define spec for using tuples in kernels
-# https://github.com/NVIDIA/cuda-quantum/issues/3031
-
-
 def test_return_tuple_int_float():
 
     @cudaq.kernel
@@ -558,8 +553,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'tuple value cannot be modified' in str(
-        e.value)
+    assert 'tuple value cannot be modified' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float_conversion(

@@ -1233,6 +1233,11 @@ class PyASTBridge(ast.NodeVisitor):
         tuple, dataclass, or list.
         '''
 
+        pyValRoot = pyVal
+        while isinstance(pyValRoot, ast.Subscript) or \
+            isinstance(pyValRoot, ast.Attribute):
+            pyValRoot = pyValRoot.value
+
         if cc.PointerType.isinstance(mlirVal.type):
             # We do not allow to create container that contain pointers.
             valTy = cc.PointerType.getElementType(mlirVal.type)
@@ -1253,8 +1258,8 @@ class PyASTBridge(ast.NodeVisitor):
             # reference behavior actually works across function
             # boundaries.
             if structName != 'tuple' and \
-                isinstance(pyVal, ast.Name) and \
-                pyVal.id in self.symbolTable:
+                isinstance(pyValRoot, ast.Name) and \
+                pyValRoot.id in self.symbolTable:
                 self.emitFatalError(f"only literals may be used as items in lists, tuples, and dataclasses - create a literal using the {structName} constructor", self.currentNode)
 
         if cc.StdvecType.isinstance(mlirVal.type):
@@ -1265,10 +1270,17 @@ class PyASTBridge(ast.NodeVisitor):
             # If we allow to assign lists passed as function arguments to inner items
             # of other lists and dataclasses, we loose the information that this list
             # was allocated by the parent. We hence forbid this.
-            isFunctionArg = BlockArgument.isinstance(mlirVal) and \
-                isinstance(mlirVal.owner.owner, func.FuncOp)
-            if isFunctionArg:
-                self.emitFatalError("lists passed as function arguments may not be used as items in lists, tuples, and dataclasses - create a new list using list comprehension", self.currentNode)
+            # NOTE: We also need to be careful to cover the case where `mlirVal` is
+            # an item of a function argument for the same reason.
+            isFunctionArg = lambda v: BlockArgument.isinstance(v) and \
+                isinstance(v.owner.owner, func.FuncOp)
+            rootVal = None
+            if isinstance(pyValRoot, ast.Name) and \
+                pyValRoot.id in self.symbolTable:
+                rootVal = self.symbolTable[pyValRoot.id]
+            assert rootVal or not isFunctionArg(mlirVal)
+            if rootVal and isFunctionArg(rootVal):
+                    self.emitFatalError(f"lists passed as function arguments may not be used as items in lists, tuples, and dataclasses - create a literal using list comprehension", self.currentNode)
 
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
@@ -1530,29 +1542,6 @@ class PyASTBridge(ast.NodeVisitor):
             return storeAsVal
 
         def process_assignment(target, value):
-            def update_in_parent_scope(destination, value):
-                assert not cc.PointerType.isinstance(value.type)
-                isDataclass = (cc.StructType.isinstance(value.type) and cc.StructType.getName(value.type) != 'tuple')
-                destIsVectorPtr = cc.PointerType.isinstance(destination.type) and cc.StdvecType.isinstance(value.type)
-                # We should only ever get a pointer to a vector as part of
-                # updating a container element.
-                assert not destIsVectorPtr or isinstance(target, ast.Subscript) or isinstance(target, ast.Attribute)
-                # If the destination is a vector pointer, simply replacing 
-                # the value in the destination leads to the correct behavior
-                # since vectors are stored as values that contain a pointer.
-                # NOTE: We should be able to support direct assignment to an
-                # existing vector variable in the parent scope, but would need
-                # to make sure to write to its current data array, rather than
-                # replace the data array.
-                if not destIsVectorPtr and (storedAsValue(destination) or isDataclass):
-                    # We can't properly deal with this.
-                    # I've added a bunch of test cases that would need
-                    # to be covered if we try to support this. 
-                    self.emitFatalError("variable defined in parent scope cannot be modified", node)
-                assert cc.PointerType.isinstance(destination.type)
-                expectedTy = cc.PointerType.getElementType(destination.type)
-                value = self.changeOperandToType(expectedTy, value, allowDemotion=False)
-                cc.StoreOp(value, destination)
 
             if isinstance(target, ast.Tuple):
 
@@ -1585,8 +1574,65 @@ class PyASTBridge(ast.NodeVisitor):
                 target_root = target_root.value
             if not isinstance(target_root, ast.Name):
                 self.emitFatalError("invalid target for assignment", node)
-            root_defined_in_parent_scope = target_root.id in self.symbolTable and \
+            value_root = value
+            while isinstance(value_root, ast.Subscript) or \
+                isinstance(value_root, ast.Attribute):
+                value_root = value_root.value
+
+            target_root_defined_in_parent_scope = target_root.id in self.symbolTable and \
                 target_root.id not in self.symbolTable.symbolTable[-1]
+            value_root_is_lvalue = isinstance(value_root, ast.Name) and \
+                value_root.id in self.symbolTable
+
+            def update_in_parent_scope(destination, value):
+                assert not cc.PointerType.isinstance(value.type)
+                if cc.StructType.isinstance(value.type) and cc.StructType.getName(value.type) != 'tuple':
+                    # We can't properly deal with this case if the value we are assigning
+                    # is not an `rvalue`. Consider the case were we have `v1` defined in
+                    # the parent scope, `v2` in a child scope, and we are assigning v2 to
+                    # v1 in the child scope. To do this assignment properly, we would need to
+                    # make sure that the pointers for both v1 and v2 points to the same memory
+                    # location such that any changes to v1 after the assignment are reflected
+                    # in v2 and vice versa (v2 could be changed in the child while v1 is still
+                    # alive). Since we merely store the raw pointer in the symbol table for
+                    # dataclasses, we have no way of updating that pointer conditionally on
+                    # the child scope being executed.
+                    # To determine whether the value we assign is an `rvalue`, it is
+                    # sufficient to check whether its root is a value in the symbol table
+                    # (values returned from calls are never `lvalues`).
+                    if value_root_is_lvalue:
+                        # Note that this check also makes sure that function arguments are 
+                        # not assigned to local variables, since function arguments are in 
+                        # the symbol table.
+                        self.emitFatalError("only literals can be assigned to variables defined in parent scope", node)
+                if cc.StdvecType.isinstance(destination.type):
+                    # In this case, we are assigning a list to a variable in a parent scope.
+                    assert isinstance(target, ast.Name)
+                    # If the value we are assigning is an `rvalue` then we can do an in-place
+                    # update of the data in the parent; the restrictions for container items
+                    # in `__validate_container_entry` ensure that the value we are assigning
+                    # does not contain any references to dataclass values, and any lists
+                    # contained in the value behave like proper references since they contain
+                    # a data pointer (i.e. in-place update only does a shallow copy).
+                    # TODO: The only reason we cannot currently support this is because we
+                    # have no way of updating the size of an existing vector...
+                    self.emitFatalError("variable defined in parent scope cannot be modified", node)
+                # Allowing to assign vectors to container items in the parent scope
+                # should be fine regardless of whether the assigned value is an `rvalue`
+                # or not; replacing the item in the container with the value leads to the
+                # correct behavior much like it does for the case where the target is defined
+                # in the same scope.
+                # NOTE: The assignment is subject to the usual restrictions for container
+                # items - these should be validated before calling update_in_parent_scope.
+                if not cc.StdvecType.isinstance(value.type) and storedAsValue(destination):
+                    # We can't properly deal with this, since there is no way to ensure that
+                    # the target in the symbol table is updated conditionally on the child
+                    # scope executing.
+                    self.emitFatalError("variable defined in parent scope cannot be modified", node)
+                assert cc.PointerType.isinstance(destination.type)
+                expectedTy = cc.PointerType.getElementType(destination.type)
+                value = self.changeOperandToType(expectedTy, value, allowDemotion=False)
+                cc.StoreOp(value, destination)
 
             # Handle assignment `var = expr`
             if isinstance(target, ast.Name):
@@ -1614,7 +1660,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.currentAssignVariableName = None
                 storeAsVal = storedAsValue(value)
 
-                if root_defined_in_parent_scope:
+                if target_root_defined_in_parent_scope:
                     value = self.ifPointerThenLoad(value)
                     destination = self.symbolTable[target.id]
                     update_in_parent_scope(destination, value)
@@ -1669,11 +1715,14 @@ class PyASTBridge(ast.NodeVisitor):
             mlirVal = self.popValue()
             assert not cc.PointerType.isinstance(mlirVal.type)
 
-            if root_defined_in_parent_scope:
+            # Must validate the container entry regardless of what scope the
+            # target is defined in.
+            self.__validate_container_entry(mlirVal, value)
+
+            if target_root_defined_in_parent_scope:
                 update_in_parent_scope(destination, mlirVal)
                 return target_root, None
             
-            self.__validate_container_entry(mlirVal, value)
             mlirVal = self.changeOperandToType(expectedTy, mlirVal, allowDemotion=False)
             cc.StoreOp(mlirVal, destination)
             # The returned target root has no effect here since no value 
@@ -3633,8 +3682,12 @@ class PyASTBridge(ast.NodeVisitor):
                     var = cc.LoadOp(var).result
             if cc.StructType.isinstance(varType):
                 if self.pushPointerValue:
+                    structName = cc.StructType.getName(varType)
+                    if structName == 'tuple':
+                        self.emitFatalError("tuple value cannot be modified", node)
                     self.emitFatalError(
-                        "indexing into tuple or dataclass does not produce a modifiable value", node)
+                        f"{structName} value cannot be modified - use `.copy()` to create a new value that can be modified",
+                        node)
 
         if cc.StdvecType.isinstance(var.type):
             idx = fix_negative_idx(idx, lambda: get_size(var))

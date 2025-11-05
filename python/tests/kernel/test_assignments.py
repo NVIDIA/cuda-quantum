@@ -364,7 +364,7 @@ def test_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         test7(True)
-    assert 'variable defined in parent scope cannot be modified' in str(e.value)
+    assert 'only literals can be assigned to variables defined in parent scope' in str(e.value)
     assert '(offending source -> t1 = t3)' in str(e.value)
 
 
@@ -453,7 +453,7 @@ def test_list_of_tuple_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(test2)
-    assert 'indexing into tuple or dataclass does not produce a modifiable value' in str(e.value)
+    assert 'tuple value cannot be modified' in str(e.value)
 
 
 def test_list_of_dataclass_updates():
@@ -485,7 +485,9 @@ def test_list_of_dataclass_updates():
 
     @cudaq.kernel
     def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
-        return [MyTuple(t.l1, t.l2) for _ in range(size)]
+        l1 = [v for v in t.l1]
+        l2 = [v for v in t.l2]
+        return [MyTuple(l1, l2) for _ in range(size)]
 
     @cudaq.kernel
     def test1() -> list[int]: 
@@ -597,6 +599,21 @@ def test_list_of_dataclass_update_failures():
     assert 'create a literal using the MyTuple constructor' in str(e.value)
 
     @cudaq.kernel
+    def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
+        # If we allowed this, then the following scenario would lead to
+        # incorrect behavior due to the copy of inner lists during return:
+        # Caller allocates l1, creates MyTuple using l1 as its first item, 
+        # calls `populate_MyTuple_list`, modifies an item in l1.
+        # In this case, the correct behavior would be that the change to l1
+        # is reflected in the list returned by `populate_MyTuple_list`.
+        return [MyTuple(t.l1, t.l2) for _ in range(size)]
+
+    with pytest.raises(RuntimeError) as e:
+        print(populate_MyTuple_list)
+    assert 'lists passed as function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'create a literal using list comprehension' in str(e.value)
+
+    @cudaq.kernel
     def get_MyTuple_list(size: int) -> list[MyTuple]:
         return [MyTuple([1], [1]) for _ in range(size)]
 
@@ -605,8 +622,10 @@ def test_list_of_dataclass_update_failures():
     assert 'Expected a complex, floating, or integral type' in str(e.value)
 
     @cudaq.kernel
-    def test1(t : MyTuple, size: int) -> list[int]: 
-        l = [MyTuple(t.l1, t.l2) for _ in range(size)]
+    def test1(t : MyTuple, size: int) -> list[int]:
+        l1 = [v for v in t.l1]
+        l2 = [v for v in t.l2]
+        l = [MyTuple(l1, l2) for _ in range(size)]
         res = [0 for _ in range(4 * len(l))]
         for idx, item in enumerate(l):
             res[4 * idx] = len(item.l1)
@@ -623,12 +642,14 @@ def test_list_of_dataclass_update_failures():
     assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
 
     @cudaq.kernel
-    def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
-        return [MyTuple(t.l1, t.l2) for _ in range(size)]
+    def populate_MyTuple_list2(t : MyTuple, size: int) -> list[MyTuple]:
+        l1 = [v for v in t.l1]
+        l2 = [v for v in t.l2]
+        return [MyTuple(l1, l2) for _ in range(size)]
 
     @cudaq.kernel
     def test2() -> MyTuple: 
-        l = populate_MyTuple_list(MyTuple([1, 1], [1, 1]), 2)
+        l = populate_MyTuple_list2(MyTuple([1, 1], [1, 1]), 2)
         l[0].l1 = [2]
         return l[0]
     
@@ -755,14 +776,28 @@ def test_list_of_list_updates():
         element = [1, 1]
         ls = [element, element]
         if cond:
+            update = [2, 2]
+            ls[0] = update
             ls[0][0] = 5
+            return flatten([ls[0], ls[1], update])
         return flatten([ls[0], ls[1], element])
     
-    assert test3(True) == [5, 1, 5, 1, 5, 1]
+    assert test3(True) == [5, 2, 1, 1, 5, 2]
     assert test3(False) == [1, 1, 1, 1, 1, 1]
 
     @cudaq.kernel
     def test4(cond: bool) -> list[int]:
+        element = [1, 1]
+        ls = [element, element]
+        if cond:
+            ls[0][0] = 5
+        return flatten([ls[0], ls[1], element])
+    
+    assert test4(True) == [5, 1, 5, 1, 5, 1]
+    assert test4(False) == [1, 1, 1, 1, 1, 1]
+
+    @cudaq.kernel
+    def test5(cond: bool) -> list[int]:
         element = [1, 1]
         ls = [element]
         copy = ls[0]
@@ -770,8 +805,8 @@ def test_list_of_list_updates():
             ls[0][0] = 5
         return flatten([ls[0], copy, element])
     
-    assert test4(True) == [5, 1, 5, 1, 5, 1]
-    assert test4(False) == [1, 1, 1, 1, 1, 1]
+    assert test5(True) == [5, 1, 5, 1, 5, 1]
+    assert test5(False) == [1, 1, 1, 1, 1, 1]
 
 
 def test_list_of_list_update_failures():
