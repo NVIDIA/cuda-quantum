@@ -49,7 +49,7 @@ RUN if [ -x "$(command -v pip)" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \
     fi
-RUN pip install --no-cache-dir nvidia-curand
+RUN pip install --no-cache-dir nvidia-curand nvidia-cuda-runtime
 
 # Make sure that apt-get remains updated at the end!;
 # If we don't do that, then apt-get will get confused when some CUDA
