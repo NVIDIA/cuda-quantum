@@ -41,7 +41,7 @@ python_version=3.11
 quick_test=false
 while getopts ":c:f:i:p:qv:" opt; do
   case $opt in
-    c) cuda_version="$OPTARG"
+    c) cuda_version_conda="$OPTARG"
     ;;
     f) root_folder="$OPTARG"
     ;;
@@ -67,6 +67,12 @@ if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     (return 0 2>/dev/null) && return 100 || exit 100
 fi
 
+# Check that the `cuda_version_conda` is a full version string like "12.8.0"
+if ! [[ $cuda_version_conda =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo -e "\e[01;31mThe cuda_version_conda (-c) must be a full version string like '12.8.0'. Provided: '${cuda_version_conda}'.\e[0m" >&2
+    (return 0 2>/dev/null) && return 100 || exit 100
+fi
+
 # Install Miniconda
 if [ ! -x "$(command -v conda)" ]; then
     mkdir -p ~/.miniconda3
@@ -82,7 +88,7 @@ if [ -n "${extra_packages}" ]; then
     pip_extra_url="--extra-index-url http://localhost:8080"
 fi
 while IFS= read -r line; do
-    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version}.0 /g")
+    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")
     line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${python_version}/g")
     line=$(echo $line | sed -E "s/pip install (.\{\{)?\s?\S+\s?(\}\})?/pip install cudaq==${cudaq_version} -v ${pip_extra_url//\//\\/}/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
@@ -162,9 +168,21 @@ done
 
 # Run torch integrator tests.
 # This is an optional integrator, which requires torch and torchdiffeq.
-# Install torch separately to match the cuda version.
+# Install torch separately to match the cuda version installed as CUDA-Q dependency.
 # Torch if installed as part of torchdiffeq's dependencies, may default to the latest cuda version. 
-python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu$(echo $cuda_version | cut -d '.' -f-2 | tr -d .)
+ctk_version="$(python3 -m pip list | grep nvidia-cuda-runtime | tr -s " " | cut -d " " -f 2)" 
+torch_channel=""
+# For CUDA version 13, we need to use the nightly build.
+# This is required because the stable build (as of v2.9.0) depends on cuBlas 13.0,
+# while cuquantum-cu13 depends on cuBlas 13.1.
+# Ref: torch changes cublas to 13.1 in this commit.
+# https://github.com/pytorch/pytorch/commit/544b443ea1d1a9b19e65f981168a01cb87a2d333
+# TODO: Update this script when stable torch builds with this fix are available.
+if [ "$(cut -d '.' -f 1 <<< "$ctk_version")" -eq 13 ]; then
+    torch_channel="nightly/"
+fi
+
+python3 -m pip install torch --index-url https://download.pytorch.org/whl/${torch_channel}cu$(cut -d '.' -f 1 <<< "$ctk_version")""$(cut -d '.' -f 2 <<< "$ctk_version")
 python3 -m pip install torchdiffeq
 python3 -m pytest -v "$root_folder/tests/dynamics/integrators"
 if [ ! $? -eq 0 ]; then
