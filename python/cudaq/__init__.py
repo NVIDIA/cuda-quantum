@@ -72,7 +72,7 @@ def _configure_cuda_library_paths() -> None:
 
     # Load dependencies first
     load_order: List[str] = [
-        'cudart', 'curand', 'nvrtc', 'nvrtc_builtins', 'cublas', 'cublaslt',
+        'cudart', 'curand', 'nvrtc', 'nvrtc_builtins', 'cublaslt', 'cublas',
         'cusolver', 'cusolvermg', 'cutensor', 'custatevec', 'cutensornet',
         'cudensitymat'
     ]
