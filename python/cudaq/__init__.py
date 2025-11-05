@@ -38,7 +38,6 @@ def _configure_cuda_library_paths() -> None:
     # Library configuration: (package_name_template, library_filename_template)
     # Common libraries
     common_libs: Dict[str, Tuple[str, str]] = {
-        'curand': ('nvidia-curand', 'libcurand.so.10'),
         'cutensor': ('cutensor-cu{cuda_major}', 'libcutensor.so.2'),
         'custatevec': ('custatevec-cu{cuda_major}', 'libcustatevec.so.1'),
         'cutensornet': ('cutensornet-cu{cuda_major}', 'libcutensornet.so.2'),
@@ -47,6 +46,7 @@ def _configure_cuda_library_paths() -> None:
 
     # CUDA 12 specific libraries
     cuda_12_specific: Dict[str, Tuple[str, str]] = {
+        'curand': ('nvidia-curand-cu{cuda_major}', 'libcurand.so.10'),
         'cudart':
             ('nvidia-cuda_runtime-cu{cuda_major}', 'libcudart.so.{cuda_major}'),
         'nvrtc':
@@ -60,6 +60,7 @@ def _configure_cuda_library_paths() -> None:
 
     # CUDA 13 specific libraries
     cuda_13_specific: Dict[str, Tuple[str, str]] = {
+        'curand': ('nvidia-curand', 'libcurand.so.10'),
         'cudart': ('nvidia-cuda_runtime', 'libcudart.so.{cuda_major}'),
         'nvrtc': ('nvidia-cuda_nvrtc', 'libnvrtc.so.{cuda_major}'),
         'nvrtc_builtins':
