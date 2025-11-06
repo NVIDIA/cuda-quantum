@@ -314,7 +314,7 @@ def test_return_list_from_device_kernel():
 
     @cudaq.kernel
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
-        result = arg
+        result = [v for v in arg]
         for i in result:
             incrementer(i)
         return result
@@ -354,7 +354,7 @@ def test_return_list_bool():
     @cudaq.kernel
     def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_bool_args, 2, [True, False, True]).get()
@@ -363,7 +363,7 @@ def test_return_list_bool():
     @cudaq.kernel
     def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(2)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_bool_args_no_broadcast,
@@ -384,7 +384,7 @@ def test_return_list_int():
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_int, 2, [-13, 5, 42], shots_count=2).get()
@@ -404,7 +404,7 @@ def test_return_list_int8():
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_int8, 2, [-13, 5, 42], shots_count=2).get()
@@ -424,7 +424,7 @@ def test_return_list_int16():
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_int16, 2, [-13, 5, 42], shots_count=2).get()
@@ -444,7 +444,7 @@ def test_return_list_int32():
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_int32, 2, [-13, 5, 42], shots_count=2).get()
@@ -464,7 +464,7 @@ def test_return_list_int64():
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_int64, 2, [-13, 5, 42], shots_count=2).get()
@@ -484,7 +484,7 @@ def test_return_list_float():
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_float,
@@ -506,7 +506,7 @@ def test_return_list_float32():
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_float32,
@@ -528,7 +528,7 @@ def test_return_list_float64():
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
         qubits = cudaq.qvector(n)
-        return t
+        return [v for v in t]
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_list_float64,

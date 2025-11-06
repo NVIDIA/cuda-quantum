@@ -506,6 +506,13 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if ty == operand.type:
             return operand
+        if cc.CallableType.isinstance(ty):
+            fctTy = cc.CallableType.getFunctionType(ty)
+            if fctTy == operand.type:
+                return operand
+            self.emitFatalError(
+                f'cannot convert value of type {operand.type} to the requested type {fctTy}',
+                self.currentNode)
 
         if ComplexType.isinstance(ty):
             complexType = ComplexType(ty)
@@ -798,9 +805,10 @@ class PyASTBridge(ast.NodeVisitor):
     # Create a new vector with source elements converted to the target element type if needed.
     def __copyVectorAndConvertElements(self,
                                     source,
-                                    targetEleType,
+                                    targetEleType = None,
                                     allowDemotion = False,
-                                    alwaysCopy = False):
+                                    alwaysCopy = False, 
+                                    conversion = None):
         '''
         Creates a new vector with the requested element type.
         Returns the original vector if the requested element type already matches
@@ -808,12 +816,14 @@ class PyASTBridge(ast.NodeVisitor):
         If `alwaysCopy` is set to True, return a shallow copy of the vector.
         '''
 
-        if not cc.StdvecType.isinstance(source.type):
-            self.emitFatalError(f"expected vector type to copy and cast elements but received {source.type}", self.currentNode)
+        assert cc.StdvecType.isinstance(source.type)
         sourceEleType = cc.StdvecType.getElementType(source.type)
-
+        if not targetEleType:
+            targetEleType = sourceEleType
         if not alwaysCopy and sourceEleType == targetEleType:
             return source
+        if not conversion:
+            conversion = lambda _, v: self.changeOperandToType(targetEleType, v, allowDemotion=allowDemotion)
 
         sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
         sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
@@ -827,12 +837,10 @@ class PyASTBridge(ast.NodeVisitor):
             eleAddr = cc.ComputePtrOp(cc.PointerType.get(sourceEleType), sourceDataPtr, [iterVar],
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
-            castedEle = self.changeOperandToType(targetEleType,
-                                                 loadedEle,
-                                                 allowDemotion=allowDemotion)
+            convertedEle = conversion(iterVar, loadedEle)
             targetEleAddr = cc.ComputePtrOp(cc.PointerType.get(targetEleType), targetPtr,
                                             [iterVar], rawIndex).result
-            cc.StoreOp(castedEle, targetEleAddr)
+            cc.StoreOp(convertedEle, targetEleAddr)
 
         self.createInvariantForLoop(bodyBuilder, sourceSize)
         return cc.StdvecInitOp(cc.StdvecType.get(targetEleType), targetPtr, length=sourceSize).result
@@ -1293,7 +1301,8 @@ class PyASTBridge(ast.NodeVisitor):
             # item in a tuple or dataclass that was passed) or how it is assigned 
             # (e.g. the assigned value might be a tuple or dataclass that contains a list).
             if rootVal and self.isFunctionArgument(rootVal):
-                self.emitFatalError(f"lists passed as or contained in function arguments may not be used as items in lists, tuples, and dataclasses - create a literal using list comprehension", self.currentNode)
+                msg = "lists passed as or contained in function arguments may not be used as items in other container values"
+                self.emitFatalError(f"{msg} - use `.copy(deep)` to create a new list", self.currentNode)
 
         if cc.StructType.isinstance(mlirVal.type):
             structName = cc.StructType.getName(mlirVal.type)
@@ -1307,7 +1316,8 @@ class PyASTBridge(ast.NodeVisitor):
             # reference behavior actually works across function
             # boundaries.
             if structName != 'tuple' and rootVal:
-                self.emitFatalError(f"only literals may be used as items in lists, tuples, and dataclasses - create a literal using the {structName} constructor", self.currentNode)
+                msg = "only dataclass literals may be used as items in other container values"
+                self.emitFatalError(f"{msg} - use `.copy(deep)` to create a new {structName}", self.currentNode)
 
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
@@ -1576,6 +1586,9 @@ class PyASTBridge(ast.NodeVisitor):
                     return target, value
 
                 if isinstance(value, ast.AST):
+                    # Measurements need to push their values to the stack, 
+                    # so we set a so we set a non-None variable name here.
+                    self.currentAssignVariableName = ''
                     # NOTE: The way the assignment logic is processed,
                     # including that we load this value for the purpose
                     # of deconstruction, does not preserve any inner
@@ -1588,6 +1601,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # to allow that. 
                     self.visit(value)
                     value = self.popValue()
+                    self.currentAssignVariableName = None
                     return target, value
 
                 return target, value
@@ -1758,8 +1772,12 @@ class PyASTBridge(ast.NodeVisitor):
                 # Can arise if have something like `l[0], l[1] = getTuple()`
                 self.emitFatalError("updating lists or dataclasses as part of deconstruction is not supported", node)
 
+            # Measurements need to push their values to the stack, 
+            # so we set a so we set a non-None variable name here.
+            self.currentAssignVariableName = ''
             self.visit(value)
             mlirVal = self.popValue()
+            self.currentAssignVariableName = None
             assert not cc.PointerType.isinstance(mlirVal.type)
 
             # Must validate the container entry regardless of what scope the
@@ -1985,14 +2003,14 @@ class PyASTBridge(ast.NodeVisitor):
                 self.controlNegations.clear()
             return negatedControlQubits
 
-        def processFunctionCall(fType):
-            nrArgs = len(fType.inputs)
+        def processFunctionCall(kernel):
+            nrArgs = len(kernel.type.inputs)
             values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
-            values = convertArguments([t for t in fType.inputs], values)
-            if len(fType.results) == 0:
-                func.CallOp(otherKernel, values)
+            values = convertArguments([t for t in kernel.type.inputs], values)
+            if len(kernel.type.results) == 0:
+                func.CallOp(kernel, values)
                 return
-            return func.CallOp(otherKernel, values).result
+            return func.CallOp(kernel, values).result
 
         def checkControlAndTargetTypes(controls, targets):
             """
@@ -2115,7 +2133,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if maybeKernelName != None:
                     otherKernel = SymbolTable(
                         self.module.operation)[maybeKernelName]
-                    res = processFunctionCall(otherKernel.type)
+                    res = processFunctionCall(otherKernel)
                     if res is not None:
                         self.pushValue(res)
                     return
@@ -2147,7 +2165,7 @@ class PyASTBridge(ast.NodeVisitor):
                     otherKernel = SymbolTable(
                         self.module.operation)[nvqppPrefix + name]
                     
-                    res = processFunctionCall(otherKernel.type)
+                    res = processFunctionCall(otherKernel)
                     if res is not None:
                         self.pushValue(res)
                     return
@@ -2168,7 +2186,7 @@ class PyASTBridge(ast.NodeVisitor):
                     elif keyword.arg == 'imag':
                         imag = kwval
                     else:
-                        self.emitFatalError(f"unknown keyword {keyword}", node)
+                        self.emitFatalError(f"unknown keyword `{keyword.arg}`", node)
                 if not real or not imag:
                     self.emitFatalError("missing value", node)
 
@@ -2340,7 +2358,6 @@ class PyASTBridge(ast.NodeVisitor):
                 # If `registerName` is None, then we know that we
                 # are not assigning this measure result to anything
                 # so we therefore should not push it on the stack
-                # FIXME: INCORRECT FOR DECONSTRUCTION...
                 pushResultToStack = registerName != None or self.walkingReturnNode
 
                 # By default we set the `register_name` for the measurement
@@ -2448,7 +2465,7 @@ class PyASTBridge(ast.NodeVisitor):
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
                                                                  node.func.id]
 
-                res = processFunctionCall(otherKernel.type)
+                res = processFunctionCall(otherKernel)
                 if res is not None:
                     self.pushValue(res)
                 return
@@ -2486,17 +2503,12 @@ class PyASTBridge(ast.NodeVisitor):
                 if not cc.StdvecType.isinstance(valueTy):
                     self.emitFatalError('Invalid list() cast requested.', node)
 
-                # To match python behavior, we have to create a copy
-                # if the argument is not an `rvalue`.
-                # With the restrictions we impose on container elements
-                # (see __validate_container_entry), it is sufficient to
-                # check whether the argument is an existing variable.
-                if isinstance(node.args[0], ast.Name):
-                    eleTy = cc.StdvecType.getElementType(valueTy)
-                    copy = self.__copyVectorAndConvertElements(value, eleTy, alwaysCopy=True)
-                    self.pushValue(copy)
-                    return
-                self.pushValue(value)
+                # The expected Python behavior is that a constructor call
+                # to list creates a new list (a copy). Additionally, since
+                # a new value is created, we need to make sure container entries
+                # are properly validated. To not duplicate the logic, we simply
+                # call `copy` here.
+                self.visit_Call(ast.Call(ast.Attribute(node.args[0], 'copy'), [], {}))
                 return
 
             elif node.func.id in ['print_i64', 'print_f64']:
@@ -2584,47 +2596,58 @@ class PyASTBridge(ast.NodeVisitor):
             if node.func.attr == 'copy':
                 self.visit(node.func.value)
                 funcVal = self.ifPointerThenLoad(self.popValue())
+                deepCopy, dTy = None, None
 
-                if cc.StructType.isinstance(funcVal.type):
-                    deepCopy = None
-                    if len(node.args) == 1 and not node.keywords:
-                        deepCopy = node.args[0]
+                for keyword in node.keywords:
+                    if keyword.arg == 'deep':
+                        deepCopy = keyword.value
+                    elif keyword.arg == 'dtype':
+                        self.visit(keyword.value)
+                        dTy = self.popValue()
                     else:
-                        self.__groupValues(node.args, [0])
-                        for keyword in node.keywords:
-                            if keyword.arg == 'deep':
-                                deepCopy = keyword.value
-                            else:
-                                self.emitFatalError(f"unknown keyword {keyword}", node)
-                    if deepCopy: 
-                        if not isinstance(deepCopy, ast.Constant):
-                            self.emitFatalError("argument to `copy` must be a constant", node)
-                        if deepCopy.value:
-                            # FIXME: implement...
-                            # funcVal = ...
-                            self.emitFatalError("creating a deep copy is currently not yet supported", node)
+                        self.emitFatalError(f"unknown keyword `{keyword.arg}`", node)
 
-                    # Creating a copy means we are creating a new container. As such,
-                    # all elements in the tuple need to pass the validation in 
-                    # `__validate_container_entry`. 
-                    # Rather than duplicating that logic here, we opt to actually do
-                    # the copy and validate in the process. In the case where this 
-                    # copy is not strictly needed, the additional code should be easily
-                    # eliminated by compiler passes.
-                    # NOTE: If we don't push a pointer value and `funcVal` is an argument
-                    # to the current kernel, we actually need to create the copy to
-                    # reflect that this is a locally created value.
-                    def validate(idx, structItem):
+                if len(node.args) == 1 and deepCopy is None:
+                    deepCopy = node.args[0]
+                else:
+                    self.__groupValues(node.args, [0])
+                if deepCopy: 
+                    if not isinstance(deepCopy, ast.Constant):
+                        self.emitFatalError("argument to `copy` must be a constant", node)
+                    deepCopy = deepCopy.value
+
+                # NOTE: Creating a copy means we are creating a new container. 
+                # As such, all elements in the container need to pass the validation 
+                # in `__validate_container_entry`. 
+                if deepCopy:
+                    def conversion(idx, structItem):
+                        if cc.StdvecType.isinstance(structItem.type):
+                            structItem = self.__copyVectorAndConvertElements(
+                                structItem, 
+                                alwaysCopy=True, 
+                                conversion=conversion)
+                        elif cc.StructType.isinstance(structItem.type) and \
+                            self.containsList(structItem.type):
+                            structItem = self.__copyStructAndConvertElements(
+                                structItem, 
+                                conversion=conversion)
+                        # Since we created a new item, the parent of
+                        # the container item is this node.
+                        self.__validate_container_entry(structItem, node)
+                        return structItem
+                else:
+                    def conversion(idx, structItem):
                         self.__validate_container_entry(structItem, node.func.value)
                         return structItem
 
-                    struct = self.__copyStructAndConvertElements(funcVal, conversion=validate)
-                    # FIXME: make error messages nicer...
-                    # FIXME: also revise error messages that mention list comprehension or dataclass constructors
-                    # FIXME: add support for copy of lists within kernels
-                    # self.emitFatalError(f"cannot create a shallow copy of function argument that contains inner lists - create a new value or create a deep copy by setting `deep=True`", self.currentNode)
-                    # self.emitFatalError(f"copy must not contain references to dataclass variables - create a new value or create a deep copy by setting `deep=True`", self.currentNode)
+                if cc.StdvecType.isinstance(funcVal.type):
+                    listVal = self.__copyVectorAndConvertElements(funcVal, dTy, alwaysCopy=True, conversion=conversion)
+                    self.pushValue(listVal)
+                    return
 
+                if cc.StructType.isinstance(funcVal.type):
+                    if dTy: self.emitFatalError("unknown keyword dtype", node)
+                    struct = self.__copyStructAndConvertElements(funcVal, conversion=conversion)
                     self.pushValue(struct)
                     return
 
@@ -2737,30 +2760,12 @@ class PyASTBridge(ast.NodeVisitor):
                                 f"unexpected numpy array initializer type: {valueTy}",
                                 node)
 
-                        dTy = cc.StdvecType.getElementType(valueTy)
-                        for keyword in node.keywords:
-                            self.visit(keyword.value)
-                            kwval = self.popValue()
-                            if keyword.arg == 'dtype':
-                                dTy = kwval
-                            else:
-                                self.emitFatalError(f"unknown keyword {keyword}", node)
-
-                        # To match python behavior, we have to create a copy
-                        # if the argument is not an `rvalue`.
-                        # With the restrictions we impose on container elements
-                        # (see __validate_container_entry), it is sufficient to
-                        # check whether the argument is an existing variable.
-                        if isinstance(node.args[0], ast.Name):
-                            eleTy = cc.StdvecType.getElementType(valueTy)
-                            copy = self.__copyVectorAndConvertElements(
-                                value, dTy, allowDemotion=True, alwaysCopy=True)
-                            self.pushValue(copy)
-                            return
-                        # Convert the vector to the provided data type if needed.
-                        self.pushValue(
-                            self.__copyVectorAndConvertElements(
-                                value, dTy, allowDemotion=True, alwaysCopy=False))
+                        # The expected Python behavior is that a constructor call
+                        # to array creates a new array (a copy). Additionally, since
+                        # a new value is created, we need to make sure container entries
+                        # are properly validated. To not duplicate the logic, we simply
+                        # call `copy` here.
+                        self.visit_Call(ast.Call(ast.Attribute(node.args[0], 'copy'), [], node.keywords))
                         return
 
                     value = self.ifPointerThenLoad(value)
@@ -3346,13 +3351,8 @@ class PyASTBridge(ast.NodeVisitor):
                 return cc.StdvecType.get(base_elTy)
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
-                    # supported for calls but not here:
-                    # 'range', 'enumerate', 'list'
-                    if pyval.func.id == 'len' or pyval.func.id == 'int':
-                        return IntegerType.get_signless(64)
-                    elif pyval.func.id == 'complex':
-                        return self.getComplexType()
-                    elif self.__isUnitaryGate(
+                    # supported for calls but not here: 'range', 'enumerate'
+                    if self.__isUnitaryGate(
                             pyval.func.id) or pyval.func.id == 'reset':
                         process_void_list()
                         return None
@@ -3410,10 +3410,19 @@ class PyASTBridge(ast.NodeVisitor):
                             # a comprehensive error is generated when `elt` is walked below.
                             return cc.StructType.getNamed(pyval.func.id, elts)
                         return structTy
-                elif isinstance(pyval.func, ast.Attribute) and \
-                    (pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj'):
-                    process_void_list()
-                    return None
+                    elif pyval.func.id == 'len' or pyval.func.id == 'int':
+                        return IntegerType.get_signless(64)
+                    elif pyval.func.id == 'complex':
+                        return self.getComplexType()
+                    elif pyval.func.id == 'list' and len(pyval.args) == 1:
+                        return get_item_type(pyval.args[0])
+                elif isinstance(pyval.func, ast.Attribute):
+                    if pyval.func.attr == 'copy' and \
+                        'dtype' not in pyval.keywords:
+                        return get_item_type(pyval.func.value)
+                    if pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj':
+                        process_void_list()
+                        return None
                 self.emitFatalError("unsupported call in list comprehension",
                                     node)
             elif isinstance(pyval, ast.Compare):
@@ -4267,14 +4276,6 @@ class PyASTBridge(ast.NodeVisitor):
         # the function. This holds recursively; if we have a struct
         # that contains a list, then the list data may need to be
         # copied if it was allocated inside the function.
-        # However, if the return value or an item in the return value
-        # is indeed a reference type passed as argument to the function,
-        # then we need to make sure to keep that reference as is to
-        # ensure correct behavior (i.e. behavior consistent with Python).
-        # The logic below handles this, with the caveat that 
-        # 1. we rely on the fact that we can't have pointer types in the value
-        # 2. inner lists will always be copied; we hence must prevent
-        #    returning inner lists of lists passed as arguments
         def create_return_value(res):
             if cc.StdvecType.isinstance(res.type):
                 eleTy = cc.StdvecType.getElementType(res.type) # iterty
@@ -4284,12 +4285,6 @@ class PyASTBridge(ast.NodeVisitor):
                     size = cc.StdvecSizeOp(self.getIntegerType(), res).result
                     ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
                     iterable = cc.StdvecDataOp(ptrTy, res).result
-                    # We can do an in-place update since the data array type/size
-                    # does not change. We have to do an in-place update to 
-                    # have list arguments that were modified and returned behave
-                    # properly (i.e. they should still reference the same data
-                    # such that updates to them after return are still reflecting
-                    # in everything else that references the same data).
                     def bodyBuilder(iterVar):
                         eleAddr = cc.ComputePtrOp(
                             cc.PointerType.get(eleTy), iterable, [iterVar],
@@ -4320,15 +4315,23 @@ class PyASTBridge(ast.NodeVisitor):
             # (and should correspondingly have been returned by reference).
             # Rather than preventing that lists in function arguments can be
             # updated, we instead ensure that lists contained in function
-            # arguments stay recognizable as such, and prevent that inner
-            # lists of function arguments are returned.
+            # arguments stay recognizable as such, and prevent that function
+            # arguments that contain list are returned.
             # Caveat: We prevent that dataclass or tuple arguments or 
             # argument items that contain lists are ever assigned to local 
             # variables. We hence can savely return them and omit any 
             # copies in this case.
+            # NOTE: Why is seems straightforward in principle to fail only
+            # for when we return *inner* lists of function arguments, this
+            # is still not desirable; even if we return the reference to
+            # the outer list correctly, any callerside assignment of the 
+            # return value would no longer be recognizable as being the
+            # same reference given as argument, which is a problem if the
+            # list was an argument to the caller. I.e. while this works for
+            # one function indirection, it does not for two. 
             if not cc.StructType.isinstance(result.type) and \
-                self.containsList(result.type, innerListsOnly=isinstance(node.value, ast.Name)):
-                self.emitFatalError("return value must not contain a list that is a function argument or an item in a function argument", node)
+                self.containsList(result.type):
+                self.emitFatalError("return value must not contain a list that is a function argument or an item in a function argument - for device kernels, lists passed as arguments will be modified in place", node)
 
         result = create_return_value(result)
         if self.symbolTable.numLevels() > 1:
@@ -4862,21 +4865,25 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
     # Visit dependent kernels recursively to
     # ensure we have all necessary kernels added to the
     # module
-    transitiveDeps = depKernels
+    transitiveDeps = {**depKernels}
     while len(transitiveDeps):
         # For each found dependency, see if that kernel
         # has further dependencies
-        for depKernelName, depKernelAst in transitiveDeps.items():
+        newDeps = {}
+        for _, depKernelAst in transitiveDeps.items():
             localVis = FindDepKernelsVisitor(bridge.ctx)
             localVis.visit(depKernelAst[0])
             # Append the found dependencies to our running tally
-            depKernels = {**depKernels, **localVis.depKernels}
-            # Reset for the next go around
-            transitiveDeps = localVis.depKernels
+            for k in localVis.depKernels:
+                if not k in depKernels:
+                    v = localVis.depKernels[k]
+                    depKernels[k] = v
+                    newDeps[k] = v
             # Update the call graph
             callGraph[localVis.kernelName] = {
-                k for k, v in localVis.depKernels.items()
+                k for k in localVis.depKernels
             }
+        transitiveDeps = newDeps
 
     # Sort the call graph topologically
     callGraphSorter = graphlib.TopologicalSorter(callGraph)
