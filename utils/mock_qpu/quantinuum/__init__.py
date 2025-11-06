@@ -410,7 +410,7 @@ async def create_decoder_config(job: dict):
         raise HTTPException(status_code=400,
                             detail="Invalid base64 encoding") from e
 
-    # Check that the config is valid YAML
+    # Check that the configuration is valid YAML
     import yaml
     try:
         yaml.safe_load(config_str)
