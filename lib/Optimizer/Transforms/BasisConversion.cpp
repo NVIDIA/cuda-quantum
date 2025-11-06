@@ -88,9 +88,16 @@ struct BasisConversion
     // Setup target and patterns
     auto target = cudaq::createBasisTarget(getContext(), basis);
     RewritePatternSet owningPatterns(&getContext());
-    cudaq::populateWithAllDecompositionPatterns(owningPatterns);
-    auto patterns = FrozenRewritePatternSet(std::move(owningPatterns),
-                                            disabledPatterns, enabledPatterns);
+    FrozenRewritePatternSet patterns;
+    if (enabledPatterns.empty()) {
+      cudaq::selectDecompositionPatterns(owningPatterns, basis,
+                                         disabledPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns));
+    } else {
+      cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns),
+                                         disabledPatterns, enabledPatterns);
+    }
 
     // Process kernels in parallel
     LogicalResult rewriteResult = failableParallelForEach(

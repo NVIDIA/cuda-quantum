@@ -136,6 +136,15 @@ def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
     - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
     - `x(n)` means targeting pauli-x operation with unbounded number of controls
     - `x,x(1)` means targeting both `not` and `cx` operations
+
+    The pass automatically selects the set of rewrite patterns, ensuring every
+    gate is decomposed to the specified basis in a unique way. Option
+    `disable-patterns` can be used to filter the selected rewrite patterns.
+    Option `enable-patterns` can be used to override the automatic pattern
+    selection.
+
+    If no `basis` is specified or the pass cannot decompose all operations to
+    the specified basis, the pass application will fail.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
@@ -314,15 +323,22 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
     the maximum number of iterations is exhausted.
 
     When `basis` is specified, the pass automatically selects the set of rewrite
-    patterns, ensuring an acyclic pattern set targeting the specified basis.
-    Options `enable-patterns` and `disable-patterns` can further filter the
-    selected rewrite patterns.
+    patterns, ensuring every gate is decomposed to the specified basis in a
+    unique way.
+    
+    ## Options
 
+    The following options are available and are all optional:
 
-    The `basis` option takes a comma-separated list of quantum operations with
-    the format: `<op-name>([<number-of-controls> | n])?`
+    - `disable-patterns`: used to filter out specific rewrite patterns from the
+       selection.
+    - `enable-patterns`: when set, overrides the automatic pattern selection.
+    - `basis`: takes a comma-separated list of quantum operations with the
+      format: `<op-name>([<number-of-controls> | n])?`
 
-    Examples:
+    If no `basis` is specified, as many patterns as possible are applied.
+
+    Examples of valid `basis` values:
     - `x` — Pauli-X without controls (aka `not`)
     - `x(1)` — Pauli-X with one control (aka `cx`)
     - `x(n)` — Pauli-X with unbounded controls
