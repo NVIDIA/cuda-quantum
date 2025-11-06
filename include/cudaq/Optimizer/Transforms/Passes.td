@@ -136,6 +136,14 @@ def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
     - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
     - `x(n)` means targeting pauli-x operation with unbounded number of controls
     - `x,x(1)` means targeting both `not` and `cx` operations
+
+    The pass automatically selects the set of rewrite patterns, ensuring every
+    gate is decomposed to the specified basis in a unique way. Options
+    `enable-patterns` and `disable-patterns` can be used to specify or further
+    filter the selected rewrite patterns.
+
+    If no `basis` is specified or the pass cannot decompose all operations to
+    the specified basis, the pass application will fail.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
@@ -314,10 +322,9 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
     the maximum number of iterations is exhausted.
 
     When `basis` is specified, the pass automatically selects the set of rewrite
-    patterns, ensuring an acyclic pattern set targeting the specified basis.
-    Options `enable-patterns` and `disable-patterns` can further filter the
-    selected rewrite patterns.
-
+    patterns, ensuring every gate is decomposed to the specified basis in a
+    unique way. Options `enable-patterns` and `disable-patterns` can be used to
+    specify or further filter the selected rewrite patterns.
 
     The `basis` option takes a comma-separated list of quantum operations with
     the format: `<op-name>([<number-of-controls> | n])?`
@@ -327,6 +334,8 @@ def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
     - `x(1)` — Pauli-X with one control (aka `cx`)
     - `x(n)` — Pauli-X with unbounded controls
     - `x,x(1)` — Both `not` and `cx`
+
+    If no `basis` is specified, as many patterns as possible are applied.
 
     NOTE: The current implementation is conservative w.r.t global phase, which
     means no decomposition will take place under the presence of controlled

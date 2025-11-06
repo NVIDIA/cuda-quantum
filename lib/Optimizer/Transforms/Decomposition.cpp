@@ -19,6 +19,7 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <memory>
 
 using namespace mlir;
 
@@ -43,8 +44,16 @@ struct Decomposition
   /// Initialize the decomposer by building the set of patterns used during
   /// execution.
   LogicalResult initialize(MLIRContext *context) override {
+
     RewritePatternSet owningPatterns(context);
-    cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+    if (!basis.empty()) {
+      // Restrict to patterns useful for the target basis
+      cudaq::selectDecompositionPatterns(owningPatterns, basis,
+                                         disabledPatterns, enabledPatterns);
+    } else {
+      cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+    }
+
     patterns = FrozenRewritePatternSet(std::move(owningPatterns),
                                        disabledPatterns, enabledPatterns);
     return success();

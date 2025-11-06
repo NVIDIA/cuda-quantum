@@ -67,6 +67,30 @@ public:
   void initialize() { this->setDebugName(PatternType().getPatternName()); }
 };
 
+/// Select subset of patterns relevant to decomposing to the given target basis.
+///
+/// The result of the pattern selection are cached for a given basis gates,
+/// disabled patterns, and enabled patterns, so that successive calls with
+/// the same arguments will be O(1).
+///
+/// @param patterns The pattern set to add the selected patterns to
+/// @param basisGates The basis gates to decompose to
+/// @param disabledPatterns The patterns to disable
+/// @param enabledPatterns The patterns to enable
+///
+/// A subset of the decomposition patterns is selected such that:
+/// - for every gate that can be decomposed to the target basis, the chain of
+///   decomposition to the target basis is unique.
+/// - when more than one decomposition would exist, the one that requires the
+///   fewest applications of patterns is chosen.
+/// - `disabledPatterns` are never selected
+/// - `enabledPatterns` are preferred over other patterns when multiple
+///    decompositions are possible
+void selectDecompositionPatterns(mlir::RewritePatternSet &patterns,
+                                 llvm::ArrayRef<std::string> targetBasis,
+                                 llvm::ArrayRef<std::string> disabledPatterns,
+                                 llvm::ArrayRef<std::string> enabledPatterns);
+
 void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
 
 /// Create a conversion target parsed from a target basis string.
