@@ -47,10 +47,12 @@ RUN cd /cuda-quantum && \
     esac
 
 # Create the README
+# Note: conda channel 13.0.0 does not contain CUDA 13 (still 12.x), so we map to 13.0.2
 RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
     package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
     cuda_version_requirement="\>= ${CUDA_VERSION}" && \
     cuda_version_conda=${CUDA_VERSION}.0 && \
+    cuda_version_conda=${cuda_version_conda/13.0.0/13.0.2} && \
     for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do \
         sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
     done && \
