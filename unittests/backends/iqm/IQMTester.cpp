@@ -160,6 +160,66 @@ CUDAQ_TEST(IQMTester, tokenFilePathEnvOverride) {
   }
 }
 
+CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
+  const char dqa_filename[] = "dqa_mock_qpu.txt";
+
+  unlink(dqa_filename);
+
+  // Test 1: saving dynamic quantum architecture to file
+  setenv("IQM_SAVE_QPU_QA", dqa_filename, true);
+
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(backendString);
+
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(2);
+  kernel.h(qubit[0]);
+  kernel.mz(qubit[0]);
+  kernel.mz(qubit[1]);
+
+  auto counts = cudaq::sample(kernel);
+
+  unsetenv("IQM_SAVE_QPU_QA");
+
+  EXPECT_GE(counts.size(), 2);
+  EXPECT_LE(counts.size(), 4);
+
+  // Test 2: use quantum architecture file referenced in environment variable
+  setenv("IQM_QPU_QA", dqa_filename, true);
+
+  //platform.setTargetBackend(backendString);
+
+  auto kernel2 = cudaq::make_kernel();
+  auto qubit2 = kernel2.qalloc(2);
+  kernel2.h(qubit2[0]);
+  kernel2.mz(qubit2[0]);
+  kernel2.mz(qubit2[1]);
+
+  counts = cudaq::sample(kernel2);
+
+  unsetenv("IQM_QPU_QA");
+
+  EXPECT_GE(counts.size(), 2);
+  EXPECT_LE(counts.size(), 4);
+
+  // Test 3: quantum architecture file referenced in backend string
+
+  platform.setTargetBackend(backendString + ";mapping_file;" + dqa_filename);
+
+  auto kernel3 = cudaq::make_kernel();
+  auto qubit3 = kernel3.qalloc(2);
+  kernel3.h(qubit3[0]);
+  kernel3.mz(qubit3[0]);
+  kernel3.mz(qubit3[1]);
+
+  counts = cudaq::sample(kernel3);
+
+  EXPECT_GE(counts.size(), 2);
+  EXPECT_LE(counts.size(), 4);
+
+  unlink(dqa_filename);
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleMock(&argc, argv);
   auto ret = RUN_ALL_TESTS();
