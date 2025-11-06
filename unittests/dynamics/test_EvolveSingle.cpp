@@ -296,12 +296,12 @@ TEST(EvolveTester, checkSimpleNoIntermediateResults) {
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ},
       cudaq::IntermediateResultSave::None);
-  
+
   // Verify final expectation value only (no intermediate results)
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), 1);
   EXPECT_EQ(result.expectation_values.value()[0].size(), 1);
-  
+
   const double finalTime = steps.back();
   const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * finalTime);
   EXPECT_NEAR(result.expectation_values.value()[0][0], expected, 1e-3);
@@ -326,12 +326,12 @@ TEST(EvolveTester, checkDensityMatrixNoIntermediateResults) {
   auto result = cudaq::__internal__::evolveSingle(
       ham, dims, schedule, initialState, integrator, {}, {pauliZ},
       cudaq::IntermediateResultSave::None);
-  
+
   // Verify final expectation value only (no intermediate results)
   EXPECT_TRUE(result.expectation_values.has_value());
   EXPECT_EQ(result.expectation_values.value().size(), 1);
   EXPECT_EQ(result.expectation_values.value()[0].size(), 1);
-  
+
   const double finalTime = steps.back();
   const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * finalTime);
   EXPECT_NEAR(result.expectation_values.value()[0][0], expected, 1e-3);

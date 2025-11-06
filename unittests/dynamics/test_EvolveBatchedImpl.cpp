@@ -837,16 +837,16 @@ TEST(BatchedEvolveTester, checkIntermediateResultSaveAll) {
       {}, {pauliZ}, cudaq::IntermediateResultSave::All);
 
   EXPECT_EQ(results.size(), 2);
-  
+
   // Check that both results have states and expectation values
   for (const auto &result : results) {
     EXPECT_TRUE(result.states.has_value());
     EXPECT_TRUE(result.expectation_values.has_value());
-    
+
     // For IntermediateResultSave::All, we should have states for each time step
     EXPECT_EQ(result.states.value().size(), numSteps);
     EXPECT_EQ(result.expectation_values.value().size(), numSteps);
-    
+
     // Check that each time step has expectation values
     for (const auto &expVals : result.expectation_values.value()) {
       EXPECT_EQ(expVals.size(), 1); // One observable (pauliZ)
@@ -881,17 +881,18 @@ TEST(BatchedEvolveTester, checkIntermediateResultSaveNoneWithObservables) {
       {}, {pauliZ}, cudaq::IntermediateResultSave::None);
 
   EXPECT_EQ(results.size(), 2);
-  
+
   // Check that both results have final states and final expectation values
   for (const auto &result : results) {
     EXPECT_TRUE(result.states.has_value());
     EXPECT_TRUE(result.expectation_values.has_value());
-    
+
     // For IntermediateResultSave::None, we should have only final state
     EXPECT_EQ(result.states.value().size(), 1);
     EXPECT_EQ(result.expectation_values.value().size(), 1);
-    
+
     // Check that final expectation value is computed
-    EXPECT_EQ(result.expectation_values.value()[0].size(), 1); // One observable (pauliZ)
+    EXPECT_EQ(result.expectation_values.value()[0].size(),
+              1); // One observable (pauliZ)
   }
 }
