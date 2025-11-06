@@ -770,6 +770,8 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             structName = quake.StruqType.getName(structTy)
         structIdx = None
+        if structName == 'tuple':
+            self.emitFatalError('`tuple` does not support attribute access')
         if not globalRegisteredTypes.isRegisteredClass(structName):
             self.emitFatalError(f'Dataclass is not registered: {structName})')
 
@@ -1288,7 +1290,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("cannot use `cudaq.State` as element in lists, tuples, or dataclasses", self.currentNode)
             self.emitFatalError("lists, tuples, and dataclasses must not contain modifiable values", self.currentNode)
 
-        if self.containsList(mlirVal.type):
+        if self.knownResultType and \
+            self.containsList(self.knownResultType) and \
+            self.containsList(mlirVal.type):
             # For lists that were created inside a kernel, we have to
             # copy the stack allocated array to the heap when we return such a list.
             # In the case where the list was created by the caller, this copy leads
@@ -1301,7 +1305,7 @@ class PyASTBridge(ast.NodeVisitor):
             # item in a tuple or dataclass that was passed) or how it is assigned 
             # (e.g. the assigned value might be a tuple or dataclass that contains a list).
             if rootVal and self.isFunctionArgument(rootVal):
-                msg = "lists passed as or contained in function arguments may not be used as items in other container values"
+                msg = "lists passed as or contained in function arguments cannot be inner items in other container values when a list is returned"
                 self.emitFatalError(f"{msg} - use `.copy(deep)` to create a new list", self.currentNode)
 
         if cc.StructType.isinstance(mlirVal.type):
@@ -1557,16 +1561,17 @@ class PyASTBridge(ast.NodeVisitor):
             varTy = val.type
             if cc.PointerType.isinstance(varTy):
                 varTy = cc.PointerType.getElementType(varTy)
-            # If `buildingEntryPoint` is not set we are processing function arguments.
-            # Function arguments are always passed by value, except states.
-            # For value types in Python, we can treat them like any local variable
-            # and create a stack slot for them. For reference types in Python, on
-            # the other hand, we preserve them as values in the symbol table to
-            # make sure we can detect any attempt at modifying them and give a 
-            # comprehensive error.
-            refTypeImmutableFuncArg = not self.buildingEntryPoint and \
-                cc.StructType.isinstance(varTy) and cc.StructType.getName(varTy) != 'tuple'
-            storeAsVal = refTypeImmutableFuncArg or \
+            # If `buildingEntryPoint` is not set we are processing function
+            # arguments. Function arguments are always passed by value, 
+            # except states. We can treat non-container function arguments 
+            # like any local variable and create a stack slot for them. 
+            # For container types, on the the other hand, we need to preserve
+            # them as values in the symbol table to make sure we can detect 
+            # any access to reference types that are function arguments, or
+            # function argument items.
+            containerFuncArg = not self.buildingEntryPoint and \
+                (cc.StructType.isinstance(varTy) or cc.StdvecType.isinstance(varTy))
+            storeAsVal = containerFuncArg or \
                 self.isQuantumType(varTy) or \
                 cc.CallableType.isinstance(varTy) or \
                 cc.StdvecType.isinstance(varTy) or \
@@ -1638,7 +1643,7 @@ class PyASTBridge(ast.NodeVisitor):
                         # Note that this check also makes sure that function arguments are 
                         # not assigned to local variables, since function arguments are in 
                         # the symbol table.
-                        self.emitFatalError("only literals can be assigned to variables defined in parent scope", node)
+                        self.emitFatalError("only literals can be assigned to variables defined in parent scope - use `.copy(deep)` to create a new value that can be assigned", node)
                 if cc.StdvecType.isinstance(destination.type):
                     # In this case, we are assigning a list to a variable in a parent scope.
                     assert isinstance(target, ast.Name)
@@ -1700,17 +1705,20 @@ class PyASTBridge(ast.NodeVisitor):
                     # If we assign a function argument or argument item to
                     # a local variable, we need to be careful to not loose
                     # the information about contained lists that have been
-                    # allocated by the caller. This is problematic for 
-                    # reasons commented in `__validate_container_entry`.
-                    if cc.StdvecType.isinstance(value.type):
-                        # We lose this information if we assign an item of
+                    # allocated by the caller, if the return value contains
+                    # any lists. This is problematic for reasons commented
+                    # in `__validate_container_entry`.
+                    if cc.StdvecType.isinstance(value.type) and \
+                        self.knownResultType and \
+                        self.containsList(self.knownResultType):
+                        # We loose this information if we assign an item of
                         # a function argument.
                         if not value_is_name:
-                            self.emitFatalError("lists passed as or contained in function arguments cannot be assigned to items of other variables", node)
-                        # We also lose this information if we assign to
+                            self.emitFatalError("lists passed as or contained in function arguments cannot be assigned to to a local variable when a list is returned - use `.copy(deep)` to create a new value that can be assigned", node)
+                        # We also loose this information if we assign to
                         # a value in the parent scope.
                         elif target_root_defined_in_parent_scope:
-                            self.emitFatalError("lists passed as or contained in function arguments cannot be assigned to variables in the parent scope", node)
+                            self.emitFatalError("lists passed as or contained in function arguments cannot be assigned to variables in the parent scope when a list is returned - use `.copy(deep)` to create a new value that can be assigned", node)
                     if cc.StructType.isinstance(value.type):
                         structName = cc.StructType.getName(value.type)
                         # For dataclasses, we have to do an additional check
@@ -1732,9 +1740,11 @@ class PyASTBridge(ast.NodeVisitor):
                         # items are never references to dataclasses (enforced 
                         # in `__validate_container_entry`).
                         if value_is_name and structName != 'tuple':
-                            self.emitFatalError(f"cannot assign dataclass passed as function argument to a local variable - use `.copy()` to create a new value that can be assigned", node)
-                        elif self.containsList(value.type):
-                            self.emitFatalError(f"cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list", node)
+                            self.emitFatalError(f"cannot assign dataclass passed as function argument to a local variable - use `.copy(deep)` to create a new value that can be assigned", node)
+                        elif self.knownResultType and \
+                            self.containsList(self.knownResultType) and \
+                            self.containsList(value.type):
+                            self.emitFatalError(f"cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list when a list is returned - use `.copy(deep)` to create a new value that can be assigned", node)
 
                 if target_root_defined_in_parent_scope:
                     value = self.ifPointerThenLoad(value)
@@ -1914,7 +1924,7 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if self.pushPointerValue:
-                self.emitFatalError("value cannot be modified - use `.copy()` to create a new value that can be modified", node)
+                self.emitFatalError("value cannot be modified - use `.copy(deep)` to create a new value that can be modified", node)
 
             # Handle direct struct value - use ExtractValueOp (more efficient)
             structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
@@ -3771,7 +3781,7 @@ class PyASTBridge(ast.NodeVisitor):
                     if structName == 'tuple':
                         self.emitFatalError("tuple value cannot be modified", node)
                     self.emitFatalError(
-                        f"{structName} value cannot be modified - use `.copy()` to create a new value that can be modified",
+                        f"{structName} value cannot be modified - use `.copy(deep)` to create a new value that can be modified",
                         node)
 
         if cc.StdvecType.isinstance(var.type):
@@ -3817,7 +3827,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if structName == 'tuple':
                     self.emitFatalError("tuple value cannot be modified", node)
                 self.emitFatalError(
-                    f"{structName} value cannot be modified - use `.copy()` to create a new value that can be modified",
+                    f"{structName} value cannot be modified - use `.copy(deep)` to create a new value that can be modified",
                     node)
 
             memberTys = cc.StructType.getTypes(var.type)
