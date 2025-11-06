@@ -359,6 +359,23 @@ class PyASTBridge(ast.NodeVisitor):
             return False
         return IntegerType.isinstance(ty) and ty == IntegerType.get_signless(1)
 
+    def isFunctionArgument(self, value):
+        return BlockArgument.isinstance(value) and \
+            isinstance(value.owner.owner, func.FuncOp)
+
+    def containsList(self, ty, innerListsOnly = False):
+        """
+        Returns true if the give type is a vector or contains
+        items that are vectors.
+        """
+        if cc.StdvecType.isinstance(ty):
+            return not innerListsOnly or \
+                self.containsList(cc.StdvecType.getElementType(ty))
+        if not cc.StructType.isinstance(ty):
+            return False
+        eleTys = cc.StructType.getTypes(ty)
+        return any((self.containsList(t) for t in eleTys))
+
     def getIntegerType(self, width=64):
         """
         Return an MLIR `IntegerType` of the given bit width (defaults to 64
@@ -1227,16 +1244,33 @@ class PyASTBridge(ast.NodeVisitor):
             groupedVals = *frontVals, values, *backVals
         return groupedVals[0] if len(groupedVals) == 1 else groupedVals    
 
-    def __validate_container_entry(self, mlirVal, pyVal):
+    def __get_root_value(self, pyVal):
         '''
-        Helper function that should be invoked for any elements that are stored in
-        tuple, dataclass, or list.
+        Strips any attribute and subscript expressions from the node
+        to get the root node that the expression accesses.
+        Returns the symbol table entry for the root node, if such an
+        entry exists, and return None otherwise.
         '''
-
         pyValRoot = pyVal
         while isinstance(pyValRoot, ast.Subscript) or \
             isinstance(pyValRoot, ast.Attribute):
             pyValRoot = pyValRoot.value
+        if isinstance(pyValRoot, ast.Name) and \
+            pyValRoot.id in self.symbolTable:
+            return self.symbolTable[pyValRoot.id]
+        return None
+
+    def __validate_container_entry(self, mlirVal, pyVal):
+        '''
+        Helper function that should be invoked for any elements that are stored in
+        tuple, dataclass, or list. Note that the `pyVal` argument is only used to
+        determine the root of `mlirVal` and as such could be either the Python
+        AST node matching the container item (`mlirVal`) or the AST node for the 
+        container itself.
+        '''
+
+        rootVal = self.__get_root_value(pyVal)
+        assert rootVal or not self.isFunctionArgument(mlirVal)
 
         if cc.PointerType.isinstance(mlirVal.type):
             # We do not allow to create container that contain pointers.
@@ -1245,6 +1279,21 @@ class PyASTBridge(ast.NodeVisitor):
             if cc.StateType.isinstance(valTy):
                 self.emitFatalError("cannot use `cudaq.State` as element in lists, tuples, or dataclasses", self.currentNode)
             self.emitFatalError("lists, tuples, and dataclasses must not contain modifiable values", self.currentNode)
+
+        if self.containsList(mlirVal.type):
+            # For lists that were created inside a kernel, we have to
+            # copy the stack allocated array to the heap when we return such a list.
+            # In the case where the list was created by the caller, this copy leads
+            # to incorrect behavior (i.e. not matching Python behavior). We hence
+            # want to make sure that we can know when a host allocated list is returned.
+            # If we allow to assign lists passed as function arguments to inner items
+            # of other lists and dataclasses, we loose the information that this list
+            # was allocated by the parent. We hence forbid this. All of this applies
+            # regardless of how the list was passed (e.g. the list might be an inner
+            # item in a tuple or dataclass that was passed) or how it is assigned 
+            # (e.g. the assigned value might be a tuple or dataclass that contains a list).
+            if rootVal and self.isFunctionArgument(rootVal):
+                self.emitFatalError(f"lists passed as or contained in function arguments may not be used as items in lists, tuples, and dataclasses - create a literal using list comprehension", self.currentNode)
 
         if cc.StructType.isinstance(mlirVal.type):
             structName = cc.StructType.getName(mlirVal.type)
@@ -1257,30 +1306,8 @@ class PyASTBridge(ast.NodeVisitor):
             # wrapping the actual pointer, thus ensuring that the
             # reference behavior actually works across function
             # boundaries.
-            if structName != 'tuple' and \
-                isinstance(pyValRoot, ast.Name) and \
-                pyValRoot.id in self.symbolTable:
+            if structName != 'tuple' and rootVal:
                 self.emitFatalError(f"only literals may be used as items in lists, tuples, and dataclasses - create a literal using the {structName} constructor", self.currentNode)
-
-        if cc.StdvecType.isinstance(mlirVal.type):
-            # For lists that were created inside a kernel, we have to
-            # copy the stack allocated array to the heap when we return such a list.
-            # In the case where the list was created by the caller, we want to/have
-            # to avoid this copy to ensure correct behavior (i.e. matching Python).
-            # If we allow to assign lists passed as function arguments to inner items
-            # of other lists and dataclasses, we loose the information that this list
-            # was allocated by the parent. We hence forbid this.
-            # NOTE: We also need to be careful to cover the case where `mlirVal` is
-            # an item of a function argument for the same reason.
-            isFunctionArg = lambda v: BlockArgument.isinstance(v) and \
-                isinstance(v.owner.owner, func.FuncOp)
-            rootVal = None
-            if isinstance(pyValRoot, ast.Name) and \
-                pyValRoot.id in self.symbolTable:
-                rootVal = self.symbolTable[pyValRoot.id]
-            assert rootVal or not isFunctionArg(mlirVal)
-            if rootVal and isFunctionArg(rootVal):
-                    self.emitFatalError(f"lists passed as function arguments may not be used as items in lists, tuples, and dataclasses - create a literal using list comprehension", self.currentNode)
 
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
@@ -1501,15 +1528,14 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_Assign(self, node):
         """
         Map an assign operation in the AST to an equivalent variable value
-        assignment in the MLIR. This method will first see if this is a tuple
-        assignment, enabling one to assign multiple values in a single
-        statement.
+        assignment in the MLIR. This method handles assignments, item updates,
+        as well as deconstruction.
 
         For all assignments, the variable name will be used as a key for the
-        symbol table, mapping to the corresponding MLIR Value. For values of
-        `ref` / `veq`, `i1`, or `cc.callable`, the values will be stored
-        directly in the table. For all other values, the variable will be
-        allocated with a `cc.alloca` op, and the loaded value will be stored in
+        symbol table, mapping to the corresponding MLIR Value. Quantum values,
+        measurements results, `cc.callable`, and `cc.stdvec` will be stored as
+        values in the symbol table.  For all other values, the variable will be
+        allocated with a `cc.alloca` op, and the pointer will be stored in
         the symbol table.
         """
 
@@ -1574,15 +1600,9 @@ class PyASTBridge(ast.NodeVisitor):
                 target_root = target_root.value
             if not isinstance(target_root, ast.Name):
                 self.emitFatalError("invalid target for assignment", node)
-            value_root = value
-            while isinstance(value_root, ast.Subscript) or \
-                isinstance(value_root, ast.Attribute):
-                value_root = value_root.value
-
             target_root_defined_in_parent_scope = target_root.id in self.symbolTable and \
                 target_root.id not in self.symbolTable.symbolTable[-1]
-            value_root_is_lvalue = isinstance(value_root, ast.Name) and \
-                value_root.id in self.symbolTable
+            value_root = self.__get_root_value(value)
 
             def update_in_parent_scope(destination, value):
                 assert not cc.PointerType.isinstance(value.type)
@@ -1600,7 +1620,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # To determine whether the value we assign is an `rvalue`, it is
                     # sufficient to check whether its root is a value in the symbol table
                     # (values returned from calls are never `lvalues`).
-                    if value_root_is_lvalue:
+                    if value_root:
                         # Note that this check also makes sure that function arguments are 
                         # not assigned to local variables, since function arguments are in 
                         # the symbol table.
@@ -1649,8 +1669,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # NOTE: we don't need to worry about any references in 
                 # values that are not `ast.Name` objects, since we don't
                 # allow containers to contain references.
+                value_is_name = False
                 if isinstance(value, ast.Name) and \
                     value.id in self.symbolTable:
+                    value_is_name = True
                     value = self.symbolTable[value.id]
                 if isinstance(value, ast.AST):
                     # Retain the variable name for potential children (like `mz(q, registerName=...)`)
@@ -1659,6 +1681,46 @@ class PyASTBridge(ast.NodeVisitor):
                     value = self.popValue()
                     self.currentAssignVariableName = None
                 storeAsVal = storedAsValue(value)
+
+                if value_root and self.isFunctionArgument(value_root):
+                    # If we assign a function argument or argument item to
+                    # a local variable, we need to be careful to not loose
+                    # the information about contained lists that have been
+                    # allocated by the caller. This is problematic for 
+                    # reasons commented in `__validate_container_entry`.
+                    if cc.StdvecType.isinstance(value.type):
+                        # We lose this information if we assign an item of
+                        # a function argument.
+                        if not value_is_name:
+                            self.emitFatalError("lists passed as or contained in function arguments cannot be assigned to items of other variables", node)
+                        # We also lose this information if we assign to
+                        # a value in the parent scope.
+                        elif target_root_defined_in_parent_scope:
+                            self.emitFatalError("lists passed as or contained in function arguments cannot be assigned to variables in the parent scope", node)
+                    if cc.StructType.isinstance(value.type):
+                        structName = cc.StructType.getName(value.type)
+                        # For dataclasses, we have to do an additional check
+                        # to ensure that their behavior (for cases that don't
+                        # give an error) is consistent with Python;
+                        # since we pass them by value across functions, we
+                        # either have to force that an explicit copy is made
+                        # when using them as call arguments, or we have to 
+                        # force that an explicit copy is made when a dataclass
+                        # argument is assigned to a local variable (as long as
+                        # it is not assigned, it will not be possible to make
+                        # any modification to it since the argument itself is
+                        # represented as an immutable value). The latter seems
+                        # more comprehensive and also ensures that there is no 
+                        # unexpected behavior with regards to kernels not being 
+                        # able to modify dataclass values in host code.
+                        # NOTE: It is sufficient to check the value itself (not
+                        # its root) is a function argument, (only!) since inner
+                        # items are never references to dataclasses (enforced 
+                        # in `__validate_container_entry`).
+                        if value_is_name and structName != 'tuple':
+                            self.emitFatalError(f"cannot assign dataclass passed as function argument to a local variable - use `.copy()` to create a new value that can be assigned", node)
+                        elif self.containsList(value.type):
+                            self.emitFatalError(f"cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list", node)
 
                 if target_root_defined_in_parent_scope:
                     value = self.ifPointerThenLoad(value)
@@ -1671,22 +1733,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # we can simply modify the symbol table entry.
                 if storeAsVal or cc.PointerType.isinstance(value.type):
                     return target, value
-                
-                # To be consistent with Python behavior, we either have
-                # to force that an explicit copy is made of any dataclasses
-                # passed as function arguments, or we have to force that
-                # an explicit copy is made when you try to modify a
-                # dataclass argument or assign it to a local variable.
-                # The latter seems more comprehensive and also ensures that
-                # there is no unexpected behavior with regards to kernels
-                # not being able to modify dataclass values in host code.
-                if cc.StructType.isinstance(value.type):
-                    structName = cc.StructType.getName(value.type)
-                    isFunctionArg = BlockArgument.isinstance(value) and \
-                        isinstance(value.owner.owner, func.FuncOp)
-                    if structName != 'tuple' and isFunctionArg:
-                        self.emitFatalError(f"cannot assign dataclass passed as function argument to a local reference - use `.copy()` to create a new value that can be assigned", self.currentNode)
-                    
+
                 address = cc.AllocaOp(cc.PointerType.get(value.type), TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
                 return target, address
@@ -1918,9 +1965,8 @@ class PyASTBridge(ast.NodeVisitor):
         """
         global globalRegisteredOperations
 
-        def convertArguments(expectedArgTypes, values, pyVals):
+        def convertArguments(expectedArgTypes, values):
             assert len(expectedArgTypes) == len(values)
-            assert len(values) == len(pyVals)
             args = []
             for idx, expectedTy in enumerate(expectedArgTypes):
                 arg = self.changeOperandToType(expectedTy,
@@ -1942,7 +1988,7 @@ class PyASTBridge(ast.NodeVisitor):
         def processFunctionCall(fType):
             nrArgs = len(fType.inputs)
             values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
-            values = convertArguments([t for t in fType.inputs], values, node.args)
+            values = convertArguments([t for t in fType.inputs], values)
             if len(fType.results) == 0:
                 func.CallOp(otherKernel, values)
                 return
@@ -2294,6 +2340,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # If `registerName` is None, then we know that we
                 # are not assigning this measure result to anything
                 # so we therefore should not push it on the stack
+                # FIXME: INCORRECT FOR DECONSTRUCTION...
                 pushResultToStack = registerName != None or self.walkingReturnNode
 
                 # By default we set the `register_name` for the measurement
@@ -2413,7 +2460,7 @@ class PyASTBridge(ast.NodeVisitor):
                     funcTy = FunctionType(callableTy)
                     numArgs = len(funcTy.inputs)
                     values = self.__groupValues(node.args, [(numArgs, numArgs)])
-                    values = convertArguments(funcTy.inputs, values, node.args)
+                    values = convertArguments(funcTy.inputs, values)
                     callable = cc.CallableFuncOp(callableTy, val).result
                     func.CallIndirectOp([], callable, values)
                     return
@@ -2477,7 +2524,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 numArgs = len(structTys)
                 ctorArgs = self.__groupValues(node.args, [(numArgs, numArgs)])
-                ctorArgs = convertArguments(structTys, ctorArgs, node.args)
+                ctorArgs = convertArguments(structTys, ctorArgs)
                 for idx, arg in enumerate(ctorArgs):
                     self.__validate_container_entry(arg, node.args[idx])
 
@@ -2539,17 +2586,46 @@ class PyASTBridge(ast.NodeVisitor):
                 funcVal = self.ifPointerThenLoad(self.popValue())
 
                 if cc.StructType.isinstance(funcVal.type):
-                    self.__groupValues(node.args, [0])
-                    if self.pushPointerValue:
-                        slot = cc.AllocaOp(cc.PointerType.get(funcVal.type), TypeAttr.get(funcVal.type)).result
-                        cc.StoreOp(funcVal, slot)                    
-                        self.pushValue(slot)
-                        return
-                    # We actually have to create the copy here just so that we can recognize
-                    # that this is indeed a locally created value. While this seems silly,
-                    # it should be easily optimized away in later compiler passes, and it
-                    # give the most comprehensive behavior for the user.
-                    self.pushValue(self.__copyStructAndConvertElements(funcVal))
+                    deepCopy = None
+                    if len(node.args) == 1 and not node.keywords:
+                        deepCopy = node.args[0]
+                    else:
+                        self.__groupValues(node.args, [0])
+                        for keyword in node.keywords:
+                            if keyword.arg == 'deep':
+                                deepCopy = keyword.value
+                            else:
+                                self.emitFatalError(f"unknown keyword {keyword}", node)
+                    if deepCopy: 
+                        if not isinstance(deepCopy, ast.Constant):
+                            self.emitFatalError("argument to `copy` must be a constant", node)
+                        if deepCopy.value:
+                            # FIXME: implement...
+                            # funcVal = ...
+                            self.emitFatalError("creating a deep copy is currently not yet supported", node)
+
+                    # Creating a copy means we are creating a new container. As such,
+                    # all elements in the tuple need to pass the validation in 
+                    # `__validate_container_entry`. 
+                    # Rather than duplicating that logic here, we opt to actually do
+                    # the copy and validate in the process. In the case where this 
+                    # copy is not strictly needed, the additional code should be easily
+                    # eliminated by compiler passes.
+                    # NOTE: If we don't push a pointer value and `funcVal` is an argument
+                    # to the current kernel, we actually need to create the copy to
+                    # reflect that this is a locally created value.
+                    def validate(idx, structItem):
+                        self.__validate_container_entry(structItem, node.func.value)
+                        return structItem
+
+                    struct = self.__copyStructAndConvertElements(funcVal, conversion=validate)
+                    # FIXME: make error messages nicer...
+                    # FIXME: also revise error messages that mention list comprehension or dataclass constructors
+                    # FIXME: add support for copy of lists within kernels
+                    # self.emitFatalError(f"cannot create a shallow copy of function argument that contains inner lists - create a new value or create a deep copy by setting `deep=True`", self.currentNode)
+                    # self.emitFatalError(f"copy must not contain references to dataclass variables - create a new value or create a deep copy by setting `deep=True`", self.currentNode)
+
+                    self.pushValue(struct)
                     return
 
                 self.emitFatalError(f'unsupported function {node.func.attr}',
@@ -2972,7 +3048,7 @@ class PyASTBridge(ast.NodeVisitor):
                             controls, args = self.__groupValues(
                                 node.args[1:], [(0, 0), (numArgs, numArgs)])
 
-                        args = convertArguments(inputTys, args, node.args[1 + len(controls):])
+                        args = convertArguments(inputTys, args)
                         if len(outputTys) != 0:
                             self.emitFatalError(
                                 f'cannot take {node.func.attr} of kernel {otherFuncName} that returns a value',
@@ -4157,7 +4233,7 @@ class PyASTBridge(ast.NodeVisitor):
         result = self.changeOperandToType(self.knownResultType,
                                           result,
                                           allowDemotion=True)
-        
+
         def getSize(ty):
             fp_width = lambda t: 4 if F32Type.isinstance(t) else 8
             if cc.StructType.isinstance(ty):
@@ -4172,14 +4248,6 @@ class PyASTBridge(ast.NodeVisitor):
                 return self.getConstantInt((width + 7) // 8)
             return self.getConstantInt(8)
 
-        def contains_list(ty):
-            if cc.StdvecType.isinstance(ty):
-                return True
-            if not cc.StructType.isinstance(ty):
-                return False
-            eleTys = cc.StructType.getTypes(ty)
-            return any((contains_list(t) for t in eleTys))
-
         def copy_list_to_heap(value):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
@@ -4193,14 +4261,6 @@ class PyASTBridge(ast.NodeVisitor):
             heapCopy = func.CallOp([ptrTy], symName,
                                 [resBuf, dynSize, eleSize]).result
             return cc.StdvecInitOp(value.type, heapCopy, length=dynSize).result
-        
-        def contains_list(ty):
-            if cc.StdvecType.isinstance(ty):
-                return True
-            if not cc.StructType.isinstance(ty):
-                return False
-            eleTy = cc.StructType.getTypes(ty)
-            return any((contains_list(t) for t in eleTy))
 
         # Generally, anything that was allocated locally on the stack
         # needs to be copied to the heap to ensure it lives past the
@@ -4213,12 +4273,12 @@ class PyASTBridge(ast.NodeVisitor):
         # ensure correct behavior (i.e. behavior consistent with Python).
         # The logic below handles this, with the caveat that 
         # 1. we rely on the fact that we can't have pointer types in the value
-        # 2. inner lists will always be copied; assignment of lists passed
-        #    as arguments to list elements must be prevented. 
+        # 2. inner lists will always be copied; we hence must prevent
+        #    returning inner lists of lists passed as arguments
         def create_return_value(res):
-            if cc.StdvecType.isinstance(res.type):                
+            if cc.StdvecType.isinstance(res.type):
                 eleTy = cc.StdvecType.getElementType(res.type) # iterty
-                if contains_list(eleTy):
+                if self.containsList(eleTy):
                     # Need to make sure all inner lists live past
                     # this function as well.
                     size = cc.StdvecSizeOp(self.getIntegerType(), res).result
@@ -4238,15 +4298,37 @@ class PyASTBridge(ast.NodeVisitor):
                         element = create_return_value(loadedEle)
                         cc.StoreOp(element, eleAddr)
                     self.createInvariantForLoop(bodyBuilder, size)
-                    
-                isFunctionArg = BlockArgument.isinstance(res) and \
-                    isinstance(res.owner.owner, func.FuncOp)
-                return res if isFunctionArg else copy_list_to_heap(res)
+                return res if self.isFunctionArgument(res) else copy_list_to_heap(res)
             if not cc.StructType.isinstance(res.type):
                 assert not cc.PointerType.isinstance(res.type)
                 return res
+            if rootVal and self.isFunctionArgument(rootVal):
+                # see comment below
+                return res
             return self.__copyStructAndConvertElements(
                 res, conversion = lambda _, v: create_return_value(v))
+        
+        rootVal = self.__get_root_value(node.value)
+        if rootVal and self.isFunctionArgument(rootVal):
+            # If we allow assigning a value that contains a list to an 
+            # item of a function argument (which we do - caveat below), 
+            # then we necessarily need to make a copy when we return 
+            # function arguments, or function argument elements, that 
+            # contain lists, since we have to assume that their data may 
+            # be allocated on the stack. However, this leads to incorrect 
+            # behavior if a returned list was indeed caller-side allocated 
+            # (and should correspondingly have been returned by reference).
+            # Rather than preventing that lists in function arguments can be
+            # updated, we instead ensure that lists contained in function
+            # arguments stay recognizable as such, and prevent that inner
+            # lists of function arguments are returned.
+            # Caveat: We prevent that dataclass or tuple arguments or 
+            # argument items that contain lists are ever assigned to local 
+            # variables. We hence can savely return them and omit any 
+            # copies in this case.
+            if not cc.StructType.isinstance(result.type) and \
+                self.containsList(result.type, innerListsOnly=isinstance(node.value, ast.Name)):
+                self.emitFatalError("return value must not contain a list that is a function argument or an item in a function argument", node)
 
         result = create_return_value(result)
         if self.symbolTable.numLevels() > 1:

@@ -100,6 +100,10 @@ def test_list_update():
 
     @cudaq.kernel
     def test5(arg: list[int]) -> tuple[int, int]:
+        # FIXME: alias here is caller allocated, but not recognizable as such!
+        # Maybe don't allow returning lists passed as args after all??
+        # FIXME: relax list assignment restrictions if no lists are returned
+        # -> treating function args like assignments is not helping us here either...
         alias = modify_and_return(arg)
         alias[0] = 5
         return sum(alias), sum(arg)
@@ -166,7 +170,7 @@ def test_list_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel1, [1, 2])
-    assert 'lists passed as function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
+    assert 'lists passed as or contained in function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
     assert '(offending source -> MyTuple(l1, [1, 1]))' in str(e.value)
 
     @cudaq.kernel
@@ -333,7 +337,7 @@ def test_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(test5())
-    assert 'cannot assign dataclass passed as function argument to a local reference' in str(e.value)
+    assert 'cannot assign dataclass passed as function argument to a local variable' in str(e.value)
     assert 'use `.copy()` to create a new value that can be assigned' in str(e.value)
     assert '(offending source -> t = arg)' in str(e.value)
 
@@ -581,6 +585,20 @@ def test_list_of_dataclass_updates():
     assert test7(True) == [5, 2, 5, 2, 5, 2]
     assert test7(False) == [5, 1, 5, 1, 5, 1]    
 
+    @cudaq.kernel
+    def get_list_item(ls: list[MyTuple], idx: int) -> MyTuple:
+        return ls[idx]
+
+    @cudaq.kernel
+    def test8() -> list[int]:
+        l1 = [0, 0]
+        tlist = [MyTuple(l1, l1)]
+        t = get_list_item(tlist, 0)
+        t.l1[0] = 2
+        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
+    
+    assert test8() == [2, 0, 2, 0, 2, 0]
+
 
 def test_list_of_dataclass_update_failures():
 
@@ -595,8 +613,8 @@ def test_list_of_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(get_MyTuple_list)
-    assert 'only literals may be used as items in lists, tuples, and dataclasses' in str(e.value)
-    assert 'create a literal using the MyTuple constructor' in str(e.value)
+    assert 'lists passed as or contained in function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
+    #assert 'create a literal using the MyTuple constructor' in str(e.value)
 
     @cudaq.kernel
     def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
@@ -610,8 +628,8 @@ def test_list_of_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(populate_MyTuple_list)
-    assert 'lists passed as function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
-    assert 'create a literal using list comprehension' in str(e.value)
+    assert 'lists passed as or contained in function arguments may not be used as items in lists, tuples, and dataclasses' in str(e.value)
+    #assert 'create a literal using list comprehension' in str(e.value)
 
     @cudaq.kernel
     def get_MyTuple_list(size: int) -> list[MyTuple]:
@@ -730,6 +748,31 @@ def test_list_of_dataclass_update_failures():
         test7()
     assert 'value cannot be modified - use `.copy()` to create a new value that can be modified' in str(e.value)
     assert '(offending source -> old.l1)' in str(e.value)
+
+    # FIXME: OK NOW< CHECK TUPLES, CHECK TRUE FAILURE CASES
+    '''
+    @cudaq.kernel
+    def get_list_item(ls: list[MyTuple], idx: int) -> MyTuple:
+        return ls[idx]
+
+    @cudaq.kernel
+    def test8() -> list[int]:
+        l1 = [0, 0]
+        tlist = [MyTuple(l1, l1)]
+        t = get_list_item(tlist, 0)
+        t.l1[0] = 2
+        # If we allowed this, then the correct output 
+        # would be [2, 0, 2, 0, 2, 0]. However, due to the copy
+        # of inner lists during the return of get_list_items,
+        # we would get [2, 0, 0, 0, 0, 0].
+        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
+    print(test8())
+    #with pytest.raises(RuntimeError) as e:
+    #    test8()
+    #assert 'return value must not contain a list that is a function argument or an item in a function argument' in str(e.value)
+    '''
+    # FIXME: SIMILAR ISSUE WITH "NORMAL" TUPLES, WHEN WE
+    # REPLACE t.l1[0] = 2 WITH l1[0] = 2
 
 
 def test_list_of_list_updates():
@@ -953,3 +996,19 @@ def test_disallow_value_updates():
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
+
+# Case 1: value is a list
+# Case 2: value is a tuple that does not contain a list
+# Case 3: value is a tuple that contain a list
+# Case 4: value is a dataclass that does not contain a list
+# Case 5: value is a dataclass that contain a list
+# Case a: value is function arg
+# Case b: value is item in function arg
+# Solution:
+# 1a: ok for assign, not ok for item assign (covered by container validation)
+# 1b: not ok for assign or item assign
+# 2a, 2b: ok for assign or item assign
+# 3a, 3b: not ok for assign or item assign
+# 4a: not ok for assign or item assign
+# 4b: ok for assign or item assign due to container restrictions
+# 5a, 5b: not ok for assign or item assign
