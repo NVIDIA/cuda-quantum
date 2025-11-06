@@ -309,17 +309,31 @@ def DeadStoreRemoval : Pass<"dead-store-removal"> {
 def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
-    This pass performs decomposition over a set of operations by iteratively
-    applying decomposition patterns until either a fixpoint is reached or the
-    maximum number of iterations/rewrites is exhausted. Decomposition is
-    best-effort and does not guarantee that the entire IR is decomposed after
-    running this pass.
+    This pass decomposes quantum operations by iteratively applying rewrite
+    patterns until all quantum operations are in basis, a fixpoint is reached or
+    the maximum number of iterations is exhausted.
+
+    When `basis` is specified, the pass automatically selects the set of rewrite
+    patterns, ensuring an acyclic pattern set targeting the specified basis.
+    Options `enable-patterns` and `disable-patterns` can further filter the
+    selected rewrite patterns.
+
+
+    The `basis` option takes a comma-separated list of quantum operations with
+    the format: `<op-name>([<number-of-controls> | n])?`
+
+    Examples:
+    - `x` — Pauli-X without controls (aka `not`)
+    - `x(1)` — Pauli-X with one control (aka `cx`)
+    - `x(n)` — Pauli-X with unbounded controls
+    - `x,x(1)` — Both `not` and `cx`
 
     NOTE: The current implementation is conservative w.r.t global phase, which
     means no decomposition will take place under the presence of controlled
     `quake.apply` operations in the module.
   }];
   let options = [
+    ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
                "Labels of decomposition patterns that should be filtered out">,
     ListOption<"enabledPatterns", "enable-patterns", "std::string",
