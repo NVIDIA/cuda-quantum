@@ -11,6 +11,8 @@
 #include "common/Registry.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/DialectConversion.h"
+#include <string>
 
 namespace mlir {
 class RewritePatternSet;
@@ -66,5 +68,21 @@ public:
 };
 
 void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
+
+/// Create a conversion target parsed from a target basis string.
+///
+/// The `targetBasis` should be made of strings of the form:
+///
+/// ```
+/// <op-name>(`(` [<number-of-controls> | `n`] `)` )?
+/// ```
+///
+/// The returned conversion target will accept operations in the MLIR dialects
+/// arith::ArithDialect, cf::ControlFlowDialect, cudaq::cc::CCDialect,
+/// func::FuncDialect, and math::MathDialect, as well as operations in the
+/// quake::QuakeDialect that appear in `targetBasis`.
+std::unique_ptr<mlir::ConversionTarget>
+createBasisTarget(mlir::MLIRContext &context,
+                  mlir::ArrayRef<std::string> targetBasis);
 
 } // namespace cudaq
