@@ -1883,12 +1883,10 @@ following of environment variables:
     .literal .notranslate}]{.pre} (or [`mpirun`{.code .docutils .literal
     .notranslate}]{.pre}) commands.
 
--   **\`OMP_PLACES=cores\`**: Set this environment variable to improve
-    CPU parallelization.
-
--   **\`OMP_NUM_THREADS=X\`**: To enable CPU parallelization, set X to
-    [`NUMBER_OF_CORES_PER_NODE/NUMBER_OF_GPUS_PER_NODE`{.code .docutils
-    .literal .notranslate}]{.pre}.
+-   **\`CUDAQ_TIMING_TAGS=tags\`**: When the environment variable
+    includes 9 in the tag set, timing for the path-finding stage
+    (Prepare) and contraction stage (Compute or Sample) are output for
+    the user.
 
 -   **\`CUDAQ_TENSORNET_CONTROLLED_RANK=X\`**: Specify the number of
     controlled qubits whereby the full tensor body of the controlled
@@ -1907,7 +1905,48 @@ following of environment variables:
 
 -   **\`CUDAQ_TENSORNET_NUM_HYPER_SAMPLES=X\`**: Specify the number of
     hyper samples used in the tensor network contraction path finder.
-    Default value is 8 if not specified.
+    Default value is 8 if not specified. Increasing this value will
+    increase the path-finding time, but can decrease the contraction
+    time if a better quality path is found (and vice versa). Hyper
+    samples are processed in parallel using multiple host threads.
+
+-   **\`CUDAQ_TENSORNET_FIND_THREADS=X\`**: Used to control the number
+    of threads on the host used for path-finding. The default value is
+    half of the available CPU hardware threads. For processors with 1
+    hardware thread per CPU core (no [`SMT`{.code .docutils .literal
+    .notranslate}]{.pre}), increasing this to equal the number of CPU
+    cores can improve performance.
+
+-   **\`CUDAQ_TENSORNET_FIND_LIMIT=X\`**: Set this environment variable
+    to [`TRUE`{.code .docutils .literal .notranslate}]{.pre}
+    ([`ON`{.code .docutils .literal .notranslate}]{.pre}) or
+    [`FALSE`{.code .docutils .literal .notranslate}]{.pre} ([`OFF`{.code
+    .docutils .literal .notranslate}]{.pre}) to enable or disable a
+    heuristic to limit the path-finding time based on the predicted
+    contraction time. When on, increasing the number of hyper samples
+    may have no effect beyond a certain threshold due to enforcement of
+    the time limit. Default is [`ON`{.code .docutils .literal
+    .notranslate}]{.pre}.
+
+-   **\`CUDAQ_TENSORNET_FIND_DETERMINISTIC=X\`**: Set this environment
+    variable to [`TRUE`{.code .docutils .literal .notranslate}]{.pre}
+    ([`ON`{.code .docutils .literal .notranslate}]{.pre}) or
+    [`FALSE`{.code .docutils .literal .notranslate}]{.pre} ([`OFF`{.code
+    .docutils .literal .notranslate}]{.pre}) to enable or disable
+    deterministic path-finding as controlled by the CUDA-Q
+    set_random_seed() function. When on, the number of path-finding
+    threads is limited to 1 and therefore this setting can significantly
+    decrease performance. Default is [`OFF`{.code .docutils .literal
+    .notranslate}]{.pre}.
+
+::: {.admonition .note}
+Note
+
+Setting the [`CUDAQ_TENSORNET_*`{.code .docutils .literal
+.notranslate}]{.pre} environment variables will override any
+corresponding environment variables used by the [`cuTensorNet`{.code
+.docutils .literal .notranslate}]{.pre} library.
+:::
 
 ::: {.admonition .note}
 Note

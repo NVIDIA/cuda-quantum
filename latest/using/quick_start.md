@@ -1746,15 +1746,13 @@ make sure your [`pip`{.docutils .literal .notranslate}]{.pre} version is
 \>= 24.0. If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.
 
-**Note**: Support for CUDA 11 will be removed in future releases. Please
-update to CUDA 12.
-
 > <div>
 >
 > **Important:** Please check if you have an existing installation of
 > the [`cuda-quantum`{.docutils .literal .notranslate}]{.pre},
-> [`cudaq-quantum-cu11`{.docutils .literal .notranslate}]{.pre}, or
-> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre} package,
+> [`cudaq-quantum-cu11`{.docutils .literal .notranslate}]{.pre},
+> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre}, or
+> [`cuda-quantum-cu13`{.docutils .literal .notranslate}]{.pre} package,
 > and uninstall it prior to installation. Different CUDA-Q binary
 > distributions may conflict with each other causing issues.
 >
@@ -1827,9 +1825,9 @@ C++ toolchain installed that supports C++20, for example [`g++`{.code
 .docutils .literal .notranslate}]{.pre} version 11 or newer. Download
 the [`install_cuda_quantum`{.code .docutils .literal
 .notranslate}]{.pre} file for your processor architecture and CUDA
-version ([`_cu11`{.code .docutils .literal .notranslate}]{.pre} suffix
-for CUDA 11 and [`_cu12`{.code .docutils .literal .notranslate}]{.pre}
-suffix for CUDA 12) from the assets of the respective [GitHub
+version ([`_cu12`{.code .docutils .literal .notranslate}]{.pre} suffix
+for CUDA 12 and [`_cu13`{.code .docutils .literal .notranslate}]{.pre}
+suffix for CUDA 13) from the assets of the respective [GitHub
 release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
 .external}; that is, the file with the [`aarch64`{.code .docutils
 .literal .notranslate}]{.pre} extension for ARM processors, and the one

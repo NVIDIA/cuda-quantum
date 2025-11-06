@@ -255,8 +255,8 @@ Python-specific tools:
 
 .. note::
 
-  The wheel build by default is configured to depend on CUDA 12. To build a wheel for CUDA 11, 
-  you need to adjust the dependencies and project name in the `pyproject.toml` file. 
+  The wheel build by default is configured to depend on CUDA 13. To build a wheel for CUDA 12, 
+  you need to copy the `pyproject.toml.cu12` file as `pyproject.toml`. 
 
 From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:
