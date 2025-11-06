@@ -12,6 +12,7 @@
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "llvm/Support/Base64.h"
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -27,6 +28,9 @@ constexpr const char *qirEndpoint = "api/qir/v1beta/";
 constexpr const char *resultsEndpoint = "api/results/v1beta3/";
 // NG device result endpoint (QSYS)
 constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta/";
+// Decoder config endpoint
+constexpr const char *gpuDecoderConfigEndpoint =
+    "api/gpu_decoder_configs/v1beta";
 } // namespace
 
 namespace cudaq {
@@ -336,6 +340,47 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Any additional resources needed for the job
   auto *extraPayloadProvider = getExtraPayloadProvider();
+  // GPU decoder config UUID, if any.
+  std::string gpuDecoderConfigId;
+  if (extraPayloadProvider) {
+    // Use the extra payload provider to modify the job payload
+    if (extraPayloadProvider->getPayloadType() != "gpu_decoder_config") {
+      // Currently, only `gpu_decoder_config` extra payloads are supported.
+      throw std::runtime_error(
+          fmt::format("Invalid extra payload provider type '{}'. This is not "
+                      "supported on this target.",
+                      extraPayloadProvider->getPayloadType()));
+    }
+    const auto decoderConfigYmlStr =
+        extraPayloadProvider->getExtraPayload(runtimeTarget);
+    CUDAQ_DBG("[Decoder Config] Received the YML config:\n{}",
+              decoderConfigYmlStr);
+
+    const std::string resourceType = extraPayloadProvider->getPayloadType();
+    // Create a time-stamped name for the payload
+    const auto timestamp =
+        fmt::format("{:%Y-%m-%d_%H:%M:%S}", std::chrono::system_clock::now());
+    const std::string resourceName =
+        fmt::format("{}_{}", "cudaq_decoder_config", timestamp);
+
+    const std::string resourceContent = llvm::encodeBase64(decoderConfigYmlStr);
+    // Post the resource to the server and extract the handle reference
+    ServerMessage resourceUploadMessage =
+        createExtraResource(resourceType, resourceName, resourceContent);
+
+    auto response = restClient.post(baseUrl, gpuDecoderConfigEndpoint,
+                                    resourceUploadMessage, headers, true, false,
+                                    getCookies());
+    if (!response.contains("data") || !response["data"].contains("id") ||
+        !response["data"]["id"].is_string())
+      throw std::runtime_error("Failed to upload resource: " + resourceName +
+                               ". Response: " + response.dump(2));
+
+    gpuDecoderConfigId = response["data"]["id"].get<std::string>();
+    CUDAQ_INFO("[Decoder Config] Uploaded GPU decoder config resource "
+               "successfully with ID: {}",
+               gpuDecoderConfigId);
+  }
 
   // Construct the job, one per circuit
   for (auto &circuitCode : circuitCodes) {
@@ -428,33 +473,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     j["data"]["relationships"]["project"]["data"] = ServerMessage::object();
     j["data"]["relationships"]["project"]["data"]["id"] = projectId;
     j["data"]["relationships"]["project"]["data"]["type"] = "project";
-    // Any additional resources to be included
-    if (extraPayloadProvider) {
-      const std::string resourceType = extraPayloadProvider->getPayloadType();
-      const auto resourceSpec =
-          extraPayloadProvider->getExtraPayload(runtimeTarget);
-      const auto resourceSpecJson = nlohmann::json::parse(resourceSpec);
-      const std::string resourceUploadEndpoint =
-          resourceSpecJson["path"].get<std::string>();
-      const std::string resourceName =
-          resourceSpecJson["name"].get<std::string>();
-      const std::string resourceContent =
-          resourceSpecJson["content"].get<std::string>();
-      const std::string resourceDefKey =
-          resourceSpecJson["key"].get<std::string>();
-
-      ServerMessage resourceUpload =
-          createExtraResource(resourceType, resourceName, resourceContent);
-      // Post the resource to the server and extract the handle reference
-      auto response =
-          restClient.post(baseUrl, resourceUploadEndpoint, resourceUpload,
-                          headers, true, false, getCookies());
-      if (!response.contains("data") || !response["data"].contains("id") ||
-          !response["data"]["id"].is_string())
-        throw std::runtime_error("Failed to upload resource: " + resourceName +
-                                 ". Response: " + response.dump(2));
-      const std::string resourceId = response["data"]["id"].get<std::string>();
-      j["data"]["attributes"]["definition"][resourceDefKey] = resourceId;
+    // There is a GPU decoder config resource associated with this job
+    if (!gpuDecoderConfigId.empty()) {
+      j["data"]["attributes"]["definition"]["gpu_decoder_config_id"] =
+          gpuDecoderConfigId;
     }
     messages.push_back(j);
   }
