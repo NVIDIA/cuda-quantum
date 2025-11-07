@@ -350,10 +350,50 @@ do
 done
 
 if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
-    echo "Validating notebooks:"
-    export OMP_NUM_THREADS=8 
-    echo "$available_backends" | python3 notebook_validation.py
-    if [ $? -eq 0 ]; then 
+    let "samples+=1"
+    echo "============================="
+    echo "== Setting up notebook venv =="
+    echo "============================="
+    
+    # Create venv that inherits system packages (including cudaq from container)
+    # Notebooks will install their own dependencies via !pip install commands
+    NOTEBOOK_VENV="/tmp/cudaq_notebook_validation_venv"
+    rm -rf "$NOTEBOOK_VENV"  # Clean any previous venv
+    python3 -m venv --system-site-packages "$NOTEBOOK_VENV"
+    source "$NOTEBOOK_VENV/bin/activate"
+    
+    echo "Installing Jupyter kernel infrastructure..."
+    # Only install what's needed to register the kernel
+    pip install --upgrade pip -q
+    pip install jupyter ipykernel notebook -q
+    
+    # Register the venv as a Jupyter kernel
+    # Notebooks will execute in this environment and can install their own packages
+    JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"
+    python3 -m ipykernel install --user \
+        --name="$JUPYTER_KERNEL_NAME" \
+        --display-name="Python (CUDA-Q Container Notebook Validation)" \
+        2>/dev/null
+    
+    echo "Jupyter kernel '${JUPYTER_KERNEL_NAME}' registered."
+    echo "Notebooks will install their own dependencies during execution."
+    
+    echo "============================="
+    echo "==  Validating notebooks   =="
+    echo "============================="
+    export OMP_NUM_THREADS=8
+    
+    # Pass the Jupyter kernel name as first argument to notebook_validation.py
+    echo "$available_backends" | python3 notebook_validation.py "$JUPYTER_KERNEL_NAME"
+    validation_status=$?
+    
+    # Cleanup - removes venv and kernel, system packages remain untouched
+    echo "Cleaning up notebook validation environment..."
+    jupyter kernelspec uninstall -f "$JUPYTER_KERNEL_NAME" 2>/dev/null || true
+    deactivate
+    rm -rf "$NOTEBOOK_VENV"
+    
+    if [ $validation_status -eq 0 ]; then 
         let "passed+=1"
         echo ":white_check_mark: Notebooks validation passed." >> "${tmpFile}"
     else

@@ -71,6 +71,7 @@ def _get_cuda_version() -> Optional[int]:
 
     # Try to detect version from NVRTC
     libnames = [
+        'libnvrtc.so.13',
         'libnvrtc.so.12',
         'libnvrtc.so.11.2',
         'libnvrtc.so.11.1',
@@ -87,6 +88,7 @@ def _get_cuda_version() -> Optional[int]:
 
     # Try to detect version from CUDART (a CUDA context will be initialized)
     libnames = [
+        'libcudart.so.13',
         'libcudart.so.12',
         'libcudart.so.11.0',
     ]

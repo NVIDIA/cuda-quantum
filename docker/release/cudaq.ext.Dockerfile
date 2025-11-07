@@ -49,8 +49,21 @@ RUN if [ -x "$(command -v pip)" ]; then \
             pip install --no-cache-dir mpi4py~=3.1; \
         fi; \
     fi
-RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
-    pip install nvidia-curand-cu${cuda_version_suffix}
+# Install CUDA Python packages based on CUDA version
+RUN cuda_major_version=$(echo ${CUDA_VERSION} | cut -d . -f1) && \
+    if [ "$cuda_major_version" = "12" ]; then \
+        pip install --no-cache-dir \
+            nvidia-cuda-runtime-cu12 \
+            nvidia-cuda-nvrtc-cu12 \
+            nvidia-curand-cu12; \
+    elif [ "$cuda_major_version" = "13" ]; then \
+        pip install --no-cache-dir \
+            nvidia-cuda-runtime \
+            nvidia-cuda-nvrtc \
+            nvidia-curand; \
+    else \
+        echo "Unsupported CUDA major version: ${cuda_major_version}" && exit 1; \
+    fi
 
 # Make sure that apt-get remains updated at the end!;
 # If we don't do that, then apt-get will get confused when some CUDA
