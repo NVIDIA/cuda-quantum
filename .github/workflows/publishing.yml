@@ -851,7 +851,7 @@ jobs:
           # Seems like we will need to install build-essential for resolving nbconvert issue `RuntimeError: Unsupported compiler -- at least C++11 support is needed!`"
           # Given here: https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/applications/python/qchem/cppe_lib.py#L18
           # and https://github.com/jupyter/nbconvert/issues/1742
-          sudo apt-get update && sudo apt-get install build-essential python3-dev -y
+          sudo apt-get update && sudo apt-get install -y build-essential python3-dev python3-venv python3-pip
 
           backends_to_test=`\
               for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
@@ -1136,7 +1136,10 @@ jobs:
 
     strategy:
       matrix:
-        cuda_version: ['12.4', '13.0']
+        # Note: this is the version of the conda 'nvidia/label/cuda' channel.
+        # Specifically, 'nvidia/label/cuda-13.0.0' does not contain proper CUDA 13 packages,
+        # hence we need to use later channels.
+        cuda_version_conda: ['12.4.0', '13.0.2']
       fail-fast: false
 
     # Must have environment to access environment secreats
@@ -1196,10 +1199,10 @@ jobs:
           source validate_pycudaq.sh \
             -v ${{ needs.assets.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
-            -c ${{ matrix.cuda_version }} -p 3.12
+            -c ${{ matrix.cuda_version_conda }} -p 3.12
           set -e # Re-enable exit code error checking
 
-          expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version }} | cut -d . -f1)
+          expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version_conda }} | cut -d . -f1)
           if [ -z "$(python3 -m pip list | grep ${expected_dependency})" ]; then 
             echo "::error::Missing installation of ${expected_dependency} package."
             exit 1
