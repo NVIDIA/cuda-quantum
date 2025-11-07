@@ -786,19 +786,21 @@ class PyASTBridge(ast.NodeVisitor):
             )
         return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
 
-    def __copyStructAndConvertElements(self, struct, expectedTy = None, conversion=None):
+    def __copyStructAndConvertElements(self, struct, expectedTy = None, allowDemotion=False, conversion=None):
         assert cc.StructType.isinstance(struct.type)
         if not expectedTy:
             expectedTy = struct.type
         assert cc.StructType.isinstance(expectedTy)
         eleTys = cc.StructType.getTypes(struct.type)
-        assert len(eleTys) == len(cc.StructType.getTypes(expectedTy))
+        expectedEleTys = cc.StructType.getTypes(expectedTy)
+        assert len(eleTys) == len(expectedEleTys)
 
         returnVal = cc.UndefOp(expectedTy)
         for idx, eleTy in enumerate(eleTys):
             element = cc.ExtractValueOp(
                 eleTy, struct, [],
                 DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+            element = self.changeOperandToType(expectedEleTys[idx], element, allowDemotion=allowDemotion)
             returnVal = cc.InsertValueOp(
                 expectedTy, returnVal, conversion(idx, element) if conversion else element,
                 DenseI64ArrayAttr.get([idx], context=self.ctx)).result
@@ -824,8 +826,6 @@ class PyASTBridge(ast.NodeVisitor):
             targetEleType = sourceEleType
         if not alwaysCopy and sourceEleType == targetEleType:
             return source
-        if not conversion:
-            conversion = lambda _, v: self.changeOperandToType(targetEleType, v, allowDemotion=allowDemotion)
 
         sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
         sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
@@ -839,7 +839,8 @@ class PyASTBridge(ast.NodeVisitor):
             eleAddr = cc.ComputePtrOp(cc.PointerType.get(sourceEleType), sourceDataPtr, [iterVar],
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
-            convertedEle = conversion(iterVar, loadedEle)
+            convertedEle = conversion(iterVar, loadedEle) if conversion else loadedEle
+            self.changeOperandToType(targetEleType, convertedEle, allowDemotion=allowDemotion)
             targetEleAddr = cc.ComputePtrOp(cc.PointerType.get(targetEleType), targetPtr,
                                             [iterVar], rawIndex).result
             cc.StoreOp(convertedEle, targetEleAddr)
