@@ -78,11 +78,9 @@ int main(int argc, char *argv[]) {
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_2]] : i64
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           %[[VAL_10:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%[[VAL_0]], %[[VAL_2]], %[[VAL_3]]) : (!quake.veq<?>, i64, i64) -> !cc.callable<() -> ()>
-// CHECK:           %[[VAL_11:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.1(%[[VAL_6]], %[[VAL_9]]) : (!quake.veq<?>, !quake.ref) -> !cc.callable<() -> ()>
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.0 %[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.1 %[[VAL_6]], %[[VAL_9]] : (!quake.veq<?>, !quake.ref) -> ()
-// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.0 %[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C0:[0-9]*]] %[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C1:[0-9]*]] %[[VAL_6]], %[[VAL_9]] : (!quake.veq<?>, !quake.ref) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C0]] %[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -95,11 +93,9 @@ int main(int argc, char *argv[]) {
 // CHECK:           %[[VAL_6:.*]] = arith.constant 1 : i32
 // CHECK:           %[[VAL_7:.*]] = cc.alloca i64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:           %[[VAL_8:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.2(%[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]]) : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> !cc.callable<() -> ()>
-// CHECK:           %[[VAL_9:.*]] = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.3(%[[VAL_1]], %[[VAL_2]], %[[VAL_3]]) : (!quake.veq<?>, i64, i64) -> !cc.callable<() -> ()>
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.2 %[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]] : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> ()
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.3 %[[VAL_1]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
-// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.2 %[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]] : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C2:[0-9]*]] %[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]] : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C3:[0-9]*]] %[[VAL_1]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C2]] %[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]] : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> ()
 // CHECK:           return
 // CHECK:         }
 
