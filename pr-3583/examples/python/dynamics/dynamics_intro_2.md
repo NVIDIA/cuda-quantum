@@ -1965,7 +1965,7 @@ by simply replacing the function in the [`ScalarOperator`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    <matplotlib.legend.Legend at 0x7fd50b1fbfa0>
+    <matplotlib.legend.Legend at 0x7b6ad27635c0>
 :::
 :::
 :::
@@ -2143,7 +2143,7 @@ We can run the rest of the simulation as before.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    <matplotlib.legend.Legend at 0x7fd50a10fc40>
+    <matplotlib.legend.Legend at 0x7b6ad1fce000>
 :::
 :::
 :::
@@ -2333,7 +2333,7 @@ and the magnetization [\\(M = \\frac{1}{N} \\sum
     for i in range(N):
         plt.plot(steps, exp_val[i],label=f'spin {i}')
     plt.legend(fontsize=12)
-    plt.ylabel("$\sigma^z $")
+    plt.ylabel("$\\sigma^z $")
     plt.xlabel("Time")
 :::
 :::
