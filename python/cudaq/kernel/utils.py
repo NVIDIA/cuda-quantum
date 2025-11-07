@@ -13,6 +13,7 @@ import traceback
 import numpy as np
 from typing import get_origin, get_args, Callable, List
 import types
+import weakref
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
@@ -44,6 +45,10 @@ globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
+
+# Keep track of all kernel decorators
+# We only track alive decorators so we use a `WeakSet`
+globalKernelDecorators = weakref.WeakSet()
 
 
 class Color:

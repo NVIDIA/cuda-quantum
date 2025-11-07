@@ -109,16 +109,37 @@ void setDataLayout(MlirModule module) {
   }
 }
 
+std::function<bool(OpaqueArguments &argData, py::object &arg)>
+getCallableArgHandler() {
+  return [](cudaq::OpaqueArguments &argData, py::object &arg) {
+    if (py::hasattr(arg, "module")) {
+      // Just give it some dummy data that will not be used.
+      // We synthesize away all callables, the block argument
+      // remains but it is not used, so just give argsCreator
+      // something, and we'll make sure its cleaned up.
+      long *ourAllocatedArg = new long();
+      argData.emplace_back(ourAllocatedArg,
+                           [](void *ptr) { delete static_cast<long *>(ptr); });
+      return true;
+    }
+    return false;
+  };
+}
+
 /// @brief Create a new OpaqueArguments pointer and pack the python arguments
 /// in it. Clients must delete the memory.
-OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                              const std::string &name) {
+OpaqueArguments *
+toOpaqueArgs(py::args &args, MlirModule mod, const std::string &name,
+             const std::optional<
+                 std::function<bool(OpaqueArguments &argData, py::object &arg)>>
+                 &optionalBackupHandler) {
   auto kernelFunc = getKernelFuncOp(mod, name);
   auto *argData = new cudaq::OpaqueArguments();
   args = simplifiedValidateInputArguments(args);
   setDataLayout(mod);
-  cudaq::packArgs(*argData, args, kernelFunc,
-                  [](OpaqueArguments &, py::object &) { return false; });
+  auto backupHandler = optionalBackupHandler.value_or(
+      [](OpaqueArguments &, py::object &) { return false; });
+  cudaq::packArgs(*argData, args, kernelFunc, backupHandler);
   return argData;
 }
 
@@ -419,6 +440,47 @@ void storeCapturedData(ExecutionEngine *jit, const std::string &kernelName) {
   }
 }
 
+// NB: this is a backdoor marshaling of `std::vector<bool>` and it must be kept
+// in synch with `__nvqpp_vector_bool_to_initializer_list()`.
+static bool marshalRuntimeArgs(mlir::IntegerType i1Ty,
+                               cudaq::OpaqueArguments &newArgs,
+                               const std::vector<void *> &origArgs,
+                               mlir::TypeRange inputTys) {
+  for (auto [ptr, ty] : llvm::zip(origArgs, inputTys)) {
+    if (auto vecTy = mlir::dyn_cast<cc::StdvecType>(ty)) {
+      if (vecTy.getElementType() == i1Ty) {
+        auto *vbp = reinterpret_cast<std::vector<bool> *>(ptr);
+        // Add a deleter for this new allocation.
+        auto *initList = new std::vector<char>;
+        for (bool b : *vbp)
+          initList->emplace_back(static_cast<char>(b));
+        newArgs.emplace_back(initList, [](void *p) {
+          delete static_cast<std::vector<char> *>(p);
+        });
+        continue;
+      }
+      if (mlir::isa<cc::StdvecType>(vecTy.getElementType())) {
+        // Can't handle recursive lists, so punt for now.
+        return false;
+      }
+    }
+    // NB: do _not_ delete copied pointers as they are deleted elsewhere!
+    newArgs.emplace_back(ptr, [](void *) {});
+  }
+  if (origArgs.size() > inputTys.size()) {
+    // Apparently this happens for quantinuum local emulation tests? FIXME! This
+    // seems like a serious bug.
+    for (auto [i, ptr] : llvm::enumerate(origArgs)) {
+      if (i < inputTys.size())
+        continue;
+      // Make copies of the residual so things stay tilted in a good direction.
+      newArgs.emplace_back(ptr, [](void *) {});
+    }
+    // Buckle up, we're going to call the streamlined launch here.
+  }
+  return true;
+}
+
 void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
                     mlir::ModuleOp mod, cudaq::OpaqueArguments &runtimeArgs,
                     void *rawArgs, std::size_t size, std::uint32_t returnOffset,
@@ -442,10 +504,27 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
   } else if (isQuantumDevice) {
     // Quantum devices or their emulation - we can use streamlinedLaunchKernel
     // as quantum platform do not support direct returns.
-    auto dynamicResult =
-        cudaq::streamlinedLaunchKernel(name.c_str(), runtimeArgs.getArgs());
-    if (dynamicResult.data_buffer || dynamicResult.size)
-      throw std::runtime_error("not implemented: support dynamic results");
+    auto fn = mod.lookupSymbol<mlir::func::FuncOp>(runtime::cudaqGenPrefixName +
+                                                   name);
+    if (!fn)
+      throw std::runtime_error("cannot find kernel " + name);
+    OpaqueArguments marshaledArgs;
+    bool ok = marshalRuntimeArgs(mlir::IntegerType::get(mod.getContext(), 1),
+                                 marshaledArgs, runtimeArgs.getArgs(),
+                                 fn.getFunctionType().getInputs());
+    if (ok) {
+      auto dynamicResult =
+          cudaq::streamlinedLaunchKernel(name.c_str(), marshaledArgs.getArgs());
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
+    } else {
+      // Backdoor approach to marshaling the arguments failed, so use the
+      // compiler generated code.
+      auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
+                                                  size, returnOffset);
+      if (dynamicResult.data_buffer || dynamicResult.size)
+        throw std::runtime_error("not implemented: support dynamic results");
+    }
   } else {
     // Local simulator - use altLaunchKernel with the thunk function.
     auto dynamicResult = cudaq::altLaunchKernel(name.c_str(), thunk, rawArgs,
@@ -971,25 +1050,31 @@ std::string getASM(const std::string &name, MlirModule module,
   return str;
 }
 
+std::vector<std::string> getCallableNames(py::object &kernel, py::args &args) {
+  // Handle callable arguments, if any, similar to `PyKernelDecorator.__call__`,
+  // so that the callable arguments are properly packed for `pyAltLaunchKernel`
+  // as if it's launched from Python.
+  std::vector<std::string> callableNames;
+  for (std::size_t i = 0; i < args.size(); ++i) {
+    auto arg = args[i];
+    // If this is a `PyKernelDecorator` callable:
+    if (py::hasattr(arg, "__call__") && py::hasattr(arg, "module") &&
+        py::hasattr(arg, "name")) {
+      if (py::hasattr(arg, "compile"))
+        arg.attr("compile")();
+
+      if (py::hasattr(kernel, "processCallableArg"))
+        kernel.attr("processCallableArg")(arg);
+      callableNames.push_back(arg.attr("name").cast<std::string>());
+    }
+  }
+  return callableNames;
+}
+
 void bindAltLaunchKernel(py::module &mod,
                          std::function<std::string()> &&getTL) {
   jitCache = std::make_unique<JITExecutionCache>();
   getTransportLayer = std::move(getTL);
-
-  auto callableArgHandler = [](cudaq::OpaqueArguments &argData,
-                               py::object &arg) {
-    if (py::hasattr(arg, "module")) {
-      // Just give it some dummy data that will not be used.
-      // We synthesize away all callables, the block argument
-      // remains but it is not used, so just give argsCreator
-      // something, and we'll make sure its cleaned up.
-      long *ourAllocatedArg = new long();
-      argData.emplace_back(ourAllocatedArg,
-                           [](void *ptr) { delete static_cast<long *>(ptr); });
-      return true;
-    }
-    return false;
-  };
 
   mod.def(
       "pyAltLaunchKernel",
@@ -999,7 +1084,7 @@ void bindAltLaunchKernel(py::module &mod,
 
         cudaq::OpaqueArguments args;
         setDataLayout(module);
-        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, getCallableArgHandler());
         pyAltLaunchKernel(kernelName, module, args, callable_names);
       },
       py::arg("kernelName"), py::arg("module"), py::kw_only(),
@@ -1013,7 +1098,7 @@ void bindAltLaunchKernel(py::module &mod,
 
         cudaq::OpaqueArguments args;
         setDataLayout(module);
-        cudaq::packArgs(args, runtimeArgs, kernelFunc, callableArgHandler);
+        cudaq::packArgs(args, runtimeArgs, kernelFunc, getCallableArgHandler());
         return pyAltLaunchKernelR(kernelName, module, returnType, args,
                                   callable_names);
       },
