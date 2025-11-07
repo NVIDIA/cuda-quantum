@@ -2071,6 +2071,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # Replace result with the stack buffer-backed vector
                 result = cc.StdvecInitOp(result.type, buffer,
                                             length=length).result
+            return result
 
         def checkControlAndTargetTypes(controls, targets):
             """
