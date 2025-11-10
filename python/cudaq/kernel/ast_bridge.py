@@ -520,13 +520,15 @@ class PyASTBridge(ast.NodeVisitor):
                 if (floatType != otherFloatType):
                     real = self.changeOperandToType(
                         floatType,
-                        complex.ReOp(operand).result)
+                        complex.ReOp(operand).result,
+                        allowDemotion=allowDemotion)
                     imag = self.changeOperandToType(
                         floatType,
-                        complex.ImOp(operand).result)
+                        complex.ImOp(operand).result, 
+                        allowDemotion=allowDemotion)
                     return complex.CreateOp(complexType, real, imag).result
             else:
-                real = self.changeOperandToType(floatType, operand)
+                real = self.changeOperandToType(floatType, operand, allowDemotion=allowDemotion)
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 return complex.CreateOp(complexType, real, imag).result
 
@@ -548,7 +550,7 @@ class PyASTBridge(ast.NodeVisitor):
                             expectedEleTys[idx], value,
                             allowDemotion=allowDemotion)                    
                     return self.__copyStructAndConvertElements(
-                        operand, expectedTy=ty, conversion=conversion)
+                        operand, expectedTy=ty, allowDemotion=allowDemotion, conversion=conversion)
 
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
@@ -806,9 +808,10 @@ class PyASTBridge(ast.NodeVisitor):
             element = cc.ExtractValueOp(
                 eleTy, struct, [],
                 DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+            element = conversion(idx, element) if conversion else element
             element = self.changeOperandToType(expectedEleTys[idx], element, allowDemotion=allowDemotion)
             returnVal = cc.InsertValueOp(
-                expectedTy, returnVal, conversion(idx, element) if conversion else element,
+                expectedTy, returnVal, element,
                 DenseI64ArrayAttr.get([idx], context=self.ctx)).result
         return returnVal
 
@@ -828,16 +831,16 @@ class PyASTBridge(ast.NodeVisitor):
 
         assert cc.StdvecType.isinstance(source.type)
         sourceEleType = cc.StdvecType.getElementType(source.type)
+        if not targetEleType:
+            targetEleType = sourceEleType
+        if not alwaysCopy and sourceEleType == targetEleType:
+            return source
         isSourceBool = sourceEleType == self.getIntegerType(1)
         if isSourceBool:
             sourceEleType = self.getIntegerType(8)
-        if not targetEleType:
-            targetEleType = sourceEleType
         isTargetBool = targetEleType == self.getIntegerType(1)
         if isTargetBool:
             targetEleType = self.getIntegerType(8)
-        if not alwaysCopy and sourceEleType == targetEleType:
-            return source
 
         sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
         sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
@@ -852,7 +855,7 @@ class PyASTBridge(ast.NodeVisitor):
                                       rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
             convertedEle = conversion(iterVar, loadedEle) if conversion else loadedEle
-            self.changeOperandToType(targetEleType, convertedEle, allowDemotion=allowDemotion)
+            convertedEle = self.changeOperandToType(targetEleType, convertedEle, allowDemotion=allowDemotion)
             targetEleAddr = cc.ComputePtrOp(cc.PointerType.get(targetEleType), targetPtr,
                                             [iterVar], rawIndex).result
             cc.StoreOp(convertedEle, targetEleAddr)
@@ -3798,8 +3801,6 @@ class PyASTBridge(ast.NodeVisitor):
                     ptrTy, vecPtr, [lowerVal],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                           context=self.ctx)).result
-                # FIXME: NEED TO MAKE SURE THE ASSIGNMENTS CONVERTS i1 values to i8 when putting them in lists
-                # -> what about bool in struct??
                 self.pushValue(
                     cc.StdvecInitOp(var.type, ptr, length=nElementsVal).result)
             else:
