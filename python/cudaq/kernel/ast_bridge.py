@@ -3185,26 +3185,11 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
                     if node.func.attr == 'to_integer':
-                        # FIXME: UPDATE THIS 
-                        boolVec = self.popValue()
-                        boolVec = self.ifPointerThenLoad(boolVec)
-                        if not cc.StdvecType.isinstance(boolVec.type):
-                            self.emitFatalError(
-                                "to_integer expects a vector of booleans. Got type {}"
-                                .format(boolVec.type), node)
-                        elemTy = cc.StdvecType.getElementType(boolVec.type)
-                        if elemTy != self.getIntegerType(1):
-                            self.emitFatalError(
-                                "to_integer expects a vector of booleans. Got type {}"
-                                .format(boolVec.type), node)
+                        boolVec = self.__groupValues(node.args, [1])
+                        args = convertArguments([cc.StdvecType.get(self.getIntegerType(1))], [boolVec])
                         cudaqConvertToInteger = "__nvqpp_cudaqConvertToInteger"
-                        # Load the intrinsic
                         load_intrinsic(self.module, cudaqConvertToInteger)
-                        # Signature:
-                        # `func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64`
-                        resultTy = self.getIntegerType(64)
-                        result = func.CallOp([resultTy], cudaqConvertToInteger,
-                                             [boolVec]).result
+                        result = func.CallOp([self.getIntegerType(64)], cudaqConvertToInteger, args).result
                         self.pushValue(result)
                         return
 

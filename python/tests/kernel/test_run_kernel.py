@@ -308,7 +308,7 @@ def test_return_list_from_device_kernel():
 
     @cudaq.kernel
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
-        result = [v for v in arg]
+        result = arg.copy()
         for i in result:
             incrementer(i)
         return result
@@ -559,19 +559,19 @@ def test_return_list_large_size():
     @cudaq.kernel
     def kernel_with_dynamic_int_array_input(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     @cudaq.kernel
     def kernel_with_dynamic_float_array_input(n: int,
                                               t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     @cudaq.kernel
     def kernel_with_dynamic_bool_array_input(n: int,
                                              t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     # Test with various sizes (validate dynamic output logging)
     for array_size in [10, 15, 100, 167, 1000]:
