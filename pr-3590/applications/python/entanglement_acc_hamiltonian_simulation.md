@@ -1759,9 +1759,9 @@ and Jue Xu
     # Relevant imports
 
     import cudaq
+    import numpy as np
     import cupy as cp
     from cupyx.scipy.linalg import expm
-    import numpy as np
     import time, sys
     from cudaq import spin
     from cudaq import State
@@ -1779,7 +1779,7 @@ and Jue Xu
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version 0.12.0 (https://github.com/NVIDIA/cuda-quantum 6adf92bcda4df7465e4fe82f1c8f782ae69d8bd2)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8a93c670aa1febfc6)
 :::
 :::
 :::
@@ -2238,7 +2238,7 @@ entanglement entropy for contiguous subsystems of size 1 through 4.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [11]:
 :::
 :::
 
@@ -2285,7 +2285,7 @@ entanglement entropy for contiguous subsystems of size 1 through 4.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Simulation done in 3.82 seconds
+    Simulation done in 14.07 seconds
 :::
 :::
 :::

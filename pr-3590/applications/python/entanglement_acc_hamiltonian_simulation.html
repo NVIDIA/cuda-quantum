@@ -1026,9 +1026,9 @@
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Relevant imports</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cupyx.scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">expm</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">spin</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cudaq</span><span class="w"> </span><span class="kn">import</span> <span class="n">State</span>
@@ -1044,7 +1044,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version 0.12.0 (https://github.com/NVIDIA/cuda-quantum 6adf92bcda4df7465e4fe82f1c8f782ae69d8bd2)
+CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8a93c670aa1febfc6)
 </pre></div></div>
 </div>
 <section id="2.-Model-Definition">
@@ -1334,7 +1334,7 @@ CUDA-Q Version 0.12.0 (https://github.com/NVIDIA/cuda-quantum 6adf92bcda4df7465e
 <h2>5. Reproducing the paper’s Figure 1a<a class="headerlink" href="#5.-Reproducing-the-paper’s-Figure-1a" title="Permalink to this heading">¶</a></h2>
 <p>We now evolve the <span class="math notranslate nohighlight">\(n=12\)</span> QIMF chain for <span class="math notranslate nohighlight">\(t=10\)</span> with <span class="math notranslate nohighlight">\(r=100\)</span> PF1 steps, exactly matching the parameters in the paper. At every segment we store the PF1 error <span class="math notranslate nohighlight">\(\epsilon(t)\)</span> and the entanglement entropy for contiguous subsystems of size 1 through 4.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Expect ~4 seconds on an NVIDIA A100 GPU (dense ideal evolution dominates runtime).</span>
@@ -1376,7 +1376,7 @@ CUDA-Q Version 0.12.0 (https://github.com/NVIDIA/cuda-quantum 6adf92bcda4df7465e
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-Simulation done in 3.82 seconds
+Simulation done in 14.07 seconds
 </pre></div></div>
 </div>
 <section id="5.1-Visualising-the-joint-behaviour">
