@@ -6,8 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../.. python3 %s
-# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
+# RUN: PYTHONPATH=../../.. python3 %s | FileCheck %s
+# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate | FileCheck %s
 
 import cudaq, numpy
 from typing import Callable
@@ -74,42 +74,34 @@ print("test1 - most probable: " + out.most_probable())
 out = cudaq.sample(foo2, [True, False, True], False)
 assert len(out) == 1 and '1' not in out.most_probable()
 print("test2 - most probable: " + str(out.most_probable()))
-print(out)
 
 out = cudaq.sample(foo2, [True, False, True], True)
 assert len(out) == 8
 print("test3 - superposition of length " + str(len(out)))
-print(out)
 
 out = cudaq.sample(foo3, [True, False, True], False)
 assert len(out) == 8
 print("test4 - superposition of length " + str(len(out)))
-print(out)
 
 out = cudaq.sample(foo3, [True, False, True], True)
 assert len(out) == 1 and '1' not in out.most_probable()
 print("test5 - most probable: " + str(out.most_probable()))
-print(out)
 
 out = cudaq.sample(foo4, baz, [True, False, True], False)
 assert len(out) == 1 and '1' not in out.most_probable()
 print("test6 - most probable: " + str(out.most_probable()))
-print(out)
 
 out = cudaq.sample(foo4, baz, [True, False, True], True)
 assert len(out) == 8
 print("test7 - superposition of length " + str(len(out)))
-print(out)
 
 out = cudaq.sample(foo5, baz, [True, False, True], False)
 assert len(out) == 8
 print("test8 - superposition of length " + str(len(out)))
-print(out)
 
 out = cudaq.sample(foo5, baz, [True, False, True], True)
 assert len(out) == 1 and '1' not in out.most_probable()
 print("test9 - most probable: " + str(out.most_probable()))
-print(out)
 
 # CHECK: test1 - most probable: 1
 # CHECK: test2 - most probable: 00000
