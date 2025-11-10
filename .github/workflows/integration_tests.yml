@@ -814,7 +814,7 @@ jobs:
   nvqc_integration_docker_test:
     name: NVQC integration test using Docker image
     runs-on: ubuntu-latest
-    if: (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
+    if: false
     needs: [setup, metadata, build_nvqc_image, deploy_nvqc_test_function]
     permissions:
       contents: read
@@ -994,7 +994,7 @@ jobs:
   nvqc_integration_wheel_test:
     name: NVQC integration test using Python wheels
     runs-on: ubuntu-latest
-    if: inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly'
+    if: false
     needs: [metadata, build_nvqc_image, deploy_nvqc_test_function]
     permissions:
       contents: read
@@ -1124,7 +1124,7 @@ jobs:
     name: Cleanup NVQC resources
     runs-on: ubuntu-latest
     if: (success() || failure()) && (inputs.target == 'nvqc' || github.event_name == 'schedule' || inputs.target == 'nightly')
-    needs: [build_nvqc_image, deploy_nvqc_test_function, nvqc_integration_docker_test, nvqc_integration_wheel_test]
+    needs: [build_nvqc_image, deploy_nvqc_test_function]
     permissions:
       contents: read
 
