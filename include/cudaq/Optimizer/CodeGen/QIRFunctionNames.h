@@ -26,13 +26,13 @@ static constexpr const char QIRCnot[] = "__quantum__qis__cnot__body";
 static constexpr const char QIRCphase[] = "__quantum__qis__cphase";
 static constexpr const char QIRCZ[] = "__quantum__qis__cz__body";
 
-namespace qir_current {
-static constexpr const char QIRReadResultBody[] =
+namespace qir0_1 {
+static constexpr const char ReadResultBody[] =
     "__quantum__qis__read_result__body";
 }
 
-namespace qir_under_development {
-static constexpr const char QIRReadResultBody[] = "__quantum__rt__read_result";
+namespace qir1_0 {
+static constexpr const char ReadResult[] = "__quantum__rt__read_result";
 }
 
 static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
@@ -50,10 +50,6 @@ static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 static constexpr const char NVQIRGeneralizedInvokeAny[] =
     "generalizedInvokeWithRotationsControlsTargets";
-static constexpr const char NVQIRPackSingleQubitInArray[] =
-    "packSingleQubitInArray";
-static constexpr const char NVQIRReleasePackedQubitArray[] =
-    "releasePackedQubitArray";
 
 /// QIR Array function name strings
 static constexpr const char QIRArrayGetElementPtr1d[] =
@@ -131,10 +127,4 @@ static constexpr const char QISConvertArrayToStdvec[] =
 static constexpr const char QISFreeConvertedStdvec[] =
     "__quantum__qis__free_converted_stdvector";
 
-// helpers
-constexpr const char *getQIRReadResultBody(bool qirVersionUnderDevelopment) {
-  return qirVersionUnderDevelopment
-             ? cudaq::opt::qir_under_development::QIRReadResultBody
-             : cudaq::opt::qir_current::QIRReadResultBody;
-}
 } // namespace cudaq::opt

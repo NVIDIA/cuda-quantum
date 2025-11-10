@@ -14,6 +14,8 @@ std::string prepareOpenQasm(std::string source) {
   source = std::regex_replace(source, includeRE, "");
   const std::regex cxToCnot{"\\scx\\s"};
   source = std::regex_replace(source, cxToCnot, " cnot ");
+  const std::regex ccxToCcnot{"\\sccx\\s"};
+  source = std::regex_replace(source, ccxToCcnot, " ccnot ");
   return source;
 }
 
@@ -40,22 +42,22 @@ BraketServerHelper::getValueOrDefault(const BackendConfig &config,
 
 // Initialize the Braket server helper with a given backend configuration
 void BraketServerHelper::initialize(BackendConfig config) {
-  cudaq::info("Initializing Amazon Braket backend.");
+  CUDAQ_INFO("Initializing Amazon Braket backend.");
   // Fetch machine info before checking emulate because we want to be able to
   // emulate specific machines, defaults to state vector simulator
   auto machine =
       getValueOrDefault(config, "machine",
                         "arn:aws:braket:::device/quantum-simulator/amazon/sv1");
   auto deviceArn = checkDeviceArn(machine);
-  cudaq::info("Running on device {}", deviceArn);
+  CUDAQ_INFO("Running on device {}", deviceArn);
   config["defaultBucket"] = getValueOrDefault(config, "default_bucket", "");
   config["deviceArn"] = deviceArn;
   if (!config["shots"].empty())
     this->setShots(std::stoul(config["shots"]));
   const auto emulate_it = config.find("emulate");
   if (emulate_it != config.end() && emulate_it->second == "true") {
-    cudaq::info("Emulation is enabled, ignore all Amazon Braket connection "
-                "specific information.");
+    CUDAQ_INFO("Emulation is enabled, ignore all Amazon Braket connection "
+               "specific information.");
     backendConfig = std::move(config);
     return;
   }
@@ -84,9 +86,9 @@ BraketServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     taskRequest["shots"] = shots;
     tasks.push_back(taskRequest);
   }
-  cudaq::info("Created job payload for braket, language is OpenQASM 2.0, "
-              "targeting device {}",
-              backendConfig.at("deviceArn"));
+  CUDAQ_INFO("Created job payload for braket, language is OpenQASM 2.0, "
+             "targeting device {}",
+             backendConfig.at("deviceArn"));
   return ret;
 };
 
@@ -98,8 +100,8 @@ sample_result BraketServerHelper::processResults(ServerMessage &resultsJson,
 
   auto &output_names = outputNames[jobID];
   for (auto &[result, info] : output_names) {
-    cudaq::info("Qubit {} Result {} Name {}", info.qubitNum, result,
-                info.registerName);
+    CUDAQ_INFO("Qubit {} Result {} Name {}", info.qubitNum, result,
+               info.registerName);
   }
 
   CountsDictionary counts;

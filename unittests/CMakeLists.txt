@@ -118,6 +118,36 @@ create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim "")
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
+  find_program(NVIDIA_SMI "nvidia-smi")
+  if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
+    # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
+    # On a build system without NVIDIA GPUs, this lib cannot be resolved;
+    # hence, linking these test executables will fail.
+    # On these CPU-only build systems, we directly link the nvidia-ml-dev library, which provides
+    # stub symbols for the actual driver library, to these test executables.
+    # Running these tests will ultimately requires a system with GPUs, i.e., the proper nvidia-ml lib
+    # will be loaded by the runtime linker/loader.
+    find_package(CUDAToolkit REQUIRED)
+    # make sure CUDA_TOOLKIT_ROOT_DIR is set
+    if(NOT DEFINED CUDA_TOOLKIT_ROOT_DIR)
+      set(CUDA_TOOLKIT_ROOT_DIR ${CUDAToolkit_BIN_DIR}/..)
+    endif()
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+      set(NVIDIA_ML_PATH ${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/lib/stubs)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+      set(NVIDIA_ML_PATH ${CUDA_TOOLKIT_ROOT_DIR}/targets/sbsa-linux/lib/stubs)
+    else()
+      message(FATAL_ERROR "Neither x86_64 nor aarch64 was detected." )
+    endif()
+    # Find nvidia-ml manually
+    find_library(NVIDIA_ML NAMES nvidia-ml PATHS ${NVIDIA_ML_PATH})
+    message(STATUS "NVIDIA ML lib: ${NVIDIA_ML}")
+    # Inject the file during build and remove it after build (install)
+    file(CREATE_LINK ${NVIDIA_ML} ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)
+    link_directories(${CMAKE_CURRENT_BINARY_DIR})
+    install(CODE "file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)")
+  endif()
+
   create_tests_with_backend(custatevec-fp32 "")
   # Given that the fp32 and fp64 difference is largely inherited
   # from a dependency, we omit fp64 tests here and rely on the
@@ -458,6 +488,7 @@ endif()
 add_subdirectory(backends)
 add_subdirectory(Optimizer)
 add_subdirectory(output_record)
+add_subdirectory(target_config)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)

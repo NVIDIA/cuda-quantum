@@ -19,7 +19,7 @@
 namespace cudaq {
 
 class HorizonServerHelper : public ServerHelper {
-  std::string url = "http://localhost:56686";
+  std::string url = "http://localhost:62450";
 
 public:
   const std::string name() const override { return "horizon"; }

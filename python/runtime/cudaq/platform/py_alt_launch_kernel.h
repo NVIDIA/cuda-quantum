@@ -26,10 +26,23 @@ namespace cudaq {
 /// @brief Set current architecture's data layout attribute on a module.
 void setDataLayout(MlirModule module);
 
+/// @brief Get the default callable argument handler for packing arguments.
+std::function<bool(OpaqueArguments &argData, py::object &arg)>
+getCallableArgHandler();
+
+/// @brief Get the names of callable arguments from the given kernel and
+/// arguments.
+// As we process the arguments, we also perform any extra processing required
+// for callable arguments.
+std::vector<std::string> getCallableNames(py::object &kernel, py::args &args);
+
 /// @brief Create a new OpaqueArguments pointer and pack the
 /// python arguments in it. Clients must delete the memory.
-OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                              const std::string &name);
+OpaqueArguments *
+toOpaqueArgs(py::args &args, MlirModule mod, const std::string &name,
+             const std::optional<
+                 std::function<bool(OpaqueArguments &argData, py::object &arg)>>
+                 &optionalBackupHandler = std::nullopt);
 
 inline std::size_t byteSize(mlir::Type ty) {
   if (isa<mlir::ComplexType>(ty)) {
@@ -54,7 +67,8 @@ void pyAltLaunchKernel(const std::string &name, MlirModule module,
 /// @brief Launch python kernel with arguments.
 std::tuple<void *, std::size_t, std::int32_t, KernelThunkType>
 pyAltLaunchKernelBase(const std::string &name, MlirModule module,
-                      Type returnType, cudaq::OpaqueArguments &runtimeArgs,
+                      mlir::Type returnType,
+                      cudaq::OpaqueArguments &runtimeArgs,
                       const std::vector<std::string> &names,
                       std::size_t startingArgIdx = 0, bool launch = true);
 
@@ -64,5 +78,12 @@ void pyLaunchKernel(const std::string &name, KernelThunkType thunk,
                     void *rawArgs, std::size_t size, std::uint32_t returnOffset,
                     const std::vector<std::string> &names);
 
-void bindAltLaunchKernel(py::module &mod);
+void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
+
+std::string getQIR(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs,
+                   const std::string &profile);
+
+std::string getASM(const std::string &name, MlirModule module,
+                   cudaq::OpaqueArguments &runtimeArgs);
 } // namespace cudaq

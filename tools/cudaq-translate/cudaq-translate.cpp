@@ -9,10 +9,11 @@
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
-#include "cudaq/Optimizer/CodeGen/Pipelines.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
 #include "llvm/IR/Module.h"
@@ -28,6 +29,7 @@
 #include "mlir/IR/AsmState.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
@@ -60,17 +62,12 @@ static llvm::cl::opt<unsigned> sizeLevel(
 static llvm::cl::opt<std::string> convertTo(
     "convert-to",
     llvm::cl::desc(
-        "Specify the translation output to be created. [Default: \"qir\"]"),
-    llvm::cl::value_desc("target assembly format [\"qir\", \"qir-adaptive\", "
-                         "\"qir-base\", \"openqasm2\", \"iqm\"]"),
-    llvm::cl::init("qir"));
-
-static llvm::cl::opt<bool> qirVersionUnderDevelopment(
-    "qir-version-under-development",
-    llvm::cl::desc("Specify if the under development version of the "
-                   "translation output to be created. [Default: false]"),
-    llvm::cl::value_desc("qir-version-under-development"),
-    llvm::cl::init(false));
+        "Specify the translation output to be created. [Default: \"qir:0.1\"]"),
+    llvm::cl::value_desc(
+        "Target transport layer format, <name[:version[:suboptions]]>. Valid "
+        "names: \"qir\", \"qir-full\", \"qir-adaptive\", \"qir-base\", "
+        "\"openqasm2\", \"iqm\"."),
+    llvm::cl::init("qir:0.1"));
 
 static llvm::cl::opt<bool> emitLLVM(
     "emit-llvm",
@@ -164,33 +161,35 @@ int main(int argc, char **argv) {
       std::exit(1);
     }
   };
-  llvm::StringSwitch<std::function<void()>>(convertTo)
-      .Case("qir",
-            [&]() {
-              cudaq::opt::addAggressiveEarlyInlining(pm);
-              cudaq::opt::addPipelineConvertToQIR(
-                  pm, qirVersionUnderDevelopment.getValue());
-            })
-      .Cases("qir-adaptive", "qir-base",
+
+  StringRef convertValue = convertTo.getValue();
+  auto convertPair = convertValue.split(':');
+  llvm::StringSwitch<std::function<void()>>(convertPair.first)
+      .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
              [&]() {
-               cudaq::opt::addAggressiveEarlyInlining(pm);
-               cudaq::opt::addPipelineConvertToQIR(
-                   pm, convertTo.getValue(),
-                   qirVersionUnderDevelopment.getValue());
+               cudaq::opt::addAggressiveInlining(pm);
+               cudaq::opt::createTargetFinalizePipeline(pm);
+               cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue);
              })
       .Case("openqasm2",
             [&]() {
               targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
               cudaq::opt::addPipelineTranslateToOpenQASM(pm);
               targetAction = qasmAction;
             })
       .Case("iqm",
             [&]() {
               targetUsesLlvm = false;
+              cudaq::opt::createTargetFinalizePipeline(pm);
               cudaq::opt::addPipelineTranslateToIQMJson(pm);
               targetAction = iqmAction;
             })
-      .Default([]() {})();
+      .Default([&]() {
+        cudaq::emitFatalError(
+            modLoc, "must use convert-to to specify a transport layer");
+        std::exit(1);
+      })();
 
   if (failed(pm.run(*module)))
     cudaq::emitFatalError(module->getLoc(), "pipeline failed");

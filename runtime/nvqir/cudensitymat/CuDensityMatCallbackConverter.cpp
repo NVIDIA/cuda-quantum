@@ -47,15 +47,15 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapScalarCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Callback param name {}, batch size {}, value {}",
-                     context->paramNames[i], batchSize,
-                     param_map[context->paramNames[i]]);
+        CUDAQ_DBG("Callback param name {}, batch size {}, value {}",
+                  context->paramNames[i], batchSize,
+                  param_map[context->paramNames[i]]);
       }
       for (int64_t i = 0; i < batchSize; ++i) {
         scalar_operator &storedOp = context->scalarOps[i];
         tdCoef[i] = storedOp.is_constant() ? storedOp.evaluate()
                                            : storedOp.evaluate(param_map);
-        cudaq::debug("Scalar callback constant value = {}", tdCoef[i]);
+        CUDAQ_DBG("Scalar callback constant value = {}", tdCoef[i]);
       }
       return CUDENSITYMAT_STATUS_SUCCESS;
     } catch (const std::exception &e) {
@@ -96,7 +96,12 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
     try {
       auto *context = reinterpret_cast<TensorCallBackContext *>(callback);
       std::vector<matrix_handler> &storedOps = context->tensorOps;
-
+      const bool allSame = [&]() {
+        const auto &firstOp = storedOps[0];
+        return std::all_of(
+            storedOps.begin(), storedOps.end(),
+            [&firstOp](const auto &op) { return op == firstOp; });
+      }();
       if (num_modes <= 0) {
         std::cerr << "num_modes is invalid: " << num_modes << std::endl;
         return CUDENSITYMAT_STATUS_INVALID_VALUE;
@@ -111,7 +116,9 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
                         std::to_string(2 * context->paramNames.size()),
                         std::to_string(context->paramNames.size()),
                         std::to_string(num_params)));
-      if (batchSize != storedOps.size())
+      // If all ops are the same, we treat it as non-batched.
+      if ((!allSame && batchSize != storedOps.size()) ||
+          (batchSize > storedOps.size()))
         throw std::runtime_error(fmt::format(
             "[Internal Error] Invalid batch size encountered. "
             "Expected {} but received {}.",
@@ -121,8 +128,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       for (size_t i = 0; i < context->paramNames.size(); ++i) {
         param_map[context->paramNames[i]] =
             std::complex<double>(params[2 * i], params[2 * i + 1]);
-        cudaq::debug("Tensor callback param name {}, value {}",
-                     context->paramNames[i], param_map[context->paramNames[i]]);
+        CUDAQ_DBG("Tensor callback param name {}, value {}",
+                  context->paramNames[i], param_map[context->paramNames[i]]);
       }
 
       cudaq::dimension_map &dimensions = context->dimensions;
@@ -142,7 +149,8 @@ cudaq::dynamics::CuDensityMatOpConverter::wrapTensorCallback(
       const std::vector<std::complex<double>> flatMatrix = [&]() {
         std::vector<std::complex<double>> flatMatrix;
         flatMatrix.reserve(tensorSize);
-        for (const auto &storedOp : storedOps) {
+        for (int i = 0; i < batchSize; ++i) {
+          auto &storedOp = storedOps[i];
           if (sparsity == CUDENSITYMAT_OPERATOR_SPARSITY_NONE) {
             // Flatten the matrix in column-major order
             complex_matrix matrix_data =

@@ -316,6 +316,10 @@ public:
     }
     auto call = builder.create<cudaq::cc::NoInlineCallOp>(
         loc, funcTy.getResults(), funcOp.getName(), args);
+    // After the kernel call, clean up any `Array` allocations during kernel
+    // executions.
+    builder.create<func::CallOp>(loc, std::nullopt,
+                                 cudaq::runtime::cleanupArrays, ValueRange{});
     const bool hasVectorResult =
         funcTy.getNumResults() == 1 &&
         isa<cudaq::cc::SpanLikeType>(funcTy.getResult(0));
@@ -845,6 +849,8 @@ public:
             irBuilder.loadIntrinsic(module, cudaq::runtime::getPauliWordSize)))
       return module.emitError(
           "could not load cudaq::pauli_word::_nvqpp_size or _nvqpp_data");
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::runtime::cleanupArrays)))
+      return module.emitError("could not load __nvqpp_cleanup_arrays");
     return success();
   }
 
@@ -925,6 +931,7 @@ public:
           runKern->setAttr(cudaq::entryPointAttrName, unitAttr);
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
+          runKern->setAttr(cudaq::runtime::enableCudaqRun, unitAttr);
           OpBuilder::InsertionGuard guard(builder);
           Block *entry = runKern.addEntryBlock();
           builder.setInsertionPointToStart(entry);

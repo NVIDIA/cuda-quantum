@@ -8,11 +8,11 @@ on:
       python_versions:
         required: true
         type: string
-        description: Json array of the Python versions to test the packages with (e.g. ['3.10', '3.12']).
+        description: Json array of the Python versions to test the packages with (e.g. ['3.11', '3.12']).
       cuda_versions:
         required: true
         type: string
-        description: Json array of the CUDA versions to test the packages with (e.g. ['11.8', '12.0']).
+        description: Json array of the CUDA versions to test the packages with (e.g. ['12.6']).
       wheel_artifacts:
         required: true
         type: string
@@ -58,9 +58,9 @@ jobs:
 
             echo "Creating README.md for cudaq package"
             package_name=cudaq
-            cuda_version_requirement="11.x (where x \>= 8) or 12.x"
+            cuda_version_requirement="12.x or 13.x"
             cuda_version_conda=12.4.0 # only used as example in the install script
-            deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."
+            deprecation_notice=""
             cat python/README.md.in > python/metapackages/README.md
             for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
               sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
@@ -152,14 +152,9 @@ jobs:
 
           python=python${{ matrix.python_version }}
           $python -m pip install pip3-autoremove
-          if [ "${{ matrix.python_version }}" = "3.13" ]; then
-            $python -m pip install legacy-cgi  # for pypiserver
-          fi
+
           # autoremove is in an odd location that isn't found unless we search for it...
           autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
-          $python -m pip install pypiserver
-          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
-          $server run -p 8080 /tmp/packages & 
 
           package_dep=`echo cuda-quantum${cuda_version_suffix:+-cu$cuda_version_suffix} | cut -d '-' -f1-2`
           if [ -n "$($python -m pip list | grep $package_dep)" ]; then 
@@ -167,8 +162,7 @@ jobs:
             exit 1
           fi
 
-          $python -m pip install cudaq==${{ inputs.cudaq_version }} \
-            --extra-index-url http://localhost:8080 
+          $python -m pip install "cudaq==${{ inputs.cudaq_version }}" --find-links "file:///tmp/packages"
 
           if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
             echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
@@ -185,10 +179,8 @@ jobs:
           fi
 
           if [ "$package_dep" != "cuda-quantum" ]; then
-            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} \
-              --extra-index-url http://localhost:8080 
-            $python -m pip install cudaq==${{ inputs.cudaq_version }} \
-              --extra-index-url http://localhost:8080 
+            $python -m pip install ${package_dep}==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
+            $python -m pip install cudaq==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
             $python -c 'import cudaq; print(cudaq.get_target().name)'
             $autoremove -y cudaq
             if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
@@ -201,48 +193,36 @@ jobs:
       - name: Test installation error
         run: |
           python=python${{ matrix.python_version }}
-          if [ "${{ matrix.python_version }}" = "3.13" ]; then
-            $python -m pip install legacy-cgi  # for pypiserver
-          fi
-          $python -m pip install pypiserver
-          server="$python $($python -m pip show pypiserver | grep -e 'Location: .*$' | cut -d ' ' -f2)/pypiserver/__main__.py"
-          $server run -p 8080 /tmp/packages & 
 
           case "${{ matrix.cuda_version }}" in
             "") 
               set +e # continue on error
-              $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} \
-                --extra-index-url http://localhost:8080 
+              $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
               set -e && check_package=cuda-quantum
             ;; 
-            12.*) 
-              test_conflicting=cuda-quantum-cu11
-              $python -m pip install cuda-quantum-cu11==${{ inputs.cudaq_version }} \
-                --extra-index-url http://localhost:8080 
-              set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
-                --extra-index-url http://localhost:8080 \
-              2>&1 | tee /tmp/install.out
-              set -e && check_package=cudaq
-            ;; 
             *) 
-              set +e # continue on error
-              # test that we get an error for an existing cuda-quantum installation
-              $python -m pip install cuda-quantum==0.8.0
-              set -e
-              if [ -z "$($python -m pip list | grep cuda-quantum)" ]; then 
-                # if we don't have a 0.8.0 version for this python version, test other conflict
-                test_conflicting=cuda-quantum-cu12
-                $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} \
-                  --extra-index-url http://localhost:8080
+              # Skip conflict test entirely on Python 3.{13,12} (cuda-quantum==0.8.0 not available)
+              if [ "${{ matrix.python_version }}" = "3.12" ] || [ "${{ matrix.python_version }}" = "3.13" ]; then
+                echo "::warning::Skipping conflict test on Python 3.{12,13} (cuda-quantum==0.8.0 unavailable)."
+                test_conflicting="<skipped>"
+                check_package=cudaq
               else
-                test_conflicting=cuda-quantum
+                set +e # continue on error
+                # test that we get an error for an existing cuda-quantum installation
+                $python -m pip install cuda-quantum==0.8.0
+                set -e
+                if [ -z "$($python -m pip list | grep '^cuda-quantum ')" ]; then 
+                  # if we don't have a 0.8.0 version for this python version, test other conflict
+                  test_conflicting=cuda-quantum-cu12
+                  $python -m pip install cuda-quantum-cu12==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
+                else
+                  test_conflicting=cuda-quantum
+                fi
+                set +e # continue on error
+                $python -m pip install cudaq==${{ inputs.cudaq_version }} -v --find-links "file:///tmp/packages" \
+                  2>&1 | tee /tmp/install.out
+                set -e && check_package=cudaq
               fi
-              set +e # continue on error
-              $python -m pip install cudaq==${{ inputs.cudaq_version }} -v \
-                --extra-index-url http://localhost:8080 \
-              2>&1 | tee /tmp/install.out
-              set -e && check_package=cudaq
             ;; 
           esac
 

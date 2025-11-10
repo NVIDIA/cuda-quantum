@@ -191,6 +191,23 @@ The following code illustrates how to run kernels on Quantinuum's backends.
       :language: cpp
 
 
+.. _quantum-circuits-examples:
+
+Quantum Circuits, Inc.
+========================
+
+The following code illustrates how to run kernels on Quantum Circuits' backends.
+
+.. tab:: Python
+
+   .. literalinclude:: ../../targets/python/qci.py
+      :language: python
+
+.. tab:: C++
+
+   .. literalinclude:: ../../targets/cpp/qci.cpp
+      :language: cpp
+
 .. _quantum-machines-examples:
 
 Quantum Machines

@@ -57,8 +57,8 @@ protected:
   /// @brief Parse cortex-cli tokens JSON for the API access token
   std::optional<std::string> readApiToken() const {
     if (!tokensFilePath.has_value()) {
-      cudaq::info(
-          "tokensFilePath is not set, assuming no authorization is required");
+      CUDAQ_INFO(
+          "tokensFilePath is not set, assuming no authentication is required");
       return std::nullopt;
     }
 
@@ -96,6 +96,22 @@ protected:
 
   /// @brief Write the dynamic quantum architecture file
   std::string writeQuantumArchitectureFile(void);
+
+  /// @brief Get server quantum architecture name
+  std::string getQuantumArchitectureName() const {
+    RestClient client;
+    auto headers = generateRequestHeader();
+    auto quantumArchitecture =
+        client.get(iqmServerUrl, "quantum-architecture", headers);
+    try {
+      CUDAQ_DBG("quantumArchitecture = {}", quantumArchitecture.dump());
+      return quantumArchitecture["quantum_architecture"]["name"]
+          .get<std::string>();
+    } catch (const std::exception &e) {
+      throw std::runtime_error("Unable to get quantum architecture name: " +
+                               std::string(e.what()));
+    }
+  }
 
 public:
   /// @brief Return the name of this server helper, must be the
@@ -137,8 +153,8 @@ public:
     if ((cleanupQuantumArchitectureFilePath == true) &&
         (!quantumArchitectureFilePath.empty())) {
       if (unlink(quantumArchitectureFilePath.c_str()) != 0) {
-        cudaq::info("Failed to delete {} with error: {}",
-                    quantumArchitectureFilePath, std::string(strerror(errno)));
+        CUDAQ_INFO("Failed to delete {} with error: {}",
+                   quantumArchitectureFilePath, std::string(strerror(errno)));
       }
     }
   }
@@ -162,12 +178,12 @@ void IQMServerHelper::initialize(BackendConfig config) {
 
   if (!iqmServerUrl.ends_with("/"))
     iqmServerUrl += "/";
-  cudaq::debug("iqmServerUrl = {}", iqmServerUrl);
+  CUDAQ_DBG("iqmServerUrl = {}", iqmServerUrl);
 
   auto token = getenv("IQM_TOKEN");
   if (token) {
     authToken = std::string(token);
-    cudaq::debug("Using authorization token from environment variable");
+    CUDAQ_DBG("Using authorization token from environment variable");
   } else {
     // Set alternative iqmclient-cli tokens file path if provided via env var
     auto envTokenFilePath = getenv("IQM_TOKENS_FILE");
@@ -177,9 +193,9 @@ void IQMServerHelper::initialize(BackendConfig config) {
       tokensFilePath = std::string(envTokenFilePath);
     } else if (cudaq::fileExists(defaultTokensFilePath)) {
       tokensFilePath = defaultTokensFilePath;
-      cudaq::debug("Setting default path for tokens file");
+      CUDAQ_DBG("Setting default path for tokens file");
     }
-    cudaq::debug("tokensFilePath = {}", tokensFilePath.value_or("not set"));
+    CUDAQ_DBG("tokensFilePath = {}", tokensFilePath.value_or("not set"));
   }
 
   token = getenv("IQM_SAVE_QPU_QA");
@@ -240,7 +256,7 @@ IQMServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
 };
 
 bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  cudaq::debug("getJobResponse: {}", getJobResponse.dump());
+  CUDAQ_DBG("getJobResponse: {}", getJobResponse.dump());
 
   auto jobStatus = getJobResponse["status"].get<std::string>();
   std::unordered_set<std::string> terminalStatuses = {"ready", "failed",
@@ -251,7 +267,7 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 IQMServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobID) {
-  cudaq::info("postJobResponse: {}", postJobResponse.dump());
+  CUDAQ_INFO("postJobResponse: {}", postJobResponse.dump());
 
   // check if the job succeeded
   auto jobStatus = postJobResponse["status"].get<std::string>();
@@ -348,7 +364,7 @@ void IQMServerHelper::updatePassPipeline(
       pathToFile = writeQuantumArchitectureFile();
     }
   }
-  cudaq::info("Using quantum architecture file: {}", pathToFile);
+  CUDAQ_INFO("Using quantum architecture file: {}", pathToFile);
 
   // Add leading and trailing single quotes to protect the filepath from
   // shell glob.
@@ -380,7 +396,7 @@ void IQMServerHelper::fetchQuantumArchitecture() {
                                                  "calibration-sets/default/"
                                                  "dynamic-quantum-architecture",
                                                  headers);
-    cudaq::debug("Dynamic QA={}", dynamicQuantumArchitecture.dump());
+    CUDAQ_DBG("Dynamic QA={}", dynamicQuantumArchitecture.dump());
 
     auto &cz = dynamicQuantumArchitecture["gates"]["cz"];
     auto implementation = cz["default_implementation"];
@@ -429,12 +445,12 @@ void IQMServerHelper::fetchQuantumArchitecture() {
 
     // The number of qubits in this dynamic quantum architecture.
     uint qubitCount = qubitNameMap.size();
-    cudaq::info("Server {} has {} calibrated qubits", iqmServerUrl, qubitCount);
+    CUDAQ_INFO("Server {} has {} calibrated qubits", iqmServerUrl, qubitCount);
     assert(idx == qubitCount);
 
 #ifdef CUDAQ_DEBUG
     for (auto &[key, value] : qubitNameMap) {
-      cudaq::debug("qubit mapping: {} = {}", key, value);
+      CUDAQ_DBG("qubit mapping: {} = {}", key, value);
     }
 #endif
 
@@ -448,7 +464,7 @@ void IQMServerHelper::fetchQuantumArchitecture() {
     // for which all qubits have passed the above tests.
     for (auto cz : cz_loci) {
       if (qubitNameMap.count(cz[0]) && qubitNameMap.count(cz[1])) {
-        cudaq::debug("usable cz_loci {}", cz.dump());
+        CUDAQ_DBG("usable cz_loci {}", cz.dump());
         qubitAdjacencyMap[qubitNameMap[cz[0]]].insert(qubitNameMap[cz[1]]);
         qubitAdjacencyMap[qubitNameMap[cz[1]]].insert(qubitNameMap[cz[0]]);
       }

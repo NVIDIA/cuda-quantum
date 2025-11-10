@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CodeGenConfig.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
@@ -29,6 +30,7 @@ class QPU;
 class gradient;
 class optimizer;
 class SerializedCodeExecutionContext;
+struct RuntimeTarget;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -130,6 +132,15 @@ public:
   /// @brief Get the remote capabilities (only applicable for remote platforms)
   RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
 
+  /// Get code generation configuration values
+  CodeGenConfig get_codegen_config();
+
+  /// Get runtime target information
+  // This includes information about the target configuration (config file) and
+  // any other user-defined settings (nvq++ target option compile flags or
+  // `set_target` arguments).
+  const RuntimeTarget *get_runtime_target() const;
+
   /// @brief Turn off any noise models.
   void reset_noise();
 
@@ -188,6 +199,12 @@ public:
   void setLogStream(std::ostream &logStream);
 
 protected:
+  /// The runtime target settings
+  std::unique_ptr<RuntimeTarget> runtimeTarget;
+
+  /// Code generation configuration
+  std::optional<CodeGenConfig> codeGenConfig;
+
   /// The Platform QPUs, populated by concrete subtypes
   std::vector<std::unique_ptr<QPU>> platformQPUs;
 
@@ -216,6 +233,10 @@ protected:
   // If set, the platform and its QPUs will print info log to this stream.
   // Otherwise, default output stream (std::cout) will be used.
   std::ostream *platformLogStream = nullptr;
+
+private:
+  // Helper to validate QPU Id
+  void validateQpuId(int qpuId) const;
 };
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be

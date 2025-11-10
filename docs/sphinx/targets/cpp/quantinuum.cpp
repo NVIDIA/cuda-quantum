@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target quantinuum --quantinuum-machine H1-2E --quantinuum-project \
+// nvq++ --target quantinuum --quantinuum-machine H2-1E --quantinuum-project \
 // <nexus_project> quantinuum.cpp  -o out.x && ./out.x
 // ```
 // Assumes a valid set of credentials have been stored.
@@ -19,7 +19,6 @@ struct ghz {
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    mz(q);
   }
 };
 

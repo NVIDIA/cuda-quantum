@@ -6,12 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import time
 import os
 import re
-import sys
-from pathlib import Path
 import subprocess
+import sys
+import time
+from pathlib import Path
 from shutil import which
 
 if which('jupyter') is None:
@@ -39,16 +39,19 @@ def validate(notebook_filename, available_backends):
     return True
 
 
-def execute(notebook_filename):
+def execute(notebook_filename, jupyter_kernel=None):
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     try:
         start_time = time.perf_counter()
-        subprocess.run([
+        cmd = [
             "jupyter", "nbconvert", "--to", "notebook", "--execute",
             notebook_filename
-        ],
-                       check=True)
+        ]
+        if jupyter_kernel:
+            cmd.extend(["--ExecutePreprocessor.kernel_name", jupyter_kernel])
+
+        subprocess.run(cmd, check=True)
         elapsed = time.perf_counter() - start_time
         print(
             f"Time taken for nbconvert : {elapsed:.2f} seconds for '{notebook_filename}'"
@@ -83,11 +86,21 @@ def print_results(success, failed, skipped=[]):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        notebook_filenames = sys.argv[1:]
+    # Check for optional Jupyter kernel argument
+    jupyter_kernel = None
+    args_to_process = sys.argv[1:]
+
+    # Check if first argument is a kernel name (not a `.ipynb` file)
+    if args_to_process and not args_to_process[0].endswith('.ipynb'):
+        jupyter_kernel = args_to_process[0]
+        args_to_process = args_to_process[1:]
+
+    if args_to_process:
+        # Direct notebook file execution mode
+        notebook_filenames = args_to_process
         notebooks_success, notebooks_failed = ([] for i in range(2))
         for notebook_filename in notebook_filenames:
-            if (execute(notebook_filename)):
+            if (execute(notebook_filename, jupyter_kernel=jupyter_kernel)):
                 notebooks_success.append(notebook_filename)
             else:
                 notebooks_failed.append(notebook_filename)
@@ -118,7 +131,7 @@ if __name__ == "__main__":
             if not validate(notebook_filename, available_backends):
                 notebooks_skipped.append(base_name)
                 continue
-            if execute(notebook_filename):
+            if execute(notebook_filename, jupyter_kernel=jupyter_kernel):
                 notebooks_success.append(notebook_filename)
             else:
                 notebooks_failed.append(notebook_filename)

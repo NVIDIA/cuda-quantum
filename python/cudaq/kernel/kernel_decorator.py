@@ -20,8 +20,8 @@ from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
 from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
-                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
-                    nvqppPrefix)
+                    globalKernelDecorators, globalRegisteredTypes,
+                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
@@ -65,10 +65,11 @@ class PyKernelDecorator(object):
             self.signature = signature
         else:
             self.kernelFunction = function
-            self.name = kernelName if kernelName != None else self.kernelFunction.__name__
-            self.location = (inspect.getfile(self.kernelFunction),
-                             inspect.getsourcelines(self.kernelFunction)[1]
-                            ) if self.kernelFunction is not None else ('', 0)
+            self.name = (kernelName if kernelName != None else
+                         self.kernelFunction.__name__)
+            self.location = ((inspect.getfile(self.kernelFunction),
+                              inspect.getsourcelines(self.kernelFunction)[1])
+                             if self.kernelFunction is not None else ('', 0))
 
         self.capturedDataStorage = None
 
@@ -164,6 +165,8 @@ class PyKernelDecorator(object):
         # building up call graphs. We also must retain
         # the source code location for error diagnostics
         globalAstRegistry[self.name] = (self.astModule, self.location)
+        # Add this decorator to the global set
+        globalKernelDecorators.add(self)
 
     def compile(self):
         """
@@ -210,7 +213,8 @@ class PyKernelDecorator(object):
         # Cleanup up the captured data if the module needs recompilation.
         self.capturedDataStorage = self.createStorage()
 
-        # Caches the module and stores captured data into `self.capturedDataStorage`.
+        # Caches the module and stores captured data into
+        # `self.capturedDataStorage`.
         self.module, self.argTypes, extraMetadata = compile_to_mlir(
             self.astModule,
             self.capturedDataStorage,
@@ -245,10 +249,10 @@ class PyKernelDecorator(object):
 
     def synthesize_callable_arguments(self, funcNames):
         """
-        Given this Kernel has callable block arguments, synthesize away these 
-        callable arguments with the in-module FuncOps with given names. The 
-        name at index 0 in the list corresponds to the first callable block 
-        argument, index 1 to the second callable block argument, etc. 
+        Given this Kernel has callable block arguments, synthesize away these
+        callable arguments with the in-module FuncOps with given names. The name
+        at index 0 in the list corresponds to the first callable block argument,
+        index 1 to the second callable block argument, etc.
         """
         self.compile()
         cudaq_runtime.synthPyCallable(self.module, funcNames)
@@ -259,8 +263,8 @@ class PyKernelDecorator(object):
 
     def extract_c_function_pointer(self, name=None):
         """
-        Return the C function pointer for the function with given name, or 
-        with the name of this kernel if not provided.
+        Return the C function pointer for the function with given name, or with
+        the name of this kernel if not provided.
         """
         self.compile()
         return cudaq_runtime.jitAndGetFunctionPointer(
@@ -284,10 +288,10 @@ class PyKernelDecorator(object):
     def _repr_svg_(self):
         """
         Return the SVG representation of `self` (:class:`PyKernelDecorator`).
-        This assumes no arguments are required to execute the kernel,
-        and `latex` (with `quantikz` package) and `dvisvgm` are installed,
-        and the temporary directory is writable.
-        If any of these assumptions fail, returns None.
+        This assumes no arguments are required to execute the kernel, and
+        `latex` (with `quantikz` package) and `dvisvgm` are installed, and the
+        temporary directory is writable.  If any of these assumptions fail,
+        returns None.
         """
         self.compile()  # compile if not yet compiled
         if self.argTypes is None or len(self.argTypes) != 0:
@@ -327,8 +331,8 @@ class PyKernelDecorator(object):
             return fromTy == floatToType or self.isCastablePyType(
                 fromTy, floatToType)
 
-        # Support passing `list[int]` to a `list[float]` argument
-        # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+        # Support passing `list[int]` to a `list[float]` argument and
+        # passing `list[int]` or `list[float]` to a `list[complex]` argument.
         if cc.StdvecType.isinstance(fromTy):
             if cc.StdvecType.isinstance(toTy):
                 fromEleTy = cc.StdvecType.getElementType(fromTy)
@@ -367,8 +371,8 @@ class PyKernelDecorator(object):
 
                 return np.complex64(value)
 
-            # Support passing `list[int]` to a `list[float]` argument
-            # Support passing `list[int]` or `list[float]` to a `list[complex]` argument
+            # Support passing `list[int]` to a `list[float]` argument and
+            # passing `list[int]` or `list[float]` to a `list[complex]` argument
             if cc.StdvecType.isinstance(fromTy):
                 if cc.StdvecType.isinstance(toTy):
                     fromEleTy = cc.StdvecType.getElementType(fromTy)
@@ -450,6 +454,25 @@ class PyKernelDecorator(object):
 
         return arg
 
+    def processCallableArg(self, arg):
+        """
+        Process a callable argument
+        """
+        if not isinstance(arg, PyKernelDecorator):
+            emitFatalError(
+                "Callable argument provided is not a cudaq.kernel decorated function."
+            )
+        # It may be that the provided input callable kernel
+        # is not currently in the ModuleOp. Need to add it
+        # if that is the case, we have to use the AST
+        # so that it shares self.module's MLIR Context
+        symbols = SymbolTable(self.module.operation)
+        if nvqppPrefix + arg.name not in symbols:
+            tmpBridge = PyASTBridge(self.capturedDataStorage,
+                                    existingModule=self.module,
+                                    disableEntryPointTag=True)
+            tmpBridge.visit(globalAstRegistry[arg.name][0])
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
@@ -497,16 +520,7 @@ class PyKernelDecorator(object):
             if cc.CallableType.isinstance(mlirType):
                 # Assume this is a PyKernelDecorator
                 callableNames.append(arg.name)
-                # It may be that the provided input callable kernel
-                # is not currently in the ModuleOp. Need to add it
-                # if that is the case, we have to use the AST
-                # so that it shares self.module's MLIR Context
-                symbols = SymbolTable(self.module.operation)
-                if nvqppPrefix + arg.name not in symbols:
-                    tmpBridge = PyASTBridge(self.capturedDataStorage,
-                                            existingModule=self.module,
-                                            disableEntryPointTag=True)
-                    tmpBridge.visit(globalAstRegistry[arg.name][0])
+                self.processCallableArg(arg)
 
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):
@@ -535,10 +549,9 @@ class PyKernelDecorator(object):
 
 def kernel(function=None, **kwargs):
     """
-    The `cudaq.kernel` represents the CUDA-Q language function 
-    attribute that programmers leverage to indicate the following function 
-    is a CUDA-Q kernel and should be compile and executed on 
-    an available quantum coprocessor.
+    The `cudaq.kernel` represents the CUDA-Q language function attribute that
+    programmers leverage to indicate the following function is a CUDA-Q kernel
+    and should be compile and executed on an available quantum coprocessor.
 
     Verbose logging can be enabled via `verbose=True`. 
     """

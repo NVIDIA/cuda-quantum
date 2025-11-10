@@ -18,7 +18,7 @@
 #   source validate_pycudaq.sh -v ${cudaq_version} -i ${package_folder} -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
-# ARG base_image=ubuntu:22.04
+# ARG base_image=ubuntu:24.04
 # FROM ${base_image}
 # ARG cudaq_version=0.0.0
 # ARG package_folder=/tmp/packages
@@ -41,7 +41,7 @@ python_version=3.11
 quick_test=false
 while getopts ":c:f:i:p:qv:" opt; do
   case $opt in
-    c) cuda_version="$OPTARG"
+    c) cuda_version_conda="$OPTARG"
     ;;
     f) root_folder="$OPTARG"
     ;;
@@ -67,6 +67,12 @@ if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     (return 0 2>/dev/null) && return 100 || exit 100
 fi
 
+# Check that the `cuda_version_conda` is a full version string like "12.8.0"
+if ! [[ $cuda_version_conda =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo -e "\e[01;31mThe cuda_version_conda (-c) must be a full version string like '12.8.0'. Provided: '${cuda_version_conda}'.\e[0m" >&2
+    (return 0 2>/dev/null) && return 100 || exit 100
+fi
+
 # Install Miniconda
 if [ ! -x "$(command -v conda)" ]; then
     mkdir -p ~/.miniconda3
@@ -82,7 +88,7 @@ if [ -n "${extra_packages}" ]; then
     pip_extra_url="--extra-index-url http://localhost:8080"
 fi
 while IFS= read -r line; do
-    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version}.0 /g")
+    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")
     line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${python_version}/g")
     line=$(echo $line | sed -E "s/pip install (.\{\{)?\s?\S+\s?(\}\})?/pip install cudaq==${cudaq_version} -v ${pip_extra_url//\//\\/}/g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
