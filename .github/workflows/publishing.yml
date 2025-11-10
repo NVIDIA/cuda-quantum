@@ -1139,7 +1139,7 @@ jobs:
         # Note: this is the version of the conda 'nvidia/label/cuda' channel.
         # Specifically, 'nvidia/label/cuda-13.0.0' does not contain proper CUDA 13 packages,
         # hence we need to use later channels.
-        cuda_version_conda: ['12.4.0', '13.0.2']
+        cuda_version_conda: ['12.6.0', '13.0.2']
       fail-fast: false
 
     # Must have environment to access environment secreats
