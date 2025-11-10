@@ -168,21 +168,9 @@ done
 
 # Run torch integrator tests.
 # This is an optional integrator, which requires torch and torchdiffeq.
-# Install torch separately to match the cuda version installed as CUDA-Q dependency.
+# Install torch separately to match the cuda version.
 # Torch if installed as part of torchdiffeq's dependencies, may default to the latest cuda version. 
-ctk_version="$(python3 -m pip list | grep nvidia-cuda-runtime | tr -s " " | cut -d " " -f 2)" 
-torch_channel=""
-# For CUDA version 13, we need to use the nightly build.
-# This is required because the stable build (as of v2.9.0) depends on cuBlas 13.0,
-# while cuquantum-cu13 depends on cuBlas 13.1.
-# Ref: torch changes cublas to 13.1 in this commit.
-# https://github.com/pytorch/pytorch/commit/544b443ea1d1a9b19e65f981168a01cb87a2d333
-# TODO: Update this script when stable torch builds with this fix are available.
-if [ "$(cut -d '.' -f 1 <<< "$ctk_version")" -eq 13 ]; then
-    torch_channel="nightly/"
-fi
-
-python3 -m pip install torch --index-url https://download.pytorch.org/whl/${torch_channel}cu$(cut -d '.' -f 1 <<< "$ctk_version")""$(cut -d '.' -f 2 <<< "$ctk_version")
+python3 -m pip install torch --index-url https://download.pytorch.org/whl/cu$(echo $cuda_version | cut -d '.' -f-2 | tr -d .)
 python3 -m pip install torchdiffeq
 python3 -m pytest -v "$root_folder/tests/dynamics/integrators"
 if [ ! $? -eq 0 ]; then
