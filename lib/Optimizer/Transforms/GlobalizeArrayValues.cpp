@@ -275,11 +275,26 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         members.push_back(rewriter.create<cudaq::cc::PoisonOp>(loc, eleTy));
       }
     }
+
+    // FIXME: get rid of this;
+    // see https://github.com/NVIDIA/cuda-quantum/issues/3593
+    auto hasBoolElems = false;
+    if (auto iTy = dyn_cast<IntegerType>(eleTy)) {
+      if (iTy.getWidth() == 1) {
+        eleTy = IntegerType::get(ty.getContext(), 8);
+        hasBoolElems = true;
+      }
+    }
+
     auto size = rewriter.create<arith::ConstantIntOp>(loc, members.size(), 64);
     auto buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, size);
     for (auto iter : llvm::enumerate(members)) {
       std::int32_t idx = iter.index();
       auto m = iter.value();
+      if (hasBoolElems) {
+        auto unit = UnitAttr::get(rewriter.getContext());
+        m = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, m, UnitAttr(), unit);
+      }
       auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
       auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
           loc, ptrEleTy, buff, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
