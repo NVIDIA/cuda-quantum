@@ -1905,9 +1905,10 @@ following of environment variables:
 
 -   **\`CUDAQ_TENSORNET_NUM_HYPER_SAMPLES=X\`**: Specify the number of
     hyper samples used in the tensor network contraction path finder.
-    Default value is 512 if not specified. Increasing this value will
+    Default value is 8 if not specified. Increasing this value will
     increase the path-finding time, but can decrease the contraction
-    time if a better quality path is found (and vice versa).
+    time if a better quality path is found (and vice versa). Hyper
+    samples are processed in parallel using multiple host threads.
 
 -   **\`CUDAQ_TENSORNET_FIND_THREADS=X\`**: Used to control the number
     of threads on the host used for path-finding. The default value is

@@ -1858,7 +1858,7 @@ initial state of the system - Execute the simulation with
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
+    [ ]:
 :::
 :::
 
@@ -1935,7 +1935,7 @@ chedule
     cavity_state[1][1] = 1.0
 
     # Construct the Density Matrix
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 
     # Define our timesteps
     steps = np.linspace(0, 10, 201)
@@ -2060,12 +2060,12 @@ below to now simulate 20 photons in the cavity.
     qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
 
 
-    # Cavity in a state which has 1 photons initially
+    # Cavity in a state which has 20 photons initially
     cavity_state = cp.zeros((21, 21), dtype=cp.complex128)
     cavity_state[20][20] = 1.0
 
     # Construct the Density Matrix
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 :::
 :::
 :::
@@ -2274,7 +2274,7 @@ one photon.
     cavity_state[1][1] = 1.0
 
     # Construct the Density Matrix
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 :::
 :::
 :::
@@ -2504,7 +2504,7 @@ resonator with 10 photons.
 
     composite_state = cavity_state
     for i in range(1,no_qubits+1):
-        composite_state = cp.kron(composite_state,qubit_g)
+        composite_state = cp.kron(qubit_g, composite_state)
 
     # Construct the Density Matrix
     rho0 = cudaq.State.from_data(composite_state)
