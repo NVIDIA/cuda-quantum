@@ -1769,6 +1769,7 @@ and Jue Xu
     from typing import List
 
     print(cudaq.__version__)
+    cudaq.set_target("nvidia")
 :::
 :::
 :::
@@ -2285,7 +2286,7 @@ entanglement entropy for contiguous subsystems of size 1 through 4.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    Simulation done in 14.07 seconds
+    Simulation done in 14.51 seconds
 :::
 :::
 :::
