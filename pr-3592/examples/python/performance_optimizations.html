@@ -552,6 +552,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -997,9 +1020,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="6c7b7541afbf4a73aa3200ac9eaabfa9" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="1b6f204b62804dcabf98dd2c0fd27e34" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="3cc95552d36b4be6a3c9d1854623d41d" src="../../_images/gatefusion.png" /></p>
+<p><img alt="1650c15a4b1d48b9858effd037bba5f9" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

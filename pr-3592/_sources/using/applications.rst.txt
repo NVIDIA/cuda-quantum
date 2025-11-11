@@ -46,6 +46,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/mps_encoding
    /applications/python/qm_mm_pe
    /applications/python/skqd
+   /applications/python/entanglement_acc_hamiltonian_simulation
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -329,6 +330,14 @@ This page contains a number of different applications implemented using CUDA-Q. 
             Learn how to implement QM/MM with PE framework using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="gpu, dynamics, noiseless">
+        <a href="../applications/python/entanglement_acc_hamiltonian_simulation" class="notebook-title">Entanglement Accelerates Quantum Simulation</a>
+        <div class="notebook-content">
+            Learn how entanglement growth can *reduce* the Trotter error of the first-order product formula (PF1), recovering the result from the [paper](https://www.nature.com/articles/s41567-025-02945-2) using NVIDIA CUDA-Q. 
+        </div>
+        <img src="../_static/app_title_images/entanglement_acc_hamiltonian_simulation_preview.png" alt="PF1 error decreases as entanglement spreads" class="notebook-image">
     </div>
 
     <script>
