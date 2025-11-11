@@ -254,8 +254,8 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
   * - ``CUDAQ_GPU_FABRIC``
-    - `MNNVL`, `NVL`, `NONE`, or NVLink domain size (positive integer)
-    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`); or a specific NVLink domain size (positive integer).
+    - `MNNVL`, `NVL`, `NONE`, or NVLink domain size (power of 2 integer)
+    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`); or a specific NVLink domain size.
   * - ``CUDAQ_GLOBAL_INDEX_BITS``
     - comma-separated list of positive integers
     - Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` (`log2(8)`) represents **8** processes with fast communication within the group and the second `2` represents the **4** groups (8 processes each) in those total 32 processes. The sum of all elements in this list is `5`, corresponding to the total number of MPI processes (`2^5 = 32`). If none specified, the global index bits are set based on P2P device bits.
