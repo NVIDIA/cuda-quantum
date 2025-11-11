@@ -809,3 +809,90 @@ TEST(BatchedEvolveTester, checkParamSweep) {
 
   EXPECT_GT(maxOverlap, 0.98); // Expect a high overlap with the target state
 }
+
+TEST(BatchedEvolveTester, checkIntermediateResultSaveAll) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  cudaq::product_op<cudaq::matrix_handler> ham_1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham1(ham_1);
+
+  cudaq::product_op<cudaq::matrix_handler> ham_2 =
+      (2.0 * M_PI * 0.2 * cudaq::spin_op::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham2(ham_2);
+
+  constexpr int numSteps = 5; // Use fewer steps for this test
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+  auto initialState1 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+  auto initialState2 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
+      {}, {pauliZ}, cudaq::IntermediateResultSave::All);
+
+  EXPECT_EQ(results.size(), 2);
+
+  // Check that both results have states and expectation values
+  for (const auto &result : results) {
+    EXPECT_TRUE(result.states.has_value());
+    EXPECT_TRUE(result.expectation_values.has_value());
+
+    // For IntermediateResultSave::All, we should have states for each time step
+    EXPECT_EQ(result.states.value().size(), numSteps);
+    EXPECT_EQ(result.expectation_values.value().size(), numSteps);
+
+    // Check that each time step has expectation values
+    for (const auto &expVals : result.expectation_values.value()) {
+      EXPECT_EQ(expVals.size(), 1); // One observable (pauliZ)
+    }
+  }
+}
+
+TEST(BatchedEvolveTester, checkIntermediateResultSaveNoneWithObservables) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  cudaq::product_op<cudaq::matrix_handler> ham_1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham1(ham_1);
+
+  cudaq::product_op<cudaq::matrix_handler> ham_2 =
+      (2.0 * M_PI * 0.2 * cudaq::spin_op::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham2(ham_2);
+
+  constexpr int numSteps = 3; // Use fewer steps for this test
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+  auto initialState1 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+  auto initialState2 =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto results = cudaq::__internal__::evolveBatched(
+      {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
+      {}, {pauliZ}, cudaq::IntermediateResultSave::None);
+
+  EXPECT_EQ(results.size(), 2);
+
+  // Check that both results have final states and final expectation values
+  for (const auto &result : results) {
+    EXPECT_TRUE(result.states.has_value());
+    EXPECT_TRUE(result.expectation_values.has_value());
+
+    // For IntermediateResultSave::None, we should have only final state
+    EXPECT_EQ(result.states.value().size(), 1);
+    EXPECT_EQ(result.expectation_values.value().size(), 1);
+
+    // Check that final expectation value is computed
+    EXPECT_EQ(result.expectation_values.value()[0].size(),
+              1); // One observable (pauliZ)
+  }
+}
