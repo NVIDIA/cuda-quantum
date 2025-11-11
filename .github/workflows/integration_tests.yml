@@ -1020,6 +1020,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install wheel
+        if: steps.skip_check.outputs.skipped != 'true'
         id: install_wheel
         run: |
           python_version=${{ inputs.python_version || env.python_version }}
@@ -1075,7 +1076,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVQC
-        if: ${{ steps.install_wheel.outputs.skipped != 'true' }}
+        if: ${{ steps.skip_check.outputs.skipped != 'true' || steps.install_wheel.outputs.skipped != 'true' }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version || env.python_version }}
