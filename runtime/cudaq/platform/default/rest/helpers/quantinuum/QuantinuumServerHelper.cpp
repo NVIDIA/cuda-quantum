@@ -504,18 +504,27 @@ std::string QuantinuumServerHelper::constructGetJobPath(std::string &jobId) {
 
 bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   // Job status strings: "COMPLETED", "QUEUED", "SUBMITTED", "RUNNING",
-  // "CANCELLED", "ERROR"
+  // "CANCELLED", "ERROR", "CANCELLING", "RETRYING", "TERMINATED", "DEPLETED"
   const std::string jobStatus =
       getJobResponse["data"]["attributes"]["status"]["status"]
           .get<std::string>();
+  // Handle error conditions:
   if (jobStatus == "ERROR") {
     const std::string errorMsg =
         getJobResponse["data"]["attributes"]["status"]["error_detail"]
             .get<std::string>();
     throw std::runtime_error("Job failed with error: " + errorMsg);
   } else if (jobStatus == "CANCELLED") {
+    // Note: if the status is "CANCELLING", we will let it resolve to CANCELLED
+    // before throwing.
     throw std::runtime_error("Job was cancelled.");
+  } else if (jobStatus == "TERMINATED") {
+    throw std::runtime_error("Job was terminated.");
+  } else if (jobStatus == "DEPLETED") {
+    throw std::runtime_error("Job failed due to depleted credits. Please check "
+                             "your max-cost setting or the account credits.");
   }
+
   if (jobStatus == "COMPLETED") {
     if (!jobReturnsResult(getJobResponse))
       return true;
@@ -524,6 +533,8 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // is not yet available, so we will check for that.
     return getResultId(getJobResponse).second != "";
   }
+  // Other status codes, e.g., QUEUED/SUBMITTED/CANCELLING/RETRYING/RUNNING,
+  // mean the job is not done yet.
   return false;
 }
 
