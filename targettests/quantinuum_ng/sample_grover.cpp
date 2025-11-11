@@ -47,7 +47,7 @@ __qpu__ void grover() {
 
 int main() {
   // Note: use a small number of shots.
-  auto result = cudaq::sample(20, grover);
+  auto result = cudaq::sample(15, grover);
   result.dump();
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
