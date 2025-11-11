@@ -391,7 +391,7 @@ jobs:
                 ;;
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
-                filelist="targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
+                filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
