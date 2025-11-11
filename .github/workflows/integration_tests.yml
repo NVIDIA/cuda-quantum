@@ -458,6 +458,7 @@ jobs:
               echo "OQC_EMAIL=${{ secrets.BACKEND_LOGIN_EMAIL }}" >> $GITHUB_ENV
               echo "OQC_PASSWORD=${{ secrets.OQC_PASSWORD }}" >> $GITHUB_ENV
               echo "OQC_DEVICE=qpu:jp:3:673b1ad43c" >> $GITHUB_ENV
+              echo "OQC_AUTH_TOKEN=eyJ2ZXIiOiI1IiwidWlkIjoiMGMyMjkzYjIwOWJkNGIwOWJkZjE5ZjI2NTkxNjlkZDIiLCJzaWQiOjAsImV4cCI6MH0.aRM4eA.WpEwZyIDOojlMbD1CyxolFQ1xok" >> $GITHUB_ENV
               ;;
             orca)
               echo "### Setting up ORCA account" >> $GITHUB_STEP_SUMMARY
