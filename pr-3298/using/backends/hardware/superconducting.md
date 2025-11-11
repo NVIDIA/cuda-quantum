@@ -1931,12 +1931,13 @@ Resonance portal.
 ### Setting Credentials[¶](#id1 "Permalink to this heading"){.headerlink}
 
 Create a free account on the [IQM Resonance
-portal](https://resonance.meetiqm.com/){.reference .external} and
-log-in. Navigate to the account profile (top right). There generate an
-"API Token" and copy the generated token-string. Set the environment
-variable [`IQM_TOKEN`{.docutils .literal .notranslate}]{.pre} to contain
-the value of the token-string. The IQM backend integration will use this
-as authorization token at the IQM server.
+portal](https://meetiqm.com/products/iqm-resonance/){.reference
+.external} and log-in. Navigate to the account profile (top right).
+There generate an "API Token" and copy the generated token-string. Set
+the environment variable [`IQM_TOKEN`{.docutils .literal
+.notranslate}]{.pre} to contain the value of the token-string. The IQM
+backend integration will use this as authorization token at the IQM
+server.
 :::
 
 ::: {#id2 .section}

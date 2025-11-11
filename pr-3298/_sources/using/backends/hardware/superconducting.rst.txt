@@ -129,7 +129,7 @@ Please find also more documentation after logging in to the IQM Resonance portal
 Setting Credentials
 ```````````````````
 
-Create a free account on the `IQM Resonance portal <https://resonance.meetiqm.com/>`__ and log-in.
+Create a free account on the `IQM Resonance portal <https://meetiqm.com/products/iqm-resonance/>`__ and log-in.
 Navigate to the account profile (top right). There generate an "API Token" and copy the generated token-string.
 Set the environment variable ``IQM_TOKEN`` to contain the value of the token-string.
 The IQM backend integration will use this as authorization token at the IQM server.
