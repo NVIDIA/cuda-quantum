@@ -276,6 +276,8 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       }
     }
 
+    // FIXME: get rid of this;
+    // see https://github.com/NVIDIA/cuda-quantum/issues/3593
     auto hasBoolElems = false;
     if (auto iTy = dyn_cast<IntegerType>(eleTy)) {
       if (iTy.getWidth() == 1) {

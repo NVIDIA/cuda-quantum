@@ -14,15 +14,17 @@ description="Python bindings for the CUDA-Q toolkit for heterogeneous quantum-cl
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = { file="python/README.md.in", content-type = "text/markdown"}
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file="LICENSE" }
 dependencies = [
   'astpretty ~= 3.0',
-  'cuquantum-cu13 == 25.09',
+  'custatevec-cu13 ~= 1.10',
+  'cutensornet-cu13 ~= 2.9',
+  'cudensitymat-cu13 ~= 0.3',  
   'numpy >= 1.24',
   'scipy >= 1.10.1',
   'requests >= 2.31',
-  'nvidia-cublas ~= 13.1',
+  'nvidia-cublas ~= 13.0',
   'nvidia-curand ~= 10.4',
   'nvidia-cusparse ~= 12.6',
   'nvidia-cuda-runtime ~= 13.0',

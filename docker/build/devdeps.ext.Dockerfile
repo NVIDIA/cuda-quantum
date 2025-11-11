@@ -172,6 +172,9 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Install cuQuantum dependencies, including cuTensor.
 # Install cupy version 13.4.1
+# Note: for docker images, we fixed the cuquantum version (with `==`) to avoid unintentional upgrades.
+# e.g., API marked as deprecated in a minor version upgrade may break build.
+# For Python pip installations, we allow minor version upgrades with `~=`, assuming the API is stable.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
@@ -180,7 +183,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     else \
         cupy_version=13.4.1; \
     fi && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.09 && \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==25.09.1 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
         echo "expecting Python version 3.12"; \
     fi

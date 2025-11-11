@@ -4663,8 +4663,7 @@ class PyASTBridge(ast.NodeVisitor):
             if IntegerType.isinstance(left.type):
                 self.pushValue(arith.RemUIOp(left, right).result)
                 return
-            if F64Type.isinstance(left.type) or \
-                F32Type.isinstance(left.type):
+            if (F64Type.isinstance(left.type) or F32Type.isinstance(left.type)):
                 self.pushValue(arith.RemFOp(left, right).result)
                 return
             else:
@@ -4744,8 +4743,8 @@ class PyASTBridge(ast.NodeVisitor):
 
         if not cc.PointerType.isinstance(target.type):
             self.emitFatalError(
-                "augment-assign target variable cannot be assigned to",
-                node)
+                "augment-assign target variable is not defined or "
+                "cannot be assigned to.", node)
 
         self.visit(node.value)
         value = self.popValue()
