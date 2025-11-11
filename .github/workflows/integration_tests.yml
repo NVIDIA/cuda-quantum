@@ -16,8 +16,7 @@ on:
         type: choice
         options:
           - nightly
-          # Issue 3598 (https://github.com/NVIDIA/cuda-quantum/issues/3598)
-          # - anyon
+          - anyon
           - fermioniq
           - infleqtion
           - ionq
