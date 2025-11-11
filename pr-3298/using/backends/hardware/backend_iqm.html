@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Neutral Atom &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>IQM Backend Advanced Use Cases &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -32,8 +32,8 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Photonic" href="photonic.html" />
-    <link rel="prev" title="IQM Backend Advanced Use Cases" href="backend_iqm.html" /> 
+    <link rel="next" title="Neutral Atom" href="neutralatom.html" />
+    <link rel="prev" title="Superconducting" href="superconducting.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -612,17 +612,17 @@
 <li class="toctree-l4"><a class="reference internal" href="iontrap.html#quantinuum">Quantinuum</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="superconducting.html">     Superconducting QPUs</a><ul>
+<li class="toctree-l3 current"><a class="reference internal" href="superconducting.html">     Superconducting QPUs</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
-<li class="toctree-l4"><a class="reference internal" href="superconducting.html#iqm">IQM</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="superconducting.html#oqc">OQC</a></li>
 <li class="toctree-l4"><a class="reference internal" href="superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">     Neutral Atom QPUs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#infleqtion">Infleqtion</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#pasqal">Pasqal</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="neutralatom.html">     Neutral Atom QPUs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="neutralatom.html#infleqtion">Infleqtion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="neutralatom.html#pasqal">Pasqal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="neutralatom.html#quera-computing">QuEra Computing</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="photonic.html">     Photonic QPUs</a><ul>
@@ -1001,324 +1001,105 @@
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../backends.html">CUDA-Q Backends</a></li>
           <li class="breadcrumb-item"><a href="../hardware.html">Quantum Hardware (QPU)</a></li>
-      <li class="breadcrumb-item active">Neutral Atom</li>
+          <li class="breadcrumb-item"><a href="superconducting.html">Superconducting</a></li>
+      <li class="breadcrumb-item active">IQM Backend Advanced Use Cases</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="backend_iqm.html" class="btn btn-neutral float-left" title="IQM Backend Advanced Use Cases" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="photonic.html" class="btn btn-neutral float-right" title="Photonic" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="superconducting.html" class="btn btn-neutral float-left" title="Superconducting" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="neutralatom.html" class="btn btn-neutral float-right" title="Neutral Atom" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="neutral-atom">
-<h1>Neutral Atom<a class="headerlink" href="#neutral-atom" title="Permalink to this heading">¶</a></h1>
-<section id="infleqtion">
-<h2>Infleqtion<a class="headerlink" href="#infleqtion" title="Permalink to this heading">¶</a></h2>
-<p id="infleqtion-backend">Infleqtion is a quantum hardware provider of gate-based neutral atom quantum computers. Their backends may be
-accessed via <a class="reference external" href="https://superstaq.infleqtion.com/">Superstaq</a>, a cross-platform software API from Infleqtion,
-that performs low-level compilation and cross-layer optimization. To get started users can create a Superstaq
-account by following <a class="reference external" href="https://superstaq.readthedocs.io/en/latest/get_started/credentials.html">these instructions</a>.</p>
-<section id="setting-credentials">
-<h3>Setting Credentials<a class="headerlink" href="#setting-credentials" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access Infleqtion backends from either C++ or Python. Generate
-an API key from your <a class="reference external" href="https://superstaq.infleqtion.com/profile">Superstaq account</a> and export
-it as an environment variable:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUPERSTAQ_API_KEY</span><span class="o">=</span><span class="s2">&quot;superstaq_api_key&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="submitting">
-<h3>Submitting<a class="headerlink" href="#submitting" title="Permalink to this heading">¶</a></h3>
+  <section id="iqm-backend-advanced-use-cases">
+<h1>IQM Backend Advanced Use Cases<a class="headerlink" href="#iqm-backend-advanced-use-cases" title="Permalink to this heading">¶</a></h1>
+<p>On this page advanced uses cases which are supported by the IQM backend integration are described.</p>
+<section id="emulation-mode">
+<h2>Emulation Mode<a class="headerlink" href="#emulation-mode" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">)</span>
+<p>To emulate the IQM Server locally, without submitting to the IQM Server, you can set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>.
+This will emit any target specific compiler diagnostics, before running a noise free emulation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;iqm&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">&quot;https://&lt;IQM Server&gt;/&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>By default, quantum kernel code will be submitted to Infleqtion’s Sqale
-simulator.</p>
-<p>To specify which Infleqtion QPU to use, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">)</span>
+<p>Emulation mode will still contact the configured IQM Server to retrieve the dynamic quantum architecture resulting from the active calibration unless a QPU architecture file is explicitly specified.
+This can be done by setting <code class="code docutils literal notranslate"><span class="pre">mapping_file</span></code> to point to a file describing the QPU architecture which should be emulated.
+If an architecture is specified no server URL is needed anymore.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;iqm&#39;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mapping_file</span><span class="o">=</span><span class="s2">&quot;&lt;path+filename&gt;&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>where <code class="docutils literal notranslate"><span class="pre">cq_sqale_qpu</span></code> is an example of a physical QPU.</p>
-<p>To run an ideal dry-run execution of the QPU, additionally set the <code class="docutils literal notranslate"><span class="pre">method</span></code> flag to <code class="docutils literal notranslate"><span class="pre">&quot;dry-run&quot;</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;dry-run&quot;</span><span class="p">)</span>
+<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
+Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
+<p>The QPU quantum architecture of a test with a real life IQM QPU can be saved for later use in emulation runs.
+To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of a Resonance server.
+The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/&quot;</span><span class="w"> </span><span class="nv">IQM_SAVE_QPU_QA</span><span class="o">=</span><span class="s2">&quot;&lt;path+filename for QPU architecture file&gt;&quot;</span><span class="w"> </span>python3<span class="w"> </span>program.py
 </pre></div>
 </div>
-<p>To noisily simulate the QPU instead, set the <code class="docutils literal notranslate"><span class="pre">method</span></code> flag to <code class="docutils literal notranslate"><span class="pre">&quot;noise-sim&quot;</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s2">&quot;cq_sqale_qpu&quot;</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;noise-sim&quot;</span><span class="p">)</span>
+<p>The file will be created with the given name. If the file already exists the test is aborted with an error.</p>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<p>To emulate the IQM machine locally, without submitting to the IQM Server, you can pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> option to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.
+This will emit any target specific compiler diagnostics, before running a noise free emulation.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/&quot;</span><span class="w"> </span>./program
 </pre></div>
 </div>
-<p>Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
-you can also set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;infleqtion&quot;</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<p>Emulation mode will still contact the configured IQM Server to retrieve the dynamic quantum architecture resulting from the active calibration unless a QPU architecture file is explicitly specified.
+This can be done by specifying a file with the architecture either at compile time or in an variable in the environment executing the binary.
+If an architecture is specified no server URL is needed anymore.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>//<span class="w"> </span>With<span class="w"> </span>this<span class="w"> </span>binary<span class="w"> </span>multiple<span class="w"> </span>QPU<span class="w"> </span>architectures<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>tested<span class="w"> </span>without<span class="w"> </span>recompilation.
+nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+<span class="nv">IQM_QPU_QA</span><span class="o">=</span><span class="s2">&quot;&lt;path+filename of QPU architecture file&gt;&quot;</span><span class="w"> </span>./program
 </pre></div>
 </div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>//<span class="w"> </span>This<span class="w"> </span>binary<span class="w"> </span>will<span class="w"> </span>use<span class="w"> </span>the<span class="w"> </span>given<span class="w"> </span>QPU<span class="w"> </span>architecture<span class="w"> </span>file<span class="w"> </span><span class="k">until</span><span class="w"> </span>overwritten<span class="w"> </span>by<span class="w"> </span>environment<span class="w"> </span>variable<span class="w"> </span><span class="s2">&quot;IQM_QPU_QA&quot;</span>.
+nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>--mapping-file<span class="w"> </span>&lt;path+filename<span class="w"> </span>of<span class="w"> </span>QPU<span class="w"> </span>architecture<span class="w"> </span>file&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+./program
+</pre></div>
+</div>
+<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
+Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
+<p>The QPU architecture of a test with an IQM server can be saved for later use in emulation runs.
+To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of a Resonance server.
+The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">&quot;https://demo.qc.iqm.fi/&quot;</span><span class="w"> </span><span class="nv">IQM_SAVE_QPU_QA</span><span class="o">=</span><span class="s2">&quot;&lt;path+filename for QPU architecture file&gt;&quot;</span><span class="w"> </span>./program
+</pre></div>
+</div>
+</div>
+</div>
+<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#iqm-examples"><span class="std std-ref">IQM examples</span></a>.</p>
+</section>
+<section id="setting-the-number-of-shots">
+<h2>Setting the Number of Shots<a class="headerlink" href="#setting-the-number-of-shots" title="Permalink to this heading">¶</a></h2>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>The number of shots for a kernel execution can be set through
 the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
 the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
-<p>To target quantum kernel code for execution on Infleqtion’s backends,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">infleqtion</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>This will take the API key and handle all authentication with, and submission to, Infleqtion’s QPU
-(or simulator). By default, quantum kernel code will be submitted to Infleqtion’s Sqale
-simulator.</p>
-<p>To execute your kernels on a QPU, pass the <code class="docutils literal notranslate"><span class="pre">--infleqtion-machine</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler
-to specify which machine to submit quantum kernels to:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>--infleqtion-machine<span class="w"> </span>cq_sqale_qpu<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>where <code class="docutils literal notranslate"><span class="pre">cq_sqale_qpu</span></code> is an example of a physical QPU.</p>
-<p>To run an ideal dry-run execution on the QPU, additionally pass <code class="docutils literal notranslate"><span class="pre">dry-run</span></code> with the <code class="docutils literal notranslate"><span class="pre">--infleqtion-method</span></code>
-flag to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>--infleqtion-machine<span class="w"> </span>cq_sqale_qpu<span class="w"> </span>--infleqtion-method<span class="w"> </span>dry-run<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>To noisily simulate the QPU instead, pass <code class="docutils literal notranslate"><span class="pre">noise-sim</span></code> to the <code class="docutils literal notranslate"><span class="pre">--infleqtion-method</span></code> flag like so:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>--infleqtion-machine<span class="w"> </span>cq_sqale_qpu<span class="w"> </span>--infleqtion-method<span class="w"> </span>noise-sim<span class="w"> </span>src.cpp<span class="w"> </span>...
-</pre></div>
-</div>
-<p>Alternatively, to emulate the Infleqtion machine locally, without submitting through the cloud,
-you can also pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>. This will emit any target
-specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--emulate<span class="w"> </span>--target<span class="w"> </span>infleqtion<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-</div>
-</div>
-<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#infleqtion-examples"><span class="std std-ref">Infleqtion examples</span></a>.
-Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
-<a class="reference internal" href="../../../applications/python/logical_aim_sqale.html"><span class="doc">Anderson Impurity Model ground state solver</span></a> notebook.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>In local emulation mode (<code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag set to <code class="docutils literal notranslate"><span class="pre">True</span></code>), the program will be executed on the <a class="reference internal" href="../sims/svsims.html#default-simulator"><span class="std std-ref">default simulator</span></a>.
-The environment variable <code class="docutils literal notranslate"><span class="pre">CUDAQ_DEFAULT_SIMULATOR</span></code> can be used to change the emulation simulator.</p>
-<p>For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
-depend on the selected simulator.</p>
-<p>Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
 </div>
 </section>
-</section>
-<section id="pasqal">
-<h2>Pasqal<a class="headerlink" href="#pasqal" title="Permalink to this heading">¶</a></h2>
-<p>Pasqal is a quantum computing hardware company that builds quantum processors from ordered neutral atoms in 2D and 3D
-arrays to bring a practical quantum advantage to its customers and address real-world problems.
-The currently available Pasqal QPUs are analog quantum computers, and one, named Fresnel, is available through our cloud
-portal.</p>
-<p>In order to access Pasqal’s devices you need an account for <a class="reference external" href="https://portal.pasqal.cloud">Pasqal’s cloud platform</a>
-and an active project. Please see our <a class="reference external" href="https://docs.pasqal.cloud/cloud/">cloud documentation</a> for more details if needed.</p>
-<p>Although a different SDK, <a class="reference external" href="https://pulser.readthedocs.io/en/latest/">Pasqal’s Pulser library</a>, is a good
-resource for getting started with analog neutral atom quantum computing.
-For support you can also join the <a class="reference external" href="https://community.pasqal.com/">Pasqal Community</a>.</p>
-<section id="pasqal-backend">
-<span id="id1"></span><h3>Setting Credentials<a class="headerlink" href="#pasqal-backend" title="Permalink to this heading">¶</a></h3>
-<p>An authentication token for the session must be obtained from Pasqal’s cloud platform.
-For example from Python one can use the <a class="reference external" href="https://github.com/pasqal-io/pasqal-cloud">pasqal-cloud package</a> as below:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pasqal_cloud</span><span class="w"> </span><span class="kn">import</span> <span class="n">SDK</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
-
-<span class="n">sdk</span> <span class="o">=</span> <span class="n">SDK</span><span class="p">(</span>
-    <span class="n">username</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">[</span><span class="s1">&#39;PASQAL_USERNAME&#39;</span><span class="p">],</span>
-    <span class="n">password</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PASQAL_PASSWORD&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-<span class="p">)</span>
-
-<span class="n">token</span> <span class="o">=</span> <span class="n">sdk</span><span class="o">.</span><span class="n">user_token</span><span class="p">()</span>
-
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_AUTH_TOKEN&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PASQAL_PROJECT_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;your project id&#39;</span>
+<section id="using-credentials-saved-in-a-file">
+<h2>Using Credentials Saved in a File<a class="headerlink" href="#using-credentials-saved-in-a-file" title="Permalink to this heading">¶</a></h2>
+<p>The preferred way to pass the “API Token” to the IQM backend is through the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code>. For compatibility the earlier used storage of the “API Token” in a file can still be used as follows:</p>
+<p>The previously used <code class="docutils literal notranslate"><span class="pre">IQM_TOKENS_FILE</span></code> environment variable can still be used to point to a tokens file but will be ignored if the <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code> variable is set.
+The tokens file cannot be generated by the <code class="docutils literal notranslate"><span class="pre">iqmclient</span></code> tool anymore but can be created manually using the “API Token” obtained from the Resonance profile page.
+A tokens file can be created and the environment variable set like this:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;{ &quot;access_token&quot;: &quot;&lt;put-your-token-here&gt;&quot; }&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>resonance-token.json
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_TOKENS_FILE</span><span class="o">=</span><span class="s2">&quot;path/to/resonance-token.json&quot;</span>
 </pre></div>
 </div>
-<p>Alternatively, users can set the following environment variables directly.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PASQAL_AUTH_TOKEN</span><span class="o">=</span>&lt;&gt;
-<span class="nb">export</span><span class="w"> </span><span class="nv">PASQAL_PROJECT_ID</span><span class="o">=</span>&lt;&gt;
-</pre></div>
-</div>
-</section>
-<section id="id2">
-<h3>Submitting<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;pasqal&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>This accepts an optional argument, <code class="docutils literal notranslate"><span class="pre">machine</span></code>, which is used in the cloud platform to
-select the corresponding Pasqal QPU or emulator to execute on.
-See the <a class="reference external" href="https://portal.pasqal.cloud/">Pasqal cloud portal</a> for an up to date list.
-The default value is <code class="docutils literal notranslate"><span class="pre">EMU_MPS</span></code> which is an open-source tensor network emulator based on the
-Matrix Product State formalism running in Pasqal’s cloud platform. You can see the
-documentation for the publicly accessible emulator <a class="reference external" href="https://pasqal-io.github.io/emulators/latest/emu_mps/">here</a>.</p>
-<p>To target the QPU use the FRESNEL machine name. Note that there are restrictions
-regarding the values of the pulses as well as the register layout. We invite you to
-consult our <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job">documentation</a>. Note that
-the CUDA-Q integration currently only works with <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts">arbitrary layouts</a>
-which are implemented with automatic calibration for less than 30 qubits. For jobs
-larger than 30 qubits please use the <code class="code docutils literal notranslate"><span class="pre">atom_sites</span></code> to define the layout, and use the
-<code class="code docutils literal notranslate"><span class="pre">atom_filling</span></code> to select sites as filled or not filled in order to define the register.</p>
-<p>Due to the nature of the underlying hardware, this target only supports the
-<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
-The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. The only
-other supported parameters are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
-<p>For example,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
-                                            <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
-                                            <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
-                                            <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
-                        <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
-set to 100.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
-<p>To target quantum kernel code for execution on Pasqal QPU or simulators,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">pasqal</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>pasqal<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>You can also pass the flag <code class="docutils literal notranslate"><span class="pre">--pasqal-machine</span></code> to select the corresponding Pasqal QPU or emulator to execute on.
-See the <a class="reference external" href="https://portal.pasqal.cloud/">Pasqal cloud portal</a> for an up to date list.
-The default value is <code class="docutils literal notranslate"><span class="pre">EMU_MPS</span></code> which is an open-source tensor network emulator based on the
-Matrix Product State formalism running in Pasqal’s cloud platform. You can see the
-documentation for the publicly accessible emulator <a class="reference external" href="https://pasqal-io.github.io/emulators/latest/emu_mps/">here</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>pasqal<span class="w"> </span>--pasqal-machine<span class="w"> </span>EMU_FREE<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>To target the QPU use the FRESNEL machine name. Note that there are restrictions
-regarding the values of the pulses as well as the register layout. We invite you to
-consult our <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job">documentation</a>. Note that
-the CUDA-Q integration currently only works with <a class="reference external" href="https://docs.pasqal.com/cloud/fresnel-job/#arbitrary-layouts">arbitrary layouts</a>
-which are implemented with automatic calibration for less than 30 qubits. For jobs
-larger than 30 qubits please use the <code class="code docutils literal notranslate"><span class="pre">atom_sites</span></code> to define the layout, and use the
-<code class="code docutils literal notranslate"><span class="pre">atom_filling</span></code> to select sites as filled or not filled in order to define the register.</p>
-<p>Due to the nature of the underlying hardware, this target only supports the
-<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
-The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be of the type <code class="code docutils literal notranslate"><span class="pre">rydberg_hamiltonian</span></code>. Only
-other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
-<p>For example,</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(</span><span class="n">register_sites</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">delta</span><span class="p">),</span>
-<span class="w">    </span><span class="n">schedule</span><span class="p">);</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
-set to 100.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(...),</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
-</pre></div>
-</div>
-</div>
-</div>
-<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#pasqal-examples"><span class="std std-ref">Pasqal examples</span></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">pasqal</span></code> target.</p>
-</div>
-</section>
-</section>
-<section id="quera-computing">
-<h2>QuEra Computing<a class="headerlink" href="#quera-computing" title="Permalink to this heading">¶</a></h2>
-<section id="quera-backend">
-<span id="id3"></span><h3>Setting Credentials<a class="headerlink" href="#quera-backend" title="Permalink to this heading">¶</a></h3>
-<p>Programmers of CUDA-Q may access Aquila, QuEra’s first generation of quantum
-processing unit (QPU) via Amazon Braket. Hence, users must first enable Braket by
-following <a class="reference external" href="https://docs.aws.amazon.com/braket/latest/developerguide/braket-enable-overview.html">these instructions</a>.
-Then set credentials using any of the documented <a class="reference external" href="https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html">methods</a>.
-One of the simplest ways is to use <a class="reference external" href="https://aws.amazon.com/cli/">AWS CLI</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>aws<span class="w"> </span>configure
-</pre></div>
-</div>
-<p>Alternatively, users can set the following environment variables.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">AWS_DEFAULT_REGION</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="s2">&quot;&lt;key_id&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="s2">&quot;&lt;access_key&gt;&quot;</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">AWS_SESSION_TOKEN</span><span class="o">=</span><span class="s2">&quot;&lt;token&gt;&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="about-aquila">
-<h3>About Aquila<a class="headerlink" href="#about-aquila" title="Permalink to this heading">¶</a></h3>
-<p>Aquila is a “field programmable qubit array” operated as an analog
-Hamiltonian simulator on a user-configurable architecture, executing
-programmable coherent quantum dynamics on up to 256 neutral-atom qubits.
-Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-files.com/643b94c382e84463a9e52264/648f5bf4d19795aaf36204f7_Whitepaper%20June%2023.pdf">whitepaper</a> for details.</p>
-</section>
-<section id="id4">
-<h3>Submitting<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
-<div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
-<p>The target to which quantum kernels are submitted
-can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;quera&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Due to the nature of the underlying hardware, this target only supports the
-<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
-The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be an <code class="code docutils literal notranslate"><span class="pre">Operator</span></code> of the type <code class="code docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code>. Only
-other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
-<p>For example,</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evolution_result</span> <span class="o">=</span> <span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="n">atom_sites</span><span class="o">=</span><span class="n">register</span><span class="p">,</span>
-                                            <span class="n">amplitude</span><span class="o">=</span><span class="n">omega</span><span class="p">,</span>
-                                            <span class="n">phase</span><span class="o">=</span><span class="n">phi</span><span class="p">,</span>
-                                            <span class="n">delta_global</span><span class="o">=</span><span class="n">delta</span><span class="p">),</span>
-                        <span class="n">schedule</span><span class="o">=</span><span class="n">schedule</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
-set to 100.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="n">RydbergHamiltonian</span><span class="p">(</span><span class="o">...</span><span class="p">),</span> <span class="n">schedule</span><span class="o">=</span><span class="n">s</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
-<p>To target quantum kernel code for execution on QuEra’s Aquila,
-pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quera</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quera<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>Due to the nature of the underlying hardware, this target only supports the
-<code class="docutils literal notranslate"><span class="pre">evolve</span></code> and <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> APIs.
-The <code class="code docutils literal notranslate"><span class="pre">hamiltonian</span></code> must be of the type <code class="code docutils literal notranslate"><span class="pre">rydberg_hamiltonian</span></code>. Only
-other parameters supported are <code class="code docutils literal notranslate"><span class="pre">schedule</span></code> (mandatory) and <code class="code docutils literal notranslate"><span class="pre">shots_count</span></code> (optional).</p>
-<p>For example,</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span>
-<span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(</span><span class="n">register_sites</span><span class="p">,</span><span class="w"> </span><span class="n">omega</span><span class="p">,</span><span class="w"> </span><span class="n">phi</span><span class="p">,</span><span class="w"> </span><span class="n">delta</span><span class="p">),</span>
-<span class="w">    </span><span class="n">schedule</span><span class="p">);</span>
-</pre></div>
-</div>
-<p>The number of shots for a kernel execution can be set through the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code>
-argument to <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code>. By default, the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is
-set to 100.</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">auto</span><span class="w"> </span><span class="n">evolution_result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">evolve</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">rydberg_hamiltonian</span><span class="p">(...),</span><span class="w"> </span><span class="n">schedule</span><span class="p">,</span><span class="w"> </span><span class="mi">1000</span><span class="p">);</span>
-</pre></div>
-</div>
-</div>
-</div>
-<p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#quera-examples"><span class="std std-ref">QuEra Computing examples</span></a>.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">quera</span></code> target.</p>
-</div>
-</section>
+<p>When storing the “API Token” in a file please make sure to restrict access to this file to only the account running tests.
+No other user or group on the computer must have any access to this file.</p>
 </section>
 </section>
 
@@ -1326,8 +1107,8 @@ set to 100.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="backend_iqm.html" class="btn btn-neutral float-left" title="IQM Backend Advanced Use Cases" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="photonic.html" class="btn btn-neutral float-right" title="Photonic" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="superconducting.html" class="btn btn-neutral float-left" title="Superconducting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="neutralatom.html" class="btn btn-neutral float-right" title="Neutral Atom" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

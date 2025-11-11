@@ -1822,7 +1822,7 @@ explained above.
 
 <div>
 
-![cd7c1010269a4d7f86606f6c73a75ade](../../_images/adapt-qaoa.png){.no-scaled-link
+![2e1c3160354740d9ba517644f8a882a4](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
