@@ -351,8 +351,7 @@ void IQMServerHelper::updatePassPipeline(
   if (filename) {
     // Use provided string as path+filename
     pathToFile = std::string(filename);
-  }
-  else {
+  } else {
     // Allow setting of quantum architecture file via the backend config
     auto iter = backendConfig.find("mapping_file");
     if (iter != backendConfig.end()) {
@@ -499,8 +498,8 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
         std::string(P_tmpdir) + "/qpu-architecture-XXXXXX";
     fd = mkstemp(quantumArchitectureFilePath.data());
   } else {
-    fd = open(quantumArchitectureFilePath.data(),
-              O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IRGRP | S_IROTH);
+    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT | O_EXCL,
+              S_IRUSR | S_IRGRP | S_IROTH);
   }
   if (fd < 0) {
     throw std::runtime_error("Cannot write QPU architecture file: \"" +

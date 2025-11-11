@@ -187,7 +187,7 @@ CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
   // Test 2: use quantum architecture file referenced in environment variable
   setenv("IQM_QPU_QA", dqa_filename, true);
 
-  //platform.setTargetBackend(backendString);
+  // platform.setTargetBackend(backendString);
 
   auto kernel2 = cudaq::make_kernel();
   auto qubit2 = kernel2.qalloc(2);
