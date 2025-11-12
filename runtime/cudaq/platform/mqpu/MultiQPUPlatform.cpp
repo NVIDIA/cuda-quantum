@@ -157,6 +157,7 @@ public:
       if (qpuSubType == "NvcfSimulatorQPU") {
         platformQPUs.clear();
         threadToQpuId.clear();
+        platformCurrentQPU = 0;
         auto simName = getOpt(description, "backend");
         if (simName.empty())
           simName = "custatevec-fp32";
@@ -203,6 +204,7 @@ public:
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         platformQPUs.clear();
         threadToQpuId.clear();
+        platformCurrentQPU = 0;
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
           platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
@@ -249,6 +251,7 @@ public:
               sims.size(), urls.size()));
         platformQPUs.clear();
         threadToQpuId.clear();
+        platformCurrentQPU = 0;
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
           // Populate the information and add the QPUs
