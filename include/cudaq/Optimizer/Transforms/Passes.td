@@ -1398,4 +1398,15 @@ def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
   }];
 }
 
+def QubitResetBeforeReuse : Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
+  let summary = "Add qubit reset and conditional initialization after measurement if qubit is to be reused.";
+  let description = [{
+   This pass adds qubit reset and conditionally applies an X gate if the measurement result is 1 
+   to initialize qubit into the correct state after measurement. This is only activated when the measured qubit
+   is to be reused.
+   Note: if the measurement is already accompanied by a reset, we won't add any extra reset.
+  }];
+
+}
+
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

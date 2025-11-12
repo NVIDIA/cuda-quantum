@@ -20,6 +20,7 @@ config:
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "quantinuum-gate-set-mapping"
+  jit-low-level-pipeline: "func.func(combine-quantum-alloc,qubit-reset-before-reuse)"
   # Tell the rest-qpu that we are generating Adaptive QIR.
   codegen-emission: qir-adaptive:0.1:int_computations
   # Library mode is only for simulators, physical backends must turn this off
@@ -67,6 +68,11 @@ target-arguments:
     type: string
     platform-arg: max_cost
     help-string: "Specify the max HQC cost for a job submission."
+  - key: max-qubits
+    required: false
+    type: string
+    platform-arg: max_qubits
+    help-string: "Specify the maximum number of qubits for a job submission."
   - key: noisy-simulation
     required: false
     type: string
