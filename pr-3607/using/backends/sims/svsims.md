@@ -2270,11 +2270,13 @@ environment variables must be set prior to setting the target or running
 | ate}]{.pre} | .docutils .literal | .notranslate}]{.pre}) is          |
 |             | .no                | selected; or the number of        |
 |             | translate}]{.pre}, | processes per node when NVLink    |
-|             | or [`NONE`{.code   | ([`NVL`{.code .docutils .literal  |
+|             | [`NONE`{.code      | ([`NVL`{.code .docutils .literal  |
 |             | .docutils .literal | .notranslate}]{.pre}) is          |
-|             | .n                 | selected; or disable P2P (with    |
-|             | otranslate}]{.pre} | [`NONE`{.code .docutils .literal  |
-|             |                    | .notranslate}]{.pre}).            |
+|             | .no                | selected; or disable P2P (with    |
+|             | translate}]{.pre}, | [`NONE`{.code .docutils .literal  |
+|             | or NVLink domain   | .notranslate}]{.pre}); or a       |
+|             | size (power of 2   | specific NVLink domain size.      |
+|             | integer)           |                                   |
 +-------------+--------------------+-----------------------------------+
 | [`C         | comma-separated    | Specify the network structure     |
 | UDAQ_GLOBAL | list of positive   | (faster to slower). For example,  |
@@ -2316,10 +2318,9 @@ environment variables must be set prior to setting the target or running
 |             |                    | .docutils .literal                |
 |             |                    | .notranslate}[`32`{.code          |
 |             |                    | .docutils .literal                |
-|             |                    | .notranslate}]{.pre}). Default is |
-|             |                    | an empty list (no customization   |
-|             |                    | based on network structure of the |
-|             |                    | cluster).                         |
+|             |                    | .notranslate}]{.pre}). If none    |
+|             |                    | specified, the global index bits  |
+|             |                    | are set based on P2P device bits. |
 +-------------+--------------------+-----------------------------------+
 | [`          | positive integer   | Specify host-device memory        |
 | CUDAQ_HOST_ |                    | migration w.r.t. the network      |
