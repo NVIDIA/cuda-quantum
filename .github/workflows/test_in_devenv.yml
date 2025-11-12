@@ -91,7 +91,7 @@ jobs:
           shell: bash
           run: |
             cd $CUDAQ_REPO_ROOT
-            python3 -m pip install iqm-client==16.1
+            python3 -m pip install iqm-client==28.0.0
             python3 -m pytest -v --durations=0 build/python/tests/interop/
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
@@ -136,7 +136,7 @@ jobs:
             # Rerun the MPI plugin test
             cd $CUDAQ_REPO_ROOT
             ctest --test-dir build -R MPIApiTest -V
-            external_plugin_status=$?   
+            external_plugin_status=$?
             if [ ! $external_plugin_status -eq 0 ] ; then
               echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
               exit 1
@@ -153,7 +153,7 @@ jobs:
           docker run --name cuda-quantum-dev cuda-quantum-dev:local
           docker export cuda-quantum-dev > $output_directory/$filename.tar
           docker rm -f cuda-quantum-dev
-    
+
           echo "filename=$filename" >> $GITHUB_OUTPUT
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
@@ -265,9 +265,9 @@ jobs:
               if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
                 echo "::error file=test_in_devenv.yml::Python $backendTest tests failed with status $pytest_status."
                 exit 1
-              fi 
-            done 
-            
+              fi
+            done
+
       - name: Save environment
         id: env_save
         if: inputs.export_environment
@@ -279,7 +279,7 @@ jobs:
           docker run --name dev_env dev_env:local
           docker export dev_env > $output_directory/$filename.tar
           docker rm -f dev_env
-    
+
           echo "filename=$filename" >> $GITHUB_OUTPUT
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 

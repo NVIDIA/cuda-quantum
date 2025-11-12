@@ -8,13 +8,11 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target infleqtion      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// 2 different IQM machines for 2 different topologies
-// RUN: nvq++ --target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Crystal_20 --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target infleqtion --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq       --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc        --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
