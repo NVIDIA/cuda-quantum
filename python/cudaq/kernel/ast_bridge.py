@@ -266,6 +266,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.walkingReturnNode = False
         self.controlNegations = []
         self.pushPointerValue = False
+        self.isSubscriptRoot = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
         self.currentNode = None
 
@@ -866,6 +867,34 @@ class PyASTBridge(ast.NodeVisitor):
         vecTy = cc.StdvecType.get(targetEleType) if not isTargetBool else cc.StdvecType.get(self.getIntegerType(1))
         return cc.StdvecInitOp(vecTy, targetPtr, length=sourceSize).result
 
+    def __migrateLists(self, value, migrate):
+        """
+        Replaces all lists in the given value by the list returned
+        by the `migrate` function, including inner lists. Does an
+        in-place replacement for list elements.
+        """
+        if cc.StdvecType.isinstance(value.type):
+            eleTy = cc.StdvecType.getElementType(value.type)
+            if self.containsList(eleTy):
+                size = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
+                iterable = cc.StdvecDataOp(ptrTy, value).result
+                def bodyBuilder(iterVar):
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(eleTy), iterable, [iterVar],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+                    loadedEle = cc.LoadOp(eleAddr).result
+                    element = self.__migrateLists(loadedEle, migrate)
+                    cc.StoreOp(element, eleAddr)
+                self.createInvariantForLoop(bodyBuilder, size)
+            return migrate(value)
+        if (cc.StructType.isinstance(value.type) and 
+            self.containsList(value.type)):
+            return self.__copyStructAndConvertElements(
+                value, conversion = lambda _, v: self.__migrateLists(v, migrate))
+        assert not self.containsList(value.type)
+        return value
+
     def __insertDbgStmt(self, value, dbgStmt):
         """
         Insert a debug print out statement if the programmer requested. Handles 
@@ -1339,7 +1368,7 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.StructType.isinstance(mlirVal.type):
             structName = cc.StructType.getName(mlirVal.type)
             # We need to give a proper error if we try to assign
-            # a mutable dataclass to an item in a list or a dataclass.
+            # a mutable dataclass to an item in another container.
             # Allowing this would lead to incorrect behavior (i.e.
             # inconsistent with Python) unless we change the
             # representation of structs to be like `StdvecType`
@@ -2048,33 +2077,30 @@ class PyASTBridge(ast.NodeVisitor):
             if len(kernel.type.results) == 0:
                 func.CallOp(kernel, values)
                 return
+            # The logic for calls that return values must
+            # match the logic in `visit_Return`; anything
+            # copied to the heap during return must be copied
+            # back to the stack. Compiler optimizations should
+            # take care of eliminating unnecessary copies.
             result = func.CallOp(kernel, values).result
-            # Copy to stack if necessary
-            # FIXME: needs to be updated to be recursive much like the matching return logic
-            if cc.StdvecType.isinstance(result.type):
-                elemTy = cc.StdvecType.getElementType(result.type)
-                if elemTy == self.getIntegerType(1):
-                    elemTy = self.getIntegerType(8)
-                data = cc.StdvecDataOp(cc.PointerType.get(elemTy),
-                                        result).result
-                i64Ty = self.getIntegerType(64)
-                length = cc.StdvecSizeOp(i64Ty, result).result
-                elemSize = cc.SizeOfOp(i64Ty, TypeAttr.get(elemTy)).result
-                buffer = cc.AllocaOp(cc.PointerType.get(
-                    cc.ArrayType.get(elemTy)),
-                                        TypeAttr.get(elemTy),
-                                        seqSize=length).result
-                i8PtrTy = cc.PointerType.get(self.getIntegerType(8))
-                cbuffer = cc.CastOp(i8PtrTy, buffer).result
-                cdata = cc.CastOp(i8PtrTy, data).result
+            def copy_list_to_stack(value):
                 symName = '__nvqpp_vectorCopyToStack'
                 load_intrinsic(self.module, symName)
-                sizeInBytes = arith.MulIOp(length, elemSize).result
-                func.CallOp([], symName, [cbuffer, cdata, sizeInBytes])
-                # Replace result with the stack buffer-backed vector
-                result = cc.StdvecInitOp(result.type, buffer,
-                                            length=length).result
-            return result
+                elemTy = cc.StdvecType.getElementType(value.type)
+                if elemTy == self.getIntegerType(1):
+                    elemTy = self.getIntegerType(8)
+                ptrTy = cc.PointerType.get(self.getIntegerType(8))
+                resBuf = cc.StdvecDataOp(cc.PointerType.get(elemTy), value).result
+                eleSize = cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(elemTy)).result
+                dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                stackCopy = cc.AllocaOp(cc.PointerType.get(cc.ArrayType.get(elemTy)),
+                                     TypeAttr.get(elemTy),
+                                     seqSize=dynSize).result
+                func.CallOp([], symName, [cc.CastOp(ptrTy, stackCopy).result,
+                                          cc.CastOp(ptrTy, resBuf).result,
+                                          arith.MulIOp(dynSize, eleSize).result])
+                return cc.StdvecInitOp(value.type, stackCopy, length=dynSize).result
+            return self.__migrateLists(result, copy_list_to_stack)
 
         def checkControlAndTargetTypes(controls, targets):
             """
@@ -3810,8 +3836,14 @@ class PyASTBridge(ast.NodeVisitor):
             var = self.popValue()
             self.pushPointerValue = True
         else:
+            # `isSubscriptRoot` is only used/needed to enable
+            # modification of items in lists and dataclasses 
+            # contained in a tuple
+            subscriptRoot = self.isSubscriptRoot
+            self.isSubscriptRoot = True
             self.visit(node.value)
             var = self.popValue()
+            self.isSubscriptRoot = subscriptRoot
 
         pushPtr = self.pushPointerValue
         self.pushPointerValue = False
@@ -3838,7 +3870,7 @@ class PyASTBridge(ast.NodeVisitor):
         if cc.PointerType.isinstance(var.type):
             # We should only ever get a pointer if we
             # explicitly asked for it.
-            assert self.pushPointerValue == True
+            assert self.pushPointerValue
             varType = cc.PointerType.getElementType(var.type)
             if cc.StdvecType.isinstance(varType):
                 # We can get a pointer to a vector (only) if we
@@ -3848,14 +3880,26 @@ class PyASTBridge(ast.NodeVisitor):
                     # the vector, since the underlying data is
                     # not loaded.
                     var = cc.LoadOp(var).result
+
             if cc.StructType.isinstance(varType):
+                structName = cc.StructType.getName(varType)
+                if not self.isSubscriptRoot and structName == 'tuple':
+                    self.emitFatalError("tuple value cannot be modified", node)                    
+                if not isinstance(node.slice, ast.Constant):
+                    if self.pushPointerValue:
+                        if structName == 'tuple':
+                            self.emitFatalError("tuple value cannot be modified via non-constant subscript", node)
+                        self.emitFatalError(
+                            f"{structName} value cannot be modified via non-constant subscript - use attribute access instead",
+                            node)
+
+                idxVal = node.slice.value
+                structTys = cc.StructType.getTypes(varType)
+                eleAddr = cc.ComputePtrOp(cc.PointerType.get(structTys[idxVal]), var, [],
+                                        DenseI32ArrayAttr.get([idxVal])).result
                 if self.pushPointerValue:
-                    structName = cc.StructType.getName(varType)
-                    if structName == 'tuple':
-                        self.emitFatalError("tuple value cannot be modified", node)
-                    self.emitFatalError(
-                        f"{structName} value cannot be modified - use `.copy(deep)` to create a new value that can be modified",
-                        node)
+                    self.pushValue(eleAddr)
+                    return
 
         if cc.StdvecType.isinstance(var.type):
             idx = fix_negative_idx(idx, lambda: get_size(var))
@@ -4338,73 +4382,35 @@ class PyASTBridge(ast.NodeVisitor):
                                           result,
                                           allowDemotion=True)
 
-        def getSize(ty):
-            fp_width = lambda t: 4 if F32Type.isinstance(t) else 8
-            if cc.StructType.isinstance(ty):
-                return cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(ty)).result
-            if ComplexType.isinstance(ty):
-                fType = ComplexType(ty).element_type
-                return self.getConstantInt(2 * fp_width(fType))
-            elif F32Type.isinstance(ty) or F64Type.isinstance(ty):
-                return self.getConstantInt(fp_width(ty))
-            elif IntegerType.isinstance(ty):
-                width = IntegerType(ty).width
-                return self.getConstantInt((width + 7) // 8)
-            return self.getConstantInt(8)
-
+        # Generally, anything that was allocated locally on the stack
+        # needs to be copied to the heap to ensure it lives past the
+        # the function. This holds recursively; if we have a struct
+        # that contains a list, then the list data may need to be
+        # copied if it was allocated inside the function.
         def copy_list_to_heap(value):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
+            elemTy = cc.StdvecType.getElementType(value.type)
+            if elemTy == self.getIntegerType(1):
+                elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             arrTy = cc.ArrayType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(arrTy)
             resBuf = cc.StdvecDataOp(ptrArrTy, value).result
-            eleSize = getSize(cc.StdvecType.getElementType(value.type))
+            eleSize = cc.SizeOfOp(self.getIntegerType(), TypeAttr.get(elemTy)).result
             dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                 [resBuf, dynSize, eleSize]).result
             return cc.StdvecInitOp(value.type, heapCopy, length=dynSize).result
 
-        # Generally, anything that was allocated locally on the stack
-        # needs to be copied to the heap to ensure it lives past the
-        # the function. This holds recursively; if we have a struct
-        # that contains a list, then the list data may need to be
-        # copied if it was allocated inside the function.
-        def create_return_value(res):
-            if cc.StdvecType.isinstance(res.type):
-                eleTy = cc.StdvecType.getElementType(res.type) # iterty
-                if self.containsList(eleTy):
-                    # Need to make sure all inner lists live past
-                    # this function as well.
-                    size = cc.StdvecSizeOp(self.getIntegerType(), res).result
-                    ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
-                    iterable = cc.StdvecDataOp(ptrTy, res).result
-                    def bodyBuilder(iterVar):
-                        eleAddr = cc.ComputePtrOp(
-                            cc.PointerType.get(eleTy), iterable, [iterVar],
-                            DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                        loadedEle = cc.LoadOp(eleAddr).result
-                        element = create_return_value(loadedEle)
-                        cc.StoreOp(element, eleAddr)
-                    self.createInvariantForLoop(bodyBuilder, size)
-                return res if self.isFunctionArgument(res) else copy_list_to_heap(res)
-            if not cc.StructType.isinstance(res.type):
-                assert not cc.PointerType.isinstance(res.type)
-                return res
-            if rootVal and self.isFunctionArgument(rootVal):
-                # see comment below
-                return res
-            return self.__copyStructAndConvertElements(
-                res, conversion = lambda _, v: create_return_value(v))
-        
         rootVal = self.__get_root_value(node.value)
         if rootVal and self.isFunctionArgument(rootVal):
-            # If we allow assigning a value that contains a list to an 
-            # item of a function argument (which we do - caveat below), 
-            # then we necessarily need to make a copy when we return 
-            # function arguments, or function argument elements, that 
-            # contain lists, since we have to assume that their data may 
+            # If we allow assigning a value that contains a list to an item
+            # of a function argument (which we do with the exceptions
+            # commented below), then we necessarily need to make a copy when
+            # we return function arguments, or function argument elements,
+            # that contain lists, since we have to assume that their data may 
             # be allocated on the stack. However, this leads to incorrect 
             # behavior if a returned list was indeed caller-side allocated 
             # (and should correspondingly have been returned by reference).
@@ -4412,23 +4418,27 @@ class PyASTBridge(ast.NodeVisitor):
             # updated, we instead ensure that lists contained in function
             # arguments stay recognizable as such, and prevent that function
             # arguments that contain list are returned.
-            # Caveat: We prevent that dataclass or tuple arguments or 
-            # argument items that contain lists are ever assigned to local 
-            # variables. We hence can savely return them and omit any 
-            # copies in this case.
             # NOTE: Why is seems straightforward in principle to fail only
             # for when we return *inner* lists of function arguments, this
-            # is still not desirable; even if we return the reference to
-            # the outer list correctly, any callerside assignment of the 
-            # return value would no longer be recognizable as being the
-            # same reference given as argument, which is a problem if the
-            # list was an argument to the caller. I.e. while this works for
-            # one function indirection, it does not for two. 
-            if not cc.StructType.isinstance(result.type) and \
-                self.containsList(result.type):
+            # is still not a good option for two reasons:
+            # 1) Even if we return the reference to the outer list correctly,
+            # any caller-side assignment of the return value would no longer
+            # be recognizable as being the same reference given as argument, 
+            # which is a problem if the list was an argument to the caller. 
+            # I.e. while this works for one function indirection, it does 
+            # not work for two (see assignment tests).
+            # 2) To ensure that we don't have any memory leaks, we copy any
+            # lists returned from function calls to the stack. This copy (as
+            # of the time of writing this) results in a segfault when the
+            # list is not on the heap. As it is, we hence indeed have to copy
+            # every returned list to the heap, followed by a copy to the stack
+            # in the caller. Subsequent optimization passes should largely
+            # eliminate unnecessary copies.  
+            if (self.containsList(result.type)):
                 self.emitFatalError("return value must not contain a list that is a function argument or an item in a function argument - for device kernels, lists passed as arguments will be modified in place", node)
+        else:
+            result = self.__migrateLists(result, copy_list_to_heap)
 
-        result = create_return_value(result)
         if self.symbolTable.numLevels() > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])

@@ -153,6 +153,25 @@ def test_list_update():
     results = cudaq.run(test8, shots_count=1)
     assert len(results) == 1 and results[0] == (4, 6, 3)
 
+    @cudaq.kernel
+    def create_list_list_int(val: int, size: tuple[int, int]) -> list[list[int]]:
+        inner_list = [val for _ in range(size[1])]
+        return [inner_list.copy() for _ in range(size[0])]
+
+    @cudaq.kernel
+    def test9() -> int:
+        ls = create_list_list_int(1, (3, 4))
+        tot = 0
+        ls[1] = [5]
+        ls[2][3] = 2
+        inner = ls[2]
+        inner[1] = 2
+        for l in ls:
+            tot += sum(l)
+        return tot
+    
+    assert test9() == 15
+
 
 def test_list_update_failures():
 
@@ -481,18 +500,34 @@ def test_list_of_tuple_updates():
     assert test12() == [3, 3, 4, 4, 1, 2]
 
     @cudaq.kernel
-    def get_list_item(ls: list[tuple[list[int], list[int]]], idx: int) -> tuple[list[int], list[int]]:
-        return ls[idx]
+    def modify_first_item(ls: list[tuple[list[int], list[int]]], idx: int, val: int):
+        ls[0][0][idx] = val
 
     @cudaq.kernel
     def test13() -> list[int]:
         l1 = [0, 0]
         tlist = [(l1, l1)]
-        t = get_list_item(tlist, 0)
-        l1[0] = 2
+        modify_first_item(tlist, 0, 2)
+        l1[1] = 3
+        t = tlist[0]
         return [t[0][0], t[0][1], t[1][0], t[1][1], l1[0], l1[1]]
-    
-    assert test13() == [2, 0, 2, 0, 2, 0]
+
+    assert test13() == [2, 3, 2, 3, 2, 3]
+
+    @dataclass(slots=True)
+    class NumberedTuple:
+        idx: int
+        vals: tuple[int, list[int]]
+
+    @cudaq.kernel
+    def test7() -> list[int]:
+        l = [1]
+        t = NumberedTuple(0, (0, [0]))
+        t.vals = (1, l)
+        t.vals[1][0] = 2
+        return [t.idx, t.vals[0], t.vals[1][0], l[0]]
+
+    assert test7() == [0, 1, 2, 2]
 
 
 def test_list_of_tuple_update_failures():
@@ -522,7 +557,6 @@ def test_list_of_tuple_update_failures():
         print(test2)
     assert 'tuple value cannot be modified' in str(e.value)
 
-
     @cudaq.kernel
     def assign_and_return_list_tuple(value: tuple[list[int], list[int]]) -> tuple[list[int], list[int]]:
         local = ([1], [1])
@@ -540,6 +574,62 @@ def test_list_of_tuple_update_failures():
     with pytest.raises(RuntimeError) as e:
         test3() # should output [2,2,2,2,2]
     assert 'cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list' in str(e.value)
+
+    @cudaq.kernel
+    def get_item(ls: list[tuple[list[int], list[int]]], idx: int) -> tuple[list[int], list[int]]:
+        return ls[idx]
+
+    @cudaq.kernel
+    def test4() -> list[int]:
+        l1 = [0, 0]
+        tlist = [(l1, l1)]
+        t = get_item(tlist, 0)
+        l1[1] = 3
+        # If we allowed the return in modify_and_return_item,
+        # the correct output would be [0, 3, 0, 3, 0, 3]
+        return [t[0][0], t[0][1], t[1][0], t[1][1], l1[0], l1[1]]
+
+    with pytest.raises(RuntimeError) as e:
+        test4()
+    assert 'return value must not contain a list that is a function argument or an item in a function argument' in str(e.value)
+    assert '(offending source -> return ls[idx])' in str(e.value)
+
+    @cudaq.kernel
+    def test5():
+        l = [(0, 1) for _ in range(3)]
+        l[0][1] = 2
+
+    with pytest.raises(RuntimeError) as e:
+        test5()
+    assert 'tuple value cannot be modified' in str(e.value)
+    assert '(offending source -> l[0][1])' in str(e.value)
+
+    @cudaq.kernel
+    def test6():
+        l = [(0, [(1, 1)]) for _ in range(3)]
+        l[-1][1][0] = (2, 2)
+        l[2][1][0][0] = 3
+
+    with pytest.raises(RuntimeError) as e:
+        test6()
+    assert 'tuple value cannot be modified' in str(e.value)
+    assert '(offending source -> l[2][1][0][0])' in str(e.value)
+
+    @dataclass(slots=True)
+    class NumberedTuple:
+        idx: int
+        vals: tuple[int, list[int]]
+
+    @cudaq.kernel
+    def test7():
+        t = NumberedTuple(0, (0, [0]))
+        t.vals = (1, [1])
+        t.vals[1] = [2]
+
+    with pytest.raises(RuntimeError) as e:
+        test7()
+    assert 'tuple value cannot be modified' in str(e.value)
+    assert '(offending source -> t.vals[1])' in str(e.value)
 
 
 def test_list_of_dataclass_updates():
@@ -666,18 +756,42 @@ def test_list_of_dataclass_updates():
     assert test7(False) == [5, 1, 5, 1, 5, 1]    
 
     @cudaq.kernel
-    def get_list_item(ls: list[MyTuple], idx: int) -> MyTuple:
-        return ls[idx]
+    def modify_MyTuple(ls: list[MyTuple], idx: int, val: list[int]):
+        ls[idx].l1 = val.copy()
+        ls[idx].l2 = val
 
     @cudaq.kernel
     def test8() -> list[int]:
-        l1 = [0, 0]
-        tlist = [MyTuple(l1, l1)]
-        t = get_list_item(tlist, 0)
-        t.l1[0] = 2
-        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
+        default = [0]
+        vals = [1, 1]
+        tlist = [MyTuple(default, default)]
+        modify_MyTuple(tlist, 0, vals)
+        tlist[0].l1[0] = 2
+        return flatten([default, vals, tlist[0].l1, tlist[0].l2])
     
-    assert test8() == [2, 0, 2, 0, 2, 0]
+    assert test8() == [0, 1, 1, 2, 1, 1, 1]
+
+    @cudaq.kernel
+    def test9() -> list[int]:
+        default = [0]
+        vals = [1, 1]
+        tlist = [MyTuple(default, default)]
+        modify_MyTuple(tlist, 0, vals)
+        vals[0] = 2
+        return flatten([default, vals, tlist[0].l1, tlist[0].l2])
+    
+    assert test9() == [0, 2, 1, 1, 1, 2, 1]
+
+    @cudaq.kernel
+    def test10() -> list[int]:
+        default = [0]
+        vals = [1, 1]
+        tlist = [MyTuple(default, default)]
+        modify_MyTuple(tlist, 0, vals)
+        tlist[0].l2[0] = 3
+        return flatten([default, vals, tlist[0].l1, tlist[0].l2])
+    
+    assert test10() == [0, 3, 1, 1, 1, 3, 1]
 
 
 def test_list_of_dataclass_update_failures():
@@ -824,6 +938,26 @@ def test_list_of_dataclass_update_failures():
         test7()
     assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in str(e.value)
     assert '(offending source -> old.l1)' in str(e.value)
+
+    @cudaq.kernel
+    def modify_and_return_item(ls: list[MyTuple], idx: int) -> MyTuple:
+        ls[idx].l1[0] = 2
+        return ls[idx]
+
+    @cudaq.kernel
+    def test8() -> list[int]:
+        l1 = [0, 0]
+        tlist = [MyTuple(l1, l1)]
+        t = modify_and_return_item(tlist, 0)
+        t.l1[1] = 3
+        # If we allowed the return in modify_and_return_item,
+        # the correct output would be [2, 3, 2, 3, 2, 3]
+        return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
+
+    with pytest.raises(RuntimeError) as e:
+        test8()
+    assert 'return value must not contain a list that is a function argument or an item in a function argument' in str(e.value)
+    assert '(offending source -> return ls[idx])' in str(e.value)
 
 
 def test_list_of_list_updates():
@@ -1059,9 +1193,9 @@ def test_function_arguments():
     # Case 2: value is item in function arg
     # Case a: value is a list
     # Case b: value is a tuple that does not contain a list
-    # Case c: value is a tuple that contain a list
+    # Case c: value is a tuple that contains a list
     # Case d: value is a dataclass that does not contain a list
-    # Case e: value is a dataclass that contain a list
+    # Case e: value is a dataclass that contains a list
 
     # Assignment to the same scope
 
