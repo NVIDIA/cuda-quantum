@@ -636,7 +636,7 @@ jobs:
                 ;;
 
               iqm)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
+                nvq++ -DSYNTAX_CHECK --target iqm $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
