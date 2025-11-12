@@ -95,8 +95,7 @@ while IFS= read -r line; do
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
         if [ -n "${extra_packages}" ]; then 
-            eval "pip install pypiserver"
-            eval "pypi-server run -p 8080 ${extra_packages} &"
+            eval "pip install cudaq --find-links ${extra_packages}"
         fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
@@ -182,6 +181,7 @@ fi
 # Some snippets generate plots
 python3 -m pip install --user matplotlib
 for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
+    echo "Executing $ex"
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
         echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -190,6 +190,7 @@ for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
 done
 if [ -n "${NVQC_API_KEY}" ]; then
     for ex in `find "$root_folder/snippets" -name '*.py' -path '*/nvqc/*'`; do
+        echo "Executing $ex"
         python3 "$ex"
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -219,6 +220,7 @@ for ex in `find "$root_folder/examples" -name '*.py'`; do
         fi
     done
     if ! $skip_example; then 
+        echo "Executing $ex"
         python3 "$ex"
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -238,9 +240,28 @@ if [ -d "$root_folder/targets" ]; then
                 # to submit a (paid) job to Amazon Braket (includes QuEra).
                 echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
                 skip_example=true
+            elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target fermioniq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "qci" ] && [ -z "${QCI_AUTH_TOKEN}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target qci in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "nvqc" ] && [ -z "${NVQC_API_KEY}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target nvqc in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
             fi
         done
         if ! $skip_example; then 
+            echo "Executing $ex"
             python3 "$ex"
             if [ ! $? -eq 0 ]; then
                 echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
