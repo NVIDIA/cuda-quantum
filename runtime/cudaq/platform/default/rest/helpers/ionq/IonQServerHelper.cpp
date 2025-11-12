@@ -71,10 +71,11 @@ public:
                                       std::string &jobId) override;
 
   /// @brief extract the job shots url from jobs returned by Ion API
-  std::string getShotsUrl(nlohmann::json_v3_11_1::json &jobs, 
+  std::string getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
                           const char *DEFAULT_URL);
 
-  /// @brief Verify if shot-wise output was requested by user and can be extracted
+  /// @brief Verify if shot-wise output was requested by user and can be
+  /// extracted
   bool shotWiseOutputIsNeeded(nlohmann::json_v3_11_1::json &jobs);
 
 private:
@@ -364,7 +365,7 @@ bool IonQServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   return jobs[0].at("status").get<std::string>() == "completed";
 }
 
-std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs, 
+std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
                                           const char *DEFAULT_URL) {
   if (!keyExists("url"))
     throw std::runtime_error("Key 'url' doesn't exist in backendConfig.");
@@ -372,18 +373,18 @@ std::string IonQServerHelper::getShotsUrl(nlohmann::json_v3_11_1::json &jobs,
   std::string base_url = backendConfig.at("url");
   std::string shotsUrl = "";
 
-  if (!jobs.empty() &&
-      jobs[0].contains("results") &&
+  if (!jobs.empty() && jobs[0].contains("results") &&
       jobs[0].at("results").contains("shots") &&
       jobs[0].at("results").at("shots").contains("url")) {
-      shotsUrl = base_url +
-        jobs[0].at("results").at("shots").at("url").get<std::string>();
+    shotsUrl = base_url +
+               jobs[0].at("results").at("shots").at("url").get<std::string>();
   }
 
   return shotsUrl;
 }
 
-bool IonQServerHelper::shotWiseOutputIsNeeded(nlohmann::json_v3_11_1::json &jobs) {
+bool IonQServerHelper::shotWiseOutputIsNeeded(
+    nlohmann::json_v3_11_1::json &jobs) {
   std::string noiseModel = "ideal";
   if (!jobs.empty() && jobs[0].contains("noise") &&
       jobs[0]["noise"].contains("model")) {
@@ -394,12 +395,13 @@ bool IonQServerHelper::shotWiseOutputIsNeeded(nlohmann::json_v3_11_1::json &jobs
 
   std::string target = "simulator";
   if (!jobs.empty() && jobs[0].contains("target")) {
-      target = jobs[0]["target"].get<std::string>();
+    target = jobs[0]["target"].get<std::string>();
   } else if (keyExists("target")) {
     target = backendConfig["target"];
   }
 
-  bool targetHasMemoryOption = keyExists("memory") && backendConfig["memory"] == "true";
+  bool targetHasMemoryOption =
+      keyExists("memory") && backendConfig["memory"] == "true";
   bool targetHasNoiseModel = noiseModel != "ideal";
   bool targetIsNotSimulator = target != "simulator";
 
@@ -516,16 +518,17 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
       int64_t s = std::stoull(element.value().get<std::string>());
       std::string bitString = std::bitset<64>(s).to_string();
       auto firstone = bitString.find_first_not_of('0');
-      bitString = (firstone == std::string::npos) ? "0" : bitString.substr(firstone);
+      bitString =
+          (firstone == std::string::npos) ? "0" : bitString.substr(firstone);
       if (bitString.size() < static_cast<size_t>(nQubits)) {
-          bitString.insert(bitString.begin(),
-          static_cast<size_t>(nQubits) - bitString.size(), '0');
-        }
+        bitString.insert(bitString.begin(),
+                         static_cast<size_t>(nQubits) - bitString.size(), '0');
+      }
       bitStrings.push_back(bitString);
     }
 
     if (!execResults.empty())
-        execResults[0].sequentialData = std::move(bitStrings);
+      execResults[0].sequentialData = std::move(bitStrings);
   }
 
   // Return a sample result including the global register and all individual
