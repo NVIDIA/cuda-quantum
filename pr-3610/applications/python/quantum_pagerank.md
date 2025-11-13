@@ -1746,6 +1746,21 @@ aria-hidden="true"}](uccsd_wf_ansatz.html "The UCCSD Wavefunction ansatz"){.btn
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
+    # Install the relevant packages.
+    !pip install networkx==3.5
+:::
+:::
+:::
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [2]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
     import networkx as nx
     import matplotlib.pyplot as plt
     import numpy as np
@@ -1790,7 +1805,7 @@ importance of each member within the social structure:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [3]:
 :::
 :::
 
@@ -1809,7 +1824,7 @@ importance of each member within the social structure:
 :::
 
 ::: {.output_area .docutils .container}
-![](../../_images/applications_python_quantum_pagerank_4_0.png)
+![](../../_images/applications_python_quantum_pagerank_5_0.png)
 :::
 :::
 
@@ -1845,7 +1860,7 @@ their "vote of importance" is evenly split among those [\\(m\\)]{.math
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [4]:
 :::
 :::
 
@@ -1887,7 +1902,7 @@ probability of [\\(1/N\\)]{.math .notranslate .nohighlight}.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [5]:
 :::
 :::
 
@@ -1981,7 +1996,7 @@ efficiently solving time-evolved states. Let's get started:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [6]:
 :::
 :::
 
@@ -2022,7 +2037,7 @@ the operator [\\(L(i,j)\\)]{.math .notranslate .nohighlight} describes a
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [7]:
 :::
 :::
 
@@ -2061,7 +2076,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [8]:
 :::
 :::
 
@@ -2103,7 +2118,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [9]:
 :::
 :::
 
@@ -2121,7 +2136,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [10]:
 :::
 :::
 
@@ -2163,7 +2178,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 :::
 
 ::: {.output_area .docutils .container}
-![](../../_images/applications_python_quantum_pagerank_19_0.png)
+![](../../_images/applications_python_quantum_pagerank_20_0.png)
 :::
 :::
 
@@ -2185,7 +2200,7 @@ simulation:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [11]:
 :::
 :::
 
@@ -2211,14 +2226,14 @@ simulation:
 :::
 
 ::: {.output_area .docutils .container}
-![](../../_images/applications_python_quantum_pagerank_21_0.png)
+![](../../_images/applications_python_quantum_pagerank_22_0.png)
 :::
 :::
 
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [11]:
+    [12]:
 :::
 :::
 
@@ -2235,7 +2250,7 @@ simulation:
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 05a01cac7c4673cd7f88ce412f21240e414884b7)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f8c9c1507fd2741c0af980b9b7028729b1ecc58d)
 :::
 :::
 :::

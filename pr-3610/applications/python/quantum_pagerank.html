@@ -1021,6 +1021,15 @@
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">networkx</span><span class="o">==</span><span class="m">3</span>.5
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -1040,7 +1049,7 @@
 <p>PageRank has broad applications across various fields: ranking web pages in search engines, identifying influential individuals in social networks, recommending products in recommendation systems, and measuring the impact of research papers in scientific citation networks.</p>
 <p>Here, we use the Karate Club graph as an example network to rank the importance of each member within the social structure:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load and visualize the Karate Club graph</span>
@@ -1054,7 +1063,7 @@
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_quantum_pagerank_4_0.png" src="../../_images/applications_python_quantum_pagerank_4_0.png" />
+<img alt="../../_images/applications_python_quantum_pagerank_5_0.png" src="../../_images/applications_python_quantum_pagerank_5_0.png" />
 </div>
 </div>
 <p>The mathematical foundations of the PageRank algorithm include <strong>Link matrix</strong> <span class="math notranslate nohighlight">\(\mathbf{L}\)</span> and <strong>PageRank Matrix</strong> <span class="math notranslate nohighlight">\(\mathbf{P}\)</span>. Let’s explore their definitions and meanings: For <strong>Social Network Analysis (SNA)</strong>, the Link matrix <span class="math notranslate nohighlight">\(\mathbf{L}\)</span> is used to represent how influence, information, or relationships flow between people (nodes). The entry <span class="math notranslate nohighlight">\(L_{ij}\)</span> in row <span class="math notranslate nohighlight">\(i\)</span>, column <span class="math notranslate nohighlight">\(j\)</span> of the matrix shows how much influence person <span class="math notranslate nohighlight">\(j\)</span> gives to person <span class="math notranslate nohighlight">\(i\)</span>
@@ -1067,7 +1076,7 @@ with the following definition:</p>
 \end{cases}\end{split}\]</div>
 <p>The Normalization <span class="math notranslate nohighlight">\(\frac{1}{d_j^{\text{out}}}\)</span> by the out-degree of node <span class="math notranslate nohighlight">\(j\)</span> can be interpreted as the normalized distribution of influence across the network. That is to say, if person <span class="math notranslate nohighlight">\(j\)</span> follows a few people, then their “vote of importance” is evenly split among those <span class="math notranslate nohighlight">\(m\)</span> people. So, <span class="math notranslate nohighlight">\(L_{ij} = \frac{1}{m}\)</span> for each connection.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Number of nodes/members</span>
@@ -1090,7 +1099,7 @@ with the following definition:</p>
 \[\mathbf{P} = \alpha \mathbf{L} + (1 - \alpha) \frac{1}{N} \mathbf{E}\]</div>
 <p>The matrix models the walker’s behavior by capturing the probabilities of moving between nodes (with damping factor <span class="math notranslate nohighlight">\(\alpha\)</span>), considering both the network’s link structure (via link matrix <span class="math notranslate nohighlight">\(\mathbf{L}\)</span>) and the possibility of random jumps through the teleportation matrix <span class="math notranslate nohighlight">\(\mathbf{E}\)</span>, which ensures unbiased exploration of all nodes with a probability of <span class="math notranslate nohighlight">\(1/N\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define parameters</span>
@@ -1135,7 +1144,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <p>In brief, this framework naturally extends PageRank, where the dissipators <span class="math notranslate nohighlight">\(L_k\)</span> encode stochastic teleportation, similar to the random jumps in classical PageRank. The <strong>Quantum PageRank (QPR)</strong> model based on quantum spatial walks can reveal hidden structures for some networks, enhance ranking sensitivity, and achieve comparable or faster convergence compared to its classical counterpart.</p>
 <p>Given the time-dependent nature of quantum stochastic walks, CUDA-Q Dynamic leverages GPU acceleration and provides a suite of APIs for efficiently solving time-evolved states. Let’s get started:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1155,7 +1164,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 \[L(i,j) = |i\rangle \langle j| \quad\]</div>
 <p>where the indices <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(j\)</span> label the nodes in the network as well as the Lindblad operators. This notation indicates that the operator <span class="math notranslate nohighlight">\(L(i,j)\)</span> describes a <strong>transition</strong> from state <span class="math notranslate nohighlight">\(|j\rangle\)</span> to state <span class="math notranslate nohighlight">\(|i\rangle\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">lindblad_op</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
@@ -1185,7 +1194,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 </div>
 <p>Simply simulate the dynamic system via the <code class="docutils literal notranslate"><span class="pre">evolve</span></code> API with <code class="docutils literal notranslate"><span class="pre">&quot;dynamics&quot;</span></code> backend of CUDA-Q:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;dynamics&quot;</span><span class="p">)</span>
@@ -1221,7 +1230,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># For cases where 0 &lt; ω &lt; 1 (e.g., ω = 0.6), the dynamics follow a quantum Stochastic Walk with both coherent and incoherent (dissipative) evolution</span>
@@ -1233,7 +1242,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compare the results with NetworkX&#39;s built-in PageRank algorithm</span>
@@ -1270,14 +1279,14 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_quantum_pagerank_19_0.png" src="../../_images/applications_python_quantum_pagerank_19_0.png" />
+<img alt="../../_images/applications_python_quantum_pagerank_20_0.png" src="../../_images/applications_python_quantum_pagerank_20_0.png" />
 </div>
 </div>
 <p>Note that the ranking results obtained by the Quantum PageRank algorithm show smoother ranking distribution, which reduces the dominance of major hubs, allowing less connected nodes to be fairly recognized. This facilitates the identification of secondary hubs and reveals finer structural details within the network, offering a more nuanced and continuous scale of node importance for complex networks.</p>
 <hr class="docutils" />
 <p>Finally, let’s visualize the ranking results, representing the influence of each node, from the Quantum PageRank using the <code class="docutils literal notranslate"><span class="pre">CUDA-Q</span> <span class="pre">Dynamic</span></code> simulation:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Scale the node sizes</span>
@@ -1298,11 +1307,11 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
-<img alt="../../_images/applications_python_quantum_pagerank_21_0.png" src="../../_images/applications_python_quantum_pagerank_21_0.png" />
+<img alt="../../_images/applications_python_quantum_pagerank_22_0.png" src="../../_images/applications_python_quantum_pagerank_22_0.png" />
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1314,7 +1323,7 @@ evolution</strong> and <strong>incoherent stochastic dynamics</strong>, describe
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum 05a01cac7c4673cd7f88ce412f21240e414884b7)
+CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f8c9c1507fd2741c0af980b9b7028729b1ecc58d)
 </pre></div></div>
 </div>
 </section>
