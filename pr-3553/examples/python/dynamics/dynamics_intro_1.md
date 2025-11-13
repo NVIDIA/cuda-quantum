@@ -884,6 +884,51 @@ pr-3553
             -   [What to
                 Expect:](../../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](../../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../../../using/backends/backends.html){.reference
     .internal}
     -   [Circuit
@@ -1858,7 +1903,7 @@ initial state of the system - Execute the simulation with
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
+    [ ]:
 :::
 :::
 
@@ -1935,7 +1980,7 @@ chedule
     cavity_state[1][1] = 1.0
 
     # Construct the Density Matrix
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 
     # Define our timesteps
     steps = np.linspace(0, 10, 201)
@@ -2060,12 +2105,12 @@ below to now simulate 20 photons in the cavity.
     qubit_state = cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128)
 
 
-    # Cavity in a state which has 1 photons initially
+    # Cavity in a state which has 20 photons initially
     cavity_state = cp.zeros((21, 21), dtype=cp.complex128)
     cavity_state[20][20] = 1.0
 
     # Construct the Density Matrix
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 :::
 :::
 :::
@@ -2274,7 +2319,7 @@ one photon.
     cavity_state[1][1] = 1.0
 
     # Construct the Density Matrix
-    rho0 = cudaq.State.from_data(cp.kron(qubit_state, cavity_state))
+    rho0 = cudaq.State.from_data(cp.kron(cavity_state, qubit_state))
 :::
 :::
 :::
@@ -2504,7 +2549,7 @@ resonator with 10 photons.
 
     composite_state = cavity_state
     for i in range(1,no_qubits+1):
-        composite_state = cp.kron(composite_state,qubit_g)
+        composite_state = cp.kron(qubit_g, composite_state)
 
     # Construct the Density Matrix
     rho0 = cudaq.State.from_data(composite_state)

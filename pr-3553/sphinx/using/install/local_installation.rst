@@ -834,10 +834,10 @@ by running the command
 .. note::
 
   Please check if you have an existing installation of the `cuda-quantum`, 
-  `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, 
+  `cudaq-quantum-cu12`, or `cuda-quantum-cu13` package, 
   and uninstall it prior to installing `cudaq`. The `cudaq` package supersedes the
   `cuda-quantum` package and will install a suitable binary distribution (either 
-  `cuda-quantum-cu11` or `cuda-quantum-cu12`) for your system. Multiple versions 
+  `cuda-quantum-cu12` or `cuda-quantum-cu13`) for your system. Multiple versions 
   of a CUDA-Q binary distribution will conflict with each other and not work properly.
 
 If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your 
@@ -892,9 +892,11 @@ The following table summarizes the required components.
     * - NVIDIA GPU with Compute Capability
       - 7.5+
     * - CUDA
-      - 12.x (Driver 525.60.13+), 13.x (Driver 580.65.06+)
-
-Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
+      - • 12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility  
+        • 12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture  
+        • 13.x (Driver 580.65.06+)
+        
+Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__. For more information on GPU forward capabilities, please refer to `this page <https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html>`__.
 
 .. note::
 

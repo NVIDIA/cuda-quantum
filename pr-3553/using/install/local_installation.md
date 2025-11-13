@@ -892,6 +892,51 @@ pr-3553
             -   [What to
                 Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../backends/backends.html){.reference .internal}
     -   [Circuit Simulation](../backends/simulators.html){.reference
         .internal}
@@ -2966,14 +3011,14 @@ Note
 
 Please check if you have an existing installation of the
 [`cuda-quantum`{.code .docutils .literal .notranslate}]{.pre},
-[`cudaq-quantum-cu11`{.code .docutils .literal .notranslate}]{.pre}, or
-[`cuda-quantum-cu12`{.code .docutils .literal .notranslate}]{.pre}
+[`cudaq-quantum-cu12`{.code .docutils .literal .notranslate}]{.pre}, or
+[`cuda-quantum-cu13`{.code .docutils .literal .notranslate}]{.pre}
 package, and uninstall it prior to installing [`cudaq`{.code .docutils
 .literal .notranslate}]{.pre}. The [`cudaq`{.code .docutils .literal
 .notranslate}]{.pre} package supersedes the [`cuda-quantum`{.code
 .docutils .literal .notranslate}]{.pre} package and will install a
-suitable binary distribution (either [`cuda-quantum-cu11`{.code
-.docutils .literal .notranslate}]{.pre} or [`cuda-quantum-cu12`{.code
+suitable binary distribution (either [`cuda-quantum-cu12`{.code
+.docutils .literal .notranslate}]{.pre} or [`cuda-quantum-cu13`{.code
 .docutils .literal .notranslate}]{.pre}) for your system. Multiple
 versions of a CUDA-Q binary distribution will conflict with each other
 and not work properly.
@@ -3046,8 +3091,14 @@ Systems]{.caption-text}[¶](#id11 "Permalink to this table"){.headerlink}
 | NVIDIA GPU with Compute  | 7.5+                                       |
 | Capability               |                                            |
 +--------------------------+--------------------------------------------+
-| CUDA                     | 12.x (Driver 525.60.13+), 13.x (Driver     |
-|                          | 580.65.06+)                                |
+| CUDA                     | -   12.x (Driver 525.60.13+) -- For GPUs   |
+|                          |     that support CUDA Forward              |
+|                          |     Compatibility                          |
+|                          |                                            |
+|                          | -   12.6+ (Driver 560.35.05+) -- For all   |
+|                          |     GPUs with supported architecture       |
+|                          |                                            |
+|                          | -   13.x (Driver 580.65.06+)               |
 +--------------------------+--------------------------------------------+
 
 : [Requirements for GPU
@@ -3056,6 +3107,9 @@ Simulation]{.caption-text}[¶](#id12 "Permalink to this table"){.headerlink}
 Detailed information about supported drivers for different CUDA versions
 and be found
 [here](https://docs.nvidia.com/deploy/cuda-compatibility/){.reference
+.external}. For more information on GPU forward capabilities, please
+refer to [this
+page](https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html){.reference
 .external}.
 
 ::: {.admonition .note}

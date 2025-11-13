@@ -550,6 +550,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="../backends.html">   Backends</a><ul class="current">
@@ -1215,12 +1238,12 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 <td><p>Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GPU_FABRIC</span></code></p></td>
-<td><p><code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>, <code class="code docutils literal notranslate"><span class="pre">NVL</span></code>, or <code class="code docutils literal notranslate"><span class="pre">NONE</span></code></p></td>
-<td><p>Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (<code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>) is selected; or the number of processes per node when NVLink (<code class="code docutils literal notranslate"><span class="pre">NVL</span></code>) is selected; or disable P2P (with <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>).</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>, <code class="code docutils literal notranslate"><span class="pre">NVL</span></code>, <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>, or NVLink domain size (power of 2 integer)</p></td>
+<td><p>Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (<code class="code docutils literal notranslate"><span class="pre">MNNVL</span></code>) is selected; or the number of processes per node when NVLink (<code class="code docutils literal notranslate"><span class="pre">NVL</span></code>) is selected; or disable P2P (with <code class="code docutils literal notranslate"><span class="pre">NONE</span></code>); or a specific NVLink domain size.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code></p></td>
 <td><p>comma-separated list of positive integers</p></td>
-<td><p>Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> environment variable can be set to <code class="code docutils literal notranslate"><span class="pre">3,2</span></code>. The first <code class="code docutils literal notranslate"><span class="pre">3</span></code> (<code class="code docutils literal notranslate"><span class="pre">log2(8)</span></code>) represents <strong>8</strong> processes with fast communication within the group and the second <code class="code docutils literal notranslate"><span class="pre">2</span></code> represents the <strong>4</strong> groups (8 processes each) in those total 32 processes. The sum of all elements in this list is <code class="code docutils literal notranslate"><span class="pre">5</span></code>, corresponding to the total number of MPI processes (<code class="code docutils literal notranslate"><span class="pre">2^5</span> <span class="pre">=</span> <span class="pre">32</span></code>). Default is an empty list (no customization based on network structure of the cluster).</p></td>
+<td><p>Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the <code class="code docutils literal notranslate"><span class="pre">CUDAQ_GLOBAL_INDEX_BITS</span></code> environment variable can be set to <code class="code docutils literal notranslate"><span class="pre">3,2</span></code>. The first <code class="code docutils literal notranslate"><span class="pre">3</span></code> (<code class="code docutils literal notranslate"><span class="pre">log2(8)</span></code>) represents <strong>8</strong> processes with fast communication within the group and the second <code class="code docutils literal notranslate"><span class="pre">2</span></code> represents the <strong>4</strong> groups (8 processes each) in those total 32 processes. The sum of all elements in this list is <code class="code docutils literal notranslate"><span class="pre">5</span></code>, corresponding to the total number of MPI processes (<code class="code docutils literal notranslate"><span class="pre">2^5</span> <span class="pre">=</span> <span class="pre">32</span></code>). If none specified, the global index bits are set based on P2P device bits.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_HOST_DEVICE_MIGRATION_LEVEL</span></code></p></td>
 <td><p>positive integer</p></td>

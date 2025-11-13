@@ -550,6 +550,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../backends/backends.html">   Backends</a><ul>
@@ -1671,10 +1694,10 @@ by running the command</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Please check if you have an existing installation of the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
-<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package,
+<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu12</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code> package,
 and uninstall it prior to installing <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code>. The <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> package supersedes the
 <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code> package and will install a suitable binary distribution (either
-<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu11</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code>) for your system. Multiple versions
+<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code>) for your system. Multiple versions
 of a CUDA-Q binary distribution will conflict with each other and not work properly.</p>
 </div>
 <p>If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your
@@ -1734,11 +1757,16 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <td><p>7.5+</p></td>
 </tr>
 <tr class="row-odd"><td><p>CUDA</p></td>
-<td><p>12.x (Driver 525.60.13+), 13.x (Driver 580.65.06+)</p></td>
+<td><ul class="simple">
+<li><p>12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility</p></li>
+<li><p>12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture</p></li>
+<li><p>13.x (Driver 580.65.06+)</p></li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
-<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
+<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>. For more information on GPU forward capabilities, please refer to <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html">this page</a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Tegra devices (Jetson) are not supported in CUDA-Q at this time.</p>

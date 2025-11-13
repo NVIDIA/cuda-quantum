@@ -553,6 +553,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
@@ -1031,7 +1054,7 @@ qubits can be controlled by external control pulses and the readout process used
 <p><span class="math notranslate nohighlight">\(\hat{H}_{interaction} = \hbar g_c (\hat \sigma_+ \hat a_c + \hat \sigma_- \hat a^\dagger_c)\)</span></p>
 <p>In this section, we will simulate JC Hamiltonian. You will learn to: - Define the dimensions of the system - Construct the Hamiltonian with CUDA-Q <code class="docutils literal notranslate"><span class="pre">operators</span></code> - Define the initial state of the system - Execute the simulation with <code class="docutils literal notranslate"><span class="pre">cudaq.evolve()</span></code></p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import necessary packages</span>
@@ -1086,7 +1109,7 @@ qubits can be controlled by external control pulses and the readout process used
 <span class="n">cavity_state</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
 <span class="c1"># Construct the Density Matrix</span>
-<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">qubit_state</span><span class="p">,</span> <span class="n">cavity_state</span><span class="p">))</span>
+<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">cavity_state</span><span class="p">,</span> <span class="n">qubit_state</span><span class="p">))</span>
 
 <span class="c1"># Define our timesteps</span>
 <span class="n">steps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">201</span><span class="p">)</span>
@@ -1170,12 +1193,12 @@ Text(0.5, 1.0, &#39;No decay&#39;)
 <span class="n">qubit_state</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 
 
-<span class="c1"># Cavity in a state which has 1 photons initially</span>
+<span class="c1"># Cavity in a state which has 20 photons initially</span>
 <span class="n">cavity_state</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">21</span><span class="p">,</span> <span class="mi">21</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 <span class="n">cavity_state</span><span class="p">[</span><span class="mi">20</span><span class="p">][</span><span class="mi">20</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
 <span class="c1"># Construct the Density Matrix</span>
-<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">qubit_state</span><span class="p">,</span> <span class="n">cavity_state</span><span class="p">))</span>
+<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">cavity_state</span><span class="p">,</span> <span class="n">qubit_state</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1317,7 +1340,7 @@ Text(0.5, 1.0, &#39;With decay&#39;)
 <span class="n">cavity_state</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
 <span class="c1"># Construct the Density Matrix</span>
-<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">qubit_state</span><span class="p">,</span> <span class="n">cavity_state</span><span class="p">))</span>
+<span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">cavity_state</span><span class="p">,</span> <span class="n">qubit_state</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -1492,7 +1515,7 @@ Text(0.5, 1.0, &#39;With excitation and qubit dephasing&#39;)
 
 <span class="n">composite_state</span> <span class="o">=</span> <span class="n">cavity_state</span>
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">no_qubits</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
-    <span class="n">composite_state</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">composite_state</span><span class="p">,</span><span class="n">qubit_g</span><span class="p">)</span>
+    <span class="n">composite_state</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">qubit_g</span><span class="p">,</span> <span class="n">composite_state</span><span class="p">)</span>
 
 <span class="c1"># Construct the Density Matrix</span>
 <span class="n">rho0</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="o">.</span><span class="n">from_data</span><span class="p">(</span><span class="n">composite_state</span><span class="p">)</span>

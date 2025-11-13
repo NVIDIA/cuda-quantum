@@ -880,6 +880,51 @@ pr-3553
             -   [What to
                 Expect:](../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](backends/backends.html){.reference .internal}
     -   [Circuit Simulation](backends/simulators.html){.reference
         .internal}
@@ -1746,15 +1791,13 @@ make sure your [`pip`{.docutils .literal .notranslate}]{.pre} version is
 \>= 24.0. If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.
 
-**Note**: Support for CUDA 11 will be removed in future releases. Please
-update to CUDA 12.
-
 > <div>
 >
 > **Important:** Please check if you have an existing installation of
 > the [`cuda-quantum`{.docutils .literal .notranslate}]{.pre},
-> [`cudaq-quantum-cu11`{.docutils .literal .notranslate}]{.pre}, or
-> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre} package,
+> [`cudaq-quantum-cu11`{.docutils .literal .notranslate}]{.pre},
+> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre}, or
+> [`cuda-quantum-cu13`{.docutils .literal .notranslate}]{.pre} package,
 > and uninstall it prior to installation. Different CUDA-Q binary
 > distributions may conflict with each other causing issues.
 >
@@ -1827,9 +1870,9 @@ C++ toolchain installed that supports C++20, for example [`g++`{.code
 .docutils .literal .notranslate}]{.pre} version 11 or newer. Download
 the [`install_cuda_quantum`{.code .docutils .literal
 .notranslate}]{.pre} file for your processor architecture and CUDA
-version ([`_cu11`{.code .docutils .literal .notranslate}]{.pre} suffix
-for CUDA 11 and [`_cu12`{.code .docutils .literal .notranslate}]{.pre}
-suffix for CUDA 12) from the assets of the respective [GitHub
+version ([`_cu12`{.code .docutils .literal .notranslate}]{.pre} suffix
+for CUDA 12 and [`_cu13`{.code .docutils .literal .notranslate}]{.pre}
+suffix for CUDA 13) from the assets of the respective [GitHub
 release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
 .external}; that is, the file with the [`aarch64`{.code .docutils
 .literal .notranslate}]{.pre} extension for ARM processors, and the one
