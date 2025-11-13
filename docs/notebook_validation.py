@@ -31,7 +31,7 @@ def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.readlines()
     for notebook_content in lines:
-        if re.search(r'\s*#', notebook_content):
+        if re.search(r'\s*\#', notebook_content):
             continue
 
         match = re.search(pattern, notebook_content)
