@@ -358,8 +358,8 @@ class PyASTBridge(ast.NodeVisitor):
         return IntegerType.isinstance(ty) and ty == IntegerType.get_signless(1)
 
     def isFunctionArgument(self, value):
-        return BlockArgument.isinstance(value) and \
-            isinstance(value.owner.owner, func.FuncOp)
+        return (BlockArgument.isinstance(value) and
+            isinstance(value.owner.owner, func.FuncOp))
 
     def containsList(self, ty, innerListsOnly = False):
         """
@@ -367,8 +367,8 @@ class PyASTBridge(ast.NodeVisitor):
         items that are vectors.
         """
         if cc.StdvecType.isinstance(ty):
-            return not innerListsOnly or \
-                self.containsList(cc.StdvecType.getElementType(ty))
+            return not (innerListsOnly or 
+                self.containsList(cc.StdvecType.getElementType(ty)))
         if not cc.StructType.isinstance(ty):
             return False
         eleTys = cc.StructType.getTypes(ty)
@@ -1111,8 +1111,7 @@ class PyASTBridge(ast.NodeVisitor):
             if (isinstance(value, ast.Tuple) or isinstance(value, ast.List)):
                 nrArgs = len(value.elts)
                 getItem = lambda idx: value.elts[idx]
-            elif isinstance(value, tuple) or \
-                isinstance(value, list):
+            elif (isinstance(value, tuple) or isinstance(value, list)):
                 nrArgs = len(value)
                 getItem = lambda idx: value[idx]
             elif cc.StructType.isinstance(value.type):
@@ -1179,9 +1178,9 @@ class PyASTBridge(ast.NodeVisitor):
             stepVal = values[2]
             if isinstance(pyVals[2], ast.Constant):
                 pyStepVal = pyVals[2].value
-            elif isinstance(pyVals[2], ast.UnaryOp) and \
-                isinstance(pyVals[2].op, ast.USub) and \
-                isinstance(pyVals[2].operand, ast.Constant):
+            elif (isinstance(pyVals[2], ast.UnaryOp) and 
+                isinstance(pyVals[2].op, ast.USub) and 
+                isinstance(pyVals[2].operand, ast.Constant)):
                 pyStepVal = -pyVals[2].operand.value
             else:
                 self.emitFatalError(
@@ -1238,8 +1237,8 @@ class PyASTBridge(ast.NodeVisitor):
             groupedVals = []
             current_idx = 0
             for nArgs in numExpected:
-                if isinstance(nArgs, int) and \
-                    nArgs == 1 and current_idx < len(values):
+                if (isinstance(nArgs, int) and
+                    nArgs == 1 and current_idx < len(values)):
                     groupedVals.append(values[current_idx])
                     current_idx += 1
                     continue
@@ -1291,11 +1290,11 @@ class PyASTBridge(ast.NodeVisitor):
         entry exists, and return None otherwise.
         '''
         pyValRoot = pyVal
-        while isinstance(pyValRoot, ast.Subscript) or \
-            isinstance(pyValRoot, ast.Attribute):
+        while (isinstance(pyValRoot, ast.Subscript) or
+            isinstance(pyValRoot, ast.Attribute)):
             pyValRoot = pyValRoot.value
-        if isinstance(pyValRoot, ast.Name) and \
-            pyValRoot.id in self.symbolTable:
+        if (isinstance(pyValRoot, ast.Name) and
+            pyValRoot.id in self.symbolTable):
             return self.symbolTable[pyValRoot.id]
         return None
 
@@ -1319,9 +1318,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("cannot use `cudaq.State` as element in lists, tuples, or dataclasses", self.currentNode)
             self.emitFatalError("lists, tuples, and dataclasses must not contain modifiable values", self.currentNode)
 
-        if self.knownResultType and \
-            self.containsList(self.knownResultType) and \
-            self.containsList(mlirVal.type):
+        if (self.knownResultType and
+            self.containsList(self.knownResultType) and
+            self.containsList(mlirVal.type)):
             # For lists that were created inside a kernel, we have to
             # copy the stack allocated array to the heap when we return such a list.
             # In the case where the list was created by the caller, this copy leads
@@ -1598,17 +1597,17 @@ class PyASTBridge(ast.NodeVisitor):
             # them as values in the symbol table to make sure we can detect 
             # any access to reference types that are function arguments, or
             # function argument items.
-            containerFuncArg = not self.buildingEntryPoint and \
-                (cc.StructType.isinstance(varTy) or cc.StdvecType.isinstance(varTy))
-            storeAsVal = containerFuncArg or \
-                self.isQuantumType(varTy) or \
-                cc.CallableType.isinstance(varTy) or \
-                cc.StdvecType.isinstance(varTy) or \
-                self.isMeasureResultType(varTy, val)
+            containerFuncArg = (not self.buildingEntryPoint and
+                (cc.StructType.isinstance(varTy) or cc.StdvecType.isinstance(varTy)))
+            storeAsVal = (containerFuncArg or
+                self.isQuantumType(varTy) or
+                cc.CallableType.isinstance(varTy) or
+                cc.StdvecType.isinstance(varTy) or
+                self.isMeasureResultType(varTy, val))
             # Nothing should ever produce a pointer
             # to a type we store as value in the symbol table. 
-            assert not storeAsVal or \
-                not cc.PointerType.isinstance(val.type)
+            assert (not storeAsVal or
+                not cc.PointerType.isinstance(val.type))
             return storeAsVal
 
         def process_assignment(target, value):
@@ -1643,13 +1642,13 @@ class PyASTBridge(ast.NodeVisitor):
             # Make sure we process arbitrary combinations
             # of subscript and attributes
             target_root = target
-            while isinstance(target_root, ast.Subscript) or \
-                isinstance(target_root, ast.Attribute):
+            while (isinstance(target_root, ast.Subscript) or
+                isinstance(target_root, ast.Attribute)):
                 target_root = target_root.value
             if not isinstance(target_root, ast.Name):
                 self.emitFatalError("invalid target for assignment", node)
-            target_root_defined_in_parent_scope = target_root.id in self.symbolTable and \
-                target_root.id not in self.symbolTable.symbolTable[-1]
+            target_root_defined_in_parent_scope = (target_root.id in self.symbolTable and
+                target_root.id not in self.symbolTable.symbolTable[-1])
             value_root = self.__get_root_value(value)
 
             def update_in_parent_scope(destination, value):
@@ -1718,8 +1717,8 @@ class PyASTBridge(ast.NodeVisitor):
                 # values that are not `ast.Name` objects, since we don't
                 # allow containers to contain references.
                 value_is_name = False
-                if isinstance(value, ast.Name) and \
-                    value.id in self.symbolTable:
+                if (isinstance(value, ast.Name) and
+                    value.id in self.symbolTable):
                     value_is_name = True
                     value = self.symbolTable[value.id]
                 if isinstance(value, ast.AST):
@@ -1737,9 +1736,9 @@ class PyASTBridge(ast.NodeVisitor):
                     # allocated by the caller, if the return value contains
                     # any lists. This is problematic for reasons commented
                     # in `__validate_container_entry`.
-                    if cc.StdvecType.isinstance(value.type) and \
-                        self.knownResultType and \
-                        self.containsList(self.knownResultType):
+                    if (cc.StdvecType.isinstance(value.type) and
+                        self.knownResultType and
+                        self.containsList(self.knownResultType)):
                         # We loose this information if we assign an item of
                         # a function argument.
                         if not value_is_name:
@@ -1770,9 +1769,9 @@ class PyASTBridge(ast.NodeVisitor):
                         # in `__validate_container_entry`).
                         if value_is_name and structName != 'tuple':
                             self.emitFatalError(f"cannot assign dataclass passed as function argument to a local variable - use `.copy(deep)` to create a new value that can be assigned", node)
-                        elif self.knownResultType and \
-                            self.containsList(self.knownResultType) and \
-                            self.containsList(value.type):
+                        elif (self.knownResultType and
+                            self.containsList(self.knownResultType) and
+                            self.containsList(value.type)):
                             self.emitFatalError(f"cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list when a list is returned - use `.copy(deep)` to create a new value that can be assigned", node)
 
                 if target_root_defined_in_parent_scope:
@@ -1906,8 +1905,8 @@ class PyASTBridge(ast.NodeVisitor):
         # immutable value. We make sure the visit gets processed
         # such that the rest of the code can give a proper error.
         value_root = node.value
-        while isinstance(value_root, ast.Subscript) or \
-            isinstance(value_root, ast.Attribute):
+        while (isinstance(value_root, ast.Subscript) or
+            isinstance(value_root, ast.Attribute)):
             value_root = value_root.value
         if self.pushPointerValue and not isinstance(value_root, ast.Name):
             self.pushPointerValue = False
@@ -1934,8 +1933,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(quake.GetMemberOp(memberTy, value, attr).result)
             return
 
-        if cc.PointerType.isinstance(value.type) and \
-            cc.StructType.isinstance(valType):
+        if (cc.PointerType.isinstance(value.type) and
+            cc.StructType.isinstance(valType)):
             assert self.pushPointerValue
             structIdx, memberTy = self.getStructMemberIdx(node.attr, valType)
             eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
@@ -1968,8 +1967,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(extractedValue)
             return
 
-        if quake.VeqType.isinstance(valType) or \
-            cc.StdvecType.isinstance(valType):
+        if (quake.VeqType.isinstance(valType) or
+            cc.StdvecType.isinstance(valType)):
             if self.__isSupportedVectorFunction(node.attr):
                 if self.pushPointerValue:
                     self.emitFatalError(
@@ -2691,8 +2690,8 @@ class PyASTBridge(ast.NodeVisitor):
                                 structItem, 
                                 alwaysCopy=True, 
                                 conversion=conversion)
-                        elif cc.StructType.isinstance(structItem.type) and \
-                            self.containsList(structItem.type):
+                        elif (cc.StructType.isinstance(structItem.type) and
+                            self.containsList(structItem.type)):
                             structItem = self.__copyStructAndConvertElements(
                                 structItem, 
                                 conversion=conversion)
@@ -3095,8 +3094,8 @@ class PyASTBridge(ast.NodeVisitor):
                         if node.func.attr == 'control':
                             controls, args = self.__groupValues(
                                 node.args[1:], [(1, -1), (numArgs, numArgs)])
-                            qvec_or_qubits = all((quake.RefType.isinstance(v.type) for v in controls)) or \
-                                (len(controls) == 1 and quake.VeqType.isinstance(controls[0].type))
+                            qvec_or_qubits = (all((quake.RefType.isinstance(v.type) for v in controls)) or
+                                (len(controls) == 1 and quake.VeqType.isinstance(controls[0].type)))
                             if not qvec_or_qubits:
                                 self.emitFatalError(
                                     f'invalid argument type for control operand', node)
@@ -3131,16 +3130,16 @@ class PyASTBridge(ast.NodeVisitor):
 
                         # The first argument must be the Kraus channel
                         numParams, key = 0, None
-                        if isinstance(node.args[0], ast.Attribute) and \
-                            node.args[0].value.id == 'cudaq' and \
-                            node.args[0].attr in supportedChannels:
+                        if (isinstance(node.args[0], ast.Attribute) and
+                            node.args[0].value.id == 'cudaq' and
+                            node.args[0].attr in supportedChannels):
 
                             cudaq_module = importlib.import_module('cudaq')
                             channel_class = getattr(cudaq_module, node.args[0].attr)
                             numParams = channel_class.num_parameters
                             key = self.getConstantInt(hash(channel_class))
-                        elif isinstance(node.args[0], ast.Name) and \
-                            node.args[0].id in self.capturedVars:
+                        elif (isinstance(node.args[0], ast.Name) and
+                            node.args[0].id in self.capturedVars):
                             arg = self.capturedVars[node.args[0].id]
                             try:
                                 # We should have a custom Kraus channel.
@@ -3384,8 +3383,8 @@ class PyASTBridge(ast.NodeVisitor):
                     # a comprehensive error is generated when `elt` is walked below.
                     return cc.StructType.getNamed("tuple", elts)
                 return structTy
-            elif isinstance(pyval, ast.Subscript) and \
-                IntegerType.isinstance(get_item_type(pyval.slice)):
+            elif (isinstance(pyval, ast.Subscript) and
+                IntegerType.isinstance(get_item_type(pyval.slice))):
                 parentType = get_item_type(pyval.value)
                 if cc.PointerType.isinstance(parentType):
                     parentType = cc.PointerType.getElementType(parentType)
@@ -3486,8 +3485,8 @@ class PyASTBridge(ast.NodeVisitor):
                     elif pyval.func.id == 'list' and len(pyval.args) == 1:
                         return get_item_type(pyval.args[0])
                 elif isinstance(pyval.func, ast.Attribute):
-                    if pyval.func.attr == 'copy' and \
-                        'dtype' not in pyval.keywords:
+                    if (pyval.func.attr == 'copy' and
+                        'dtype' not in pyval.keywords):
                         return get_item_type(pyval.func.value)
                     if pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj':
                         process_void_list()
@@ -3792,8 +3791,8 @@ class PyASTBridge(ast.NodeVisitor):
         # immutable value. We make sure the visit gets processed
         # such that the rest of the code can give a proper error.
         value_root = node.value
-        while isinstance(value_root, ast.Subscript) or \
-            isinstance(value_root, ast.Attribute):
+        while (isinstance(value_root, ast.Subscript) or
+            isinstance(value_root, ast.Attribute)):
             value_root = value_root.value
         if self.pushPointerValue and not isinstance(value_root, ast.Name):
             self.pushPointerValue = False
@@ -4744,8 +4743,8 @@ class PyASTBridge(ast.NodeVisitor):
 
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
-            if self.pushPointerValue or \
-                not cc.PointerType.isinstance(value.type):
+            if (self.pushPointerValue or
+                not cc.PointerType.isinstance(value.type)):
                 self.pushValue(value)
                 return
 
@@ -4845,8 +4844,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError("CUDA-Q does not allow assignments to variables captured from parent scope", node)
                 return
 
-            if node.id not in globalKernelRegistry and \
-                node.id not in globalRegisteredOperations:
+            if (node.id not in globalKernelRegistry and
+                node.id not in globalRegisteredOperations):
                 errorType = type(value).__name__
                 if (isinstance(value, list)):
                     errorType = f"{errorType}[{type(value[0]).__name__}]"
