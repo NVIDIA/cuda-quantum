@@ -216,9 +216,16 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   }
 
   // Load all the defaults
-  for (auto &p : libPaths)
-    libHandles.emplace(p.string(),
-                       dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
+  for (auto &p : libPaths) {
+    void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    libHandles.emplace(p.string(), libHandle);
+
+    if (!libHandle) {
+      char *error_msg = dlerror();
+      CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
+                 (error_msg ? std::string(error_msg) : "unknown."));
+    }
+  }
 
   // directory_iterator ordering is unspecified, so sort it to make it
   // repeatable and consistent.
@@ -428,6 +435,11 @@ void LinkedLibraryHolder::setTarget(
     // We still need a simulator in case of local emulation.
     auto &defaultTargetInfo = targets[defaultTarget];
     simName = defaultTargetInfo.simulatorName;
+
+    // The precision should match the underlying local simulator that we
+    // selected.
+    target.precision = defaultTargetInfo.precision;
+
     // This is really a user error: e.g., using `CUDAQ_DEFAULT_SIMULATOR`
     // environment variable (meant for simulator) to change the default target
     // to some other targets that are not a simulator.

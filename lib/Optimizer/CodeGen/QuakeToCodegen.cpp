@@ -97,9 +97,11 @@ public:
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
+    auto one = rewriter.create<arith::ConstantIntOp>(loc, 1, size.getType());
+    auto powsz = rewriter.create<arith::ShLIOp>(loc, size.getType(), one, size);
 
     rewriter.replaceOpWithNewOp<func::CallOp>(
-        createStateOp, statePtrTy, createStateFunc, ValueRange{cast, size});
+        createStateOp, statePtrTy, createStateFunc, ValueRange{cast, powsz});
     return success();
   }
 };

@@ -45,5 +45,8 @@ def get_library_path(package_name):
         package_location = _find_package_location_by_root(package_name)
 
     dirname = os.path.join(package_location, subdir, "lib")
+    if not os.path.isdir(dirname):
+        # Check for cu13 layout
+        dirname = os.path.join(package_location, subdir, "cu13/lib")
     assert os.path.isdir(dirname)
     return dirname

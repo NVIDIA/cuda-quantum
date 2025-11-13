@@ -9,6 +9,7 @@
 // REQUIRES: c++20
 // clang-format off
 // RUN: nvq++ %s -o %t --target infleqtion --emulate && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
 // RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi

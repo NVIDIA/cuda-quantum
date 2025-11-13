@@ -259,8 +259,21 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
 
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
-    auto calleeName = getVariantFunctionName(
-        apply, apply.getCallee()->getRootReference().str());
+    std::string calleeOrigName;
+    if (apply.getCallee()) {
+      calleeOrigName = apply.getCallee()->getRootReference().str();
+    } else {
+      // Check if the first argument is a func.ConstantOp.
+      auto calleeVals = apply.getIndirectCallee();
+      if (calleeVals.empty())
+        return failure();
+      Value calleeVal = calleeVals.front();
+      auto fc = calleeVal.getDefiningOp<func::ConstantOp>();
+      if (!fc)
+        return failure();
+      calleeOrigName = fc.getValue().str();
+    }
+    auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
     auto consTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
@@ -286,6 +299,29 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   const bool constProp;
 };
 
+struct FoldCallable : public OpRewritePattern<quake::ApplyOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ApplyOp apply,
+                                PatternRewriter &rewriter) const override {
+    // If we already know the callee function, there's nothing to do.
+    if (apply.getCallee())
+      return failure();
+
+    Value ind = apply.getIndirectCallee()[0];
+    if (auto callee = ind.getDefiningOp<cudaq::cc::InstantiateCallableOp>()) {
+      auto sym = callee.getCallee();
+      SmallVector<Value> newArguments = {ind};
+      newArguments.append(apply.getArgs().begin(), apply.getArgs().end());
+      rewriter.replaceOpWithNewOp<quake::ApplyOp>(
+          apply, apply.getResultTypes(), sym, apply.getIsAdj(),
+          apply.getControls(), newArguments);
+      return success();
+    }
+    return failure();
+  }
+};
+
 class ApplySpecializationPass
     : public cudaq::opt::impl::ApplySpecializationBase<
           ApplySpecializationPass> {
@@ -293,7 +329,14 @@ public:
   using ApplySpecializationBase::ApplySpecializationBase;
 
   void runOnOperation() override {
-    ApplyOpAnalysis analysis(getOperation(), constantPropagation);
+    ModuleOp module = getOperation();
+    auto *ctx = module.getContext();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<FoldCallable>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+      signalPassFailure();
+
+    ApplyOpAnalysis analysis(module, constantPropagation);
     const auto &applyVariants = analysis.getAnalysisInfo();
     if (succeeded(step1(applyVariants)))
       step2();

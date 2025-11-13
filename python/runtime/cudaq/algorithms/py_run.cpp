@@ -100,10 +100,18 @@ pyRunTheKernel(const std::string &name, const std::string &origName,
         "`cudaq.run` only supports kernels that return a value.");
 
   auto returnTy = returnTypes[0];
-  // Disallow returning list / vectors from entry-point kernels.
-  if (returnTy.isa<cc::StdvecType>()) {
-    throw std::runtime_error("`cudaq.run` does not yet support returning "
-                             "`list` from entry-point kernels.");
+  // Disallow returning nested vectors/vectors of structs from entry-point
+  // kernels.
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(returnTy)) {
+    auto elemTy = vecTy.getElementType();
+    if (elemTy.isa<cudaq::cc::StdvecType>())
+      throw std::runtime_error(
+          "`cudaq.run` does not yet support returning nested `list` from "
+          "entry-point kernels.");
+    if (elemTy.isa<cudaq::cc::StructType>())
+      throw std::runtime_error("`cudaq.run` does not yet support returning "
+                               "`list` of `dataclass`/`tuple` from "
+                               "entry-point kernels.");
   }
 
   auto mod = unwrap(module);

@@ -254,11 +254,11 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
   * - ``CUDAQ_GPU_FABRIC``
-    - `MNNVL`, `NVL`, or `NONE`
-    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`). 
+    - `MNNVL`, `NVL`, `NONE`, or NVLink domain size (power of 2 integer)
+    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`); or a specific NVLink domain size.
   * - ``CUDAQ_GLOBAL_INDEX_BITS``
     - comma-separated list of positive integers
-    - Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` (`log2(8)`) represents **8** processes with fast communication within the group and the second `2` represents the **4** groups (8 processes each) in those total 32 processes. The sum of all elements in this list is `5`, corresponding to the total number of MPI processes (`2^5 = 32`). Default is an empty list (no customization based on network structure of the cluster).
+    - Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` (`log2(8)`) represents **8** processes with fast communication within the group and the second `2` represents the **4** groups (8 processes each) in those total 32 processes. The sum of all elements in this list is `5`, corresponding to the total number of MPI processes (`2^5 = 32`). If none specified, the global index bits are set based on P2P device bits.
   * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
     - positive integer
     - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 

@@ -1,0 +1,145 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-reset-before-reuse %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__function_reuse1._Z6reuse1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %3 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  %4 = cc.alloca !cc.array<i8 x 2>
+  %5 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %measOut = quake.mz %5 name "res" : (!quake.ref) -> !quake.measure
+  %6 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %7 = cc.cast %4 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %8 = cc.cast unsigned %6 : (i1) -> i8
+  cc.store %8, %7 : !cc.ptr<i8>
+  %9 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  %measOut_0 = quake.mz %9 name "res" : (!quake.ref) -> !quake.measure
+  %10 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+  %11 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %12 = cc.cast unsigned %10 : (i1) -> i8
+  cc.store %12, %11 : !cc.ptr<i8>
+  %13 = cc.cast %4 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %14 = cc.load %13 : !cc.ptr<i8>
+  %15 = cc.cast %14 : (i8) -> i1
+  cc.if(%15) {
+    %16 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    quake.h %16 : (!quake.ref) -> ()
+    %17 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    quake.h %17 : (!quake.ref) -> ()
+  } else {
+  }
+  return
+}
+
+// Measure is expanded to measure + reset + initialization  
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__function_reuse1
+// q[0]
+// CHECK: %[[RES_0:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT_0:[0-9]+]] name "res" : (!quake.ref) -> !quake.measure 
+// CHECK-NEXT: quake.reset %[[QUBIT_0]] : (!quake.ref) -> () 
+// CHECK-NEXT: %[[BIT_0:[0-9]+]] = quake.discriminate %[[RES_0]] : (!quake.measure) -> i1 
+// CHECK-NEXT: cc.if(%[[BIT_0]]) { 
+// CHECK-NEXT: quake.x %[[QUBIT_0]] : (!quake.ref) -> () 
+// CHECK-NEXT:  }
+// q[1]
+// CHECK: %[[RES_1:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT_1:[0-9]+]] name "res" : (!quake.ref) -> !quake.measure 
+// CHECK-NEXT: quake.reset %[[QUBIT_1]] : (!quake.ref) -> () 
+// CHECK-NEXT: %[[BIT_1:[0-9]+]] = quake.discriminate %[[RES_1]] : (!quake.measure) -> i1 
+// CHECK-NEXT: cc.if(%[[BIT_1]]) { 
+// CHECK-NEXT: quake.x %[[QUBIT_1]] : (!quake.ref) -> () 
+// CHECK-NEXT:  }
+
+
+func.func @__nvqpp__mlirgen__function_reuse2._Z6reuse2v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %3 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  %4 = cc.alloca !cc.array<i8 x 2>
+  %5 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %measOut = quake.mz %5 : (!quake.ref) -> !quake.measure
+  %6 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %7 = cc.cast %4 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %8 = cc.cast unsigned %6 : (i1) -> i8
+  cc.store %8, %7 : !cc.ptr<i8>
+  %9 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  %measOut_0 = quake.mz %9 : (!quake.ref) -> !quake.measure
+  %10 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+  %11 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %12 = cc.cast unsigned %10 : (i1) -> i8
+  cc.store %12, %11 : !cc.ptr<i8>
+  %13 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %13 : (!quake.ref) -> ()
+  %14 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %14 : (!quake.ref) -> ()
+  return
+}
+
+// Measure is expanded to measure + reset + initialization
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__function_reuse2
+// q[0]
+// CHECK: %[[RES_0:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT_0:[0-9]+]] : (!quake.ref) -> !quake.measure 
+// CHECK-NEXT: quake.reset %[[QUBIT_0]] : (!quake.ref) -> () 
+// CHECK-NEXT: %[[BIT_0:[0-9]+]] = quake.discriminate %[[RES_0]] : (!quake.measure) -> i1 
+// CHECK-NEXT: cc.if(%[[BIT_0]]) { 
+// CHECK-NEXT: quake.x %[[QUBIT_0]] : (!quake.ref) -> () 
+// CHECK-NEXT:  }
+// q[1]
+// CHECK: %[[RES_1:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT_1:[0-9]+]] : (!quake.ref) -> !quake.measure 
+// CHECK-NEXT: quake.reset %[[QUBIT_1]] : (!quake.ref) -> () 
+// CHECK-NEXT: %[[BIT_1:[0-9]+]] = quake.discriminate %[[RES_1]] : (!quake.measure) -> i1 
+// CHECK-NEXT: cc.if(%[[BIT_1]]) { 
+// CHECK-NEXT: quake.x %[[QUBIT_1]] : (!quake.ref) -> () 
+// CHECK-NEXT:  }
+
+
+
+func.func @__nvqpp__mlirgen__function_reuse3._Z6reuse3v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %3 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  %4 = cc.alloca !cc.array<i8 x 2>
+  %5 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %measOut = quake.mz %5 : (!quake.ref) -> !quake.measure
+  %6 = quake.discriminate %measOut : (!quake.measure) -> i1
+  %7 = cc.cast %4 : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %8 = cc.cast unsigned %6 : (i1) -> i8
+  cc.store %8, %7 : !cc.ptr<i8>
+  %9 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  %measOut_0 = quake.mz %9 : (!quake.ref) -> !quake.measure
+  %10 = quake.discriminate %measOut_0 : (!quake.measure) -> i1
+  %11 = cc.compute_ptr %4[1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+  %12 = cc.cast unsigned %10 : (i1) -> i8
+  cc.store %12, %11 : !cc.ptr<i8>
+  %13 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %13 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @__nvqpp__mlirgen__function_reuse3
+// ========================================
+// First measure on q[0], no reset is needed as it is not reused
+// CHECK: quake.mz  
+// CHECK-NOT: quake.reset
+// ========================================
+// Measure on q[1] -> reset appended
+// CHECK: %[[RES:[a-zA-Z0-9_]+]] = quake.mz %[[QUBIT:[0-9]+]] : (!quake.ref) -> !quake.measure 
+// CHECK-NEXT: quake.reset %[[QUBIT]] : (!quake.ref) -> () 
+// CHECK-NEXT: %[[BIT:[0-9]+]] = quake.discriminate %[[RES]] : (!quake.measure) -> i1 
+// CHECK-NEXT: cc.if(%[[BIT]]) { 
+// CHECK-NEXT: quake.x %[[QUBIT]] : (!quake.ref) -> () 
+// CHECK-NEXT:  }

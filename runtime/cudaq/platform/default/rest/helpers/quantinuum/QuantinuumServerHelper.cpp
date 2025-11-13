@@ -12,6 +12,7 @@
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "llvm/Support/Base64.h"
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -27,6 +28,9 @@ constexpr const char *qirEndpoint = "api/qir/v1beta/";
 constexpr const char *resultsEndpoint = "api/results/v1beta3/";
 // NG device result endpoint (QSYS)
 constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta/";
+// Decoder config endpoint
+constexpr const char *gpuDecoderConfigEndpoint =
+    "api/gpu_decoder_configs/v1beta";
 } // namespace
 
 namespace cudaq {
@@ -43,6 +47,8 @@ protected:
   std::string machine = "H2-1SC";
   /// @brief Max HQC cost
   std::optional<int> maxCost;
+  /// @brief Maximum number of qubits
+  std::optional<int> maxQubits;
   /// @brief Enable/disable noisy simulation on emulator.
   std::optional<bool> noisySim;
   /// @brief The type of simulator to use if machine is a simulator.
@@ -122,6 +128,14 @@ public:
       maxCost = std::stoi(iter->second);
       if (maxCost.value() < 1)
         throw std::runtime_error("max_cost must be a positive integer.");
+    }
+
+    // Set max qubits
+    iter = backendConfig.find("max_qubits");
+    if (iter != backendConfig.end()) {
+      maxQubits = std::stoi(iter->second);
+      if (maxQubits.value() < 1)
+        throw std::runtime_error("max_qubits must be a positive integer.");
     }
 
     // Noisy simulation
@@ -326,6 +340,47 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Any additional resources needed for the job
   auto *extraPayloadProvider = getExtraPayloadProvider();
+  // GPU decoder config UUID, if any.
+  std::string gpuDecoderConfigId;
+  if (extraPayloadProvider) {
+    // Use the extra payload provider to modify the job payload
+    if (extraPayloadProvider->getPayloadType() != "gpu_decoder_config") {
+      // Currently, only `gpu_decoder_config` extra payloads are supported.
+      throw std::runtime_error(
+          fmt::format("Invalid extra payload provider type '{}'. This is not "
+                      "supported on this target.",
+                      extraPayloadProvider->getPayloadType()));
+    }
+    const auto decoderConfigYmlStr =
+        extraPayloadProvider->getExtraPayload(runtimeTarget);
+    CUDAQ_DBG("[Decoder Config] Received the YML config:\n{}",
+              decoderConfigYmlStr);
+
+    const std::string resourceType = extraPayloadProvider->getPayloadType();
+    // Create a time-stamped name for the payload
+    const auto timestamp =
+        fmt::format("{:%Y-%m-%d_%H:%M:%S}", std::chrono::system_clock::now());
+    const std::string resourceName =
+        fmt::format("{}_{}", "cudaq_decoder_config", timestamp);
+
+    const std::string resourceContent = llvm::encodeBase64(decoderConfigYmlStr);
+    // Post the resource to the server and extract the handle reference
+    ServerMessage resourceUploadMessage =
+        createExtraResource(resourceType, resourceName, resourceContent);
+
+    auto response = restClient.post(baseUrl, gpuDecoderConfigEndpoint,
+                                    resourceUploadMessage, headers, true, false,
+                                    getCookies());
+    if (!response.contains("data") || !response["data"].contains("id") ||
+        !response["data"]["id"].is_string())
+      throw std::runtime_error("Failed to upload resource: " + resourceName +
+                               ". Response: " + response.dump(2));
+
+    gpuDecoderConfigId = response["data"]["id"].get<std::string>();
+    CUDAQ_INFO("[Decoder Config] Uploaded GPU decoder config resource "
+               "successfully with ID: {}",
+               gpuDecoderConfigId);
+  }
 
   // Construct the job, one per circuit
   for (auto &circuitCode : circuitCodes) {
@@ -368,19 +423,35 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
         "QuantinuumConfig";
     j["data"]["attributes"]["definition"]["backend_config"]["device_name"] =
         machine;
-    // On Helios devices, we need to specify max-cost unless it's a syntax
-    // checker
-    if (machine.starts_with("Helios") && !machine.ends_with("SC") &&
-        !maxCost.has_value())
-      throw std::runtime_error(
-          "Please specify a maximum cost (`--quantinuum-max-cost <val>` when "
-          "compiling with nvq++ or `max_cost=<val>` in Python `set_target`) "
-          "when using device: " +
-          machine);
+    // On Helios devices, we need to specify max-cost and max-qubits unless it's
+    // a syntax checker
+    if (machine.starts_with("Helios") && !machine.ends_with("SC")) {
+      std::vector<std::string> errors;
+      if (!maxCost.has_value())
+        errors.push_back("Please specify maximum HQC cost "
+                         "(`--quantinuum-max-cost <val>` when compiling with "
+                         "nvq++ or `max_cost=<val>` in Python `set_target`)");
+      if (!maxQubits.has_value())
+        errors.push_back(
+            "Please specify maximum number of qubits (`--quantinuum-max-qubits "
+            "<val>` when compiling with nvq++ or `max_qubits=<val>` in Python "
+            "`set_target`)");
+      if (!errors.empty())
+        throw std::runtime_error(
+            fmt::format("Missing required configuration for device '{}': {}",
+                        machine, fmt::join(errors, "; ")));
+    }
 
     if (maxCost.has_value())
       j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
           maxCost.value();
+
+    if (maxQubits.has_value()) {
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["compiler_options"] = ServerMessage::object();
+      j["data"]["attributes"]["definition"]["backend_config"]
+       ["compiler_options"]["max-qubits"] = maxQubits.value();
+    }
 
     if (noisySim.has_value() && machine.ends_with("E"))
       j["data"]["attributes"]["definition"]["backend_config"]
@@ -402,33 +473,10 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     j["data"]["relationships"]["project"]["data"] = ServerMessage::object();
     j["data"]["relationships"]["project"]["data"]["id"] = projectId;
     j["data"]["relationships"]["project"]["data"]["type"] = "project";
-    // Any additional resources to be included
-    if (extraPayloadProvider) {
-      const std::string resourceType = extraPayloadProvider->getPayloadType();
-      const auto resourceSpec =
-          extraPayloadProvider->getExtraPayload(runtimeTarget);
-      const auto resourceSpecJson = nlohmann::json::parse(resourceSpec);
-      const std::string resourceUploadEndpoint =
-          resourceSpecJson["path"].get<std::string>();
-      const std::string resourceName =
-          resourceSpecJson["name"].get<std::string>();
-      const std::string resourceContent =
-          resourceSpecJson["content"].get<std::string>();
-      const std::string resourceDefKey =
-          resourceSpecJson["key"].get<std::string>();
-
-      ServerMessage resourceUpload =
-          createExtraResource(resourceType, resourceName, resourceContent);
-      // Post the resource to the server and extract the handle reference
-      auto response =
-          restClient.post(baseUrl, resourceUploadEndpoint, resourceUpload,
-                          headers, true, false, getCookies());
-      if (!response.contains("data") || !response["data"].contains("id") ||
-          !response["data"]["id"].is_string())
-        throw std::runtime_error("Failed to upload resource: " + resourceName +
-                                 ". Response: " + response.dump(2));
-      const std::string resourceId = response["data"]["id"].get<std::string>();
-      j["data"]["attributes"]["definition"][resourceDefKey] = resourceId;
+    // There is a GPU decoder config resource associated with this job
+    if (!gpuDecoderConfigId.empty()) {
+      j["data"]["attributes"]["definition"]["gpu_decoder_config_id"] =
+          gpuDecoderConfigId;
     }
     messages.push_back(j);
   }
@@ -456,18 +504,27 @@ std::string QuantinuumServerHelper::constructGetJobPath(std::string &jobId) {
 
 bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   // Job status strings: "COMPLETED", "QUEUED", "SUBMITTED", "RUNNING",
-  // "CANCELLED", "ERROR"
+  // "CANCELLED", "ERROR", "CANCELLING", "RETRYING", "TERMINATED", "DEPLETED"
   const std::string jobStatus =
       getJobResponse["data"]["attributes"]["status"]["status"]
           .get<std::string>();
+  // Handle error conditions:
   if (jobStatus == "ERROR") {
     const std::string errorMsg =
         getJobResponse["data"]["attributes"]["status"]["error_detail"]
             .get<std::string>();
     throw std::runtime_error("Job failed with error: " + errorMsg);
   } else if (jobStatus == "CANCELLED") {
+    // Note: if the status is "CANCELLING", we will let it resolve to CANCELLED
+    // before throwing.
     throw std::runtime_error("Job was cancelled.");
+  } else if (jobStatus == "TERMINATED") {
+    throw std::runtime_error("Job was terminated.");
+  } else if (jobStatus == "DEPLETED") {
+    throw std::runtime_error("Job failed due to depleted credits. Please check "
+                             "your max-cost setting or the account credits.");
   }
+
   if (jobStatus == "COMPLETED") {
     if (!jobReturnsResult(getJobResponse))
       return true;
@@ -476,6 +533,8 @@ bool QuantinuumServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     // is not yet available, so we will check for that.
     return getResultId(getJobResponse).second != "";
   }
+  // Other status codes, e.g., QUEUED/SUBMITTED/CANCELLING/RETRYING/RUNNING,
+  // mean the job is not done yet.
   return false;
 }
 
