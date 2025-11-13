@@ -25,13 +25,24 @@ def read_available_backends():
     return [backend.strip() for backend in available_backends]
 
 
+pattern = r'set_target\(\s*\\"([^"]+)\\"(?:\s*,\s*option\s*=\s*\\"([^"]+)\\")?'
+
 def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.readlines()
     for notebook_content in lines:
-        match = re.search(r'set_target\(\s*\\"([^"]+)\\"', notebook_content)
-        if match and (match.group(1) not in available_backends):
-            return False
+        if re.search(r'\s*#', notebook_content):
+            continue
+
+        match = re.search(pattern, notebook_content)
+        if match:
+            target = match.group(1)
+            opt = match.group(2)
+            combined = f"{target}-{opt}" if opt else target
+            if combined not in available_backends:
+                return False
+            else:
+                return True
     for notebook_content in lines:
         match = re.search('--target ([^ ]+)', notebook_content)
         if match and (match.group(1) not in available_backends):
