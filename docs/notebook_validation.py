@@ -40,10 +40,7 @@ def validate(notebook_filename, available_backends):
             target = match.group(1)
             opt = match.group(2)
             combined = f"{target}-{opt}" if opt else target
-            if combined not in available_backends:
-                return False
-            else:
-                return True
+            return combined in available_backends
     for notebook_content in lines:
         match = re.search('--target ([^ ]+)', notebook_content)
         if match and (match.group(1) not in available_backends):
