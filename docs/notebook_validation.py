@@ -27,6 +27,7 @@ def read_available_backends():
 
 pattern = r'set_target\(\s*\\"([^"]+)\\"(?:\s*,\s*option\s*=\s*\\"([^"]+)\\")?'
 
+
 def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.readlines()
