@@ -1,0 +1,299 @@
+diff --git a/src/stim/mem/bitword_128_neon.h b/src/stim/mem/bitword_128_neon.h
+new file mode 100644
+index 0000000..8ea8704
+--- /dev/null
++++ b/src/stim/mem/bitword_128_neon.h
+@@ -0,0 +1,258 @@
++/*
++ * Copyright 2025 NVIDIA Corporation & Affiliates
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++#ifndef _STIM_MEM_SIMD_WORD_128_NEON_H
++#define _STIM_MEM_SIMD_WORD_128_NEON_H
++#ifdef __ARM_NEON
++
++#include <algorithm>
++#include <array>
++#include <bit>
++#include <arm_neon.h>
++#include <sstream>
++#include <stdexcept>
++
++#include "stim/mem/bitword.h"
++#include "stim/mem/simd_util.h"
++
++namespace stim {
++
++/// Implements a 128 bit bitword using ARM NEON intrinsics.
++template <>
++struct bitword<128> {
++    constexpr static size_t BIT_SIZE = 128;
++    constexpr static size_t BIT_POW = 7;
++
++    union {
++        uint8x16_t neon_val;  // The 128-bit vector.
++        uint8_t u8[16];
++        uint64_t u64[2];
++    };
++
++    // Allocate memory aligned to 16 bytes.
++    static void *aligned_malloc(size_t bytes) {
++        void *ptr = nullptr;
++        if (posix_memalign(&ptr, 16, bytes)) {
++            return nullptr;
++        }
++        return ptr;
++    }
++    static void aligned_free(void *ptr) {
++        free(ptr);
++    }
++
++    inline bitword() : neon_val(vdupq_n_u8(0)) {}
++    inline bitword(uint8x16_t val) : neon_val(val) {}
++
++    inline bitword(std::array<uint64_t, 2> arr) {
++        uint64x1_t low = vdup_n_u64(arr[0]);
++        uint64x1_t high = vdup_n_u64(arr[1]);
++        neon_val = vreinterpretq_u8_u64(vcombine_u64(low, high));
++    }
++    inline bitword(uint64_t val) {
++        uint64x1_t low = vdup_n_u64(val);
++        uint64x1_t high = vdup_n_u64(0);
++        neon_val = vreinterpretq_u8_u64(vcombine_u64(low, high));
++    }
++    inline bitword(int64_t val) {
++        uint64_t high = (val < 0) ? ~0ULL : 0ULL;
++        uint64x1_t low = vdup_n_u64((uint64_t)val);
++        uint64x1_t hi  = vdup_n_u64(high);
++        neon_val = vreinterpretq_u8_u64(vcombine_u64(low, hi));
++    }
++    inline bitword(int val) {
++        uint64_t high = (val < 0) ? ~0ULL : 0ULL;
++        uint64x1_t low = vdup_n_u64((uint64_t)val);
++        uint64x1_t hi  = vdup_n_u64(high);
++        neon_val = vreinterpretq_u8_u64(vcombine_u64(low, hi));
++    }
++
++    // Tile functions:
++    inline static bitword<128> tile8(uint8_t pattern) {
++        return {vdupq_n_u8(pattern)};
++    }
++    inline static bitword<128> tile16(uint16_t pattern) {
++        return {vreinterpretq_u8_u16(vdupq_n_u16(pattern))};
++    }
++    inline static bitword<128> tile32(uint32_t pattern) {
++        return {vreinterpretq_u8_u32(vdupq_n_u32(pattern))};
++    }
++    inline static bitword<128> tile64(uint64_t pattern) {
++        return {vreinterpretq_u8_u64(vdupq_n_u64(pattern))};
++    }
++
++    inline std::array<uint64_t, 2> to_u64_array() const {
++        uint64_t w0 = u64[0];
++        uint64_t w1 = u64[1];
++        return std::array<uint64_t, 2>{w0, w1};
++    }
++    inline operator bool() const {
++        auto words = to_u64_array();
++        return (bool)(words[0] | words[1]);
++    }
++    inline operator int() const {
++        return (int64_t)*this;
++    }
++    inline operator uint64_t() const {
++        auto words = to_u64_array();
++        if (words[1]) {
++            throw std::invalid_argument("Too large for uint64_t");
++        }
++        return words[0];
++    }
++    inline operator int64_t() const {
++        auto words = to_u64_array();
++        int64_t result = (int64_t)words[0];
++        uint64_t expected = (result < 0) ? ~0ULL : 0ULL;
++        if (words[1] != expected) {
++            throw std::invalid_argument("Out of bounds of int64_t");
++        }
++        return result;
++    }
++
++    // Bitwise operators.
++    inline bitword<128> &operator^=(const bitword<128> &other) {
++        neon_val = veorq_u8(neon_val, other.neon_val);
++        return *this;
++    }
++    inline bitword<128> &operator&=(const bitword<128> &other) {
++        neon_val = vandq_u8(neon_val, other.neon_val);
++        return *this;
++    }
++    inline bitword<128> &operator|=(const bitword<128> &other) {
++        neon_val = vorrq_u8(neon_val, other.neon_val);
++        return *this;
++    }
++    inline bitword<128> operator^(const bitword<128> &other) const {
++        return {veorq_u8(neon_val, other.neon_val)};
++    }
++    inline bitword<128> operator&(const bitword<128> &other) const {
++        return {vandq_u8(neon_val, other.neon_val)};
++    }
++    inline bitword<128> operator|(const bitword<128> &other) const {
++        return {vorrq_u8(neon_val, other.neon_val)};
++    }
++    inline bitword<128> andnot(const bitword<128> &other) const {
++        // Computes ~this & other.
++        return {vbicq_u8(other.neon_val, neon_val)};
++    }
++
++    inline uint16_t popcount() const {
++        auto words = to_u64_array();
++        return std::popcount(words[0]) + std::popcount(words[1]);
++    }
++
++    // Shift the bitword by an arbitrary offset (positive or negative).
++    inline bitword<128> shifted(int offset) const {
++        auto w = to_u64_array();
++        while (offset <= -64) {
++            w[0] = w[1];
++            w[1] = 0;
++            offset += 64;
++        }
++        while (offset >= 64) {
++            w[1] = w[0];
++            w[0] = 0;
++            offset -= 64;
++        }
++        uint64x2_t low2high, high2low;
++        if (offset < 0) {
++            // When shifting right, prepare the two 64-bit halves.
++            uint64x1_t lo = vdup_n_u64(w[1]);
++            uint64x1_t hi = vdup_n_u64(0);
++            low2high = vcombine_u64(lo, hi);
++            lo = vdup_n_u64(w[0]);
++            hi = vdup_n_u64(w[1]);
++            high2low = vcombine_u64(lo, hi);
++            offset += 64;
++        } else {
++            // When shifting left.
++            uint64x1_t lo = vdup_n_u64(w[0]);
++            uint64x1_t hi = vdup_n_u64(w[1]);
++            low2high = vcombine_u64(lo, hi);
++            lo = vdup_n_u64(0);
++            hi = vdup_n_u64(w[0]);
++            high2low = vcombine_u64(lo, hi);
++        }
++        uint64_t m = ((uint64_t)1 << offset) - 1;
++        // Perform lane‐wise shifts.
++        int64x2_t shift_vec = vdupq_n_s64(offset);
++        low2high = vshlq_u64(low2high, shift_vec);
++        int64x2_t neg_shift = vdupq_n_s64(-(64 - offset));
++        high2low = vshlq_u64(high2low, neg_shift);
++        uint64x2_t mask_low = vdupq_n_u64(~m);
++        uint64x2_t mask_high = vdupq_n_u64(m);
++        low2high = vandq_u64(low2high, mask_low);
++        high2low = vandq_u64(high2low, mask_high);
++        uint64x2_t result = vorrq_u64(low2high, high2low);
++        return bitword<128>(vreinterpretq_u8_u64(result));
++    }
++
++    inline std::string str() const {
++        std::stringstream out;
++        out << *this;
++        return out.str();
++    }
++
++    // In-place transpose helpers.
++    template <uint64_t shift>
++    static void inplace_transpose_block_pass(bitword<128> *data, size_t stride, uint8x16_t mask) {
++        for (size_t k = 0; k < 128; k++) {
++            if (k & shift) {
++                continue;
++            }
++            bitword<128> &x = data[stride * k];
++            bitword<128> &y = data[stride * (k + shift)];
++            // Use NEON’s vmvnq_u8 for bitwise NOT.
++            bitword<128> a = x & bitword<128>(mask);
++            bitword<128> b = x & bitword<128>(vmvnq_u8(mask));
++            bitword<128> c = y & bitword<128>(mask);
++            bitword<128> d = y & bitword<128>(vmvnq_u8(mask));
++            // Shift the masked parts.
++            uint64x2_t c_u64 = vreinterpretq_u64_u8(c.neon_val);
++            uint64x2_t c_shifted = vshlq_n_u64(c_u64, shift);
++            bitword<128> x_new = a | bitword<128>(vreinterpretq_u8_u64(c_shifted));
++            uint64x2_t b_u64 = vreinterpretq_u64_u8(b.neon_val);
++            uint64x2_t b_shifted = vshrq_n_u64(b_u64, shift);
++            bitword<128> y_new = bitword<128>(vreinterpretq_u8_u64(b_shifted)) | d;
++            x = x_new;
++            y = y_new;
++        }
++    }
++
++    static void inplace_transpose_block_pass64(bitword<128> *data, size_t stride) {
++        uint64_t *ptr = (uint64_t *)data;
++        stride <<= 1;
++        for (size_t k = 0; k < 64; k++) {
++            std::swap(ptr[stride * k + 1], ptr[stride * (k + 64)]);
++        }
++    }
++
++    static void inplace_transpose_square(bitword<128> *data, size_t stride) {
++        inplace_transpose_block_pass<1>(data, stride, vdupq_n_u8(0x55));
++        inplace_transpose_block_pass<2>(data, stride, vdupq_n_u8(0x33));
++        inplace_transpose_block_pass<4>(data, stride, vdupq_n_u8(0x0F));
++        inplace_transpose_block_pass<8>(data, stride, vreinterpretq_u8_u16(vdupq_n_u16(0x00FF)));
++        inplace_transpose_block_pass<16>(data, stride, vreinterpretq_u8_u32(vdupq_n_u32(0xFFFF)));
++        inplace_transpose_block_pass<32>(data, stride, vreinterpretq_u8_u64(vdupq_n_u64(0xFFFFFFFF)));
++        inplace_transpose_block_pass64(data, stride);
++    }
++};
++
++}  // namespace stim
++
++#endif
++#endif
+diff --git a/src/stim/mem/simd_word.h b/src/stim/mem/simd_word.h
+index 3d2e594..424db1a 100644
+--- a/src/stim/mem/simd_word.h
++++ b/src/stim/mem/simd_word.h
+@@ -21,6 +21,7 @@
+ #define _STIM_MEM_SIMD_WORD_H
+ 
+ #include "stim/mem/bitword_128_sse.h"
++#include "stim/mem/bitword_128_neon.h"
+ #include "stim/mem/bitword_256_avx.h"
+ #include "stim/mem/bitword_64.h"
+ 
+@@ -29,6 +30,8 @@ namespace stim {
+ constexpr size_t MAX_BITWORD_WIDTH = 256;
+ #elif __SSE2__
+ constexpr size_t MAX_BITWORD_WIDTH = 128;
++#elif __ARM_NEON
++constexpr size_t MAX_BITWORD_WIDTH = 128;
+ #else
+ constexpr size_t MAX_BITWORD_WIDTH = 64;
+ #endif
+diff --git a/src/stim/mem/simd_word.test.h b/src/stim/mem/simd_word.test.h
+index b2803cb..27fab11 100644
+--- a/src/stim/mem/simd_word.test.h
++++ b/src/stim/mem/simd_word.test.h
+@@ -36,6 +36,9 @@
+ #define TEST_EACH_WORD_SIZE_W(test_suite, test_name, ...) \
+     TEST_EACH_WORD_SIZE_UP_TO_256(test_suite, test_name, __VA_ARGS__)
+ #elif __SSE2__
++#define TEST_EACH_WORD_SIZE_W(test_suite, test_name, ...) \
++    TEST_EACH_WORD_SIZE_UP_TO_128(test_suite, test_name, __VA_ARGS__)
++#elif __ARM_NEON
+ #define TEST_EACH_WORD_SIZE_W(test_suite, test_name, ...) \
+     TEST_EACH_WORD_SIZE_UP_TO_128(test_suite, test_name, __VA_ARGS__)
+ #else
