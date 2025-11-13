@@ -29,7 +29,7 @@ def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.readlines()
     for notebook_content in lines:
-        match = re.search('set_target[\\s\\(]+"(.+)\\\\"[)]', notebook_content)
+        match = re.search('set_target\\(["|\']([^"=]+)["|\']', notebook_content)
         if match and (match.group(1) not in available_backends):
             return False
     for notebook_content in lines:
