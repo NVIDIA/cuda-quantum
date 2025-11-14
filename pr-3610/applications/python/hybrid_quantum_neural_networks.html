@@ -1021,12 +1021,12 @@
 <p><img alt="hybrid" class="no-scaled-link" src="../../_images/hybrid.png" style="width: 600px;" /></p>
 <p>We perform binary classification on the MNIST dataset where data flows through the neural network architecture to the quantum circuit whose output is used to classify hand written digits.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Install the relevant packages.</span>
 
-<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">torch</span><span class="o">==</span><span class="m">2</span>.9.0+cu126<span class="w"> </span><span class="nv">torchvision</span><span class="o">==</span><span class="m">0</span>.24.0+cu126<span class="w"> </span>scikit-learn<span class="o">==</span><span class="m">1</span>.4.2<span class="w"> </span>-q<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cu126
+<span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span><span class="nv">matplotlib</span><span class="o">==</span><span class="m">3</span>.8.4<span class="w"> </span><span class="nv">torch</span><span class="o">==</span><span class="m">2</span>.9.1+cu126<span class="w"> </span><span class="nv">torchvision</span><span class="o">==</span><span class="m">0</span>.24.1+cu126<span class="w"> </span>scikit-learn<span class="o">==</span><span class="m">1</span>.4.2<span class="w"> </span>-q<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/cu126
 </pre></div>
 </div>
 </div>
@@ -1144,7 +1144,7 @@
 </pre></div>
 </div>
 </div>
-<div class="nbinput nblast docutils container">
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
@@ -1152,6 +1152,17 @@
                                                 <span class="n">test_size</span><span class="p">)</span>
 </pre></div>
 </div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 9.91M/9.91M [00:04&lt;00:00, 2.30MB/s]
+100%|██████████| 28.9k/28.9k [00:00&lt;00:00, 336kB/s]
+100%|██████████| 1.65M/1.65M [00:00&lt;00:00, 2.42MB/s]
+100%|██████████| 4.54k/4.54k [00:00&lt;00:00, 20.1MB/s]
+</pre></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
@@ -1421,7 +1432,7 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 018ba9130a0e5800b93e86d0096a22daf7a132f8)
+CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f52f3f8e0830e0c78e05ed8d087ae7faf1e58c9f)
 </pre></div></div>
 </div>
 </section>

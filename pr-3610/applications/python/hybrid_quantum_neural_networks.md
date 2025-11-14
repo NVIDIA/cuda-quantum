@@ -1753,7 +1753,7 @@ output is used to classify hand written digits.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -1761,7 +1761,7 @@ output is used to classify hand written digits.
 ::: highlight
     # Install the relevant packages.
 
-    !pip install matplotlib==3.8.4 torch==2.9.0+cu126 torchvision==0.24.0+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
+    !pip install matplotlib==3.8.4 torch==2.9.1+cu126 torchvision==0.24.1+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
 :::
 :::
 :::
@@ -1904,7 +1904,7 @@ output is used to classify hand written digits.
 :::
 :::
 
-::: {.nbinput .nblast .docutils .container}
+::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [6]:
@@ -1915,6 +1915,20 @@ output is used to classify hand written digits.
 ::: highlight
     x_train, x_test, y_train, y_test = prepare_data(target_digits, sample_count,
                                                     test_size)
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .stderr .docutils .container}
+::: highlight
+    100%|██████████| 9.91M/9.91M [00:04<00:00, 2.30MB/s]
+    100%|██████████| 28.9k/28.9k [00:00<00:00, 336kB/s]
+    100%|██████████| 1.65M/1.65M [00:00<00:00, 2.42MB/s]
+    100%|██████████| 4.54k/4.54k [00:00<00:00, 20.1MB/s]
 :::
 :::
 :::
@@ -2240,7 +2254,7 @@ output is used to classify hand written digits.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 018ba9130a0e5800b93e86d0096a22daf7a132f8)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f52f3f8e0830e0c78e05ed8d087ae7faf1e58c9f)
 :::
 :::
 :::
