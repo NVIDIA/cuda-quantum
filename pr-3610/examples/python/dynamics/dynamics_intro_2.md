@@ -1762,7 +1762,7 @@ pr-3610
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
+Previous](dynamics_intro_1.html "Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](superconducting.html "Superconducting Qubits"){.btn
@@ -2457,7 +2457,7 @@ system quickly mixes.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
+Previous](dynamics_intro_1.html "Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](superconducting.html "Superconducting Qubits"){.btn

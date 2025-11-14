@@ -1756,7 +1756,7 @@ pr-3610
 -   [](../../../index.html){.icon .icon-home aria-label="Home"}
 -   [CUDA-Q by Example](../../../using/examples/examples.html)
 -   [CUDA-Q Dynamics](../../../using/examples/dynamics_examples.html)
--   Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)
+-   Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
@@ -1773,8 +1773,8 @@ aria-hidden="true"}](dynamics_intro_2.html "Introduction to CUDA-Q Dynamics (Tim
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#Intorduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model) .section}
-# Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)[¶](#Intorduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model) "Permalink to this heading"){.headerlink}
+::: {#Introduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model) .section}
+# Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)[¶](#Introduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model) "Permalink to this heading"){.headerlink}
 
 ::: {#Why-dynamics-simulations-vs.-circuit-simulations? .section}
 ## Why dynamics simulations vs. circuit simulations?[¶](#Why-dynamics-simulations-vs.-circuit-simulations? "Permalink to this heading"){.headerlink}
@@ -1960,7 +1960,7 @@ freedom.
 :::
 
 Initialize the states of the system in cupy arrays and define the time
-chedule
+schedule
 
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}

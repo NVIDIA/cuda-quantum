@@ -1736,7 +1736,7 @@ pr-3610
 Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
+aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1857,7 +1857,7 @@ Download the notebooks below
 Previous](hardware_providers.html "Using Quantum Hardware Providers"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
+aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
