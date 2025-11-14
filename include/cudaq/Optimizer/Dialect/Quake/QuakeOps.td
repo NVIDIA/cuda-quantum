@@ -121,7 +121,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
   }];
 
   let arguments = (ins
-    VeqType:$targets,
+    NonStruqRefType:$targets,
     AnyStateInitType:$state
   );
   let results = (outs VeqType);
