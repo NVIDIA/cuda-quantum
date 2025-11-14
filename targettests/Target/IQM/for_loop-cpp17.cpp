@@ -9,7 +9,8 @@
 #include <cudaq.h>
 
 // REQUIRES: c++17
-// RUN: nvq++ %cpp_std %s --target iqm --emulate --iqm-machine Crystal_20 -o %t.x && %t.x | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm --emulate %s -o %t
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
 
 // CHECK: { 0:{{[0-9]+}} 1:{{[0-9]+}} }
 

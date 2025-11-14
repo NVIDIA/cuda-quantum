@@ -31,8 +31,3 @@ target-arguments:
     type: string
     platform-arg: url 
     help-string: "Specify URL."
-  - key: machine
-    required: false
-    type: string
-    platform-arg: qpu-architecture 
-    help-string: "Specify the IQM QPU."
