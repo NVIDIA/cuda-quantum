@@ -41,10 +41,15 @@ target-arguments:
   - key: debias
     required: false
     type: string
-    platform-arg: debias 
+    platform-arg: debias
     help-string: "Specify debiasing."
   - key: sharpen
     required: false
     type: string
     platform-arg: sharpen
     help-string: "Specify sharpening."
+  - key: memory
+    required: false
+    type: boolean
+    platform-arg: memory
+    help-string: "When `true`, returns sequential data for QPU or noisy simulation runs."
