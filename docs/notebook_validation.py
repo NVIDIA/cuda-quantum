@@ -26,18 +26,18 @@ def read_available_backends():
 
 
 # Following pattern matches
-# set_target("abc")
-# set_target( "abc")
-# set_target("abc", option="xyz")
-# set_target("abc", option = "xyz")
-# set_target(\"abc\")
-# set_target( \"abc\")
-# set_target(\"abc\", option=\"xyz\")
-# set_target(\"abc\", option = \"xyz\")
-# set_target('abc')
-# set_target( 'abc')
-# set_target('abc', option='xyz')
-# set_target('abc', option = 'xyz')
+# `set_target("abc")`
+# `set_target( "abc")`
+# `set_target("abc", option="xyz")`
+# `set_target("abc", option = "xyz")`
+# `set_target(\"abc\")`
+# `set_target( \"abc\")`
+# `set_target(\"abc\", option=\"xyz\")`
+# `set_target(\"abc\", option = \"xyz\")`
+# `set_target('abc')`
+# `set_target( 'abc')`
+# `set_target('abc', option='xyz')`
+# `set_target('abc', option = 'xyz')`
 pattern = r"set_target\(\s*(\\?['\"])([^'\"]+)\1(?:\s*,\s*option\s*=\s*(\\?['\"])([^'\"]+)\3)?\)"
 
 
