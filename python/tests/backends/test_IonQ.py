@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, pytest, os
+import cudaq, pytest, os, requests
 from cudaq import spin
 import numpy as np
 from typing import List
@@ -327,9 +327,14 @@ def test_2q_unitary_synthesis():
     assert counts["0010011"] == 1000
 
 
-def test_shot_wise_output_with_memory_and_noise_model():
+def test_shot_wise_output_with_memory_and_qpu():
 
-    cudaq.set_target("ionq", url="http://localhost:{}".format(port), noise='forte-enterprise-1', memory=True)
+    url="http://localhost:{}".format(port)
+
+    # set the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+
+    cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=True)
 
     @cudaq.kernel
     def bell_state():
@@ -340,10 +345,63 @@ def test_shot_wise_output_with_memory_and_noise_model():
     results = cudaq.sample(bell_state, shots_count=3)
     assert(results.get_sequential_data() == ['011', '011', '011'])
 
+    # reset the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=")
 
-def test_shot_wise_output_with_memory_but_no_noise_model():
+def test_shot_wise_output_with_no_memory_and_qpu():
 
-    cudaq.set_target("ionq", url="http://localhost:{}".format(port), noise='ideal', memory=True)
+    url="http://localhost:{}".format(port)
+
+    # set the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=aria-1")
+
+    cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=False)
+
+    @cudaq.kernel
+    def bell_state():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    results = cudaq.sample(bell_state, shots_count=3)
+    assert(results.get_sequential_data() == [])
+
+    # reset the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=")
+
+def test_shot_wise_output_with_memory_and_noise_model():
+
+    url="http://localhost:{}".format(port)
+
+    # set the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=simulator")
+    requests.post(f"{url}/_mock_server_config_noise_model?noise=aria-1")
+
+    cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=True)
+
+    @cudaq.kernel
+    def bell_state():
+        qubits = cudaq.qvector(3)
+        x(qubits[0])
+        cx(qubits[0], qubits[1])
+
+    results = cudaq.sample(bell_state, shots_count=3)
+    assert(results.get_sequential_data() == ['011', '011', '011'])
+
+    # reset the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=")
+    requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+
+def test_shot_wise_output_with_no_memory_and_noise_model():
+
+    url="http://localhost:{}".format(port)
+
+    # set the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=simulator")
+    requests.post(f"{url}/_mock_server_config_noise_model?noise=aria-1")
+
+    cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=False)
 
     @cudaq.kernel
     def bell_state():
@@ -354,19 +412,9 @@ def test_shot_wise_output_with_memory_but_no_noise_model():
     results = cudaq.sample(bell_state, shots_count=3)
     assert(results.get_sequential_data() == [])
 
-
-def test_shot_wise_output_with_noise_model_but_no_memory():
-
-    cudaq.set_target("ionq", url="http://localhost:{}".format(port), noise='forte-enterprise-1', memory=False)
-
-    @cudaq.kernel
-    def bell_state():
-        qubits = cudaq.qvector(3)
-        x(qubits[0])
-        cx(qubits[0], qubits[1])
-
-    results = cudaq.sample(bell_state, shots_count=3)
-    assert(results.get_sequential_data() == [])
+    # reset the mock server target
+    requests.post(f"{url}/_mock_server_config_target?target=")
+    requests.post(f"{url}/_mock_server_config_noise_model?noise=")
 
 
 # leave for gdb debugging

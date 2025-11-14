@@ -137,9 +137,11 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (config.find("format") != config.end())
     backendConfig["format"] = config["format"];
 
-  // Enable memory (return shot-wise bitstrings instead of counts)
+  // Enable memory, true by default
   if (config.find("memory") != config.end())
     backendConfig["memory"] = config["memory"];
+  else
+    backendConfig["memory"] = "true";
 }
 
 // Implementation of the getValueOrDefault function
@@ -389,23 +391,19 @@ bool IonQServerHelper::shotWiseOutputIsNeeded(
   if (!jobs.empty() && jobs[0].contains("noise") &&
       jobs[0]["noise"].contains("model")) {
     noiseModel = jobs[0]["noise"]["model"].get<std::string>();
-  } else if (keyExists("noise_model")) {
-    noiseModel = backendConfig["noise_model"];
   }
 
   std::string target = "simulator";
   if (!jobs.empty() && jobs[0].contains("target")) {
     target = jobs[0]["target"].get<std::string>();
-  } else if (keyExists("target")) {
-    target = backendConfig["target"];
   }
 
   bool targetHasMemoryOption =
       keyExists("memory") && backendConfig["memory"] == "true";
-  bool targetHasNoiseModel = noiseModel != "ideal";
-  bool targetIsNotSimulator = target != "simulator";
+  bool noiseModelIsNotIdeal = noiseModel != "ideal";
+  bool targetIsQpu = target != "simulator";
 
-  return targetHasMemoryOption && (targetHasNoiseModel || targetIsNotSimulator);
+  return targetHasMemoryOption && (targetIsQpu || noiseModelIsNotIdeal);
 }
 
 // Process the results from a job
