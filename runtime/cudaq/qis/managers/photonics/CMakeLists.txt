@@ -17,7 +17,7 @@ target_include_directories(${LIBRARY_NAME}
        $<INSTALL_INTERFACE:include>)
 
 set (PHOTONICS_DEPENDENCIES "")
-list(APPEND PHOTONICS_DEPENDENCIES cudaq-common libqpp fmt::fmt-header-only)
+list(APPEND PHOTONICS_DEPENDENCIES cudaq cudaq-common libqpp fmt::fmt-header-only)
 add_openmp_configurations(${LIBRARY_NAME} PHOTONICS_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME}

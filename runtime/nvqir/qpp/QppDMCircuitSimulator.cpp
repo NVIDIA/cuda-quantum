@@ -109,10 +109,21 @@ struct QppDmState : public cudaq::SimulationState {
   }
 
   std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
-    return std::make_unique<QppDmState>(
-        Eigen::Map<qpp::cmat>(reinterpret_cast<std::complex<double> *>(ptr),
-                              std::sqrt(size), std::sqrt(size)));
+  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
+    const bool isMatrixData =
+        type == cudaq::detail::variant_index<cudaq::state_data,
+                                             cudaq::complex_matrix>();
+
+    if (isMatrixData)
+      return std::make_unique<QppDmState>(
+          Eigen::Map<qpp::cmat>(reinterpret_cast<std::complex<double> *>(ptr),
+                                std::sqrt(size), std::sqrt(size)));
+    // This is state vector data, convert it to density matrix: rho = |psi><psi|
+    auto *stateData =
+        reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
+    qpp::ket psi = qpp::ket::Map(stateData, size);
+    qpp::cmat dm = psi * psi.adjoint();
+    return std::make_unique<QppDmState>(std::move(dm));
   }
 
   void dump(std::ostream &os) const override { os << state << "\n"; }

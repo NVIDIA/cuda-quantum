@@ -17,13 +17,15 @@ namespace cudaq {
 
 std::mutex deleteStateMutex;
 
-state state::from_data(const state_data &data) {
+state &state::initialize(const state_data &data) {
   auto *simulator = cudaq::get_simulator();
   if (!simulator)
     throw std::runtime_error(
         "[state::from_data] Could not find valid simulator backend.");
-
-  return state(simulator->createStateFromData(data).release());
+  std::shared_ptr<SimulationState> newPtr{
+      simulator->createStateFromData(data).release()};
+  std::swap(internal, newPtr);
+  return *this;
 }
 
 SimulationState::precision state::get_precision() const {
@@ -128,34 +130,23 @@ std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
 
-state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
-  auto d = reinterpret_cast<std::complex<double> *>(data);
-
-  // Convert the data to the current simulation precision
-  // if different from the data's precision.
-  auto *simulator = cudaq::get_simulator();
-  if (simulator->isSinglePrecision()) {
-    std::vector<std::complex<float>> converted(d, d + size);
-    return new state(state::from_data(converted));
-  }
-
-  std::vector<std::complex<double>> current(d, d + size);
-  return new state(state::from_data(current));
+// Code gen helpers to convert spans (device side data) to state objects.
+state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *d,
+                                                      std::size_t size) {
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
-state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
-  auto d = reinterpret_cast<std::complex<float> *>(data);
+state *__nvqpp_cudaq_state_createFromData_f64(double *d, std::size_t size) {
+  return new state(std::vector<double>{d, d + size});
+}
 
-  // Convert the data to the current simulation precision
-  // if different from the data's precision.
-  auto *simulator = cudaq::get_simulator();
-  if (simulator->isDoublePrecision()) {
-    std::vector<std::complex<double>> converted(d, d + size);
-    return new state(state::from_data(converted));
-  }
+state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *d,
+                                                      std::size_t size) {
+  return new state(std::vector<std::complex<float>>{d, d + size});
+}
 
-  std::vector<std::complex<float>> current(d, d + size);
-  return new state(state::from_data(current));
+state *__nvqpp_cudaq_state_createFromData_f32(float *d, std::size_t size) {
+  return new state(std::vector<float>{d, d + size});
 }
 
 void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }
