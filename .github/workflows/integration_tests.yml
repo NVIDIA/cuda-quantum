@@ -317,7 +317,7 @@ jobs:
           # Determine which providers to test based on inputs and event type
           # Disabling anyon, please see https://github.com/NVIDIA/cuda-quantum/issues/3598
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
