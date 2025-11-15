@@ -317,7 +317,7 @@ jobs:
           # Determine which providers to test based on inputs and event type
           # Disabling anyon, please see https://github.com/NVIDIA/cuda-quantum/issues/3598
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -344,16 +344,6 @@ jobs:
         password: ${{ github.token }}
 
     steps:
-      - name: Skip Anyon tests (temporary)
-        if: matrix.provider == 'anyon'
-        id: skip_anyon
-        run: |
-          echo "### Anyon integration tests" >> $GITHUB_STEP_SUMMARY
-          echo ":warning: Anyon integration tests are temporarily skipped" >> $GITHUB_STEP_SUMMARY
-          echo "::warning::Anyon integration tests are temporarily skipped"
-          echo "skipped=true" >> $GITHUB_OUTPUT
-        shell: bash
-
       - name: Get code
         uses: actions/checkout@v4
         with:
@@ -410,7 +400,6 @@ jobs:
 
       # Provider-specific setup steps
       - name: Setup ${{ matrix.provider }} account
-        if: steps.skip_anyon.outputs.skipped != 'true'
         run: |
           case "${{ matrix.provider }}" in
             anyon)
@@ -527,7 +516,6 @@ jobs:
 
       # Run the provider-specific tests
       - name: Run tests for ${{ matrix.provider }}
-        if: steps.skip_anyon.outputs.skipped != 'true'
         run: |
           echo "### Testing ${{ matrix.provider }}" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
