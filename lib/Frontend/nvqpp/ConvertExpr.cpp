@@ -1634,6 +1634,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return false;
     }
 
+    if (funcName == "save_state") {
+      builder.create<quake::SaveStateOp>(loc);
+      return true;
+    }
+
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
       // Measurements always return a bool or a std::vector<bool>.
       bool useStdvec =
