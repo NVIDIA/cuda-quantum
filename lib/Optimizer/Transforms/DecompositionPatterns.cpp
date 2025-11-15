@@ -6,6 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/**
+ * This file contains the decomposition patterns that match single gates and
+ * decompose them into a sequence of other gates.
+ *
+ * IMPORTANT: Whenever a new pattern is added/modified/deleted, the pattern
+ * metadata must be updated to reflect the changes. The metadata map to be
+ * updated is found in `getAllPatternMetadata()`.
+ */
+
 #include "DecompositionPatterns.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -13,6 +22,9 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
+#include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringRef.h>
+#include <memory>
 
 using namespace mlir;
 
@@ -502,6 +514,9 @@ struct ExpPauliDecomposition : public OpRewritePattern<quake::ExpPauliOp> {
 // quake apply specialization.
 struct R1ToRz : public OpRewritePattern<quake::R1Op> {
   using OpRewritePattern::OpRewritePattern;
+
+  void initialize() { setDebugName("R1ToRz"); }
+
   LogicalResult matchAndRewrite(quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
     if (!r1Op.getControls().empty())
@@ -1668,58 +1683,121 @@ struct U3ToRotations : public OpRewritePattern<quake::U3Op> {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// Metadata for all decomposition patterns
+//
+// IMPORTANT: Make sure to add new patterns to the end of the `patternMetadata`
+// map below.
+//===----------------------------------------------------------------------===//
+
+struct PatternMetadata {
+  llvm::StringRef sourceGate;
+  llvm::SmallVector<llvm::StringRef> targetGates;
+  std::function<std::unique_ptr<mlir::RewritePattern>(mlir::MLIRContext *)>
+      factoryFn;
+};
+
+template <typename Pattern>
+PatternMetadata makePatternMetadata(StringRef sourceGate,
+                                    SmallVector<StringRef> targetGates) {
+  return PatternMetadata{
+      .sourceGate = sourceGate,
+      .targetGates = targetGates,
+      .factoryFn =
+          [](MLIRContext *ctx) { return RewritePattern::create<Pattern>(ctx); },
+  };
+}
+const std::map<StringRef, PatternMetadata> &getAllPatternMetadata() {
+  /// Each entry documents:
+  /// - the debug name of the pattern (must match getDebugName() of the
+  /// pattern),
+  /// - the source gate, i.e. the gate that the pattern matches and decomposes,
+  /// - the target gates, i.e. the gates that the pattern creates. This must
+  ///   include all gates that may be created by any instance of the pattern.
+  static const std::map<StringRef, PatternMetadata> patternMetadata{
+      // TODO: "SToR1", "TToR1", "R1ToU3", "U3ToRotations" can be generalised to
+      // arbitrary number of controls, but we would need to reason over n
+      // HOp patterns
+      {"HToPhasedRx", makePatternMetadata<HToPhasedRx>("h", {"phased_rx"})},
+      {"CHToCX", makePatternMetadata<CHToCX>("h(1)", {"s", "h", "t", "x(1)"})},
+      // SOp patterns
+      {"SToPhasedRx", makePatternMetadata<SToPhasedRx>("s", {"phased_rx"})},
+      {"SToR1", makePatternMetadata<SToR1>("s", {"r1"})},
+      // TOp patterns
+      {"TToPhasedRx", makePatternMetadata<TToPhasedRx>("t", {"phased_rx"})},
+      {"TToR1", makePatternMetadata<TToR1>("t", {"r1"})},
+      // XOp patterns
+      {"CXToCZ", makePatternMetadata<CXToCZ>("x(1)", {"h", "z(1)"})},
+      {"CCXToCCZ", makePatternMetadata<CCXToCCZ>("x(2)", {"h", "z(2)"})},
+      {"XToPhasedRx", makePatternMetadata<XToPhasedRx>("x", {"phased_rx"})},
+      // YOp patterns
+      {"YToPhasedRx", makePatternMetadata<YToPhasedRx>("y", {"phased_rx"})},
+      {"CYToCX", makePatternMetadata<CYToCX>("y(1)", {"s", "x(1)"})},
+      // ZOp patterns
+      {"CZToCX", makePatternMetadata<CZToCX>("z(1)", {"h", "x(1)"})},
+      {"CCZToCX", makePatternMetadata<CCZToCX>("z(2)", {"t", "x(1)"})},
+      {"ZToPhasedRx", makePatternMetadata<ZToPhasedRx>("z", {"phased_rx"})},
+      // R1Op patterns
+      {"CR1ToCX", makePatternMetadata<CR1ToCX>("r1(1)", {"r1", "x(1)"})},
+      {"R1ToPhasedRx", makePatternMetadata<R1ToPhasedRx>("r1", {"phased_rx"})},
+      {"R1ToRz", makePatternMetadata<R1ToRz>("r1", {"rz"})},
+      {"R1ToU3", makePatternMetadata<R1ToU3>("r1", {"u3"})},
+      {"R1AdjToR1", makePatternMetadata<R1AdjToR1>("r1", {"r1"})},
+      // RxOp patterns
+      {"CRxToCX",
+       makePatternMetadata<CRxToCX>("rx(1)", {"s", "x(1)", "ry", "rz"})},
+      {"RxToPhasedRx", makePatternMetadata<RxToPhasedRx>("rx", {"phased_rx"})},
+      {"RxAdjToRx", makePatternMetadata<RxAdjToRx>("rx", {"rx"})},
+      // RyOp patterns
+      {"CRyToCX", makePatternMetadata<CRyToCX>("ry(1)", {"ry", "x(1)"})},
+      {"RyToPhasedRx", makePatternMetadata<RyToPhasedRx>("ry", {"phased_rx"})},
+      {"RyAdjToRy", makePatternMetadata<RyAdjToRy>("ry", {"ry"})},
+      // RzOp patterns
+      {"CRzToCX", makePatternMetadata<CRzToCX>("rz(1)", {"rz", "x(1)"})},
+      {"RzToPhasedRx", makePatternMetadata<RzToPhasedRx>("rz", {"phased_rx"})},
+      {"RzAdjToRz", makePatternMetadata<RzAdjToRz>("rz", {"rz"})},
+      // Swap pattern
+      {"SwapToCX", makePatternMetadata<SwapToCX>("swap", {"x(1)"})},
+      // U3Op patterns
+      {"U3ToRotations", makePatternMetadata<U3ToRotations>("u3", {"rz", "rx"})},
+      {"ExpPauliDecomposition", makePatternMetadata<ExpPauliDecomposition>(
+                                    "exp_pauli", {"rx", "h", "x(1)", "rz"})},
+  };
+  return patternMetadata;
+}
 } // namespace
 
-//===----------------------------------------------------------------------===//
-// Populating pattern sets
-//===----------------------------------------------------------------------===//
+SmallVector<StringRef, 32> cudaq::getAllDecompositionPatternNames() {
+  SmallVector<StringRef, 32> patternNames;
+  for (const auto &pattern : getAllPatternMetadata()) {
+    patternNames.push_back(pattern.first);
+  }
+  return patternNames;
+}
 
-void cudaq::populateWithAllDecompositionPatterns(RewritePatternSet &patterns) {
-  // clang-format off
-  patterns.insert<
-    // HOp patterns
-    HToPhasedRx,
-    CHToCX,
-    // SOp patterns
-    SToPhasedRx,
-    SToR1,
-    // TOp patterns
-    TToPhasedRx,
-    TToR1,
-    // XOp patterns
-    CXToCZ,
-    CCXToCCZ,
-    XToPhasedRx,
-    // YOp patterns
-    YToPhasedRx,
-    CYToCX,
-    // ZOp patterns
-    CZToCX,
-    CCZToCX,
-    ZToPhasedRx,
-    // R1Op patterns
-    CR1ToCX,
-    R1ToPhasedRx,
-    R1ToRz,
-    R1ToU3,
-    R1AdjToR1,
-    // RxOp patterns
-    CRxToCX,
-    RxToPhasedRx,
-    RxAdjToRx,
-    // RyOp patterns
-    CRyToCX,
-    RyToPhasedRx,
-    RyAdjToRy,
-    // RzOp patterns
-    CRzToCX,
-    RzToPhasedRx,
-    RzAdjToRz,
-    // Swap
-    SwapToCX,
-    // U3Op
-    U3ToRotations,
-    ExpPauliDecomposition
-  >(patterns.getContext());
-  // clang-format on
+std::pair<StringRef, ArrayRef<StringRef>>
+cudaq::getSourceAndTargetGates(StringRef patternName) {
+  auto it = getAllPatternMetadata().find(patternName);
+  assert(it != getAllPatternMetadata().end() && "pattern not found");
+  return {it->second.sourceGate, it->second.targetGates};
+}
+
+std::unique_ptr<RewritePattern>
+cudaq::createDecompositionPattern(MLIRContext *context, StringRef patternName) {
+  auto it = getAllPatternMetadata().find(patternName);
+  assert(it != getAllPatternMetadata().end() && "pattern not found");
+  return it->second.factoryFn(context);
+}
+
+void cudaq::addDecompositionPattern(RewritePatternSet &patterns,
+                                    StringRef patternName) {
+  patterns.add(createDecompositionPattern(patterns.getContext(), patternName));
+}
+
+void cudaq::populateWithAllDecompositionPatterns(
+    mlir::RewritePatternSet &patterns) {
+  for (StringRef patternName : getAllDecompositionPatternNames()) {
+    patterns.add(
+        createDecompositionPattern(patterns.getContext(), patternName));
+  }
 }

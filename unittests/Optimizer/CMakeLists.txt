@@ -8,12 +8,22 @@
 
 include(HandleLLVMOptions)
 
-add_executable(OptimizerUnitTests HermitianTrait.cpp FactoryMergeModuleTest.cpp)
+add_executable(OptimizerUnitTests
+  HermitianTrait.cpp
+  FactoryMergeModuleTest.cpp
+  DecompositionPatternsTest.cpp
+)
 
 target_link_libraries(OptimizerUnitTests
   PRIVATE
+    MLIRArithDialect
+    MLIRFuncDialect
     MLIRParser
+    MLIRPass
+    MLIRTransforms
     QuakeDialect
+    CCDialect
+    OptTransforms
     gtest_main
     OptimBuilder
 )
