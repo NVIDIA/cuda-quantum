@@ -43,9 +43,12 @@ def test_elif():
 # CHECK:             %[[VAL_10:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<f64>) -> !cc.ptr<!cc.array<f64 x ?>>
 # CHECK:             %[[VAL_11:.*]] = cc.compute_ptr %[[VAL_10]][%[[VAL_9]]] : (!cc.ptr<!cc.array<f64 x ?>>, i64) -> !cc.ptr<f64>
 # CHECK:             %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<f64>
+# CHECK:             %[[VAL_20:.*]] = cc.alloca f64
+# CHECK:             cc.store %[[VAL_12]], %[[VAL_20]] : !cc.ptr<f64>
+# CHECK:             %[[VAL_21:.*]] = cc.load %[[VAL_20]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_13]]] : (!quake.veq<4>, i64) -> !quake.ref
-# CHECK:             quake.ry (%[[VAL_12]]) %[[VAL_14]] : (f64, !quake.ref) -> ()
+# CHECK:             quake.ry (%[[VAL_21]]) %[[VAL_14]] : (f64, !quake.ref) -> ()
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_16:.*]] = arith.addi %[[VAL_15]], %[[VAL_1]] : i64
 # CHECK:             cc.store %[[VAL_16]], %[[VAL_4]] : !cc.ptr<i64>
@@ -54,6 +57,6 @@ def test_elif():
 # CHECK:           ^bb0(%[[VAL_17:.*]]: i64):
 # CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_18]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }

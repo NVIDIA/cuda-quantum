@@ -1054,6 +1054,32 @@ public:
           thunk = genThunkFunction(loc, builder, classNameStr, structTy, funcTy,
                                    funcOp);
 
+          // The `argsCreator` function doesn't properly deal with structs
+          // that contain dynamic types. Since we want to revise that in a 
+          // future version, I am opting to simply give a comprehensive enough
+          // error here rather than fixing that. If we don't fail here, the
+          // invocation of the `argsCreator` as it is will segfault.
+          auto checkDynamicStructMember = [&module](llvm::ArrayRef<mlir::Type> tys) {
+            mlir::LogicalResult res = success();
+            for (auto ty : tys) {
+              if (cudaq::cc::isDynamicType(ty)) {
+                if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty)) {
+                  for (auto memTy : strTy.getMembers()) {
+                    if (cudaq::cc::isDynamicType(memTy))
+                      res = module.emitError("dynamically sized element types for function arguments or returns are not supported");
+                      return res;
+                  }
+                }
+              }
+            }
+            return res;
+          };
+
+          if (failed(checkDynamicStructMember(funcTy.getInputs().drop_front(startingArgIdx))))
+            return signalPassFailure();
+          if (failed(checkDynamicStructMember(funcTy.getResults())))
+            return signalPassFailure();
+
           // Generate the argsCreator function used by synthesis.
           if (startingArgIdx == 0) {
             argsCreatorFunc = genKernelArgsCreatorFunction(

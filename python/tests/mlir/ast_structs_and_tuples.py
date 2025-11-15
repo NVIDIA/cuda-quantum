@@ -325,11 +325,11 @@ def test_tuple_assign_struct():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.struct<"tuple" {i64, f64}>
-# CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.struct<"tuple" {i64, f64}>>) -> !cc.ptr<i64>
-# CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<"tuple" {i64, f64}>>) -> !cc.ptr<f64>
-# CHECK:           cc.store %[[VAL_1]], %[[VAL_4]] : !cc.ptr<f64>
+# CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<"tuple" {i64, f64}>
+# CHECK:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_2]][0], %[[VAL_0]] : (!cc.struct<"tuple" {i64, f64}>, i64) -> !cc.struct<"tuple" {i64, f64}>
+# CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]][1], %[[VAL_1]] : (!cc.struct<"tuple" {i64, f64}>, f64) -> !cc.struct<"tuple" {i64, f64}>
+# CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.struct<"tuple" {i64, f64}>
+# CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.struct<"tuple" {i64, f64}>>
 # CHECK:         result test2: 4.0
 
 # CHECK-LABEL:   result test3: 5.0
