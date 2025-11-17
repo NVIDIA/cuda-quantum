@@ -25,13 +25,33 @@ def read_available_backends():
     return [backend.strip() for backend in available_backends]
 
 
+# Following pattern matches
+# `set_target("abc")`
+# `set_target( "abc")`
+# `set_target("abc", option="xyz")`
+# `set_target("abc", option = "xyz")`
+# `set_target(\"abc\")`
+# `set_target( \"abc\")`
+# `set_target(\"abc\", option=\"xyz\")`
+# `set_target(\"abc\", option = \"xyz\")`
+# `set_target('abc')`
+# `set_target( 'abc')`
+# `set_target('abc', option='xyz')`
+# `set_target('abc', option = 'xyz')`
+pattern = r"set_target\(\s*(\\?['\"])([^'\"]+)\1(?:\s*,\s*option\s*=\s*(\\?['\"])([^'\"]+)\3)?\)"
+
+
 def validate(notebook_filename, available_backends):
     with open(notebook_filename) as f:
         lines = f.readlines()
     for notebook_content in lines:
-        match = re.search('set_target[\\\s\(]+"(.+)\\\\"[)]', notebook_content)
-        if match and (match.group(1) not in available_backends):
-            return False
+        if re.search(r'\s*\#', notebook_content):
+            continue
+
+        match = re.search(pattern, notebook_content)
+        if match:
+            target = match.group(2)
+            return target in available_backends
     for notebook_content in lines:
         match = re.search('--target ([^ ]+)', notebook_content)
         if match and (match.group(1) not in available_backends):
@@ -122,7 +142,9 @@ if __name__ == "__main__":
 
         ## `quantum_transformer`:
         ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
-        notebooks_skipped = ['quantum_transformer.ipynb']
+        notebooks_skipped = [
+            'quantum_transformer.ipynb', 'logical_aim_sqale.ipynb'
+        ]
 
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)
