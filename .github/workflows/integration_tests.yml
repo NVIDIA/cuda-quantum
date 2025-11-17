@@ -315,6 +315,7 @@ jobs:
         id: set-matrix
         run: |
           # Determine which providers to test based on inputs and event type
+          # Disabling anyon, please see https://github.com/NVIDIA/cuda-quantum/issues/3598
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
             providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
           else
@@ -638,7 +639,7 @@ jobs:
                 ;;
 
               iqm)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
+                nvq++ -DSYNTAX_CHECK --target iqm $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
@@ -761,7 +762,7 @@ jobs:
                 if [[ "$filename" == *.cpp ]]; then
                   if [[ "$filename" == *"quantinuum_ng/"* ]]; then
                     echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
-                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 15 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
                   else
                     echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
                     nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
@@ -1022,6 +1023,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install wheel
+        if: steps.skip_check.outputs.skipped != 'true'
         id: install_wheel
         run: |
           python_version=${{ inputs.python_version || env.python_version }}
@@ -1077,7 +1079,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVQC
-        if: ${{ steps.install_wheel.outputs.skipped != 'true' }}
+        if: ${{ steps.skip_check.outputs.skipped != 'true' || steps.install_wheel.outputs.skipped != 'true' }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version || env.python_version }}
