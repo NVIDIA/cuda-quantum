@@ -52,7 +52,6 @@ createQIRToQIRProfilePass(llvm::StringRef convertTo);
 std::unique_ptr<mlir::Pass> createQIRProfilePreparationPass();
 std::unique_ptr<mlir::Pass>
 createConvertToQIRFuncPass(llvm::StringRef convertTo);
-std::unique_ptr<mlir::Pass> createQirInsertArrayRecord();
 
 /// Register target pipelines.
 void registerTargetPipelines();

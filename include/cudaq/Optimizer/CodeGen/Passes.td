@@ -139,7 +139,6 @@ def QirInsertArrayRecord : Pass<"qir-insert-array-record", "mlir::ModuleOp"> {
   }];
   let dependentDialects = ["quake::QuakeDialect", "cudaq::cc::CCDialect", 
       "mlir::LLVM::LLVMDialect"];
-  let constructor = "cudaq::opt::createQirInsertArrayRecord()";
 }
 
 def RemoveMeasurements : Pass<"remove-measurements"> {

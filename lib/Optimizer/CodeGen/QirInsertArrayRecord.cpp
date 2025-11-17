@@ -189,31 +189,25 @@ struct QirInsertArrayRecordPass
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
-    module.walk([&](func::FuncOp funcOp) {
+    for (auto funcOp : module.getOps<func::FuncOp>()) {
       if (!funcOp || funcOp.empty() ||
           !funcOp->hasAttr(cudaq::entryPointAttrName) ||
           funcOp->hasAttr(cudaq::runtime::enableCudaqRun))
-        return WalkResult::advance();
+        continue;
 
       AllocaMeasureStoreAnalysis analysis(funcOp);
       if (analysis.arraySize == 0)
-        return WalkResult::advance();
+        continue;
 
       LLVM_DEBUG(llvm::dbgs() << "Before adding array recording call:\n"
                               << *funcOp);
       if (failed(insertArrayRecordingCalls(funcOp, analysis.arraySize,
                                            analysis.allocaOps,
                                            analysis.firstMeasurementOp)))
-        return WalkResult::interrupt();
+        return signalPassFailure();
       LLVM_DEBUG(llvm::dbgs() << "After adding array recording call:\n"
                               << *funcOp);
-
-      return WalkResult::advance();
-    });
+    }
   }
 };
 } // namespace
-
-std::unique_ptr<Pass> cudaq::opt::createQirInsertArrayRecord() {
-  return std::make_unique<QirInsertArrayRecordPass>();
-}
