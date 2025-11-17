@@ -95,7 +95,7 @@ while IFS= read -r line; do
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
         if [ -n "${extra_packages}" ]; then 
-            eval "pip install cudaq --find-links ${extra_packages}"
+            eval "pip install cudaq ${extra_packages}"
         fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
