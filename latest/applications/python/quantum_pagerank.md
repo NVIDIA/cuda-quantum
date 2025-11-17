@@ -851,6 +851,51 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1701,7 +1746,8 @@ aria-hidden="true"}](uccsd_wf_ansatz.html "The UCCSD Wavefunction ansatz"){.btn
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    !pip install torch==2.6.0 torch-geometric==2.6.1 -q
+    # Install the relevant packages.
+    !pip install networkx==3.5
 :::
 :::
 :::
@@ -1715,8 +1761,6 @@ aria-hidden="true"}](uccsd_wf_ansatz.html "The UCCSD Wavefunction ansatz"){.btn
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    import torch
-    from torch_geometric.data import Data
     import networkx as nx
     import matplotlib.pyplot as plt
     import numpy as np
@@ -1816,7 +1860,7 @@ their "vote of importance" is evenly split among those [\\(m\\)]{.math
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [4]:
 :::
 :::
 
@@ -1858,7 +1902,7 @@ probability of [\\(1/N\\)]{.math .notranslate .nohighlight}.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [5]:
 :::
 :::
 
@@ -1952,7 +1996,7 @@ efficiently solving time-evolved states. Let's get started:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [6]:
 :::
 :::
 
@@ -1993,7 +2037,7 @@ the operator [\\(L(i,j)\\)]{.math .notranslate .nohighlight} describes a
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [7]:
 :::
 :::
 
@@ -2032,7 +2076,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [8]:
 :::
 :::
 
@@ -2074,7 +2118,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [9]:
 :::
 :::
 
@@ -2092,7 +2136,7 @@ Simply simulate the dynamic system via the [`evolve`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [11]:
+    [10]:
 :::
 :::
 
@@ -2156,7 +2200,7 @@ simulation:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [12]:
+    [11]:
 :::
 :::
 
@@ -2189,7 +2233,7 @@ simulation:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [12]:
 :::
 :::
 
@@ -2206,7 +2250,7 @@ simulation:
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version cu12-0.10.0 (https://github.com/NVIDIA/cuda-quantum 857dd2ce0a783c32416af8fba8664ff30f9ddc47)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f8c9c1507fd2741c0af980b9b7028729b1ecc58d)
 :::
 :::
 :::

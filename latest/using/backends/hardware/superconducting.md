@@ -896,6 +896,51 @@ latest
             -   [What to
                 Expect:](../../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](../../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../backends.html){.reference .internal}
     -   [Circuit Simulation](../simulators.html){.reference .internal}
         -   [State Vector Simulators](../sims/svsims.html){.reference
@@ -1688,8 +1733,8 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](iontrap.html "Ion Trap"){.btn .btn-neutral .float-left
 accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](neutralatom.html "Neutral Atom"){.btn .btn-neutral
-.float-right accesskey="n"}
+aria-hidden="true"}](backend_iqm.html "IQM Backend Advanced Use Cases"){.btn
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1862,31 +1907,37 @@ To see a complete example, take a look at [[Anyon examples]{.std
 ::: {#iqm .section}
 ## IQM[¶](#iqm "Permalink to this heading"){.headerlink}
 
-Support for submissions to IQM is currently under development. In
-particular, two-qubit gates can only be performed on adjacent qubits.
-For more information, we refer to the respective hardware documentation.
-Support for automatically injecting the necessary operations during
-compilation to execute arbitrary multi-qubit gates will be added in
-future versions.
+[IQM Resonance](https://meetiqm.com/products/iqm-resonance/){.reference
+.external} offers access to various different IQM quantum computers. The
+machines available there will be constantly extended as development
+progresses. Programmers of CUDA-Q may use IQM Resonance with either C++
+or Python.
+
+With this version it is no longer necessary to define the target QPU
+architecture in the code or at compile time. The IQM backend integration
+now contacts at runtime the configured IQM server and fetches the active
+dynamic quantum architecture of the QPU. This is then used as input to
+transpile the quantum kernel code just-in-time for the target QPU
+topology. By setting the environment variable
+[`IQM_SERVER_URL`{.docutils .literal .notranslate}]{.pre} the target
+server can be selected just before executing the program. As result the
+python script or the compiled C++ program can be executed on different
+QPUs without recompilation or code changes.
+
+Please find also more documentation after logging in to the IQM
+Resonance portal.
 
 ::: {#id1 .section}
 ### Setting Credentials[¶](#id1 "Permalink to this heading"){.headerlink}
 
-Programmers of CUDA-Q may access the IQM Server from either C++ or
-Python. Following the [quick start
-guide](https://iqm-finland.github.io/cortex-cli/readme.html#using-cortex-cli){.reference
-.external}, install [`iqm-cortex-cli`{.code .docutils .literal
-.notranslate}]{.pre} and login to initialize the tokens file. The path
-to the tokens file can either be passed explicitly via an environment
-variable or it will be loaded automatically if located in the default
-location [`~/.cache/iqm-cortex-cli/tokens.json`{.code .docutils .literal
-.notranslate}]{.pre}.
-
-::: {.highlight-bash .notranslate}
-::: highlight
-    export IQM_TOKENS_FILE="path/to/tokens.json"
-:::
-:::
+Create a free account on the [IQM Resonance
+portal](https://meetiqm.com/products/iqm-resonance/){.reference
+.external} and log-in. Navigate to the account profile (top right).
+There generate an "API Token" and copy the generated token-string. Set
+the environment variable [`IQM_TOKEN`{.docutils .literal
+.notranslate}]{.pre} to contain the value of the token-string. The IQM
+backend integration will use this as authorization token at the IQM
+server.
 :::
 
 ::: {#id2 .section}
@@ -1902,34 +1953,13 @@ function.
 
 ::: {.highlight-python .notranslate}
 ::: highlight
-    cudaq.set_target("iqm", url="https://<IQM Server>/cocos",**{"qpu-architecture": "Crystal_5"})
+    cudaq.set_target("iqm", url="https://<IQM Server>/")
 :::
 :::
 
-To emulate the IQM Server locally, without submitting to the IQM Server,
-you can also set the [`emulate`{.docutils .literal .notranslate}]{.pre}
-flag to [`True`{.docutils .literal .notranslate}]{.pre}. This will emit
-any target specific compiler diagnostics, before running a noise free
-emulation.
-
-::: {.highlight-python .notranslate}
-::: highlight
-    cudaq.set_target('iqm', emulate=True)
-:::
-:::
-
-The number of shots for a kernel execution can be set through the
-[`shots_count`{.docutils .literal .notranslate}]{.pre} argument to
-[`cudaq.sample`{.docutils .literal .notranslate}]{.pre} or
-[`cudaq.observe`{.docutils .literal .notranslate}]{.pre}. By default,
-the [`shots_count`{.docutils .literal .notranslate}]{.pre} is set to
-1000.
-
-::: {.highlight-python .notranslate}
-::: highlight
-    cudaq.sample(kernel, shots_count=10000)
-:::
-:::
+Please note that setting the environment variable
+[`IQM_SERVER_URL`{.docutils .literal .notranslate}]{.pre} takes
+precedence over the URL configured in the code.
 :::
 
 C++
@@ -1938,60 +1968,51 @@ C++
 To target quantum kernel code for execution on an IQM Server, pass the
 [`--target`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 .literal .notranslate}[`iqm`{.docutils .literal .notranslate}]{.pre}
-flag to the [`nvq++`{.docutils .literal .notranslate}]{.pre} compiler,
-along with a specified [`--iqm-machine`{.docutils .literal
-.notranslate}]{.pre}.
-
-::: {.admonition .note}
-Note
-
-The [`--iqm-machine`{.docutils .literal .notranslate}]{.pre} is a
-mandatory argument. This provided architecture must match the device
-architecture that the program has been compiled against. The hardware
-architecture for a specific IQM Server may be checked via
-[`https://<IQM`{.code .docutils .literal .notranslate}]{.pre}` `{.code
-.docutils .literal
-.notranslate}[`server>/cocos/quantum-architecture`{.code .docutils
-.literal .notranslate}]{.pre}.
-:::
+option to the [`nvq++`{.docutils .literal .notranslate}]{.pre} compiler.
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    nvq++ --target iqm --iqm-machine Crystal_5 src.cpp
+    nvq++ --target iqm src.cpp
 :::
 :::
 
-Once the binary for a specific IQM QPU architecture is compiled, it can
-be executed against any IQM Server with the same QPU architecture:
-
-::: {.highlight-bash .notranslate}
-::: highlight
-    nvq++ --target iqm --iqm-machine Crystal_5 src.cpp -o program
-    IQM_SERVER_URL="https://demo.qc.iqm.fi/cocos" ./program
-
-    # Executing the same program against an IQM Server with a different underlying QPU
-    # architecture will result in an error.
-    IQM_SERVER_URL="https://<Crystal_20 IQM Server>/cocos" ./program
-:::
-:::
-
-To emulate the IQM machine locally, without submitting to the IQM
-Server, you can also pass the [`--emulate`{.docutils .literal
-.notranslate}]{.pre} flag to [`nvq++`{.docutils .literal
-.notranslate}]{.pre}. This will emit any target specific compiler
-diagnostics, before running a noise free emulation.
+Once the binary for an IQM QPU is compiled, it can be executed against
+any IQM Server by setting the environment variable
+[`IQM_SERVER_URL`{.docutils .literal .notranslate}]{.pre} as shown here:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    nvq++ --emulate --target iqm --iqm-machine Crystal_5 src.cpp
+    nvq++ --target iqm src.cpp -o program
+    IQM_SERVER_URL="https://demo.qc.iqm.fi/" ./program
 :::
 :::
 :::
 :::
 
-To see a complete example, take a look at [[IQM examples]{.std
+To see a complete example for using IQM server backends, take a look at
+[[IQM examples]{.std
 .std-ref}](../../examples/hardware_providers.html#iqm-examples){.reference
 .internal}.
+:::
+
+::: {#advanced-use-cases .section}
+### Advanced use cases[¶](#advanced-use-cases "Permalink to this heading"){.headerlink}
+
+The IQM backend integration offers more options for advanced use cases.
+Please find these here:
+
+::: {.toctree-wrapper .compound}
+-   [IQM backend advanced use cases](backend_iqm.html){.reference
+    .internal}
+    -   [Emulation Mode](backend_iqm.html#emulation-mode){.reference
+        .internal}
+    -   [Setting the Number of
+        Shots](backend_iqm.html#setting-the-number-of-shots){.reference
+        .internal}
+    -   [Using Credentials Saved in a
+        File](backend_iqm.html#using-credentials-saved-in-a-file){.reference
+        .internal}
+:::
 :::
 :::
 
@@ -2509,8 +2530,8 @@ running "[`import`{.code .docutils .literal
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](iontrap.html "Ion Trap"){.btn .btn-neutral .float-left
 accesskey="p" rel="prev"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](neutralatom.html "Neutral Atom"){.btn .btn-neutral
-.float-right accesskey="n" rel="next"}
+aria-hidden="true"}](backend_iqm.html "IQM Backend Advanced Use Cases"){.btn
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

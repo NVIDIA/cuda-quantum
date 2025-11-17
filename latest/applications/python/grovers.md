@@ -851,6 +851,51 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1970,7 +2015,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![3263fcbaafea4da1b55ca16003cdbd75](../../_images/grovers-2D-plane.png)
+![dfb511c4c0664729983a3f08ce8a9a9c](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2185,7 +2230,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![2c0b42d522074f0ca1415f605d78f1e0](../../_images/grovers-steps1-3.png)
+![24249b584e474bde9400cec4cde86b9e](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2197,7 +2242,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![345de18e7f6f4f54baaab3269cdb534c](../../_images/grovers-full-rotation.png)
+![e915c07636174e088880814f8b546022](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

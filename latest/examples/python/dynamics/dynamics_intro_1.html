@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model) &mdash; NVIDIA CUDA-Q  documentation</title>
+  <title>Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model) &mdash; NVIDIA CUDA-Q  documentation</title>
       <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
@@ -553,6 +553,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../using/backends/backends.html">   Backends</a><ul>
@@ -981,7 +1004,7 @@
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../../using/examples/examples.html">CUDA-Q by Example</a></li>
           <li class="breadcrumb-item"><a href="../../../using/examples/dynamics_examples.html">CUDA-Q Dynamics</a></li>
-      <li class="breadcrumb-item active">Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</li>
+      <li class="breadcrumb-item active">Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
@@ -993,8 +1016,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Intorduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model)">
-<h1>Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)<a class="headerlink" href="#Intorduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model)" title="Permalink to this heading">¶</a></h1>
+  <section id="Introduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model)">
+<h1>Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)<a class="headerlink" href="#Introduction-to-CUDA-Q-Dynamics-(Jaynes-Cummings-Model)" title="Permalink to this heading">¶</a></h1>
 <section id="Why-dynamics-simulations-vs.-circuit-simulations?">
 <h2>Why dynamics simulations vs. circuit simulations?<a class="headerlink" href="#Why-dynamics-simulations-vs.-circuit-simulations?" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q Dynamics is a powerful library enabling GPU-accelerated simulations of the time evolution of open and closed quantum systems. In contrast to quantum circuit simulation, which simulates the algorithmic output of the application of discrete logical quantum gates (eg X, Y, Z, CNOT, H, etc), dynamics simulations represent how quantum systems evolve in <em>time</em>, revealing important insights about the non-idealities of a quantum system, including how they interact with the environment and other
@@ -1072,7 +1095,7 @@ qubits can be controlled by external control pulses and the readout process used
 <br/></pre></div>
 </div>
 </div>
-<p>Initialize the states of the system in cupy arrays and define the time chedule</p>
+<p>Initialize the states of the system in cupy arrays and define the time schedule</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>

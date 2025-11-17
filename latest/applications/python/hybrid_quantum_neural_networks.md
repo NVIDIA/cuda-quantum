@@ -852,6 +852,51 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../../using/backends/backends.html){.reference .internal}
     -   [Circuit
         Simulation](../../using/backends/simulators.html){.reference
@@ -1708,7 +1753,7 @@ output is used to classify hand written digits.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -1716,7 +1761,10 @@ output is used to classify hand written digits.
 ::: highlight
     # Install the relevant packages.
 
-    !pip install matplotlib==3.8.4 torch==2.9.0+cu126 torchvision==0.24.0+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
+    !pip install matplotlib==3.8.4 torch==2.9.1 torchvision==0.24.1 scikit-learn==1.4.2 -q
+
+    # Use this line if using GPU, change CUDA version according to your system (e.g. cu126, cu128, or cu130)
+    # !pip install matplotlib==3.8.4 torch==2.9.1+cu126 torchvision==0.24.1+cu126 scikit-learn==1.4.2 -q --extra-index-url https://download.pytorch.org/whl/cu126
 :::
 :::
 :::
@@ -2195,7 +2243,7 @@ output is used to classify hand written digits.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version proto-0.8.0-developer (https://github.com/NVIDIA/cuda-quantum 018ba9130a0e5800b93e86d0096a22daf7a132f8)
+    CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum f52f3f8e0830e0c78e05ed8d087ae7faf1e58c9f)
 :::
 :::
 :::

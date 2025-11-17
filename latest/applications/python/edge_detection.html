@@ -553,6 +553,29 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/backends/backends.html">   Backends</a><ul>
@@ -1049,7 +1072,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="05c1c34fcadf41728f91833e82a3c241" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="eec47b42a049428a8dbb65922a9e9ff1" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>

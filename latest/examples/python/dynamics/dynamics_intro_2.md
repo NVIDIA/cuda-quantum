@@ -885,6 +885,51 @@ latest
             -   [What to
                 Expect:](../../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+    -   [Entanglement Accelerates Quantum
+        Simulation](../../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
+        .internal}
+        -   [2. Model
+            Definition](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition){.reference
+            .internal}
+            -   [2.1 Initial product
+                state](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state){.reference
+                .internal}
+            -   [2.2 QIMF
+                Hamiltonian](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian){.reference
+                .internal}
+            -   [2.3 First-Order Trotter Formula
+                (PF1)](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)){.reference
+                .internal}
+            -   [2.4 PF1 step for the QIMF
+                partition](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition){.reference
+                .internal}
+            -   [2.5 Hamiltonian
+                helpers](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers){.reference
+                .internal}
+        -   [3. Entanglement
+            metrics](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics){.reference
+            .internal}
+        -   [4. Simulation
+            workflow](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow){.reference
+            .internal}
+            -   [4.1 Single-step Trotter
+                error](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error){.reference
+                .internal}
+            -   [4.2 Dual trajectory
+                update](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update){.reference
+                .internal}
+        -   [5. Reproducing the paper's Figure
+            1a](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a){.reference
+            .internal}
+            -   [5.1 Visualising the joint
+                behaviour](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour){.reference
+                .internal}
+            -   [5.2 Interpreting the
+                result](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result){.reference
+                .internal}
+        -   [6. References and further
+            reading](../../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading){.reference
+            .internal}
 -   [Backends](../../../using/backends/backends.html){.reference
     .internal}
     -   [Circuit
@@ -1717,7 +1762,7 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
+Previous](dynamics_intro_1.html "Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](superconducting.html "Superconducting Qubits"){.btn
@@ -1965,7 +2010,7 @@ by simply replacing the function in the [`ScalarOperator`{.docutils
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    <matplotlib.legend.Legend at 0x7fd50b1fbfa0>
+    <matplotlib.legend.Legend at 0x7b6ad27635c0>
 :::
 :::
 :::
@@ -2143,7 +2188,7 @@ We can run the rest of the simulation as before.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    <matplotlib.legend.Legend at 0x7fd50a10fc40>
+    <matplotlib.legend.Legend at 0x7b6ad1fce000>
 :::
 :::
 :::
@@ -2333,7 +2378,7 @@ and the magnetization [\\(M = \\frac{1}{N} \\sum
     for i in range(N):
         plt.plot(steps, exp_val[i],label=f'spin {i}')
     plt.legend(fontsize=12)
-    plt.ylabel("$\sigma^z $")
+    plt.ylabel("$\\sigma^z $")
     plt.xlabel("Time")
 :::
 :::
@@ -2412,7 +2457,7 @@ system quickly mixes.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](dynamics_intro_1.html "Intorduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
+Previous](dynamics_intro_1.html "Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](superconducting.html "Superconducting Qubits"){.btn
