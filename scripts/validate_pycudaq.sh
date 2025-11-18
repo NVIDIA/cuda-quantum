@@ -85,18 +85,15 @@ fi
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
 if [ -n "${extra_packages}" ]; then 
-    pip_extra_url="--extra-index-url http://localhost:8080"
+    pip_extra_arg="--find-links ${extra_packages}"
 fi
 while IFS= read -r line; do
     line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")
     line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${python_version}/g")
-    line=$(echo $line | sed -E "s/pip install (.\{\{)?\s?\S+\s?(\}\})?/pip install cudaq==${cudaq_version} -v ${pip_extra_url//\//\\/}/g")
+    line=$(echo "$line" | sed -E "s|pip install (.\{\{)?\s?\S+\s?(\}\})?|pip install cudaq==${cudaq_version} -v ${pip_extra_arg}|g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
-        if [ -n "${extra_packages}" ]; then 
-            eval "pip install cudaq --find-links ${extra_packages}"
-        fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
     fi
@@ -294,7 +291,7 @@ if [ -n "$server2_devices" ]; then
     CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
 fi
 
-sleep 5 # wait for servers to launch
+sleep 20 # wait for servers to launch
 python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
     --backend nvidia-mgpu --servers "$servers"
 if [ ! $? -eq 0 ]; then
