@@ -37,6 +37,7 @@ config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
 config.substitutions.append(('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
+config.substitutions.append(('%time', 'time -p'))
 
 llvm_config.use_default_substitutions()
 
