@@ -11,12 +11,15 @@
  * decompose them into a sequence of other gates.
  *
  * Each pattern definition contains 3 elements:
- * 1. The pattern type, which contains the pattern metadata. It must inherit
- * from DecompositionPatternType.
- * 2. The pattern itself, which defines what ops to match and how to replace
+ * 1. The pattern itself, which defines what ops to match and how to replace
  * them. It must inherit from DecompositionPattern<PatternType, Op>.
+ * 2. The pattern type, which contains the pattern metadata. It must inherit
+ * from DecompositionPatternType.
  * 3. A call to the CUDAQ_REGISTER_TYPE macro to register the pattern in the
  * registry.
+ *
+ * Writing 2 and 3 manually is a bit verbose. The REGISTER_DECOMPOSITION_PATTERN
+ * macro can be used for this purpose instead.
  */
 
 #include "DecompositionPatterns.h"
@@ -306,6 +309,30 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 
 // From here on, we define the decomposition patterns ==========================
 
+/// Macro to register a decomposition pattern with its metadata
+/// Usage: REGISTER_DECOMPOSITION_PATTERN(PatternName, "source_op", "target1",
+/// "target2", ...)
+/// where "source_op" is the operation that the pattern matches and
+/// {"target1", "target2", ...} are the operations that the pattern may produce.
+#define REGISTER_DECOMPOSITION_PATTERN(PATTERN, SOURCE_OP, ...)                \
+  struct PATTERN##Type : public cudaq::DecompositionPatternType {              \
+    using cudaq::DecompositionPatternType::DecompositionPatternType;           \
+    llvm::StringRef getSourceOp() const override { return SOURCE_OP; }         \
+    llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {            \
+      static constexpr llvm::StringRef ops[] = {__VA_ARGS__};                  \
+      return ops;                                                              \
+    }                                                                          \
+    llvm::StringRef getPatternName() const override { return #PATTERN; }       \
+    std::unique_ptr<mlir::RewritePattern>                                      \
+    create(mlir::MLIRContext *context,                                         \
+           mlir::PatternBenefit benefit = 1) const override {                  \
+      std::unique_ptr<mlir::RewritePattern> pattern =                          \
+          RewritePattern::create<PATTERN>(context, benefit);                   \
+      return pattern;                                                          \
+    }                                                                          \
+  };                                                                           \
+  CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, PATTERN##Type, PATTERN)
+
 // TODO: "SToR1", "TToR1", "R1ToU3", "U3ToRotations" can be generalised
 // arbitrary number of controls, but we would need to reason over n HOp patterns
 
@@ -318,7 +345,8 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 // quake.phased_rx(π/2, π/2) target
 // quake.phased_rx(π, 0) target
 
-struct HToPhasedRxType;
+struct HToPhasedRxType; // forward declare the pattern type, defined in the
+                        // macro below
 struct HToPhasedRx
     : public cudaq::DecompositionPattern<HToPhasedRxType, quake::HOp> {
 
@@ -352,31 +380,13 @@ struct HToPhasedRx
     return success();
   }
 };
-struct HToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-
-  llvm::StringRef getSourceOp() const override { return "h"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "HToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<HToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, HToPhasedRxType,
-                    HToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(HToPhasedRx, "h", "phased_rx");
 
 // quake.exp_pauli(theta) target pauliWord
 // ───────────────────────────────────
 // Basis change operations, cnots, rz(theta), adjoint basis change
-struct ExpPauliDecompositionType;
+struct ExpPauliDecompositionType; // forward declare the pattern type, defined
+                                  // in the macro below
 struct ExpPauliDecomposition
     : public cudaq::DecompositionPattern<ExpPauliDecompositionType,
                                          quake::ExpPauliOp> {
@@ -547,33 +557,14 @@ struct ExpPauliDecomposition
     return success();
   }
 };
-struct ExpPauliDecompositionType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "exp_pauli"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"rx", "h", "x(1)", "rz"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override {
-    return "ExpPauliDecomposition";
-  }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<ExpPauliDecomposition>(context, benefit);
-    return pattern;
-  }
-};
-
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, ExpPauliDecompositionType,
-                    ExpPauliDecomposition);
+REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition, "exp_pauli", "rx", "h",
+                               "x(1)", "rz");
 
 // Naive mapping of R1 to Rz, ignoring the global phase.
 // This is only expected to work with full inlining and
 // quake apply specialization.
-struct R1ToRzType;
+struct R1ToRzType; // forward declare the pattern type, defined in the macro
+                   // below
 struct R1ToRz : public cudaq::DecompositionPattern<R1ToRzType, quake::R1Op> {
   using cudaq::DecompositionPattern<R1ToRzType,
                                     quake::R1Op>::DecompositionPattern;
@@ -589,31 +580,14 @@ struct R1ToRz : public cudaq::DecompositionPattern<R1ToRzType, quake::R1Op> {
     return success();
   }
 };
-struct R1ToRzType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "r1"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"rz"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "R1ToRz"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<R1ToRz>(context, benefit);
-    return pattern;
-  }
-};
-
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, R1ToRzType, R1ToRz);
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, "r1", "rz");
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target
 // ───────────────────────────────────
 // quake.u3(0, 0, λ) [control] target
-struct R1ToU3Type;
+struct R1ToU3Type; // forward declare the pattern type, defined in the macro
+                   // below
 struct R1ToU3 : public cudaq::DecompositionPattern<R1ToU3Type, quake::R1Op> {
   using cudaq::DecompositionPattern<R1ToU3Type,
                                     quake::R1Op>::DecompositionPattern;
@@ -628,29 +602,13 @@ struct R1ToU3 : public cudaq::DecompositionPattern<R1ToU3Type, quake::R1Op> {
     return success();
   }
 };
-struct R1ToU3Type : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "r1"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"u3"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "R1ToU3"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<R1ToU3>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, R1ToU3Type, R1ToU3);
+REGISTER_DECOMPOSITION_PATTERN(R1ToU3, "r1", "u3");
 
 // quake.r1<adj> (θ) target
 // ─────────────────────────────────
 // quake.r1(-θ) target
-struct R1AdjToR1Type;
+struct R1AdjToR1Type; // forward declare the pattern type, defined in the macro
+                      // below
 struct R1AdjToR1
     : public cudaq::DecompositionPattern<R1AdjToR1Type, quake::R1Op> {
   using cudaq::DecompositionPattern<R1AdjToR1Type,
@@ -681,31 +639,15 @@ struct R1AdjToR1
     return success();
   }
 };
-struct R1AdjToR1Type : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "r1"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"r1"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "R1AdjToR1"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<R1AdjToR1>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, R1AdjToR1Type, R1AdjToR1);
+REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1", "r1");
 
 // quake.swap a, b
 // ───────────────────────────────────
 // quake.cnot b, a;
 // quake.cnot a, b;
 // quake.cnot b, a;
-struct SwapToCXType;
+struct SwapToCXType; // forward declare the pattern type, defined in the macro
+                     // below
 struct SwapToCX
     : public cudaq::DecompositionPattern<SwapToCXType, quake::SwapOp> {
   using cudaq::DecompositionPattern<SwapToCXType,
@@ -728,24 +670,7 @@ struct SwapToCX
     return success();
   }
 };
-struct SwapToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "swap"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "SwapToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<SwapToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, SwapToCXType, SwapToCX);
+REGISTER_DECOMPOSITION_PATTERN(SwapToCX, "swap", "x(1)");
 
 // quake.h control, target
 // ───────────────────────────────────
@@ -756,7 +681,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, SwapToCXType, SwapToCX);
 // quake.t<adj> target;
 // quake.h target;
 // quake.s<adj> target;
-struct CHToCXType;
+struct CHToCXType; // forward declare the pattern type, defined in the macro
+                   // below
 struct CHToCX : public cudaq::DecompositionPattern<CHToCXType, quake::HOp> {
   using cudaq::DecompositionPattern<CHToCXType,
                                     quake::HOp>::DecompositionPattern;
@@ -785,24 +711,7 @@ struct CHToCX : public cudaq::DecompositionPattern<CHToCXType, quake::HOp> {
     return success();
   }
 };
-struct CHToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "h(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"s", "h", "t", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CHToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CHToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CHToCXType, CHToCX);
+REGISTER_DECOMPOSITION_PATTERN(CHToCX, "h(1)", "s", "h", "t", "x(1)");
 
 //===----------------------------------------------------------------------===//
 // SOp decompositions
@@ -813,7 +722,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CHToCXType, CHToCX);
 // phased_rx(π/2, 0) target
 // phased_rx(-π/2, π/2) target
 // phased_rx(-π/2, 0) target
-struct SToPhasedRxType;
+struct SToPhasedRxType; // forward declare the pattern type, defined in the
+                        // macro below
 struct SToPhasedRx
     : public cudaq::DecompositionPattern<SToPhasedRxType, quake::SOp> {
   using cudaq::DecompositionPattern<SToPhasedRxType,
@@ -851,25 +761,7 @@ struct SToPhasedRx
     return success();
   }
 };
-struct SToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "s"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "SToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<SToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, SToPhasedRxType,
-                    SToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, "s", "phased_rx");
 
 // quake.s [control] target
 // ────────────────────────────────────
@@ -877,7 +769,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, SToPhasedRxType,
 //
 // Adding this gate equivalence will enable further decomposition via other
 // patterns such as controlled-r1 to cnot.
-struct SToR1Type;
+struct SToR1Type; // forward declare the pattern type, defined in the macro
+                  // below
 struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
   using cudaq::DecompositionPattern<SToR1Type,
                                     quake::SOp>::DecompositionPattern;
@@ -899,24 +792,7 @@ struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
     return success();
   }
 };
-struct SToR1Type : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "s"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"r1"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "SToR1"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<SToR1>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, SToR1Type, SToR1);
+REGISTER_DECOMPOSITION_PATTERN(SToR1, "s", "r1");
 
 //===----------------------------------------------------------------------===//
 // TOp decompositions
@@ -927,7 +803,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, SToR1Type, SToR1);
 // quake.phased_rx(π/2, 0) target
 // quake.phased_rx(-π/4, π/2) target
 // quake.phased_rx(-π/2, 0) target
-struct TToPhasedRxType;
+struct TToPhasedRxType; // forward declare the pattern type, defined in the
+                        // macro below
 struct TToPhasedRx
     : public cudaq::DecompositionPattern<TToPhasedRxType, quake::TOp> {
   using cudaq::DecompositionPattern<TToPhasedRxType,
@@ -966,25 +843,7 @@ struct TToPhasedRx
     return success();
   }
 };
-struct TToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "t"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "TToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<TToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, TToPhasedRxType,
-                    TToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, "t", "phased_rx");
 
 // quake.t [control] target
 // ────────────────────────────────────
@@ -992,7 +851,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, TToPhasedRxType,
 //
 // Adding this gate equivalence will enable further decomposition via other
 // patterns such as controlled-r1 to cnot.
-struct TToR1Type;
+struct TToR1Type; // forward declare the pattern type, defined in the macro
+                  // below
 struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
   using cudaq::DecompositionPattern<TToR1Type,
                                     quake::TOp>::DecompositionPattern;
@@ -1013,24 +873,7 @@ struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
     return success();
   }
 };
-struct TToR1Type : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "t"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"r1"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "TToR1"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<TToR1>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, TToR1Type, TToR1);
+REGISTER_DECOMPOSITION_PATTERN(TToR1, "t", "r1");
 
 //===----------------------------------------------------------------------===//
 // XOp decompositions
@@ -1041,7 +884,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, TToR1Type, TToR1);
 // quake.h target
 // quake.z [control] target
 // quake.h target
-struct CXToCZType;
+struct CXToCZType; // forward declare the pattern type, defined in the macro
+                   // below
 struct CXToCZ : public cudaq::DecompositionPattern<CXToCZType, quake::XOp> {
   using cudaq::DecompositionPattern<CXToCZType,
                                     quake::XOp>::DecompositionPattern;
@@ -1078,31 +922,15 @@ struct CXToCZ : public cudaq::DecompositionPattern<CXToCZType, quake::XOp> {
     return success();
   }
 };
-struct CXToCZType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "x(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"h", "z(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CXToCZ"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CXToCZ>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CXToCZType, CXToCZ);
+REGISTER_DECOMPOSITION_PATTERN(CXToCZ, "x(1)", "h", "z(1)");
 
 // quake.x [controls] target
 // ──────────────────────────────────
 // quake.h target
 // quake.z [controls] target
 // quake.h target
-struct CCXToCCZType;
+struct CCXToCCZType; // forward declare the pattern type, defined in the macro
+                     // below
 struct CCXToCCZ : public cudaq::DecompositionPattern<CCXToCCZType, quake::XOp> {
   using cudaq::DecompositionPattern<CCXToCCZType,
                                     quake::XOp>::DecompositionPattern;
@@ -1128,29 +956,13 @@ struct CCXToCCZ : public cudaq::DecompositionPattern<CCXToCCZType, quake::XOp> {
     return success();
   }
 };
-struct CCXToCCZType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "x(2)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"h", "z(2)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CCXToCCZ"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CCXToCCZ>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CCXToCCZType, CCXToCCZ);
+REGISTER_DECOMPOSITION_PATTERN(CCXToCCZ, "x(2)", "h", "z(2)");
 
 // quake.x target
 // ───────────────────────────────
 // quake.phased_rx(π, 0) target
-struct XToPhasedRxType;
+struct XToPhasedRxType; // forward declare the pattern type, defined in the
+                        // macro below
 struct XToPhasedRx
     : public cudaq::DecompositionPattern<XToPhasedRxType, quake::XOp> {
   using cudaq::DecompositionPattern<XToPhasedRxType,
@@ -1179,25 +991,7 @@ struct XToPhasedRx
     return success();
   }
 };
-struct XToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "x"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "XToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<XToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, XToPhasedRxType,
-                    XToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(XToPhasedRx, "x", "phased_rx");
 
 //===----------------------------------------------------------------------===//
 // YOp decompositions
@@ -1206,7 +1000,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, XToPhasedRxType,
 // quake.y target
 // ─────────────────────────────────
 // quake.phased_rx(π, -π/2) target
-struct YToPhasedRxType;
+struct YToPhasedRxType; // forward declare the pattern type, defined in the
+                        // macro below
 struct YToPhasedRx
     : public cudaq::DecompositionPattern<YToPhasedRxType, quake::YOp> {
   using cudaq::DecompositionPattern<YToPhasedRxType,
@@ -1236,25 +1031,7 @@ struct YToPhasedRx
     return success();
   }
 };
-struct YToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "y"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "YToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<YToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, YToPhasedRxType,
-                    YToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(YToPhasedRx, "y", "phased_rx");
 
 // quake.y [control] target
 // ───────────────────────────────────
@@ -1262,7 +1039,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, YToPhasedRxType,
 // quake.x [control] target;
 // quake.s target;
 
-struct CYToCXType;
+struct CYToCXType; // forward declare the pattern type, defined in the macro
+                   // below
 struct CYToCX : public cudaq::DecompositionPattern<CYToCXType, quake::YOp> {
   using cudaq::DecompositionPattern<CYToCXType,
                                     quake::YOp>::DecompositionPattern;
@@ -1291,24 +1069,7 @@ struct CYToCX : public cudaq::DecompositionPattern<CYToCXType, quake::YOp> {
     return success();
   }
 };
-struct CYToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "y(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"s", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CYToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CYToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CYToCXType, CYToCX);
+REGISTER_DECOMPOSITION_PATTERN(CYToCX, "y(1)", "s", "x(1)");
 
 //===----------------------------------------------------------------------===//
 // ZOp decompositions
@@ -1325,7 +1086,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CYToCXType, CYToCX);
 //   └───┘      └───┘└───┘└───┘└───┘└───┘└───┘└───┘                 └───┘
 //
 // NOTE: `┴` denotes the adjoint of `T`.
-struct CCZToCXType;
+struct CCZToCXType; // forward declare the pattern type, defined in the macro
+                    // below
 struct CCZToCX : public cudaq::DecompositionPattern<CCZToCXType, quake::ZOp> {
   using cudaq::DecompositionPattern<CCZToCXType,
                                     quake::ZOp>::DecompositionPattern;
@@ -1384,24 +1146,7 @@ struct CCZToCX : public cudaq::DecompositionPattern<CCZToCXType, quake::ZOp> {
     return success();
   }
 };
-struct CCZToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "z(2)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"t", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CCZToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CCZToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CCZToCXType, CCZToCX);
+REGISTER_DECOMPOSITION_PATTERN(CCZToCX, "z(2)", "t", "x(1)");
 
 // quake.z [control] target
 // ──────────────────────────────────
@@ -1409,7 +1154,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CCZToCXType, CCZToCX);
 // quake.x [control] target
 // quake.h target
 
-struct CZToCXType;
+struct CZToCXType; // forward declare the pattern type, defined in the macro
+                   // below
 struct CZToCX : public cudaq::DecompositionPattern<CZToCXType, quake::ZOp> {
   using cudaq::DecompositionPattern<CZToCXType,
                                     quake::ZOp>::DecompositionPattern;
@@ -1446,31 +1192,15 @@ struct CZToCX : public cudaq::DecompositionPattern<CZToCXType, quake::ZOp> {
     return success();
   }
 };
-struct CZToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "z(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"h", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CZToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CZToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CZToCXType, CZToCX);
+REGISTER_DECOMPOSITION_PATTERN(CZToCX, "z(1)", "h", "x(1)");
 
 // quake.z target
 // ──────────────────────────────────
 // quake.phased_rx(π/2, 0) target
 // quake.phased_rx(-π, π/2) target
 // quake.phased_rx(-π/2, 0) target
-struct ZToPhasedRxType;
+struct ZToPhasedRxType; // forward declare the pattern type, defined in the
+                        // macro below
 struct ZToPhasedRx
     : public cudaq::DecompositionPattern<ZToPhasedRxType, quake::ZOp> {
   using cudaq::DecompositionPattern<ZToPhasedRxType,
@@ -1507,25 +1237,7 @@ struct ZToPhasedRx
     return success();
   }
 };
-struct ZToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "z"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "ZToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<ZToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, ZToPhasedRxType,
-                    ZToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(ZToPhasedRx, "z", "phased_rx");
 
 //===----------------------------------------------------------------------===//
 // R1Op decompositions
@@ -1538,7 +1250,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, ZToPhasedRxType,
 // quake.r1(-λ/2) target
 // quake.x [control] target
 // quake.r1(λ/2) target
-struct CR1ToCXType;
+struct CR1ToCXType; // forward declare the pattern type, defined in the macro
+                    // below
 struct CR1ToCX : public cudaq::DecompositionPattern<CR1ToCXType, quake::R1Op> {
   using cudaq::DecompositionPattern<CR1ToCXType,
                                     quake::R1Op>::DecompositionPattern;
@@ -1583,31 +1296,15 @@ struct CR1ToCX : public cudaq::DecompositionPattern<CR1ToCXType, quake::R1Op> {
     return success();
   }
 };
-struct CR1ToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "r1(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"r1", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CR1ToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CR1ToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CR1ToCXType, CR1ToCX);
+REGISTER_DECOMPOSITION_PATTERN(CR1ToCX, "r1(1)", "r1", "x(1)");
 
 // quake.r1(λ) target
 // ──────────────────────────────────
 // quake.phased_rx(π/2, 0) target
 // quake.phased_rx(-λ, π/2) target
 // quake.phased_rx(-π/2, 0) target
-struct R1ToPhasedRxType;
+struct R1ToPhasedRxType; // forward declare the pattern type, defined in the
+                         // macro below
 struct R1ToPhasedRx
     : public cudaq::DecompositionPattern<R1ToPhasedRxType, quake::R1Op> {
   using cudaq::DecompositionPattern<R1ToPhasedRxType,
@@ -1648,25 +1345,7 @@ struct R1ToPhasedRx
     return success();
   }
 };
-struct R1ToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "r1"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "R1ToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<R1ToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, R1ToPhasedRxType,
-                    R1ToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, "r1", "phased_rx");
 
 //===----------------------------------------------------------------------===//
 // RxOp decompositions
@@ -1680,7 +1359,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, R1ToPhasedRxType,
 // quake.x [control] target
 // quake.ry(θ/2) target
 // quake.rz(-π/2) target
-struct CRxToCXType;
+struct CRxToCXType; // forward declare the pattern type, defined in the macro
+                    // below
 struct CRxToCX : public cudaq::DecompositionPattern<CRxToCXType, quake::RxOp> {
   using cudaq::DecompositionPattern<CRxToCXType,
                                     quake::RxOp>::DecompositionPattern;
@@ -1726,29 +1406,13 @@ struct CRxToCX : public cudaq::DecompositionPattern<CRxToCXType, quake::RxOp> {
     return success();
   }
 };
-struct CRxToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "rx(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"s", "x(1)", "ry", "rz"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CRxToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CRxToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CRxToCXType, CRxToCX);
+REGISTER_DECOMPOSITION_PATTERN(CRxToCX, "rx(1)", "s", "x(1)", "ry", "rz");
 
 // quake.rx(θ) target
 // ───────────────────────────────
 // quake.phased_rx(θ, 0) target
-struct RxToPhasedRxType;
+struct RxToPhasedRxType; // forward declare the pattern type, defined in the
+                         // macro below
 struct RxToPhasedRx
     : public cudaq::DecompositionPattern<RxToPhasedRxType, quake::RxOp> {
   using cudaq::DecompositionPattern<RxToPhasedRxType,
@@ -1780,30 +1444,13 @@ struct RxToPhasedRx
     return success();
   }
 };
-struct RxToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "rx"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "RxToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<RxToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RxToPhasedRxType,
-                    RxToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, "rx", "phased_rx");
 
 // quake.rx<adj> (θ) target
 // ─────────────────────────────────
 // quake.rx(-θ) target
-struct RxAdjToRxType;
+struct RxAdjToRxType; // forward declare the pattern type, defined in the macro
+                      // below
 struct RxAdjToRx
     : public cudaq::DecompositionPattern<RxAdjToRxType, quake::RxOp> {
   using cudaq::DecompositionPattern<RxAdjToRxType,
@@ -1835,24 +1482,7 @@ struct RxAdjToRx
     return success();
   }
 };
-struct RxAdjToRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "rx"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "RxAdjToRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<RxAdjToRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RxAdjToRxType, RxAdjToRx);
+REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx", "rx");
 
 //===----------------------------------------------------------------------===//
 // RyOp decompositions
@@ -1864,7 +1494,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RxAdjToRxType, RxAdjToRx);
 // quake.x [control] target
 // quake.ry(-θ/2) target
 // quake.x [control] target
-struct CRyToCXType;
+struct CRyToCXType; // forward declare the pattern type, defined in the macro
+                    // below
 struct CRyToCX : public cudaq::DecompositionPattern<CRyToCXType, quake::RyOp> {
   using cudaq::DecompositionPattern<CRyToCXType,
                                     quake::RyOp>::DecompositionPattern;
@@ -1904,29 +1535,13 @@ struct CRyToCX : public cudaq::DecompositionPattern<CRyToCXType, quake::RyOp> {
     return success();
   }
 };
-struct CRyToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "ry(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"ry", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CRyToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CRyToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CRyToCXType, CRyToCX);
+REGISTER_DECOMPOSITION_PATTERN(CRyToCX, "ry(1)", "ry", "x(1)");
 
 // quake.ry(θ) target
 // ─────────────────────────────────
 // quake.phased_rx(θ, π/2) target
-struct RyToPhasedRxType;
+struct RyToPhasedRxType; // forward declare the pattern type, defined in the
+                         // macro below
 struct RyToPhasedRx
     : public cudaq::DecompositionPattern<RyToPhasedRxType, quake::RyOp> {
   using cudaq::DecompositionPattern<RyToPhasedRxType,
@@ -1958,30 +1573,13 @@ struct RyToPhasedRx
     return success();
   }
 };
-struct RyToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "ry"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "RyToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<RyToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RyToPhasedRxType,
-                    RyToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, "ry", "phased_rx");
 
 // quake.ry<adj> (θ) target
 // ─────────────────────────────────
 // quake.ry(-θ) target
-struct RyAdjToRyType;
+struct RyAdjToRyType; // forward declare the pattern type, defined in the macro
+                      // below
 struct RyAdjToRy
     : public cudaq::DecompositionPattern<RyAdjToRyType, quake::RyOp> {
   using cudaq::DecompositionPattern<RyAdjToRyType,
@@ -2013,24 +1611,7 @@ struct RyAdjToRy
     return success();
   }
 };
-struct RyAdjToRyType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "ry"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"ry"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "RyAdjToRy"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<RyAdjToRy>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RyAdjToRyType, RyAdjToRy);
+REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry", "ry");
 
 //===----------------------------------------------------------------------===//
 // RzOp decompositions
@@ -2042,7 +1623,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RyAdjToRyType, RyAdjToRy);
 // quake.x [control] target
 // quake.rz(-λ/2) target
 // quake.x [control] target
-struct CRzToCXType;
+struct CRzToCXType; // forward declare the pattern type, defined in the macro
+                    // below
 struct CRzToCX : public cudaq::DecompositionPattern<CRzToCXType, quake::RzOp> {
   using cudaq::DecompositionPattern<CRzToCXType,
                                     quake::RzOp>::DecompositionPattern;
@@ -2082,31 +1664,15 @@ struct CRzToCX : public cudaq::DecompositionPattern<CRzToCXType, quake::RzOp> {
     return success();
   }
 };
-struct CRzToCXType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "rz(1)"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"rz", "x(1)"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "CRzToCX"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<CRzToCX>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, CRzToCXType, CRzToCX);
+REGISTER_DECOMPOSITION_PATTERN(CRzToCX, "rz(1)", "rz", "x(1)");
 
 // quake.rz(θ) target
 // ──────────────────────────────────
 // quake.phased_rx(π/2, 0) target
 // quake.phased_rx(-θ, π/2) target
 // quake.phased_rx(-π/2, 0) target
-struct RzToPhasedRxType;
+struct RzToPhasedRxType; // forward declare the pattern type, defined in the
+                         // macro below
 struct RzToPhasedRx
     : public cudaq::DecompositionPattern<RzToPhasedRxType, quake::RzOp> {
   using cudaq::DecompositionPattern<RzToPhasedRxType,
@@ -2147,30 +1713,13 @@ struct RzToPhasedRx
     return success();
   }
 };
-struct RzToPhasedRxType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "rz"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"phased_rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "RzToPhasedRx"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<RzToPhasedRx>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RzToPhasedRxType,
-                    RzToPhasedRx);
+REGISTER_DECOMPOSITION_PATTERN(RzToPhasedRx, "rz", "phased_rx");
 
 // quake.rz<adj> (θ) target
 // ─────────────────────────────────
 // quake.rz(-θ) target
-struct RzAdjToRzType;
+struct RzAdjToRzType; // forward declare the pattern type, defined in the macro
+                      // below
 struct RzAdjToRz
     : public cudaq::DecompositionPattern<RzAdjToRzType, quake::RzOp> {
   using cudaq::DecompositionPattern<RzAdjToRzType,
@@ -2202,24 +1751,7 @@ struct RzAdjToRz
     return success();
   }
 };
-struct RzAdjToRzType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "rz"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"rz"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "RzAdjToRz"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<RzAdjToRz>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RzAdjToRzType, RzAdjToRz);
+REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz", "rz");
 
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
@@ -2232,7 +1764,8 @@ CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, RzAdjToRzType, RzAdjToRz);
 // quake.rz(θ) target
 // quake.rx(-π/2) target
 // quake.rz(ϕ) target
-struct U3ToRotationsType;
+struct U3ToRotationsType; // forward declare the pattern type, defined in the
+                          // macro below
 struct U3ToRotations
     : public cudaq::DecompositionPattern<U3ToRotationsType, quake::U3Op> {
   using cudaq::DecompositionPattern<U3ToRotationsType,
@@ -2273,25 +1806,7 @@ struct U3ToRotations
     return success();
   }
 };
-struct U3ToRotationsType : public cudaq::DecompositionPatternType {
-  using cudaq::DecompositionPatternType::DecompositionPatternType;
-  llvm::StringRef getSourceOp() const override { return "u3"; }
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    static constexpr llvm::StringRef ops[] = {"rz", "rx"};
-    return ops;
-  }
-  llvm::StringRef getPatternName() const override { return "U3ToRotations"; }
-
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    std::unique_ptr<mlir::RewritePattern> pattern =
-        RewritePattern::create<U3ToRotations>(context, benefit);
-    return pattern;
-  }
-};
-CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, U3ToRotationsType,
-                    U3ToRotations);
+REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, "u3", "rz", "rx");
 
 } // namespace
 
