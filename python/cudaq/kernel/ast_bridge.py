@@ -627,7 +627,7 @@ class PyASTBridge(ast.NodeVisitor):
     def popAllValues(self, expectedNumVals):
         values = [self.popValue() for _ in range(self.valueStack.currentNumValues)]
         if len(values) != expectedNumVals:
-            self.emitFatalError("processing error - no valid value was created", self.currentNode)
+            self.emitFatalError("processing error - expression did not produce a valid value in this context", self.currentNode)
         return values
 
     def pushForBodyStack(self, bodyBlockArgs):
@@ -775,6 +775,10 @@ class PyASTBridge(ast.NodeVisitor):
         return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
 
     def __copyStructAndConvertElements(self, struct, expectedTy = None, allowDemotion=False, conversion=None):
+        """
+        Creates a new struct on the stack. If a conversion is provided, applies the conversion on each
+        element before changing its type to match the corresponding element type in `expectedTy`.
+        """
         assert cc.StructType.isinstance(struct.type)
         if not expectedTy:
             expectedTy = struct.type
@@ -805,8 +809,11 @@ class PyASTBridge(ast.NodeVisitor):
         '''
         Creates a new vector with the requested element type.
         Returns the original vector if the requested element type already matches
-        current element type unless `alwaysCopy` is set to True.
-        If `alwaysCopy` is set to True, return a shallow copy of the vector.
+        the current element type unless `alwaysCopy` is set to True.
+        If a conversion is provided, applies the conversion to each element before
+        changing its type to match the `targetEleType`.
+        If `alwaysCopy` is set to True, return a shallow copy of the vector by
+        default (conversion can be used to create a deep copy).
         '''
 
         assert cc.StdvecType.isinstance(source.type)
@@ -1226,7 +1233,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         Emits a fatal error if any of the given `pyvals` did not
         generate a value. Emits a fatal error if there are too
-        too many or too few values to satisfy the requested grouping.
+        many or too few values to satisfy the requested grouping.
 
         Returns a tuple of value groups. Each value group is
         either a single value (if the corresponding entry in `groups`
