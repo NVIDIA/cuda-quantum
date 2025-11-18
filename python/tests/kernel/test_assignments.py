@@ -195,11 +195,11 @@ def test_list_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         get_MyTuple([0, 0])
-    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
+    assert 'return values with dynamically sized element types are not yet supported' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(get_MyTuple, [0, 0])
-    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
+    assert 'return values with dynamically sized element types are not yet supported' in str(e.value)
 
     @cudaq.kernel
     def sum(l : list[int]) -> int:
@@ -807,8 +807,8 @@ def test_list_of_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(get_MyTuple_list)
-    assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(e.value)
-    assert 'use `.copy(deep)` to create a new list' in str(e.value)
+    assert 'only dataclass literals may be used as items in other container values' in str(e.value)
+    assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
     @cudaq.kernel
     def populate_MyTuple_list(t : MyTuple, size: int) -> list[MyTuple]:
@@ -844,12 +844,11 @@ def test_list_of_dataclass_update_failures():
             res[4 * idx + 3] = item.l2[0]
         return res
 
-    # TODO: I added a comprehensive error here, since the argsCreator
-    # at the time of writing produced a segfault. This should be revised
-    # and re-enabled after broader updates to the argument handling.
+    # TODO: support.
+    # The argument conversion from host to device is not correct currently.
     with pytest.raises(RuntimeError) as e:
         test1(MyTuple([1], [1]), 2)
-    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
 
     @cudaq.kernel
     def populate_MyTuple_list2(t : MyTuple, size: int) -> list[MyTuple]:
@@ -861,12 +860,10 @@ def test_list_of_dataclass_update_failures():
         l[0].l1 = [2]
         return l[0]
     
-    # TODO: I added a comprehensive error here, since the argsCreator
-    # at the time of writing produced a segfault. This should be revised
-    # and re-enabled after broader updates to the return handling.
+    # TODO: support.
     with pytest.raises(RuntimeError) as e:
         test2()
-    assert 'dynamically sized element types for function arguments or returns are not supported' in str(e.value)
+    assert 'return values with dynamically sized element types are not yet supported' in str(e.value)
 
     @cudaq.kernel
     def test3() -> list[MyTuple]:
@@ -1424,7 +1421,7 @@ def test_function_arguments():
         return local
     with pytest.raises(RuntimeError) as e:        
         test1e.compile()
-    assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(e.value)
+    assert 'only dataclass literals may be used as items in other container values' in str(e.value)
 
     @cudaq.kernel
     def test2a(value: list[list[int]]) -> list[list[int]]:
@@ -1467,7 +1464,7 @@ def test_function_arguments():
         return local
     with pytest.raises(RuntimeError) as e:        
         test2e.compile()
-    assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(e.value)
+    assert 'only dataclass literals may be used as items in other container values' in str(e.value)
 
     # Item assignment to a container in a parent scope
 
@@ -1517,7 +1514,7 @@ def test_function_arguments():
         return local
     with pytest.raises(RuntimeError) as e:        
         test1e.compile()
-    assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(e.value)
+    assert 'only dataclass literals may be used as items in other container values' in str(e.value)
 
     @cudaq.kernel
     def test2a(cond: bool, value: list[list[int]]) -> list[list[int]]:
@@ -1565,7 +1562,7 @@ def test_function_arguments():
         return local
     with pytest.raises(RuntimeError) as e:        
         test2e.compile()
-    assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(e.value)
+    assert 'only dataclass literals may be used as items in other container values' in str(e.value)
 
 
 # leave for gdb debugging

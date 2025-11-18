@@ -332,6 +332,12 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         .Case([&](cudaq::cc::StructType ty) {
           auto funcOp = getKernelFuncOp(module, name);
           auto [size, offsets] = getTargetLayout(funcOp, ty);
+          auto memberTys = ty.getMembers();
+          for (auto mTy : memberTys) {
+            if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(mTy))
+              throw std::runtime_error(
+                "return values with dynamically sized element types are not yet supported");
+          }
           auto ourAllocatedArg = std::malloc(size);
           runtimeArgs.emplace_back(ourAllocatedArg,
                                    [](void *ptr) { std::free(ptr); });

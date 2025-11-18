@@ -367,7 +367,7 @@ class PyASTBridge(ast.NodeVisitor):
         items that are vectors.
         """
         if cc.StdvecType.isinstance(ty):
-            return not (innerListsOnly or 
+            return (not innerListsOnly or 
                 self.containsList(cc.StdvecType.getElementType(ty)))
         if not cc.StructType.isinstance(ty):
             return False
@@ -1318,6 +1318,21 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("cannot use `cudaq.State` as element in lists, tuples, or dataclasses", self.currentNode)
             self.emitFatalError("lists, tuples, and dataclasses must not contain modifiable values", self.currentNode)
 
+        if cc.StructType.isinstance(mlirVal.type):
+            structName = cc.StructType.getName(mlirVal.type)
+            # We need to give a proper error if we try to assign
+            # a mutable dataclass to an item in another container.
+            # Allowing this would lead to incorrect behavior (i.e.
+            # inconsistent with Python) unless we change the
+            # representation of structs to be like `StdvecType`
+            # where we have a container that is passed by value
+            # wrapping the actual pointer, thus ensuring that the
+            # reference behavior actually works across function
+            # boundaries.
+            if structName != 'tuple' and rootVal:
+                msg = "only dataclass literals may be used as items in other container values"
+                self.emitFatalError(f"{msg} - use `.copy(deep)` to create a new {structName}", self.currentNode)
+
         if (self.knownResultType and
             self.containsList(self.knownResultType) and
             self.containsList(mlirVal.type)):
@@ -1335,21 +1350,6 @@ class PyASTBridge(ast.NodeVisitor):
             if rootVal and self.isFunctionArgument(rootVal):
                 msg = "lists passed as or contained in function arguments cannot be inner items in other container values when a list is returned"
                 self.emitFatalError(f"{msg} - use `.copy(deep)` to create a new list", self.currentNode)
-
-        if cc.StructType.isinstance(mlirVal.type):
-            structName = cc.StructType.getName(mlirVal.type)
-            # We need to give a proper error if we try to assign
-            # a mutable dataclass to an item in another container.
-            # Allowing this would lead to incorrect behavior (i.e.
-            # inconsistent with Python) unless we change the
-            # representation of structs to be like `StdvecType`
-            # where we have a container that is passed by value
-            # wrapping the actual pointer, thus ensuring that the
-            # reference behavior actually works across function
-            # boundaries.
-            if structName != 'tuple' and rootVal:
-                msg = "only dataclass literals may be used as items in other container values"
-                self.emitFatalError(f"{msg} - use `.copy(deep)` to create a new {structName}", self.currentNode)
 
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
@@ -4396,7 +4396,9 @@ class PyASTBridge(ast.NodeVisitor):
             # in the caller. Subsequent optimization passes should largely
             # eliminate unnecessary copies.  
             if (self.containsList(result.type)):
-                self.emitFatalError("return value must not contain a list that is a function argument or an item in a function argument - for device kernels, lists passed as arguments will be modified in place", node)
+                self.emitFatalError("return value must not contain a list that is a function argument or an item in a function argument" +
+                                    " - for device kernels, lists passed as arguments will be modified in place; " + 
+                                    "remove the return value or use .copy(deep) to create a copy", node)
         else:
             result = self.__migrateLists(result, copy_list_to_heap)
 

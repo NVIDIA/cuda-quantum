@@ -2058,23 +2058,79 @@ def test_custom_classical_kernel_type():
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts
 
+    # FIXME: 
+    # While this exact test worked, the handing in OpaqueArguments.h
+    # does not match the expected layout in the args creator. 
+    # Correspondingly, both subsequent tests below failed with a crash 
+    # as it was. I hence choose to give a proper error until this is 
+    # fixed after general Python compiler revisions.
     @dataclass(slots=True)
     class CustomIntAndListFloat:
         integer: int
-        array: List[float]
+        array: list[float]
 
     @cudaq.kernel
     def test(input: CustomIntAndListFloat):
         qubits = cudaq.qvector(input.integer)
         ry(input.array[0], qubits[0])
-        rx(input.array[1], qubits[0])
+        ry(input.array[1], qubits[2])
         x.ctrl(qubits[0], qubits[1])
 
-    print(test)
-    instance = CustomIntAndListFloat(2, [np.pi / 2., np.pi])
-    counts = cudaq.sample(test, instance)
-    counts.dump()
-    assert len(counts) == 2 and '00' in counts and '11' in counts
+    instance = CustomIntAndListFloat(3, [np.pi, np.pi])
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test, instance)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    # Should be: assert len(counts) == 1 and '111' in counts
+
+    @cudaq.kernel
+    def test(input: CustomIntAndListFloat):
+        qubits = cudaq.qvector(input.integer)
+        ry(input.array[1], qubits[0])
+        ry(input.array[3], qubits[2])
+        x.ctrl(qubits[0], qubits[1])
+
+    instance = CustomIntAndListFloat(3, [0, np.pi, 0, np.pi])
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test, instance)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    # Should be: assert len(counts) == 1 and '111' in counts
+
+
+    @dataclass(slots=True)
+    class CustomIntAndListFloat:
+        array: list[float]
+        integer: int
+
+    @cudaq.kernel
+    def test(input: CustomIntAndListFloat):
+        qubits = cudaq.qvector(input.integer)
+        ry(input.array[1], qubits[0])
+        ry(input.array[3], qubits[2])
+        x.ctrl(qubits[0], qubits[1])
+
+    instance = CustomIntAndListFloat([0, np.pi, 0, np.pi], 3)
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test, instance)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    # Should be: assert len(counts) == 1 and '111' in counts
+
+    @dataclass(slots=True)
+    class CustomIntAndListFloat:
+        integer: list[int]
+        array: list[int]
+
+    @cudaq.kernel
+    def test(input: CustomIntAndListFloat):
+        qubits = cudaq.qvector(input.integer[-1])
+        ry(input.array[1], qubits[0])
+        ry(input.array[3], qubits[2])
+        x.ctrl(qubits[0], qubits[1])
+
+    instance = CustomIntAndListFloat([3], [0, np.pi, 0, np.pi])
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(test, instance)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    # Should be: assert len(counts) == 1 and '111' in counts
 
     # Test that the class can be in a library
     # and the paths all work out
@@ -2532,5 +2588,6 @@ def test_error_on_non_callable_type():
 
 # leave for gdb debugging
 if __name__ == "__main__":
+    test_custom_classical_kernel_type()
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
