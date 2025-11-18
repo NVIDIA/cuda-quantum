@@ -1,6 +1,7 @@
 # ============================================================================ #
 # Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
+# Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
@@ -22,8 +23,44 @@ import numpy as np
 good_access_token = "Bearer good_access_token"
 server_qpu_architecture = "Crystal_20"
 operations = []  # TBA
-qubits = []  # TBA
-qubit_connectivity = []  # TBA
+qubits = [
+    "QB1", "QB2", "QB3", "QB4", "QB5", "QB6", "QB7", "QB8", "QB9", "QB10",
+    "QB11", "QB12", "QB13", "QB14", "QB15", "QB16", "QB17", "QB18", "QB19",
+    "QB20"
+]
+qubit_connectivity = [
+    ["QB1", "QB2"],
+    ["QB1", "QB4"],
+    ["QB2", "QB5"],
+    ["QB3", "QB4"],
+    ["QB3", "QB8"],
+    ["QB4", "QB5"],
+    ["QB4", "QB9"],
+    ["QB5", "QB6"],
+    ["QB5", "QB10"],
+    ["QB6", "QB7"],
+    ["QB6", "QB11"],
+    ["QB7", "QB12"],
+    ["QB8", "QB9"],
+    ["QB8", "QB13"],
+    ["QB9", "QB10"],
+    ["QB9", "QB14"],
+    ["QB10", "QB11"],
+    ["QB10", "QB15"],
+    ["QB11", "QB12"],
+    ["QB11", "QB16"],
+    ["QB12", "QB17"],
+    ["QB13", "QB14"],
+    ["QB14", "QB15"],
+    ["QB14", "QB18"],
+    ["QB15", "QB16"],
+    ["QB15", "QB19"],
+    ["QB16", "QB17"],
+    ["QB16", "QB20"],
+    ["QB18", "QB19"],
+    ["QB19", "QB20"],
+]
+computational_resonators = []
 
 # Define the REST Server App
 app = FastAPI()
@@ -101,9 +138,9 @@ def _make_cz_unitary_matrix() -> np.ndarray:
     return CZ
 
 
-def _extract_qubit_position_from_qubit_name(qubit_names: str) -> int:
+def _extract_qubit_position_from_qubit_name(qubit_name: str) -> int:
     """Extract the qubit position from the qubit name."""
-    return int(qubit_names[2:]) - 1
+    return int(qubit_name[2:]) - 1
 
 
 def _partial_trace(N, rho, keep):
@@ -129,7 +166,7 @@ def _validate_measurements(job: Job, circuit: iqm_client.Circuit) -> bool:
     """Check that the circuit contains measurements"""
     measurements = [
         instruction for instruction in circuit.instructions
-        if instruction.name == "measurement"
+        if instruction.name == "measure"
     ]
     if len(measurements) == 0:
         job.status = iqm_client.Status.FAILED
@@ -144,22 +181,36 @@ def _validate_measurements(job: Job, circuit: iqm_client.Circuit) -> bool:
 
 
 def _validate_connectivity(job: Job, circuit: iqm_client.Circuit) -> bool:
-    """C""check connectivity partially matches Crystal_20"""
-    qubit_pairs = [
-        instruction.qubits
-        for instruction in circuit.instructions
-        if len(instruction.qubits) == 2
-    ]
-    if ("QB2", "QB3") in qubit_pairs or ("QB3", "QB2") in qubit_pairs:
-        job.status = iqm_client.Status.FAILED
-        job.result = iqm_client.RunResult(
-            status=job.status,
-            metadata=job.metadata,
-            message=
-            "Some circuits in the batch have gates between uncoupled qubits:",
-        )
-        createdJobs[job.id] = job
-        return False
+    """Check connectivity matches the qpu-architecture"""
+    request = job.metadata.request
+    qubit_mapping: Optional[dict[str, str]] = None
+
+    if (request.qubit_mapping is not None) and (request.qubit_mapping):
+        qubit_mapping = {}
+        for sqm in request.qubit_mapping:
+            qubit_mapping[sqm.logical_name] = sqm.physical_name
+
+    for instruction in circuit.instructions:
+        if len(instruction.qubits) == 2:
+            qubit_pair = list(instruction.qubits)
+            if qubit_mapping is not None:
+                qubit_pair[0] = qubit_mapping[qubit_pair[0]]
+                qubit_pair[1] = qubit_mapping[qubit_pair[1]]
+            reverse_qubit_pair = qubit_pair.copy()
+            reverse_qubit_pair.reverse()
+
+            if qubit_pair not in qubit_connectivity \
+               and reverse_qubit_pair not in qubit_connectivity:
+                # qubit combination not found in architecture -> abort
+                job.status = iqm_client.Status.FAILED
+                job.result = iqm_client.RunResult(
+                    status=job.status,
+                    metadata=job.metadata,
+                    message="Some circuits in the batch have gates between" +
+                    " uncoupled qubits: " + "-".join(qubit_pair),
+                )
+                createdJobs[job.id] = job
+                return False
     return True
 
 
@@ -172,7 +223,7 @@ def _gather_circuit_information(
         all_qubits.update(
             _extract_qubit_position_from_qubit_name(qb)
             for qb in list(instruction.qubits))
-        if instruction.name == "measurement":
+        if instruction.name == "measure":
             measurement_qubits.update(
                 _extract_qubit_position_from_qubit_name(qb)
                 for qb in list(instruction.qubits))
@@ -183,8 +234,8 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
                       shots: int) -> dict[str, int]:
     """Simulate the circuit"""
     # extract qubits information from measurements
-    measurement_qubits_positions, number_of_qubits = _gather_circuit_information(
-        instructions)
+    measurement_qubits_positions, number_of_qubits = \
+        _gather_circuit_information(instructions)
 
     # calculate circuit operator and measure qubits
     dims = [2] * number_of_qubits
@@ -193,7 +244,7 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
     operator = operator.reshape(2 * dims)
 
     for instruction in instructions:
-        if instruction.name == "phased_rx":
+        if instruction.name == "prx":
             qubit_position = _extract_qubit_position_from_qubit_name(
                 instruction.qubits[0])
             r_gate = _make_phased_rx_unitary_matrix(
@@ -237,7 +288,7 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
                                    measurement_qubits_positions)
     probabilities = np.diag(partial_trace)
     return {
-        ms: int(round(prob * shots)) for ms, prob in zip(
+        ms: int(np.round(np.real(prob * shots))) for ms, prob in zip(
             _generate_measurement_strings(len(measurement_qubits_positions)),
             probabilities,
         )
@@ -286,7 +337,78 @@ async def get_quantum_architecture(
         ))
 
 
-@app.post("/jobs")
+# Note: in this dynamic quantum architecture 2 qubits are deliberately
+# excluded from the list of calibrated `prx` gates. This simulates a QPU
+# with an imperfect calibration.
+@app.get("/calibration-sets/default/dynamic-quantum-architecture")
+async def get_dynamic_quantum_architecture(
+        request: Request) -> iqm_client.DynamicQuantumArchitecture:
+    """Get the dynamic quantum architecture"""
+
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    return iqm_client.DynamicQuantumArchitecture(
+        calibration_set_id=str(uuid.uuid4()),
+        qubits=qubits,
+        computational_resonators=computational_resonators,
+        gates={
+            "cz":
+                iqm_client.GateInfo(
+                    implementations={
+                        "crf_crf":
+                            iqm_client.GateImplementationInfo(loci=tuple(
+                                tuple(pair) for pair in qubit_connectivity)),
+                    },
+                    default_implementation="crf_crf",
+                    override_default_implementation={},
+                ),
+            "measure":
+                iqm_client.GateInfo(
+                    implementations={
+                        "constant":
+                            iqm_client.GateImplementationInfo(loci=tuple(
+                                (qubit,) for qubit in qubits))
+                    },
+                    default_implementation="constant",
+                    override_default_implementation={},
+                ),
+            "prx":
+                iqm_client.GateInfo(
+                    implementations={
+                        "drag_crf":
+                            iqm_client.GateImplementationInfo(loci=(
+                                ("QB1",),
+                                #("QB2",),
+                                #("QB3",),
+                                (
+                                    "QB4",),
+                                ("QB5",),
+                                ("QB6",),
+                                ("QB7",),
+                                ("QB8",),
+                                ("QB9",),
+                                ("QB10",),
+                                ("QB11",),
+                                ("QB12",),
+                                ("QB13",),
+                                ("QB14",),
+                                ("QB15",),
+                                ("QB16",),
+                                ("QB17",),
+                                ("QB18",),
+                                ("QB19",),
+                                ("QB20",),
+                            ))
+                    },
+                    default_implementation="drag_crf",
+                    override_default_implementation={},
+                ),
+        })
+
+
+@app.post("/circuits")
 async def post_jobs(job_request: iqm_client.RunRequest,
                     request: Request) -> PostJobsResponse:
     """Register a new job and start execution"""
@@ -299,7 +421,7 @@ async def post_jobs(job_request: iqm_client.RunRequest,
     new_job_id = str(uuid.uuid4())
     new_job = Job(
         id=new_job_id,
-        status=iqm_client.Status.PENDING_COMPILATION,
+        status=iqm_client.Status.COMPILATION_STARTED,
         request=job_request,
         metadata=metadata,
     )
@@ -312,7 +434,7 @@ async def post_jobs(job_request: iqm_client.RunRequest,
     return PostJobsResponse(id=new_job_id)
 
 
-@app.get("/jobs/{job_id}/status")
+@app.get("/circuits/{job_id}/status")
 async def get_jobs_status(job_id: str, request: Request) -> iqm_client.Status:
     """Get the status of a job"""
 
@@ -326,7 +448,7 @@ async def get_jobs_status(job_id: str, request: Request) -> iqm_client.Status:
     return createdJobs[job_id].status
 
 
-@app.get("/jobs/{job_id}/counts")
+@app.get("/circuits/{job_id}/counts")
 async def get_jobs(job_id: str, request: Request):
     """Get the result of a job"""
     access_token = request.headers.get("Authorization")

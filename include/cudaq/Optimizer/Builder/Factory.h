@@ -82,6 +82,8 @@ cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 mlir::Type genArgumentBufferType(mlir::Type ty);
 
+bool isStlVectorBoolHostType(mlir::Type ty);
+
 /// Build an LLVM struct type with all the arguments and then all the results.
 /// If the type is a std::vector, then add an i64 to the struct for the
 /// length. The actual data values will be appended to the end of the

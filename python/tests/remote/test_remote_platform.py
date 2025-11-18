@@ -456,7 +456,7 @@ def test_capture_array():
 
 
 def test_capture_state():
-    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
+    s = cudaq.State.from_data(np.array([1., 0], dtype=cudaq.complex()))
 
     @cudaq.kernel
     def kernel():
