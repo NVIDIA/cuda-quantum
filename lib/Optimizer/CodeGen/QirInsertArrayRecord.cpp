@@ -135,7 +135,7 @@ struct AllocaMeasureStoreAnalysis {
 // results. Following logic is used to determine the insertion point:
 //   1. After first alloca (if explicit array storage exists)
 //   2. Before first measurement (if no explicit storage)
-// The label string is created as "array<i8 x N>" where N is the total number of
+// The label string is created as "array<i1 x N>" where N is the total number of
 // measurement results. The array record output call is created as:
 // `__quantum__rt__array_record_output(N, label);`
 LogicalResult
@@ -156,8 +156,8 @@ insertArrayRecordingCalls(func::FuncOp funcOp, size_t resultCount,
   else
     return failure();
 
-  // Create the label string: "array<i8 x N>"
-  std::string labelStr = "array<i8 x " + std::to_string(resultCount) + ">";
+  // Create the label string: "array<i1 x N>"
+  std::string labelStr = "array<i1 x " + std::to_string(resultCount) + ">";
   auto strLitTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
       builder.getContext(), builder.getI8Type(), labelStr.size() + 1));
   Value lit = builder.create<cudaq::cc::CreateStringLiteralOp>(
