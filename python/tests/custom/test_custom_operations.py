@@ -226,8 +226,7 @@ def test_invalid_ctrl():
 
     with pytest.raises(RuntimeError) as error:
         bell.compile()
-    assert 'missing value' in repr(
-        error)
+    assert 'missing value' in repr(error)
 
 
 def test_bug_2452():
@@ -265,8 +264,7 @@ def test_bug_2452():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.sample(kernel3)
-    assert 'missing value' in repr(
-        error)
+    assert 'missing value' in repr(error)
 
 
 # leave for gdb debugging
