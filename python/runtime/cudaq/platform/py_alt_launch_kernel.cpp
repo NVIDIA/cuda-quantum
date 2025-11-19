@@ -201,17 +201,17 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       cloned.getContext()->disableMultithreading();
       pm.enableIRPrinting();
     }
-    
+
     std::string error_msg;
-    mlir::DiagnosticEngine& engine = context->getDiagEngine();
-    auto handlerId = engine.registerHandler( 
+    mlir::DiagnosticEngine &engine = context->getDiagEngine();
+    auto handlerId = engine.registerHandler(
         [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
-            if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
-              error_msg += diag.str();
-              return mlir::failure(false);
-            }
-            return mlir::failure();
-      });
+          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+            error_msg += diag.str();
+            return mlir::failure(false);
+          }
+          return mlir::failure();
+        });
 
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
@@ -219,7 +219,7 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
     pm.enableTiming(timingScope);         // do this right before pm.run
 
     if (failed(pm.run(cloned))) {
-      engine.eraseHandler(handlerId);      
+      engine.eraseHandler(handlerId);
       throw std::runtime_error(
           "failed to JIT compile the Quake representation\n" + error_msg);
     }
@@ -335,8 +335,8 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
           auto memberTys = ty.getMembers();
           for (auto mTy : memberTys) {
             if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(mTy))
-              throw std::runtime_error(
-                "return values with dynamically sized element types are not yet supported");
+              throw std::runtime_error("return values with dynamically sized "
+                                       "element types are not yet supported");
           }
           auto ourAllocatedArg = std::malloc(size);
           runtimeArgs.emplace_back(ourAllocatedArg,
@@ -924,15 +924,15 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
     pm.enableIRPrinting();
 
   std::string error_msg;
-  mlir::DiagnosticEngine& engine = context->getDiagEngine();
-  auto handlerId = engine.registerHandler( 
+  mlir::DiagnosticEngine &engine = context->getDiagEngine();
+  auto handlerId = engine.registerHandler(
       [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
-          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
-            error_msg += diag.str();
-            return mlir::failure(false);
-          }
-          return mlir::failure();
-    });
+        if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+          error_msg += diag.str();
+          return mlir::failure(false);
+        }
+        return mlir::failure();
+      });
 
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));

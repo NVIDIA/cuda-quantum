@@ -223,7 +223,8 @@ bool isDynamicallySizedType(Type ty) {
     return false;
   }
   if (auto arrTy = dyn_cast<ArrayType>(ty))
-    return arrTy.isUnknownSize() || isDynamicallySizedType(arrTy.getElementType());
+    return arrTy.isUnknownSize() ||
+           isDynamicallySizedType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
 }

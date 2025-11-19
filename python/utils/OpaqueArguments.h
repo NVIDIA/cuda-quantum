@@ -236,7 +236,8 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
         appendValue(data, (double)value.cast<py::float_>(), offset);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        throw std::runtime_error("dynamically sized element types for function arguments are not yet supported");
+        throw std::runtime_error("dynamically sized element types for function "
+                                 "arguments are not yet supported");
       })
       .Default([&](mlir::Type ty) {
         ty.dump();
