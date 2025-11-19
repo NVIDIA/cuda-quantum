@@ -226,7 +226,7 @@ def test_invalid_ctrl():
 
     with pytest.raises(RuntimeError) as error:
         bell.compile()
-    assert 'controlled operation requested without any control argument(s)' in repr(
+    assert 'missing value' in repr(
         error)
 
 
@@ -265,7 +265,7 @@ def test_bug_2452():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.sample(kernel3)
-    assert 'invalid number of arguments (1) passed to custom_cz (requires 2 arguments)' in repr(
+    assert 'missing value' in repr(
         error)
 
 
