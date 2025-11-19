@@ -595,8 +595,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'tuple value cannot be modified' in str(
-        e.value)
+    assert 'tuple value cannot be modified' in str(e.value)
 
     @cudaq.kernel
     def simple_tuple_int_float_conversion(
@@ -977,7 +976,8 @@ def test_modify_struct():
         t.x = True
         return t
 
-    results = cudaq.run_async(kernelB, Foo(False, 6.28, 17), shots_count=2).get()
+    results = cudaq.run_async(kernelB, Foo(False, 6.28, 17),
+                              shots_count=2).get()
     print(results)
     assert len(results) == 2
     assert results[0] == Foo(True, 3.14, 100)

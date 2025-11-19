@@ -667,7 +667,9 @@ def test_return_tuple_int_float():
         qubits = cudaq.qvector(n)
         return t
 
-    result = cudaq.run(simple_tuple_int_float_conversion, 2, (-13, 42.3), shots_count=1)
+    result = cudaq.run(simple_tuple_int_float_conversion,
+                       2, (-13, 42.3),
+                       shots_count=1)
     assert len(result) == 1 and result[0] == (True, 42.3)
 
 
@@ -989,7 +991,8 @@ def test_modify_struct():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple_struc_err, MyClass(-13, True), shots_count=2)
-    assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in repr(e)
+    assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in repr(
+        e)
     assert '(offending source -> t.x)' in repr(e)
 
     @cudaq.kernel

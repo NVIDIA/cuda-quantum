@@ -11,6 +11,7 @@
 import cudaq
 import numpy
 
+
 def test_continue():
 
     @cudaq.kernel
@@ -86,6 +87,7 @@ def test_continue2():
 
     res = cudaq.sample(kernel, numpy.pi)
     assert len(res) == 1 and '000111' in res
-    print(f"output test1: {res}" )
+    print(f"output test1: {res}")
+
 
 # CHECK-LABEL:  output test1: { 000111:1000 }

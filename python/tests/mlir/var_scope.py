@@ -32,4 +32,3 @@ def test_var_scope():
 # CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<i1>
 # CHECK:           return
 # CHECK:         }
-

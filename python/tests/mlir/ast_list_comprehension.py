@@ -901,7 +901,7 @@ def test_list_comprehension_expressions():
         targets = cudaq.qvector(len(adj))
         apply_rotations(targets, 1, [not b for b in adj])
 
-    out = cudaq.sample(kernel7, [True, False, True])    
+    out = cudaq.sample(kernel7, [True, False, True])
     assert len(out) == 8
     print(kernel7
          )  # keep after assert, such that we have no output if assert fails

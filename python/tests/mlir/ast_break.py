@@ -82,6 +82,7 @@ def test_break2():
 
     res = cudaq.sample(kernel, numpy.pi)
     assert len(res) == 1 and '111000' in res
-    print(f"output test1: {res}" )
+    print(f"output test1: {res}")
+
 
 # CHECK-LABEL:  output test1: { 111000:1000 }

@@ -187,22 +187,24 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                     f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
-            if hasattr(annotation.slice, 'elts') and len(annotation.slice.elts) == 2:
+            if hasattr(annotation.slice, 'elts') and len(
+                    annotation.slice.elts) == 2:
                 args = annotation.slice.elts[0]
                 ret = annotation.slice.elts[1]
             elif hasattr(annotation.slice, 'value') and hasattr(
-                    annotation.slice.value, 'elts') and len(annotation.slice.value.elts) == 2:
+                    annotation.slice.value, 'elts') and len(
+                        annotation.slice.value.elts) == 2:
                 args = annotation.slice.value.elts[0]
                 ret = annotation.slice.value.elts[1]
             else:
                 localEmitFatalError(
                     f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
-            argTypes = [
-                mlirTypeFromAnnotation(a, ctx) for a in args.elts
-            ]
+            argTypes = [mlirTypeFromAnnotation(a, ctx) for a in args.elts]
             if not isinstance(ret, ast.Constant) or ret.value:
-                localEmitFatalError("passing kernels as arguments that return a value is not currently supported")
+                localEmitFatalError(
+                    "passing kernels as arguments that return a value is not currently supported"
+                )
             return cc.CallableType.get(argTypes)
 
         if isinstance(annotation,

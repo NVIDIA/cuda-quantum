@@ -946,7 +946,7 @@ def test_list_boundaries():
     assert "offending source -> range(1, 4, 0)" in str(e.value)
 
     @cudaq.kernel
-    def kernel16(v : int):
+    def kernel16(v: int):
         qubits = cudaq.qvector(5)
         r = [i for i in range(1, 4, v)]
         for i in r:
@@ -2058,11 +2058,11 @@ def test_custom_classical_kernel_type():
     counts.dump()
     assert len(counts) == 2 and '00' in counts and '11' in counts
 
-    # FIXME: 
+    # FIXME:
     # While this exact test worked, the handing in OpaqueArguments.h
-    # does not match the expected layout in the args creator. 
-    # Correspondingly, both subsequent tests below failed with a crash 
-    # as it was. I hence choose to give a proper error until this is 
+    # does not match the expected layout in the args creator.
+    # Correspondingly, both subsequent tests below failed with a crash
+    # as it was. I hence choose to give a proper error until this is
     # fixed after general Python compiler revisions.
     @dataclass(slots=True)
     class CustomIntAndListFloat:
@@ -2079,7 +2079,8 @@ def test_custom_classical_kernel_type():
     instance = CustomIntAndListFloat(3, [np.pi, np.pi])
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(test, instance)
-    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(
+        e.value)
     # Should be: assert len(counts) == 1 and '111' in counts
 
     @cudaq.kernel
@@ -2092,9 +2093,9 @@ def test_custom_classical_kernel_type():
     instance = CustomIntAndListFloat(3, [0, np.pi, 0, np.pi])
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(test, instance)
-    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(
+        e.value)
     # Should be: assert len(counts) == 1 and '111' in counts
-
 
     @dataclass(slots=True)
     class CustomIntAndListFloat:
@@ -2111,7 +2112,8 @@ def test_custom_classical_kernel_type():
     instance = CustomIntAndListFloat([0, np.pi, 0, np.pi], 3)
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(test, instance)
-    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(
+        e.value)
     # Should be: assert len(counts) == 1 and '111' in counts
 
     @dataclass(slots=True)
@@ -2129,7 +2131,8 @@ def test_custom_classical_kernel_type():
     instance = CustomIntAndListFloat([3], [0, np.pi, 0, np.pi])
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(test, instance)
-    assert 'dynamically sized element types for function arguments are not yet supported' in str(e.value)
+    assert 'dynamically sized element types for function arguments are not yet supported' in str(
+        e.value)
     # Should be: assert len(counts) == 1 and '111' in counts
 
     # Test that the class can be in a library
@@ -2310,8 +2313,7 @@ def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
         print(less_arguments)
-    assert 'missing value' in repr(
-        error)
+    assert 'missing value' in repr(error)
     assert '(offending source -> rx(3.14))' in repr(error)
 
     @cudaq.kernel

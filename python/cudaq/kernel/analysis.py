@@ -56,13 +56,15 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
         [self.visit(stm) for stm in node.body]
 
     def visit_Attribute(self, node):
-        if not self.kernelName: return
+        if not self.kernelName:
+            return
         if node.attr in globalAstRegistry:
             self.depKernels[node.attr] = globalAstRegistry[node.attr]
         self.visit(node.value)
 
     def visit_Name(self, node):
-        if not self.kernelName: return
+        if not self.kernelName:
+            return
         if node.id in globalAstRegistry:
             self.depKernels[node.id] = globalAstRegistry[node.id]
 

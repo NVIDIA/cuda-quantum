@@ -30,6 +30,7 @@ def test_bug_1777():
     result = cudaq.sample(test)
     print(result)
 
+
 test_bug_1777()
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {

@@ -247,7 +247,6 @@ def test_conditional_on_measure():
 
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test17() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
 
-
     @cudaq.kernel
     def test18() -> int:
         q = cudaq.qvector(6)
@@ -263,6 +262,7 @@ def test_conditional_on_measure():
     print(test18)
 
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test18() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true}
+
 
 # leave for gdb debugging
 if __name__ == "__main__":
