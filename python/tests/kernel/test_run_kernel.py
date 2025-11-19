@@ -323,7 +323,7 @@ def test_return_list_from_device_kernel():
 
     results = cudaq.run(caller_kernel, [4, 5, 6], shots_count=1)
     assert len(results) == 1
-    assert results[0] == 15  # 4+1 + 5+1 + 6+1 = 15
+    assert results[0] == 15  # 4 + 5 + 6 = 15
 
 
 def test_return_list_bool():
@@ -631,11 +631,6 @@ def test_return_dynamics_measure_results():
                     assert res[i] == False
 
 
-# Test tuples
-# TODO: Define spec for using tuples in kernels
-# https://github.com/NVIDIA/cuda-quantum/issues/3031
-
-
 def test_return_tuple_int_float():
 
     @cudaq.kernel
@@ -668,15 +663,15 @@ def test_return_tuple_int_float():
         e.value)
 
     @cudaq.kernel
-    def simple_tuple_int_float_error(
+    def simple_tuple_int_float_conversion(
             n: int, t: tuple[int, float]) -> tuple[bool, float]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_tuple_int_float_error, 2, (-13, 11.5))
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(
-        e.value)
+    result = cudaq.run(simple_tuple_int_float_conversion,
+                       2, (-13, 42.3),
+                       shots_count=1)
+    assert len(result) == 1 and result[0] == (True, 42.3)
 
 
 def test_return_tuple_float_int():
@@ -740,10 +735,8 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_tuple_int32_bool_no_args)
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
-        e.value)
+    result = cudaq.run(simple_tuple_int32_bool_no_args, shots_count=1)
+    assert len(result) == 1 and result[0] == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
@@ -987,12 +980,12 @@ def test_modify_struct():
         y: bool
 
     @cudaq.kernel
-    def simple_strucA(t: MyClass) -> MyClass:
+    def simple_structA(t: MyClass) -> MyClass:
         q = cudaq.qubit()
         t.x = 42
         return t
 
-    results = cudaq.run(simple_strucA, MyClass(-13, True), shots_count=2)
+    results = cudaq.run(simple_structA, MyClass(-13, True), shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == MyClass(42, True)
@@ -1005,14 +998,14 @@ def test_modify_struct():
         z: int
 
     @cudaq.kernel
-    def kerneB(t: Foo) -> Foo:
+    def kernelB(t: Foo) -> Foo:
         q = cudaq.qubit()
         t.z = 100
         t.y = 3.14
         t.x = True
         return t
 
-    results = cudaq.run(kerneB, Foo(False, 6.28, 17), shots_count=2)
+    results = cudaq.run(kernelB, Foo(False, 6.28, 17), shots_count=2)
     print(results)
     assert len(results) == 2
     assert results[0] == Foo(True, 3.14, 100)
