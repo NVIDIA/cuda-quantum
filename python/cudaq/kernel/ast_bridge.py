@@ -1480,8 +1480,8 @@ class PyASTBridge(ast.NodeVisitor):
                 # To not make this distinction, we would need to add support
                 # for having proper reference arguments, which we don't want to.
                 # Barring that, we at least try to be nice and give errors on
-                # assignments that may lead to unexpected (i.e. non-Pythonic)
-                # behavior.
+                # assignments that may lead to unexpected behavior (i.e. behavior
+                # not following expected Python behavior).
                 self.buildingEntryPoint = True
                 [self.visit(n) for n in node.body]
                 # Add the return operation
@@ -1784,7 +1784,7 @@ class PyASTBridge(ast.NodeVisitor):
                 if target_root_defined_in_parent_scope:
                     if cc.PointerType.isinstance(value.type):
                         # This is fine since/as long as update_in_parent_scope
-                        # validates that lvalues of reference types cannot be
+                        # validates that `lvalues` of reference types cannot be
                         # assigned. Note that tuples and states are value types.
                         value = cc.LoadOp(value).result
                     destination = self.symbolTable[target.id]
@@ -3277,8 +3277,8 @@ class PyASTBridge(ast.NodeVisitor):
 
                     checkControlAndTargetTypes(controls, targets)
                     # The check above makes sure targets are either a list
-                    # of individual qubits, or a single qvector. Since
-                    # a qvector is not allowed, we check this here:
+                    # of individual qubits, or a single `qvector`. Since
+                    # a `qvector` is not allowed, we check this here:
                     if not quake.RefType.isinstance(targets[0].type):
                         self.emitFatalError(f'invalid target operand - target must not be a qvector')
 
@@ -4727,12 +4727,12 @@ class PyASTBridge(ast.NodeVisitor):
         value = self.popValue()
         loaded = cc.LoadOp(target).result
 
-        # NOTE: aug assign is usually defined as producing a value, 
+        # NOTE: `aug-assign` is usually defined as producing a value, 
         # which we are not doing here. However, if this produces
         # a value, then we need to start worrying that arbitrary
         # expressions might contain assignments, which would require
         # updates to the bridge in a bunch of places and add some
-        # complexity. We hence effectively dissallow using
+        # complexity. We hence effectively disallow using
         # any kind of assignment as expression.
         self.valueStack.pushFrame()
         self.__process_binary_op(loaded, value, type(node.op))
