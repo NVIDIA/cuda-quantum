@@ -354,6 +354,7 @@ toolchain
 toolchains
 toolset
 transmon
+transpile
 trotterization
 uccsd
 unary

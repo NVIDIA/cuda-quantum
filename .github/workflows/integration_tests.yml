@@ -416,7 +416,8 @@ jobs:
                 exit 1
               }
               rm -f "$TEMP_NETRC"
-              read -r id_token refresh_token < <(echo "$response" | jq -r '.id_token, .refresh_token')
+              id_token=$(printf '%s' "$response" | jq -r '.id_token')
+              refresh_token=$(printf '%s' "$response" | jq -r '.refresh_token')
               echo "::add-mask::$id_token"
               echo "::add-mask::$refresh_token"
               printf "key: %s\nrefresh: %s\n" "$id_token" "$refresh_token" > "$HOME/.anyon_config"
@@ -636,7 +637,7 @@ jobs:
                 ;;
 
               iqm)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
+                nvq++ -DSYNTAX_CHECK --target iqm $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
@@ -759,7 +760,7 @@ jobs:
                 if [[ "$filename" == *.cpp ]]; then
                   if [[ "$filename" == *"quantinuum_ng/"* ]]; then
                     echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
-                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 10 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 15 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
                   else
                     echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
                     nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
@@ -1020,6 +1021,7 @@ jobs:
           fetch-depth: 1
 
       - name: Install wheel
+        if: steps.skip_check.outputs.skipped != 'true'
         id: install_wheel
         run: |
           python_version=${{ inputs.python_version || env.python_version }}
@@ -1075,7 +1077,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
 
       - name: Test NVQC
-        if: ${{ steps.install_wheel.outputs.skipped != 'true' }}
+        if: ${{ steps.skip_check.outputs.skipped != 'true' || steps.install_wheel.outputs.skipped != 'true' }}
         run: |
           echo "### Submit to NVQC from Python wheels" >> $GITHUB_STEP_SUMMARY
           python_version=${{ inputs.python_version || env.python_version }}
