@@ -45,25 +45,25 @@ public:
   state(const std::vector<std::complex<double>> &vector) { initialize(vector); }
   state(const std::vector<std::complex<float>> &vector) { initialize(vector); }
   state(const std::vector<double> &vector) {
-    initialize(std::vector<std::complex<double>>{vector.begin(), vector.end()});
+    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
   }
   state(std::vector<double> &&vector) {
-    initialize(std::vector<std::complex<double>>{vector.begin(), vector.end()});
+    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
   }
   state(const std::initializer_list<double> &list) {
-    initialize(std::vector<std::complex<double>>{list.begin(), list.end()});
+    initialize(std::vector<cudaq::complex>{list.begin(), list.end()});
   }
   state(const std::vector<float> &vector) {
-    initialize(std::vector<std::complex<float>>{vector.begin(), vector.end()});
+    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
   }
   state(std::vector<float> &&vector) {
-    initialize(std::vector<std::complex<float>>{vector.begin(), vector.end()});
+    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
   }
   state(const std::initializer_list<float> &list) {
-    initialize(std::vector<std::complex<float>>{list.begin(), list.end()});
+    initialize(std::vector<cudaq::complex>{list.begin(), list.end()});
   }
   state(const std::initializer_list<std::complex<float>> &list) {
-    initialize(std::vector<std::complex<float>>{list.begin(), list.end()});
+    initialize(std::vector<cudaq::complex>{list.begin(), list.end()});
   }
 
   /// @brief Copy assignment
