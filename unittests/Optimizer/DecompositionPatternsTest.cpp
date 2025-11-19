@@ -25,9 +25,9 @@
 #include <iterator>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
+#include <llvm/ADT/StringMap.h>
 #include <memory>
 #include <mlir/IR/BuiltinOps.h>
-#include <ranges>
 
 using namespace mlir;
 
@@ -203,8 +203,10 @@ void stripNamespace(std::string &debugName) {
 
 // Test 1: Verify the total number of registered decomposition patterns
 TEST_F(DecompositionPatternsTest, TotalPatternCount) {
-  auto patternNames = cudaq::DecompositionPatternType::RegistryType::entries();
-  unsigned int size = std::distance(patternNames.begin(), patternNames.end());
+  auto patternEntries =
+      cudaq::DecompositionPatternType::RegistryType::entries();
+  unsigned int size =
+      std::distance(patternEntries.begin(), patternEntries.end());
   EXPECT_EQ(size, 31) << "Expected 31 decomposition patterns, but found "
                       << size;
 }
@@ -297,18 +299,29 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
     // Collect all gates in the output
     auto outputGates = collectGateTypesInModule(module);
 
+    // Map from gate prefix to allowed number of controls
+    llvm::StringMap<llvm::SmallVector<size_t>> allowedGates;
+    for (auto targetGate : targetGates) {
+      auto [tPrefix, tNum] = splitGateAndControls(targetGate);
+      allowedGates[tPrefix].push_back(tNum);
+    }
     auto isAllowedGate = [&](StringRef gate) {
       // Split gate into prefix and number (e.g., "h(1)" -> "h", 1) using
       // utility function
       auto [gatePrefix, gateNum] = splitGateAndControls(gate);
 
-      for (auto targetGate : targetGates) {
-        auto [tPrefix, tNum] = splitGateAndControls(targetGate);
-        if (gatePrefix == tPrefix && gateNum <= tNum) {
-          return true;
-        }
+      auto it = allowedGates.find(gatePrefix);
+      if (it == allowedGates.end()) {
+        return false;
       }
-      return false;
+      auto allowedNumControls = it->second;
+      // Check if the number of controls is in the allowed list (or if any
+      // number is allowed)
+      auto isEqOrMax = [gateNum](size_t num) {
+        return num == gateNum || num == std::numeric_limits<size_t>::max();
+      };
+      return std::find_if(allowedNumControls.begin(), allowedNumControls.end(),
+                          isEqOrMax) != allowedNumControls.end();
     };
 
     std::vector<std::string> unexpectedGates;

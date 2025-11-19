@@ -30,6 +30,7 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/ADT/StringMap.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/Support/Casting.h>
 #include <llvm/Support/Error.h>
@@ -333,8 +334,9 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
   };                                                                           \
   CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, PATTERN##Type, PATTERN)
 
-// TODO: "SToR1", "TToR1", "R1ToU3", "U3ToRotations" can be generalised
-// arbitrary number of controls, but we would need to reason over n HOp patterns
+// TODO: The decomposition patterns "SToR1", "TToR1", "R1ToU3", "U3ToRotations"
+// can handle arbitrary number of controls, but currently metadata cannot
+// capture this. The pattern types therefore only advertise them for 0 controls.
 
 //===----------------------------------------------------------------------===//
 // HOp decompositions
@@ -1812,8 +1814,22 @@ REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, "u3", "rz", "rx");
 
 void cudaq::populateWithAllDecompositionPatterns(
     mlir::RewritePatternSet &patterns) {
-  for (auto &patternType :
-       cudaq::DecompositionPatternType::RegistryType::entries()) {
-    patterns.add(patternType.instantiate()->create(patterns.getContext()));
+  // For deterministic ordering, sort the registered pattern types by name
+  // Note that this assumes that no additional patterns are registered at
+  // runtime.
+  static std::map<std::string, std::unique_ptr<cudaq::DecompositionPatternType>>
+      patternTypes = []() {
+        std::map<std::string, std::unique_ptr<cudaq::DecompositionPatternType>>
+            map;
+        for (auto &patternType :
+             cudaq::DecompositionPatternType::RegistryType::entries()) {
+          map[patternType.getName().str()] = patternType.instantiate();
+        }
+        return map;
+      }();
+
+  for (auto it = patternTypes.begin(), ie = patternTypes.end(); it != ie;
+       ++it) {
+    patterns.add(it->second->create(patterns.getContext()));
   }
 }
