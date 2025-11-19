@@ -50,6 +50,6 @@ target-arguments:
     help-string: "Specify sharpening."
   - key: memory
     required: false
-    type: boolean
+    type: string
     platform-arg: memory
-    help-string: "When `true`, returns sequential data for QPU or noisy simulation runs."
+    help-string: "When `true`, returns sequential data for QPU or noisy simulation runs. Default is `true`."
