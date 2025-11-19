@@ -261,13 +261,13 @@ def test_dataclass_update():
         return arg
 
     @cudaq.kernel
-    def kernel1() -> MyTuple:
+    def update1() -> MyTuple:
         t = MyTuple(0., 0)
         return update_tuple1(t)
 
-    out = cudaq.run(kernel1, shots_count=1)
+    out = cudaq.run(update1, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(0., 0)
-    print("result kernel1: " + str(out[0]))
+    print("result update1: " + str(out[0]))
 
     @cudaq.kernel
     def update_tuple2(arg: MyTuple) -> MyTuple:
@@ -276,31 +276,31 @@ def test_dataclass_update():
         return t
 
     @cudaq.kernel
-    def kernel2() -> MyTuple:
+    def update2() -> MyTuple:
         return update_tuple2(MyTuple(0., 0))
 
-    out = cudaq.run(kernel2, shots_count=1)
+    out = cudaq.run(update2, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(5., 0)
-    print("result kernel2: " + str(out[0]))
+    print("result update2: " + str(out[0]))
 
     @cudaq.kernel
-    def kernel3(arg: MyTuple) -> MyTuple:
+    def update3(arg: MyTuple) -> MyTuple:
         t = arg.copy()
         t.angle += 5.
         return t
 
     arg = MyTuple(1, 1)
-    out = cudaq.run(kernel3, MyTuple(1, 1), shots_count=1)
+    out = cudaq.run(update3, MyTuple(1, 1), shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(6., 1)
     assert arg == MyTuple(1, 1)
-    print("result kernel3: " + str(out[0]))
+    print("result update3: " + str(out[0]))
 
     @cudaq.kernel
     def serialize(t1: MyTuple, t2: MyTuple, t3: MyTuple) -> list[float]:
         return [t1.angle, t1.idx, t2.angle, t2.idx, t3.angle, t3.idx]
 
     @cudaq.kernel
-    def kernel4() -> list[float]:
+    def update4() -> list[float]:
         t1 = MyTuple(1, 1)
         t2 = t1
         t3 = MyTuple(2, 2)
@@ -308,18 +308,18 @@ def test_dataclass_update():
         t3.angle = 5
         return serialize(t1, t2, t3)
 
-    assert kernel4() == [5.0, 2.0, 1.0, 1.0, 5.0, 2.0]
+    assert update4() == [5.0, 2.0, 1.0, 1.0, 5.0, 2.0]
 
     @cudaq.kernel
-    def kernel5(cond: bool) -> list[float]:
+    def update5(cond: bool) -> list[float]:
         t1 = MyTuple(1, 1)
         t2 = t1
         if cond:
             t1.angle = 5
         return [t1.angle, t1.idx, t2.angle, t2.idx]
 
-    assert kernel5(True) == [5.0, 1.0, 5.0, 1.0]
-    assert kernel5(False) == [1.0, 1.0, 1.0, 1.0]
+    assert update5(True) == [5.0, 1.0, 5.0, 1.0]
+    assert update5(False) == [1.0, 1.0, 1.0, 1.0]
 
 
 def test_dataclass_update_failures():
