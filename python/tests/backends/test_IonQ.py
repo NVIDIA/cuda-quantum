@@ -364,7 +364,7 @@ def test_2q_unitary_synthesis():
 
 def test_shot_wise_output_with_memory_and_qpu():
 
-    url="http://localhost:{}".format(port)
+    url = "http://localhost:{}".format(port)
 
     # set the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=aria-1")
@@ -378,14 +378,15 @@ def test_shot_wise_output_with_memory_and_qpu():
         cx(qubits[0], qubits[1])
 
     results = cudaq.sample(bell_state, shots_count=3)
-    assert(results.get_sequential_data() == ['011', '011', '011'])
+    assert (results.get_sequential_data() == ['011', '011', '011'])
 
     # reset the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=")
 
+
 def test_shot_wise_output_with_no_memory_and_qpu():
 
-    url="http://localhost:{}".format(port)
+    url = "http://localhost:{}".format(port)
 
     # set the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=aria-1")
@@ -399,14 +400,15 @@ def test_shot_wise_output_with_no_memory_and_qpu():
         cx(qubits[0], qubits[1])
 
     results = cudaq.sample(bell_state, shots_count=3)
-    assert(results.get_sequential_data() == [])
+    assert (results.get_sequential_data() == [])
 
     # reset the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=")
 
+
 def test_shot_wise_output_with_memory_and_noise_model():
 
-    url="http://localhost:{}".format(port)
+    url = "http://localhost:{}".format(port)
 
     # set the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=simulator")
@@ -421,7 +423,7 @@ def test_shot_wise_output_with_memory_and_noise_model():
         cx(qubits[0], qubits[1])
 
     results = cudaq.sample(bell_state, shots_count=3)
-    assert(results.get_sequential_data() == ['011', '011', '011'])
+    assert (results.get_sequential_data() == ['011', '011', '011'])
 
     # reset the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=")
@@ -430,7 +432,7 @@ def test_shot_wise_output_with_memory_and_noise_model():
 
 def test_shot_wise_output_with_no_memory_and_noise_model():
 
-    url="http://localhost:{}".format(port)
+    url = "http://localhost:{}".format(port)
 
     # set the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=simulator")
@@ -445,7 +447,7 @@ def test_shot_wise_output_with_no_memory_and_noise_model():
         cx(qubits[0], qubits[1])
 
     results = cudaq.sample(bell_state, shots_count=3)
-    assert(results.get_sequential_data() == [])
+    assert (results.get_sequential_data() == [])
 
     # reset the mock server target
     requests.post(f"{url}/_mock_server_config_target?target=")
