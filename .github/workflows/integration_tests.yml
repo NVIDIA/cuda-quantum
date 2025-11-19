@@ -315,9 +315,8 @@ jobs:
         id: set-matrix
         run: |
           # Determine which providers to test based on inputs and event type
-          # Disabling anyon, please see https://github.com/NVIDIA/cuda-quantum/issues/3598
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -417,7 +416,8 @@ jobs:
                 exit 1
               }
               rm -f "$TEMP_NETRC"
-              read -r id_token refresh_token < <(echo "$response" | jq -r '.id_token, .refresh_token')
+              id_token=$(printf '%s' "$response" | jq -r '.id_token')
+              refresh_token=$(printf '%s' "$response" | jq -r '.refresh_token')
               echo "::add-mask::$id_token"
               echo "::add-mask::$refresh_token"
               printf "key: %s\nrefresh: %s\n" "$id_token" "$refresh_token" > "$HOME/.anyon_config"
@@ -637,7 +637,7 @@ jobs:
                 ;;
 
               iqm)
-                nvq++ -DSYNTAX_CHECK --target iqm --iqm-machine Crystal_5 $filename
+                nvq++ -DSYNTAX_CHECK --target iqm $filename
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out

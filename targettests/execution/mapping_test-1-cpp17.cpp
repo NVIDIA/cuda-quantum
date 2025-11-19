@@ -8,9 +8,15 @@
 
 // REQUIRES: c++17
 // RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.txt
-// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Crystal_5.txt" "%t.dir/Crystal_5_Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Crystal_5 --mapping-file "%t.dir/Crystal_5_Variant.txt" --emulate && %t
+// backward compatible way to define the QPU architecture already at compile time
+// RUN: nvq++ %cpp_std %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
+// selecting the QPU architecture at runtime allows using the same binary for all architectures
+// RUN: nvq++ %cpp_std %s -o %t --target iqm --emulate
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t | FileCheck %s
 // RUN: nvq++ %cpp_std --enable-mlir %s -o %t
-// RUN: rm -rf %t.txt %t.dir
+// RUN: rm -f %t.txt
 
 #include <cudaq.h>
 #include <iostream>
