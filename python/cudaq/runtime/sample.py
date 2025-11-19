@@ -71,6 +71,7 @@ Returns:
   or a list of such results in the case of `sample` function broadcasting.
     """
 
+    has_measurements = False
     has_conditionals_on_measure_result = False
 
     if isinstance(kernel, PyKernelDecorator):
@@ -85,20 +86,41 @@ Returns:
                 if not hasattr(operation, 'name'):
                     continue
                 if nvqppPrefix + kernel.name == operation.name.value:
+                    has_measurements = 'hasMeasurements' in operation.attributes
                     has_conditionals_on_measure_result = 'qubitMeasurementFeedback' in operation.attributes
                     break
-    elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
-        has_conditionals_on_measure_result = True
+    elif isinstance(kernel, PyKernel):
+        if kernel.hasMeasurements:
+            has_measurements = True
+        if kernel.conditionalOnMeasure:
+            has_conditionals_on_measure_result = True
 
     if explicit_measurements:
         if not cudaq_runtime.supportsExplicitMeasurements():
             raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported on this target."
-            )
+                "The sampling option `explicit_measurements` is not supported "
+                "on this target.")
         if has_conditionals_on_measure_result:
             raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported on kernel with conditional logic on a measurement result."
+                "The sampling option `explicit_measurements` is not supported "
+                "on kernel with conditional logic on a measurement result.")
+    if has_measurements:
+        if cudaq_runtime.isQuantumDevice():
+            raise RuntimeError(
+                "Kernels with explicit measurement operations cannot be used with "
+                "`cudaq.sample` on hardware targets. Please remove all measurements "
+                "from the kernel, qubits will be automatically measured at the end "
+                "when sampling a kernel.\n"
+                "Alternatively, use `cudaq.run` API, if supported on this target."
             )
+        elif not explicit_measurements:
+            print(
+                "WARNING: Using `cudaq.sample` with a kernel that contains explicit "
+                "measurements is deprecated and will be disallowed in a future release. "
+                "Please remove all measurements from the kernel, qubits will be "
+                "automatically measured at the end when sampling a kernel.\n"
+                "Alternatively, use `cudaq.run` API which preserves individual "
+                "measurement results.")
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
