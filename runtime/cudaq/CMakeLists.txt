@@ -23,8 +23,6 @@ add_library(${LIBRARY_NAME}
                 qis/execution_manager.cpp
                 qis/remote_state.cpp
                 qis/state.cpp
-                utils/cudaq_utils.cpp
-                utils/matrix.cpp
                 distributed/mpi_plugin.cpp)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
@@ -41,7 +39,7 @@ if (CUDA_FOUND)
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
+    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen cudaq-utils
     PRIVATE nvqir fmt::fmt-header-only CUDA::cudart_static CUDAQTargetConfigUtil)
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -53,7 +51,7 @@ else()
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
+    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen cudaq-utils
     PRIVATE nvqir fmt::fmt-header-only CUDAQTargetConfigUtil)
 endif()
 
@@ -63,6 +61,7 @@ add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
 add_subdirectory(operators)
+add_subdirectory(utils)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

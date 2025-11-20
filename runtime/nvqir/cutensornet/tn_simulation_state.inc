@@ -293,6 +293,13 @@ TensorNetSimulationState<ScalarType>::createFromSizeAndPtr(
     throw std::runtime_error(
         "Cannot create tensornet backend's simulation state with MPS tensors.");
   }
+
+  // Don't allow density matrix
+  if (dataType ==
+      cudaq::detail::variant_index<cudaq::state_data, cudaq::complex_matrix>())
+    throw std::runtime_error(
+        "[TensorNetSimulationState] density matrix state data not supported.");
+
   std::vector<std::complex<ScalarType>> vec(
       reinterpret_cast<std::complex<ScalarType> *>(ptr),
       reinterpret_cast<std::complex<ScalarType> *>(ptr) + size);

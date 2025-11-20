@@ -100,7 +100,8 @@ protected:
           reinterpret_cast<void *>(const_cast<complex_matrix &>(cMat).get_data(
               complex_matrix::order::row_major)));
     }
-    throw std::runtime_error("unsupported data type for state vector.");
+    throw std::runtime_error(
+        "unsupported data type for state vector/density matrix.");
   }
 
   /// @brief Subclass-specific creator method for
