@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Analysis/CallGraph.h"
@@ -37,6 +38,15 @@ public:
   /// false positives.
   void runOnOperation() override {
     ModuleOp moduleOp = getOperation();
+    /// NOTE: If the module has an occurrence of `quake.apply` then the step to
+    /// build call graph fails. Hence, we skip the pass in such cases.
+    if (moduleOp.walk([](quake::ApplyOp op) { return WalkResult::interrupt(); })
+            .wasInterrupted()) {
+      LLVM_DEBUG(
+          llvm::dbgs()
+          << "Skipping `QuakePropagateMetadataPass` due to `quake.apply`\n");
+      return;
+    }
     // Build the call graph of the module
     const mlir::CallGraph callGraph(moduleOp);
     // Use PostOrderTraversal to get the ordered list of FuncOps and a map of

@@ -149,7 +149,9 @@ std::string getKernelName(QuantumKernel &kernel) {
   if constexpr (has_name<QuantumKernel>::value) {
     kernel_name = kernel.name();
   } else {
+#ifndef CUDAQ_RTTI_DISABLED
     kernel_name = __internal__::demangle_kernel(typeid(kernel).name());
+#endif
   }
   return kernel_name;
 }

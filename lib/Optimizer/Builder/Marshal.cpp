@@ -785,7 +785,8 @@ cudaq::opt::marshal::dropAnyHiddenArguments(MutableArrayRef<BlockArgument> args,
 std::pair<bool, func::FuncOp> cudaq::opt::marshal::lookupHostEntryPointFunc(
     StringRef mangledEntryPointName, ModuleOp module, func::FuncOp funcOp) {
   if (mangledEntryPointName == "BuilderKernel.EntryPoint" ||
-      mangledEntryPointName.contains("_PyKernelEntryPointRewrite")) {
+      mangledEntryPointName.contains("_PyKernelEntryPointRewrite") ||
+      funcOp.empty()) {
     // No host entry point needed.
     return {false, func::FuncOp{}};
   }

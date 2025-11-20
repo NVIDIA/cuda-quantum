@@ -14,7 +14,7 @@
 
 using namespace mlir;
 
-namespace cudaq::opt {
+namespace {
 
 /// Delay Measurements
 ///
@@ -28,10 +28,19 @@ struct DelayMeasurementsPass
 
   void runOnOperation() override {
 
-    auto func = getOperation();
+    func::FuncOp func = getOperation();
     auto &blocks = func.getBlocks();
 
     if (blocks.empty())
+      return;
+
+    // If the function doesn't have measurements, we can ignore it.
+    if (!func.walk([](Operation *op) {
+               if (op->hasTrait<cudaq::QuantumMeasure>())
+                 return WalkResult::interrupt();
+               return WalkResult::advance();
+             })
+             .wasInterrupted())
       return;
 
     if (!func.getFunctionBody().hasOneBlock()) {
@@ -66,13 +75,13 @@ struct DelayMeasurementsPass
 
     // Step 1: Identify operations to move. Add to opsToMoveToEnd.
     for (auto &op : mainBlock) {
-      if (op.hasTrait<QuantumMeasure>()) {
+      if (op.hasTrait<cudaq::QuantumMeasure>()) {
         // Save the fact that we're measuring these qubits
         for (auto operand : op.getOperands())
           measuredQubits.insert(operand);
       }
 
-      if (op.hasTrait<QuantumMeasure>() || isa<func::ReturnOp>(op) ||
+      if (op.hasTrait<cudaq::QuantumMeasure>() || isa<func::ReturnOp>(op) ||
           isa<quake::DeallocOp>(op)) {
         addOpAndUsersToList(&op, opsToMoveToEnd);
         continue;
@@ -94,7 +103,7 @@ struct DelayMeasurementsPass
           mainBlock.end(), mainBlock.getOperations(), opToMove->getIterator());
   }
 };
-} // namespace cudaq::opt
+} // namespace
 
 std::unique_ptr<Pass> cudaq::opt::createDelayMeasurementsPass() {
   return std::make_unique<DelayMeasurementsPass>();

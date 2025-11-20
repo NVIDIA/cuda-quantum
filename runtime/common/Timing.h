@@ -21,6 +21,7 @@ static constexpr int TIMING_GATE_COUNT = 5;
 static constexpr int TIMING_JIT = 6;
 static constexpr int TIMING_JIT_PASSES = 7;
 static constexpr int TIMING_RUN = 8;
-static constexpr int TIMING_MAX_VALUE = 8;
+static constexpr int TIMING_TENSORNET = 9;
+static constexpr int TIMING_MAX_VALUE = 9;
 bool isTimingTagEnabled(int tag);
 } // namespace cudaq

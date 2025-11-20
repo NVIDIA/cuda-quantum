@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -18,7 +18,8 @@ namespace cudaq {
 class OrcaExecutor : public Executor {
 public:
   details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          bool isObserve) override {
+                          cudaq::details::ExecutionContextType execType,
+                          std::vector<char> *rawOutput) override {
     throw std::runtime_error(
         "ORCA backend does not support executing arbitrary kernels");
   }

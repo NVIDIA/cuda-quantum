@@ -16,13 +16,13 @@
 namespace cudaq {
 
 void PasqalServerHelper::initialize(BackendConfig config) {
-  cudaq::info("Initialize Pasqal Cloud.");
+  CUDAQ_INFO("Initialize Pasqal Cloud.");
 
   // Hard-coded for now.
   const std::string MACHINE = "EMU_MPS";
   const int MAX_QUBITS = 100;
 
-  cudaq::info("Running on device {}", MACHINE);
+  CUDAQ_INFO("Running on device {}", MACHINE);
 
   if (!config.contains("machine"))
     config["machine"] = MACHINE;
@@ -73,8 +73,8 @@ PasqalServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     tasks.push_back(message);
   }
 
-  cudaq::info("Created job payload for Pasqal, targeting device {}",
-              backendConfig.at("machine"));
+  CUDAQ_INFO("Created job payload for Pasqal, targeting device {}",
+             backendConfig.at("machine"));
 
   // Return a tuple containing the job path, headers, and the job message
   return std::make_tuple(baseUrl + apiPath + "/v1/cudaq/job", getHeaders(),

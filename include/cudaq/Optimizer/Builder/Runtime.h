@@ -44,6 +44,8 @@ static constexpr const char deviceCodeHolderAdd[] =
 
 static constexpr const char registerLinkableKernel[] =
     "__cudaq_registerLinkableKernel";
+static constexpr const char registerRunnableKernel[] =
+    "__cudaq_registerRunnableKernel";
 static constexpr const char getLinkableKernelKey[] =
     "__cudaq_getLinkableKernelKey";
 static constexpr const char getLinkableKernelName[] =
@@ -85,4 +87,6 @@ static constexpr const char callDeviceCallback[] =
     "__nvqpp__device_callback_run";
 static constexpr const char extractDevPtr[] =
     "__nvqpp__device_extract_device_ptr";
+// Garbage collection for arrays created during kernel execution.
+static constexpr const char cleanupArrays[] = "__nvqpp_cleanup_arrays";
 } // namespace cudaq::runtime

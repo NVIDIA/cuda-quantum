@@ -18,7 +18,7 @@ def test_slice():
     # slice upper bound should be exclusive
 
     @cudaq.kernel
-    def slice():
+    def slice_qvec():
         q = cudaq.qvector(4)
         slice = q[2:]
 
@@ -46,11 +46,11 @@ def test_slice():
         # Can get last qubit
         rz(np.pi, q[-1])
 
-    print(slice)
-    slice()
+    slice_qvec()
+    print(slice_qvec)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice_qvec() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4 : i64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i64
@@ -119,3 +119,6 @@ def test_slice():
 # CHECK:           quake.rz (%[[VAL_4]]) %[[VAL_45]] : (f64, !quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
+
+if __name__ == '__main__':
+    test_slice()

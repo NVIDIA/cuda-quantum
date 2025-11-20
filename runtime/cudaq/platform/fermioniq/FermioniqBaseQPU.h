@@ -46,7 +46,7 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("FermioniqBaseQPU launching kernel ({})", kernelName);
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)

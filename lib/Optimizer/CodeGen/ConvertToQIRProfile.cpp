@@ -25,10 +25,16 @@
 
 #define DEBUG_TYPE "qir-profile"
 
-/// This file maps full QIR to either the Adaptive Profile QIR or Base Profile
-/// QIR. It is generally assumed that the input QIR here will be generated after
-/// the quake-synth pass, thereby greatly simplifying the transformations
-/// required here.
+/**
+   \file
+
+   This file maps full QIR to either the Adaptive Profile QIR or Base Profile
+   QIR. It is generally assumed that the input QIR here will be generated after
+   the quake-synth pass, thereby greatly simplifying the transformations
+   required here.
+
+   This pass \e only supports QIR version 0.1.
+ */
 
 using namespace mlir;
 
@@ -221,13 +227,15 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
 
     auto requiredQubitsStr = std::to_string(info.nQubits);
     StringRef requiredQubitsStrRef = requiredQubitsStr;
-    if (auto stringAttr = op->getAttr(cudaq::opt::QIRRequiredQubitsAttrName)
-                              .dyn_cast_or_null<mlir::StringAttr>())
+    if (auto stringAttr =
+            op->getAttr(cudaq::opt::qir0_1::RequiredQubitsAttrName)
+                .dyn_cast_or_null<mlir::StringAttr>())
       requiredQubitsStrRef = stringAttr;
     auto requiredResultsStr = std::to_string(info.nResults);
     StringRef requiredResultsStrRef = requiredResultsStr;
-    if (auto stringAttr = op->getAttr(cudaq::opt::QIRRequiredResultsAttrName)
-                              .dyn_cast_or_null<mlir::StringAttr>())
+    if (auto stringAttr =
+            op->getAttr(cudaq::opt::qir0_1::RequiredResultsAttrName)
+                .dyn_cast_or_null<mlir::StringAttr>())
       requiredResultsStrRef = stringAttr;
     StringRef outputNamesStrRef;
     std::string resultQubitJSONStr;
@@ -240,7 +248,8 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     }
 
     // QIR functions need certain attributes, add them here.
-    // TODO: Update schema_id with valid value (issues #385 and #556)
+    // This pass is deprecated and will always use QIR 0.1. Future extensions
+    // are not required either.
     SmallVector<Attribute> attrArray{
         rewriter.getStringAttr(cudaq::opt::QIREntryPointAttrName),
         rewriter.getStrArrayAttr(
@@ -250,13 +259,11 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
         rewriter.getStrArrayAttr(
             {cudaq::opt::QIROutputNamesAttrName, outputNamesStrRef}),
         rewriter.getStrArrayAttr(
-            // TODO: change to required_num_qubits once providers support it
-            // (issues #385 and #556)
-            {cudaq::opt::QIRRequiredQubitsAttrName, requiredQubitsStrRef}),
+            {cudaq::opt::qir0_1::RequiredQubitsAttrName, requiredQubitsStrRef}),
         rewriter.getStrArrayAttr(
-            // TODO: change to required_num_results once providers support it
-            // (issues #385 and #556)
-            {cudaq::opt::QIRRequiredResultsAttrName, requiredResultsStrRef})};
+            // This pass is deprecated and will always use QIR 0.1.
+            {cudaq::opt::qir0_1::RequiredResultsAttrName,
+             requiredResultsStrRef})};
 
     op.setPassthroughAttr(rewriter.getArrayAttr(attrArray));
 
@@ -546,7 +553,7 @@ struct QIRProfilePreparationPass
         module);
 
     cudaq::opt::factory::createLLVMFunctionSymbol(
-        cudaq::opt::QIRReadResultBody, IntegerType::get(ctx, 1),
+        cudaq::opt::qir0_1::ReadResultBody, IntegerType::get(ctx, 1),
         {cudaq::opt::getResultType(ctx)}, module);
 
     // Add record functions for any measurements.

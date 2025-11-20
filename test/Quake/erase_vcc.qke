@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --erase-vector-copy-ctor %s | FileCheck %s
+// RUN: cudaq-opt --erase-vector-copy-ctor --canonicalize %s | FileCheck --check-prefix=CANON %s
 
 func.func @test_it() {
   %false = arith.constant 0 : i1
@@ -32,6 +33,15 @@ func.func private @free(!cc.ptr<i8>)
 // CHECK-LABEL:   func.func @test_it() {
 // CHECK:           %[[VAL_0:.*]] = cc.alloca !cc.array<i8 x 24>
 // CHECK:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 24>>) -> !cc.ptr<i8>
-// CHECK:           call @ok(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           call @ok(%[[VAL_3]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+// CANON-LABEL:   func.func @test_it() {
+// CANON:           %[[VAL_0:.*]] = cc.alloca !cc.array<i8 x 24>
+// CANON:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!cc.array<i8 x 24>>) -> !cc.ptr<i8>
+// CANON:           call @ok(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
+// CANON:           return
+// CANON:         }

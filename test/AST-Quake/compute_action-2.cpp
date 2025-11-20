@@ -37,7 +37,6 @@ struct ctrlHeisenberg {
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 cc.scope {
 // CHECK:                   cc.loop while {
 // CHECK:                   } do {
@@ -59,7 +58,6 @@ struct ctrlHeisenberg {
 // CHECK:                   } step {
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:             } step {
 // CHECK:             }
 // CHECK:           }
@@ -96,7 +94,6 @@ struct ctrlHeisenberg {
 // LAMBDA:           cc.scope {
 // LAMBDA:             cc.loop while {
 // LAMBDA:             } do {
-// LAMBDA:               cc.scope {
 // LAMBDA:                 cc.scope {
 // LAMBDA:                   cc.loop while {
 // LAMBDA:                   } do {
@@ -115,7 +112,6 @@ struct ctrlHeisenberg {
 // LAMBDA:                   } step {
 // LAMBDA:                   }
 // LAMBDA:                 }
-// LAMBDA:               }
 // LAMBDA:             } step {
 // LAMBDA:             }
 // LAMBDA:           }

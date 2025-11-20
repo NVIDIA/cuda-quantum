@@ -59,7 +59,8 @@ public:
     auto newStackSlot = casted.getValue().getDefiningOp<cudaq::cc::AllocaOp>();
     if (!newStackSlot)
       return failure();
-    rewriter.replaceOp(newStackSlot, analysis.copyFrom.getOperand(1));
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
+        newStackSlot, newStackSlot.getType(), analysis.copyFrom.getOperand(1));
     rewriter.eraseOp(analysis.copyFrom);
     rewriter.eraseOp(analysis.copyTo);
     rewriter.eraseOp(analysis.freeMem);

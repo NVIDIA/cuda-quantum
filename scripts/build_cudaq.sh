@@ -19,6 +19,14 @@
 # -or-
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 #
+# Options:
+# -c <build_configuration>: The build configuration to use. Defaults to Release.
+# -t <install_toolchain>: The toolchain to use. Defaults to None.
+# -j <num_jobs>: The number of jobs to use. Defaults to None.
+# -v: Whether to print verbose output. Defaults to False.
+# -B <build_dir>: The build directory to use. Defaults to build.
+# -i: Whether to build incrementally. Defaults to False.
+# 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
 # - git, ninja-build, python3, libpython3-dev (all available via apt install)
@@ -44,12 +52,19 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 # Process command line arguments
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
+clean_build=true
 install_toolchain=""
 num_jobs=""
 
+# Run the script from the top-level of the repo
+working_dir=`pwd`
+this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
+build_dir="$working_dir/build"
+
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:v" opt; do
+while getopts ":c:t:j:vB:i" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -59,6 +74,10 @@ while getopts ":c:t:j:v" opt; do
     ;;
     v) verbose=true
     ;;
+    B) build_dir="$OPTARG"
+    ;;
+    i) clean_build=false
+    ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
@@ -66,16 +85,13 @@ while getopts ":c:t:j:v" opt; do
 done
 OPTIND=$__optind__
 
-# Run the script from the top-level of the repo
-working_dir=`pwd`
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
-
 # Prepare the build directory
-build_dir="$working_dir/build"
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
-mkdir -p "$build_dir" && cd "$build_dir" && rm -rf * 
+mkdir -p "$build_dir" && cd "$build_dir"
+if $clean_build; then
+  rm -rf *
+fi
 mkdir -p logs && rm -rf logs/*
 
 if [ -n "$install_toolchain" ]; then
@@ -101,11 +117,11 @@ cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
-if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
-  echo "CUDA version requirement not satisfied (required: >= 11.8, got: $cuda_version)."
+if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "12" ]; then
+  echo "CUDA version requirement not satisfied (required: >= 12.0, got: $cuda_version)."
   echo "GPU-accelerated components will be omitted from the build."
   unset cuda_driver
-else 
+else
   echo "CUDA version $cuda_version detected."
   if [ -z "$CUQUANTUM_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cuquantum-python-cu$cuda_major)" ]; then
     CUQUANTUM_INSTALL_PREFIX="$(pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cuquantum"

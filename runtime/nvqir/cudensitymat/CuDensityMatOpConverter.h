@@ -107,10 +107,12 @@ private:
   struct TensorCallBackContext {
     std::vector<matrix_handler> tensorOps;
     std::vector<std::string> paramNames;
+    cudaq::dimension_map dimensions;
 
     TensorCallBackContext(const std::vector<matrix_handler> &tensor_ops,
-                          const std::vector<std::string> &param_names)
-        : tensorOps(tensor_ops), paramNames(param_names){};
+                          const std::vector<std::string> &param_names,
+                          const cudaq::dimension_map &dims)
+        : tensorOps(tensor_ops), paramNames(param_names), dimensions(dims){};
   };
 
   cudensitymatWrappedScalarCallback_t
@@ -118,7 +120,8 @@ private:
                      const std::vector<std::string> &paramNames);
   cudensitymatWrappedTensorCallback_t
   wrapTensorCallback(const std::vector<matrix_handler> &matrixOps,
-                     const std::vector<std::string> &paramNames);
+                     const std::vector<std::string> &paramNames,
+                     const cudaq::dimension_map &dims);
   void appendToCudensitymatOperator(
       cudensitymatOperator_t &cudmOperator,
       const std::unordered_map<std::string, std::complex<double>> &parameters,

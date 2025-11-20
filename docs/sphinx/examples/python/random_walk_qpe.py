@@ -35,13 +35,13 @@ def rwpe_kernel(n_iter: int, mu: float, sigma: float) -> float:
         x.ctrl(aux, target)
         h(aux)
         if mz(aux):
-            x(aux)
             mu = mu + sigma * .6065
         else:
             mu = mu - sigma * .6065
 
         sigma *= .7951
         iteration += 1
+        reset(aux)
 
     return 2.0 * mu
 

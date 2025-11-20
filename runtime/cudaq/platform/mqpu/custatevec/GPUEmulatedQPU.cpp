@@ -32,8 +32,9 @@ public:
   GPUEmulatedQPU(std::size_t id) : QPU(id) {}
 
   void enqueue(cudaq::QuantumTask &task) override {
-    cudaq::info("Enqueue Task on QPU {}", qpu_id);
-    cudaSetDevice(qpu_id);
+    // Note: enqueue is executed on the main thread, not the QPU execution
+    // thread. Hence, do not set the CUDA device here.
+    CUDAQ_INFO("Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
   }
 
@@ -41,7 +42,7 @@ public:
   launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
                void *args, std::uint64_t, std::uint64_t,
                const std::vector<void *> &rawArgs) override {
-    cudaq::info("QPU::launchKernel GPU {}", qpu_id);
+    CUDAQ_INFO("QPU::launchKernel GPU {}", qpu_id);
     cudaSetDevice(qpu_id);
     return kernelFunc(args, /*differentMemorySpace=*/false);
   }
@@ -50,7 +51,7 @@ public:
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaSetDevice(qpu_id);
 
-    cudaq::info("MultiQPUPlatform::setExecutionContext QPU {}", qpu_id);
+    CUDAQ_INFO("MultiQPUPlatform::setExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
     contexts.emplace(tid, context);
     if (noiseModel)
@@ -62,7 +63,7 @@ public:
   /// Overrides resetExecutionContext to forward to
   /// the ExecutionManager. Also handles observe post-processing
   void resetExecutionContext() override {
-    cudaq::info("MultiQPUPlatform::resetExecutionContext QPU {}", qpu_id);
+    CUDAQ_INFO("MultiQPUPlatform::resetExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
     auto ctx = contexts[tid];
     handleObservation(ctx);

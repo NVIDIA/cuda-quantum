@@ -38,8 +38,19 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
     PRIVATE 
       . .. 
       ${CUDAToolkit_INCLUDE_DIRS} 
+      ${CUDAToolkit_INCLUDE_DIRS}/cccl
       ${CMAKE_SOURCE_DIR}/runtime/common
       ${CUSTATEVEC_ROOT}/include)
+
+  # Prevent libc++ from defining the conflicting new/delete helpers
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE
+    _LIBCPP_DISABLE_NEW_DELETE_DEFINITIONS
+  )
+
+  # Tell clang not to emit aligned new/delete operators
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(${LIBRARY_NAME} PRIVATE -fno-aligned-allocation)
+  endif()
 
   target_link_libraries(${LIBRARY_NAME} 
                         PRIVATE

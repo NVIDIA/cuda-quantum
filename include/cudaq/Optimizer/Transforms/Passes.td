@@ -11,6 +11,22 @@
 
 include "mlir/Pass/PassBase.td"
 
+def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
+  let summary = "Add measurement operations.";
+  let description = [{
+    This pass adds measurement operations to the kernels that have no 
+    measurements.
+
+    This pass should be run in the sampling context, so as to comply with the 
+    spec - If no measurements appear in the kernel, then the `__global__` 
+    register is formed with implicit measurements being added for all the 
+    qubits defined in the kernel, and the measurements all occur at the end of 
+    the kernel.
+
+  }];
+  let dependentDialects = ["quake::QuakeDialect", "mlir::cf::ControlFlowDialect"];
+}
+
 def AddWireset : Pass<"add-wireset", "mlir::ModuleOp"> {
   let summary = "Adds a topology-less `quake.wire_set` to the module.";
   let description = [{
@@ -228,6 +244,47 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
     quantum code will call other quantum code directly and without going
     indirectly through the launch kernel runtime.
   }];
+}
+
+def ResourceCountPreprocess : Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
+  let summary = "Performs preprocessing to optimize for resource counter.";
+  let description = [{
+    This pass performs preprocessing to optimize the code for the resource counter
+    by removing as many invariant gates as possible during compilation, with the aim
+    of reducing the program size for further compilation, and speeding up resource
+    counting by the simulator at runtime.
+
+    For example, in the following program:
+
+    ```c++
+      cudaq::qarray<10> q;
+      h(q[0]);
+      for (size_t i = 0; i < 10; i++) {
+        y(q[i]);
+        if (mz(q[i]))
+          x(q[i]);
+      }
+    ```
+
+    The initial `h(q[0])` will always be run once, so we can pre count it and remove it.
+    Similarly, it is trivial to see that the loop will run 10 times, so we can pre count
+    `y(q[i])` ten times as well. However, because `x(q[i])` is gated by `mz(q[i])`, it is
+    not invariant, so it will remain and be counted during simulation.
+
+    Currently, the detection of "invariance" is purposefully dumb.
+
+    This preprocessing path may interfere with detecting downstream optimizations, as
+    preprocessed gates are counted and removed early in the pipeline.
+  }];
+
+  let options = [
+    Option<"countGate", "count-gate", "std::function<void(std::string,size_t,size_t)>",
+           /*default=*/"[](std::string str,size_t nControls, size_t count){}",
+           "Closure that will handle gate counts">,
+    Option<"dumpPreprocessed", "dump-preprocessed", "bool",
+           /*default=*/"false",
+           "Dump preprocessed gates instead of counting them (useful for testing)">,
+  ];
 }
 
 def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
@@ -523,6 +580,13 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
                    be inlined by the JIT compiler, so this codegen kind does not
                    support any dynamic parameters.
     ```
+
+    The `generate-run-stack` option must be used whenever `cudaq::run` is being
+    used to launch kernels. This flag will enable the generation of a second
+    launch stack for entry-point kernels that duplicates the functionality of
+    the entry-point kernel's body while omitting its return value. While this
+    clearly changes the semantics of the kernel call, some transport layers
+    require that return values be dropped on the floor.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -533,7 +597,11 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     Option<"startingArgIdx", "starting-arg-idx", "std::size_t", /*default=*/"0",
       "The starting argument index for the argsCreator.">,
     Option<"codegenKind", "codegen", "std::size_t", /*default=*/"0",
-      "Set the kind of code to generate for the launches.">
+      "Set the kind of code to generate for the launches.">,
+    Option<"genRunStack", "generate-run-stack", "bool", /*default=*/"false",
+      "Generate a cudaq::run stack for the entry-point kernels.">,
+    Option<"deferToJIT", "deferred", "bool", /*default=*/"false",
+      "Defer generating kernel execution until JIT time.">
   ];
 }
 
@@ -913,6 +981,44 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
+def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
+  let summary = "Perform phase based rotation merging.";
+
+  let description = [{
+    Multiple `quake.rz` ops can be merged into a single gate if they occur
+    at the same phase. In a circuit with only Swap, NOT, CNOT, and Rz gates, a
+    phase represents the state of a qubit based on the Swap, NOT, and CNOT
+    operations applied to it.
+
+    First, a preprocessing step identifies each subcircuit consisting only of
+    Swap, NOT, CNOT, and Rz gates. Currently, we restrict this subcircuit to
+    only working with `!quake.ref` types directly from `quake.alloca`s, as
+    values extraced from `quake.veq`s via `extract_ref` may have hidden side
+    effects that could cause the subcircuits to be incorrect.
+
+    At the beginning of the subcircuit, each qubit is assigned a unique phase
+    variable. A phase is an exclusive sum of the phase variables determining
+    the current state of a qubit, calculated as follows. While walking the
+    subcircuit:
+    * A Swap gate swaps the phases for two qubits.
+    * A NOT gate inverts the phase for a qubit by (un)setting a flag.
+    * A CNOT gate sets the phase of the target to the exclusive sum of the
+      phase variables in the phases for the control and target qubits.
+    * If multiple `rz` ops are found at the same phase, they will be combined
+      by replacing the rotation angle of the latter occuring op to the sum of
+      the rotation angles of both ops, and removing the prior op.
+  }];
+
+  let options = [
+    Option<"minimumBlockLength", "min-length", "unsigned", /*default=*/"20",
+    "Minimumn subcircuit length to run phase folding">,
+    Option<"minimumrzWeight", "min-rz-weight", "double", /*default=*/"20",
+    "Minimumn percentage of rz ops in subcircuit to run phase folding">,
+  ];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
   let summary = "Promote single qubit allocations.";
   let description = [{
@@ -1114,6 +1220,33 @@ def SROA : Pass<"cc-sroa"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
+  let summary = "Stack frame preallocation.";
+  let description = [{
+    This pass is intended to be run on the CFG (low-level semantics) level.
+
+    Stack slots may end up being allocated across the body of a function. It
+    is generally beneficial however to collect them in the function preamble
+    (or entry block).
+
+    This pass is similar to variable coalescing, which can merge allocations
+    based on their scopes, but works at a lower semantic level of the IR. This
+    pass aims to optimize patterns such as
+    ```mlir
+      %10 = call @llvm.stacksave()
+      %24 = cc.alloca !T
+      call @llvm.stackrestore(%10)
+    ```
+    such that the allocation, %24, is moved to the entry block and the two
+    stack guards, if they guard no allocations, can be correctly removed.
+
+    Not all allocations can be moved in this way, which implies that not all
+    stack guards can be safely removed.  Transport layer conformity tools may
+    unsafely remove operations, but the compiler should never do so, as it
+    would mean the compiler is generating incorrect code.
+  }];
+}
+
 def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
   let summary =
     "Convert state vector data into gates";
@@ -1225,7 +1358,7 @@ def UpdateRegisterNames : Pass<"update-register-names"> {
   }];
 }
 
-def VariableCoalesce : Pass<"variable-coalesce"> {
+def VariableCoalesce : Pass<"variable-coalesce", "mlir::func::FuncOp"> {
   let summary = "Coalesce variables in functions.";
   let description = [{
     This pass will move temporaries from inner scopes to the outermost,
@@ -1233,6 +1366,11 @@ def VariableCoalesce : Pass<"variable-coalesce"> {
     live-ranges. It relies on the correct and proper construction and use of
     `cc.scope` ops.
   }];
+
+  let options = [
+    Option<"hoistOnly", "hoist-only", "bool", /*default=*/"false",
+      "Hoist the variables only.">
+  ];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
@@ -1258,6 +1396,17 @@ def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
     cc.store %c1_i64, %2 : !cc.ptr<i64>
     ```
   }];
+}
+
+def QubitResetBeforeReuse : Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
+  let summary = "Add qubit reset and conditional initialization after measurement if qubit is to be reused.";
+  let description = [{
+   This pass adds qubit reset and conditionally applies an X gate if the measurement result is 1 
+   to initialize qubit into the correct state after measurement. This is only activated when the measured qubit
+   is to be reused.
+   Note: if the measurement is already accompanied by a reset, we won't add any extra reset.
+  }];
+
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

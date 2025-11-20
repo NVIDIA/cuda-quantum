@@ -103,7 +103,7 @@ def test_run_with_non_integer_left_shift_operator():
 
     with pytest.raises(RuntimeError) as e:
         results = cudaq.run(kernel, 3, shots_count=2)
-    assert "unsupported operand type(s) for '<<'; only integers supported." in str(
+    assert "unsupported operand type(s) for BinOp.LShift; only integers supported" in str(
         e.value)
 
 

@@ -233,3 +233,63 @@ class FetchDepFuncsSourceCode:
             code += src + '\n'
 
         return code
+
+
+class ValidateArgumentAnnotations(ast.NodeVisitor):
+    """
+    Utility visitor for finding argument annotations
+    """
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def visit_FunctionDef(self, node):
+        for arg in node.args.args:
+            if arg.annotation == None:
+                self.bridge.emitFatalError(
+                    'cudaq.kernel functions must have argument type annotations.',
+                    arg)
+
+
+class ValidateReturnStatements(ast.NodeVisitor):
+    """
+    Analyze the AST and ensure that functions with a return-type annotation
+    actually have a return statement in all paths.
+    """
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def visit_FunctionDef(self, node):
+        # skip if un-annotated or explicitly marked as None
+        is_none_ret = (isinstance(node.returns, ast.Constant) and
+                       node.returns.value
+                       is None) or (isinstance(node.returns, ast.Name) and
+                                    node.returns.id == 'None')
+
+        if node.returns is None or is_none_ret:
+            return self.generic_visit(node)
+
+        def all_paths_return(stmts):
+            for stmt in stmts:
+                if isinstance(stmt, ast.Return):
+                    return True
+
+                if isinstance(stmt, ast.If):
+                    if all_paths_return(stmt.body) and all_paths_return(
+                            stmt.orelse):
+                        return True
+
+                if isinstance(stmt, (ast.For, ast.While)):
+                    if all_paths_return(stmt.body) or all_paths_return(
+                            stmt.orelse):
+                        return True
+
+            return False
+
+        if not all_paths_return(node.body):
+            self.bridge.emitFatalError(
+                'cudaq.kernel functions with return type annotations must have a return statement.',
+                node)
+
+        self.generic_visit(node)

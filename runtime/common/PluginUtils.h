@@ -21,8 +21,8 @@ namespace cudaq {
 template <typename PluginPointerType>
 PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
                                            const char *libName = nullptr) {
-  cudaq::info("Requesting {} plugin via symbol name {}.",
-              typeid(PluginPointerType).name(), symbolName);
+  CUDAQ_INFO("Requesting {} plugin via symbol name {}.",
+             typeid(PluginPointerType).name(), symbolName);
   std::mutex m;
   std::lock_guard<std::mutex> l(m);
   using GetPluginFunction = PluginPointerType *(*)();
@@ -33,7 +33,7 @@ PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
     throw std::runtime_error(
         fmt::format("Could not load the requested plugin. \n{}\n", dlerror()));
 
-  cudaq::info("Successfully loaded the plugin.");
+  CUDAQ_INFO("Successfully loaded the plugin.");
   return fcn();
 }
 } // namespace cudaq

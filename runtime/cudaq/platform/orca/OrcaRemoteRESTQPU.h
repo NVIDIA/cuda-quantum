@@ -78,7 +78,7 @@ public:
 
   /// @brief Enqueue a quantum task on the asynchronous execution queue.
   void enqueue(cudaq::QuantumTask &task) override {
-    cudaq::info("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
+    CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
   }
 
@@ -102,7 +102,7 @@ public:
 
   /// @brief Store the execution context for launching kernel
   void setExecutionContext(cudaq::ExecutionContext *context) override {
-    cudaq::info("OrcaRemoteRESTQPU::setExecutionContext QPU {}", qpu_id);
+    CUDAQ_INFO("OrcaRemoteRESTQPU::setExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
     contexts.emplace(tid, context);
     cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
@@ -110,7 +110,7 @@ public:
 
   /// @brief Overrides resetExecutionContext
   void resetExecutionContext() override {
-    cudaq::info("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
+    CUDAQ_INFO("OrcaRemoteRESTQPU::resetExecutionContext QPU {}", qpu_id);
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
     contexts[tid] = nullptr;
     contexts.erase(tid);

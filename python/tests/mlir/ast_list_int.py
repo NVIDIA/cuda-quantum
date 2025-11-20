@@ -17,7 +17,7 @@ def test_list_int():
     def oracle(register: cudaq.qview, auxillary_qubit: cudaq.qubit,
                hidden_bitstring: list[int]):
         # Also test out len() here, should convert to stdvec_size
-        x = len(hidden_bitstring)
+        n = len(hidden_bitstring)
         for index, bit in enumerate(hidden_bitstring):
             if bit == 1:
                 x.ctrl(register[index], auxillary_qubit)

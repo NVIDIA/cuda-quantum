@@ -101,7 +101,8 @@ def test_Ionq_state_synthesis_from_simulator():
         qubits = cudaq.qvector(state)
 
     state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
 
     counts = cudaq.sample(kernel, state)
     assert "00" in counts

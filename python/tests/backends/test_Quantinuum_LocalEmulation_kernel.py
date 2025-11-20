@@ -30,7 +30,6 @@ def assert_close(want, got, tolerance=1.0e-1) -> bool:
 
 @pytest.fixture(scope="function", autouse=True)
 def configureTarget():
-    os.environ.pop('CUDAQ_ENABLE_QUANTUM_DEVICE_RUN', None)
     # We need a Fake Credentials Config file
     credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
     f = open(credsName, 'w')
@@ -197,7 +196,8 @@ def test_quantinuum_state_synthesis_from_simulator():
         qubits = cudaq.qvector(state)
 
     state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
 
     counts = cudaq.sample(kernel, state)
     assert "00" in counts
@@ -414,7 +414,7 @@ def test_capture_array():
 
 
 def test_capture_state():
-    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
+    s = cudaq.State.from_data(np.array([1., 0], dtype=cudaq.complex()))
 
     @cudaq.kernel
     def kernel():
@@ -429,7 +429,9 @@ def test_capture_state():
 
 
 def test_run():
-    os.environ["CUDAQ_ENABLE_QUANTUM_DEVICE_RUN"] = "1"
+
+    # Set the targeted QPU machine that supports `run`, i.e., QIR output.
+    cudaq.set_target('quantinuum', machine='Helios-1SC', emulate='true')
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:
@@ -454,6 +456,51 @@ def test_run():
         if result == qubitCount:
             non_zero_count += 1
     assert non_zero_count > 0
+
+    # Kernel that returns a vector
+    @cudaq.kernel
+    def vector_kernel(state: list[bool]) -> list[bool]:
+        qubits = cudaq.qvector(len(state))
+        for i, bit in enumerate(state):
+            if bit:
+                x(qubits[i])
+        return mz(qubits)
+
+    num_qubits = [1, 3, 6, 12]
+    for n in num_qubits:
+        init_state = [False if i % 2 == 0 else True for i in range(n)]
+        shots = 2
+        results = cudaq.run(vector_kernel, init_state, shots_count=shots)
+        print(f"Results for {n} qubits: {results}")
+        assert len(results) == shots
+        for result in results:
+            assert result == init_state
+
+    @cudaq.kernel
+    def vector_int_kernel(state: list[bool]) -> list[int]:
+        qubits = cudaq.qvector(len(state))
+        for i, bit in enumerate(state):
+            if bit:
+                x(qubits[i])
+        meas = mz(qubits)
+        res = [0 for _ in range(len(state))]
+        for i, bit in enumerate(meas):
+            if bit:
+                res[i] = 1 + i
+        return res
+
+    num_qubits = [1, 3, 6, 12]
+    for n in num_qubits:
+        init_state = [False if i % 2 == 0 else True for i in range(n)]
+        shots = 2
+        results = cudaq.run(vector_int_kernel, init_state, shots_count=shots)
+        print(f"Results for {n} qubits: {results}")
+        assert len(results) == shots
+        expected_results = [
+            0 if not bit else 1 + i for i, bit in enumerate(init_state)
+        ]
+        for result in results:
+            assert result == expected_results
 
 
 # leave for gdb debugging

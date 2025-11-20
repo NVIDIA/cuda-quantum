@@ -29,7 +29,7 @@ Submitting
 .. tab:: Python
 
         The target to which quantum kernels are submitted
-        can be controlled with the ``cudaq::set_target()`` function.
+        can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
 
@@ -73,10 +73,6 @@ Submitting
         .. code:: python
 
             cudaq.sample(kernel, shots_count=100)
-
-        To see a complete example for using Infleqtion's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
-        Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the 
-        :doc:`Anderson Impurity Model ground state solver <../../applications>` notebook.
 
 
 .. tab:: C++
@@ -123,9 +119,20 @@ Submitting
 
             nvq++ --emulate --target infleqtion src.cpp
 
-        To see a complete example for using Infleqtion's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
 
+To see a complete example, take a look at :ref:`Infleqtion examples <infleqtion-examples>`.
+Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
+:doc:`Anderson Impurity Model ground state solver <../../../applications/python/logical_aim_sqale>` notebook.
 
+.. note:: 
+
+        In local emulation mode (``emulate`` flag set to ``True``), the program will be executed on the :ref:`default simulator <default-simulator>`.
+        The environment variable ``CUDAQ_DEFAULT_SIMULATOR`` can be used to change the emulation simulator. 
+        
+        For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
+        depend on the selected simulator.  
+        
+        Any environment variables must be set prior to setting the target or running "`import cudaq`".
 
 Pasqal
 ++++++++++++++++
@@ -179,7 +186,7 @@ Submitting
 .. tab:: Python
 
         The target to which quantum kernels are submitted 
-        can be controlled with the ``cudaq::set_target()`` function.
+        can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
 
@@ -224,7 +231,6 @@ Submitting
 
             cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 
-        To see a complete example for using Pasqal's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
 
 .. tab:: C++
 
@@ -274,7 +280,8 @@ Submitting
 
             auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
 
-        To see a complete example for using Pasqal's backend, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+
+To see a complete example, take a look at :ref:`Pasqal examples <pasqal-examples>`.
 
 
 .. note:: 
@@ -323,7 +330,7 @@ Submitting
 .. tab:: Python
 
         The target to which quantum kernels are submitted
-        can be controlled with the ``cudaq::set_target()`` function.
+        can be controlled with the ``cudaq.set_target()`` function.
 
         .. code:: python
 
@@ -352,7 +359,6 @@ Submitting
 
             cudaq.evolve(RydbergHamiltonian(...), schedule=s, shots_count=1000)
 
-        To see a complete example for using QuEra's backend, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
 
 .. tab:: C++
 
@@ -384,7 +390,7 @@ Submitting
 
             auto evolution_result = cudaq::evolve(cudaq::rydberg_hamiltonian(...), schedule, 1000);
 
-        To see a complete example for using QuEra's backend, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+To see a complete example, take a look at :ref:`QuEra Computing examples <quera-examples>`.
 
 .. note:: 
 

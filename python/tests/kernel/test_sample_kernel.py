@@ -37,9 +37,6 @@ def test_simple_sampling_ghz():
     assert '0' * 10 in counts and '1' * 10 in counts
 
 
-# FIXME:https://github.com/NVIDIA/cuda-quantum/issues/2830
-# Crash due to conditional feedback:
-@pytest.mark.skip
 def test_simple_sampling_qpe():
     """Test that we can build up a set of kernels, compose them, and sample."""
 
@@ -83,6 +80,10 @@ def test_simple_sampling_qpe():
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
     assert len(counts) == 1
     assert '100' in counts
+
+    counts_async = cudaq.sample_async(qpe, 3, 1, xGate, tGate).get()
+    assert len(counts_async) == 1
+    assert '100' in counts_async
 
     # Test that we can define kernels after the
     # definition of a composable kernel like qpe

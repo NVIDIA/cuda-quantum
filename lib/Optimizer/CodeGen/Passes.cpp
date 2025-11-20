@@ -50,6 +50,20 @@ static void addOQCPipeline(OpPassManager &pm) {
   pm.addPass(createBasisConversionPass(options));
 }
 
+static void addQCIPipeline(OpPassManager &pm) {
+  using namespace cudaq::opt;
+  // Note: QCI's basis gate set is "sx", "rz", "cz", but QCI currently has
+  // a transpiler converting all other gates to that basis.
+  // We use the gate set below so we can translate all gates to QIR.
+  std::string basis[] = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  BasisConversionPassOptions options;
+  options.basis = basis;
+  options.disabledPatterns = z_disabledPatterns;
+  pm.addPass(createBasisConversionPass(options));
+}
+
 static void addQuantinuumPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
@@ -109,6 +123,9 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("iqm-gate-set-mapping",
                              "Convert kernels to IQM gate set.",
                              addIQMPipeline);
+  PassPipelineRegistration<>("qci-gate-set-mapping",
+                             "Convert kernels to QCI gate set.",
+                             addQCIPipeline);
   PassPipelineRegistration<>("quantinuum-gate-set-mapping",
                              "Convert kernels to Quantinuum gate set.",
                              addQuantinuumPipeline);

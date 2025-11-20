@@ -51,7 +51,7 @@ public:
       throw std::runtime_error(
           "Local emulation is not yet supported on this target.");
 
-    cudaq::info("Launching remote kernel ({})", kernelName);
+    CUDAQ_INFO("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
     char *charArgs = (char *)(args);

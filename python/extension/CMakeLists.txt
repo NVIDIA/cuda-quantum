@@ -49,12 +49,14 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_EvolveResult.cpp
     ../runtime/common/py_ObserveResult.cpp
     ../runtime/common/py_SampleResult.cpp
+    ../runtime/common/py_Resources.cpp
     ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
+    ../runtime/cudaq/algorithms/py_resource_count.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
     ../runtime/cudaq/algorithms/py_state.cpp
     ../runtime/cudaq/algorithms/py_evolve.cpp
@@ -84,6 +86,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/ArgumentConversion.cpp
+    ../../runtime/common/CodeGenConfig.cpp
     ../../runtime/common/RunTheKernel.cpp
     ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp

@@ -257,6 +257,9 @@ def test_observe():
     print(res.expectation())
     assert assert_close(res.expectation())
 
+    # Can also invoke `sample` on the same kernel
+    cudaq.sample(ansatz, .59).dump()
+
 
 def test_observe_async():
 
@@ -430,7 +433,8 @@ def test_state_synthesis_from_simulator():
         mz(qubits)
 
     state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
 
     counts = cudaq.sample(kernel, state)
     assert "00" in counts
@@ -495,6 +499,21 @@ def test_exp_pauli():
     assert '11' in counts
     assert not '01' in counts
     assert not '10' in counts
+
+
+def test_toffoli():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        x(q)
+        x.ctrl([q[0], q[1]], q[2])
+        mz(q)
+
+    counts = cudaq.sample(kernel)
+    counts.dump()
+    assert '110' in counts
+    assert len(counts) == 1
 
 
 # leave for gdb debugging

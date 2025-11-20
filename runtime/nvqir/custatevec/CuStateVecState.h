@@ -146,9 +146,9 @@ public:
       return std::abs(std::complex<ScalarType>(cmplx.real, cmplx.imaginary));
     } else {
       // If we reach here, then we have to copy the data from host.
-      cudaq::info("[custatevec-state] overlap computation requested with a "
-                  "state that is "
-                  "in host memory. Host data will be copied to GPU.");
+      CUDAQ_INFO("[custatevec-state] overlap computation requested with a "
+                 "state that is "
+                 "in host memory. Host data will be copied to GPU.");
 
       auto cmplx = nvqir::innerProduct<ScalarType>(
           devicePtr, other.getTensor().data, size, true);
@@ -291,9 +291,9 @@ public:
       cudaSetDevice(device);
 
     cudaGetDevice(&currentDev);
-    cudaq::info("custatevec-state destroying state vector handle (devicePtr "
-                "GPU = {}, currentDevice = {}).",
-                device, currentDev);
+    CUDAQ_INFO("custatevec-state destroying state vector handle (devicePtr "
+               "GPU = {}, currentDevice = {}).",
+               device, currentDev);
 
     HANDLE_CUDA_ERROR(cudaFree(devicePtr));
   }

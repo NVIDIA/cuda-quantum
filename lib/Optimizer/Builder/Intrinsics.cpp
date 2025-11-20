@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
@@ -61,16 +62,23 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @_ZNK5cudaq10pauli_word11_nvqpp_sizeEv(%pw : !cc.ptr<i8>) -> i64
 )#"},
 
-    // Initialize a (preallocated) buffer (the first parameter) with i64 values
-    // on the semi-open range `[0..n)` where `n` is the second parameter.
+    {cudaq::runtime::deviceCodeHolderAdd, {}, R"#(
+  llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr<i8>, !llvm.ptr<i8>) attributes {sym_visibility = "private"}
+)#"},
+
     {cudaq::runtime::getLinkableKernelKey, {}, R"#(
   func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
-  )#"},
+)#"},
 
     {cudaq::runtime::registerLinkableKernel, {}, R"#(
   func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>) -> ()
 )#"},
+    {cudaq::runtime::registerRunnableKernel, {}, R"#(
+  func.func private @__cudaq_registerRunnableKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+)#"},
 
+    // Initialize a (preallocated) buffer (the first parameter) with i64 values
+    // on the semi-open range `[0..n)` where `n` is the second parameter.
     {cudaq::setCudaqRangeVector, {}, R"#(
   func.func private @__nvqpp_CudaqRangeInit(%arg0: !cc.ptr<!cc.array<i64 x ?>>, %arg1: i64) -> !cc.stdvec<i64> {
     %0 = arith.constant 0 : i64
@@ -234,7 +242,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
-
+    {cudaq::runtime::cleanupArrays, {}, R"#(
+  func.func private @__nvqpp_cleanup_arrays() -> ()
+)#"},
     {"__nvqpp_createDynamicResult",
      /* arguments:
           arg0: original buffer ptr
@@ -268,7 +278,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::cudaqConvertToInteger, {}, R"#(
   func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64 {
     %size = cc.stdvec_size %arg : (!cc.stdvec<i1>) -> i64
-    %data = cc.stdvec_data %arg : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i1 x ?>>
+    %data = cc.stdvec_data %arg : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
     %zero = arith.constant 0 : i64
     %one = arith.constant 1 : i64
     %res:2 = cc.loop while ((%i = %zero, %v = %zero) -> (i64, i64)) {
@@ -277,9 +287,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     } do {
       ^bb1(%j : i64, %v : i64):
         %2 = arith.shli %one, %j : i64
-        %3 = cc.compute_ptr %data[%j] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
-        %4 = cc.load %3 : !cc.ptr<i1>
-        %5 = cc.cast unsigned %4 : (i1) -> i64
+        %3 = cc.compute_ptr %data[%j] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+        %4 = cc.load %3 : !cc.ptr<i8>
+        %5 = cc.cast unsigned %4 : (i8) -> i64
         %6 = arith.subi %zero, %5 : i64
         %7 = arith.xori %6, %v : i64
         %8 = arith.andi %7, %2 : i64
@@ -361,6 +371,90 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::stdvecBoolCtorFromInitList, {}, R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
 
+    // Compute the number of digits in base 10 of a non-negative i64 value.
+    // argument 0: the unsigned value
+    {"__nvqpp_internal_number_of_digits", {}, R"#(
+  func.func private @__nvqpp_internal_number_of_digits(%arg0: i64) -> i64 {
+    %c10_i64 = arith.constant 10 : i64
+    %c1_i64 = arith.constant 1 : i64
+    cf.br ^bb1(%arg0, %c1_i64 : i64, i64)
+  ^bb1(%0: i64, %1: i64):  // 2 preds: ^bb0, ^bb2
+    %2 = arith.cmpi uge, %0, %c10_i64 : i64
+    cf.cond_br %2, ^bb2(%0, %1 : i64, i64), ^bb3(%1 : i64)
+  ^bb2(%3: i64, %4: i64):  // pred: ^bb1
+    %5 = arith.divui %3, %c10_i64 : i64
+    %6 = arith.addi %4, %c1_i64 : i64
+    cf.br ^bb1(%5, %6 : i64, i64)
+  ^bb3(%7: i64):  // pred: ^bb1
+    return %7 : i64
+  } 
+  )#"},
+
+    // Convert a non-negative i64 value to a string base 10 for printing.
+    // argument 0: buffer from cc.alloca !cc.array<i8 x 32>
+    // argument 1: the unsigned value
+    {"__nvqpp_internal_tostring", {}, R"#(
+  func.func private @__nvqpp_internal_tostring(%arg0: !cc.ptr<!cc.array<i8 x ?>>, %arg1: i64) {
+    %c48_i64 = arith.constant 48 : i64
+    %c0_i8 = arith.constant 0 : i8
+    %c10_i64 = arith.constant 10 : i64
+    %c1_i32 = arith.constant 1 : i32
+    %c31_i32 = arith.constant 31 : i32
+    %false = arith.constant false
+    %c0_i64 = arith.constant 0 : i64
+    %c48_i8 = arith.constant 48 : i8
+    %c0_i32 = arith.constant 0 : i32
+    %0 = cc.cast %arg0 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %c48_i8, %0 : !cc.ptr<i8>
+    cf.br ^bb1(%c0_i32, %arg1 : i32, i64)
+  ^bb1(%1: i32, %2: i64):  // 2 preds: ^bb0, ^bb4
+    %3 = arith.cmpi ne, %2, %c0_i64 : i64
+    %4 = arith.cmpi eq, %3, %false : i1
+    cf.cond_br %4, ^bb3(%false : i1), ^bb2
+  ^bb2:  // pred: ^bb1
+    %5 = arith.cmpi slt, %1, %c31_i32 : i32
+    cf.br ^bb3(%5 : i1)
+  ^bb3(%6: i1):  // 2 preds: ^bb1, ^bb2
+    cf.cond_br %6, ^bb4(%1, %2 : i32, i64), ^bb5(%1 : i32)
+  ^bb4(%7: i32, %8: i64):  // pred: ^bb3
+    %9 = arith.addi %7, %c1_i32 : i32
+    %10 = cc.compute_ptr %arg0[%7] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    %11 = arith.remui %8, %c10_i64 : i64
+    %12 = arith.addi %11, %c48_i64 : i64
+    %13 = cc.cast %12 : (i64) -> i8
+    cc.store %13, %10 : !cc.ptr<i8>
+    %14 = arith.divui %8, %c10_i64 : i64
+    cf.br ^bb1(%9, %14 : i32, i64)
+  ^bb5(%15: i32):  // pred: ^bb3
+    %16 = arith.cmpi eq, %15, %c0_i32 : i32
+    cf.cond_br %16, ^bb6, ^bb7(%15 : i32)
+  ^bb6:  // pred: ^bb5
+    %17 = cc.compute_ptr %arg0[1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %c0_i8, %17 : !cc.ptr<i8>
+    return
+  ^bb7(%18: i32):  // pred: ^bb5
+    %19 = cc.compute_ptr %arg0[%18] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    cc.store %c0_i8, %19 : !cc.ptr<i8>
+    %20 = arith.subi %18, %c1_i32 : i32
+    cf.br ^bb8(%20, %c0_i32 : i32, i32)
+  ^bb8(%21: i32, %22: i32):  // 2 preds: ^bb7, ^bb9
+    %23 = arith.cmpi slt, %22, %21 : i32
+    cf.cond_br %23, ^bb9(%21, %22 : i32, i32), ^bb10
+  ^bb9(%24: i32, %25: i32):  // pred: ^bb8
+    %26 = cc.compute_ptr %arg0[%25] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    %27 = cc.load %26 : !cc.ptr<i8>
+    %28 = cc.compute_ptr %arg0[%24] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
+    %29 = cc.load %28 : !cc.ptr<i8>
+    cc.store %29, %26 : !cc.ptr<i8>
+    %30 = arith.subi %24, %c1_i32 : i32
+    cc.store %27, %28 : !cc.ptr<i8>
+    %31 = arith.addi %25, %c1_i32 : i32
+    cf.br ^bb8(%30, %31 : i32, i32)
+  ^bb10:  // pred: ^bb8
+    return
+  }
+  )#"},
+
     // This helper function copies a buffer off the stack to the heap. This is
     // required when the data on the stack is about to go out of scope but is
     // still live.
@@ -404,6 +498,31 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %3 = cc.insert_value %2[1], %c0_i64 : (!cc.struct<{!cc.ptr<i8>, i64}>, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
     return %3 : !cc.struct<{!cc.ptr<i8>, i64}>
   }
+)#"},
+
+    {cudaq::opt::QISTrap, {}, R"#(
+  func.func private @__quantum__qis__trap(i64)
+)#"},
+
+    // The QIR defined output logging functions.
+    {cudaq::opt::QIRArrayRecordOutput,
+     // note: uses all DefaultPrerequisiteSize slots
+     {cudaq::opt::QIRBoolRecordOutput, cudaq::opt::QIRDoubleRecordOutput,
+      cudaq::opt::QIRIntegerRecordOutput, cudaq::opt::QIRTupleRecordOutput},
+     R"#(
+  func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRBoolRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__bool_record_output(i1 {llvm.zeroext}, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRDoubleRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRIntegerRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRTupleRecordOutput, {}, R"#(
+  func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
 )#"},
 
     // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset)
@@ -462,7 +581,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // subtargets (full, base profle, or adaptive profile).
     // These include qubit allocation and management, control variants of the
     // gates, some one offs, and control form invocation helper routines.
-    {"qir_common", {}, R"#(
+    {"qir_common", {cudaq::opt::QISTrap}, R"#(
   func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
   func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
@@ -502,7 +621,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
   func.func private @__quantum__qis__convert_array_to_stdvector(!qir_array) -> !qir_array
   func.func private @__quantum__qis__free_converted_stdvector(!qir_array)
-  func.func private @__quantum__qis__trap(i64)
 
   llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
@@ -534,8 +652,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__result_record_output(!qir_result, !qir_charptr)
   func.func private @__quantum__qis__cnot__body(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__cz__body(!qir_qubit, !qir_qubit)
+  func.func private @__quantum__rt__read_result(!qir_result) -> i1
   func.func private @__quantum__qis__read_result__body(!qir_result) -> i1
-    )#"},
+)#"},
 
     // Declarations of all full QIR functions used by codegen.
     // These include gates (sans the "__body" suffix) and measurements.
@@ -583,17 +702,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_charptr = !cc.ptr<i8>
   !qir_llvmptr = !llvm.ptr<i8>
 )#"},
-
-    // The QIR defined output logging functions.
-    {"qir_output_logging",
-     {},
-     R"#(
-  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
-  func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
-  func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
-  func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
-  func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
-    )#"},
 
     // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
     {cudaq::runtime::launchKernelStreamlinedFuncName, {}, R"#(

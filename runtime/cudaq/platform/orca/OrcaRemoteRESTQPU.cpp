@@ -14,8 +14,8 @@ namespace cudaq {
 /// @brief This setTargetBackend override is in charge of reading the
 /// specific target backend configuration file.
 void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
-  cudaq::info("OrcaRemoteRESTQPU platform is targeting {} with qpu_id = {}.",
-              backend, qpu_id);
+  CUDAQ_INFO("OrcaRemoteRESTQPU platform is targeting {} with qpu_id = {}.",
+             backend, qpu_id);
 
   // First we see if the given backend has extra config params
   auto mutableBackend = backend;
@@ -37,8 +37,8 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
         if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
           throw std::runtime_error("DecodeBase64 error");
         std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-        cudaq::info("Decoded {} parameter from '{}' to '{}'", split[i],
-                    split[i + 1], decodedStr);
+        CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", split[i],
+                   split[i + 1], decodedStr);
         backendConfig.insert({split[i], decodedStr});
       } else {
         backendConfig.insert({split[i], split[i + 1]});
@@ -64,8 +64,8 @@ KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
     std::uint64_t voidStarSize, std::uint64_t resultOffset,
     const std::vector<void *> &rawArgs) {
 
-  cudaq::info("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
-              kernelName, qpu_id);
+  CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
+             kernelName, qpu_id);
 
   auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
   auto ctx = contexts[tid];

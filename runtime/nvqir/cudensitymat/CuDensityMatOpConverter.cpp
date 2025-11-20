@@ -121,8 +121,7 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     const auto minDim =
         getIntEnvVarIfPresent("CUDAQ_DYNAMICS_MIN_MULTIDIAGONAL_DIMENSION");
     if (minDim.has_value()) {
-      cudaq::info("Setting multi-diagonal min dimension to {}.",
-                  minDim.value());
+      CUDAQ_INFO("Setting multi-diagonal min dimension to {}.", minDim.value());
       m_minDimensionDiag = minDim.value();
     }
   }
@@ -131,8 +130,8 @@ cudaq::dynamics::CuDensityMatOpConverter::CuDensityMatOpConverter(
     const auto maxDiags = getIntEnvVarIfPresent(
         "CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL");
     if (maxDiags.has_value()) {
-      cudaq::info("Setting multi-diagonal max number of diagonals to {}.",
-                  maxDiags.value());
+      CUDAQ_INFO("Setting multi-diagonal max number of diagonals to {}.",
+                 maxDiags.value());
       m_maxDiagonalsDiag = maxDiags.value();
     }
   }
@@ -201,14 +200,27 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
     opNames.emplace_back(cudaq::spin_op::y(0).begin()->to_string(false));
     opNames.emplace_back(opNames.back() + "_dagger");
     opNames.emplace_back(cudaq::spin_op::z(0).begin()->to_string(false));
+    opNames.emplace_back(opNames.back() + "_dagger");
     return opNames;
   }();
 
   const bool isCallbackTensor = [&]() {
+    const auto checkIfCanEvaluateWithoutParam =
+        [](const cudaq::matrix_handler &op,
+           std::unordered_map<std::size_t, std::int64_t> &dimensions) {
+          try {
+            op.to_matrix(dimensions, {});
+            return true;
+          } catch (const std::exception &e) {
+            return false;
+          }
+        };
+
     for (const auto &elemOp : elemOps) {
       if (std::find(g_knownNonParametricOps.begin(),
                     g_knownNonParametricOps.end(),
-                    elemOp.to_string(false)) == g_knownNonParametricOps.end()) {
+                    elemOp.to_string(false)) == g_knownNonParametricOps.end() &&
+          !checkIfCanEvaluateWithoutParam(elemOp, dimensions)) {
         return true;
       }
     }
@@ -221,7 +233,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
         parameters.begin(), parameters.end());
     auto ks = std::views::keys(sortedParameters);
     const std::vector<std::string> keys{ks.begin(), ks.end()};
-    wrappedTensorCallback = wrapTensorCallback(elemOps, keys);
+    wrappedTensorCallback = wrapTensorCallback(elemOps, keys, dimensions);
   }
 
   const auto batchSize = elemOps.size();

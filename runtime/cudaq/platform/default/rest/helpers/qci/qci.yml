@@ -1,0 +1,63 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: qci
+description: "CUDA-Q target for Quantum Circuits, Inc."
+
+config:
+
+  # Tell DefaultQuantumPlatform to use REST with QCI's endpoints.
+  platform-qpu: remote_rest
+
+  # Tell NVQ++ to generate glue code to set the target backend name.
+  gen-target-backend: true
+
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+
+  # Library mode must be off for remote backends.
+  library-mode: false
+
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+
+  # Lower the generated IR to base + feed forward.
+  jit-high-level-pipeline: "expand-measurements"
+  jit-mid-level-pipeline: "qci-gate-set-mapping"
+  codegen-emission: qir-adaptive:1.0:int_computations,float_computations,output_log
+
+target-arguments:
+  - key: machine
+    required: false
+    type: machine-config
+    platform-arg: machine
+    help-string: Specify a QCI QPU identifier. Omit for QCI's hardware simulator.
+    machine-config:
+      - machine-names:
+          - AquSim
+        config:
+          codegen-emission: qir-adaptive:1.0:int_computations,float_computations,output_log
+      - machine-names:
+          - Seeker
+        config:
+          codegen-emission: qir-base
+  - key: method
+    required: false
+    type: string
+    platform-arg: method
+    help-string: "Specify the circuit execution type - simulate (default) or execute."
+  - key: noisy
+    required: false
+    type: string
+    platform-arg: noisy
+    help-string: "If enabled, perform noisy simulation. Disabled by default."
+  - key: repeat_until_shots_requested
+    required: false
+    type: string
+    platform-arg: repeat_until_shots_requested
+    help-string: "If enabled, repeat execution until the requested number of shots is collected. Disabled by default."
