@@ -25,12 +25,12 @@ struct Vanilla {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Vanilla() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<f64>
