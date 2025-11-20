@@ -5006,10 +5006,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             eleTy = cc.PointerType.getElementType(value.type)
 
-            # Always retain array types (used for strings)
-            if cc.ArrayType.isinstance(eleTy):
-                self.pushValue(value)
-                return
             # Retain state types as pointers
             # (function arguments of `StateType` are passed as pointers)
             if cc.StateType.isinstance(eleTy):
