@@ -304,11 +304,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
-    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
-    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
 
     {cudaq::deleteCudaqState, {}, R"#(

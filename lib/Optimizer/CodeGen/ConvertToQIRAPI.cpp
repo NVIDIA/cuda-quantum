@@ -785,8 +785,8 @@ struct QmemRAIIOpRewrite : public OpConversionPattern<cudaq::codegen::RAIIOp> {
 
     Value sizeOperand;
     if (!adaptor.getAllocSize()) {
-      auto type = cast<quake::VeqType>(allocTy);
-      auto constantSize = type.getSize();
+      auto type = dyn_cast<quake::VeqType>(allocTy);
+      auto constantSize = type ? type.getSize() : 1;
       sizeOperand =
           rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
     } else {

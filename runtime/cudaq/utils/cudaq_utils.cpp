@@ -7,8 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq_utils.h"
-#include "cudaq/platform.h"
-
 #include <random>
 
 namespace cudaq {

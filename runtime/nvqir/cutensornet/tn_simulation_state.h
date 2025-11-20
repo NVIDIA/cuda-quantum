@@ -7,14 +7,13 @@
  ******************************************************************************/
 
 #pragma once
-#include <unordered_map>
 
+#include "common/SimulationState.h"
 #include "cutensornet.h"
 #include "tensornet_state.h"
 #include "tensornet_utils.h"
 #include "timing_utils.h"
-
-#include "common/SimulationState.h"
+#include <unordered_map>
 
 namespace nvqir {
 
@@ -80,6 +79,9 @@ public:
   const std::vector<AppliedTensorOp> &getAppliedTensors() const {
     return m_state->m_tensorOps;
   }
+
+  template <typename ScalarTy>
+  friend class SimulatorTensorNet;
 
 protected:
   std::unique_ptr<TensorNetState<ScalarType>> m_state;

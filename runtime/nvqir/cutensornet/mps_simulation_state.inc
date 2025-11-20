@@ -566,6 +566,13 @@ MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
     return std::make_unique<MPSSimulationState>(
         std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
   }
+
+  // Don't allow density matrix
+  if (dataType ==
+      cudaq::detail::variant_index<cudaq::state_data, cudaq::complex_matrix>())
+    throw std::runtime_error(
+        "[MPSSimulationState] density matrix state data not supported.");
+
   auto [state, mpsTensors] =
       createFromStateVec(m_cutnHandle, scratchPad, size,
                          reinterpret_cast<std::complex<ScalarType> *>(ptr),
