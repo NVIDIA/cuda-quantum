@@ -177,7 +177,7 @@ jobs:
 
   pr_cleanup:
     name: Clean up documentation previews
-    if: github.event_name == 'pull_request_target'
+    if: github.event_name == 'pull_request_target' || github.event_name == 'schedule'
     runs-on: ubuntu-latest
 
     permissions:
@@ -189,7 +189,8 @@ jobs:
         with:
           ref: ${{ vars.preview_branch }}
 
-      - name: Delete preview folder
+      - name: Delete preview folder for closed PR
+        if: github.event_name == 'pull_request_target'
         run: |
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
@@ -197,3 +198,50 @@ jobs:
           git commit --allow-empty -m "Cleaning up docs preview for PR #${{ github.event.pull_request.number }}."
           git config pull.rebase true
           git pull --no-edit && git push
+
+      - name: Delete preview folder for stale PRs (open > 5 days)
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "cuda-quantum-bot"
+          git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
+          git config pull.rebase true
+
+          # Keep preview branch up-to-date
+          git pull --no-edit
+
+          # 5 days ago timestamp
+          cutoff=$(date -u -d '5 days ago' +%s)
+
+          # Fetch open PRs created before the cutoff date
+          stale_prs=$(gh pr list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            -- limit 200 \
+            --json number,createdAt \
+            --jq ".[] | select((.createdAt | fromdate) < $cutoff) | .number")
+
+          if [ -z "stale_prs" ]; then
+            echo "No stale PR previews to delete."
+            exit 0
+          fi
+
+          echo "Stale PRs (open > 5 days): $stale_prs"
+
+          for pr in $stale_prs; do
+            folder="pr-$pr"
+            echo "Deleting preview folder $folder (PR #$pr)."
+            git rm -r "$folder" --ignore-unmatch || true
+          done
+
+          # If nothing matches, skip commit/push
+          if git diff --quiet; then
+            echo "No preview folders were removed (nothing to commit)."
+            exit 0
+          fi
+
+          git commit -m "Cleaning up stale docs preview for PRs open > 5 days."
+          git push
