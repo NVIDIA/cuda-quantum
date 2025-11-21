@@ -34,6 +34,8 @@ on:
         required: true
       DOCKERHUB_READONLY_TOKEN:
         required: true
+      ANACONDA_TOKEN:
+        required: true
 
 name: Python wheels
 
@@ -283,6 +285,13 @@ jobs:
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
+
+            # we have to accept the channels in order to install the package to sign in
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
+            conda install --name base anaconda-auth --yes
+            anaconda auth ${{ secrets.ANACONDA_TOKEN }}
 
             # Extract the setup script from Python wheel's readme
             cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
