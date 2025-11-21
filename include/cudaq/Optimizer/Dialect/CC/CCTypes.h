@@ -42,7 +42,7 @@ inline bool SpanLikeType::classof(mlir::Type type) {
 /// test on composable types.
 bool isDynamicType(mlir::Type ty);
 
-/// Returns true if and only if to memory needed to store a value of type
+/// Returns true if and only if the memory needed to store a value of type
 /// \p ty is not known at compile time. This is a recursive test on composable
 /// types. In contrast to `isDynamicType`, the size of the type is statically
 /// known even if it contains pointers that may point to memory of dynamic size.
