@@ -313,7 +313,7 @@ def test_return_list_from_device_kernel():
 
     @cudaq.kernel
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
-        result = arg
+        result = [v for v in arg]
         for i in result:
             incrementer(i)
         return result
@@ -355,7 +355,7 @@ def test_return_list_bool():
     @cudaq.kernel
     def simple_list_bool_args(n: int, t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_bool_args,
                               2, [True, False, True],
@@ -367,7 +367,7 @@ def test_return_list_bool():
     @cudaq.kernel
     def simple_list_bool_args_no_broadcast(t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(2)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_bool_args_no_broadcast,
                               [True, False, True],
@@ -391,7 +391,7 @@ def test_return_list_int():
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_int, 2, [-13, 5, 42],
                               shots_count=2).get()
@@ -414,7 +414,7 @@ def test_return_list_int8():
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_int8, 2, [-13, 5, 42],
                               shots_count=2).get()
@@ -437,7 +437,7 @@ def test_return_list_int16():
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_int16, 2, [-13, 5, 42],
                               shots_count=2).get()
@@ -460,7 +460,7 @@ def test_return_list_int32():
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_int32, 2, [-13, 5, 42],
                               shots_count=2).get()
@@ -483,7 +483,7 @@ def test_return_list_int64():
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_int64, 2, [-13, 5, 42],
                               shots_count=2).get()
@@ -506,7 +506,7 @@ def test_return_list_float():
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_float,
                               2, [-13.2, 5.0, 42.99],
@@ -530,7 +530,7 @@ def test_return_list_float32():
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_float32,
                               2, [-13.2, 5.0, 42.99],
@@ -554,7 +554,7 @@ def test_return_list_float64():
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     results = cudaq.run_async(simple_list_float64,
                               2, [-13.2, 5.0, 42.99],
@@ -562,11 +562,6 @@ def test_return_list_float64():
     assert len(results) == 2
     assert np.allclose(results[0], [-13.2, 5., 42.99])
     assert np.allclose(results[1], [-13.2, 5., 42.99])
-
-
-# Test tuples
-# TODO: Define spec for using tuples in kernels
-# https://github.com/NVIDIA/cuda-quantum/issues/3031
 
 
 def test_return_tuple_int_float():
@@ -600,19 +595,18 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_tuple_int_float_assign, 2, (-13, 11.5))
-    assert 'indexing into tuple or dataclass must not modify value' in str(
-        e.value)
+    assert 'tuple value cannot be modified' in str(e.value)
 
     @cudaq.kernel
-    def simple_tuple_int_float_error(
+    def simple_tuple_int_float_conversion(
             n: int, t: tuple[int, float]) -> tuple[bool, float]:
         qubits = cudaq.qvector(n)
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_tuple_int_float_error, 2, (-13, 11.5))
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, f64}> to the requested type !cc.struct<"tuple" {i1, f64}>' in str(
-        e.value)
+    result = cudaq.run_async(simple_tuple_int_float_conversion,
+                             2, (-13, 42.3),
+                             shots_count=1).get()
+    assert len(result) == 1 and result[0] == (True, 42.3)
 
 
 def test_return_tuple_float_int():
@@ -683,10 +677,9 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_tuple_int32_bool_no_args)
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
-        e.value)
+    result = cudaq.run_async(simple_tuple_int32_bool_no_args,
+                             shots_count=1).get()
+    assert len(result) == 1 and result[0] == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
@@ -770,17 +763,16 @@ def test_return_dataclass_int_bool():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments passed in call to MyClass (0 vs required 2)' in repr(
-        e)
+    assert 'keyword arguments for data classes are not yet supported' in repr(e)
 
     @cudaq.kernel
-    def simple_dataclass_int_bool_error() -> MyClass:
-        return MyClass(x=0.13, y=True)
+    def simple_dataclass_int_bool() -> MyClass:
+        return MyClass(2.13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
-    assert 'invalid number of arguments passed in call to MyClass (0 vs required 2)' in repr(
-        e)
+    results = cudaq.run_async(simple_dataclass_int_bool, shots_count=2).get()
+    assert len(results) == 2
+    assert results[0] == MyClass(2, True)
+    assert results[1] == MyClass(2, True)
 
 
 def test_return_dataclass_bool_int():
@@ -956,12 +948,13 @@ def test_modify_struct():
         y: bool
 
     @cudaq.kernel
-    def simple_strucA(t: MyClass) -> MyClass:
+    def simple_structA(arg: MyClass) -> MyClass:
         q = cudaq.qubit()
+        t = arg.copy()
         t.x = 42
         return t
 
-    results = cudaq.run_async(simple_strucA, MyClass(-13, True),
+    results = cudaq.run_async(simple_structA, MyClass(-13, True),
                               shots_count=2).get()
     print(results)
     assert len(results) == 2
@@ -975,14 +968,16 @@ def test_modify_struct():
         z: int
 
     @cudaq.kernel
-    def kerneB(t: Foo) -> Foo:
+    def kernelB(arg: Foo) -> Foo:
         q = cudaq.qubit()
+        t = arg.copy()
         t.z = 100
         t.y = 3.14
         t.x = True
         return t
 
-    results = cudaq.run_async(kerneB, Foo(False, 6.28, 17), shots_count=2).get()
+    results = cudaq.run_async(kernelB, Foo(False, 6.28, 17),
+                              shots_count=2).get()
     print(results)
     assert len(results) == 2
     assert results[0] == Foo(True, 3.14, 100)

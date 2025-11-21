@@ -203,7 +203,7 @@ def test_return_list_bool():
     @cudaq.kernel
     def simple_list_bool(n: int, t: list[bool]) -> list[bool]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_bool(2, [True, False, True])
     assert result == [True, False, True]
@@ -221,7 +221,7 @@ def test_return_list_int():
     @cudaq.kernel
     def simple_list_int(n: int, t: list[int]) -> list[int]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_int(2, [-13, 5, 42])
     assert result == [-13, 5, 42]
@@ -239,7 +239,7 @@ def test_return_list_int32():
     @cudaq.kernel
     def simple_list_int32(n: int, t: list[np.int32]) -> list[np.int32]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_int32(2, [-13, 5, 42])
     assert result == [-13, 5, 42]
@@ -257,7 +257,7 @@ def test_return_list_int16():
     @cudaq.kernel
     def simple_list_int16(n: int, t: list[np.int16]) -> list[np.int16]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_int16(2, [-13, 5, 42])
     assert result == [-13, 5, 42]
@@ -275,7 +275,7 @@ def test_return_list_int8():
     @cudaq.kernel
     def simple_list_int8(n: int, t: list[np.int8]) -> list[np.int8]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_int8(2, [-13, 5, 42])
     assert result == [-13, 5, 42]
@@ -293,7 +293,7 @@ def test_return_list_int64():
     @cudaq.kernel
     def simple_list_int64(n: int, t: list[np.int64]) -> list[np.int64]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_int64(2, [-13, 5, 42])
     assert result == [-13, 5, 42]
@@ -311,7 +311,7 @@ def test_return_list_float():
     @cudaq.kernel
     def simple_list_float(n: int, t: list[float]) -> list[float]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_float(2, [-13.2, 5.0, 42.99])
     assert result == [-13.2, 5.0, 42.99]
@@ -330,7 +330,7 @@ def test_return_list_float32():
     @cudaq.kernel
     def simple_list_float32(n: int, t: list[np.float32]) -> list[np.float32]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_float32(2, [-13.2, 5.0, 42.99])
     assert is_close_array(result, [-13.2, 5.0, 42.99])
@@ -348,7 +348,7 @@ def test_return_list_float64():
     @cudaq.kernel
     def simple_list_float64(n: int, t: list[np.float64]) -> list[np.float64]:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy()
 
     result = simple_list_float64(2, [-13.2, 5.0, 42.99])
     assert result == [-13.2, 5.0, 42.99]
@@ -382,8 +382,7 @@ def test_return_tuple_int_float():
 
     with pytest.raises(RuntimeError) as e:
         simple_tuple_int_float_assign(2, (-13, 42.3))
-    assert 'indexing into tuple or dataclass must not modify value' in str(
-        e.value)
+    assert 'tuple value cannot be modified' in str(e.value)
 
 
 def test_return_tuple_float_int():
@@ -447,12 +446,9 @@ def test_return_tuple_int32_bool():
     def simple_tuple_int32_bool_no_args() -> tuple[np.int32, bool]:
         return (-13, True)
 
-    with pytest.raises(RuntimeError) as e:
-        simple_tuple_int32_bool_no_args()
-    # Note: it may make sense to support that if/since we support
-    # the cast for the individual item types.
-    assert 'cannot convert value of type !cc.struct<"tuple" {i64, i1}> to the requested type !cc.struct<"tuple" {i32, i1}>' in str(
-        e.value)
+    result = simple_tuple_int32_bool_no_args()
+    # See https://github.com/NVIDIA/cuda-quantum/issues/3524
+    assert result == (-13, True)
 
     @cudaq.kernel
     def simple_tuple_int32_bool_no_args1() -> tuple[np.int32, bool]:
@@ -473,10 +469,6 @@ def test_return_tuple_int32_bool():
         return t
 
     result = simple_tuple_int32_bool(2, (np.int32(-13), True))
-    # Note: printing the kernel correctly shows the MLIR
-    # values return type as "tuple" {i32, i1}, but we don't
-    # actually create numpy values even when these are requested
-    # in the signature.
     # See https://github.com/NVIDIA/cuda-quantum/issues/3524
     assert result == (-13, True)
 

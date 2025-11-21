@@ -46,7 +46,7 @@ def test_control_kernel():
 # CHECK:             ^bb0(%[[VAL_15:.*]]: i64):
 # CHECK:               %[[VAL_16:.*]] = arith.addi %[[VAL_15]], %[[VAL_3]] : i64
 # CHECK:               cc.continue %[[VAL_16]] : i64
-# CHECK:             } {invariant}
+# CHECK:             }
 # CHECK:             %[[VAL_17:.*]] = cc.loop while ((%[[VAL_18:.*]] = %[[VAL_2]]) -> (i64)) {
 # CHECK:               %[[VAL_19:.*]] = arith.cmpi slt, %[[VAL_18]], %[[VAL_4]] : i64
 # CHECK:               cc.condition %[[VAL_19]](%[[VAL_18]] : i64)
@@ -59,7 +59,7 @@ def test_control_kernel():
 # CHECK:             ^bb0(%[[VAL_22:.*]]: i64):
 # CHECK:               %[[VAL_23:.*]] = arith.addi %[[VAL_22]], %[[VAL_3]] : i64
 # CHECK:               cc.continue %[[VAL_23]] : i64
-# CHECK:             } {invariant}
+# CHECK:             }
 # CHECK:           } : !cc.callable<() -> ()>
 # CHECK:           %[[VAL_24:.*]] = cc.create_lambda {
 # CHECK:             quake.z {{\[}}%[[VAL_6]]] %[[VAL_8]] : (!quake.veq<?>, !quake.ref) -> ()
