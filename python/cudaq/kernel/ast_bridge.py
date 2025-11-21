@@ -887,6 +887,55 @@ class PyASTBridge(ast.NodeVisitor):
                 self.getIntegerType(1))
         return cc.StdvecInitOp(vecTy, targetPtr, length=sourceSize).result
 
+    def __copyAndValidateContainer(self, value, pyVal, deepCopy, dataType = None):
+        """
+        Helper function to implement deep and shallow copies for structs and vectors.
+        Arguments:
+            value: The MLIR value to copy
+            pyVal: The Python AST node to use for validation of the container entries.
+            deepCopy: Whether to perform a deep or shallow copy.
+            dataType: Must be None unless the value to copy is a vector.
+                      If the value is a vector, then the element type of the new vector.  
+        """
+        # NOTE: Creating a copy means we are creating a new container.
+        # As such, all elements in the container need to pass the validation
+        # in `__validate_container_entry`.
+        if deepCopy:
+
+            def conversion(idx, structItem):
+                if cc.StdvecType.isinstance(structItem.type):
+                    structItem = self.__copyVectorAndConvertElements(
+                        structItem,
+                        alwaysCopy=True,
+                        conversion=conversion)
+                elif (cc.StructType.isinstance(structItem.type) and
+                        self.containsList(structItem.type)):
+                    structItem = self.__copyStructAndConvertElements(
+                        structItem, conversion=conversion)
+                self.__validate_container_entry(structItem, pyVal)
+                return structItem
+        else:
+
+            def conversion(idx, structItem):
+                self.__validate_container_entry(structItem,
+                                                pyVal)
+                return structItem
+
+        if cc.StdvecType.isinstance(value.type):
+            listVal = self.__copyVectorAndConvertElements(
+                value, dataType, alwaysCopy=True, conversion=conversion)
+            return listVal
+
+        if cc.StructType.isinstance(value.type):
+            if dataType:
+                self.emitFatalError("unsupported data type argument", self.currentNode)                
+            struct = self.__copyStructAndConvertElements(
+                value, conversion=conversion)
+            return struct
+
+        self.emitFatalError(f'copy is not supported on value of type {value.type}',
+                            self.currentNode)
+
     def __migrateLists(self, value, migrate):
         """
         Replaces all lists in the given value by the list returned
@@ -2003,6 +2052,14 @@ class PyASTBridge(ast.NodeVisitor):
                 # to be processed by the caller
                 return
 
+        if node.attr == 'copy':
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "function call does not produce a modifiable value",
+                    node)
+            # needs to be handled by the caller
+            return
+
         # Only variable names, subscripts and attributes can
         # produce modifiable values. Anything else produces an
         # immutable value. We make sure the visit gets processed
@@ -2051,10 +2108,6 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if cc.StructType.isinstance(value.type):
-            if node.attr == 'copy':
-                # needs to be handled by the caller
-                return
-
             if self.pushPointerValue:
                 self.emitFatalError(
                     "value cannot be modified - use `.copy(deep)` to create a new value that can be modified",
@@ -2075,6 +2128,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         "function call does not produce a modifiable value",
                         node)
+                # needs to be handled by the caller
                 return
 
         # everything else does not produce a modifiable value
@@ -2096,11 +2150,11 @@ class PyASTBridge(ast.NodeVisitor):
             if quake.VeqType.isinstance(value.type):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(), value).result)
-                return True
+                return
             if cc.StdvecType.isinstance(value.type):
                 self.pushValue(
                     cc.StdvecSizeOp(self.getIntegerType(), value).result)
-                return True
+                return
 
         self.emitFatalError("unrecognized attribute {}".format(node.attr), node)
 
@@ -2733,20 +2787,11 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             elif node.func.id == 'list':
-                value = self.__groupValues(node.args, [1])
-                valueTy = value.type
-                if cc.PointerType.isinstance(valueTy):
-                    valueTy = cc.PointerType.getElementType(valueTy)
-                if not cc.StdvecType.isinstance(valueTy):
-                    self.emitFatalError('Invalid list() cast requested.', node)
-
                 # The expected Python behavior is that a constructor call
-                # to list creates a new list (a copy). Additionally, since
-                # a new value is created, we need to make sure container entries
-                # are properly validated. To not duplicate the logic, we simply
-                # call `copy` here.
-                self.visit_Call(
-                    ast.Call(ast.Attribute(node.args[0], 'copy'), [], {}))
+                # to list creates a new list (a shallow copy).
+                value = self.__groupValues(node.args, [1])
+                copy = self.__copyAndValidateContainer(value, node.args[0], False)
+                self.pushValue(copy)
                 return
 
             elif node.func.id in ['print_i64', 'print_f64']:
@@ -2858,48 +2903,12 @@ class PyASTBridge(ast.NodeVisitor):
                             "argument to `copy` must be a constant", node)
                     deepCopy = deepCopy.value
 
-                # NOTE: Creating a copy means we are creating a new container.
-                # As such, all elements in the container need to pass the validation
-                # in `__validate_container_entry`.
-                if deepCopy:
-
-                    def conversion(idx, structItem):
-                        if cc.StdvecType.isinstance(structItem.type):
-                            structItem = self.__copyVectorAndConvertElements(
-                                structItem,
-                                alwaysCopy=True,
-                                conversion=conversion)
-                        elif (cc.StructType.isinstance(structItem.type) and
-                              self.containsList(structItem.type)):
-                            structItem = self.__copyStructAndConvertElements(
-                                structItem, conversion=conversion)
-                        # Since we created a new item, the parent of
-                        # the container item is this node.
-                        self.__validate_container_entry(structItem, node)
-                        return structItem
-                else:
-
-                    def conversion(idx, structItem):
-                        self.__validate_container_entry(structItem,
-                                                        node.func.value)
-                        return structItem
-
-                if cc.StdvecType.isinstance(funcVal.type):
-                    listVal = self.__copyVectorAndConvertElements(
-                        funcVal, dTy, alwaysCopy=True, conversion=conversion)
-                    self.pushValue(listVal)
-                    return
-
-                if cc.StructType.isinstance(funcVal.type):
-                    if dTy:
-                        self.emitFatalError("unknown keyword dtype", node)
-                    struct = self.__copyStructAndConvertElements(
-                        funcVal, conversion=conversion)
-                    self.pushValue(struct)
-                    return
-
-                self.emitFatalError(f'unsupported function {node.func.attr}',
-                                    node)
+                # If we created a deep copy, we can set the parent node 
+                # of the value to copy to be this node for validation purposes.
+                pyVal = node if deepCopy else node.func.value
+                copy = self.__copyAndValidateContainer(funcVal, pyVal, deepCopy, dTy)
+                self.pushValue(copy)
+                return
 
             if self.__isSupportedVectorFunction(node.func.attr):
 
@@ -2997,18 +3006,8 @@ class PyASTBridge(ast.NodeVisitor):
                     value = self.__groupValues(node.args, [1])
 
                     if node.func.attr == 'array':
-                        # `np.array(vec, <dtype = ty>)`
-
-                        valueTy = value.type
-                        if cc.PointerType.isinstance(value.type):
-                            valueTy = cc.PointerType.getElementType(value.type)
-                        if not cc.StdvecType.isinstance(valueTy):
-                            raise self.emitFatalError(
-                                f"unexpected numpy array initializer type: {valueTy}",
-                                node)
-
                         # The expected Python behavior is that a constructor call
-                        # to array creates a new array (a copy). Additionally, since
+                        # to array creates a new array (a shallow copy). Additionally, since
                         # a new value is created, we need to make sure container entries
                         # are properly validated. To not duplicate the logic, we simply
                         # call `copy` here.

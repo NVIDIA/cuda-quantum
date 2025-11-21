@@ -348,7 +348,7 @@ def test_dataclass_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         print(test2)
-    assert 'unsupported function copy' in str(e.value)
+    assert 'copy is not supported' in str(e.value)
     assert '(offending source -> arg.copy())' in str(e.value)
 
     @dataclass(slots=True)
