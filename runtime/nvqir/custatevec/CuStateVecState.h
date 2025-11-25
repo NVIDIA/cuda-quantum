@@ -207,6 +207,12 @@ public:
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
+    // custatevec sim doesn't support density matrix states
+    if (type ==
+        cudaq::detail::variant_index<cudaq::state_data, complex_matrix>())
+      throw std::runtime_error(
+          "[custatevec-state] density matrix state data not supported.");
+
     // If the data is provided as a pointer / size, then
     // we assume we do not own it.
     bool weOwnTheData = type < 2 ? true : false;

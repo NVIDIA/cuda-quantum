@@ -102,7 +102,14 @@ struct QppState : public cudaq::SimulationState {
   }
 
   std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+  createFromSizeAndPtr(std::size_t size, void *ptr,
+                       std::size_t dataType) override {
+    // Don't allow density matrix
+    if (dataType ==
+        cudaq::detail::variant_index<cudaq::state_data, complex_matrix>())
+      throw std::runtime_error(
+          "[QppState] density matrix state data not supported.");
+
     return std::make_unique<QppState>(Eigen::Map<qpp::ket>(
         reinterpret_cast<std::complex<double> *>(ptr), size));
   }
