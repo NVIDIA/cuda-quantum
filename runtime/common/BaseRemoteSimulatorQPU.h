@@ -104,9 +104,9 @@ public:
 
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *m_mlirContext, *executionContextPtr,
-        gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
-        kernelArgs, /*argSize=*/0, &errorMsg);
+        *m_mlirContext, *executionContextPtr, gradient, &optimizer, n_params,
+        m_simName, name, /*kernelFunc=*/nullptr, kernelArgs, /*argSize=*/0,
+        &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
@@ -203,7 +203,7 @@ public:
             " bytes overflows the argument buffer.");
       // Currently, we only support result buffer serialization on LittleEndian
       // CPUs (x86, ARM, PPC64LE).
-      // Note: If the client (e.g., compiled from source) is built for 
+      // Note: If the client (e.g., compiled from source) is built for
       // big-endian, we will throw an error if result buffer data is returned.
       if (llvm::sys::IsBigEndianHost)
         throw std::runtime_error(

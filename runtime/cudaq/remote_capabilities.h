@@ -23,8 +23,7 @@ struct RemoteCapabilities {
   bool isRemoteSimulator = false;
   /// Constructor that broadcasts \p initValue to all fields.
   RemoteCapabilities(bool initValue)
-      : stateOverlap(initValue), vqe(initValue),
-        isRemoteSimulator(initValue) {}
+      : stateOverlap(initValue), vqe(initValue), isRemoteSimulator(initValue) {}
 };
 
 } // namespace cudaq
