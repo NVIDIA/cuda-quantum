@@ -73,8 +73,9 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
   numControls = std::min<size_t>(numControls, 2);
 
   size_t numQubits;
-  if (gateName == "swap") {
+  if (gateName == "swap" || gateName == "exp_pauli") {
     assert(numControls == 0);
+    // exp_pauli can have any number of qubits, we hardcode to 2 for the test.
     numQubits = 2;
   } else {
     numQubits = numControls + 1;
@@ -142,6 +143,19 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
     builder.create<quake::SwapOp>(loc, ValueRange{target, target2});
+  } else if (gateName == "exp_pauli") {
+    Value target = entry->getArgument(0);
+    Value target2 = entry->getArgument(1);
+    // Create a veq from the two target qubits using ConcatOp
+    SmallVector<Value> targetValues = {target, target2};
+    Value qubitsVal = builder.create<quake::ConcatOp>(
+        loc, quake::VeqType::get(builder.getContext(), 2), targetValues);
+
+    builder.create<quake::ExpPauliOp>(loc,
+                                      /* parameters = */ ValueRange{pi_2},
+                                      /* controls = */ ValueRange{},
+                                      /* targets = */ qubitsVal,
+                                      /* pauliLiteral = */ "XX");
   } else {
     // Unsupported gate for this test
     ADD_FAILURE() << "unknown gate: " << gateName;
@@ -276,10 +290,6 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
-
-    // TODO: add support for testing exp_pauli
-    if (sourceGate.starts_with("exp_pauli"))
-      continue;
 
     // Create a test module with the source gate
     auto module = createTestModule(context.get(), sourceGate);
