@@ -17,9 +17,18 @@
 
 namespace cudaq {
 class SimulationState;
+class ClonableState;
 
 /// Enum to specify the initial quantum state.
 enum class InitialState { ZERO, UNIFORM };
+
+/// @brief StimData now stores a list of (pointer, size) pairs
+/// according to convention:
+/// 0: pointer to num_qubits, size = 1
+/// 1: pointer to msm_err_count, size = 1
+/// 2: x_output array, coming from the frame simulator, size = x_output_size
+/// 3: z_output array,  coming from the frame simulator, size = z_output_size
+using StimData = std::vector<std::pair<void *, std::size_t>>;
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
 // Note: tensor data is expected in column-major.
@@ -31,7 +40,7 @@ using TensorStateData =
 using state_data = std::variant<
     std::vector<std::complex<double>>, std::vector<std::complex<float>>,
     std::pair<std::complex<double> *, std::size_t>,
-    std::pair<std::complex<float> *, std::size_t>, TensorStateData>;
+    std::pair<std::complex<float> *, std::size_t>, TensorStateData, StimData>;
 
 /// @brief The `SimulationState` interface provides and extension point
 /// for concrete circuit simulation sub-types to describe their
@@ -130,6 +139,15 @@ public:
           dataCasted.size(),
           const_cast<TensorStateData::value_type *>(dataCasted.data()),
           data.index());
+    }
+    if (std::holds_alternative<StimData>(data)) {
+      if (isArrayLike())
+        throw std::runtime_error(
+            "Cannot initialize state vector/density matrix state by stim "
+            "data. Please use stabilizer simulator backends.");
+      auto &dataCasted = std::get<StimData>(data);
+      return createFromSizeAndPtr(
+          dataCasted.size(), const_cast<StimData *>(&dataCasted), data.index());
     }
     // Flat array state data
     // Check the precision first. Get the size and
@@ -249,4 +267,12 @@ public:
   /// @brief Destructor
   virtual ~SimulationState() {}
 };
+
+/// @brief Interface for SimulationState subtypes that support cloning.
+class ClonableState {
+public:
+  virtual ~ClonableState() = default;
+  virtual std::unique_ptr<SimulationState> clone() const = 0;
+};
+
 } // namespace cudaq

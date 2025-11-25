@@ -118,6 +118,8 @@ static constexpr const char QISApplyKrausChannel[] =
 
 static constexpr const char QISTrap[] = "__quantum__qis__trap";
 
+static constexpr const char QISSaveState[] = "__quantum__qis__save_state";
+
 /// Since apply noise is actually a call back to `C++` code, the `QIR` data type
 /// `Array` of `Qubit*` must be converted into a `cudaq::qvector`, which is
 /// presently a `std::vector<cudaq::qubit>` but with an extremely restricted

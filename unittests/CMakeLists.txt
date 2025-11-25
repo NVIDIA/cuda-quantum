@@ -42,6 +42,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  integration/save_state_tester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
 )
