@@ -223,22 +223,6 @@ void quantum_platform::launchKernel(const std::string &kernelName,
   qpu->launchKernel(kernelName, rawArgs);
 }
 
-void quantum_platform::launchSerializedCodeExecution(
-    const std::string &name,
-    SerializedCodeExecutionContext &serializeCodeExecutionObject) {
-  std::size_t qpu_id = 0;
-
-  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  {
-    std::shared_lock lock(threadToQpuIdMutex);
-    auto iter = threadToQpuId.find(tid);
-    if (iter != threadToQpuId.end())
-      qpu_id = iter->second;
-  }
-  auto &qpu = platformQPUs[qpu_id];
-  qpu->launchSerializedCodeExecution(name, serializeCodeExecutionObject);
-}
-
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
   for (auto &qpu : platformQPUs)

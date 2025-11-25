@@ -646,13 +646,6 @@ COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
 # the resultant binary to target that specified backend.
 OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
-	# Disable compilation on non-x86 machines when targetting NVQC.
-	# See https://github.com/NVIDIA/cuda-quantum/issues/1345 for current status.
-	if [ "${TARGET_CONFIG}" == "nvqc" ]; then
-		if [ "${HOST_TARGET:0:6}" != "x86_64" ]; then
-			error_exit "Cannot use nvqc target from non-x86_64 client at this time"
-		fi
-	fi
 	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
 	GEN_TARGET_BACKEND=false
 	if [ -f "${TARGET_CONFIG_YML_FILE}" ]; then

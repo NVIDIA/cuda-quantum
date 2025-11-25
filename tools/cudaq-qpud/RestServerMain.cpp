@@ -81,9 +81,6 @@ int main(int argc, char **argv) {
       cudaq::registry::get<cudaq::RemoteRuntimeServer>(serverSubType);
 
   if (printRestPayloadVersion) {
-    // IMPORTANT: Don't change this message without updating
-    // `scripts/nvqc_launch.sh`, which relies on the this information to perform
-    // deployment sanity check.
     printf("\nCUDA-Q REST API version: %d.%d\n", restServer->version().first,
            restServer->version().second);
     return 0;
