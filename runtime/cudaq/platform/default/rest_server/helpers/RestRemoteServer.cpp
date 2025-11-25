@@ -169,69 +169,11 @@ public:
           std::string mutableReq;
           for (const auto &[k, v] : headers)
             CUDAQ_INFO("Request Header: {} : {}", k, v);
-          // Checking if this request has its body sent on as NVCF assets.
-          const auto dirIter = headers.find("NVCF-ASSET-DIR");
-          const auto assetIdIter = headers.find("NVCF-FUNCTION-ASSET-IDS");
-          if (dirIter != headers.end() && assetIdIter != headers.end()) {
-            const std::string dir = dirIter->second;
-            const auto ids = cudaq::split(assetIdIter->second, ',');
-            if (ids.size() != 1) {
-              json js;
-              js["status"] =
-                  fmt::format("Invalid asset Id data: {}", assetIdIter->second);
-              return js;
-            }
-            // Load the asset file
-            std::filesystem::path assetFile =
-                std::filesystem::path(dir) / ids[0];
-            if (!std::filesystem::exists(assetFile)) {
-              json js;
-              js["status"] = fmt::format("Unable to find the asset file {}",
-                                         assetFile.string());
-              return js;
-            }
-            std::ifstream t(assetFile);
-            std::string requestFromFile((std::istreambuf_iterator<char>(t)),
-                                        std::istreambuf_iterator<char>());
-            mutableReq = requestFromFile;
-          } else {
-            mutableReq = reqBody;
-          }
+          mutableReq = reqBody;
 
           if (m_hasMpi)
             cudaq::mpi::broadcast(mutableReq, 0);
           auto resultJs = processRequest(mutableReq);
-          // Check whether we have a limit in terms of response size.
-          if (headers.contains("NVCF-MAX-RESPONSE-SIZE-BYTES")) {
-            const std::size_t maxResponseSizeBytes = std::stoll(
-                headers.find("NVCF-MAX-RESPONSE-SIZE-BYTES")->second);
-            if (resultJs.dump().size() > maxResponseSizeBytes) {
-              // If the response size is larger than the limit, write it to the
-              // large output directory rather than sending it back as an HTTP
-              // response.
-              const auto outputDirIter = headers.find("NVCF-LARGE-OUTPUT-DIR");
-              const auto reqIdIter = headers.find("NVCF-REQID");
-              if (outputDirIter == headers.end() ||
-                  reqIdIter == headers.end()) {
-                json js;
-                js["status"] =
-                    "Failed to locate output file location for large response.";
-                return js;
-              }
-
-              const std::string outputDir = outputDirIter->second;
-              const std::string fileName = reqIdIter->second + "_result.json";
-              const std::filesystem::path outputFile =
-                  std::filesystem::path(outputDir) / fileName;
-              std::ofstream file(outputFile.string());
-              file << resultJs.dump();
-              file.flush();
-              json js;
-              js["resultFile"] = fileName;
-              return js;
-            }
-          }
-
           return resultJs;
         });
     m_mlirContext = cudaq::initializeMLIR();
@@ -261,86 +203,6 @@ public:
   }
   // Stop the server.
   virtual void stop() override { m_server->stop(); }
-
-  virtual void handleVQERequest(std::size_t reqId,
-                                cudaq::ExecutionContext &io_context,
-                                const std::string &backendSimName,
-                                std::string_view ir, cudaq::gradient *gradient,
-                                cudaq::optimizer &optimizer, const int n_params,
-                                std::string_view kernelName,
-                                std::size_t seed) override {
-    cudaq::optimization_result result;
-
-    // Treat the shots as a signed number, and if it is <= 0, then shots-based
-    // sampling is disabled. This is standard VQE/observe behavior.
-    std::int64_t shots = *reinterpret_cast<std::int64_t *>(&io_context.shots);
-
-    // If we're changing the backend, load the new simulator library from file.
-    if (m_simHandle.name != backendSimName) {
-      if (m_simHandle.libHandle)
-        dlclose(m_simHandle.libHandle);
-
-      m_simHandle =
-          SimulatorHandle(backendSimName, loadNvqirSimLib(backendSimName));
-    }
-
-    if (seed != 0)
-      cudaq::set_random_seed(seed);
-    simulationStart = std::chrono::high_resolution_clock::now();
-
-    auto &requestInfo = m_codeTransform[reqId];
-    if (requestInfo.format == cudaq::CodeFormat::LLVM) {
-      throw std::runtime_error("CodeFormat::LLVM is not supported with VQE. "
-                               "Use CodeFormat::MLIR instead.");
-    } else {
-      llvm::SourceMgr sourceMgr;
-      sourceMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBufferCopy(ir),
-                                   llvm::SMLoc());
-      auto module = parseSourceFile<ModuleOp>(sourceMgr, m_mlirContext.get());
-      if (!module)
-        throw std::runtime_error("Failed to parse the input MLIR code");
-      auto engine = jitMlirCode(*module, requestInfo.passes);
-      const std::string entryPointFunc =
-          std::string(cudaq::runtime::cudaqGenPrefixName) +
-          std::string(kernelName);
-      auto fnPtr =
-          getValueOrThrow(engine->lookup(entryPointFunc),
-                          "Failed to look up entry-point function symbol");
-      if (!fnPtr)
-        throw std::runtime_error("Failed to get entry function");
-
-      // quake-to-qir translates cc.stdvec<f64> to !llvm.struct<(ptr<f64>,
-      // i64)>, so we need to provide the inputs in this format. Make a lambda
-      // to convert between the two formats.
-      struct stdvec_struct {
-        const double *ptr;
-        std::size_t size;
-      };
-      auto fn = reinterpret_cast<void (*)(stdvec_struct)>(fnPtr);
-      auto fnWrapper = [fn](const std::vector<double> &x) {
-        fn({x.data(), x.size()});
-      };
-
-      // Construct the gradient object.
-      if (gradient)
-        gradient->setKernel(fnWrapper);
-
-      bool requiresGrad = optimizer.requiresGradients();
-      auto theSpin = *io_context.spin;
-      assert(cudaq::spin_op::canonicalize(theSpin) == theSpin);
-
-      result = optimizer.optimize(n_params, [&](const std::vector<double> &x,
-                                                std::vector<double> &grad_vec) {
-        double e = shots <= 0 ? cudaq::observe(fnWrapper, theSpin, x)
-                              : cudaq::observe(shots, fnWrapper, theSpin, x);
-        if (requiresGrad)
-          gradient->compute(x, grad_vec, theSpin, e);
-        return e;
-      });
-    }
-    simulationEnd = std::chrono::high_resolution_clock::now();
-    io_context.optResult = result;
-  }
 
   virtual void handleRequest(std::size_t reqId,
                              cudaq::ExecutionContext &io_context,
@@ -738,17 +600,7 @@ protected:
       }
       std::string_view codeStr(decodedCodeIr.data(), decodedCodeIr.size());
 
-      if (request.opt.has_value() && request.opt->optimizer) {
-        if (!request.opt->optimizer_n_params.has_value())
-          throw std::runtime_error(
-              "Cannot run optimizer without providing optimizer_n_params");
-
-        handleVQERequest(
-            reqId, request.executionContext, request.simulator, codeStr,
-            request.opt->gradient.get(), *request.opt->optimizer,
-            *request.opt->optimizer_n_params, request.entryPoint, request.seed);
-        resultJson["executionContext"] = request.executionContext;
-      } else if (request.executionContext.name == "state-overlap") {
+      if (request.executionContext.name == "state-overlap") {
         if (!request.overlapKernel.has_value())
           throw std::runtime_error("Missing overlap kernel data.");
         std::vector<char> decodedCodeIr1, decodedCodeIr2;
@@ -835,64 +687,6 @@ protected:
   }
 };
 
-// Runtime server for NVCF
-class NvcfRuntimeServer : public RemoteRestRuntimeServer {
-public:
-  NvcfRuntimeServer() : RemoteRestRuntimeServer() { exitAfterJob = true; }
-
-protected:
-  virtual bool filterRequest(const cudaq::RestRequest &in_request,
-                             std::string &outValidationMessage) const override {
-    // We only support MLIR payload on the NVCF server.
-    if (in_request.format != cudaq::CodeFormat::MLIR) {
-      outValidationMessage =
-          "Unsupported input format: only CUDA-Q MLIR data is allowed.";
-      return false;
-    }
-
-    if (!in_request.passes.empty()) {
-      outValidationMessage =
-          "Unsupported passes: server-side compilation passes are not allowed.";
-      return false;
-    }
-
-    return true;
-  }
-
-protected:
-  virtual json processRequest(const std::string &reqBody,
-                              bool forceLog = false) override {
-    // When calling RemoteRestRuntimeServer::processRequest, set forceLog=true
-    // so that incoming requests are always logged, regardless of what log level
-    // we're running the server at.
-    auto executionResult =
-        RemoteRestRuntimeServer::processRequest(reqBody, /*forceLog=*/true);
-    // Amend execution information
-    executionResult["executionInfo"] = constructExecutionInfo();
-    return executionResult;
-  }
-
-private:
-  cudaq::NvcfExecutionInfo constructExecutionInfo() {
-    cudaq::NvcfExecutionInfo info;
-    const auto optionalTimePointToInt =
-        [](const auto &optionalTimePoint) -> std::size_t {
-      return optionalTimePoint.has_value()
-                 ? std::chrono::duration_cast<std::chrono::milliseconds>(
-                       optionalTimePoint.value().time_since_epoch())
-                       .count()
-                 : 0;
-    };
-    info.requestStart = optionalTimePointToInt(requestStart);
-    info.simulationStart = optionalTimePointToInt(simulationStart);
-    info.simulationEnd = optionalTimePointToInt(simulationEnd);
-    const auto deviceProps = cudaq::getCudaProperties();
-    if (deviceProps.has_value())
-      info.deviceProps = deviceProps.value();
-    return info;
-  }
-};
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, NvcfRuntimeServer, nvcf)
