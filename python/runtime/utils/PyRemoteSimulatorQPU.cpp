@@ -37,9 +37,9 @@ static void launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
 
   std::string errorMsg;
   const bool requestOkay = m_client->sendRequest(
-      *mlirContext, *executionContextPtr,
-      gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
-      wrapper->rawArgs, /*argSize=*/0, &errorMsg);
+      *mlirContext, *executionContextPtr, gradient, &optimizer, n_params,
+      m_simName, name, /*kernelFunc=*/nullptr, wrapper->rawArgs, /*argSize=*/0,
+      &errorMsg);
   if (!requestOkay)
     throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
 }

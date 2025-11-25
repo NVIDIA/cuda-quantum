@@ -355,9 +355,9 @@ public:
           " operation is not supported with cudaq target remote-mqpu!");
 
     cudaq::RestRequest request = [&]() {
-      return constructJobRequest(mlirContext, io_context,
-                                 backendSimName, kernelName, kernelFunc,
-                                 kernelArgs, argsSize, rawArgs);
+      return constructJobRequest(mlirContext, io_context, backendSimName,
+                                 kernelName, kernelFunc, kernelArgs, argsSize,
+                                 rawArgs);
     }();
 
     if (request.code.empty()) {
