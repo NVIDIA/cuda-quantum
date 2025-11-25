@@ -308,10 +308,12 @@ jobs:
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
               # Install the wheel file
               line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
+              echo "+ $line"
               eval "$line"
             done <<< "$conda_script"
             ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
             while IFS= read -r line; do
+                echo "+ $line"
                 eval "$line"
             done <<< "$ompi_script"
 
