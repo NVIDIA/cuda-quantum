@@ -840,9 +840,10 @@ jobs:
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
-          docker exec cuda-quantum bash -c "python3 -m pip install --break-system-packages pandas scipy seaborn h5py contfrac"
           docker exec cuda-quantum bash -c "sudo apt install -y python3-venv"
-          (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_container.sh | tee /tmp/validation.out") && passed=true || passed=false
+          docker exec cuda-quantum bash -lc "python3 -m venv /opt/cudaq-venv"
+          docker exec cuda-quantum bash -lc "source /opt/cudaq-venv/bin/activate && pip install pandas scipy seaborn h5py contfrac"
+          (docker exec cuda-quantum bash -c "source /opt/cudaq-venv/bin/activate &&  nset OMPI_MCA_pml && set -o pipefail && bash validate_container.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
           docker stop cuda-quantum
 
