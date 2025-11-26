@@ -522,6 +522,8 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
         bitString.insert(bitString.begin(),
                          static_cast<size_t>(nQubits) - bitString.size(), '0');
       }
+      // IonQ returns bitstrings in little-endian format
+      std::reverse(bitString.begin(), bitString.end());
       bitStrings.push_back(bitString);
     }
 
