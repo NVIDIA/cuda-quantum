@@ -203,4 +203,11 @@ bool kernelHasConditionalFeedback(const std::string &kernelName) {
   return !quakeCode.empty() &&
          quakeCode.find("qubitMeasurementFeedback = true") != std::string::npos;
 }
+
+bool kernelHasMeasurements(const std::string &kernelName) {
+  auto quakeCode = get_quake_by_name(kernelName, false);
+  return !quakeCode.empty() &&
+         quakeCode.find("hasMeasurements = true") != std::string::npos;
+}
+
 } // namespace cudaq
