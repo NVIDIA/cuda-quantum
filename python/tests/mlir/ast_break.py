@@ -9,6 +9,7 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
+import numpy
 
 
 def test_break():
@@ -22,8 +23,8 @@ def test_break():
                 break
             ry(x, q[i % 4])
 
-    print(kernel)
     kernel(1.2)
+    print(kernel)
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel(
@@ -42,6 +43,8 @@ def test_break():
 # CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
+# CHECK:             %[[VAL_23:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_12]], %[[VAL_23]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_14:.*]] = math.fpowi %[[VAL_13]], %[[VAL_2]] : f64, i64
 # CHECK:             %[[VAL_15:.*]] = arith.addf %[[VAL_13]], %[[VAL_14]] : f64
@@ -53,7 +56,8 @@ def test_break():
 # CHECK:             cc.break %[[VAL_12]] : i64
 # CHECK:           ^bb2:
 # CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
-# CHECK:             %[[VAL_19:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
+# CHECK:             %[[VAL_24:.*]] = cc.load %[[VAL_23]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_19:.*]] = arith.remui %[[VAL_24]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_20:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_19]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_18]]) %[[VAL_20]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_12]] : i64
@@ -61,6 +65,24 @@ def test_break():
 # CHECK:           ^bb0(%[[VAL_21:.*]]: i64):
 # CHECK:             %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_22]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
+
+
+def test_break2():
+
+    @cudaq.kernel(verbose=False)
+    def kernel(x: float):
+        qs = cudaq.qvector(6)
+        for idx, q in enumerate(qs):
+            if idx > 2:
+                break
+            ry(x, q)
+
+    res = cudaq.sample(kernel, numpy.pi)
+    assert len(res) == 1 and '111000' in res
+    print(f"output test1: {res}")
+
+
+# CHECK-LABEL:  output test1: { 111000:1000 }

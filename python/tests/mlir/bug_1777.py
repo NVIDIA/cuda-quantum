@@ -45,30 +45,28 @@ def test_bug_1777():
 # CHECK:             cc.condition %[[VAL_9]](%[[VAL_8]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
-# CHECK:             %[[VAL_11:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_10]]] : (!quake.veq<2>, i64) -> !quake.ref
+# CHECK:             %[[VAL_25:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_10]], %[[VAL_25]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_26:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_11:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_26]]] : (!quake.veq<2>, i64) -> !quake.ref
 # CHECK:             %[[VAL_12:.*]] = quake.mz %[[VAL_11]] name "res" : (!quake.ref) -> !quake.measure
 # CHECK:             %[[VAL_13:.*]] = quake.discriminate %[[VAL_12]] : (!quake.measure) -> i1
 # CHECK:             cc.store %[[VAL_13]], %[[VAL_6]] : !cc.ptr<i1>
-# CHECK:             %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_13]], %[[VAL_0]] : i1
+# CHECK:             %[[VAL_26:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
+# CHECK:             %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_26]], %[[VAL_0]] : i1
 # CHECK:             cc.if(%[[VAL_14]]) {
 # CHECK:               %[[VAL_15:.*]] = quake.mz %[[VAL_5]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-# CHECK:               %[[VAL_16:.*]] = quake.discriminate %[[VAL_15]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-# CHECK:               %[[VAL_17:.*]] = cc.alloca !cc.stdvec<i1>
-# CHECK:               cc.store %[[VAL_16]], %[[VAL_17]] : !cc.ptr<!cc.stdvec<i1>>
 # CHECK:             }
 # CHECK:             cc.continue %[[VAL_10]] : i64
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_18:.*]]: i64):
 # CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_19]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
 # CHECK:           %[[VAL_21:.*]] = arith.cmpi eq, %[[VAL_20]], %[[VAL_3]] : i1
 # CHECK:           cc.if(%[[VAL_21]]) {
 # CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-# CHECK:             %[[VAL_23:.*]] = quake.discriminate %[[VAL_22]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
-# CHECK:             %[[VAL_24:.*]] = cc.alloca !cc.stdvec<i1>
-# CHECK:             cc.store %[[VAL_23]], %[[VAL_24]] : !cc.ptr<!cc.stdvec<i1>>
 # CHECK:           }
 # CHECK:           return
 # CHECK:         }

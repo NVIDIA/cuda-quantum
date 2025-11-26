@@ -50,12 +50,16 @@ def test_iterate_list_init():
 # CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
 # CHECK:             %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_8]][%[[VAL_16]]] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_30:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_19]], %[[VAL_30]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
-# CHECK:             %[[VAL_21:.*]] = cc.cast signed %[[VAL_19]] : (i64) -> f64
+# CHECK:             %[[VAL_31:.*]] = cc.load %[[VAL_30]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_21:.*]] = cc.cast signed %[[VAL_31]] : (i64) -> f64
 # CHECK:             %[[VAL_22:.*]] = arith.addf %[[VAL_20]], %[[VAL_21]] : f64
 # CHECK:             cc.store %[[VAL_22]], %[[VAL_6]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_23:.*]] = cc.load %[[VAL_6]] : !cc.ptr<f64>
-# CHECK:             %[[VAL_24:.*]] = arith.remui %[[VAL_19]], %[[VAL_5]] : i64
+# CHECK:             %[[VAL_32:.*]] = cc.load %[[VAL_30]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_24:.*]] = arith.remui %[[VAL_32]], %[[VAL_5]] : i64
 # CHECK:             %[[VAL_25:.*]] = quake.extract_ref %[[VAL_7]]{{\[}}%[[VAL_24]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_23]]) %[[VAL_25]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_16]] : i64
@@ -63,6 +67,6 @@ def test_iterate_list_init():
 # CHECK:           ^bb0(%[[VAL_26:.*]]: i64):
 # CHECK:             %[[VAL_27:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_27]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
