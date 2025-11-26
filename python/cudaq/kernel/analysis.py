@@ -53,68 +53,20 @@ class FindDepKernelsVisitor(ast.NodeVisitor):
                             cc.CallableType.getFunctionType(callableTy)):
                         self.depKernels[k] = globalAstRegistry[k]
 
-        self.generic_visit(node)
+        [self.visit(stm) for stm in node.body]
 
-    def visit_Call(self, node):
-        """
-        Here we look for function calls within this kernel. We will 
-        add these to dependent kernels dictionary. We will also look for 
-        kernels that are passed to control and adjoint.
-        """
-        if hasattr(node, 'func'):
-            if isinstance(node.func,
-                          ast.Name) and node.func.id in globalAstRegistry:
-                self.depKernels[node.func.id] = globalAstRegistry[node.func.id]
-            elif isinstance(node.func, ast.Attribute):
-                if hasattr(
-                        node.func.value, 'id'
-                ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
-                    return
-                # May need to somehow import a library kernel, find
-                # all module names in a mod1.mod2.mod3.function type call
-                moduleNames = []
-                value = node.func.value
-                while isinstance(value, ast.Attribute):
-                    moduleNames.append(value.attr)
-                    value = value.value
-                    if isinstance(value, ast.Name):
-                        moduleNames.append(value.id)
-                        break
+    def visit_Attribute(self, node):
+        if not self.kernelName:
+            return
+        if node.attr in globalAstRegistry:
+            self.depKernels[node.attr] = globalAstRegistry[node.attr]
+        self.visit(node.value)
 
-                if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
-                    return
-
-                if len(moduleNames):
-                    moduleNames.reverse()
-                    if cudaq_runtime.isRegisteredDeviceModule(
-                            '.'.join(moduleNames)):
-                        return
-
-                    # This will throw if the function / module is invalid
-                    try:
-                        m = importlib.import_module('.'.join(moduleNames))
-                    except:
-                        return
-
-                    getattr(m, node.func.attr)
-                    name = node.func.attr
-
-                    if name not in globalAstRegistry:
-                        raise RuntimeError(
-                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)}). Registry: {globalAstRegistry}"
-                        )
-
-                    self.depKernels[name] = globalAstRegistry[name]
-
-                elif hasattr(node.func,
-                             'attr') and node.func.attr in globalAstRegistry:
-                    self.depKernels[node.func.attr] = globalAstRegistry[
-                        node.func.attr]
-                elif node.func.value.id == 'cudaq' and node.func.attr in [
-                        'control', 'adjoint'
-                ] and node.args[0].id in globalAstRegistry:
-                    self.depKernels[node.args[0].id] = globalAstRegistry[
-                        node.args[0].id]
+    def visit_Name(self, node):
+        if not self.kernelName:
+            return
+        if node.id in globalAstRegistry:
+            self.depKernels[node.id] = globalAstRegistry[node.id]
 
 
 class HasReturnNodeVisitor(ast.NodeVisitor):

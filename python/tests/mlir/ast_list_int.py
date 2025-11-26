@@ -42,9 +42,15 @@ def test_list_int():
 # CHECK:             %[[VAL_11:.*]] = cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
 # CHECK:             %[[VAL_12:.*]] = cc.compute_ptr %[[VAL_11]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_12]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_13]], %[[VAL_3]] : i64
+# CHECK:             %[[VAL_20:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_10]], %[[VAL_20]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_21:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_13]], %[[VAL_21]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_22:.*]] = cc.load %[[VAL_21]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_3]] : i64
 # CHECK:             cc.if(%[[VAL_14]]) {
-# CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_10]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:               %[[VAL_22:.*]] = cc.load %[[VAL_20]] : !cc.ptr<i64>
+# CHECK:               %[[VAL_15:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_22]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:               quake.x {{\[}}%[[VAL_15]]] %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             }
 # CHECK:             cc.continue %[[VAL_10]] : i64
@@ -52,6 +58,6 @@ def test_list_int():
 # CHECK:           ^bb0(%[[VAL_16:.*]]: i64):
 # CHECK:             %[[VAL_17:.*]] = arith.addi %[[VAL_16]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_17]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
