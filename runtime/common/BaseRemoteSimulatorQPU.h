@@ -203,8 +203,8 @@ public:
             " bytes overflows the argument buffer.");
       // Currently, we only support result buffer serialization on LittleEndian
       // CPUs (x86, ARM, PPC64LE).
-      // Note: If the client (e.g., compiled from source) is built for
-      // big-endian, we will throw an error if result buffer data is returned.
+      // If the client (e.g., compiled from source) is built for big-endian, we
+      // will throw an error if result buffer data is returned.
       if (llvm::sys::IsBigEndianHost)
         throw std::runtime_error(
             "Serializing the result buffer from a remote kernel invocation is "
