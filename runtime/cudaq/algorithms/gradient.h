@@ -76,7 +76,7 @@ public:
   /// Take the quantum kernel and concrete arguments for all arguments except
   /// the first std::vector<double> argument, which is used for the variational
   /// parameters for the gradient. Serialize and save those arguments into this
-  /// object. (Useful for NVQC.)
+  /// object.
   template <typename QuantumKernel, typename... Args>
   void setArgs(QuantumKernel &kernel, Args &&...args) {
     static_assert(

@@ -10,7 +10,6 @@
 #include "GPUInfo.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
-#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/gradients.h"
 #include "cudaq/optimizers.h"
@@ -573,8 +572,6 @@ public:
   // (2) Breaking changes in the runtime, which make JIT execution incompatible,
   //     e.g., changing the simulator names (.so files), changing signatures of
   //     QIR functions, etc.
-  // IMPORTANT: When a new version is defined, a new NVQC deployment will be
-  // needed.
   static constexpr std::size_t REST_PAYLOAD_VERSION = 1;
   static constexpr std::size_t REST_PAYLOAD_MINOR_VERSION = 1;
   RestRequest(ExecutionContext &context, int versionNumber)
@@ -613,10 +610,6 @@ public:
   std::size_t version;
   // Version of the runtime client submitting the request.
   std::string clientVersion;
-  // The SerializedCodeExecutionContext to compile and to execute a limited
-  // subset of Python source code. The server will execute serialized code in
-  // this context
-  std::optional<SerializedCodeExecutionContext> serializedCodeExecutionContext;
 
   friend void to_json(json &j, const RestRequest &p) {
     TO_JSON_HELPER(version);
@@ -631,7 +624,6 @@ public:
     TO_JSON_HELPER(seed);
     TO_JSON_HELPER(passes);
     TO_JSON_HELPER(clientVersion);
-    TO_JSON_OPT_HELPER(serializedCodeExecutionContext);
   }
 
   friend void from_json(const json &j, RestRequest &p) {
@@ -647,53 +639,7 @@ public:
     FROM_JSON_HELPER(seed);
     FROM_JSON_HELPER(passes);
     FROM_JSON_HELPER(clientVersion);
-    FROM_JSON_OPT_HELPER(serializedCodeExecutionContext);
   }
 };
 
-/// NVCF function version status
-enum class FunctionStatus { ACTIVE, DEPLOYING, ERROR, INACTIVE, DELETED };
-NLOHMANN_JSON_SERIALIZE_ENUM(FunctionStatus,
-                             {
-                                 {FunctionStatus::ACTIVE, "ACTIVE"},
-                                 {FunctionStatus::DEPLOYING, "DEPLOYING"},
-                                 {FunctionStatus::ERROR, "ERROR"},
-                                 {FunctionStatus::INACTIVE, "INACTIVE"},
-                                 {FunctionStatus::DELETED, "DELETED"},
-                             });
-
-// Encapsulates a function version info
-// Note: we only parse a subset of required fields (always present). There may
-// be other fields, which are not required.
-struct NvcfFunctionVersionInfo {
-  // Function Id
-  std::string id;
-  // NVIDIA NGC Org Id (NCA Id)
-  std::string ncaId;
-  // Version Id
-  std::string versionId;
-  // Function name
-  std::string name;
-  // Status of this particular function version
-  FunctionStatus status;
-  // Function version creation timestamp (ISO 8601 string)
-  // e.g., "2024-02-05T00:09:51.154Z"
-  std::string createdAt;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NvcfFunctionVersionInfo, id, ncaId, versionId,
-                                 name, status, createdAt);
-};
-
-// NVCF execution metadata.
-struct NvcfExecutionInfo {
-  // Time point (milliseconds since epoch) when the request handling starts.
-  std::size_t requestStart;
-  // Time point (milliseconds since epoch) when the execution starts (JIT
-  // completed).
-  std::size_t simulationStart;
-  // Time point (milliseconds since epoch) when the execution finishes.
-  std::size_t simulationEnd;
-  CudaDeviceProperties deviceProps;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(NvcfExecutionInfo, requestStart,
-                                 simulationStart, simulationEnd, deviceProps);
-};
 } // namespace cudaq

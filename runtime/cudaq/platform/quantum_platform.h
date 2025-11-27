@@ -29,7 +29,6 @@ namespace cudaq {
 class QPU;
 class gradient;
 class optimizer;
-class SerializedCodeExecutionContext;
 struct RuntimeTarget;
 
 /// Typedefs for defining the connectivity structure of a QPU
@@ -163,12 +162,6 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset, const std::vector<void *> &rawArgs);
   void launchKernel(const std::string &kernelName, const std::vector<void *> &);
-
-  // This method is the hook for executing SerializedCodeExecutionContext
-  // objects.
-  void launchSerializedCodeExecution(
-      const std::string &name,
-      SerializedCodeExecutionContext &serializeCodeExecutionObject);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

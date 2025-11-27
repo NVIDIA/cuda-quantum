@@ -13,7 +13,6 @@
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
-#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -105,9 +104,9 @@ public:
 
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *m_mlirContext, *executionContextPtr, /*serializedCodeContext=*/nullptr,
-        gradient, &optimizer, n_params, m_simName, name, /*kernelFunc=*/nullptr,
-        kernelArgs, /*argSize=*/0, &errorMsg);
+        *m_mlirContext, *executionContextPtr, gradient, &optimizer, n_params,
+        m_simName, name, /*kernelFunc=*/nullptr, kernelArgs, /*argSize=*/0,
+        &errorMsg);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
@@ -188,7 +187,7 @@ public:
 
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
-        *m_mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+        *m_mlirContext, executionContext,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
         voidStarSize, &errorMsg, rawArgs);
@@ -204,8 +203,7 @@ public:
             " bytes overflows the argument buffer.");
       // Currently, we only support result buffer serialization on LittleEndian
       // CPUs (x86, ARM, PPC64LE).
-      // Note: NVQC service will always be using LE. If
-      // the client (e.g., compiled from source) is built for big-endian, we
+      // If the client (e.g., compiled from source) is built for big-endian, we
       // will throw an error if result buffer data is returned.
       if (llvm::sys::IsBigEndianHost)
         throw std::runtime_error(
@@ -223,40 +221,6 @@ public:
     return {};
   }
 
-  void
-  launchSerializedCodeExecution(const std::string &name,
-                                cudaq::SerializedCodeExecutionContext
-                                    &serializeCodeExecutionObject) override {
-    CUDAQ_INFO(
-        "BaseRemoteSimulatorQPU: Launch remote code named '{}' remote QPU {} "
-        "(simulator = {})",
-        name, qpu_id, m_simName);
-
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
-
-    if (executionContextPtr && executionContextPtr->name == "tracer") {
-      return;
-    }
-
-    // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
-    // was set before launching the kernel. Use a static variable per thread to
-    // set up a single-shot execution context for this case.
-    static thread_local cudaq::ExecutionContext defaultContext("sample",
-                                                               /*shots=*/1);
-    cudaq::ExecutionContext &executionContext =
-        executionContextPtr ? *executionContextPtr : defaultContext;
-
-    std::string errorMsg;
-    const bool requestOkay = m_client->sendRequest(
-        *m_mlirContext, executionContext, &serializeCodeExecutionObject,
-        /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-        m_simName, name, /*kernelFunc=*/nullptr, /*args=*/nullptr,
-        /*voidStarSize=*/0, &errorMsg);
-    if (!requestOkay)
-      throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
-  }
-
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     CUDAQ_INFO("BaseRemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
     std::scoped_lock<std::mutex> lock(m_contextMutex);
@@ -271,129 +235,6 @@ public:
 
   void onRandomSeedSet(std::size_t seed) override {
     m_client->resetRemoteRandomSeed(seed);
-  }
-};
-
-/// Implementation of base QPU subtype that submits simulation request to
-/// NVCF.
-class BaseNvcfSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
-public:
-  BaseNvcfSimulatorQPU() : BaseRemoteSimulatorQPU() {
-    m_client = cudaq::registry::get<cudaq::RemoteRuntimeClient>("NVCF");
-  }
-
-  // Encapsulates Nvcf configurations that we need.
-  // Empty strings mean no config available.
-  struct NvcfConfig {
-    std::string apiKey;
-    std::string functionId;
-    std::string versionId;
-  };
-
-  virtual void setTargetBackend(const std::string &backend) override {
-    auto parts = cudaq::split(backend, ';');
-    if (parts.size() % 2 != 0)
-      throw std::invalid_argument("Unexpected backend configuration string. "
-                                  "Expecting a ';'-separated key-value pairs.");
-    std::string apiKey, functionId, versionId, ngpus;
-
-    for (std::size_t i = 0; i < parts.size(); i += 2) {
-      if (parts[i] == "simulator")
-        m_simName = parts[i + 1];
-      // First, check if api key or function Id is provided as target options.
-      if (parts[i] == "function_id")
-        functionId = parts[i + 1];
-      if (parts[i] == "api_key")
-        apiKey = parts[i + 1];
-      if (parts[i] == "version_id")
-        versionId = parts[i + 1];
-      if (parts[i] == "ngpus")
-        ngpus = parts[i + 1];
-    }
-    // If none provided, look for them in environment variables or the config
-    // file.
-    const auto config = searchNvcfConfig();
-    if (apiKey.empty())
-      apiKey = config.apiKey;
-    if (functionId.empty())
-      functionId = config.functionId;
-    if (versionId.empty())
-      versionId = config.versionId;
-
-    // API key and function Id are required.
-    if (apiKey.empty())
-      throw std::runtime_error(
-          "Cannot find NVQC API key. Please refer to the documentation for "
-          "information about obtaining and using your NVQC API key.");
-
-    if (!apiKey.starts_with("nvapi-"))
-      std::runtime_error(
-          "An invalid NVQC API key is provided. Please check your settings.");
-    std::unordered_map<std::string, std::string> clientConfigs{
-        {"api-key", apiKey}};
-    if (!functionId.empty())
-      clientConfigs.emplace("function-id", functionId);
-    if (!versionId.empty())
-      clientConfigs.emplace("version-id", versionId);
-    if (!ngpus.empty())
-      clientConfigs.emplace("ngpus", ngpus);
-
-    m_client->setConfig(clientConfigs);
-  }
-
-  // The NVCF version of this function needs to dynamically fetch the remote
-  // capabilities from the currently deployed servers.
-  virtual RemoteCapabilities getRemoteCapabilities() const override {
-    return m_client->getRemoteCapabilities();
-  }
-
-protected:
-  // Helper to search NVQC config from environment variable or config file.
-  NvcfConfig searchNvcfConfig() {
-    NvcfConfig config;
-    // Search from environment variable
-    if (auto apiKey = std::getenv("NVQC_API_KEY"))
-      config.apiKey = std::string(apiKey);
-
-    if (auto funcIdEnv = std::getenv("NVQC_FUNCTION_ID"))
-      config.functionId = std::string(funcIdEnv);
-
-    if (auto versionIdEnv = std::getenv("NVQC_FUNCTION_VERSION_ID"))
-      config.versionId = std::string(versionIdEnv);
-
-    std::string nvqcConfig;
-    // Allow someone to tweak this with an environment variable
-    if (auto creds = std::getenv("CUDAQ_NVQC_CREDENTIALS"))
-      nvqcConfig = std::string(creds);
-    else
-      nvqcConfig = std::string(getenv("HOME")) + std::string("/.nvqc_config");
-    if (cudaq::fileExists(nvqcConfig)) {
-      std::ifstream stream(nvqcConfig);
-      std::string contents((std::istreambuf_iterator<char>(stream)),
-                           std::istreambuf_iterator<char>());
-      std::vector<std::string> lines;
-      lines = cudaq::split(contents, '\n');
-      for (const std::string &l : lines) {
-        std::vector<std::string> keyAndValue = cudaq::split(l, ':');
-        if (keyAndValue.size() != 2)
-          throw std::runtime_error("Ill-formed configuration file (" +
-                                   nvqcConfig +
-                                   "). Key-value pairs must be in `<key> : "
-                                   "<value>` format. (One per line)");
-        cudaq::trim(keyAndValue[0]);
-        cudaq::trim(keyAndValue[1]);
-        if (config.apiKey.empty() &&
-            (keyAndValue[0] == "key" || keyAndValue[0] == "apikey"))
-          config.apiKey = keyAndValue[1];
-        if (config.functionId.empty() && (keyAndValue[0] == "function-id" ||
-                                          keyAndValue[0] == "Function ID"))
-          config.functionId = keyAndValue[1];
-        if (config.versionId.empty() &&
-            (keyAndValue[0] == "version-id" || keyAndValue[0] == "Version ID"))
-          config.versionId = keyAndValue[1];
-      }
-    }
-    return config;
   }
 };
 
