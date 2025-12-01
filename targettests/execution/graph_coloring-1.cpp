@@ -43,7 +43,8 @@ struct init_state {
 __qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   cudaq::adjoint(init_state{}, qubits, theta);
   x(qubits);
-  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4], qubits[5], qubits[6], qubits[7]);
+  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4],
+                 qubits[5], qubits[6], qubits[7]);
   x(qubits);
   init_state{}(qubits, theta);
 }
@@ -104,7 +105,7 @@ int main() {
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
   std::unordered_set<std::string> most_probable;
