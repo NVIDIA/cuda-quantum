@@ -11,7 +11,7 @@ import re
 import sys
 import traceback
 import numpy as np
-from typing import get_origin, Callable, List
+from typing import get_origin, get_args, Callable, List
 import types
 import weakref
 
@@ -120,6 +120,8 @@ def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
 
     numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
     if numQuantumMembers == 0:
+        if any((cc.PointerType.isinstance(t) for t in mlirEleTypes)):
+            return None
         return cc.StructType.getNamed(name, mlirEleTypes, context=context)
     if numQuantumMembers != len(mlirEleTypes) or \
         any((quake.StruqType.isinstance(t) for t in mlirEleTypes)):
@@ -185,18 +187,24 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                     f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
-            if hasattr(annotation.slice, 'elts'):
-                firstElement = annotation.slice.elts[0]
+            if hasattr(annotation.slice, 'elts') and len(
+                    annotation.slice.elts) == 2:
+                args = annotation.slice.elts[0]
+                ret = annotation.slice.elts[1]
             elif hasattr(annotation.slice, 'value') and hasattr(
-                    annotation.slice.value, 'elts'):
-                firstElement = annotation.slice.value.elts[0]
+                    annotation.slice.value, 'elts') and len(
+                        annotation.slice.value.elts) == 2:
+                args = annotation.slice.value.elts[0]
+                ret = annotation.slice.value.elts[1]
             else:
                 localEmitFatalError(
                     f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
-            argTypes = [
-                mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts
-            ]
+            argTypes = [mlirTypeFromAnnotation(a, ctx) for a in args.elts]
+            if not isinstance(ret, ast.Constant) or ret.value:
+                localEmitFatalError(
+                    "passing kernels as arguments that return a value is not currently supported"
+                )
             return cc.CallableType.get(argTypes)
 
         if isinstance(annotation,
@@ -368,12 +376,11 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return cc.PointerType.get(cc.StateType.get(ctx), ctx)
 
     if get_origin(argType) == list:
-        result = re.search(r'ist\[(.*)\]', str(argType))
-        eleTyName = result.group(1)
+        pyEleTy = get_args(argType)
+        if len(pyEleTy) == 1:
+            eleTy = mlirTypeFromPyType(pyEleTy[0], ctx)
+            return cc.StdvecType.get(eleTy, ctx)
         argType = list
-        inst = pyInstanceFromName(eleTyName)
-        if (inst != None):
-            kwargs['argInstance'] = [inst]
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
@@ -406,18 +413,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                                  ctx)
 
     if get_origin(argType) == tuple:
-        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
-        eleTyNames = result.group('names')
         eleTypes = []
-        while eleTyNames != None:
-            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
-            eleTyName = result.group('name') if result != None else eleTyNames
-            eleTyNames = result.group('names') if result != None else None
-            pyInstance = pyInstanceFromName(eleTyName)
-            if pyInstance == None:
-                emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
-        eleTypes.reverse()
+        for pyEleTy in get_args(argType):
+            eleTypes.append(mlirTypeFromPyType(pyEleTy, ctx))
         tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         if tupleTy is None:
             emitFatalError(

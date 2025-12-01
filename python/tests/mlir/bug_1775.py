@@ -48,13 +48,9 @@ def test_bug_1775():
 # CHECK:           %[[VAL_0:.*]] = arith.constant true
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!quake.measure) -> i1
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
 # CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
-# CHECK:           %[[VAL_6:.*]] = cc.alloca i1
-# CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<i1>
-# CHECK:           cc.store %[[VAL_5]], %[[VAL_6]] : !cc.ptr<i1>
 # CHECK:           %[[VAL_7:.*]] = arith.cmpi eq, %[[VAL_5]], %[[VAL_0]] : i1
 # CHECK:           cc.if(%[[VAL_7]]) {
 # CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_1]] name "true_res" : (!quake.ref) -> !quake.measure

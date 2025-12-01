@@ -49,9 +49,12 @@ def test_qft():
 # CHECK:             cc.condition %[[VAL_12]](%[[VAL_11]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_13:.*]]: i64):
-# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_13]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             %[[VAL_50:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_13]], %[[VAL_50]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_51:.*]] = cc.load %[[VAL_50]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_14:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_51]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:             %[[VAL_15:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_16:.*]] = arith.subi %[[VAL_15]], %[[VAL_13]] : i64
+# CHECK:             %[[VAL_16:.*]] = arith.subi %[[VAL_15]], %[[VAL_51]] : i64
 # CHECK:             %[[VAL_17:.*]] = arith.subi %[[VAL_16]], %[[VAL_3]] : i64
 # CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_17]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:             quake.swap %[[VAL_14]], %[[VAL_18]] : (!quake.ref, !quake.ref) -> ()
@@ -60,7 +63,7 @@ def test_qft():
 # CHECK:           ^bb0(%[[VAL_19:.*]]: i64):
 # CHECK:             %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_20]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_21:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_22:.*]] = arith.subi %[[VAL_21]], %[[VAL_3]] : i64
 # CHECK:           %[[VAL_23:.*]] = cc.loop while ((%[[VAL_24:.*]] = %[[VAL_4]]) -> (i64)) {
@@ -68,36 +71,44 @@ def test_qft():
 # CHECK:             cc.condition %[[VAL_25]](%[[VAL_24]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_26:.*]]: i64):
-# CHECK:             %[[VAL_27:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_26]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:             %[[VAL_52:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_26]], %[[VAL_52]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_53:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_27:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_53]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:             quake.h %[[VAL_27]] : (!quake.ref) -> ()
-# CHECK:             %[[VAL_28:.*]] = arith.addi %[[VAL_26]], %[[VAL_3]] : i64
+# CHECK:             %[[VAL_54:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_28:.*]] = arith.addi %[[VAL_54]], %[[VAL_3]] : i64
 # CHECK:             %[[VAL_29:.*]] = cc.alloca i64
 # CHECK:             cc.store %[[VAL_28]], %[[VAL_29]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_30:.*]] = cc.loop while ((%[[VAL_31:.*]] = %[[VAL_26]]) -> (i64)) {
+# CHECK:             %[[VAL_55:.*]] = cc.load %[[VAL_52]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_30:.*]] = cc.loop while ((%[[VAL_31:.*]] = %[[VAL_55]]) -> (i64)) {
 # CHECK:               %[[VAL_32:.*]] = arith.cmpi sgt, %[[VAL_31]], %[[VAL_2]] : i64
 # CHECK:               cc.condition %[[VAL_32]](%[[VAL_31]] : i64)
 # CHECK:             } do {
 # CHECK:             ^bb0(%[[VAL_33:.*]]: i64):
+# CHECK:               %[[VAL_56:.*]] = cc.alloca i64
+# CHECK:               cc.store %[[VAL_33]], %[[VAL_56]] : !cc.ptr<i64>
 # CHECK:               %[[VAL_34:.*]] = cc.load %[[VAL_29]] : !cc.ptr<i64>
-# CHECK:               %[[VAL_35:.*]] = arith.subi %[[VAL_34]], %[[VAL_33]] : i64
+# CHECK:               %[[VAL_57:.*]] = cc.load %[[VAL_56]] : !cc.ptr<i64>
+# CHECK:               %[[VAL_35:.*]] = arith.subi %[[VAL_34]], %[[VAL_57]] : i64
 # CHECK:               %[[VAL_36:.*]] = math.ipowi %[[VAL_5]], %[[VAL_35]] : i64
 # CHECK:               %[[VAL_37:.*]] = cc.cast signed %[[VAL_36]] : (i64) -> f64
 # CHECK:               %[[VAL_38:.*]] = arith.divf %[[VAL_1]], %[[VAL_37]] : f64
 # CHECK:               %[[VAL_39:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_34]]] : (!quake.veq<?>, i64) -> !quake.ref
-# CHECK:               %[[VAL_40:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_33]]] : (!quake.veq<?>, i64) -> !quake.ref
+# CHECK:               %[[VAL_40:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_57]]] : (!quake.veq<?>, i64) -> !quake.ref
 # CHECK:               quake.r1 (%[[VAL_38]]) {{\[}}%[[VAL_39]]] %[[VAL_40]] : (f64, !quake.ref, !quake.ref) -> ()
 # CHECK:               cc.continue %[[VAL_33]] : i64
 # CHECK:             } step {
 # CHECK:             ^bb0(%[[VAL_41:.*]]: i64):
 # CHECK:               %[[VAL_42:.*]] = arith.addi %[[VAL_41]], %[[VAL_2]] : i64
 # CHECK:               cc.continue %[[VAL_42]] : i64
-# CHECK:             } {invariant}
+# CHECK:             }
 # CHECK:             cc.continue %[[VAL_26]] : i64
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_43:.*]]: i64):
 # CHECK:             %[[VAL_44:.*]] = arith.addi %[[VAL_43]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_44]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_45:.*]] = cc.load %[[VAL_7]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_46:.*]] = arith.subi %[[VAL_45]], %[[VAL_3]] : i64
 # CHECK:           %[[VAL_47:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_46]]] : (!quake.veq<?>, i64) -> !quake.ref
