@@ -9,8 +9,8 @@
 #include <cassert>
 #include <stdio.h>
 
-#include "cudaq/qclink/devices/extensible_rdma_device.cuh"
-#include "cudaq/qclink/qclink.h"
+#include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
+#include "cudaq/nvqlink/nvqlink.h"
 
 // Mock the FPGA on the CPU. Write to "Fake FPGA memory" to trigger RDMA
 // data transfer to persistent CUDA kernel on RDMA device
@@ -18,7 +18,7 @@
 // clang-format off
 // Compile with 
 //
-// nvcc -forward-unknown-to-host-compiler -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90 --compiler-options -fPIC -O3 -DNDEBUG fake_fpga_to_gpu_rdma.cu -I /path/to/libs/qclink/include/ -L /path/to/qclink/lib -lcudaq-qclink -Wl,-rpath,$PWD/lib 
+// nvcc -forward-unknown-to-host-compiler -gencode arch=compute_90,code=sm_90 -gencode arch=compute_90,code=compute_90 --compiler-options -fPIC -O3 -DNDEBUG fake_fpga_to_gpu_rdma.cu -I /path/to/libs/nvqlink/include/ -L /path/to/nvqlink/lib -lcudaq-nvqlink -Wl,-rpath,$PWD/lib 
 // ./a.out
 //
 // clang-format on
@@ -40,7 +40,7 @@ __device__ void add_op(void *args, void *res) {
   __syncthreads();
 }
 
-using namespace cudaq::qclink;
+using namespace cudaq::nvqlink;
 
 __device__ dispatch_func_t d_add_ptr = add_op;
 
@@ -60,7 +60,7 @@ protected:
 
 // --- Example for user code -----
 
-using namespace cudaq::qclink;
+using namespace cudaq::nvqlink;
 
 int main() {
   // Create the rdma device

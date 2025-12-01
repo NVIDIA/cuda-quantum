@@ -9,5 +9,5 @@
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cudaq_config.h.in"
                "${CMAKE_BINARY_DIR}/include/compilers/cudaq/cudaq_config.h"
                @ONLY)
-target_include_directories(cudaq-qclink PRIVATE ${CMAKE_BINARY_DIR}/include/compilers/cudaq)
-target_sources(cudaq-qclink PRIVATE cudaq.cpp cudaq_toolchain.cpp)
+target_include_directories(cudaq-nvqlink PRIVATE ${CMAKE_BINARY_DIR}/include/compilers/cudaq)
+target_sources(cudaq-nvqlink PRIVATE cudaq.cpp cudaq_toolchain.cpp)

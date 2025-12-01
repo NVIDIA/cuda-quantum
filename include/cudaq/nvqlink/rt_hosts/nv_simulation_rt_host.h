@@ -7,9 +7,9 @@
  ******************************************************************************/
 #pragma once
 
-#include "cudaq/qclink/rt_host.h"
+#include "cudaq/nvqlink/rt_host.h"
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 class nv_simulation_rt_host : public rt_host {
 
@@ -36,4 +36,4 @@ public:
 
 CUDAQ_REGISTER_TYPE(nv_simulation_rt_host)
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

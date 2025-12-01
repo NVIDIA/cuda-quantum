@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/qclink/qclink.h"
+#include "cudaq/nvqlink/nvqlink.h"
 #include <gtest/gtest.h>
 
-using namespace cudaq::qclink;
+using namespace cudaq::nvqlink;
 
 // ------ Example of Internal Library Code for Device Functions and Devices ----
 
@@ -28,7 +28,7 @@ __device__ void add_op(void *args, void *res) {
   __syncthreads();
 }
 
-#include "cudaq/qclink/devices/extensible_rdma_device.cuh"
+#include "cudaq/nvqlink/devices/extensible_rdma_device.cuh"
 
 __device__ dispatch_func_t d_add_ptr = add_op;
 
@@ -48,7 +48,7 @@ protected:
 
 // --- Example for user code -----
 
-TEST(QCLinkCudaChannelTester, checkChannelMemoryWorks) {
+TEST(NVQLinkCudaChannelTester, checkChannelMemoryWorks) {
   // Create the rdma device
   concrete_rdma_test dev;
   // connect to it

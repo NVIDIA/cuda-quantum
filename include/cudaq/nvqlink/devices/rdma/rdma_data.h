@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 struct persistent_kernel_data {
   void *gpu_message_buffer;
@@ -52,4 +52,4 @@ public:
   }
   
 };
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

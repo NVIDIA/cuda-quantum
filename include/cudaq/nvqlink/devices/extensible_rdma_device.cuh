@@ -10,7 +10,7 @@
 #include "rdma/cpu_gpu_rdma.h"
 #include "rdma/persistent.cuh"
 
-#include "cudaq/qclink/device.h"
+#include "cudaq/nvqlink/device.h"
 
 #include <atomic>
 #include <chrono>
@@ -25,7 +25,7 @@
 
 #include "cuda_runtime.h"
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 void launch_persistent_kernel_impl(persistent_kernel_data &data,
                                    std::size_t buffer_size,
@@ -151,4 +151,4 @@ public:
 using cpu_gpu_rdma_device = extensible_rdma_device<cpu_gpu_rdma_data>;
 // Add more...
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

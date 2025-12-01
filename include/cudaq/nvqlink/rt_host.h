@@ -15,7 +15,7 @@
 
 #include <unordered_map>
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 class rt_host : public cudaqx::extension_point<rt_host, lqpu&> {
 protected:
@@ -61,4 +61,4 @@ public:
   }
 };
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

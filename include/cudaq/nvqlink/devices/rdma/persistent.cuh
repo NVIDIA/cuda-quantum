@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <stdio.h>
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 // Persistent CUDA kernel that processes messages
 __global__ void persistent_rdma_dispatcher_kernel(
     unsigned char *message_buffer, size_t buffer_size,
@@ -80,4 +80,4 @@ __global__ void persistent_rdma_dispatcher_kernel(
     __nanosleep(1000);
   }
 }
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

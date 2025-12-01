@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq.h"
-#include "cudaq/qclink.h"
+#include "cudaq/nvqlink.h"
 
 // Quantum Kernel, compiled with
 // cudaq-quake quantum.cpp | \
@@ -17,8 +17,8 @@
 //
 // Note the custom plugin DeviceCallShmem.so. This plugin
 // provides a cudaq-opt pass that transforms cc.device_call to an
-// intrinsic library call in cudaq-qclink, which relies on the
-// qclink real-time host / controller to mediate data marshaling and
+// intrinsic library call in cudaq-nvqlink, which relies on the
+// nvqlink real-time host / controller to mediate data marshaling and
 // function callback on the specified device.
 extern int add_q_kernel(int i, int j);
 
@@ -28,15 +28,15 @@ extern int add_q_kernel(int i, int j);
 
 // The entire application can now be compiled and run as follows
 // clang-format off
-// nvq++ cpu_shmem_device_call_add.cpp quantum.o -I qclink/include -L qclink/lib -lcudaq-qclink -Wl,-rpath,qclink/lib
+// nvq++ cpu_shmem_device_call_add.cpp quantum.o -I nvqlink/include -L nvqlink/lib -lcudaq-nvqlink -Wl,-rpath,nvqlink/lib
 // ./a.out
 // clang-format on
 
 using namespace cudaq;
 
-qclink::device::device_function add_func = qclink::device::device_function{
-    "add", [](void *sym, qclink::device_ptr &result,
-              const std::vector<qclink::device_ptr> &args) {
+nvqlink::device::device_function add_func = nvqlink::device::device_function{
+    "add", [](void *sym, nvqlink::device_ptr &result,
+              const std::vector<nvqlink::device_ptr> &args) {
       // Here we know the function symbol signature
       auto func = reinterpret_cast<int (*)(int, int)>(sym);
       // We know how shmem_channel stores device_ptrs
@@ -50,19 +50,19 @@ qclink::device::device_function add_func = qclink::device::device_function{
 int main() {
 
   // Here we manually specify the CPU Shmem device callback map.
-  std::unordered_map<std::string, std::vector<qclink::device::device_function>>
+  std::unordered_map<std::string, std::vector<nvqlink::device::device_function>>
       devcallbacks{{"libadd.so", {add_func}}};
 
-  std::vector<std::unique_ptr<qclink::device>> devices;
+  std::vector<std::unique_ptr<nvqlink::device>> devices;
   devices.emplace_back(
-      std::make_unique<qclink::cpu_shmem_device>(devcallbacks));
-  devices.emplace_back(std::make_unique<qclink::nv_simulation_device>());
-  qclink::lqpu cfg(std::move(devices));
+      std::make_unique<nvqlink::cpu_shmem_device>(devcallbacks));
+  devices.emplace_back(std::make_unique<nvqlink::nv_simulation_device>());
+  nvqlink::lqpu cfg(std::move(devices));
 
   // Initialize the library
-  qclink::initialize(&cfg);
+  nvqlink::initialize(&cfg);
 
   printf("With devices, 3 + 4 = %d\n", add_q_kernel(3, 4));
 
-  qclink::shutdown();
+  nvqlink::shutdown();
 }

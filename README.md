@@ -1,6 +1,6 @@
-# CUDA-Q QCLink Library
+# CUDA-Q NVQLink Library
 
-CUDA-Q QCLink is a library for describing a tightly integrated Logical QPU. 
+CUDA-Q NVQLink is a library for describing a tightly integrated Logical QPU. 
 Programmers can leverage this library to describe component devices that 
 enable real-time coprocessing during qubit coherence times. 
 
@@ -11,7 +11,7 @@ is welcome. This work will continue to rapidly evolve as we learn what works and
 
 ```bash
 # Configure, need cmake 3.28+
-cmake -G Ninja .. -DCUDAQ_QCLINK_INCLUDE_TESTS=ON
+cmake -G Ninja .. -DCUDAQ_NVQLINK_INCLUDE_TESTS=ON
 # Build
 ninja 
 # Test

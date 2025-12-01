@@ -11,7 +11,7 @@
 
 #include <cstring>
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 namespace details {
 static lqpu *logical_qpu_config = nullptr;
@@ -45,7 +45,7 @@ device_ptr malloc_set(T t, std::optional<std::size_t> device = std::nullopt) {
   if (device.has_value())
     ret = malloc(sizeof(T), *device);
   else
-    ret = qclink::malloc(sizeof(T));
+    ret = nvqlink::malloc(sizeof(T));
   memcpy(ret, &t);
   return ret;
 }
@@ -78,12 +78,12 @@ void launch_kernel(handle kernelHandle, const std::vector<device_ptr> &args);
 
 template <typename Ret, typename... Args>
 Ret launch_kernel(handle kernelHandle, Args &&...args) {
-  auto retPtr = qclink::malloc<Ret>();
+  auto retPtr = nvqlink::malloc<Ret>();
   std::vector<device_ptr> argPtrs{
       details::device_ptr_from_ref<Args>(std::forward<Args>(args))...};
   launch_kernel(kernelHandle, retPtr, argPtrs);
   Ret ret;
-  qclink::memcpy(&ret, retPtr);
+  nvqlink::memcpy(&ret, retPtr);
   free(retPtr);
   return ret;
 }
@@ -92,7 +92,7 @@ Ret launch_kernel(handle kernelHandle, Args &&...args) {
 /// kick of the disconnection of all channels.
 void shutdown();
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink
 
 // Include all builtin extensions
 

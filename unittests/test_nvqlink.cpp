@@ -9,53 +9,53 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
-#include "cudaq/qclink/qclink.h"
+#include "cudaq/nvqlink/nvqlink.h"
 
 using namespace cudaq;
 
-TEST(QCLinkTester, checkSimple) {
+TEST(NVQLinkTester, checkSimple) {
   // Configure the system
-  std::vector<std::unique_ptr<qclink::device>> devs;
+  std::vector<std::unique_ptr<nvqlink::device>> devs;
   // construct a base device
-  devs.emplace_back(std::make_unique<qclink::cpu_shmem_device>());
+  devs.emplace_back(std::make_unique<nvqlink::cpu_shmem_device>());
   // add a concretely defined device
-  devs.emplace_back(std::make_unique<qclink::cuda_device>());
-  devs.emplace_back(std::make_unique<qclink::nv_simulation_device>());
-  qclink::lqpu cfg(std::move(devs));
+  devs.emplace_back(std::make_unique<nvqlink::cuda_device>());
+  devs.emplace_back(std::make_unique<nvqlink::nv_simulation_device>());
+  nvqlink::lqpu cfg(std::move(devs));
 
   EXPECT_EQ(cfg.get_num_devices(), 3);
   EXPECT_EQ(cfg.get_num_qcs_devices(), 1);
 
   {
     // Initialize
-    qclink::initialize(&cfg);
+    nvqlink::initialize(&cfg);
 
     // do some data maninpulation
-    auto devPtr = qclink::malloc(4, 0);
+    auto devPtr = nvqlink::malloc(4, 0);
     int i = 22, j = 0;
-    qclink::memcpy(devPtr, &i);
-    qclink::memcpy(&j, devPtr);
+    nvqlink::memcpy(devPtr, &i);
+    nvqlink::memcpy(&j, devPtr);
     EXPECT_EQ(i, j);
-    qclink::free(devPtr);
+    nvqlink::free(devPtr);
 
     // shutdonw
-    qclink::shutdown();
+    nvqlink::shutdown();
   }
 
   {
     // Initialize with rt host specified
-    qclink::initialize(&cfg);
+    nvqlink::initialize(&cfg);
 
     // do some data maninpulation
-    auto devPtr = qclink::malloc(4, 0);
+    auto devPtr = nvqlink::malloc(4, 0);
     int i = 22, j = 0;
-    qclink::memcpy(devPtr, &i);
-    qclink::memcpy(&j, devPtr);
+    nvqlink::memcpy(devPtr, &i);
+    nvqlink::memcpy(&j, devPtr);
     EXPECT_EQ(i, j);
-    qclink::free(devPtr);
+    nvqlink::free(devPtr);
 
     // shutdonw
-    qclink::shutdown();
+    nvqlink::shutdown();
   }
 }
 
@@ -79,29 +79,29 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
   }
 })#";
 
-TEST(QCLinkTester, checkWorkflow) {
-  std::vector<std::unique_ptr<qclink::device>> devs;
-  devs.emplace_back(std::make_unique<qclink::nv_simulation_device>());
-  qclink::lqpu cfg(std::move(devs));
+TEST(NVQLinkTester, checkWorkflow) {
+  std::vector<std::unique_ptr<nvqlink::device>> devs;
+  devs.emplace_back(std::make_unique<nvqlink::nv_simulation_device>());
+  nvqlink::lqpu cfg(std::move(devs));
 
   auto runTest = [&]() {
-    auto hdl = qclink::load_kernel(quake, "function_test._Z4testii");
-    auto retPtr = qclink::malloc(sizeof(int));
+    auto hdl = nvqlink::load_kernel(quake, "function_test._Z4testii");
+    auto retPtr = nvqlink::malloc(sizeof(int));
     int i = 2;
     int j = 3;
     // device_ptr value reference
     device_ptr<int> iPtr(&i);
     device_ptr<int> jPtr(&j);
-    qclink::launch_kernel(hdl, retPtr, {iPtr, jPtr});
+    nvqlink::launch_kernel(hdl, retPtr, {iPtr, jPtr});
     int ret;
-    qclink::memcpy(&ret, retPtr);
+    nvqlink::memcpy(&ret, retPtr);
     EXPECT_EQ(ret, 38);
-    qclink::free(retPtr);
+    nvqlink::free(retPtr);
   };
 
   {
-    qclink::initialize(&cfg);
+    nvqlink::initialize(&cfg);
     runTest();
-    qclink::shutdown();
+    nvqlink::shutdown();
   }
 }

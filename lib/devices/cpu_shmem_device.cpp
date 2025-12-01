@@ -6,14 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/qclink/devices/cpu_shmem_device.h"
+#include "cudaq/nvqlink/devices/cpu_shmem_device.h"
 
 #include <cstring>
 #include <dlfcn.h>
 #include <stdexcept>
 #include <variant>
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 /// @brief Convert a shared memory device pointer handle to its raw pointer.
 /// @param d Device pointer handle.
@@ -92,4 +92,4 @@ void cpu_shmem_device::launch_callback(const std::string &funcName,
   return;
 }
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

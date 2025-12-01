@@ -14,13 +14,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-set(LIBRARY_NAME cudaq-qclink)
+set(LIBRARY_NAME cudaq-nvqlink)
 
 add_compile_options(-Wno-attributes) 
 
 # FIXME?: This must be a shared library. Trying to build a static one will fail.
 add_library(${LIBRARY_NAME} SHARED
-  qclink.cpp
+  nvqlink.cpp
   compiler.cpp
   utils/logger.cpp
 )
@@ -30,7 +30,7 @@ add_subdirectory(devices)
 
 target_include_directories(${LIBRARY_NAME}
   PUBLIC 
-    $<BUILD_INTERFACE:${CUDAQ_QCLINK_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
     $<BUILD_INTERFACE:${spdlog_SOURCE_DIR}/include/spdlog>
     $<INSTALL_INTERFACE:include>
 )
@@ -41,12 +41,12 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 install(TARGETS ${LIBRARY_NAME}
-  COMPONENT qclink-lib
+  COMPONENT nvqlink-lib
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
     
-install(DIRECTORY ${CUDAQ_QCLINK_INCLUDE_DIR}/cudaq
-  COMPONENT qclink-headers
+install(DIRECTORY ${CUDAQ_NVQLINK_INCLUDE_DIR}/cudaq
+  COMPONENT nvqlink-headers
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   FILES_MATCHING PATTERN "*.h"
 )

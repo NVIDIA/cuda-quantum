@@ -20,7 +20,7 @@
     }                                                                          \
   } while (0)
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 // Enhanced message protocol
 struct rdma_message_header {
@@ -36,4 +36,4 @@ struct rdma_message_header {
 
 using dispatch_func_t = void (*)(void *, void *);
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink

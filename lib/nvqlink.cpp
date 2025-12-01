@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/qclink/qclink.h"
+#include "cudaq/nvqlink/nvqlink.h"
 #include "utils/logger.h"
 
-#include "cudaq/qclink/rt_host.h"
+#include "cudaq/nvqlink/rt_host.h"
 
 #include <dlfcn.h>
 #include <iostream>
@@ -23,7 +23,7 @@
 
 // FIXME This API assumes shmem rt_host_dispatch for now...
 
-namespace cudaq::qclink {
+namespace cudaq::nvqlink {
 
 void initialize(const lqpu *cfg) {
   details::logical_qpu_config = const_cast<lqpu *>(cfg);
@@ -107,16 +107,16 @@ void shutdown() {
   device_counter = 0;
 }
 
-} // namespace cudaq::qclink
+} // namespace cudaq::nvqlink
 
 extern "C" {
 
-void __qclink_device_call_dispatch(std::size_t device_id,
+void __nvqlink_device_call_dispatch(std::size_t device_id,
                                    const char *callbackName,
                                    std::size_t num_args, void **args_vec,
                                    std::size_t *args_sizes, void *result,
                                    std::size_t result_size) {
-  using namespace cudaq::qclink;
+  using namespace cudaq::nvqlink;
   auto &device = details::logical_qpu_config->get_device(device_id);
   if (!device.isa<explicit_data_marshalling_trait>())
     throw std::runtime_error(
@@ -145,7 +145,7 @@ void __qclink_device_call_dispatch(std::size_t device_id,
   }
 
   // have a result
-  device_ptr resPtr = cudaq::qclink::malloc(result_size);
+  device_ptr resPtr = cudaq::nvqlink::malloc(result_size);
   casted->launch_callback(callbackName, resPtr, ptrs);
   // memcpy is confusing, need to fix it
   memcpy(result, resPtr);

@@ -5,7 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "cudaq/qclink/compilers/cudaq/cudaq_toolchain.h"
+#include "cudaq/nvqlink/compilers/cudaq/cudaq_toolchain.h"
 #include "../../utils/logger.h"
 
 #include <cstdlib>
@@ -17,7 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-using namespace cudaq::qclink;
+using namespace cudaq::nvqlink;
 
 // command_line_tool base implementation
 std::string command_line_tool::executeCommand(const std::string &command) {

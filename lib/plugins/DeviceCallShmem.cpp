@@ -32,7 +32,7 @@ struct ReplaceDeviceCall : public OpRewritePattern<cc::DeviceCallOp> {
 
     // Declare the intrinsic function if it doesn't exist
     func::FuncOp intrinsicFunc = parentModule.lookupSymbol<func::FuncOp>(
-        "__qclink_device_call_dispatch");
+        "__nvqlink_device_call_dispatch");
     if (!intrinsicFunc) {
       // Create function type for the intrinsic
       auto i64Type = rewriter.getI64Type();
@@ -52,7 +52,7 @@ struct ReplaceDeviceCall : public OpRewritePattern<cc::DeviceCallOp> {
       rewriter.setInsertionPointToStart(parentModule.getBody());
 
       intrinsicFunc = rewriter.create<func::FuncOp>(
-          loc, "__qclink_device_call_dispatch", intrinsicFuncType);
+          loc, "__nvqlink_device_call_dispatch", intrinsicFuncType);
       intrinsicFunc.setPrivate();
     }
 
@@ -141,13 +141,13 @@ struct ReplaceDeviceCall : public OpRewritePattern<cc::DeviceCallOp> {
         loc, cc::PointerType::get(i64Type), argsSizeArray);
 
     // Create the intrinsic function call
-    // void __qclink_device_call_dispatch(std::size_t device_id,
+    // void __nvqlink_device_call_dispatch(std::size_t device_id,
     //                                    const char *callbackName,
     //                                    std::size_t num_args, void **args_vec,
     //                                    std::size_t *args_sizes, void *result,
     //                                    std::size_t result_size)
     rewriter.create<func::CallOp>(
-        loc, "__qclink_device_call_dispatch", TypeRange{},
+        loc, "__nvqlink_device_call_dispatch", TypeRange{},
         ValueRange{deviceId, callbackNameStr, numArgs, argsPtrArrayPtr,
                    argsSizeArrayPtr, resultPtr, resultSize});
 
