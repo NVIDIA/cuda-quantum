@@ -63,6 +63,8 @@ Kernel Execution
 
 .. autofunction:: cudaq::sample
 .. autofunction:: cudaq::sample_async
+.. autofunction:: cudaq::run
+.. autofunction:: cudaq::run_async    
 .. autofunction:: cudaq::observe
 .. autofunction:: cudaq::observe_async
 .. autofunction:: cudaq::get_state
@@ -70,6 +72,7 @@ Kernel Execution
 .. autofunction:: cudaq::vqe
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
+.. autofunction:: cudaq::estimate_resources
 
 Backend Configuration
 =============================
@@ -81,6 +84,8 @@ Backend Configuration
 .. autofunction:: cudaq::reset_target
 .. autofunction:: cudaq::set_noise
 .. autofunction:: cudaq::unset_noise
+.. autofunction:: cudaq::register_set_target_callback
+.. autofunction:: cudaq::unregister_set_target_callback
 
 .. function:: cudaq.apply_noise(error_type, parameters..., targets...)
 
@@ -151,6 +156,7 @@ Dynamics
 
 .. autoclass:: cudaq.dynamics.helpers.InitialState
 .. autoclass:: cudaq.InitialStateType
+.. autoclass:: cudaq.IntermediateResultSave
 
 Operators
 =============================
@@ -164,6 +170,9 @@ Operators
 .. autoclass:: cudaq.operators.RydbergHamiltonian
     :members:
     :special-members: __init__
+
+.. autoclass:: cudaq.SuperOperator
+   :members:
 
 .. automethod:: cudaq.operators.define
 .. automethod:: cudaq.operators.instantiate
@@ -277,6 +286,9 @@ Data Types
     :members:
 
 .. autoclass:: cudaq::AsyncEvolveResult
+    :members:
+
+.. autoclass:: cudaq::Resources
     :members:
 
 Optimizers

@@ -56,7 +56,7 @@ protected:
   std::tuple<ModuleOp, MLIRContext *>
   extractQuakeCodeAndContextImpl(const std::string &kernelName) {
 
-    cudaq::info("extract quake code\n");
+    CUDAQ_INFO("extract quake code\n");
 
     MLIRContext *context = createContext();
 
@@ -80,13 +80,12 @@ protected:
     PassManager pm(cloned.getContext());
 
     pm.addPass(cudaq::opt::createLambdaLiftingPass());
-    cudaq::opt::addAggressiveEarlyInlining(pm);
+    cudaq::opt::addAggressiveInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<mlir::func::FuncOp>(
-        cudaq::opt::createUnwindLoweringPass());
+    pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createUnwindLowering());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addPass(cudaq::opt::createApplyOpSpecializationPass());
+    pm.addPass(cudaq::opt::createApplySpecialization());
     pm.addPass(createInlinerPass());
     pm.addPass(cudaq::opt::createExpandMeasurementsPass());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());

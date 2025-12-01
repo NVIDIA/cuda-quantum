@@ -28,7 +28,7 @@ __qpu__ void foo() {
 }
 
 int main() {
-  std::cout << cudaq::draw(foo) << '\n';
+  std::cout << cudaq::contrib::draw(foo) << '\n';
 
   return 0;
 }

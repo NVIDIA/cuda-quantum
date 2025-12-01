@@ -343,6 +343,23 @@ void test_scalars(mlir::MLIRContext *ctx) {
 
 void test_vectors(mlir::MLIRContext *ctx) {
   {
+    std::vector<std::int32_t> x;
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i32>", v);
+  }
+  // clang-format off
+// CHECK: Source module:
+// CHECK:  func.func private @callee(!cc.stdvec<i32>)
+// CHECK: Substitution module:
+
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK: %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i32>
+// CHECK: %[[VAL_2:.*]] = cc.stdvec_init %[[VAL_1]], %[[VAL_0]] : (!cc.ptr<i32>, i64) -> !cc.stdvec<i32>
+// CHECK: }
+  // clang-format on
+
+  {
     std::vector<std::int32_t> x = {14581, 0xcafe, 42, 0xbeef};
     std::vector<void *> v = {static_cast<void *>(&x)};
     doSimpleTest(ctx, "!cc.stdvec<i32>", v);
@@ -368,6 +385,23 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK: %[[VAL_0:.*]] = cc.const_array ["XX", "XY"] : !cc.array<!cc.array<i8 x ?> x ?>
 // CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i8 x ?> x ?>) -> !cc.stdvec<!cc.charspan>
+ // CHECK:         }
+  // clang-format on
+
+  {
+    // The code here is generated strictly for the device side. We will never
+    // have the template specialization of std::vector<bool> present in any form
+    // on the device side. Any such data will always be marshaled correctly. For
+    // the test, this means we use std::vector<char> here to avoid the
+    // template specialization.
+    std::vector<char> x = {true, false};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i1>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array [true, false] : !cc.array<i1 x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<i1 x ?>) -> !cc.stdvec<i1>
  // CHECK:         }
   // clang-format on
 
@@ -409,6 +443,20 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[1, 2, 3, 0], [14, 15, 16, 13], [127, 128, 129, 126]] : !cc.array<!cc.array<i64 x ?> x ?>
 // CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i64 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i64>>
+// CHECK:         }
+  // clang-format on
+
+  {
+    std::vector<std::vector<char>> x = {{true, true, false, true},
+                                        {false, false, false, true},
+                                        {true, false, false, true}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<i1>>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[true, true, false, true], [false, false, false, true], [true, false, false, true]] : !cc.array<!cc.array<i1 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i1 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i1>>
 // CHECK:         }
   // clang-format on
 }

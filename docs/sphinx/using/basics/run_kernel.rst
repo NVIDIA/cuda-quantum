@@ -3,8 +3,9 @@ Running your first CUDA-Q Program
 
 Now that you have defined your first quantum kernel, let's look at different options for how to execute it.
 In CUDA-Q, quantum circuits are stored as quantum kernels. For estimating the probability distribution of 
-a measured quantum state in a circuit, we use the ``sample`` function call, and for computing the
-expectation value of a quantum state with a given observable, we use the ``observe`` function call.
+a measured quantum state in a circuit, we use the ``sample`` function call, for analyzing individual return values 
+from multiple executions, we use the ``run`` function call, and for computing the expectation value of a quantum 
+state with a given observable, we use the ``observe`` function call.
 
 Sample
 ++++++++
@@ -112,10 +113,100 @@ is available, for example, by choosing the target `nvidia-mqpu`:
 .. note::
 
   This kind of parallelization is most effective
-  if you actually have multiple QPU or CPU available. Otherwise, the 
+  if you actually have multiple QPUs or GPUs available. Otherwise, the 
   sampling will still have to execute sequentially due to resource constraints. 
 
-More information about parallelizing execution can be found at :ref:`mqpu-platform`  page.
+More information about parallelizing execution can be found on the :ref:`mqpu-platform`  page.
+
+Run
++++++++++
+
+The `run` method executes a quantum kernel multiple times and returns each individual result. Unlike `sample`, 
+which collects measurement statistics as counts, `run` preserves each individual return value from each 
+execution. This is useful when you need to analyze the distribution of returned values which may not be possible from just 
+aggregated measurement counts. Additionally, the `run` method also supports returning various types of values 
+from the quantum kernel, including scalar types (bool, int, float and their variants) and user-defined data structures.
+
+.. tab:: Python
+
+  The ``cudaq.run`` method takes a kernel and its arguments as inputs and returns a list containing 
+  the result values from each execution. The kernel must return a non-void value.
+
+.. tab:: C++
+
+  The ``cudaq::run`` method takes a kernel and its arguments as inputs and returns a `std::vector` containing
+  the result values from each execution. The kernel must return a non-void value.
+
+Below is an example of a quantum kernel that creates a GHZ state, measures all qubits, and returns the total 
+count of qubits in state :math:`|1\rangle`:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/first_run.py
+        :language: python
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/first_run.cpp
+        :language: cpp
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
+
+The code above will execute the kernel multiple times (defined by `shots_count`) and return a list of 
+individual results. By default, the `shots_count` for `run` is 100.
+
+You can process the results to get statistics or other insights:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/first_run.py
+        :language: python
+        :start-after: [Begin Run2]
+        :end-before: [End Run2]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/first_run.cpp
+        :language: cpp
+        :start-after: [Begin Run2]
+        :end-before: [End Run2]
+
+
+.. note::
+
+  Currently, `run` supports kernels returning scalar types (bool, int, float) and custom data structures.
+
+.. note:: 
+
+  When using custom data structures, they must be defined with `slots=True` in Python or as simple aggregates in C++.
+
+
+Similar to `sample_async`, the `run` API also supports asynchronous execution through `run_async`. 
+This is particularly useful for parallelizing execution of multiple kernels on a multi-processor platform:
+
+.. tab:: Python
+
+  .. literalinclude:: ../../snippets/python/using/first_run.py
+        :language: python
+        :start-after: [Begin RunAsync]
+        :end-before: [End RunAsync]
+
+.. tab:: C++
+
+  .. literalinclude:: ../../snippets/cpp/using/first_run.cpp
+        :language: cpp
+        :start-after: [Begin RunAsync]
+        :end-before: [End RunAsync]
+
+More information about parallelizing execution can be found at the :ref:`mqpu-platform` page.
+
+
+.. note:: 
+
+  Currently, `run` and `run_async` are only supported on simulator targets.
+
 
 Observe
 +++++++++
@@ -140,7 +231,7 @@ The observe function allows us to calculate expectation values for a defined qua
 
 Below is an example of a spin operator object consisting of a `Z(0)` operator, or a Pauli Z-operator on the qubit zero. 
 This is followed by the construction of a kernel with a single qubit in an equal superposition. 
-The Hamiltonian is printed to confirm it has been constructed properly.
+The Hamiltonian is printed to confirm that it has been constructed properly.
 
 .. tab:: Python
 
@@ -230,7 +321,7 @@ all of the available targets and ways to accelerate kernel execution, visit the
 
   To compare the performance, we can create a simple timing script that isolates just the call
   to `cudaq::sample`. We are still using the same GHZ kernel as earlier, but the following
-  modification made to the main function:
+  modification is made to the main function:
 
   .. literalinclude:: ../../snippets/cpp/using/time.cpp
     :language: cpp

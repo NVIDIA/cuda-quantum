@@ -11,15 +11,19 @@ set(LIBRARY_NAME cudaq-common)
 
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
+  CodeGenConfig.cpp
   CustomOp.cpp
+  DeviceCodeRegistry.cpp
   Environment.cpp
   Executor.cpp
+  ExtraPayloadProvider.cpp
   Future.cpp
   Logger.cpp
-  MeasureCounts.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
+  RuntimeTarget.cpp
+  SampleResult.cpp
   ServerHelper.cpp
   Trace.cpp
 )
@@ -87,6 +91,7 @@ endif()
 add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
+    CodeGenConfig.cpp
     Environment.cpp
     JIT.cpp
     Logger.cpp
@@ -96,6 +101,7 @@ add_library(cudaq-mlir-runtime
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 set_source_files_properties(
+    CodeGenConfig.cpp
     Environment.cpp
     JIT.cpp
     Logger.cpp

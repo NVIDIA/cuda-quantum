@@ -30,14 +30,13 @@ def assert_close(got) -> bool:
 def startUpMockServer():
     # We need a Fake Credentials Config file
     credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
-    f = open(credsName, 'w')
-    f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
-    f.close()
+
+    # Create Nexus credential file (cookie format)
+    with open(credsName, 'w') as f:
+        f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",
+                                                       "nexus_refresh"))
 
     cudaq.set_random_seed(13)
-
-    # Set the targeted QPU
-    cudaq.set_target('quantinuum', url='http://localhost:{}'.format(port))
 
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
@@ -57,11 +56,11 @@ def startUpMockServer():
 
 @pytest.fixture(scope="function", autouse=True)
 def configureTarget(startUpMockServer):
-
-    # Set the targeted QPU with credentials
+    # Set the target
     cudaq.set_target('quantinuum',
                      url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer)
+                     credentials=startUpMockServer,
+                     project='mock_project_id')
 
     yield "Running the test."
     cudaq.reset_target()
@@ -197,7 +196,8 @@ def test_quantinuum_state_synthesis_from_simulator():
         qubits = cudaq.qvector(state)
 
     state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
 
     counts = cudaq.sample(kernel, state)
     assert "00" in counts

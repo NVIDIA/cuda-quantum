@@ -44,7 +44,7 @@ bool factory::isAArch64(ModuleOp module) {
 }
 
 template <bool isOutput>
-static Type genBufferType(Type ty) {
+Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
@@ -88,7 +88,7 @@ factory::buildInvokeStructType(FunctionType funcTy,
       eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys);
+  return cudaq::cc::StructType::get(ctx, eleTys, /*packed=*/false);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
@@ -357,6 +357,27 @@ static cc::StructType stlHostVectorType(Type eleTy) {
   return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, padout});
 }
 
+bool factory::isStlVectorBoolHostType(Type ty) {
+  auto strTy = dyn_cast<cc::StructType>(ty);
+  if (!strTy)
+    return false;
+  if (strTy.getMembers().size() != 2)
+    return false;
+  auto ptrTy = dyn_cast<cc::PointerType>(strTy.getMember(0));
+  if (!ptrTy)
+    return false;
+  if (ptrTy.getElementType() != IntegerType::get(ty.getContext(), 1))
+    return false;
+  auto arrTy = dyn_cast<cc::ArrayType>(strTy.getMember(1));
+  if (!arrTy)
+    return false;
+  if (arrTy.getElementType() != IntegerType::get(ty.getContext(), 8))
+    return false;
+  if (arrTy.isUnknownSize() || (arrTy.getSize() != 32))
+    return false;
+  return true;
+}
+
 // FIXME: Give these front-end names so we can disambiguate more types.
 cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
@@ -374,7 +395,7 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
   if (auto spanTy = dyn_cast<cc::SpanLikeType>(funcTy.getResult(0)))
-    return stlVectorType(spanTy.getElementType());
+    return stlHostVectorType(spanTy.getElementType());
   return funcTy.getResult(0);
 }
 
@@ -530,6 +551,8 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   if (isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>(resTy))
     return true;
   if (auto strTy = dyn_cast<cc::StructType>(resTy)) {
+    if (strTy.getMembers().empty())
+      return false;
     SmallVector<Type> packedTys;
     bool inRegisters = shouldExpand(packedTys, strTy) || !packedTys.empty();
     return !inRegisters;
@@ -772,4 +795,17 @@ factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
   return {func, /*defined=*/false};
 }
 
+void factory::mergeModules(ModuleOp into, ModuleOp from) {
+  for (Operation &op : from) {
+    auto sym = dyn_cast<SymbolOpInterface>(op);
+    if (!sym)
+      continue; // Only merge named symbols, avoids duplicating anonymous ops.
+
+    // If `into` already has a symbol with this name, skip it.
+    if (SymbolTable::lookupSymbolIn(into, sym.getName()))
+      continue;
+
+    into.push_back(op.clone());
+  }
+}
 } // namespace cudaq::opt

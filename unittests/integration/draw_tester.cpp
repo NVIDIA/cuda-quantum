@@ -14,7 +14,7 @@ CUDAQ_TEST(DrawTester, checkEmpty) {
   auto kernel = []() __qpu__ {};
 
   std::string expected_str = "";
-  auto produced_str = cudaq::draw(kernel);
+  auto produced_str = cudaq::contrib::draw(kernel);
   EXPECT_EQ(expected_str, produced_str);
 }
 
@@ -87,7 +87,7 @@ q3 : ┤ h ├──────────────────────
   // clang-format on
 
   expected_str = expected_str.substr(1);
-  std::string produced_str = cudaq::draw(kernel);
+  std::string produced_str = cudaq::contrib::draw(kernel);
   EXPECT_EQ(expected_str.size(), produced_str.size());
   EXPECT_EQ(expected_str, produced_str);
 }
@@ -108,7 +108,7 @@ CUDAQ_TEST(LatexDrawTester, checkOps) {
 )";
   // clang-format on
   expected_str = expected_str.substr(1);
-  std::string produced_str = cudaq::draw("latex", kernel);
+  std::string produced_str = cudaq::contrib::draw("latex", kernel);
   EXPECT_EQ(expected_str.size(), produced_str.size());
   EXPECT_EQ(expected_str, produced_str);
 }

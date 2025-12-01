@@ -17,9 +17,12 @@
 
 namespace cudaq {
 
-namespace {
+namespace details {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
+  if (!py::hasattr(kernel, "arguments"))
+    throw std::runtime_error(
+        "unrecognized kernel - did you forget the @kernel attribute?");
   if (py::len(kernel.attr("arguments")) != args.size())
     throw std::runtime_error("Invalid number of arguments passed to draw:" +
                              std::to_string(args.size()) + " expected " +
@@ -35,28 +38,29 @@ getKernelLaunchParameters(py::object &kernel, py::args args) {
 
   return {kernelName, kernelMod, argData};
 }
-} // namespace
 
-/// @brief Run `cudaq::draw` on the provided kernel.
+} // namespace details
+
+/// @brief Run `cudaq::contrib::draw` on the provided kernel.
 std::string pyDraw(py::object &kernel, py::args args) {
   auto [kernelName, kernelMod, argData] =
-      getKernelLaunchParameters(kernel, args);
+      details::getKernelLaunchParameters(kernel, args);
 
-  return details::extractTrace([&]() mutable {
+  return contrib::extractTrace([&]() mutable {
     pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
     delete argData;
   });
 }
 
-/// @brief Run `cudaq::draw`'s string overload on the provided kernel.
+/// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 std::string pyDraw(std::string format, py::object &kernel, py::args args) {
   if (format == "ascii") {
     return pyDraw(kernel, args);
   } else if (format == "latex") {
     auto [kernelName, kernelMod, argData] =
-        getKernelLaunchParameters(kernel, args);
+        details::getKernelLaunchParameters(kernel, args);
 
-    return details::extractTraceLatex([&]() mutable {
+    return contrib::extractTraceLatex([&]() mutable {
       pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
       delete argData;
     });

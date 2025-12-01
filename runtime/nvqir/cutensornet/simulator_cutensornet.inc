@@ -29,6 +29,41 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
   // Check whether observe path reuse is enabled.
   m_reuseContractionPathObserve =
       cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
+
+  bool limit_pathfinding = cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_LIMIT", true);
+  if (!limit_pathfinding) {
+    CUDAQ_INFO("Disabling cutensornet smart opt");
+    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SMART_OPTION","0",1);
+  }
+
+  bool deterministic = cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_DETERMINISTIC",
+                                         false);
+  if (deterministic) {
+    CUDAQ_INFO("Enabling deterministic tensornet with 1 pathfinding thread");
+    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS",
+           "1",1);
+  }
+
+  if (auto *finder_threads = std::getenv("CUDAQ_TENSORNET_FIND_THREADS")) {
+    const std::string nthreads_str(finder_threads);
+    int nthreads = -1;
+    try {
+      nthreads = std::stoi(nthreads_str);
+    } catch (const std::invalid_argument &e) {
+      nthreads = -1;
+    } catch (const std::out_of_range &e) {
+      nthreads = -1;
+    }
+    if (nthreads < 1)
+      throw std::runtime_error("Invalid CUDAQ_TENSORNET_FIND_THREADS setting" +
+                               nthreads_str);
+    if (deterministic && nthreads > 1)
+      CUDAQ_WARN("Ignoring CUDAQ_TENSORNET_FIND_THREADS due to CUDAQ_TENSORNET_FIND_DETERMINISTIC");
+    else {
+      CUDAQ_INFO("Setting the # of pathfinding threads to {}", finder_threads);
+      setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS", finder_threads, 1);
+    }
+  }
 }
 
 template <typename T>
@@ -238,7 +273,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoise(
 
   // Apply all prior gates before applying noise.
   std::vector<int32_t> qubits{targets.begin(), targets.end()};
-  cudaq::info(
+  CUDAQ_INFO(
       "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
       cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
@@ -273,7 +308,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
   if (krausChannels.empty())
     return;
 
-  cudaq::info(
+  CUDAQ_INFO(
       "[SimulatorTensorNetBase] Applying {} kraus channels on qubits: {}",
       krausChannels.size(), qubits);
 
@@ -293,7 +328,7 @@ void SimulatorTensorNetBase<ScalarType>::resetQubit(
   const auto rdm = m_state->computeRDM({static_cast<int32_t>(qubitIdx)});
   assert(rdm.size() == 4);
   const ScalarType prob0 = rdm[0].real();
-  cudaq::info("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
+  CUDAQ_INFO("Reset qubit {} with prob(|0>) = {}", qubitIdx, prob0);
   // If this is a zero state, no need to do anything.
   if (std::abs(1.0 - prob0) < 1e-9)
     return;
@@ -429,7 +464,7 @@ bool SimulatorTensorNetBase<ScalarType>::canHandleObserve() {
       this->executionContext->shots != ~0ull) {
     // This 'shots' mode is very slow for tensor network.
     // However, we need to respect the shots option.
-    cudaq::info("[SimulatorTensorNetBase] Shots mode expectation calculation "
+    CUDAQ_INFO("[SimulatorTensorNetBase] Shots mode expectation calculation "
                 "is requested with {} shots.",
                 this->executionContext->shots);
 
@@ -549,6 +584,15 @@ void SimulatorTensorNetBase<ScalarType>::swap(
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::setRandomSeed(std::size_t randomSeed) {
   m_randomEngine = std::mt19937(randomSeed);
+  // Although we set the pathfinder seed here, it is only deterministic when
+  // the number of pathfinding threads is 1. Note that this does not override a
+  // user setting for this environment variable. cutensornet uses int32_t but
+  // requires the environment variable to be positive
+  int32_t rndSeed = m_randomEngine();
+  rndSeed = std::abs(rndSeed);
+  if (rndSeed == 0) rndSeed++;
+  setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SEED",
+         std::to_string(rndSeed).c_str(),0);
 }
 
 template <typename ScalarType>

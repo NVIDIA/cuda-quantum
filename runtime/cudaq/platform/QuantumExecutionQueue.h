@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include <condition_variable>
 #include <functional>
 #include <future>

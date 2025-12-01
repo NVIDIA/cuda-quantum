@@ -16,8 +16,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != CUDENSITYMAT_STATUS_SUCCESS) {                                  \
-      throw std::runtime_error(fmt::format("[cudaq] %{} in {} (line {})", err, \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(fmt::format("[cudaq] %{} in {} (line {})",      \
+                                           fmt::underlying(err), __FUNCTION__, \
+                                           __LINE__));                         \
     }                                                                          \
   }
 
@@ -25,8 +26,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[cuda] %{} in {} (line {})", err,  \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(fmt::format("[cuda] %{} in {} (line {})",       \
+                                           fmt::underlying(err), __FUNCTION__, \
+                                           __LINE__));                         \
     }                                                                          \
   }
 
@@ -34,7 +36,8 @@
   do {                                                                         \
     cublasStatus_t err_ = (err);                                               \
     if (err_ != CUBLAS_STATUS_SUCCESS) {                                       \
-      std::printf("[cublas] error %d at %s:%d\n", err_, __FILE__, __LINE__);   \
+      std::printf("[cublas] error %d at %s:%d\n", fmt::underlying(err_),       \
+                  __FILE__, __LINE__);                                         \
       throw std::runtime_error("cublas error");                                \
     }                                                                          \
   } while (0)

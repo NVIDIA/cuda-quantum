@@ -1,0 +1,33 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir:0.1 %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__branching() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  %2 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+  quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+  %3 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  %measOut = quake.mz %3 : (!quake.ref) -> !quake.measure
+  %4 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cf.cond_br %4, ^bb1, ^bb2
+^bb1:  // pred: ^bb0
+  quake.h %1 : (!quake.ref) -> ()
+  cf.br ^bb3
+^bb2:  // pred: ^bb0
+  quake.h %2 : (!quake.ref) -> ()
+  cf.br ^bb3
+^bb3:  // 2 preds: ^bb1, ^bb2
+  return
+}
+
+// CHECK-LABEL:   define void @__nvqpp__mlirgen__branching()
+// CHECK:   %[[VAL_0:.*]] = select i1 %{{.*}}, %Qubit* %{{.*}}, %Qubit* %{{.*}}
+// CHECK:   tail call void @__quantum__qis__h(%Qubit* %[[VAL_0]])

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "BatchingUtils.h"
 #include "CuDensityMatContext.h"
 #include "CuDensityMatExpectation.h"
 #include "CuDensityMatState.h"
@@ -54,12 +55,63 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
             auto liouvillian = cudaq::dynamics::Context::getCurrentContext()
                                    ->getOpConverter()
                                    .constructLiouvillian(
-                                       hamiltonian, collapse_ops, modeExtents,
-                                       params, is_master_equation);
+                                       {hamiltonian}, {collapse_ops},
+                                       modeExtents, params, is_master_equation);
             return PyCuDensityMatTimeStepper(
                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
                 liouvillian, schedule);
           }))
+      .def(py::init([](cudaq::schedule schedule,
+                       std::vector<int64_t> modeExtents,
+                       cudaq::super_op superOp) {
+        std::unordered_map<std::string, std::complex<double>> params;
+        for (const auto &param : schedule.get_parameters()) {
+          params[param] = schedule.get_value_function()(param, 0.0);
+        }
+        auto liouvillian =
+            cudaq::dynamics::Context::getCurrentContext()
+                ->getOpConverter()
+                .constructLiouvillian({superOp}, modeExtents, params);
+        return PyCuDensityMatTimeStepper(
+            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+            liouvillian, schedule);
+      }))
+      .def(py::init([](cudaq::schedule schedule,
+                       std::vector<int64_t> modeExtents,
+                       const std::vector<cudaq::sum_op<cudaq::matrix_handler>>
+                           &hamiltonians,
+                       const std::vector<
+                           std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+                           &list_collapse_ops,
+                       bool is_master_equation) {
+        std::unordered_map<std::string, std::complex<double>> params;
+        for (const auto &param : schedule.get_parameters()) {
+          params[param] = schedule.get_value_function()(param, 0.0);
+        }
+        auto liouvillian =
+            cudaq::dynamics::Context::getCurrentContext()
+                ->getOpConverter()
+                .constructLiouvillian(hamiltonians, list_collapse_ops,
+                                      modeExtents, params, is_master_equation);
+        return PyCuDensityMatTimeStepper(
+            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+            liouvillian, schedule);
+      }))
+      .def(py::init([](cudaq::schedule schedule,
+                       std::vector<int64_t> modeExtents,
+                       const std::vector<cudaq::super_op> &superOps) {
+        std::unordered_map<std::string, std::complex<double>> params;
+        for (const auto &param : schedule.get_parameters()) {
+          params[param] = schedule.get_value_function()(param, 0.0);
+        }
+        auto liouvillian =
+            cudaq::dynamics::Context::getCurrentContext()
+                ->getOpConverter()
+                .constructLiouvillian(superOps, modeExtents, params);
+        return PyCuDensityMatTimeStepper(
+            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+            liouvillian, schedule);
+      }))
       .def("compute", [](PyCuDensityMatTimeStepper &self,
                          cudaq::state &inputState, double t) {
         std::unordered_map<std::string, std::complex<double>> params;
@@ -75,7 +127,8 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       .def_readwrite("modeExtents", &cudaq::SystemDynamics::modeExtents)
       .def_readwrite("hamiltonian", &cudaq::SystemDynamics::hamiltonian)
       .def_readwrite("collapseOps", &cudaq::SystemDynamics::collapseOps)
-      .def_readwrite("parameters", &cudaq::SystemDynamics::parameters);
+      .def_readwrite("parameters", &cudaq::SystemDynamics::parameters)
+      .def_readwrite("superOp", &cudaq::SystemDynamics::superOp);
 
   // Expectation calculation
   py::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")
@@ -183,6 +236,24 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
     if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
       cudaq::dynamics::dumpPerfTrace();
   });
+
+  // Helper to check if operators can be batched.
+  m.def(
+      "checkBatchingCompatibility",
+      [](const std::vector<cudaq::sum_op<cudaq::matrix_handler>> &hamOps,
+         const std::vector<std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
+             &listCollapseOps) {
+        return cudaq::__internal__::checkBatchingCompatibility(hamOps,
+                                                               listCollapseOps);
+      },
+      py::arg("hamiltonians"), py::arg("collapse_operators"));
+
+  m.def(
+      "checkSuperOpBatchingCompatibility",
+      [](const std::vector<cudaq::super_op> &super_operators) {
+        return cudaq::__internal__::checkBatchingCompatibility(super_operators);
+      },
+      py::arg("super_operators"));
 
   auto integratorsSubmodule = m.def_submodule("integrators");
 

@@ -15,22 +15,21 @@
 #include <memory>
 #include <mutex>
 
-namespace {
-static std::unordered_map<int, std::unique_ptr<cudaq::dynamics::Context>>
-    g_contexts;
-static std::mutex g_contextMutex;
-} // namespace
-
 namespace cudaq::dynamics {
 /// @brief Get the current CUDA context for the active device.
 /// @return Context* Pointer to the current context.
 Context *Context::getCurrentContext() {
   int currentDevice = -1;
   HANDLE_CUDA_ERROR(cudaGetDevice(&currentDevice));
+
+  static std::unordered_map<int, std::unique_ptr<cudaq::dynamics::Context>>
+      g_contexts;
+  static std::mutex g_contextMutex;
+
   std::lock_guard<std::mutex> guard(g_contextMutex);
   const auto iter = g_contexts.find(currentDevice);
   if (iter == g_contexts.end()) {
-    cudaq::info("Create cudensitymat context for device Id {}", currentDevice);
+    CUDAQ_INFO("Create cudensitymat context for device Id {}", currentDevice);
     const auto [insertedIter, success] = g_contexts.emplace(std::make_pair(
         currentDevice, std::unique_ptr<Context>(new Context(currentDevice))));
     if (!success)
@@ -51,8 +50,8 @@ void *Context::getScratchSpace(std::size_t minSizeBytes) {
       cudaq::dynamics::DeviceAllocator::free(m_scratchSpace);
     }
 
-    cudaq::info("Allocate scratch buffer of size {} bytes on device {}",
-                minSizeBytes, m_deviceId);
+    CUDAQ_INFO("Allocate scratch buffer of size {} bytes on device {}",
+               minSizeBytes, m_deviceId);
 
     m_scratchSpace = cudaq::dynamics::DeviceAllocator::allocate(minSizeBytes);
     m_scratchSpaceSizeBytes = minSizeBytes;
@@ -109,8 +108,8 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
     if (dupStatus != 0 || dupComm == nullptr)
       throw std::runtime_error("Failed to duplicate the MPI communicator when "
                                "initializing cuDensityMat MPI");
-    cudaq::info("cudensitymatResetDistributedConfiguration for handle {}\n",
-                m_cudmHandle);
+    CUDAQ_INFO("cudensitymatResetDistributedConfiguration for handle {}\n",
+               m_cudmHandle);
     HANDLE_CUDM_ERROR(cudensitymatResetDistributedConfiguration(
         m_cudmHandle, CUDENSITYMAT_DISTRIBUTED_PROVIDER_MPI, dupComm->commPtr,
         dupComm->commSize));

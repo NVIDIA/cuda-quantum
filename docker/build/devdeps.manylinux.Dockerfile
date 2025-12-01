@@ -95,7 +95,7 @@ RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
 
 # Install CUDA
 
-ARG cuda_version=11.8
+ARG cuda_version=12.6
 ENV CUDA_VERSION=${cuda_version}
 
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
@@ -105,7 +105,8 @@ RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -)
+        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcusparse-devel-$(echo ${CUDA_VERSION} | tr . -)
 
 ENV CUDA_INSTALL_PREFIX=/usr/local/cuda-$CUDA_VERSION
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"

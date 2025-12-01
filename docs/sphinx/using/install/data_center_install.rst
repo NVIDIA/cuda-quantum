@@ -52,8 +52,8 @@ will be installed and used.
   with the `AlmaLinux 8 image <https://hub.docker.com/u/almalinux>`__ that
   serves as the base image for the `manylinux_2_28 image
   <https://github.com/pypa/manylinux>`__, and should work for the operating
-  systems CentOS 8, Debian 11 and 12, Fedora 38 and 39, OpenSUSE/SLED/SLES 15.5
-  and 15.6, RHEL 8 and 9, Rocky 8 and 9, and Ubuntu 24.04 and 22.04. Other 
+  systems CentOS 8, Debian 11 and 12, Fedora 41, OpenSUSE/SLED/SLES 15.5
+  and 15.6, RHEL 8 and 9, Rocky 8 and 9, Ubuntu 24.04 and 22.04. Other 
   operating systems may work, but have not been tested.
 - `Bash <https://www.gnu.org/software/bash/>`__ shell. The CUDA-Q 
   build, install and run scripts expect to use `/bin/bash`.
@@ -149,7 +149,7 @@ CUDA
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
-The instructions are tested using version 11.8 and 12.0, but other CUDA 11 or 12 versions
+The instructions are tested using version 12.6 and 13.0, but other CUDA 12 or 13 versions
 should work, as long as the CUDA runtime version on the host system matches the 
 CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
@@ -160,7 +160,7 @@ following the installation guide for your platform in the online documentation
 linked on that page.
 
 Within the tested AlmaLinux 8 environment, for example, the following commands
-install CUDA 12.0:
+install CUDA 12.6:
 
 .. literalinclude:: ../../../../scripts/configure_build.sh
     :language: bash
@@ -255,8 +255,8 @@ Python-specific tools:
 
 .. note::
 
-  The wheel build by default is configured to depend on CUDA 12. To build a wheel for CUDA 11, 
-  you need to adjust the dependencies and project name in the `pyproject.toml` file. 
+  The wheel build by default is configured to depend on CUDA 13. To build a wheel for CUDA 12, 
+  you need to copy the `pyproject.toml.cu12` file as `pyproject.toml`. 
 
 From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:

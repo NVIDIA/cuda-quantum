@@ -12,7 +12,7 @@
 #include "common/Executor.h"
 #include "common/FmtCore.h"
 #include "common/Logger.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq.h"
 #include <aws/braket/BraketClient.h>
 #include <aws/core/Aws.h>
@@ -39,7 +39,7 @@ protected:
 
   public:
     ScopedApi(Aws::SDKOptions &options) : options(options) {
-      cudaq::debug("Initializing AWS API");
+      CUDAQ_DBG("Initializing AWS API");
       /// FIXME: Allow setting following flag via CUDA-Q frontend
       // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
       Aws::InitAPI(options);
@@ -75,7 +75,8 @@ public:
 
   /// @brief Execute the provided Braket task
   details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          bool isObserve) override;
+                          cudaq::details::ExecutionContextType execType,
+                          std::vector<char> *rawOutput) override;
 
   /// @brief Set the server helper
   void setServerHelper(ServerHelper *helper) override;

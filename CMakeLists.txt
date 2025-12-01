@@ -103,6 +103,16 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
+# Enable Quantum Circuits, Inc. (QCI) target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
+  set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
+endif()
+
+# Enable Quantum Machines target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
+  set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ON CACHE BOOL "Enable building the Quantum Machines target.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -528,8 +538,17 @@ endfunction()
 
 if(CMAKE_CUDA_COMPILER)
   if (NOT CUDA_TARGET_ARCHS)
-    # Volta, Ampere, Hopper
-    set(CUDA_TARGET_ARCHS  "70;80;90")
+    find_package(CUDAToolkit REQUIRED)
+
+    message(STATUS "Found CUDA Toolkit version: ${CUDAToolkit_VERSION}")
+
+    if (CUDAToolkit_VERSION VERSION_LESS 13.0)
+      # Turing, Ampere, Hopper
+      set(CUDA_TARGET_ARCHS  "75;80;90")
+    else()
+      # Turing, Ampere, Hopper, Blackwell
+      set(CUDA_TARGET_ARCHS  "75;80;90;100")
+    endif()
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
   set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")

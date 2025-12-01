@@ -17,10 +17,12 @@ config:
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
-  # Define the lowering pipeline
-  platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(canonicalize,state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,expand-measurements,classical-optimization-pipeline,decomposition{enable-patterns=U3ToRotations},func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),quantinuum-gate-set-mapping"
+  # Define the JIT lowering pipeline
+  jit-high-level-pipeline: "expand-measurements"
+  jit-mid-level-pipeline: "quantinuum-gate-set-mapping"
+  jit-low-level-pipeline: "func.func(combine-quantum-alloc,qubit-reset-before-reuse)"
   # Tell the rest-qpu that we are generating Adaptive QIR.
-  codegen-emission: qir-adaptive[int_computations]
+  codegen-emission: qir-adaptive:0.1:int_computations
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 
@@ -32,6 +34,57 @@ target-arguments:
     help-string: "Specify the URL."
   - key: machine
     required: false
-    type: string
+    type: machine-config
     platform-arg: machine 
     help-string: "Specify QPU."
+    machine-config:
+      - arch-name: H-series
+        machine-names: 
+          - H2-1SC
+          - H2-1
+          - H2-1SC
+          - H2-1E
+          - H2-2
+          - H2-2SC
+          - H2-2E
+        config: 
+          codegen-emission: qir-adaptive:0.1:int_computations
+      - arch-name: Helios
+        pattern: Helios.*
+        config: 
+          codegen-emission: qir-adaptive:1.0:int_computations,float_computations,output_log
+  - key: project
+    required: true
+    type: string
+    platform-arg: project
+    help-string: "Specify the Nexus project name or ID."
+  - key: credentials
+    required: false
+    type: string
+    platform-arg: credentials
+    help-string: "Specify the path to the credentials file."
+  - key: max-cost
+    required: false
+    type: string
+    platform-arg: max_cost
+    help-string: "Specify the max HQC cost for a job submission."
+  - key: max-qubits
+    required: false
+    type: string
+    platform-arg: max_qubits
+    help-string: "Specify the maximum number of qubits for a job submission."
+  - key: noisy-simulation
+    required: false
+    type: string
+    platform-arg: noisy_simulation
+    help-string: "Enable/disable noisy simulation if using the emulator device."
+  - key: extra-payload-provider
+    required: false
+    type: string
+    platform-arg: extra_payload_provider
+    help-string: "Specify the extra payload provider if any."
+  - key: simulator
+    required: false
+    type: string
+    platform-arg: simulator
+    help-string: "If machine is a simulator, the type of simulator to use."

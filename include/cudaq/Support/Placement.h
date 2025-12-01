@@ -30,10 +30,10 @@ public:
       : vrToPhy(numVr), phyToVr(numPhy) {}
 
   /// Returns the number of virtual qubits
-  unsigned getNumVirtualQ() const { return vrToPhy.size(); }
+  unsigned getNumVirtualQubits() const { return vrToPhy.size(); }
 
   /// Returns the number of physical qubits on the device
-  unsigned getNumDeviceQ() const { return phyToVr.size(); }
+  unsigned getNumDeviceQubits() const { return phyToVr.size(); }
 
   /// Returns the virtual qubit placed on physical qubit \p phy
   VirtualQ getVr(DeviceQ phy) const {
@@ -68,6 +68,17 @@ public:
     if (vr1.isValid())
       vrToPhy[vr1.index] = phy0;
     std::swap(phyToVr[phy0.index], phyToVr[phy1.index]);
+  }
+
+  void dump(llvm::raw_ostream &os = llvm::errs()) const {
+    os << "Device qubits:\n";
+    for (unsigned i = 0; i < getNumDeviceQubits(); ++i) {
+      os << "Q" << i << " -> " << getVr(DeviceQ(i)) << "\n";
+    }
+    os << "Virtual qubits:\n";
+    for (unsigned i = 0; i < getNumVirtualQubits(); ++i) {
+      os << "Q" << i << " -> " << getPhy(VirtualQ(i)) << "\n";
+    }
   }
 
 private:

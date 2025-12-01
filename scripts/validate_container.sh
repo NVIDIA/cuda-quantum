@@ -105,6 +105,13 @@ else
     done    
 fi
 
+# Temporary solution until we stop reading backends names from configuration file.
+# This avoids duplicate testing during container validation in the publishing task.
+for backend_to_remove in nvidia-fp64 nvidia-mgpu nvidia-mqpu-fp64 nvidia-mqpu-mps nvidia-mqpu
+do
+    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
+done
+
 echo
 echo "Installed backends:"
 echo "$installed_backends"
@@ -196,7 +203,7 @@ do
             # Skipped long-running tests (variational optimization loops) for the "remote-mqpu" target to keep CI runtime managable.
             # A simplified test for these use cases is included in the 'test/Remote-Sim/' test suite. 
             # Skipped tests that require passing kernel callables to entry-point kernels for the "remote-mqpu" target.
-            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"multi_controlled_operations"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel_mode"* || "$ex" == *"builder.cpp"* ]];
+            if [[ "$ex" == *"vqe_h2"* || "$ex" == *"qaoa_maxcut"* || "$ex" == *"gradients"* || "$ex" == *"grover"* || "$ex" == *"phase_estimation"* || "$ex" == *"trotter_kernel_mode"* || "$ex" == *"builder.cpp"* ]];
             then
                 let "skipped+=1"
                 echo "Skipping $t target.";
@@ -306,7 +313,7 @@ do
     let "samples+=1"
 
     skip_example=false
-    explicit_targets=`cat $ex | grep -Po '^\s*cudaq.set_target\("\K.*(?=")'`
+    explicit_targets=`cat $ex | grep -Po "^\s*cudaq.set_target\((['\"])\K.*?(?=\1)"`
     for t in $explicit_targets; do
         if [ -z "$(echo $requested_backends | grep $t)" ]; then 
             echo "Explicitly set target $t not available."
@@ -343,10 +350,50 @@ do
 done
 
 if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
-    echo "Validating notebooks:"
-    export OMP_NUM_THREADS=8 
-    echo "$available_backends" | python3 notebook_validation.py
-    if [ $? -eq 0 ]; then 
+    let "samples+=1"
+    echo "============================="
+    echo "== Setting up notebook venv =="
+    echo "============================="
+    
+    # Create venv that inherits system packages (including cudaq from container)
+    # Notebooks will install their own dependencies via !pip install commands
+    NOTEBOOK_VENV="/tmp/cudaq_notebook_validation_venv"
+    rm -rf "$NOTEBOOK_VENV"  # Clean any previous venv
+    python3 -m venv --system-site-packages "$NOTEBOOK_VENV"
+    source "$NOTEBOOK_VENV/bin/activate"
+    
+    echo "Installing Jupyter kernel infrastructure..."
+    # Only install what's needed to register the kernel
+    pip install --upgrade pip -q
+    pip install jupyter ipykernel notebook -q
+    
+    # Register the venv as a Jupyter kernel
+    # Notebooks will execute in this environment and can install their own packages
+    JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"
+    python3 -m ipykernel install --user \
+        --name="$JUPYTER_KERNEL_NAME" \
+        --display-name="Python (CUDA-Q Container Notebook Validation)" \
+        2>/dev/null
+    
+    echo "Jupyter kernel '${JUPYTER_KERNEL_NAME}' registered."
+    echo "Notebooks will install their own dependencies during execution."
+    
+    echo "============================="
+    echo "==  Validating notebooks   =="
+    echo "============================="
+    export OMP_NUM_THREADS=8
+    
+    # Pass the Jupyter kernel name as first argument to notebook_validation.py
+    echo "$available_backends" | python3 notebook_validation.py "$JUPYTER_KERNEL_NAME"
+    validation_status=$?
+    
+    # Cleanup - removes venv and kernel, system packages remain untouched
+    echo "Cleaning up notebook validation environment..."
+    jupyter kernelspec uninstall -f "$JUPYTER_KERNEL_NAME" 2>/dev/null || true
+    deactivate
+    rm -rf "$NOTEBOOK_VENV"
+    
+    if [ $validation_status -eq 0 ]; then 
         let "passed+=1"
         echo ":white_check_mark: Notebooks validation passed." >> "${tmpFile}"
     else

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 
 using namespace cudaq;
 

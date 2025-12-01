@@ -390,7 +390,13 @@ def cc_IfOp : CCOp<"if",
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
                               "mlir::Region &)>":$thenBuilder,
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
-           "mlir::Region &)>", "nullptr">:$elseBuilder)>
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
+    OpBuilder<(ins "mlir::TypeRange":$resultTypes, "mlir::Value":$cond,
+      "mlir::ValueRange":$linearVals,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$thenBuilder,
+      CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
   ];
 
   let hasCustomAssemblyFormat = 1;
@@ -1648,11 +1654,13 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     outlined λ function in the following example.
 
     ```mlir
-      %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) -> !cc.callable<(i32) -> ()>
+      %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) ->
+          !cc.callable<(i32) -> ()>
       ...
 
       // Trampoline function
-      func.func private @trampoline.54(%arg0: !cc.callable<(i32) -> ()>, %arg1: i32) {
+      func.func private @trampoline.54(%arg0: !cc.callable<(i32) -> ()>,
+                                       %arg1: i32) {
         %0 = cc.callable_closure %arg0: !cc.callable<(i32) -> ()> -> f64
         call @lifted_lambda.54(%0, %arg1) : (f64, i32) -> ()
       }
@@ -1706,7 +1714,8 @@ def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
     ```mlir
       %0 = ... : !cc.callable<(i32) -> i8>
       %1 = ... : i32
-      %2 = cc.callable_func %0 : (!cc.callable<(i32) -> i8>) -> ((!cc.callable<(i32) -> i8>, i32) -> i8)
+      %2 = cc.callable_func %0 : (!cc.callable<(i32) -> i8>) ->
+          ((!cc.callable<(i32) -> i8>, i32) -> i8)
       %3 = call_indirect %2(%0, %1) : (!cc.callable<(i32) -> i8>, i32) -> i8
     ```
 
@@ -1744,7 +1753,8 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
     ```mlir
       %0 = ... !cc.callable<(i32) -> i8>
       %1 = ... : i32
-      %2:2 = cc.callable_closure %0 : (!cc.callable<(i32) -> i8>) -> (!quake.wire, i1)
+      %2:2 = cc.callable_closure %0 : (!cc.callable<(i32) -> i8>) ->
+               (!quake.wire, i1)
       %3 = call @lifted_lambda.72(%2#0, %2#1, %1) : (!quake.wire, i1, i32) -> i8
     ```
 
@@ -1759,8 +1769,130 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
   }];
 }
 
-def cc_VarargCallOp :
-    CCOp<"call_vararg", [CallOpInterface, SymbolUserOpInterface]> {
+def cc_NoInlineCallOp : CCOp<"noinline_call",
+    [CallOpInterface, SymbolUserOpInterface]> {
+  let summary = "Create a call that the inliner will not inline.";
+  let description = [{
+    The MLIR inliner in LLVM 16 is too smart and will inline trivial calls.
+    Moreover, there is no mechanism in this version of MLIR to stop the inliner
+    from inlining these trivial functions.
+
+    The cc.noinline_call is therefore a special op that prevents the inliner
+    from doing the inlining by misreporting what function is called.
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>);
+
+  let assemblyFormat = [{
+    $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
+  }];
+
+  let extraClassDeclaration = [{
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// DO NOT RETURN the callee of this operation. This fools the inliner into
+    /// not knowing what is actually called.
+    mlir::CallInterfaceCallable getCallableForCallee() {
+      return mlir::FlatSymbolRefAttr::get(getContext(), ".no.inline");
+    }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
+  }];
+}
+
+def cc_DeviceCallOp : CCOp<"device_call",
+    [AttrSizedOperandSegments, CallOpInterface, SymbolUserOpInterface]> {
+  let summary = "Create a QPU callback.";
+  let description = [{
+    In a tightly coupled environment, the quantum code may callback to regular
+    classical C++ code on the control driver. This op is therefore used to
+    execute classical compute code from within a quantum kernel on the tightly
+    integrated (expanded) QPU model.
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnySignlessInteger>:$numBlocks,
+    Variadic<AnySignlessInteger>:$numThreadsPerBlock,
+    Optional<AnySignlessInteger>:$device,
+    Variadic<AnyType>:$args
+  );
+  let results = (outs Variadic<AnyType>);
+  let assemblyFormat = [{
+    $callee ( `<` $numBlocks^ ( `*` $numThreadsPerBlock^ )? `>` )?
+      ( `on` $device^ )? `(` $args `)`
+      `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
+
+  let builders = [
+    OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
+                   "mlir::ValueRange":$values), [{
+      return build($_builder, $_state, resTys, callee, mlir::ValueRange{},
+        mlir::ValueRange{},  mlir::Value{}, values);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
+                   "mlir::Value":$device, "mlir::ValueRange":$values), [{
+      return build($_builder, $_state, resTys, callee, mlir::ValueRange{},
+        mlir::ValueRange{}, device, values);
+    }]>,
+    OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
+                   "mlir::ValueRange":$blocks, "mlir::ValueRange":$threads,
+                   "mlir::ValueRange":$values), [{
+      return build($_builder, $_state, resTys, callee, blocks, threads,
+        mlir::Value{}, values);
+    }]>
+  ];
+
+  let extraClassDeclaration = [{
+    operand_range getArgOperands() {
+      return {arg_operand_begin(), arg_operand_end()};
+    }
+
+    operand_iterator arg_operand_begin() { return operand_begin(); }
+    operand_iterator arg_operand_end() { return operand_end(); }
+
+    /// Return the callee of this operation.
+    mlir::CallInterfaceCallable getCallableForCallee() {
+      return getCalleeAttr();
+    }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
+  }];
+}
+
+
+def cc_ResolveDevicePtrOp : CCOp<"resolve_device_ptr", []> {
+  let summary =
+    "Resolve a CUDA-Q driver device_ptr handle type to a memory pointer value.";
+  let description = [{
+    In a tightly coupled environment, the quantum code may allocate data
+    on the controller or available classical devices. This data is modeled via
+    CUDA-Q Driver device_ptr instances. These instances are handles to the
+    data on a specific device. This op is used to resolve the device_ptr
+    handle to a raw memory pointer.
+  }];
+
+  let arguments = (ins PointerOf<[cc_StructType]>:$devicePtr);
+  let results = (outs cc_PointerType);
+
+  let assemblyFormat = [{
+    $devicePtr `:` functional-type(operands, results) attr-dict
+  }];
+}
+
+def cc_VarargCallOp : CCOp<"call_vararg",
+    [CallOpInterface, SymbolUserOpInterface]> {
   let summary = "Create a call to an llvm.func with variadic arguments.";
   let description = [{
     This operation lets us create a call to an LLVMIR FuncOp with variadic
@@ -1799,12 +1931,25 @@ def cc_VarargCallOp :
   }];
 }
 
+def cc_LogOutputOp : CCOp<"log_output"> {
+  let summary = "Auto-generate calls to log the output of a runnable kernel.";
+  let description = [{
+    This operation is an abstraction for auto-generation of the necessary code
+    in the transport layer to log output results from a runnable kernel. The
+    assumption is that the transport layer supports something analogous to a
+    set of file output functions, something like `fprintf()`.
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$args);
+  let assemblyFormat = "$args `:` type(operands) attr-dict";
+}
+
 //===----------------------------------------------------------------------===//
 // Argument synthesis support
 //===----------------------------------------------------------------------===//
 
 def cc_ArgumentSubstitutionOp : CCOp<"arg_subst",
-  [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
+    [IsolatedFromAbove, NoRegionArguments, NoTerminator, SingleBlock]> {
   let summary = "An argument substition.";
   let description = [{
     This operation is used to define computations to produce a particular value.

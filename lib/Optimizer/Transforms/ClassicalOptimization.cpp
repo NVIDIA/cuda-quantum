@@ -115,14 +115,10 @@ struct ClassicalOptimizationPipelineOptions
 };
 } // namespace
 
-/// Add a pass pipeline to apply the requisite passes to optimize classical
-/// code. When converting to a quantum circuit, the static control program is
-/// fully expanded to eliminate control flow.
-static void createClassicalOptimizationPipeline(OpPassManager &pm,
-                                                unsigned threshold,
-                                                bool allowBreak,
-                                                bool allowClosedInterval) {
+static void createClassicalOptPipeline(
+    OpPassManager &pm, const ClassicalOptimizationPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createSROA());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
 
@@ -130,14 +126,27 @@ static void createClassicalOptimizationPipeline(OpPassManager &pm,
   // code.
   // TODO: run cse as a part of classical-optimization when we update the llvm
   // version.
-  cudaq::opt::ClassicalOptimizationOptions options{
-      threshold, allowClosedInterval, allowBreak};
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createClassicalOptimization(options));
+  cudaq::opt::ClassicalOptimizationOptions opts;
+  opts.threshold = options.threshold;
+  opts.allowClosedInterval = options.allowClosedInterval;
+  opts.allowBreak = options.allowBreak;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createClassicalOptimization(options));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUpdateRegisterNames());
+}
+
+void cudaq::opt::createClassicalOptimizationPipeline(
+    OpPassManager &pm, std::optional<unsigned> threshold,
+    std::optional<bool> allowBreak, std::optional<bool> allowClosedInterval) {
+  ClassicalOptimizationPipelineOptions options;
+  if (threshold.has_value())
+    options.threshold = *threshold;
+  if (allowClosedInterval.has_value())
+    options.allowClosedInterval = *allowClosedInterval;
+  if (allowBreak.has_value())
+    options.allowBreak = *allowBreak;
+  ::createClassicalOptPipeline(pm, options);
 }
 
 void cudaq::opt::registerClassicalOptimizationPipeline() {
@@ -145,8 +154,6 @@ void cudaq::opt::registerClassicalOptimizationPipeline() {
       "classical-optimization-pipeline", "Fully optimize classical code.",
       [](OpPassManager &pm,
          const ClassicalOptimizationPipelineOptions &options) {
-        createClassicalOptimizationPipeline(pm, options.threshold,
-                                            options.allowBreak,
-                                            options.allowClosedInterval);
+        ::createClassicalOptPipeline(pm, options);
       });
 }

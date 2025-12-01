@@ -9,14 +9,14 @@
 #pragma once
 
 #include "common/ExecutionContext.h"
-#include "common/MeasureCounts.h"
+#include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
-namespace __internal__ {
+namespace detail {
 bool isKernelGenerated(const std::string &);
 }
 /// @brief Return type for asynchronous sampling.
@@ -64,7 +64,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we
   // won't check for if statements with the tracer.
-  auto isRegistered = cudaq::__internal__::isKernelGenerated(kernelName);
+  auto isRegistered = detail::isKernelGenerated(kernelName);
 
   // One extra check to see if we have mid-circuit
   // measures in library mode
@@ -95,6 +95,10 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   platform.set_exec_ctx(ctx.get(), qpu_id);
   platform.set_current_qpu(qpu_id);
 
+  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
+  auto isQuantumDevice =
+      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+
   // Loop until all shots are returned.
   cudaq::sample_result counts;
   while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
@@ -104,6 +108,11 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       return std::nullopt;
     }
     platform.reset_exec_ctx(qpu_id);
+
+    // If target is hardware backend, need to launch only once, hence exit early
+    if (isQuantumDevice)
+      return ctx->result;
+
     if (counts.get_total_shots() == 0)
       counts = std::move(ctx->result); // optimize for first iteration
     else

@@ -6,6 +6,7 @@ AST
 Aer
 AlmaLinux
 Anyon
+AquSim
 Asynchronous
 BFGS
 Bloch
@@ -29,6 +30,7 @@ DOI
 Deuteron
 Deutsch
 Doxygen
+Exponentiating
 FPGAs
 Fermion
 Fock
@@ -74,6 +76,7 @@ NVIDIA
 NVLink
 NVQC
 NVQIR
+OPX
 OQC
 ORCA
 OpenACC
@@ -93,10 +96,12 @@ Photonics
 PyPI
 Pygments
 QAOA
+QCI
 QCaaS
 QEC
 QIR
 QIS
+QOP
 QPP
 QPU
 QPUs
@@ -150,7 +155,8 @@ bernstein
 bitcode
 bitstring
 bitstrings
-bmatrix
+bitwidth
+bitwidths
 bool
 boolean
 boson
@@ -185,6 +191,8 @@ couplers
 cuQuantum
 cuTensor
 cudaq
+dataclass
+dataclasses
 dataflow
 ddots
 deallocate
@@ -231,10 +239,11 @@ extensibility
 extremal
 fermionic
 fermioniq
-fmt
 fourier
 frontend
 frontends
+functors
+grovers
 hadamard
 hamiltonian
 heisenberg
@@ -266,6 +275,7 @@ lossy
 lvalue
 makefiles
 merchantability
+mps
 multithreaded
 mutex
 namespace
@@ -279,6 +289,7 @@ optimizers
 pagerank
 parallelization
 parallelize
+parallelized
 parallelizing
 parameterization
 performant
@@ -308,10 +319,10 @@ runtimes
 rvalue
 scalability
 scalable
+selectable
 sexualized
 shifter
 shifters
-shors
 splitter
 splitters
 sqale
@@ -329,6 +340,7 @@ subexpression
 subexpressions
 subfolder
 submodule
+submodules
 subscriptable
 subscripted
 subtype
@@ -344,6 +356,7 @@ toolchain
 toolchains
 toolset
 transmon
+transpile
 trotterization
 uccsd
 unary
@@ -352,18 +365,19 @@ uncompute
 unitaries
 unitarity
 unitary
+unitaryHACK
+unmarshal
+unmarshalling
 unoptimized
 upvote
 variadic
 variational
 vazirani
-vdots
 vectorization
 verifier
 vertices
 vqe
 waveforms
 wavefunction
-wf
 workflow
 zener

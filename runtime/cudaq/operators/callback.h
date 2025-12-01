@@ -101,11 +101,49 @@ public:
                  &parameters) const;
 };
 
+using mdiag_sparse_matrix =
+    std::pair<std::vector<std::complex<double>>, std::vector<std::int64_t>>;
+
+class diag_matrix_callback {
+private:
+  // The user provided callback function that takes a vector defining the
+  // dimension for each degree of freedom it acts on, and a map of complex
+  // parameters.
+  std::function<mdiag_sparse_matrix(
+      const std::vector<std::int64_t> &,
+      const std::unordered_map<std::string, std::complex<double>> &)>
+      callback_func;
+
+public:
+  template <
+      typename Callable,
+      std::enable_if_t<
+          std::is_invocable_r_v<
+              mdiag_sparse_matrix, Callable, const std::vector<std::int64_t> &,
+              const std::unordered_map<std::string, std::complex<double>> &>,
+          bool> = true>
+  diag_matrix_callback(Callable &&callable) {
+    callback_func = std::forward<Callable>(callable);
+  }
+
+  diag_matrix_callback(const diag_matrix_callback &other) = default;
+  diag_matrix_callback(diag_matrix_callback &&other) = default;
+
+  diag_matrix_callback &operator=(const diag_matrix_callback &other) = default;
+  diag_matrix_callback &operator=(diag_matrix_callback &&other) = default;
+
+  mdiag_sparse_matrix
+  operator()(const std::vector<std::int64_t> &relevant_dimensions,
+             const std::unordered_map<std::string, std::complex<double>>
+                 &parameters) const;
+};
+
 /// @brief Object used to store the definition of a custom matrix operator.
 class Definition {
 private:
   std::string id;
   matrix_callback generator;
+  std::optional<diag_matrix_callback> diag_generator;
   std::vector<std::int64_t> required_dimensions;
 
 public:
@@ -117,6 +155,10 @@ public:
       std::string operator_id, const std::vector<int64_t> &expected_dimensions,
       matrix_callback &&create,
       std::unordered_map<std::string, std::string> &&parameter_descriptions);
+  Definition(
+      std::string operator_id, const std::vector<int64_t> &expected_dimensions,
+      matrix_callback &&create, diag_matrix_callback &&diag_create,
+      std::unordered_map<std::string, std::string> &&parameter_descriptions);
   Definition(Definition &&def);
   ~Definition();
 
@@ -125,5 +167,10 @@ public:
   generate_matrix(const std::vector<std::int64_t> &relevant_dimensions,
                   const std::unordered_map<std::string, std::complex<double>>
                       &parameters) const;
+  bool has_dia_generator() const { return diag_generator.has_value(); }
+  mdiag_sparse_matrix generate_dia_matrix(
+      const std::vector<std::int64_t> &relevant_dimensions,
+      const std::unordered_map<std::string, std::complex<double>> &parameters)
+      const;
 };
 } // namespace cudaq

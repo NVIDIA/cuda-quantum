@@ -181,9 +181,21 @@ cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
 
 namespace cudaq::cc {
 
-Type cc::SpanLikeType::getElementType() const {
+Type SpanLikeType::getElementType() const {
   return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
       [](auto type) { return type.getElementType(); });
+}
+
+bool isDevicePtr(Type argTy) {
+  auto ptrTy = dyn_cast<cc::PointerType>(argTy);
+  if (!ptrTy)
+    return false;
+  auto eleTy = ptrTy.getElementType();
+  auto structTy = dyn_cast<cc::StructType>(eleTy);
+  if (!structTy || !structTy.getName())
+    return false;
+
+  return structTy.getName().getValue() == "device_ptr";
 }
 
 bool isDynamicType(Type ty) {
@@ -197,6 +209,22 @@ bool isDynamicType(Type ty) {
   }
   if (auto arrTy = dyn_cast<ArrayType>(ty))
     return arrTy.isUnknownSize() || isDynamicType(arrTy.getElementType());
+  // Note: this isn't considering quake, builtin, etc. types.
+  return false;
+}
+
+bool isDynamicallySizedType(Type ty) {
+  if (isa<SpanLikeType>(ty))
+    return false;
+  if (auto strTy = dyn_cast<StructType>(ty)) {
+    for (auto memTy : strTy.getMembers())
+      if (isDynamicallySizedType(memTy))
+        return true;
+    return false;
+  }
+  if (auto arrTy = dyn_cast<ArrayType>(ty))
+    return arrTy.isUnknownSize() ||
+           isDynamicallySizedType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
 }

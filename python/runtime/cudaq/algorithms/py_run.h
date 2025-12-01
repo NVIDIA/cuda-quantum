@@ -14,4 +14,5 @@ namespace py = pybind11;
 
 namespace cudaq {
 void bindPyRun(py::module &mod);
+void bindPyRunAsync(py::module &mod);
 } // namespace cudaq

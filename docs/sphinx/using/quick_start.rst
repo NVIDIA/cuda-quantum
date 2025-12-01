@@ -42,9 +42,9 @@ Install CUDA-Q
 
    To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
    that supports C++20, for example `g++` version 11 or newer.
-   Download the `install_cuda_quantum` file for your processor architecture and CUDA version (`_cu11` suffix for CUDA 11 and `_cu12` suffix for CUDA 12) 
+   Download the `install_cuda_quantum` file for your processor architecture and CUDA version (`_cu12` suffix for CUDA 12 and `_cu13` suffix for CUDA 13) 
    from the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; 
-   hat is the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
+   that is, the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
 
    To install CUDA-Q, execute the commands
 

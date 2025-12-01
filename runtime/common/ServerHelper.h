@@ -8,12 +8,13 @@
 
 #pragma once
 
-#include "nlohmann/json.hpp"
-
 #include "ExecutionContext.h"
 #include "Future.h"
-#include "MeasureCounts.h"
 #include "Registry.h"
+#include "RuntimeTarget.h"
+#include "SampleResult.h"
+#include "common/RecordLogParser.h"
+#include "nlohmann/json.hpp"
 #include <filesystem>
 
 namespace cudaq {
@@ -45,6 +46,9 @@ using ServerMessage = nlohmann::json;
 
 /// @brief Each REST interaction will require headers
 using RestHeaders = std::map<std::string, std::string>;
+
+/// @brief Cookies are also a map of key-values
+using RestCookies = std::map<std::string, std::string>;
 
 // A Server Job Payload consists of a job post URL path, the headers,
 // and a vector of related Job JSON messages.
@@ -84,6 +88,9 @@ protected:
   /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
+  /// @brief  Information about the runtime target managing this server helper.
+  RuntimeTarget runtimeTarget;
+
 public:
   ServerHelper() = default;
   virtual ~ServerHelper() = default;
@@ -102,6 +109,10 @@ public:
   /// @brief Return the POST/GET required headers.
   /// @return
   virtual RestHeaders getHeaders() = 0;
+
+  /// @brief Return the cookies required for the request.
+  // By default, no cookies.
+  virtual RestCookies getCookies() { return {}; }
 
   /// @brief Given a vector of compiled quantum codes for submission
   /// create and return the Job payload that is compatible with this server.
@@ -140,5 +151,60 @@ public:
   /// @brief Adjust the compiler pass pipeline (if desired)
   virtual void updatePassPipeline(const std::filesystem::path &platformPath,
                                   std::string &passPipeline) {}
+
+  /// @brief Set the runtime target information
+  void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
+};
+
+/// @brief Server helper interface for QIR-based output servers.
+class QirServerHelper {
+public:
+  QirServerHelper() = default;
+  virtual ~QirServerHelper() = default;
+  /// @brief Given a successful job and the success response,
+  /// retrieve the QIR output log
+  /// @param postJobResponse
+  /// @param jobId
+  /// @return QIR output log
+  virtual std::string extractOutputLog(ServerMessage &postJobResponse,
+                                       std::string &jobId) = 0;
+
+  /// @brief Create a sampling result from the QIR output log
+  cudaq::sample_result
+  createSampleResultFromQirOutput(const std::string &qirOutputLog) {
+    // Parse the QIR output log
+    cudaq::RecordLogParser parser;
+    parser.parse(qirOutputLog);
+
+    // Get the buffer and length of buffer (in bytes) from the parser.
+    auto *origBuffer = parser.getBufferPtr();
+    std::size_t bufferSize = parser.getBufferSize();
+    char *buffer = static_cast<char *>(malloc(bufferSize));
+    std::memcpy(buffer, origBuffer, bufferSize);
+
+    std::vector<std::vector<bool>> results = {
+        reinterpret_cast<std::vector<bool> *>(buffer),
+        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
+    const auto numShots = results.size();
+    // Create the counts dictionary
+    cudaq::CountsDictionary globalCounts;
+    std::vector<std::string> globalSequentialData;
+    globalSequentialData.reserve(numShots);
+    for (const auto &shotResult : results) {
+      // Each shot is an array of tagged results
+      std::string bitString;
+      for (const auto &bitVal : shotResult) {
+        bitString.append(bitVal ? "1" : "0");
+      }
+      // Global register results
+      globalCounts[bitString]++;
+      globalSequentialData.push_back(bitString);
+    }
+
+    // Add the global register results
+    cudaq::ExecutionResult result{globalCounts, GlobalRegisterName};
+    result.sequentialData = globalSequentialData;
+    return cudaq::sample_result({result});
+  }
 };
 } // namespace cudaq

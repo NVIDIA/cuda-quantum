@@ -71,6 +71,7 @@ def _get_cuda_version() -> Optional[int]:
 
     # Try to detect version from NVRTC
     libnames = [
+        'libnvrtc.so.13',
         'libnvrtc.so.12',
         'libnvrtc.so.11.2',
         'libnvrtc.so.11.1',
@@ -87,6 +88,7 @@ def _get_cuda_version() -> Optional[int]:
 
     # Try to detect version from CUDART (a CUDA context will be initialized)
     libnames = [
+        'libcudart.so.13',
         'libcudart.so.12',
         'libcudart.so.11.0',
     ]
@@ -183,25 +185,28 @@ def _infer_best_package() -> str:
     """
     # Find the existing wheel installation
     installed = []
-    for pkg in ['cuda-quantum', 'cuda-quantum-cu11', 'cuda-quantum-cu12']:
+    for pkg in [
+            'cuda-quantum', 'cuda-quantum-cu11', 'cuda-quantum-cu12',
+            'cuda-quantum-cu13'
+    ]:
         _log(f"Looking for existing installation of {pkg}.")
         if _check_package_installed(pkg):
             installed.append(pkg)
 
     cuda_version = _get_cuda_version()
     if cuda_version is None:
-        cudaq_bdist = 'cuda-quantum-cu12'
-    elif cuda_version < 11000:
-        raise Exception(f'Your CUDA version ({cuda_version}) is too old.')
+        cudaq_bdist = 'cuda-quantum-cu13'
     elif cuda_version < 12000:
-        cudaq_bdist = 'cuda-quantum-cu11'
+        raise Exception(f'Your CUDA version ({cuda_version}) is too old.')
     elif cuda_version < 13000:
         cudaq_bdist = 'cuda-quantum-cu12'
+    elif cuda_version < 14000:
+        cudaq_bdist = 'cuda-quantum-cu13'
     else:
         raise Exception(f'Your CUDA version ({cuda_version}) is too new.')
     _log(f"Identified {cudaq_bdist} as the best package.")
 
-    # Disallow -cu11 & -cu12 wheels from coexisting
+    # Disallow -cu11 & -cu12 & -cu13 wheels from coexisting
     conflicting = ", ".join((pkg for pkg in installed if pkg != cudaq_bdist))
     _log(f"Conflicting packages: {conflicting}")
     if conflicting != '':

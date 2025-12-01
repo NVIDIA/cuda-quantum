@@ -110,7 +110,7 @@ def test_sample_async():
     assert len(seq[0]) == 20  # num qubits * num_rounds
 
 
-def test_named_measurment():
+def test_named_measurement():
     """ Test for while using "explicit measurements" mode, the sample result 
         will not be saved to a mid-circuit measurement register. """
 

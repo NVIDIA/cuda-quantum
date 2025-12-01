@@ -4,11 +4,9 @@ import cudaq
 # for every execution call on your kernel.
 # To use different targets in the same file, you must update
 # it via another call to `cudaq.set_target()`
-cudaq.set_target("iqm",
-                 url="http://localhost/cocos",
-                 **{"qpu-architecture": "Adonis"})
+cudaq.set_target("iqm", url="http://localhost/")
 
-# Adonis QPU architecture:
+# Crystal_5 QPU architecture:
 #       QB1
 #        |
 # QB2 - QB3 - QB4

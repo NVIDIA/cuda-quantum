@@ -461,25 +461,25 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
   // After ReplaceStateWithKernel pass:
   //
   // clang-format off
-   // ```
-   // func.func @caller() {
-   //   %1 = call callee.num_qubits_0() : () -> i64
-   //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-   //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
-   // }
-   //
-   // func.func private @callee.num_qubits_0() -> i64 {
-   //   %cst = arith.constant 2 : i64
-   //   return %cst : i64
-   // }
-   //
-   // func.func private @callee.init_0(%arg0: !quake.veq<?>): !quake.veq<?> {
-   //   %cst = arith.constant 1.5707963267948966 : f64
-   //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
-   //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
-   //   return %arg0
-   // }
-   // ```
+  // ```
+  // func.func @caller() {
+  //   %1 = call callee.num_qubits_0() : () -> i64
+  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
+  //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
+  // }
+  //
+  // func.func private @callee.num_qubits_0() -> i64 {
+  //   %cst = arith.constant 2 : i64
+  //   return %cst : i64
+  // }
+  //
+  // func.func private @callee.init_0(%arg0: !quake.veq<?>): !quake.veq<?> {
+  //   %cst = arith.constant 1.5707963267948966 : f64
+  //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
+  //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+  //   return %arg0
+  // }
+  // ```
   // clang-format on
 
   if (simState->getKernelInfo().has_value()) {
@@ -547,7 +547,8 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
   auto *ctx = builder.getContext();
   return TypeSwitch<Type, Value>(ty)
       .Case([&](IntegerType intTy) -> Value {
-        switch (intTy.getIntOrFloatBitWidth()) {
+        auto width = intTy.getIntOrFloatBitWidth();
+        switch (width) {
         case 1:
           return genConstant(builder, *static_cast<bool *>(p));
         case 8:
@@ -559,7 +560,8 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
         case 64:
           return genConstant(builder, *static_cast<std::int64_t *>(p));
         default:
-          return {};
+          throw std::runtime_error("unsupported integer width " +
+                                   std::to_string(width));
         }
       })
       .Case([&](Float32Type fltTy) {
@@ -654,6 +656,9 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
       case 64:
         val = *(reinterpret_cast<std::uint64_t *>(p));
         break;
+      default:
+        throw std::runtime_error("unsupported integer width " +
+                                 std::to_string(width));
       }
       return IntegerAttr::get(intTy, val);
     };
@@ -671,7 +676,8 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
         return FloatAttr::get(eleTy, APFloat{val});
       }
       default:
-        return FloatAttr::get(eleTy, APFloat{0.0});
+        throw std::runtime_error("unsupported floating point width " +
+                                 std::to_string(width));
       }
     };
   } else {
@@ -701,6 +707,13 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
                        ModuleOp substMod, llvm::DataLayout &layout) {
   ArrayAttr constants = genRecursiveConstantArray(builder, ty, p, layout);
   auto loc = builder.getUnknownLoc();
+  if (!constants) {
+    // Empty vector. Not much to contemplate here.
+    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
+    auto ptr = builder.create<cudaq::cc::CastOp>(
+        loc, cudaq::cc::PointerType::get(ty.getElementType()), zero);
+    return builder.create<cudaq::cc::StdvecInitOp>(loc, ty, ptr, zero);
+  }
   auto arrTy = convertRecursiveSpanType(ty);
   auto conArr =
       builder.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, constants);
@@ -794,8 +807,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
   cloneBuilder.setInsertionPointToStart(substMod.getBody());
   for (auto &i : *fromModule->getBody()) {
     auto s = dyn_cast_if_present<SymbolOpInterface>(i);
-    if (!s || sourceMod.lookupSymbol(s.getNameAttr()) ||
-        substMod.lookupSymbol(s.getNameAttr()))
+    if (!s || substMod.lookupSymbol(s.getNameAttr()))
       continue;
     auto clone = cloneBuilder.clone(i);
     cast<SymbolOpInterface>(clone).setPrivate();
@@ -861,7 +873,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
     auto subst =
         TypeSwitch<Type, cc::ArgumentSubstitutionOp>(argTy)
             .Case([&](IntegerType intTy) -> cc::ArgumentSubstitutionOp {
-              switch (intTy.getIntOrFloatBitWidth()) {
+              auto width = intTy.getIntOrFloatBitWidth();
+              switch (width) {
               case 1:
                 return buildSubst(*static_cast<bool *>(argPtr));
               case 8:
@@ -873,7 +886,8 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               case 64:
                 return buildSubst(*static_cast<std::int64_t *>(argPtr));
               default:
-                return {};
+                throw std::runtime_error("unsupported integer width " +
+                                         std::to_string(width));
               }
             })
             .Case([&](Float32Type fltTy) {

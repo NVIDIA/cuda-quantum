@@ -9,9 +9,9 @@
 #pragma once
 
 #include "common/CustomOp.h"
-#include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
+#include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include <deque>
@@ -58,6 +58,15 @@ public:
 
   operator int() const { return result; }
   operator bool() const { return __nvqpp__MeasureResultBoolConversion(result); }
+
+  static std::vector<bool>
+  to_bool_vector(const std::vector<measure_result> &results) {
+    std::vector<bool> boolResults;
+    boolResults.reserve(results.size());
+    for (const auto &res : results)
+      boolResults.push_back(static_cast<bool>(res));
+    return boolResults;
+  }
 };
 #else
 /// When compiling with MLIR, we default to a boolean.

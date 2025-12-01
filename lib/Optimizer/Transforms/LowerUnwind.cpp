@@ -18,6 +18,11 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_UNWINDLOWERING
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #define DEBUG_TYPE "unwind-lowering"
 
 using namespace mlir;
@@ -644,6 +649,9 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
             ? &loopOp.getStepRegion().front()
             : (loopOp.isPostConditional() ? bodyBlock : whileBlock);
 
+    Block *elseBlock =
+        loopOp.hasPythonElse() ? &loopOp.getElseRegion().front() : nullptr;
+
     // Append blocks to tailRegion
     auto &tailRegion = loopOp.getBodyRegion();
     auto blockMapIter = infoMap.blockDetails.find(loopOp.getOperation());
@@ -693,9 +701,10 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
       rewriter.create<cf::BranchOp>(loc, whileBlock, loopOperands);
       // Replace the condition op with a `cf.cond_br` op.
       rewriter.setInsertionPointToEnd(whileBlock);
-      rewriter.create<cf::CondBranchOp>(loc, comparison, bodyBlock,
-                                        whileCond.getResults(), endBlock,
-                                        whileCond.getResults());
+      rewriter.create<cf::CondBranchOp>(
+          loc, comparison, bodyBlock, whileCond.getResults(),
+          loopOp.hasPythonElse() ? elseBlock : endBlock,
+          whileCond.getResults());
       rewriter.eraseOp(whileCond);
       // Move the while and body region blocks between initBlock and endBlock.
       rewriter.inlineRegionBefore(loopOp.getWhileRegion(), endBlock);
@@ -710,6 +719,16 @@ struct LoopOpPattern : public OpRewritePattern<cudaq::cc::LoopOp> {
                                       terminator->getOperands());
         rewriter.eraseOp(terminator);
         rewriter.inlineRegionBefore(loopOp.getStepRegion(), endBlock);
+      }
+      // If there is a else region, replace the continue op with a branch and
+      // move the region between the step (or body) region and end block.
+      if (loopOp.hasPythonElse()) {
+        auto *elseBlock = &loopOp.getElseRegion().front();
+        auto *terminator = elseBlock->getTerminator();
+        rewriter.setInsertionPointToEnd(elseBlock);
+        rewriter.create<cf::BranchOp>(loc, endBlock, terminator->getOperands());
+        rewriter.eraseOp(terminator);
+        rewriter.inlineRegionBefore(loopOp.getElseRegion(), endBlock);
       }
     }
     rewriter.replaceOp(loopOp, whileCond.getResults());
@@ -808,8 +827,10 @@ using UnwindContinueOpPattern =
     UnwindLoopJumpOpPattern<cudaq::cc::UnwindContinueOp, cudaq::cc::ContinueOp>;
 
 class UnwindLoweringPass
-    : public cudaq::opt::UnwindLoweringBase<UnwindLoweringPass> {
+    : public cudaq::opt::impl::UnwindLoweringBase<UnwindLoweringPass> {
 public:
+  using UnwindLoweringBase::UnwindLoweringBase;
+
   void runOnOperation() override {
     func::FuncOp func = getOperation();
     DominanceInfo domInfo(func);
@@ -857,7 +878,3 @@ public:
   }
 };
 } // namespace
-
-std::unique_ptr<mlir::Pass> cudaq::opt::createUnwindLoweringPass() {
-  return std::make_unique<UnwindLoweringPass>();
-}

@@ -38,13 +38,22 @@ inline bool SpanLikeType::classof(mlir::Type type) {
   return mlir::isa<StdvecType, CharspanType>(type);
 }
 
-/// Return true if and only if \p ty has dynamic extent. This is a recursive
+/// Returns true if and only if \p ty has dynamic extent. This is a recursive
 /// test on composable types.
 bool isDynamicType(mlir::Type ty);
+
+/// Returns true if and only if the memory needed to store a value of type
+/// \p ty is not known at compile time. This is a recursive test on composable
+/// types. In contrast to `isDynamicType`, the size of the type is statically
+/// known even if it contains pointers that may point to memory of dynamic size.
+bool isDynamicallySizedType(mlir::Type ty);
 
 /// Determine the number of hidden arguments, which is 0, 1, or 2.
 inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
   return (thisPtr ? 1 : 0) + (sret ? 1 : 0);
 }
+
+// Checks if type is device_ptr.
+bool isDevicePtr(mlir::Type argTy);
 
 } // namespace cudaq::cc

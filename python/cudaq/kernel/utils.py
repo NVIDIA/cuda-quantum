@@ -11,8 +11,9 @@ import re
 import sys
 import traceback
 import numpy as np
-from typing import get_origin, Callable, List
+from typing import get_origin, get_args, Callable, List
 import types
+import weakref
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
@@ -44,6 +45,10 @@ globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
+
+# Keep track of all kernel decorators
+# We only track alive decorators so we use a `WeakSet`
+globalKernelDecorators = weakref.WeakSet()
 
 
 class Color:
@@ -101,6 +106,29 @@ def emitWarning(msg):
                 0]
 
 
+def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
+    """
+    Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
+    tuples and `dataclass` structs of quantum and classical types. Returns
+    None if the given element types don't satisfy the restrictions imposed
+    on these types.
+    """
+
+    def isQuantumType(ty):
+        return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+            ty) or quake.StruqType.isinstance(ty)
+
+    numQuantumMembers = sum((isQuantumType(t) for t in mlirEleTypes))
+    if numQuantumMembers == 0:
+        if any((cc.PointerType.isinstance(t) for t in mlirEleTypes)):
+            return None
+        return cc.StructType.getNamed(name, mlirEleTypes, context=context)
+    if numQuantumMembers != len(mlirEleTypes) or \
+        any((quake.StruqType.isinstance(t) for t in mlirEleTypes)):
+        return None
+    return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
+
+
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
     Return the MLIR Type corresponding to the given kernel function argument type annotation.
@@ -119,162 +147,171 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
         localEmitFatalError(
             'cudaq.kernel functions must have argument type annotations.')
 
-    if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
-        if annotation.value.id == 'cudaq':
-            if annotation.attr in ['qview', 'qvector']:
-                return quake.VeqType.get(ctx)
-            if annotation.attr in ['State']:
-                return cc.PointerType.get(ctx, cc.StateType.get(ctx))
-            if annotation.attr == 'qubit':
-                return quake.RefType.get(ctx)
-            if annotation.attr == 'pauli_word':
-                return cc.CharspanType.get(ctx)
+    with ctx:
 
-        if annotation.value.id in ['numpy', 'np']:
-            if annotation.attr in ['array', 'ndarray']:
-                return cc.StdvecType.get(ctx, F64Type.get())
-            if annotation.attr == 'complex128':
-                return ComplexType.get(F64Type.get())
-            if annotation.attr == 'complex64':
-                return ComplexType.get(F32Type.get())
-            if annotation.attr == 'float64':
-                return F64Type.get()
-            if annotation.attr == 'float32':
-                return F32Type.get()
-            if annotation.attr == 'int64':
-                return IntegerType.get_signless(64)
-            if annotation.attr == 'int32':
-                return IntegerType.get_signless(32)
-            if annotation.attr == 'int16':
-                return IntegerType.get_signless(16)
-            if annotation.attr == 'int8':
-                return IntegerType.get_signless(8)
+        if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
+            if annotation.value.id == 'cudaq':
+                if annotation.attr in ['qview', 'qvector']:
+                    return quake.VeqType.get()
+                if annotation.attr in ['State']:
+                    return cc.PointerType.get(cc.StateType.get())
+                if annotation.attr == 'qubit':
+                    return quake.RefType.get()
+                if annotation.attr == 'pauli_word':
+                    return cc.CharspanType.get()
 
-    if isinstance(annotation,
-                  ast.Subscript) and annotation.value.id == 'Callable':
-        if not hasattr(annotation, 'slice'):
-            localEmitFatalError(
-                f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
-            )
+            if annotation.value.id in ['numpy', 'np']:
+                if annotation.attr in ['array', 'ndarray']:
+                    return cc.StdvecType.get(F64Type.get())
+                if annotation.attr == 'complex128':
+                    return ComplexType.get(F64Type.get())
+                if annotation.attr == 'complex64':
+                    return ComplexType.get(F32Type.get())
+                if annotation.attr == 'float64':
+                    return F64Type.get()
+                if annotation.attr == 'float32':
+                    return F32Type.get()
+                if annotation.attr == 'int64':
+                    return IntegerType.get_signless(64)
+                if annotation.attr == 'int32':
+                    return IntegerType.get_signless(32)
+                if annotation.attr == 'int16':
+                    return IntegerType.get_signless(16)
+                if annotation.attr == 'int8':
+                    return IntegerType.get_signless(8)
 
-        if hasattr(annotation.slice, 'elts'):
-            firstElement = annotation.slice.elts[0]
-        elif hasattr(annotation.slice, 'value') and hasattr(
-                annotation.slice.value, 'elts'):
-            firstElement = annotation.slice.value.elts[0]
-        else:
-            localEmitFatalError(
-                f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
-            )
-        argTypes = [mlirTypeFromAnnotation(a, ctx) for a in firstElement.elts]
-        return cc.CallableType.get(ctx, argTypes)
-
-    if isinstance(annotation,
-                  ast.Subscript) and (annotation.value.id == 'list' or
-                                      annotation.value.id == 'List'):
-        if not hasattr(annotation, 'slice'):
-            localEmitFatalError(
-                f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
-            )
-
-        eleTypeNode = annotation.slice
-        # expected that slice is a Name node
-        listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
-        return cc.StdvecType.get(ctx, listEleTy)
-
-    if isinstance(annotation,
-                  ast.Subscript) and (annotation.value.id == 'tuple' or
-                                      annotation.value.id == 'Tuple'):
-        if not hasattr(annotation, 'slice'):
-            localEmitFatalError(
-                f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
-            )
-
-        # slice is an `ast.Tuple` of type annotations
-        elements = None
-        if hasattr(annotation.slice, 'elts'):
-            elements = annotation.slice.elts
-        else:
-            localEmitFatalError(
-                f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
-            )
-
-        eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
-
-    if hasattr(annotation, 'id'):
-        id = annotation.id
-    elif hasattr(annotation, 'value'):
-        if hasattr(annotation.value, 'id'):
-            id = annotation.value.id
-        elif hasattr(annotation.value, 'value') and hasattr(
-                annotation.value.value, 'id'):
-            id = annotation.value.value.id
-        else:
-            localEmitFatalError(
-                f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not yet a supported type (could not infer type name)."
-            )
-    else:
-        localEmitFatalError(
-            f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type yet (could not infer type name)."
-        )
-
-    if id == 'list' or id == 'List':
-        localEmitFatalError(
-            'list argument annotation must provide element type, e.g. list[float] instead of list.'
-        )
-
-    if id == 'int':
-        return IntegerType.get_signless(64)
-
-    if id == 'float':
-        return F64Type.get()
-
-    if id == 'bool':
-        return IntegerType.get_signless(1)
-
-    if id == 'complex':
-        return ComplexType.get(F64Type.get())
-
-    if isinstance(annotation, ast.Attribute):
-        # in this case we might have `mod1.mod2...mod3.UserType`
-        # slurp up the path to the type
-        id = annotation.attr
-
-    # One final check to see if this is a custom data type.
-    if id in globalRegisteredTypes.classes:
-        pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
-        structTys = [mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()]
-        for ty in structTys:
-            if cc.StructType.isinstance(ty):
+        if isinstance(annotation,
+                      ast.Subscript) and annotation.value.id == 'Callable':
+            if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
-                    'recursive struct types are not allowed in kernels.')
-
-        if len({
-                k: v
-                for k, v in pyType.__dict__.items()
-                if not (k.startswith('__') and k.endswith('__'))
-        }) != 0:
-            localEmitFatalError(
-                'struct types with user specified methods are not allowed.')
-
-        numQuantumMemberTys = sum([
-            1 if
-            (quake.RefType.isinstance(ty) or quake.VeqType.isinstance(ty) or
-             quake.StruqType.isinstance(ty)) else 0 for ty in structTys
-        ])
-        numStruqMemberTys = sum(
-            [1 if (quake.StruqType.isinstance(ty)) else 0 for ty in structTys])
-        if numQuantumMemberTys != 0:  # we have quantum member types
-            if numQuantumMemberTys != len(structTys):
-                emitFatalError(
-                    f'hybrid quantum-classical data types not allowed in kernel code.'
+                    f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
-            if numStruqMemberTys != 0:
-                emitFatalError(f'recursive quantum struct types not allowed.')
-            return quake.StruqType.getNamed(ctx, id, structTys)
 
-        return cc.StructType.getNamed(ctx, id, structTys)
+            if hasattr(annotation.slice, 'elts') and len(
+                    annotation.slice.elts) == 2:
+                args = annotation.slice.elts[0]
+                ret = annotation.slice.elts[1]
+            elif hasattr(annotation.slice, 'value') and hasattr(
+                    annotation.slice.value, 'elts') and len(
+                        annotation.slice.value.elts) == 2:
+                args = annotation.slice.value.elts[0]
+                ret = annotation.slice.value.elts[1]
+            else:
+                localEmitFatalError(
+                    f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                )
+            argTypes = [mlirTypeFromAnnotation(a, ctx) for a in args.elts]
+            if not isinstance(ret, ast.Constant) or ret.value:
+                localEmitFatalError(
+                    "passing kernels as arguments that return a value is not currently supported"
+                )
+            return cc.CallableType.get(argTypes)
+
+        if isinstance(annotation,
+                      ast.Subscript) and (annotation.value.id == 'list' or
+                                          annotation.value.id == 'List'):
+            if not hasattr(annotation, 'slice'):
+                localEmitFatalError(
+                    f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                )
+
+            eleTypeNode = annotation.slice
+            # expected that slice is a Name node
+            listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
+            return cc.StdvecType.get(listEleTy)
+
+        if isinstance(annotation,
+                      ast.Subscript) and (annotation.value.id == 'tuple' or
+                                          annotation.value.id == 'Tuple'):
+
+            if not hasattr(annotation, 'slice'):
+                localEmitFatalError(
+                    f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                )
+
+            # slice is an `ast.Tuple` of type annotations
+            elements = None
+            if hasattr(annotation.slice, 'elts'):
+                elements = annotation.slice.elts
+            else:
+                localEmitFatalError(
+                    f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                )
+
+            eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
+            tupleTy = mlirTryCreateStructType(eleTypes)
+            if tupleTy is None:
+                localEmitFatalError(
+                    "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+                )
+            return tupleTy
+
+        if hasattr(annotation, 'id'):
+            id = annotation.id
+        elif hasattr(annotation, 'value'):
+            if hasattr(annotation.value, 'id'):
+                id = annotation.value.id
+            elif hasattr(annotation.value, 'value') and hasattr(
+                    annotation.value.value, 'id'):
+                id = annotation.value.value.id
+            else:
+                localEmitFatalError(
+                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not yet a supported type (could not infer type name)."
+                )
+        else:
+            localEmitFatalError(
+                f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type yet (could not infer type name)."
+            )
+
+        if id == 'list' or id == 'List':
+            localEmitFatalError(
+                'list argument annotation must provide element type, e.g. list[float] instead of list.'
+            )
+
+        if id == 'int':
+            return IntegerType.get_signless(64)
+
+        if id == 'float':
+            return F64Type.get()
+
+        if id == 'bool':
+            return IntegerType.get_signless(1)
+
+        if id == 'complex':
+            return ComplexType.get(F64Type.get())
+
+        if isinstance(annotation, ast.Attribute):
+            # in this case we might have `mod1.mod2...mod3.UserType`
+            # slurp up the path to the type
+            id = annotation.attr
+
+        # One final check to see if this is a custom data type.
+        if id in globalRegisteredTypes.classes:
+            pyType, memberTys = globalRegisteredTypes.getClassAttributes(id)
+            structTys = [
+                mlirTypeFromPyType(v, ctx) for _, v in memberTys.items()
+            ]
+
+            if '__slots__' not in pyType.__dict__:
+                emitWarning(
+                    f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)."
+                )
+
+            if len({
+                    k: v
+                    for k, v in pyType.__dict__.items()
+                    if not (k.startswith('__') and k.endswith('__')) and
+                    isinstance(v, types.FunctionType)
+            }) != 0:
+                localEmitFatalError(
+                    'struct types with user specified methods are not allowed.')
+
+            tupleTy = mlirTryCreateStructType(structTys, name=id)
+            if tupleTy is None:
+                localEmitFatalError(
+                    "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+                )
+            return tupleTy
 
     localEmitFatalError(
         f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
@@ -336,22 +373,21 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
     if argType == State:
-        return cc.PointerType.get(ctx, cc.StateType.get(ctx))
+        return cc.PointerType.get(cc.StateType.get(ctx), ctx)
 
     if get_origin(argType) == list:
-        result = re.search(r'ist\[(.*)\]', str(argType))
-        eleTyName = result.group(1)
+        pyEleTy = get_args(argType)
+        if len(pyEleTy) == 1:
+            eleTy = mlirTypeFromPyType(pyEleTy[0], ctx)
+            return cc.StdvecType.get(eleTy, ctx)
         argType = list
-        inst = pyInstanceFromName(eleTyName)
-        if (inst != None):
-            kwargs['argInstance'] = [inst]
 
     if argType in [list, np.ndarray, List]:
         if 'argInstance' not in kwargs:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
         if argType != np.ndarray:
             if kwargs['argInstance'] == None:
-                return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+                return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
 
         argInstance = kwargs['argInstance']
         argTypeToCompareTo = kwargs[
@@ -362,45 +398,45 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 emitFatalError('Cannot infer runtime argument type')
 
             eleTy = cc.StdvecType.getElementType(argTypeToCompareTo)
-            return cc.StdvecType.get(ctx, eleTy)
+            return cc.StdvecType.get(eleTy, ctx)
 
         if isinstance(argInstance[0], list):
             return cc.StdvecType.get(
-                ctx,
                 mlirTypeFromPyType(
                     type(argInstance[0]),
                     ctx,
                     argInstance=argInstance[0],
                     argTypeToCompareTo=cc.StdvecType.getElementType(
-                        argTypeToCompareTo)))
+                        argTypeToCompareTo)), ctx)
 
-        return cc.StdvecType.get(ctx,
-                                 mlirTypeFromPyType(type(argInstance[0]), ctx))
+        return cc.StdvecType.get(mlirTypeFromPyType(type(argInstance[0]), ctx),
+                                 ctx)
 
     if get_origin(argType) == tuple:
-        result = re.search(r'uple\[(?P<names>.*)\]', str(argType))
-        eleTyNames = result.group('names')
         eleTypes = []
-        while eleTyNames != None:
-            result = re.search(r'(?P<names>.*),\s*(?P<name>.*)', eleTyNames)
-            eleTyName = result.group('name') if result != None else eleTyNames
-            eleTyNames = result.group('names') if result != None else None
-            pyInstance = pyInstanceFromName(eleTyName)
-            if pyInstance == None:
-                emitFatalError(f'Invalid tuple element type ({eleTyName})')
-            eleTypes.append(mlirTypeFromPyType(type(pyInstance), ctx))
-        eleTypes.reverse()
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+        for pyEleTy in get_args(argType):
+            eleTypes.append(mlirTypeFromPyType(pyEleTy, ctx))
+        tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        if tupleTy is None:
+            emitFatalError(
+                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+            )
+        return tupleTy
 
     if (argType == tuple):
         argInstance = kwargs['argInstance']
         if argInstance == None or (len(argInstance) == 0):
             emitFatalError(f'Cannot infer runtime argument type for {argType}')
         eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
-        return cc.StructType.getNamed(ctx, "tuple", eleTypes)
+        tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
+        if tupleTy is None:
+            emitFatalError(
+                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
+            )
+        return tupleTy
 
     if argType == qvector or argType == qreg or argType == qview:
-        return quake.VeqType.get(ctx)
+        return quake.VeqType.get(context=ctx)
     if argType == qubit:
         return quake.RefType.get(ctx)
     if argType == pauli_word:
@@ -409,7 +445,7 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
         if isinstance(argInstance, Callable):
-            return cc.CallableType.get(ctx, argInstance.argTypes)
+            return cc.CallableType.get(argInstance.argTypes, ctx)
 
     for name in globalRegisteredTypes.classes:
         customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)
@@ -432,15 +468,15 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
                 if numStruqMemberTys != 0:
                     emitFatalError(
                         f'recursive quantum struct types not allowed.')
-                return quake.StruqType.getNamed(ctx, name, structTys)
+                return quake.StruqType.getNamed(name, structTys, ctx)
 
-            return cc.StructType.getNamed(ctx, name, structTys)
+            return cc.StructType.getNamed(name, structTys, ctx)
 
     if 'argInstance' not in kwargs:
         if argType == list[int]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(int, ctx))
+            return cc.StdvecType.get(mlirTypeFromPyType(int, ctx), ctx)
         if argType == list[float]:
-            return cc.StdvecType.get(ctx, mlirTypeFromPyType(float, ctx))
+            return cc.StdvecType.get(mlirTypeFromPyType(float, ctx), ctx)
 
     emitFatalError(
         f"Can not handle conversion of python type {argType} to MLIR type.")
@@ -469,6 +505,9 @@ def mlirTypeToPyType(argType):
 
     if quake.VeqType.isinstance(argType):
         return qvector
+
+    if quake.RefType.isinstance(argType):
+        return qubit
 
     if cc.CallableType.isinstance(argType):
         return Callable
@@ -502,6 +541,18 @@ def mlirTypeToPyType(argType):
             return types.GenericAlias(tuple, tuple(elements))
 
         clsName = cc.StructType.getName(argType)
+        if globalRegisteredTypes.isRegisteredClass(clsName):
+            pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
+            return pyType
+
+    if quake.StruqType.isinstance(argType):
+        if (quake.StruqType.getName(argType) == "tuple"):
+            elements = [
+                mlirTypeToPyType(v) for v in quake.StruqType.getTypes(argType)
+            ]
+            return types.GenericAlias(tuple, tuple(elements))
+
+        clsName = quake.StruqType.getName(argType)
         if globalRegisteredTypes.isRegisteredClass(clsName):
             pyType, _ = globalRegisteredTypes.getClassAttributes(clsName)
             return pyType

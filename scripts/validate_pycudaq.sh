@@ -18,7 +18,7 @@
 #   source validate_pycudaq.sh -v ${cudaq_version} -i ${package_folder} -f /tmp -p 3.10 -c 11
 # in a container (with GPU support) defined by:
 #
-# ARG base_image=ubuntu:22.04
+# ARG base_image=ubuntu:24.04
 # FROM ${base_image}
 # ARG cudaq_version=0.0.0
 # ARG package_folder=/tmp/packages
@@ -41,7 +41,7 @@ python_version=3.11
 quick_test=false
 while getopts ":c:f:i:p:qv:" opt; do
   case $opt in
-    c) cuda_version="$OPTARG"
+    c) cuda_version_conda="$OPTARG"
     ;;
     f) root_folder="$OPTARG"
     ;;
@@ -67,6 +67,12 @@ if [ ! -d "$root_folder" ] || [ ! -f "$readme_file" ] ; then
     (return 0 2>/dev/null) && return 100 || exit 100
 fi
 
+# Check that the `cuda_version_conda` is a full version string like "12.8.0"
+if ! [[ $cuda_version_conda =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo -e "\e[01;31mThe cuda_version_conda (-c) must be a full version string like '12.8.0'. Provided: '${cuda_version_conda}'.\e[0m" >&2
+    (return 0 2>/dev/null) && return 100 || exit 100
+fi
+
 # Install Miniconda
 if [ ! -x "$(command -v conda)" ]; then
     mkdir -p ~/.miniconda3
@@ -79,19 +85,15 @@ fi
 # Execute instructions from the README file
 conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
 if [ -n "${extra_packages}" ]; then 
-    pip_extra_url="--extra-index-url http://localhost:8080"
+    pip_extra_arg="--find-links ${extra_packages}"
 fi
 while IFS= read -r line; do
-    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version}.0 /g")
+    line=$(echo $line | sed -E "s/cuda_version=(.\{\{)?\s?\S+\s?(\}\})?/cuda_version=${cuda_version_conda} /g")
     line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${python_version}/g")
-    line=$(echo $line | sed -E "s/pip install (.\{\{)?\s?\S+\s?(\}\})?/pip install cudaq==${cudaq_version} -v ${pip_extra_url//\//\\/}/g")
+    line=$(echo "$line" | sed -E "s|pip install (.\{\{)?\s?\S+\s?(\}\})?|pip install cudaq==${cudaq_version} -v ${pip_extra_arg}|g")
     if [ -n "$(echo $line | grep "conda activate")" ]; then
         conda_env=$(echo "$line" | sed "s#conda activate##" | tr -d '[:space:]')
         source $(conda info --base)/bin/activate $conda_env
-        if [ -n "${extra_packages}" ]; then 
-            eval "pip install pypiserver"
-            eval "pypi-server run -p 8080 ${extra_packages} &"
-        fi
     elif [ -n "$(echo $line | tr -d '[:space:]')" ]; then
         eval "$line"
     fi
@@ -176,6 +178,7 @@ fi
 # Some snippets generate plots
 python3 -m pip install --user matplotlib
 for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
+    echo "Executing $ex"
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
         echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -184,6 +187,7 @@ for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
 done
 if [ -n "${NVQC_API_KEY}" ]; then
     for ex in `find "$root_folder/snippets" -name '*.py' -path '*/nvqc/*'`; do
+        echo "Executing $ex"
         python3 "$ex"
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -213,6 +217,7 @@ for ex in `find "$root_folder/examples" -name '*.py'`; do
         fi
     done
     if ! $skip_example; then 
+        echo "Executing $ex"
         python3 "$ex"
         if [ ! $? -eq 0 ]; then
             echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -232,9 +237,28 @@ if [ -d "$root_folder/targets" ]; then
                 # to submit a (paid) job to Amazon Braket (includes QuEra).
                 echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
                 skip_example=true
+            elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target fermioniq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "qci" ] && [ -z "${QCI_AUTH_TOKEN}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target qci in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "nvqc" ] && [ -z "${NVQC_API_KEY}" ]; then 
+                echo -e "\e[01;31mWarning: Explicitly set target nvqc in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
+                skip_example=true
+            elif [ "$t" == "ionq" ] && [ -z "${IONQ_API_KEY}" ]; then
+                echo -e "\e[01;31mWarning: Explicitly set target ionq in $ex; skipping validation due to missing API key.\e[0m" >&2
+                skip_example=true
             fi
         done
         if ! $skip_example; then 
+            echo "Executing $ex"
             python3 "$ex"
             if [ ! $? -eq 0 ]; then
                 echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
@@ -267,7 +291,7 @@ if [ -n "$server2_devices" ]; then
     CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
 fi
 
-sleep 5 # wait for servers to launch
+sleep 20 # wait for servers to launch
 python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
     --backend nvidia-mgpu --servers "$servers"
 if [ ! $? -eq 0 ]; then

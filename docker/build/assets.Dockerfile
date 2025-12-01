@@ -18,7 +18,7 @@
 ARG base_image=amd64/almalinux:8
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
-ARG cuda_version=12.0
+ARG cuda_version=12.6
 ENV CUDA_VERSION=${cuda_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -164,7 +164,8 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 
 ## [Python support]
 FROM prereqs AS python_build
-ADD "pyproject.toml" /cuda-quantum/pyproject.toml
+# Bring all possible templates into the image, then pick the exact one
+ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
 ADD "include" /cuda-quantum/include
@@ -186,14 +187,13 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m ensurepip --upgrade && \
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=11.11 && \
-        sed -i "s/-cu12/-cu11/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" pyproject.toml; \
-    fi && \
+RUN cd /cuda-quantum && \
+    . scripts/configure_build.sh && \
+    case "${CUDA_VERSION%%.*}" in \
+      12) cp pyproject.toml.cu12 pyproject.toml || true ;; \
+      13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
+      *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
+    esac && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \
@@ -226,9 +226,11 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcublasLt.so.11 \
         --exclude libcurand.so.10 \
         --exclude libcusolver.so.11 \
+        --exclude libcusparse.so.11 \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
         --exclude libnvidia-ml.so.1 \
@@ -263,7 +265,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy cuquantum-python-cu$(echo ${CUDA_VERSION} | cut -d . -f1)~=25.03 && \
+    python3 -m pip install lit pytest scipy && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
@@ -324,7 +326,8 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
         cuda-compiler-$(echo ${CUDA_VERSION} | tr . -) \
         cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -) \
         libcublas-devel-$(echo ${CUDA_VERSION} | tr . -) \
-        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) && \
+        libcurand-devel-$(echo ${CUDA_VERSION} | tr . -) \
+        libcusparse-devel-$(echo ${CUDA_VERSION} | tr . -) && \
     if [ $(echo $CUDA_VERSION | cut -d "." -f1) -ge 12 ]; then \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \

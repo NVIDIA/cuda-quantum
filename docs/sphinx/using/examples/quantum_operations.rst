@@ -68,10 +68,19 @@ For example, the Pauli X gate allows us to flip the state of the qubit:
 
 .. math::  \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \\ \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \\ \end{bmatrix} 
 
-.. literalinclude:: ../../snippets/python/using/examples/pauli_x_gate.py
-    :language: python
-    :start-after: [Begin Docs]
-    :end-before: [End Docs]
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/examples/pauli_x_gate.py
+        :language: python
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
+
+.. tab:: C++
+
+    .. literalinclude:: ../../snippets/cpp/using/examples/pauli_x_gate.cpp
+        :language: cpp
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
 
 .. parsed-literal::
 
@@ -88,10 +97,19 @@ The probability of finding the qubit in the :math:`\ket{0}` or :math:`\ket{1}` s
 :math:`\lvert \tfrac{1}{\sqrt{2}} \rvert ^2 = \tfrac{1}{2}`. Lets verify
 this with some code:
 
-.. literalinclude:: ../../snippets/python/using/examples/hadamard_gate.py
-    :language: python
-    :start-after: [Begin Docs]
-    :end-before: [End Docs]
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/examples/hadamard_gate.py
+        :language: python
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
+
+.. tab:: C++
+    
+    .. literalinclude:: ../../snippets/cpp/using/examples/hadamard_gate.cpp
+        :language: cpp
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
 
 .. parsed-literal::
 
@@ -120,10 +138,19 @@ The controlled-NOT or CNOT gate, for example, acts on 2 qubits: the control qubi
 the target qubit. Its effect is to flip the target if the control is in
 the excited :math:`\ket{1}` state.
 
-.. literalinclude:: ../../snippets/python/using/examples/cnot_gate.py
-    :language: python
-    :start-after: [Begin Docs]
-    :end-before: [End Docs]
+.. tab:: Python
+
+    .. literalinclude:: ../../snippets/python/using/examples/cnot_gate.py
+        :language: python
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
+
+.. tab:: C++
+    
+    .. literalinclude:: ../../snippets/cpp/using/examples/cnot_gate.cpp
+        :language: cpp
+        :start-after: [Begin Docs]
+        :end-before: [End Docs]
 
 .. parsed-literal::
 

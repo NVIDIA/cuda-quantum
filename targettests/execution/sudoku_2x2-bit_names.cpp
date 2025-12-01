@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,16 +8,17 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ --target anyon                    --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target infleqtion               --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --iqm-machine Apollo --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target anyon      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target infleqtion --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target ionq       --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target oqc        --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
-#include <cudaq.h>
 #include <algorithm>
+#include <cudaq.h>
 #include <iostream>
 #include <unordered_set>
 
@@ -54,19 +55,11 @@ __qpu__ void grover() {
   auto groverQubits3 = mz(qubits[3]);
 };
 
-int main() {
-  auto result = cudaq::sample(1000, grover);
-  result.dump();
-
-  auto& platform = cudaq::get_platform();
-  if (platform.is_remote() || platform.is_emulated()) {
-    // Make sure that the get_marginal() results for the individual register names
-    // match the subset of the bits from the global register.
-    // Note that this will fail if you only compile this in library mode.
-    auto numBits = result.begin()->first.size();
-    std::cout << "Checking " << numBits << " bits against global register\n";
-    for (size_t b = 0;  b < numBits; b++) {
-      auto regName = "groverQubits" + std::to_string(b);
+bool validateMarginals(const cudaq::sample_result &result) {
+  size_t numBits = result.begin()->first.size();
+  for (size_t b = 0; b < numBits; b++) {
+    auto regName = "groverQubits" + std::to_string(b);
+    try {
       auto valFromRegName = result.get_marginal({0}, regName);
       auto valFromGlobal = result.get_marginal({b});
       if (valFromRegName.to_map() != valFromGlobal.to_map()) {
@@ -76,6 +69,24 @@ int main() {
         // Mark test failure
         assert(valFromRegName.to_map() == valFromGlobal.to_map());
       }
+    } catch (const std::exception &e) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int main() {
+  auto result = cudaq::sample(1000, grover);
+  result.dump();
+
+  auto &platform = cudaq::get_platform();
+  if (platform.is_remote() || platform.is_emulated()) {
+    // Make sure that the get_marginal() results for the individual register
+    // names match the subset of the bits from the global register. Note that
+    // this will fail if you only compile this in library mode.
+    if (!validateMarginals(result)) {
+      std::cout << "Unsupported API, use `run` instead!\n";
     }
   }
 
@@ -84,7 +95,7 @@ int main() {
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
   std::cout << strings[0] << '\n';

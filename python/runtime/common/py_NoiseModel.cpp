@@ -51,7 +51,9 @@ void bindNoiseModel(py::module &mod) {
   mod.def("set_noise", &set_noise, "Set the underlying noise model.");
   mod.def("unset_noise", &unset_noise,
           "Clear backend simulation from any existing noise models.");
-
+  mod.def(
+      "get_noise", []() { return cudaq::get_platform().get_noise(); },
+      "Get the underlying noise model.");
   py::class_<noise_model>(
       mod, "NoiseModel",
       "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
@@ -184,10 +186,19 @@ Args:
       .def(
           "get_channels",
           [](noise_model self, const std::string &op,
-             std::vector<std::size_t> &qubits) {
+             const std::vector<std::size_t> &qubits) {
             return self.get_channels(op, qubits);
           },
           py::arg("operator"), py::arg("qubits"),
+          "Return the :class:`KrausChannel`'s that make up this noise model.")
+      .def(
+          "get_channels",
+          [](noise_model self, const std::string &op,
+             const std::vector<std::size_t> &qubits,
+             const std::vector<std::size_t> &controls) {
+            return self.get_channels(op, qubits, controls);
+          },
+          py::arg("operator"), py::arg("qubits"), py::arg("controls"),
           "Return the :class:`KrausChannel`'s that make up this noise model.");
 }
 
@@ -268,6 +279,8 @@ void bindNoiseChannels(py::module &mod) {
            ":class:`KrausOperator`'s.")
       .def_readwrite("parameters", &kraus_channel::parameters)
       .def_readwrite("noise_type", &kraus_channel::noise_type)
+      .def("get_ops", &kraus_channel::get_ops,
+           "Return the :class:`KrausOperator`'s in this :class:`KrausChannel`.")
       .def(
           "__getitem__",
           [](kraus_channel &self, std::size_t idx) { return self[idx]; },

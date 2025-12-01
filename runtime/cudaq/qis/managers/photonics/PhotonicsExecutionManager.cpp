@@ -1,4 +1,4 @@
-/*************************************************************** -*- C++ -*- ***
+/*******************************************************************************
  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -155,7 +155,17 @@ protected:
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   /// @brief Handler for when the photonics execution context changes
-  void handleExecutionContextChanged() override {}
+  void handleExecutionContextChanged() override {
+    if (!executionContext)
+      throw std::runtime_error(
+          "Execution context is not set for the PhotonicsExecutionManager.");
+
+    if (!(executionContext->name == "sample" ||
+          executionContext->name == "extract-state" ||
+          executionContext->name == "tracer"))
+      throw std::runtime_error(executionContext->name +
+                               " is not supported on this target");
+  }
 
   /// @brief Handler for when the current execution context has ended. It
   /// returns samples to the execution context if it is "sample".
@@ -166,7 +176,7 @@ protected:
         ids.push_back(s.id);
       }
       if (executionContext->name == "sample") {
-        cudaq::info("Sampling");
+        CUDAQ_INFO("Sampling");
         auto shots = executionContext->shots;
         auto sampleResult =
             qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
@@ -185,7 +195,7 @@ protected:
         }
         executionContext->result.append(counts);
       } else if (executionContext->name == "extract-state") {
-        cudaq::info("Extracting state");
+        CUDAQ_INFO("Extracting state");
         // If here, then we care about the result qudit, so compute it.
         for (auto &q : sampleQudits) {
           const auto measurement_tuple = qpp::measure(
@@ -236,7 +246,7 @@ protected:
     state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
                                        collapsed_state.size());
 
-    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    CUDAQ_INFO("Measured qubit {} -> {}", q.id, measurement_result);
     return measurement_result;
   }
 
@@ -352,7 +362,7 @@ public:
       for (int i = 1; i < d; i++) {
         u(i, i - 1) = 1;
       }
-      cudaq::info("Applying create on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying create on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
@@ -365,7 +375,7 @@ public:
       for (int i = 0; i < d - 1; i++) {
         u(i, i + 1) = 1;
       }
-      cudaq::info("Applying annihilate on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying annihilate on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
@@ -378,7 +388,7 @@ public:
       for (int i = 1; i < d; i++) {
         u(i, i - 1) = 1;
       }
-      cudaq::info("Applying plus on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying plus on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
@@ -390,8 +400,8 @@ public:
       const double theta = params[0];
       qpp::cmat BS{qpp::cmat::Zero(d * d, d * d)};
       beam_splitter(theta, BS);
-      cudaq::info("Applying beam_splitter on {}<{}> and {}<{}>", target1.id,
-                  target1.levels, target2.id, target2.levels);
+      CUDAQ_INFO("Applying beam_splitter on {}<{}> and {}<{}>", target1.id,
+                 target1.levels, target2.id, target2.levels);
       state = qpp::apply(state, BS, {target1.id, target2.id}, d);
     });
 
@@ -405,7 +415,7 @@ public:
       for (size_t n = 0; n < d; n++) {
         PS(n, n) = std::exp(n * phi * i);
       }
-      cudaq::info("Applying phase_shift on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying phase_shift on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, PS, {target.id}, target.levels);
     });
   }
