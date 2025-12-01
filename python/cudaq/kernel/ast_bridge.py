@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 import ast
-import inspect
 import importlib
 import graphlib
 import textwrap
@@ -106,6 +105,95 @@ class CompilerError(RuntimeError):
         RuntimeError.__init__(self, *args, **kwargs)
 
 
+class PyStack(object):
+    '''
+    Takes care of managing values produced while vising Python
+    AST nodes. Each visit to a node is expected to match one
+    stack frame. Values produced (meaning pushed) by child frames
+    are accessible (meaning can be popped) by the parent. A frame
+    cannot access the value it produced (it is owned by the parent).
+    '''
+
+    class Frame(object):
+
+        def __init__(self, parent=None):
+            self.entries = None
+            self.parent = parent
+
+    def __init__(self, error_handler=None):
+
+        def default_error_handler(msg):
+            raise RuntimeError(msg)
+
+        self._frame = None
+        self.emitError = error_handler or default_error_handler
+
+    def pushFrame(self):
+        '''
+        A new frame should be pushed to process a new node in the AST.
+        '''
+        if self._frame and not self._frame.entries:
+            self._frame.entries = deque()
+        self._frame = PyStack.Frame(parent=self._frame)
+
+    def popFrame(self):
+        '''
+        A frame should be popped once a node in the AST has been processed.
+        '''
+        if not self._frame:
+            self.emitError("stack has no frames to pop")
+        elif self._frame.entries:
+            self.emitError(
+                "all values must be processed before popping a frame")
+        else:
+            self._frame = self._frame.parent
+
+    def pushValue(self, value):
+        '''
+        Pushes a value to the make it available to the parent frame.
+        '''
+        if not self._frame:
+            self.emitError("cannot push value to empty stack")
+        elif not self._frame.parent:
+            self.emitError("no parent frame is defined to push values to")
+        else:
+            self._frame.parent.entries.append(value)
+
+    def popValue(self):
+        '''
+        Pops the most recently produced (pushed) value by a child frame.
+        '''
+        if not self._frame:
+            self.emitError("value stack is empty")
+        elif not self._frame.entries:
+            # This is the only error that may be directly user-facing even when
+            # the bridge is doing its processing correctly.
+            # We hence give a somewhat general error.
+            # For internal purposes, the error might be better stated as something like:
+            # either this frame has not had a child or the child did not produce any values
+            self.emitError("no valid value was created")
+        else:
+            return self._frame.entries.pop()
+
+    @property
+    def isEmpty(self):
+        '''
+        Returns true if and only if there are no remaining stack frames.
+        '''
+        return not self._frame
+
+    @property
+    def currentNumValues(self):
+        '''
+        Returns the number of values that are accessible for processing by the current frame.
+        '''
+        if not self._frame:
+            self.emitError("no frame defined for empty stack")
+        elif self._frame.entries:
+            return len(self._frame.entries)
+        return 0
+
+
 class PyASTBridge(ast.NodeVisitor):
     """
     The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert a
@@ -125,7 +213,8 @@ class PyASTBridge(ast.NodeVisitor):
         track of a symbol table, which maps variable names to constructed
         `mlir.Values`.
         """
-        self.valueStack = deque()
+        self.valueStack = PyStack(lambda msg: self.emitFatalError(
+            f'processing error - {msg}', self.currentNode))
         self.knownResultType = kwargs[
             'knownResultType'] if 'knownResultType' in kwargs else None
         if 'existingModule' in kwargs:
@@ -182,8 +271,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentAssignVariableName = None
         self.walkingReturnNode = False
         self.controlNegations = []
-        self.subscriptPushPointerValue = False
-        self.attributePushPointerValue = False
+        self.pushPointerValue = False
+        self.isSubscriptRoot = False
         self.verbose = 'verbose' in kwargs and kwargs['verbose']
         self.currentNode = None
 
@@ -191,9 +280,13 @@ class PyASTBridge(ast.NodeVisitor):
         if self.verbose:
             print(f'{self.indent * self.indent_level}{msg()}')
             if node is not None:
-                print(
-                    textwrap.indent(ast.unparse(node),
-                                    (self.indent * (self.indent_level + 1))))
+                try:
+                    print(
+                        textwrap.indent(ast.unparse(node),
+                                        (self.indent *
+                                         (self.indent_level + 1))))
+                except:
+                    pass
 
     def emitWarning(self, msg, astNode=None):
         """
@@ -222,15 +315,19 @@ class PyASTBridge(ast.NodeVisitor):
         codeFile = os.path.basename(self.locationOffset[0])
         if astNode == None:
             astNode = self.currentNode
-        lineNumber = '' if astNode == None else astNode.lineno + self.locationOffset[
-            1] - 1
+        lineNumber = '' if astNode == None or not hasattr(
+            astNode, 'lineno') else astNode.lineno + self.locationOffset[1] - 1
+
+        try:
+            offending_source = "\n\t (offending source -> " + ast.unparse(
+                astNode) + ")"
+        except:
+            offending_source = ''
 
         print(Color.BOLD, end='')
         msg = codeFile + ":" + str(
             lineNumber
-        ) + ": " + Color.RED + "error: " + Color.END + Color.BOLD + msg + (
-            "\n\t (offending source -> " + ast.unparse(astNode) + ")" if
-            hasattr(ast, 'unparse') and astNode is not None else '') + Color.END
+        ) + ": " + Color.RED + "error: " + Color.END + Color.BOLD + msg + offending_source + Color.END
         raise CompilerError(msg)
 
     def getVeqType(self, size=None):
@@ -267,6 +364,23 @@ class PyASTBridge(ast.NodeVisitor):
                 'name') and not 'quake.discriminate' == value.owner.name:
             return False
         return IntegerType.isinstance(ty) and ty == IntegerType.get_signless(1)
+
+    def isFunctionArgument(self, value):
+        return (BlockArgument.isinstance(value) and
+                isinstance(value.owner.owner, func.FuncOp))
+
+    def containsList(self, ty, innerListsOnly=False):
+        """
+        Returns true if the give type is a vector or contains
+        items that are vectors.
+        """
+        if cc.StdvecType.isinstance(ty):
+            return (not innerListsOnly or
+                    self.containsList(cc.StdvecType.getElementType(ty)))
+        if not cc.StructType.isinstance(ty):
+            return False
+        eleTys = cc.StructType.getTypes(ty)
+        return any((self.containsList(t) for t in eleTys))
 
     def getIntegerType(self, width=64):
         """
@@ -366,6 +480,29 @@ class PyASTBridge(ast.NodeVisitor):
         ty = self.getIntegerType(width)
         return arith.ConstantOp(ty, self.getIntegerAttr(ty, value)).result
 
+    def __arithmetic_to_bool(self, value):
+        """
+        Converts an integer or floating point value to a bool by 
+        comparing it to zero.
+        """
+        if self.getIntegerType(1) == value.type:
+            return value
+        if IntegerType.isinstance(value.type):
+            zero = self.getConstantInt(0, width=IntegerType(value.type).width)
+            condPred = IntegerAttr.get(self.getIntegerType(), 1)
+            return arith.CmpIOp(condPred, value, zero).result
+        elif F32Type.isinstance(value.type):
+            zero = self.getConstantFloat(0, width=32)
+            condPred = IntegerAttr.get(self.getIntegerType(), 13)
+            return arith.CmpFOp(condPred, value, zero).result
+        elif F64Type.isinstance(value.type):
+            zero = self.getConstantFloat(0, width=64)
+            condPred = IntegerAttr.get(self.getIntegerType(), 13)
+            return arith.CmpFOp(condPred, value, zero).result
+        else:
+            self.emitFatalError("value cannot be converted to bool",
+                                self.currentNode)
+
     def changeOperandToType(self, ty, operand, allowDemotion=False):
         """
         Change the type of an operand to a specified type. This function primarily 
@@ -375,6 +512,13 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if ty == operand.type:
             return operand
+        if cc.CallableType.isinstance(ty):
+            fctTy = cc.CallableType.getFunctionType(ty)
+            if fctTy == operand.type:
+                return operand
+            self.emitFatalError(
+                f'cannot convert value of type {operand.type} to the requested type {fctTy}',
+                self.currentNode)
 
         if ComplexType.isinstance(ty):
             complexType = ComplexType(ty)
@@ -385,21 +529,46 @@ class PyASTBridge(ast.NodeVisitor):
                 if (floatType != otherFloatType):
                     real = self.changeOperandToType(
                         floatType,
-                        complex.ReOp(operand).result)
+                        complex.ReOp(operand).result,
+                        allowDemotion=allowDemotion)
                     imag = self.changeOperandToType(
                         floatType,
-                        complex.ImOp(operand).result)
+                        complex.ImOp(operand).result,
+                        allowDemotion=allowDemotion)
                     return complex.CreateOp(complexType, real, imag).result
             else:
-                real = self.changeOperandToType(floatType, operand)
+                real = self.changeOperandToType(floatType,
+                                                operand,
+                                                allowDemotion=allowDemotion)
                 imag = self.getConstantFloatWithType(0.0, floatType)
                 return complex.CreateOp(complexType, real, imag).result
 
         if (cc.StdvecType.isinstance(ty)):
-            eleTy = cc.StdvecType.getElementType(ty)
             if cc.StdvecType.isinstance(operand.type):
-                return self.__copyVectorAndCastElements(
-                    operand, eleTy, allowDemotion=allowDemotion)
+                eleTy = cc.StdvecType.getElementType(ty)
+                return self.__copyVectorAndConvertElements(
+                    operand,
+                    eleTy,
+                    allowDemotion=allowDemotion,
+                    alwaysCopy=False)
+
+        if (cc.StructType.isinstance(ty)):
+            if cc.StructType.isinstance(operand.type):
+                expectedEleTys = cc.StructType.getTypes(ty)
+                currentEleTys = cc.StructType.getTypes(operand.type)
+                if len(expectedEleTys) == len(currentEleTys):
+
+                    def conversion(idx, value):
+                        return self.changeOperandToType(
+                            expectedEleTys[idx],
+                            value,
+                            allowDemotion=allowDemotion)
+
+                    return self.__copyStructAndConvertElements(
+                        operand,
+                        expectedTy=ty,
+                        allowDemotion=allowDemotion,
+                        conversion=conversion)
 
         if F64Type.isinstance(ty):
             if F32Type.isinstance(operand.type):
@@ -427,6 +596,8 @@ class PyASTBridge(ast.NodeVisitor):
                 if requested_width == operand_width:
                     return operand
                 elif requested_width < operand_width:
+                    if requested_width == 1:
+                        return self.__arithmetic_to_bool(operand)
                     return cc.CastOp(ty, operand).result
                 return cc.CastOp(ty,
                                  operand,
@@ -460,15 +631,25 @@ class PyASTBridge(ast.NodeVisitor):
         visit method.
         """
         self.debug_msg(lambda: f'push {value}')
-        self.valueStack.append(value)
+        self.valueStack.pushValue(value)
 
     def popValue(self):
         """
         Pop an MLIR Value from the stack. 
         """
-        val = self.valueStack.pop()
+        val = self.valueStack.popValue()
         self.debug_msg(lambda: f'pop {val}')
         return val
+
+    def popAllValues(self, expectedNumVals):
+        values = [
+            self.popValue() for _ in range(self.valueStack.currentNumValues)
+        ]
+        if len(values) != expectedNumVals:
+            self.emitFatalError(
+                "processing error - expression did not produce a valid value in this context",
+                self.currentNode)
+        return values
 
     def pushForBodyStack(self, bodyBlockArgs):
         """
@@ -559,38 +740,16 @@ class PyASTBridge(ast.NodeVisitor):
                 id in ['swap', 'u3', 'exp_pauli'] or
                 id in globalRegisteredOperations)
 
-    def ifPointerThenLoad(self, value):
-        """
-        If the given value is of pointer type, load the pointer and return that
-        new value.
-        """
-        if cc.PointerType.isinstance(value.type):
-            return cc.LoadOp(value).result
-        return value
+    def __createStdvecWithKnownValues(self, listElementValues):
 
-    def ifNotPointerThenStore(self, value):
-        """
-        If the given value is not of a pointer type, allocate a slot on the
-        stack, store the the value in the slot, and return the slot address.
-        """
-        if not cc.PointerType.isinstance(value.type):
-            slot = cc.AllocaOp(cc.PointerType.get(value.type),
-                               TypeAttr.get(value.type)).result
-            cc.StoreOp(value, slot)
-            return slot
-        return value
-
-    def __createStdvecWithKnownValues(self, size, listElementValues):
-        # Turn this List into a StdVec<T>
-        arrSize = self.getConstantInt(size)
+        assert (len(set((v.type for v in listElementValues))) == 1)
+        arrSize = self.getConstantInt(len(listElementValues))
         elemTy = listElementValues[0].type
         # If this is an `i1`, turns it into an `i8` array.
         isBool = elemTy == self.getIntegerType(1)
         if isBool:
             elemTy = self.getIntegerType(8)
-
-        arrTy = cc.ArrayType.get(elemTy)
-        alloca = cc.AllocaOp(cc.PointerType.get(arrTy),
+        alloca = cc.AllocaOp(cc.PointerType.get(cc.ArrayType.get(elemTy)),
                              TypeAttr.get(elemTy),
                              seqSize=arrSize).result
 
@@ -604,15 +763,10 @@ class PyASTBridge(ast.NodeVisitor):
                 v = self.changeOperandToType(self.getIntegerType(8), v)
             cc.StoreOp(v, eleAddr)
 
-        # Create the `StdVec<T>` from the `alloca`
-        # We still use `i1` as the vector element type if the
-        # original list was of `bool` type.
-        vecTy = elemTy if not isBool else self.getIntegerType(1)
-        if cc.PointerType.isinstance(vecTy):
-            vecTy = cc.PointerType.getElementType(vecTy)
-
-        return cc.StdvecInitOp(cc.StdvecType.get(vecTy), alloca,
-                               length=arrSize).result
+        # We still use `i1` as the vector element type for `cc.StdvecInitOp`.
+        vecTy = cc.StdvecType.get(elemTy) if not isBool else cc.StdvecType.get(
+            self.getIntegerType(1))
+        return cc.StdvecInitOp(vecTy, alloca, length=arrSize).result
 
     def getStructMemberIdx(self, memberName, structTy):
         """
@@ -624,6 +778,8 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             structName = quake.StruqType.getName(structTy)
         structIdx = None
+        if structName == 'tuple':
+            self.emitFatalError('`tuple` does not support attribute access')
         if not globalRegisteredTypes.isRegisteredClass(structName):
             self.emitFatalError(f'Dataclass is not registered: {structName})')
 
@@ -638,79 +794,185 @@ class PyASTBridge(ast.NodeVisitor):
             )
         return structIdx, mlirTypeFromPyType(userType[memberName], self.ctx)
 
+    def __copyStructAndConvertElements(self,
+                                       struct,
+                                       expectedTy=None,
+                                       allowDemotion=False,
+                                       conversion=None):
+        """
+        Creates a new struct on the stack. If a conversion is provided, applies the conversion on each
+        element before changing its type to match the corresponding element type in `expectedTy`.
+        """
+        assert cc.StructType.isinstance(struct.type)
+        if not expectedTy:
+            expectedTy = struct.type
+        assert cc.StructType.isinstance(expectedTy)
+        eleTys = cc.StructType.getTypes(struct.type)
+        expectedEleTys = cc.StructType.getTypes(expectedTy)
+        assert len(eleTys) == len(expectedEleTys)
+
+        returnVal = cc.UndefOp(expectedTy)
+        for idx, eleTy in enumerate(eleTys):
+            element = cc.ExtractValueOp(
+                eleTy, struct, [],
+                DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+            element = conversion(idx, element) if conversion else element
+            element = self.changeOperandToType(expectedEleTys[idx],
+                                               element,
+                                               allowDemotion=allowDemotion)
+            returnVal = cc.InsertValueOp(
+                expectedTy, returnVal, element,
+                DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+        return returnVal
+
     # Create a new vector with source elements converted to the target element type if needed.
-    def __copyVectorAndCastElements(self,
-                                    source,
-                                    targetEleType,
-                                    allowDemotion=False):
-        if not cc.PointerType.isinstance(source.type):
-            if cc.StdvecType.isinstance(source.type):
-                # Exit early if no copy is needed to avoid an unneeded store.
-                sourceEleType = cc.StdvecType.getElementType(source.type)
-                if (sourceEleType == targetEleType):
-                    return source
+    def __copyVectorAndConvertElements(self,
+                                       source,
+                                       targetEleType=None,
+                                       allowDemotion=False,
+                                       alwaysCopy=False,
+                                       conversion=None):
+        '''
+        Creates a new vector with the requested element type.
+        Returns the original vector if the requested element type already matches
+        the current element type unless `alwaysCopy` is set to True.
+        If a conversion is provided, applies the conversion to each element before
+        changing its type to match the `targetEleType`.
+        If `alwaysCopy` is set to True, return a shallow copy of the vector by
+        default (conversion can be used to create a deep copy).
+        '''
 
-        sourcePtr = source
-        if not cc.PointerType.isinstance(sourcePtr.type):
-            sourcePtr = self.ifNotPointerThenStore(sourcePtr)
-
-        sourceType = cc.PointerType.getElementType(sourcePtr.type)
-        if not cc.StdvecType.isinstance(sourceType):
-            raise RuntimeError(
-                f"expected vector type to copy and cast elements but received {sourceType}"
-            )
-
-        sourceEleType = cc.StdvecType.getElementType(sourceType)
-        if (sourceEleType == targetEleType):
-            return sourcePtr
-
+        assert cc.StdvecType.isinstance(source.type)
+        sourceEleType = cc.StdvecType.getElementType(source.type)
+        if not targetEleType:
+            targetEleType = sourceEleType
+        if not alwaysCopy and sourceEleType == targetEleType:
+            return source
         isSourceBool = sourceEleType == self.getIntegerType(1)
         if isSourceBool:
             sourceEleType = self.getIntegerType(8)
-
-        sourceArrType = cc.ArrayType.get(sourceEleType)
-        sourceElePtrTy = cc.PointerType.get(sourceEleType)
-        sourceArrElePtrTy = cc.PointerType.get(sourceArrType)
-        sourceValue = self.ifPointerThenLoad(sourcePtr)
-        sourceDataPtr = cc.StdvecDataOp(sourceArrElePtrTy, sourceValue).result
-        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), sourceValue).result
-
         isTargetBool = targetEleType == self.getIntegerType(1)
-        # Vector type reflects the true type, including `i1`
-        targetVecTy = cc.StdvecType.get(targetEleType)
-
         if isTargetBool:
             targetEleType = self.getIntegerType(8)
 
-        targetElePtrType = cc.PointerType.get(targetEleType)
-        targetTy = cc.ArrayType.get(targetEleType)
-        targetArrElePtrTy = cc.PointerType.get(targetTy)
-        targetPtr = cc.AllocaOp(targetArrElePtrTy,
+        sourceArrPtrTy = cc.PointerType.get(cc.ArrayType.get(sourceEleType))
+        sourceDataPtr = cc.StdvecDataOp(sourceArrPtrTy, source).result
+        sourceSize = cc.StdvecSizeOp(self.getIntegerType(), source).result
+        targetPtr = cc.AllocaOp(cc.PointerType.get(
+            cc.ArrayType.get(targetEleType)),
                                 TypeAttr.get(targetEleType),
                                 seqSize=sourceSize).result
 
         rawIndex = DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx)
 
         def bodyBuilder(iterVar):
-            eleAddr = cc.ComputePtrOp(sourceElePtrTy, sourceDataPtr, [iterVar],
-                                      rawIndex).result
+            eleAddr = cc.ComputePtrOp(cc.PointerType.get(sourceEleType),
+                                      sourceDataPtr, [iterVar], rawIndex).result
             loadedEle = cc.LoadOp(eleAddr).result
-            castedEle = self.changeOperandToType(targetEleType,
-                                                 loadedEle,
-                                                 allowDemotion=allowDemotion)
-            targetEleAddr = cc.ComputePtrOp(targetElePtrType, targetPtr,
-                                            [iterVar], rawIndex).result
-            cc.StoreOp(castedEle, targetEleAddr)
+            convertedEle = conversion(iterVar,
+                                      loadedEle) if conversion else loadedEle
+            convertedEle = self.changeOperandToType(targetEleType,
+                                                    convertedEle,
+                                                    allowDemotion=allowDemotion)
+            targetEleAddr = cc.ComputePtrOp(cc.PointerType.get(targetEleType),
+                                            targetPtr, [iterVar],
+                                            rawIndex).result
+            cc.StoreOp(convertedEle, targetEleAddr)
 
-        self.createInvariantForLoop(sourceSize, bodyBuilder)
-        return cc.StdvecInitOp(targetVecTy, targetPtr, length=sourceSize).result
+        self.createInvariantForLoop(bodyBuilder, sourceSize)
+
+        # We still use `i1` as the vector element type for `cc.StdvecInitOp`.
+        vecTy = cc.StdvecType.get(
+            targetEleType) if not isTargetBool else cc.StdvecType.get(
+                self.getIntegerType(1))
+        return cc.StdvecInitOp(vecTy, targetPtr, length=sourceSize).result
+
+    def __copyAndValidateContainer(self, value, pyVal, deepCopy, dataType=None):
+        """
+        Helper function to implement deep and shallow copies for structs and vectors.
+        Arguments:
+            `value`: The MLIR value to copy
+            `pyVal`: The Python AST node to use for validation of the container entries.
+            `deepCopy`: Whether to perform a deep or shallow copy.
+            `dataType`: Must be None unless the value to copy is a vector.
+                If the value is a vector, then the element type of the new vector.  
+        """
+        # NOTE: Creating a copy means we are creating a new container.
+        # As such, all elements in the container need to pass the validation
+        # in `__validate_container_entry`.
+        if deepCopy:
+
+            def conversion(idx, structItem):
+                if cc.StdvecType.isinstance(structItem.type):
+                    structItem = self.__copyVectorAndConvertElements(
+                        structItem, alwaysCopy=True, conversion=conversion)
+                elif (cc.StructType.isinstance(structItem.type) and
+                      self.containsList(structItem.type)):
+                    structItem = self.__copyStructAndConvertElements(
+                        structItem, conversion=conversion)
+                self.__validate_container_entry(structItem, pyVal)
+                return structItem
+        else:
+
+            def conversion(idx, structItem):
+                self.__validate_container_entry(structItem, pyVal)
+                return structItem
+
+        if cc.StdvecType.isinstance(value.type):
+            listVal = self.__copyVectorAndConvertElements(value,
+                                                          dataType,
+                                                          alwaysCopy=True,
+                                                          conversion=conversion)
+            return listVal
+
+        if cc.StructType.isinstance(value.type):
+            if dataType:
+                self.emitFatalError("unsupported data type argument",
+                                    self.currentNode)
+            struct = self.__copyStructAndConvertElements(value,
+                                                         conversion=conversion)
+            return struct
+
+        self.emitFatalError(
+            f'copy is not supported on value of type {value.type}',
+            self.currentNode)
+
+    def __migrateLists(self, value, migrate):
+        """
+        Replaces all lists in the given value by the list returned
+        by the `migrate` function, including inner lists. Does an
+        in-place replacement for list elements.
+        """
+        if cc.StdvecType.isinstance(value.type):
+            eleTy = cc.StdvecType.getElementType(value.type)
+            if self.containsList(eleTy):
+                size = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                ptrTy = cc.PointerType.get(cc.ArrayType.get(eleTy))
+                iterable = cc.StdvecDataOp(ptrTy, value).result
+
+                def bodyBuilder(iterVar):
+                    eleAddr = cc.ComputePtrOp(
+                        cc.PointerType.get(eleTy), iterable, [iterVar],
+                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                              context=self.ctx))
+                    loadedEle = cc.LoadOp(eleAddr).result
+                    element = self.__migrateLists(loadedEle, migrate)
+                    cc.StoreOp(element, eleAddr)
+
+                self.createInvariantForLoop(bodyBuilder, size)
+            return migrate(value)
+        if (cc.StructType.isinstance(value.type) and
+                self.containsList(value.type)):
+            return self.__copyStructAndConvertElements(
+                value, conversion=lambda _, v: self.__migrateLists(v, migrate))
+        assert not self.containsList(value.type)
+        return value
 
     def __insertDbgStmt(self, value, dbgStmt):
         """
         Insert a debug print out statement if the programmer requested. Handles 
         statements like `cudaq.dbg.ast.print_i64(i)`.
         """
-        value = self.ifPointerThenLoad(value)
         printFunc = None
         printStr = '[cudaq-ast-dbg] '
         argsTy = [cc.PointerType.get(self.getIntegerType(8))]
@@ -764,25 +1026,6 @@ class PyASTBridge(ast.NodeVisitor):
                            strLit).result
         func.CallOp(printFunc, [strLit, value])
         return
-
-    def __get_vector_size(self, vector):
-        """
-        Get the size of a vector or array type.
-        
-        Args:
-            vector: MLIR Value of vector/array type
-            
-        Returns:
-            MLIR Value containing the size as an integer
-        """
-        if cc.StdvecType.isinstance(vector.type):
-            return cc.StdvecSizeOp(self.getIntegerType(), vector).result
-        elif cc.ArrayType.isinstance(vector.type):
-            return self.getConstantInt(
-                cc.ArrayType.getSize(cc.PointerType.getElementType(
-                    vector.type)))
-        self.emitFatalError("cannot get the size for a value of type {}".format(
-            vector.type))
 
     def __load_vector_element(self, vector, index):
         """
@@ -886,83 +1129,84 @@ class PyASTBridge(ast.NodeVisitor):
         if msg is not None:
             self.emitFatalError(msg, annotation)
 
-    def createInvariantForLoop(self,
-                               endVal,
-                               bodyBuilder,
-                               startVal=None,
-                               stepVal=None,
-                               isDecrementing=False,
-                               elseStmts=None):
-        """
-        Create an invariant loop using the CC dialect. 
-        """
-        startVal = self.getConstantInt(0) if startVal == None else startVal
-        stepVal = self.getConstantInt(1) if stepVal == None else stepVal
+    def createForLoop(self,
+                      argTypes,
+                      bodyBuilder,
+                      inputs,
+                      evalCond,
+                      evalStep,
+                      orElseBuilder=None):
 
-        iTy = self.getIntegerType()
-        inputs = [startVal]
-        resultTys = [iTy]
+        # post-conditional would be a do-while loop
+        isPostConditional = BoolAttr.get(False)
+        loop = cc.LoopOp(argTypes, inputs, isPostConditional)
 
-        loop = cc.LoopOp(resultTys, inputs, BoolAttr.get(False))
-
-        whileBlock = Block.create_at_start(loop.whileRegion, [iTy])
+        whileBlock = Block.create_at_start(loop.whileRegion, argTypes)
         with InsertionPoint(whileBlock):
-            condPred = IntegerAttr.get(
-                iTy, 2) if not isDecrementing else IntegerAttr.get(iTy, 4)
-            cc.ConditionOp(
-                arith.CmpIOp(condPred, whileBlock.arguments[0], endVal).result,
-                whileBlock.arguments)
+            condVal = evalCond(whileBlock.arguments)
+            cc.ConditionOp(condVal, whileBlock.arguments)
 
-        bodyBlock = Block.create_at_start(loop.bodyRegion, [iTy])
+        bodyBlock = Block.create_at_start(loop.bodyRegion, argTypes)
         with InsertionPoint(bodyBlock):
             self.symbolTable.pushScope()
             self.pushForBodyStack(bodyBlock.arguments)
-            bodyBuilder(bodyBlock.arguments[0])
+            bodyBuilder(bodyBlock.arguments)
             if not self.hasTerminator(bodyBlock):
                 cc.ContinueOp(bodyBlock.arguments)
             self.popForBodyStack()
             self.symbolTable.popScope()
 
-        stepBlock = Block.create_at_start(loop.stepRegion, [iTy])
+        stepBlock = Block.create_at_start(loop.stepRegion, argTypes)
         with InsertionPoint(stepBlock):
-            incr = arith.AddIOp(stepBlock.arguments[0], stepVal).result
-            cc.ContinueOp([incr])
+            stepVals = evalStep(stepBlock.arguments)
+            cc.ContinueOp(stepVals)
 
-        if elseStmts:
-            elseBlock = Block.create_at_start(loop.elseRegion, [iTy])
+        if orElseBuilder:
+            elseBlock = Block.create_at_start(loop.elseRegion, argTypes)
             with InsertionPoint(elseBlock):
                 self.symbolTable.pushScope()
-                for stmt in elseStmts:
-                    self.visit(stmt)
+                orElseBuilder(elseBlock.arguments)
                 if not self.hasTerminator(elseBlock):
                     cc.ContinueOp(elseBlock.arguments)
                 self.symbolTable.popScope()
 
+        return loop
+
+    def createMonotonicForLoop(self,
+                               bodyBuilder,
+                               startVal,
+                               stepVal,
+                               endVal,
+                               isDecrementing=False,
+                               orElseBuilder=None):
+
+        iTy = self.getIntegerType()
+        assert startVal.type == iTy
+        assert stepVal.type == iTy
+        assert endVal.type == iTy
+
+        condPred = IntegerAttr.get(
+            iTy, 4) if isDecrementing else IntegerAttr.get(iTy, 2)
+        return self.createForLoop(
+            [iTy], lambda args: bodyBuilder(args[0]), [startVal],
+            lambda args: arith.CmpIOp(condPred, args[0], endVal).result,
+            lambda args: [arith.AddIOp(args[0], stepVal).result],
+            None if orElseBuilder is None else
+            (lambda args: orElseBuilder(args[0])))
+
+    def createInvariantForLoop(self, bodyBuilder, endVal):
+        """
+        Create an invariant loop using the CC dialect. 
+        """
+
+        startVal = self.getConstantInt(0)
+        stepVal = self.getConstantInt(1)
+
+        loop = self.createMonotonicForLoop(bodyBuilder,
+                                           startVal=startVal,
+                                           stepVal=stepVal,
+                                           endVal=endVal)
         loop.attributes.__setitem__('invariant', UnitAttr.get())
-        return
-
-    def __applyQuantumOperation(self, opName, parameters, targets):
-        opCtor = getattr(quake, '{}Op'.format(opName.title()))
-        for quantumValue in targets:
-            if quake.VeqType.isinstance(quantumValue.type):
-
-                def bodyBuilder(iterVal):
-                    q = quake.ExtractRefOp(self.getRefType(),
-                                           quantumValue,
-                                           -1,
-                                           index=iterVal).result
-                    opCtor([], parameters, [], [q])
-
-                veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                          quantumValue).result
-                self.createInvariantForLoop(veqSize, bodyBuilder)
-            elif quake.RefType.isinstance(quantumValue.type):
-                opCtor([], parameters, [], [quantumValue])
-            else:
-                self.emitFatalError(
-                    f'quantum operation {opName} on incorrect quantum type {quantumValue.type}.'
-                )
-        return
 
     def __deconstructAssignment(self, target, value, process=None):
         if process is not None:
@@ -974,44 +1218,45 @@ class PyASTBridge(ast.NodeVisitor):
             if (isinstance(value, ast.Tuple) or isinstance(value, ast.List)):
                 nrArgs = len(value.elts)
                 getItem = lambda idx: value.elts[idx]
+            elif (isinstance(value, tuple) or isinstance(value, list)):
+                nrArgs = len(value)
+                getItem = lambda idx: value[idx]
+            elif cc.StructType.isinstance(value.type):
+                argTypes = cc.StructType.getTypes(value.type)
+                nrArgs = len(argTypes)
+                getItem = lambda idx: cc.ExtractValueOp(
+                    argTypes[idx], value, [],
+                    DenseI32ArrayAttr.get([idx], context=self.ctx)).result
+            elif quake.StruqType.isinstance(value.type):
+                argTypes = quake.StruqType.getTypes(value.type)
+                nrArgs = len(argTypes)
+                getItem = lambda idx: quake.GetMemberOp(
+                    argTypes[idx], value,
+                    IntegerAttr.get(self.getIntegerType(32), idx)).result
+            elif cc.StdvecType.isinstance(value.type):
+                # We will get a runtime error for out of bounds access
+                eleTy = cc.StdvecType.getElementType(value.type)
+                elePtrTy = cc.PointerType.get(eleTy)
+                arrTy = cc.ArrayType.get(eleTy)
+                ptrArrTy = cc.PointerType.get(arrTy)
+                vecPtr = cc.StdvecDataOp(ptrArrTy, value).result
+                attr = DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                             context=self.ctx)
+                nrArgs = len(target.elts)
+                getItem = lambda idx: cc.LoadOp(
+                    cc.ComputePtrOp(elePtrTy, vecPtr, [
+                        self.getConstantInt(idx)
+                    ], attr).result).result
+            elif quake.VeqType.isinstance(value.type):
+                # We will get a runtime error for out of bounds access
+                nrArgs = len(target.elts)
+                getItem = lambda idx: quake.ExtractRefOp(
+                    quake.RefType.get(),
+                    value,
+                    -1,
+                    index=self.getConstantInt(idx)).result
             else:
-                value = self.ifPointerThenLoad(value)
-                if cc.StructType.isinstance(value.type):
-                    argTypes = cc.StructType.getTypes(value.type)
-                    nrArgs = len(argTypes)
-                    getItem = lambda idx: cc.ExtractValueOp(
-                        argTypes[idx], value, [],
-                        DenseI32ArrayAttr.get([idx], context=self.ctx)).result
-                elif quake.StruqType.isinstance(value.type):
-                    argTypes = quake.StruqType.getTypes(value.type)
-                    nrArgs = len(argTypes)
-                    getItem = lambda idx: quake.GetMemberOp(
-                        argTypes[idx], value,
-                        IntegerAttr.get(self.getIntegerType(32), idx)).result
-                elif cc.StdvecType.isinstance(value.type):
-                    # We will get a runtime error for out of bounds access
-                    eleTy = cc.StdvecType.getElementType(value.type)
-                    elePtrTy = cc.PointerType.get(eleTy)
-                    arrTy = cc.ArrayType.get(eleTy)
-                    ptrArrTy = cc.PointerType.get(arrTy)
-                    vecPtr = cc.StdvecDataOp(ptrArrTy, value).result
-                    attr = DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                 context=self.ctx)
-                    nrArgs = len(target.elts)
-                    getItem = lambda idx: cc.LoadOp(
-                        cc.ComputePtrOp(elePtrTy, vecPtr, [
-                            self.getConstantInt(idx)
-                        ], attr).result).result
-                elif quake.VeqType.isinstance(value.type):
-                    # We will get a runtime error for out of bounds access
-                    nrArgs = len(target.elts)
-                    getItem = lambda idx: quake.ExtractRefOp(
-                        quake.RefType.get(),
-                        value,
-                        -1,
-                        index=self.getConstantInt(idx)).result
-                else:
-                    nrArgs = 0
+                nrArgs = 0
             if nrArgs != len(target.elts):
                 self.emitFatalError("shape mismatch in tuple deconstruction",
                                     self.currentNode)
@@ -1023,7 +1268,7 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError("unsupported target in tuple deconstruction",
                                 self.currentNode)
 
-    def __processRangeLoopIterationBounds(self, argumentNodes):
+    def __processRangeLoopIterationBounds(self, pyVals):
         """
         Analyze `range(...)` bounds and return the start, end, and step values,
         as well as whether or not this a decrementing range.
@@ -1031,134 +1276,224 @@ class PyASTBridge(ast.NodeVisitor):
         iTy = self.getIntegerType(64)
         zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
         one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
+        values = self.__groupValues(pyVals, [(1, 3)])
+
         isDecrementing = False
-        if len(argumentNodes) == 3:
+        if len(pyVals) == 3:
             # Find the step val and we need to know if its decrementing can be
             # incrementing or decrementing
-            stepVal = self.popValue()
-            if isinstance(argumentNodes[2], ast.UnaryOp):
-                self.debug_msg(lambda: f'[(Inline) Visit UnaryOp]',
-                               argumentNodes[2])
-                if isinstance(argumentNodes[2].op, ast.USub):
-                    if isinstance(argumentNodes[2].operand, ast.Constant):
-                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
-                                       argumentNodes[2].operand)
-                        if argumentNodes[2].operand.value > 0:
-                            isDecrementing = True
-                    else:
-                        self.emitFatalError(
-                            'CUDA-Q requires step value on range() to be a constant.'
-                        )
+            stepVal = values[2]
+            if isinstance(pyVals[2], ast.Constant):
+                pyStepVal = pyVals[2].value
+            elif (isinstance(pyVals[2], ast.UnaryOp) and
+                  isinstance(pyVals[2].op, ast.USub) and
+                  isinstance(pyVals[2].operand, ast.Constant)):
+                pyStepVal = -pyVals[2].operand.value
+            else:
+                self.emitFatalError('range step value must be a constant',
+                                    self.currentNode)
+            if pyStepVal == 0:
+                self.emitFatalError("range step value must be non-zero",
+                                    self.currentNode)
+            isDecrementing = pyStepVal < 0
 
             # exclusive end
-            endVal = self.popValue()
+            endVal = values[1]
 
             # inclusive start
-            startVal = self.popValue()
+            startVal = values[0]
 
-        elif len(argumentNodes) == 2:
+        elif len(pyVals) == 2:
             stepVal = one
-            endVal = self.popValue()
-            startVal = self.popValue()
+            endVal = values[1]
+            startVal = values[0]
         else:
             stepVal = one
-            endVal = self.popValue()
+            endVal = values[0]
             startVal = zero
-
-        startVal = self.ifPointerThenLoad(startVal)
-        endVal = self.ifPointerThenLoad(endVal)
-        stepVal = self.ifPointerThenLoad(stepVal)
 
         for idx, v in enumerate([startVal, endVal, stepVal]):
             if not IntegerType.isinstance(v.type):
                 # matching Python behavior to error on non-integer values
-                self.emitFatalError(
-                    "non-integer value in range expression",
-                    argumentNodes[idx if len(argumentNodes) > 1 else 0])
+                self.emitFatalError("non-integer value in range expression",
+                                    pyVals[idx if len(pyVals) > 1 else 0])
         return startVal, endVal, stepVal, isDecrementing
 
-    def __visitStructAttribute(self, node, structValue):
-        """
-        Handle struct member extraction from either a pointer to struct or
-        direct struct value.  Uses the most efficient approach for each case.
-        """
-        if cc.PointerType.isinstance(structValue.type):
-            # Handle pointer to struct - use ComputePtrOp
-            eleType = cc.PointerType.getElementType(structValue.type)
-            if cc.StructType.isinstance(eleType):
-                structIdx, memberTy = self.getStructMemberIdx(
-                    node.attr, eleType)
-                eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy),
-                                          structValue, [],
-                                          DenseI32ArrayAttr.get([structIdx
-                                                                ])).result
+    def __groupValues(self, pyvals, groups: list[int | tuple[int, int]]):
+        '''
+        Helper function that visits the given AST nodes (`pyvals`),
+        and groups them according to the specified list.
+        The list contains integers or tuples of two integers.
+        Integer values have to be positive or -1, where -1
+        indicates that any number of values is acceptable.
+        Tuples of two integers (min, max) indicate that any number
+        of values in [min, max] is acceptable.
+        The list may only contain at most one negative integer or
+        tuple (enforced via assert only).
 
-                if self.attributePushPointerValue:
-                    self.pushValue(eleAddr)
-                    return
+        Emits a fatal error if any of the given `pyvals` did not
+        generate a value. Emits a fatal error if there are too
+        many or too few values to satisfy the requested grouping.
 
-                # Load the value
-                eleAddr = cc.LoadOp(eleAddr).result
-                self.pushValue(eleAddr)
-                return
-        elif cc.StructType.isinstance(structValue.type):
-            # Handle direct struct value - use ExtractValueOp (more efficient)
-            structIdx, memberTy = self.getStructMemberIdx(
-                node.attr, structValue.type)
-            extractedValue = cc.ExtractValueOp(
-                memberTy, structValue, [],
-                DenseI32ArrayAttr.get([structIdx])).result
+        Returns a tuple of value groups. Each value group is
+        either a single value (if the corresponding entry in `groups`
+        equals 1), or a list of values.
+        '''
 
-            if self.attributePushPointerValue:
-                # If we need a pointer, we have to create a temporary slot
-                tempSlot = cc.AllocaOp(cc.PointerType.get(memberTy),
-                                       TypeAttr.get(memberTy)).result
-                cc.StoreOp(extractedValue, tempSlot)
-                self.pushValue(tempSlot)
-                return
+        def group_values(numExpected, values, reverse):
+            groupedVals = []
+            current_idx = 0
+            for nArgs in numExpected:
+                if (isinstance(nArgs, int) and nArgs == 1 and
+                        current_idx < len(values)):
+                    groupedVals.append(values[current_idx])
+                    current_idx += 1
+                    continue
+                if isinstance(nArgs, tuple):
+                    minNumArgs, maxNumArgs = nArgs
+                    if minNumArgs == maxNumArgs:
+                        nArgs = minNumArgs
+                if not isinstance(nArgs, int) or nArgs < 0:
+                    break
+                if current_idx + nArgs > len(values):
+                    self.emitFatalError("missing value", self.currentNode)
+                groupedVals.append(values[current_idx:current_idx + nArgs])
+                if reverse:
+                    groupedVals[-1].reverse()
+                current_idx += nArgs
+            remaining = values[current_idx:]
+            numExpected = numExpected[len(groupedVals):]
+            if reverse:
+                remaining.reverse()
+                groupedVals.reverse()
+                numExpected.reverse()
+            return groupedVals, numExpected, remaining
 
-            self.pushValue(extractedValue)
-            return
+        [self.visit(arg) for arg in pyvals]
+        values = self.popAllValues(len(pyvals))
+        groups.reverse()
+        backVals, groups, values = group_values(groups, values, reverse=True)
+        frontVals, groups, values = group_values(groups, values, reverse=False)
+        if not groups:
+            if values:
+                self.emitFatalError("too many values", self.currentNode)
+            groupedVals = *frontVals, *backVals
         else:
-            self.emitFatalError(
-                f"Cannot access attribute '{node.attr}' on type {structValue.type}"
-            )
+            assert len(groups) == 1  # ambiguous otherwise
+            if isinstance(groups[0], tuple):
+                minNumArgs, maxNumArgs = groups[0]
+                assert 0 <= minNumArgs and (minNumArgs <= maxNumArgs or
+                                            maxNumArgs < 0)
+                if len(values) < minNumArgs:
+                    self.emitFatalError("missing value", self.currentNode)
+                if len(values) > maxNumArgs and maxNumArgs > 0:
+                    self.emitFatalError("too many values", self.currentNode)
+            groupedVals = *frontVals, values, *backVals
+        return groupedVals[0] if len(groupedVals) == 1 else groupedVals
 
-    def needsStackSlot(self, type):
-        """
-        Return true if this is a type that has been "passed by value" and 
-        needs a stack slot created (i.e. a `cc.alloca`) for use throughout the 
-        function. 
-        """
-        # FIXME add more as we need them
-        return ComplexType.isinstance(type) or F64Type.isinstance(
-            type) or F32Type.isinstance(type) or IntegerType.isinstance(
-                type) or cc.StructType.isinstance(type)
+    def __get_root_value(self, pyVal):
+        '''
+        Strips any attribute and subscript expressions from the node
+        to get the root node that the expression accesses.
+        Returns the symbol table entry for the root node, if such an
+        entry exists, and return None otherwise.
+        '''
+        pyValRoot = pyVal
+        while (isinstance(pyValRoot, ast.Subscript) or
+               isinstance(pyValRoot, ast.Attribute)):
+            pyValRoot = pyValRoot.value
+        if (isinstance(pyValRoot, ast.Name) and
+                pyValRoot.id in self.symbolTable):
+            return self.symbolTable[pyValRoot.id]
+        return None
+
+    def __validate_container_entry(self, mlirVal, pyVal):
+        '''
+        Helper function that should be invoked for any elements that are stored in
+        tuple, dataclass, or list. Note that the `pyVal` argument is only used to
+        determine the root of `mlirVal` and as such could be either the Python
+        AST node matching the container item (`mlirVal`) or the AST node for the 
+        container itself.
+        '''
+
+        rootVal = self.__get_root_value(pyVal)
+        assert rootVal or not self.isFunctionArgument(mlirVal)
+
+        if cc.PointerType.isinstance(mlirVal.type):
+            # We do not allow to create container that contain pointers.
+            valTy = cc.PointerType.getElementType(mlirVal.type)
+            assert cc.StateType.isinstance(valTy)
+            if cc.StateType.isinstance(valTy):
+                self.emitFatalError(
+                    "cannot use `cudaq.State` as element in lists, tuples, or dataclasses",
+                    self.currentNode)
+            self.emitFatalError(
+                "lists, tuples, and dataclasses must not contain modifiable values",
+                self.currentNode)
+
+        if cc.StructType.isinstance(mlirVal.type):
+            structName = cc.StructType.getName(mlirVal.type)
+            # We need to give a proper error if we try to assign
+            # a mutable dataclass to an item in another container.
+            # Allowing this would lead to incorrect behavior (i.e.
+            # inconsistent with Python) unless we change the
+            # representation of structs to be like `StdvecType`
+            # where we have a container that is passed by value
+            # wrapping the actual pointer, thus ensuring that the
+            # reference behavior actually works across function
+            # boundaries.
+            if structName != 'tuple' and rootVal:
+                msg = "only dataclass literals may be used as items in other container values"
+                self.emitFatalError(
+                    f"{msg} - use `.copy(deep)` to create a new {structName}",
+                    self.currentNode)
+
+        if (self.knownResultType and self.containsList(self.knownResultType) and
+                self.containsList(mlirVal.type)):
+            # For lists that were created inside a kernel, we have to
+            # copy the stack allocated array to the heap when we return such a list.
+            # In the case where the list was created by the caller, this copy leads
+            # to incorrect behavior (i.e. not matching Python behavior). We hence
+            # want to make sure that we can know when a host allocated list is returned.
+            # If we allow to assign lists passed as function arguments to inner items
+            # of other lists and dataclasses, we loose the information that this list
+            # was allocated by the parent. We hence forbid this. All of this applies
+            # regardless of how the list was passed (e.g. the list might be an inner
+            # item in a tuple or dataclass that was passed) or how it is assigned
+            # (e.g. the assigned value might be a tuple or dataclass that contains a list).
+            if rootVal and self.isFunctionArgument(rootVal):
+                msg = "lists passed as or contained in function arguments cannot be inner items in other container values when a list is returned"
+                self.emitFatalError(
+                    f"{msg} - use `.copy(deep)` to create a new list",
+                    self.currentNode)
 
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
         self.indent_level += 1
         parentNode = self.currentNode
         self.currentNode = node
+        numVals = 0 if isinstance(
+            node, ast.Module) else self.valueStack.currentNumValues
+        self.valueStack.pushFrame()
         super().visit(node)
+        self.valueStack.popFrame()
+        if isinstance(node, ast.Module):
+            if not self.valueStack.isEmpty:
+                self.emitFatalError(
+                    "processing error - unprocessed frame(s) in value stack",
+                    node)
+        elif self.valueStack.currentNumValues - numVals > 1:
+            # Do **NOT** change this to be more permissive and allow
+            # multiple values to be pushed without pushing proper
+            # frames for sub-nodes. If visiting a single node
+            # potentially produces more than one value, the bridge
+            # quickly will be a mess because we will easily end up
+            # with values in the wrong places.
+            self.emitFatalError(
+                "must not generate more one value at a time in each frame",
+                node)
         self.currentNode = parentNode
         self.indent_level -= 1
-
-    # FIXME: using generic_visit the way we do seems incredibly dangerous;
-    # we use this and make assumptions about what values are on the value stack
-    # without any validation that we got the right values.
-    # The whole value stack needs to be revised; we need to properly push and pop
-    # not just individual values but groups of values to ensure that the right
-    # pieces get the right arguments (and give a proper error otherwise).
-    def generic_visit(self, node):
-        self.debug_msg(lambda: f'[Generic Visit]', node)
-        for field, value in reversed(list(ast.iter_fields(node))):
-            if isinstance(value, list):
-                for item in value:
-                    if isinstance(item, ast.AST):
-                        self.visit(item)
-            elif isinstance(value, ast.AST):
-                self.visit(value)
 
     def visit_FunctionDef(self, node):
         """
@@ -1173,6 +1508,7 @@ class PyASTBridge(ast.NodeVisitor):
         We keep track of the top-level function name as well as its internal
         MLIR name, prefixed with the __nvqpp__mlirgen__ prefix.
         """
+
         if self.buildingEntryPoint:
             # This is an inner function def, we will
             # treat it as a cc.callable (cc.create_lambda)
@@ -1213,9 +1549,6 @@ class PyASTBridge(ast.NodeVisitor):
                                                  (node.returns.value is None)):
                 self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
 
-            # Get the argument names
-            argNames = [arg.arg for arg in node.args.args]
-
             self.name = node.name
             self.capturedDataStorage.name = self.name
 
@@ -1242,45 +1575,44 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Set the insertion point to the start of the entry block
             with InsertionPoint(self.entry):
-                self.buildingEntryPoint = True
                 self.symbolTable.pushScope()
-                # Add the block arguments to the symbol table, create a stack
-                # slot for value arguments
-                blockArgs = self.entry.arguments
-                for i, b in enumerate(blockArgs):
-                    if self.needsStackSlot(b.type):
-                        stackSlot = cc.AllocaOp(cc.PointerType.get(b.type),
-                                                TypeAttr.get(b.type)).result
-                        cc.StoreOp(b, stackSlot)
-                        self.symbolTable[argNames[i]] = stackSlot
+                # Process function arguments like any other assignments.
+                if node.args.args:
+                    assignNode = ast.Assign()
+                    if len(node.args.args) == 1:
+                        assignNode.targets = [ast.Name(node.args.args[0].arg)]
+                        assignNode.value = self.entry.arguments[0]
                     else:
-                        self.symbolTable[argNames[i]] = b
+                        assignNode.targets = [
+                            ast.Tuple(
+                                [ast.Name(arg.arg) for arg in node.args.args])
+                        ]
+                        assignNode.value = [
+                            self.entry.arguments[idx]
+                            for idx in range(len(self.entry.arguments.types))
+                        ]
+                    assignNode.lineno = node.lineno
+                    self.visit_Assign(assignNode)
 
-                # Visit the function
-                startIdx = 0
-                # Search for the potential documentation string, and
-                # if found, start the body visitation after it.
-                if len(node.body) and isinstance(node.body[0], ast.Expr):
-                    self.debug_msg(lambda: f'[(Inline) Visit Expr]',
-                                   node.body[0])
-                    expr = node.body[0]
-                    if hasattr(expr, 'value') and isinstance(
-                            expr.value, ast.Constant):
-                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
-                                       expr.value)
-                        constant = expr.value
-                        if isinstance(constant.value, str):
-                            startIdx = 1
-                [self.visit(n) for n in node.body[startIdx:]]
+                # Intentionally set after we process the argument assignment,
+                # since we currently treat value vs reference semantics slightly
+                # differently when we have arguments vs when we have local values.
+                # To not make this distinction, we would need to add support
+                # for having proper reference arguments, which we don't want to.
+                # Barring that, we at least try to be nice and give errors on
+                # assignments that may lead to unexpected behavior (i.e. behavior
+                # not following expected Python behavior).
+                self.buildingEntryPoint = True
+                [self.visit(n) for n in node.body]
                 # Add the return operation
                 if not self.hasTerminator(self.entry):
                     # If the function has a known (non-None) return type, emit
                     # an `undef` of that type and return it; else return void
                     if self.knownResultType is not None:
                         undef = cc.UndefOp(self.knownResultType).result
-                        ret = func.ReturnOp([undef])
+                        func.ReturnOp([undef])
                     else:
-                        ret = func.ReturnOp([])
+                        func.ReturnOp([])
                 self.buildingEntryPoint = False
                 self.symbolTable.popScope()
 
@@ -1298,8 +1630,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             globalKernelRegistry[node.name] = f
             self.symbolTable.clear()
-            self.valueStack.clear()
-
             self.knownResultType = parentResultType
 
     def visit_Expr(self, node):
@@ -1317,6 +1647,13 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
         self.visit(node.value)
+        if self.valueStack.currentNumValues > 0:
+            # An `ast.Expr` object is created when an expression
+            # is used as a statement. This expression may produce
+            # a value, which is ignored (not assigned) in the
+            # Python code. We hence need to pop that value to
+            # match that behavior and ignore it.
+            self.popValue()
 
     def visit_Lambda(self, node):
         """
@@ -1360,25 +1697,47 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_Assign(self, node):
         """
         Map an assign operation in the AST to an equivalent variable value
-        assignment in the MLIR. This method will first see if this is a tuple
-        assignment, enabling one to assign multiple values in a single
-        statement.
+        assignment in the MLIR. This method handles assignments, item updates,
+        as well as deconstruction.
 
         For all assignments, the variable name will be used as a key for the
-        symbol table, mapping to the corresponding MLIR Value. For values of
-        `ref` / `veq`, `i1`, or `cc.callable`, the values will be stored
-        directly in the table. For all other values, the variable will be
-        allocated with a `cc.alloca` op, and the loaded value will be stored in
+        symbol table, mapping to the corresponding MLIR Value. Quantum values,
+        measurements results, `cc.callable`, and `cc.stdvec` will be stored as
+        values in the symbol table.  For all other values, the variable will be
+        allocated with a `cc.alloca` op, and the pointer will be stored in
         the symbol table.
         """
 
-        def check_not_captured(name):
-            if name in self.capturedVars:
-                self.emitFatalError(
-                    "CUDA-Q does not allow assignment to variable {} captured from parent scope."
-                    .format(name), node)
+        # FIXME: Measurement results are stored as values
+        # to preserve their origin from discriminate.
+        # This should be revised when we introduce the proper
+        # type distinction.
+        def storedAsValue(val):
+            varTy = val.type
+            if cc.PointerType.isinstance(varTy):
+                varTy = cc.PointerType.getElementType(varTy)
+            # If `buildingEntryPoint` is not set we are processing function
+            # arguments. Function arguments are always passed by value,
+            # except states. We can treat non-container function arguments
+            # like any local variable and create a stack slot for them.
+            # For container types, on the the other hand, we need to preserve
+            # them as values in the symbol table to make sure we can detect
+            # any access to reference types that are function arguments, or
+            # function argument items.
+            containerFuncArg = (not self.buildingEntryPoint and
+                                (cc.StructType.isinstance(varTy) or
+                                 cc.StdvecType.isinstance(varTy)))
+            storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
+                          cc.CallableType.isinstance(varTy) or
+                          cc.StdvecType.isinstance(varTy) or
+                          self.isMeasureResultType(varTy, val))
+            # Nothing should ever produce a pointer
+            # to a type we store as value in the symbol table.
+            assert (not storeAsVal or not cc.PointerType.isinstance(val.type))
+            return storeAsVal
 
         def process_assignment(target, value):
+
             if isinstance(target, ast.Tuple):
 
                 if (isinstance(value, ast.Tuple) or
@@ -1386,120 +1745,248 @@ class PyASTBridge(ast.NodeVisitor):
                     return target, value
 
                 if isinstance(value, ast.AST):
+                    # Measurements need to push their values to the stack,
+                    # so we set a so we set a non-None variable name here.
+                    self.currentAssignVariableName = ''
+                    # NOTE: The way the assignment logic is processed,
+                    # including that we load this value for the purpose
+                    # of deconstruction, does not preserve any inner
+                    # references. There are a bunch of issues that
+                    # prevent us from properly dealing with any
+                    # reference types stored as items in lists and
+                    # dataclasses. We hence currently prevent the
+                    # creation of such lists and dataclasses, and would
+                    # need to change the representation for dataclasses
+                    # to allow that.
                     self.visit(value)
-                    if len(self.valueStack) == 0:
-                        self.emitFatalError("invalid assignment detected.",
-                                            node)
-                    return target, self.popValue()
+                    value = self.popValue()
+                    self.currentAssignVariableName = None
+                    return target, value
 
                 return target, value
 
-            # Handle simple `var = expr`
-            elif isinstance(target, ast.Name):
-                check_not_captured(target.id)
+            # Make sure we process arbitrary combinations
+            # of subscript and attributes
+            target_root = target
+            while (isinstance(target_root, ast.Subscript) or
+                   isinstance(target_root, ast.Attribute)):
+                target_root = target_root.value
+            if not isinstance(target_root, ast.Name):
+                self.emitFatalError("invalid target for assignment", node)
+            target_root_defined_in_parent_scope = (
+                target_root.id in self.symbolTable and
+                target_root.id not in self.symbolTable.symbolTable[-1])
+            value_root = self.__get_root_value(value)
 
+            def update_in_parent_scope(destination, value):
+                assert not cc.PointerType.isinstance(value.type)
+                if cc.StructType.isinstance(
+                        value.type) and cc.StructType.getName(
+                            value.type) != 'tuple':
+                    # We can't properly deal with this case if the value we are assigning
+                    # is not an `rvalue`. Consider the case were we have `v1` defined in
+                    # the parent scope, `v2` in a child scope, and we are assigning v2 to
+                    # v1 in the child scope. To do this assignment properly, we would need to
+                    # make sure that the pointers for both v1 and v2 points to the same memory
+                    # location such that any changes to v1 after the assignment are reflected
+                    # in v2 and vice versa (v2 could be changed in the child while v1 is still
+                    # alive). Since we merely store the raw pointer in the symbol table for
+                    # dataclasses, we have no way of updating that pointer conditionally on
+                    # the child scope being executed.
+                    # To determine whether the value we assign is an `rvalue`, it is
+                    # sufficient to check whether its root is a value in the symbol table
+                    # (values returned from calls are never `lvalues`).
+                    if value_root:
+                        # Note that this check also makes sure that function arguments are
+                        # not assigned to local variables, since function arguments are in
+                        # the symbol table.
+                        self.emitFatalError(
+                            "only literals can be assigned to variables defined in parent scope - use `.copy(deep)` to create a new value that can be assigned",
+                            node)
+                if cc.StdvecType.isinstance(destination.type):
+                    # In this case, we are assigning a list to a variable in a parent scope.
+                    assert isinstance(target, ast.Name)
+                    # If the value we are assigning is an `rvalue` then we can do an in-place
+                    # update of the data in the parent; the restrictions for container items
+                    # in `__validate_container_entry` ensure that the value we are assigning
+                    # does not contain any references to dataclass values, and any lists
+                    # contained in the value behave like proper references since they contain
+                    # a data pointer (i.e. in-place update only does a shallow copy).
+                    # TODO: The only reason we cannot currently support this is because we
+                    # have no way of updating the size of an existing vector...
+                    self.emitFatalError(
+                        "variable defined in parent scope cannot be modified",
+                        node)
+                # Allowing to assign vectors to container items in the parent scope
+                # should be fine regardless of whether the assigned value is an `rvalue`
+                # or not; replacing the item in the container with the value leads to the
+                # correct behavior much like it does for the case where the target is defined
+                # in the same scope.
+                # NOTE: The assignment is subject to the usual restrictions for container
+                # items - these should be validated before calling update_in_parent_scope.
+                if not cc.StdvecType.isinstance(
+                        value.type) and storedAsValue(destination):
+                    # We can't properly deal with this, since there is no way to ensure that
+                    # the target in the symbol table is updated conditionally on the child
+                    # scope executing.
+                    self.emitFatalError(
+                        "variable defined in parent scope cannot be modified",
+                        node)
+                assert cc.PointerType.isinstance(destination.type)
+                expectedTy = cc.PointerType.getElementType(destination.type)
+                value = self.changeOperandToType(expectedTy,
+                                                 value,
+                                                 allowDemotion=False)
+                cc.StoreOp(value, destination)
+
+            # Handle assignment `var = expr`
+            if isinstance(target, ast.Name):
+                if target.id in self.capturedVars:
+                    # Local variable shadows the captured one
+                    del self.capturedVars[target.id]
+
+                # This is so that we properly preserve the references
+                # to local variables. These variables can be of a reference
+                # type and other values in the symbol table may be assigned
+                # to the same reference. It is hence important to keep the
+                # reference as is, since otherwise changes to it would not
+                # be reflected in other values.
+                # NOTE: we don't need to worry about any references in
+                # values that are not `ast.Name` objects, since we don't
+                # allow containers to contain references.
+                value_is_name = False
+                if (isinstance(value, ast.Name) and
+                        value.id in self.symbolTable):
+                    value_is_name = True
+                    value = self.symbolTable[value.id]
                 if isinstance(value, ast.AST):
                     # Retain the variable name for potential children (like `mz(q, registerName=...)`)
                     self.currentAssignVariableName = target.id
                     self.visit(value)
-                    self.currentAssignVariableName = None
-                    if len(self.valueStack) == 0:
-                        self.emitFatalError("invalid assignment detected.",
-                                            node)
                     value = self.popValue()
+                    self.currentAssignVariableName = None
+                storeAsVal = storedAsValue(value)
 
-                if self.isQuantumType(value.type) or cc.CallableType.isinstance(
-                        value.type):
-                    return target, value
-                elif self.isMeasureResultType(value.type, value):
-                    value = self.ifPointerThenLoad(value)
-                    if target.id in self.symbolTable:
-                        addr = self.ifNotPointerThenStore(
-                            self.symbolTable[target.id])
-                        cc.StoreOp(value, addr)
-                    return target, value
-                elif target.id in self.symbolTable:
-                    value = self.ifPointerThenLoad(value)
-                    cc.StoreOp(value, self.symbolTable[target.id])
+                if value_root and self.isFunctionArgument(value_root):
+                    # If we assign a function argument or argument item to
+                    # a local variable, we need to be careful to not loose
+                    # the information about contained lists that have been
+                    # allocated by the caller, if the return value contains
+                    # any lists. This is problematic for reasons commented
+                    # in `__validate_container_entry`.
+                    if (cc.StdvecType.isinstance(value.type) and
+                            self.knownResultType and
+                            self.containsList(self.knownResultType)):
+                        # We loose this information if we assign an item of
+                        # a function argument.
+                        if not value_is_name:
+                            self.emitFatalError(
+                                "lists passed as or contained in function arguments cannot be assigned to to a local variable when a list is returned - use `.copy(deep)` to create a new value that can be assigned",
+                                node)
+                        # We also loose this information if we assign to
+                        # a value in the parent scope.
+                        elif target_root_defined_in_parent_scope:
+                            self.emitFatalError(
+                                "lists passed as or contained in function arguments cannot be assigned to variables in the parent scope when a list is returned - use `.copy(deep)` to create a new value that can be assigned",
+                                node)
+                    if cc.StructType.isinstance(value.type):
+                        structName = cc.StructType.getName(value.type)
+                        # For dataclasses, we have to do an additional check
+                        # to ensure that their behavior (for cases that don't
+                        # give an error) is consistent with Python;
+                        # since we pass them by value across functions, we
+                        # either have to force that an explicit copy is made
+                        # when using them as call arguments, or we have to
+                        # force that an explicit copy is made when a dataclass
+                        # argument is assigned to a local variable (as long as
+                        # it is not assigned, it will not be possible to make
+                        # any modification to it since the argument itself is
+                        # represented as an immutable value). The latter seems
+                        # more comprehensive and also ensures that there is no
+                        # unexpected behavior with regards to kernels not being
+                        # able to modify dataclass values in host code.
+                        # NOTE: It is sufficient to check the value itself (not
+                        # its root) is a function argument, (only!) since inner
+                        # items are never references to dataclasses (enforced
+                        # in `__validate_container_entry`).
+                        if value_is_name and structName != 'tuple':
+                            self.emitFatalError(
+                                f"cannot assign dataclass passed as function argument to a local variable - use `.copy(deep)` to create a new value that can be assigned",
+                                node)
+                        elif (self.knownResultType and
+                              self.containsList(self.knownResultType) and
+                              self.containsList(value.type)):
+                            self.emitFatalError(
+                                f"cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list when a list is returned - use `.copy(deep)` to create a new value that can be assigned",
+                                node)
+
+                if target_root_defined_in_parent_scope:
+                    if cc.PointerType.isinstance(value.type):
+                        # This is fine since/as long as update_in_parent_scope
+                        # validates that `lvalues` of reference types cannot be
+                        # assigned. Note that tuples and states are value types.
+                        value = cc.LoadOp(value).result
+                    destination = self.symbolTable[target.id]
+                    update_in_parent_scope(destination, value)
                     return target, None
-                elif cc.PointerType.isinstance(value.type):
+
+                # The target variable has either not been defined
+                # or is defined within the current scope;
+                # we can simply modify the symbol table entry.
+                if storeAsVal or cc.PointerType.isinstance(value.type):
                     return target, value
-                elif cc.StructType.isinstance(value.type) and isinstance(
-                        value.owner.opview, cc.InsertValueOp):
-                    # If we have a new struct from `cc.undef` and `cc.insert_value`, we don't
-                    # want to allocate new memory.
-                    return target, value
-                else:
-                    # We should allocate and store
-                    alloca = cc.AllocaOp(cc.PointerType.get(value.type),
-                                         TypeAttr.get(value.type)).result
-                    cc.StoreOp(value, alloca)
-                    return target, alloca
 
-            # Handle assignments like `listVar[IDX] = expr`
-            elif (isinstance(target, ast.Subscript) and
-                  isinstance(target.value, ast.Name) and
-                  target.value.id in self.symbolTable):
-                check_not_captured(target.value.id)
+                address = cc.AllocaOp(cc.PointerType.get(value.type),
+                                      TypeAttr.get(value.type)).result
+                cc.StoreOp(value, address)
+                return target, address
 
-                # Visit_Subscript will try to load any pointer and return it
-                # but here we want the pointer, so flip that flag
-                self.subscriptPushPointerValue = True
-                # Visit the subscript node, get the pointer value
-                self.visit(target)
-                # Reset the push pointer value flag
-                self.subscriptPushPointerValue = False
-                ptrVal = self.popValue()
-                if not cc.PointerType.isinstance(ptrVal.type):
-                    self.emitFatalError(
-                        "Invalid CUDA-Q subscript assignment, variable must be a pointer.",
-                        node)
-                # See if this is a pointer to an array, if so cast it
-                # to a pointer on the array type
-                ptrEleType = cc.PointerType.getElementType(ptrVal.type)
-                if cc.ArrayType.isinstance(ptrEleType):
-                    ptrVal = cc.CastOp(
-                        cc.PointerType.get(
-                            cc.ArrayType.getElementType(ptrEleType)),
-                        ptrVal).result
+            # Handle updates of existing variables
+            # (target is a combination of attribute and subscript)
+            self.pushPointerValue = True
+            self.visit(target)
+            destination = self.popValue()
+            self.pushPointerValue = False
 
-                # Visit the value being assigned
-                self.visit(node.value)
-                valueToStore = self.popValue()
-                # Cast if necessary
-                valueToStore = self.changeOperandToType(ptrEleType,
-                                                        valueToStore)
-                # Store the value
-                cc.StoreOp(valueToStore, ptrVal)
-                return target.value, None
+            # We should have a pointer since we requested a pointer.
+            assert cc.PointerType.isinstance(destination.type)
+            expectedTy = cc.PointerType.getElementType(destination.type)
+            # We prevent the creation of lists and structs that
+            # contain pointers, and prevent obtaining pointers to
+            # quantum types.
+            assert not cc.PointerType.isinstance(expectedTy)
+            assert not self.isQuantumType(expectedTy)
 
-            # Handle assignments like `classVar.attr = expr`
-            elif (isinstance(target, ast.Attribute) and
-                  isinstance(target.value, ast.Name) and
-                  target.value.id in self.symbolTable):
-                check_not_captured(target.value.id)
+            if not isinstance(value, ast.AST):
+                # Can arise if have something like `l[0], l[1] = getTuple()`
+                self.emitFatalError(
+                    "updating lists or dataclasses as part of deconstruction is not supported",
+                    node)
 
-                self.attributePushPointerValue = True
-                # Visit the attribute node, get the pointer value
-                self.visit(target)
-                # Reset the push pointer value flag
-                self.attributePushPointerValue = False
-                ptrVal = self.popValue()
-                if not cc.PointerType.isinstance(ptrVal.type):
-                    self.emitFatalError("invalid CUDA-Q attribute assignment",
-                                        node)
-                # Visit the value being assigned
-                self.visit(node.value)
-                valueToStore = self.popValue()
-                # Cast if necessary
-                valueToStore = self.changeOperandToType(
-                    cc.PointerType.getElementType(ptrVal.type), valueToStore)
-                # Store the value
-                cc.StoreOp(valueToStore, ptrVal)
-                return target.value, None
+            # Measurements need to push their values to the stack,
+            # so we set a so we set a non-None variable name here.
+            self.currentAssignVariableName = ''
+            self.visit(value)
+            mlirVal = self.popValue()
+            self.currentAssignVariableName = None
+            assert not cc.PointerType.isinstance(mlirVal.type)
 
-            else:
-                self.emitFatalError("Invalid target for assignment", node)
+            # Must validate the container entry regardless of what scope the
+            # target is defined in.
+            self.__validate_container_entry(mlirVal, value)
+
+            if target_root_defined_in_parent_scope:
+                update_in_parent_scope(destination, mlirVal)
+                return target_root, None
+
+            mlirVal = self.changeOperandToType(expectedTy,
+                                               mlirVal,
+                                               allowDemotion=False)
+            cc.StoreOp(mlirVal, destination)
+            # The returned target root has no effect here since no value
+            # is returns to push to he symbol table. We merely need to make
+            # sure that it is an `ast.Name` object to break the recursion.
+            return target_root, None
 
         if len(node.targets) > 1:
             # I am not entirely sure what kinds of Python language constructs would
@@ -1555,62 +2042,99 @@ class PyASTBridge(ast.NodeVisitor):
                         'ZError', 'XError', 'YError', 'Pauli1', 'Pauli2',
                         'Depolarization1', 'Depolarization2'
                 ]:
-                    cudaq_module = importlib.import_module('cudaq')
-                    channel_class = getattr(cudaq_module, node.attr)
-                    self.pushValue(
-                        self.getConstantInt(channel_class.num_parameters))
-                    self.pushValue(self.getConstantInt(hash(channel_class)))
-                    return
+                    self.emitFatalError(
+                        "noise channels may only be used as part of call expressions",
+                        node)
 
-                # Any other cudaq attributes should be handled by the parent
+                # must be handled by the parent
                 return
 
             if node.attr == 'ctrl' or node.attr == 'adj':
                 # to be processed by the caller
                 return
 
-        def process_potential_ptr_types(value):
-            """
-            Helper function to process anything that the parent may assign to, 
-            depending on whether value is a pointer or not.
-            """
-            valType = value.type
-            if cc.PointerType.isinstance(valType):
-                valType = cc.PointerType.getElementType(valType)
+        if node.attr == 'copy':
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "function call does not produce a modifiable value", node)
+            # needs to be handled by the caller
+            return
 
-            if quake.StruqType.isinstance(valType):
-                # Need to extract value instead of load from compute pointer.
-                structIdx, memberTy = self.getStructMemberIdx(
-                    node.attr, value.type)
-                attr = IntegerAttr.get(self.getIntegerType(32), structIdx)
-                self.pushValue(quake.GetMemberOp(memberTy, value, attr).result)
-                return True
+        # Only variable names, subscripts and attributes can
+        # produce modifiable values. Anything else produces an
+        # immutable value. We make sure the visit gets processed
+        # such that the rest of the code can give a proper error.
+        value_root = node.value
+        while (isinstance(value_root, ast.Subscript) or
+               isinstance(value_root, ast.Attribute)):
+            value_root = value_root.value
+        if self.pushPointerValue and not isinstance(value_root, ast.Name):
+            self.pushPointerValue = False
+            self.visit(node.value)
+            value = self.popValue()
+            self.pushPointerValue = True
+        else:
+            self.visit(node.value)
+            value = self.popValue()
 
-            if cc.StructType.isinstance(valType):
-                # Handle the case where we have a struct member extraction, memory semantics
-                self.__visitStructAttribute(node, value)
-                return True
+        valType = value.type
+        if cc.PointerType.isinstance(valType):
+            valType = cc.PointerType.getElementType(valType)
 
-            elif (quake.VeqType.isinstance(valType) or
-                  cc.StdvecType.isinstance(valType) or
-                  cc.ArrayType.isinstance(valType)):
-                return self.__isSupportedVectorFunction(node.attr)
+        if quake.StruqType.isinstance(valType):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "accessing attribute of quantum tuple or dataclass does not produce a modifiable value",
+                    node)
+            # Need to extract value instead of load from compute pointer.
+            structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
+            attr = IntegerAttr.get(self.getIntegerType(32), structIdx)
+            self.pushValue(quake.GetMemberOp(memberTy, value, attr).result)
+            return
 
-            return False
+        if (cc.PointerType.isinstance(value.type) and
+                cc.StructType.isinstance(valType)):
+            assert self.pushPointerValue
+            structIdx, memberTy = self.getStructMemberIdx(node.attr, valType)
+            eleAddr = cc.ComputePtrOp(cc.PointerType.get(memberTy), value, [],
+                                      DenseI32ArrayAttr.get([structIdx])).result
 
-        # Make sure we preserve pointers for structs
-        if isinstance(node.value,
-                      ast.Name) and node.value.id in self.symbolTable:
-            value = self.symbolTable[node.value.id]
-            processed = process_potential_ptr_types(value)
-            if processed:
+            if self.pushPointerValue:
+                self.pushValue(eleAddr)
                 return
 
-        self.visit(node.value)
-        if len(self.valueStack) == 0:
-            self.emitFatalError("failed to create value to access attribute",
-                                node)
-        value = self.ifPointerThenLoad(self.popValue())
+            eleAddr = cc.LoadOp(eleAddr).result
+            self.pushValue(eleAddr)
+            return
+
+        if cc.StructType.isinstance(value.type):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "value cannot be modified - use `.copy(deep)` to create a new value that can be modified",
+                    node)
+
+            # Handle direct struct value - use ExtractValueOp (more efficient)
+            structIdx, memberTy = self.getStructMemberIdx(node.attr, value.type)
+            extractedValue = cc.ExtractValueOp(
+                memberTy, value, [], DenseI32ArrayAttr.get([structIdx])).result
+
+            self.pushValue(extractedValue)
+            return
+
+        if (quake.VeqType.isinstance(valType) or
+                cc.StdvecType.isinstance(valType)):
+            if self.__isSupportedVectorFunction(node.attr):
+                if self.pushPointerValue:
+                    self.emitFatalError(
+                        "function call does not produce a modifiable value",
+                        node)
+                # needs to be handled by the caller
+                return
+
+        # everything else does not produce a modifiable value
+        if self.pushPointerValue:
+            self.emitFatalError(
+                "attribute expression does not produce a modifiable value")
 
         if ComplexType.isinstance(value.type):
             if (node.attr == 'real'):
@@ -1626,52 +2150,23 @@ class PyASTBridge(ast.NodeVisitor):
             if quake.VeqType.isinstance(value.type):
                 self.pushValue(
                     quake.VeqSizeOp(self.getIntegerType(), value).result)
-                return True
-            if cc.StdvecType.isinstance(value.type) or cc.ArrayType.isinstance(
-                    value.type):
-                self.pushValue(self.__get_vector_size(value))
-                return True
+                return
+            if cc.StdvecType.isinstance(value.type):
+                self.pushValue(
+                    cc.StdvecSizeOp(self.getIntegerType(), value).result)
+                return
 
-        processed = process_potential_ptr_types(value)
-        if not processed:
-            self.emitFatalError("unrecognized attribute {}".format(node.attr),
-                                node)
+        self.emitFatalError("unrecognized attribute {}".format(node.attr), node)
 
     def visit_Call(self, node):
         """
-        Map a Python Call operation to equivalent MLIR. This method will first
-        check for call operations that are `ast.Name` nodes in the tree (the
-        name of a function to call).  It will handle the Python `range(start,
-        stop, step)` function by creating an array of integers to loop through
-        via an invariant CC loop operation. Subsequent users of the `range()`
-        result can iterate through the elements of the returned `cc.array`. It
-        will handle the Python `enumerate(iterable)` function by constructing
-        another invariant loop that builds up and array of `cc.struct<i64, T>`,
-        representing the counter and the element.
+        Map a Python Call operation to equivalent MLIR. This method handles
+        functions that are `ast.Name` and `ast.Attribute` objects.
 
-        It will next handle any quantum operation (optionally with a rotation
-        parameter).  Single target operations can be represented that take a
-        single qubit reference, multiple single qubits, or a vector of qubits,
-        where the latter two will apply the operation to every qubit in the
-        vector:
-
-        Valid single qubit operations are `h`, `x`, `y`, `z`, `s`, `t`, `rx`,
-        `ry`, `rz`, `r1`.
-
-        Measurements `mx`, `my`, `mz` are mapped to corresponding quake
-        operations and the return i1 value is added to the value
-        stack. Measurements of single qubit reference and registers of qubits
-        are supported.
-
-        General calls to previously seen CUDA-Q kernels are supported. By this
-        we mean that an kernel can not be invoked from a kernel unless it was
-        defined before the current kernel.  Kernels can also be reversed or
-        controlled with `cudaq.adjoint(kernel, ...)` and `cudaq.control(kernel,
-        ...)`.
-
-        Finally, general operation modifiers are supported, specifically
-        `OPERATION.adj` and `OPERATION.ctrl` for adjoint and control synthesis
-        of the operation.
+        This function handles all built-in unitary and measurement gates
+        as well as all the ways to adjoint and control them.
+        General calls to previously seen CUDA-Q kernels or registered
+        operations are supported. 
 
         ```python
             q, r = cudaq.qubit(), cudaq.qubit()
@@ -1686,21 +2181,11 @@ class PyASTBridge(ast.NodeVisitor):
         global globalRegisteredOperations
 
         def convertArguments(expectedArgTypes, values):
-            fName = 'function'
-            if hasattr(node.func, 'id'):
-                fName = node.func.id
-            elif hasattr(node.func, 'attr'):
-                fName = node.func.attr
-            if len(expectedArgTypes) != len(values):
-                self.emitFatalError(
-                    f"invalid number of arguments passed in call to {fName} ({len(values)} vs required {len(expectedArgTypes)})",
-                    node)
+            assert len(expectedArgTypes) == len(values)
             args = []
-            for idx, value in enumerate(values):
-                arg = self.ifPointerThenLoad(value)
-                expectedTy = expectedArgTypes[idx]
+            for idx, expectedTy in enumerate(expectedArgTypes):
                 arg = self.changeOperandToType(expectedTy,
-                                               arg,
+                                               values[idx],
                                                allowDemotion=True)
                 args.append(arg)
             return args
@@ -1715,122 +2200,45 @@ class PyASTBridge(ast.NodeVisitor):
                 self.controlNegations.clear()
             return negatedControlQubits
 
-        def processControlAndAdjoint(pyFuncVal, attrName):
-            # NOTE: We currently generally don't have the means in the
-            # compiler to handle composition of control and adjoint, since
-            # control and adjoint are not proper functors (i.e. there is
-            # no way to obtain a new callable object that is the adjoint
-            # or controlled version of another callable).
-            # Since we don't really treat callables as first-class values,
-            # the first argument to control and adjoint indeed has to be
-            # a Name object.
-            if not isinstance(pyFuncVal, ast.Name):
-                self.emitFatalError(
-                    f'unsupported argument in call to {attrName} - first argument must be a symbol name',
-                    node)
-            otherFuncName = pyFuncVal.id
+        def processFunctionCall(kernel):
+            nrArgs = len(kernel.type.inputs)
+            values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
+            values = convertArguments([t for t in kernel.type.inputs], values)
+            if len(kernel.type.results) == 0:
+                func.CallOp(kernel, values)
+                return
+            # The logic for calls that return values must
+            # match the logic in `visit_Return`; anything
+            # copied to the heap during return must be copied
+            # back to the stack. Compiler optimizations should
+            # take care of eliminating unnecessary copies.
+            result = func.CallOp(kernel, values).result
 
-            values = [self.popValue() for _ in range(len(self.valueStack))]
-            values.reverse()
-            indirectCallee = []
-            kwargs = {"is_adj": attrName == 'adjoint'}
+            def copy_list_to_stack(value):
+                symName = '__nvqpp_vectorCopyToStack'
+                load_intrinsic(self.module, symName)
+                elemTy = cc.StdvecType.getElementType(value.type)
+                if elemTy == self.getIntegerType(1):
+                    elemTy = self.getIntegerType(8)
+                ptrTy = cc.PointerType.get(self.getIntegerType(8))
+                resBuf = cc.StdvecDataOp(cc.PointerType.get(elemTy),
+                                         value).result
+                eleSize = cc.SizeOfOp(self.getIntegerType(),
+                                      TypeAttr.get(elemTy)).result
+                dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+                stackCopy = cc.AllocaOp(cc.PointerType.get(
+                    cc.ArrayType.get(elemTy)),
+                                        TypeAttr.get(elemTy),
+                                        seqSize=dynSize).result
+                func.CallOp([], symName, [
+                    cc.CastOp(ptrTy, stackCopy).result,
+                    cc.CastOp(ptrTy, resBuf).result,
+                    arith.MulIOp(dynSize, eleSize).result
+                ])
+                return cc.StdvecInitOp(value.type, stackCopy,
+                                       length=dynSize).result
 
-            if otherFuncName in self.symbolTable and \
-                cc.CallableType.isinstance(values[0].type):
-                functionTy = FunctionType(
-                    cc.CallableType.getFunctionType(values[0].type))
-                inputTys, outputTys = functionTy.inputs, functionTy.results
-                indirectCallee.append(values[0])
-                values = values[1:]
-            elif otherFuncName in globalKernelRegistry:
-                otherFunc = globalKernelRegistry[otherFuncName]
-                inputTys, outputTys = otherFunc.arguments.types, otherFunc.results.types
-                kwargs["callee"] = FlatSymbolRefAttr.get(nvqppPrefix +
-                                                         otherFuncName)
-            elif otherFuncName in globalRegisteredOperations:
-                self.emitFatalError(
-                    f"calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported",
-                    node)
-            elif self.__isUnitaryGate(
-                    otherFuncName) or self.__isMeasurementGate(otherFuncName):
-                self.emitFatalError(
-                    f"calling cudaq.control or cudaq.adjoint on a built-in gate is not supported",
-                    node)
-            else:
-                self.emitFatalError(
-                    f"{otherFuncName} is not a known quantum kernel - maybe a cudaq.kernel attribute is missing?.",
-                    node)
-
-            numControlArgs = attrName == 'control'
-            if len(values) < numControlArgs:
-                self.emitFatalError(
-                    "missing control qubit(s) argument in cudaq.control", node)
-            controls = values[:numControlArgs]
-            invert_controls = lambda: None
-            if len(controls) != 0:
-                assert (len(controls) == 1)
-                if (not quake.RefType.isinstance(controls[0].type) and
-                        not quake.VeqType.isinstance(controls[0].type)):
-                    self.emitFatalError(
-                        'invalid argument type for control operand', node)
-                # TODO: it would be cleaner to add support for negated control
-                # qubits to `quake.ApplyOp`
-                if controls[0] in self.controlNegations:
-                    invert_controls = lambda: self.__applyQuantumOperation(
-                        'x', [], controls)
-                    self.controlNegations.clear()
-            args = convertArguments(inputTys, values[numControlArgs:])
-            if len(outputTys) != 0:
-                self.emitFatalError(
-                    f'cannot take {attrName} of kernel {otherFuncName} that '
-                    f'returns a value', node)
-            invert_controls()
-            quake.ApplyOp([], indirectCallee, controls, args, **kwargs)
-            invert_controls()
-
-        def processFunctionCall(fType, nrValsToPop):
-            if len(fType.inputs) != nrValsToPop:
-                fName = 'function'
-                if hasattr(node.func, 'id'):
-                    fName = node.func.id
-                elif hasattr(node.func, 'attr'):
-                    fName = node.func.attr
-                self.emitFatalError(
-                    f"invalid number of arguments passed in call to {fName} "
-                    f"({nrValsToPop} vs required {len(fType.inputs)})", node)
-            values = [self.popValue() for _ in node.args]
-            values.reverse()
-            values = convertArguments([t for t in fType.inputs], values)
-            if len(fType.results) == 0:
-                func.CallOp(otherKernel, values)
-            else:
-                result = func.CallOp(otherKernel, values).result
-                # Copy to stack if necessary
-                if cc.StdvecType.isinstance(result.type):
-                    elemTy = cc.StdvecType.getElementType(result.type)
-                    if elemTy == self.getIntegerType(1):
-                        elemTy = self.getIntegerType(8)
-                    data = cc.StdvecDataOp(cc.PointerType.get(elemTy),
-                                           result).result
-                    i64Ty = self.getIntegerType(64)
-                    length = cc.StdvecSizeOp(i64Ty, result).result
-                    elemSize = cc.SizeOfOp(i64Ty, TypeAttr.get(elemTy)).result
-                    buffer = cc.AllocaOp(cc.PointerType.get(
-                        cc.ArrayType.get(elemTy)),
-                                         TypeAttr.get(elemTy),
-                                         seqSize=length).result
-                    i8PtrTy = cc.PointerType.get(self.getIntegerType(8))
-                    cbuffer = cc.CastOp(i8PtrTy, buffer).result
-                    cdata = cc.CastOp(i8PtrTy, data).result
-                    symName = '__nvqpp_vectorCopyToStack'
-                    load_intrinsic(self.module, symName)
-                    sizeInBytes = arith.MulIOp(length, elemSize).result
-                    func.CallOp([], symName, [cbuffer, cdata, sizeInBytes])
-                    # Replace result with the stack buffer-backed vector
-                    result = cc.StdvecInitOp(result.type, buffer,
-                                             length=length).result
-
-                self.pushValue(result)
+            return self.__migrateLists(result, copy_list_to_stack)
 
         def checkControlAndTargetTypes(controls, targets):
             """
@@ -1854,6 +2262,67 @@ class PyASTBridge(ast.NodeVisitor):
             elif not is_qvec_or_qubits(targets):
                 self.emitFatalError(f'invalid argument type for target operand',
                                     node)
+
+        def processQuantumOperation(opName,
+                                    controls,
+                                    targets,
+                                    *args,
+                                    broadcast=lambda q: [q],
+                                    **kwargs):
+            opCtor = getattr(quake, f'{opName}Op')
+            checkControlAndTargetTypes(controls, targets)
+            if not broadcast:
+                return opCtor(*args, controls, targets, **kwargs)
+            elif quake.VeqType.isinstance(targets[0].type):
+                assert len(targets) == 1
+
+                def bodyBuilder(iterVal):
+                    q = quake.ExtractRefOp(self.getRefType(),
+                                           targets[0],
+                                           -1,
+                                           index=iterVal).result
+                    opCtor(*args, controls, broadcast(q), **kwargs)
+
+                veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                          targets[0]).result
+                self.createInvariantForLoop(bodyBuilder, veqSize)
+            else:
+                for target in targets:
+                    opCtor(*args, controls, broadcast(target), **kwargs)
+
+        def processQuakeCtor(opName,
+                             pyArgs,
+                             isCtrl,
+                             isAdj,
+                             numParams=0,
+                             numTargets=1):
+            kwargs = {}
+            if isCtrl:
+                argGroups = [(numParams, numParams), (1, -1),
+                             (numTargets, numTargets)]
+                # FIXME: we could allow this as long as we have 1 target
+                kwargs['broadcast'] = False
+            elif numTargets == 1:
+                # when we have a single target and no controls, we generally
+                # support any version of `x(qubit)`, `x(qvector)`, `x(q, r)`
+                argGroups = [(numParams, numParams), 0, (1, -1)]
+            else:
+                argGroups = [(numParams, numParams), 0,
+                             (numTargets, numTargets)]
+                kwargs['broadcast'] = False
+
+            params, controls, targets = self.__groupValues(pyArgs, argGroups)
+            if isCtrl:
+                negatedControlQubits = getNegatedControlQubits(controls)
+                kwargs['negated_qubit_controls'] = negatedControlQubits
+            if isAdj:
+                kwargs['is_adj'] = True
+            params = [
+                self.changeOperandToType(self.getFloatType(), param)
+                for param in params
+            ]
+            processQuantumOperation(opName, controls, targets, [], params,
+                                    **kwargs)
 
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
@@ -1911,9 +2380,9 @@ class PyASTBridge(ast.NodeVisitor):
                 if maybeKernelName != None:
                     otherKernel = SymbolTable(
                         self.module.operation)[maybeKernelName]
-
-                    [self.visit(arg) for arg in node.args]
-                    processFunctionCall(otherKernel.type, len(node.args))
+                    res = processFunctionCall(otherKernel)
+                    if res is not None:
+                        self.pushValue(res)
                     return
 
             # Start by seeing if we have mod1.mod2.mod3...
@@ -1930,13 +2399,8 @@ class PyASTBridge(ast.NodeVisitor):
 
             if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
                 # Handle a debug print statement
-                [self.visit(arg) for arg in node.args]
-                if len(self.valueStack) != 1:
-                    self.emitFatalError(
-                        f"cudaq.dbg.ast.{node.func.attr} call invalid - "
-                        f"too many arguments passed.", node)
-
-                self.__insertDbgStmt(self.popValue(), node.func.attr)
+                arg = self.__groupValues(node.args, [1])
+                self.__insertDbgStmt(arg, node.func.attr)
                 return
 
             # If we did have module names, then this is what we are looking for
@@ -1947,30 +2411,43 @@ class PyASTBridge(ast.NodeVisitor):
                     # If it is in `globalKernelRegistry`, it has to be in this Module
                     otherKernel = SymbolTable(
                         self.module.operation)[nvqppPrefix + name]
-                    [self.visit(arg) for arg in node.args]
-                    processFunctionCall(otherKernel.type, len(node.args))
+
+                    res = processFunctionCall(otherKernel)
+                    if res is not None:
+                        self.pushValue(res)
                     return
 
-        # FIXME: This whole thing is widely inconsistent;
-        # For example; we pop all values on the value stack for a simple gate
-        # and allow x(q1, q2, q3, ...) here, but for a simple adjoint gate we
-        # only ever pop a single value. Then there are the control qubits,
-        # where we also allow to pass individual qubits instead of a vector.
-        # I'll tackle this as part of revising the value stack.
-        # FIXME: Expand the tests in test_control_negations as needed after
-        # revising this.
         if isinstance(node.func, ast.Name):
-            # Just visit the arguments, we know the name
-            [self.visit(arg) for arg in node.args]
 
-            namedArgs = {}
-            for keyword in node.keywords:
-                self.visit(keyword.value)
-                namedArgs[keyword.arg] = self.popValue()
+            if node.func.id == 'complex':
 
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.func)
+                keywords = [kw.arg for kw in node.keywords]
+                kwreal = 'real' in keywords
+                kwimag = 'imag' in keywords
+                real, imag = self.__groupValues(node.args,
+                                                [not kwreal, not kwimag])
+                for keyword in node.keywords:
+                    self.visit(keyword.value)
+                    kwval = self.popValue()
+                    if keyword.arg == 'real':
+                        real = kwval
+                    elif keyword.arg == 'imag':
+                        imag = kwval
+                    else:
+                        self.emitFatalError(f"unknown keyword `{keyword.arg}`",
+                                            node)
+                if not real or not imag:
+                    self.emitFatalError("missing value", node)
+
+                imag = self.changeOperandToType(self.getFloatType(), imag)
+                real = self.changeOperandToType(self.getFloatType(), real)
+                self.pushValue(
+                    complex.CreateOp(self.getComplexType(), real, imag).result)
+                return
+
             if node.func.id == 'len':
-                listVal = self.ifPointerThenLoad(self.popValue())
+                listVal = self.__groupValues(node.args, [1])
+
                 if cc.StdvecType.isinstance(listVal.type):
                     self.pushValue(
                         cc.StdvecSizeOp(self.getIntegerType(), listVal).result)
@@ -1991,17 +2468,15 @@ class PyASTBridge(ast.NodeVisitor):
                 zero = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 0))
                 one = arith.ConstantOp(iTy, IntegerAttr.get(iTy, 1))
 
-                # The total number of elements in the iterable
-                # we are generating should be `N == endVal - startVal`
-                actualSize = arith.SubIOp(endVal, startVal).result
-                totalSize = math.AbsIOp(actualSize).result
-
-                # If the step is not == 1, then we also have
-                # to update the total size for the range iterable
-                actualSize = arith.DivSIOp(actualSize,
-                                           math.AbsIOp(stepVal).result).result
-                totalSize = arith.DivSIOp(totalSize,
-                                          math.AbsIOp(stepVal).result).result
+                totalSize = arith.SubIOp(endVal, startVal).result
+                if isDecrementing:
+                    roundingOffset = arith.AddIOp(stepVal, one)
+                else:
+                    roundingOffset = arith.SubIOp(stepVal, one)
+                totalSize = arith.AddIOp(totalSize, roundingOffset)
+                totalSize = arith.MaxSIOp(
+                    zero,
+                    arith.DivSIOp(totalSize, stepVal).result).result
 
                 # Create an array of i64 of the total size
                 arrTy = cc.ArrayType.get(iTy)
@@ -2020,91 +2495,67 @@ class PyASTBridge(ast.NodeVisitor):
 
                 def bodyBuilder(iterVar):
                     loadedCounter = cc.LoadOp(counter).result
-                    tmp = arith.MulIOp(loadedCounter, stepVal).result
-                    arrElementVal = arith.AddIOp(startVal, tmp).result
                     eleAddr = cc.ComputePtrOp(
                         cc.PointerType.get(iTy), iterable, [loadedCounter],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
-                    cc.StoreOp(arrElementVal, eleAddr)
+                    cc.StoreOp(iterVar, eleAddr)
                     incrementedCounter = arith.AddIOp(loadedCounter, one).result
                     cc.StoreOp(incrementedCounter, counter)
 
-                self.createInvariantForLoop(endVal,
-                                            bodyBuilder,
+                self.createMonotonicForLoop(bodyBuilder,
                                             startVal=startVal,
                                             stepVal=stepVal,
+                                            endVal=endVal,
                                             isDecrementing=isDecrementing)
 
-                self.pushValue(iterable)
-                self.pushValue(actualSize)
+                vect = cc.StdvecInitOp(cc.StdvecType.get(iTy),
+                                       iterable,
+                                       length=totalSize).result
+                self.pushValue(vect)
                 return
 
             if node.func.id == 'enumerate':
                 # We have to have something "iterable" on the stack,
                 # could be coming from `range()` or an iterable like `qvector`
-                totalSize = None
-                iterable = None
-                iterEleTy = None
-                extractFunctor = None
-                if len(self.valueStack) == 1:
-                    # `qreg`-like or `stdvec`-like thing thing
-                    iterable = self.ifPointerThenLoad(self.popValue())
-                    # Create a new iterable, `alloca cc.struct<i64, T>`
-                    totalSize = None
-                    if quake.VeqType.isinstance(iterable.type):
-                        iterEleTy = self.getRefType()
-                        totalSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                    iterable).result
+                iterable = self.__groupValues(node.args, [1])
 
-                        def extractFunctor(idxVal):
-                            return quake.ExtractRefOp(iterEleTy,
-                                                      iterable,
-                                                      -1,
-                                                      index=idxVal).result
-                    elif cc.StdvecType.isinstance(iterable.type):
-                        iterEleTy = cc.StdvecType.getElementType(iterable.type)
-                        totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                                    iterable).result
+                # Create a new iterable, `alloca cc.struct<i64, T>`
+                if quake.VeqType.isinstance(iterable.type):
+                    iterEleTy = self.getRefType()
+                    totalSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                iterable).result
 
-                        def extractFunctor(idxVal):
-                            arrEleTy = cc.ArrayType.get(iterEleTy)
-                            elePtrTy = cc.PointerType.get(iterEleTy)
-                            arrPtrTy = cc.PointerType.get(arrEleTy)
-                            vecPtr = cc.StdvecDataOp(arrPtrTy, iterable).result
-                            eleAddr = cc.ComputePtrOp(
-                                elePtrTy, vecPtr, [idxVal],
-                                DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                      context=self.ctx)).result
-                            return cc.LoadOp(eleAddr).result
-                    else:
-                        self.emitFatalError(
-                            "could not infer enumerate tuple type ({})".format(
-                                iterable.type), node)
-                else:
-                    if len(self.valueStack) != 2:
-                        msg = 'Error in AST processing, should have 2 values on the stack for enumerate'
-                        self.emitFatalError(msg, node)
+                    def extractFunctor(idxVal):
+                        return quake.ExtractRefOp(iterEleTy,
+                                                  iterable,
+                                                  -1,
+                                                  index=idxVal).result
+                elif cc.StdvecType.isinstance(iterable.type):
+                    iterEleTy = cc.StdvecType.getElementType(iterable.type)
+                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
+                                                iterable).result
 
-                    totalSize = self.popValue()
-                    iterable = self.popValue()
-                    arrTy = cc.PointerType.getElementType(iterable.type)
-                    iterEleTy = cc.ArrayType.getElementType(arrTy)
-
-                    def localFunc(idxVal):
+                    def extractFunctor(idxVal):
+                        arrEleTy = cc.ArrayType.get(iterEleTy)
+                        elePtrTy = cc.PointerType.get(iterEleTy)
+                        arrPtrTy = cc.PointerType.get(arrEleTy)
+                        vecPtr = cc.StdvecDataOp(arrPtrTy, iterable).result
                         eleAddr = cc.ComputePtrOp(
-                            cc.PointerType.get(iterEleTy), iterable, [idxVal],
+                            elePtrTy, vecPtr, [idxVal],
                             DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                                   context=self.ctx)).result
                         return cc.LoadOp(eleAddr).result
-
-                    extractFunctor = localFunc
+                else:
+                    self.emitFatalError(
+                        "could not infer enumerate tuple type ({})".format(
+                            iterable.type), node)
 
                 # Enumerate returns a iterable of tuple(i64, T) for type T
                 # Allocate an array of struct<i64, T> == tuple (for us)
                 structTy = cc.StructType.get([self.getIntegerType(), iterEleTy])
-                arrTy = cc.ArrayType.get(structTy)
-                enumIterable = cc.AllocaOp(cc.PointerType.get(arrTy),
+                enumIterable = cc.AllocaOp(cc.PointerType.get(
+                    cc.ArrayType.get(structTy)),
                                            TypeAttr.get(structTy),
                                            seqSize=totalSize).result
 
@@ -2129,122 +2580,48 @@ class PyASTBridge(ast.NodeVisitor):
                         DenseI64ArrayAttr.get([1], context=self.ctx)).result
                     cc.StoreOp(element, eleAddr)
 
-                self.createInvariantForLoop(totalSize, bodyBuilder)
-                self.pushValue(enumIterable)
-                self.pushValue(totalSize)
-                return
-
-            if node.func.id == 'complex':
-                if len(namedArgs) == 0:
-                    imag = self.popValue()
-                    real = self.popValue()
-                else:
-                    imag = namedArgs['imag']
-                    real = namedArgs['real']
-                imag = self.changeOperandToType(self.getFloatType(), imag)
-                real = self.changeOperandToType(self.getFloatType(), real)
-                self.pushValue(
-                    complex.CreateOp(self.getComplexType(), real, imag).result)
+                self.createInvariantForLoop(bodyBuilder, totalSize)
+                vect = cc.StdvecInitOp(cc.StdvecType.get(structTy),
+                                       enumIterable,
+                                       length=totalSize).result
+                self.pushValue(vect)
                 return
 
             if self.__isSimpleGate(node.func.id):
-                # Here we enable application of the op on all the
-                # provided arguments, e.g. `x(qubit)`, `x(qvector)`, `x(q, r)`, etc.
-                numValues = len(self.valueStack)
-                qubitTargets = [self.popValue() for _ in range(numValues)]
-                qubitTargets.reverse()
-                checkControlAndTargetTypes([], qubitTargets)
-                self.__applyQuantumOperation(node.func.id, [], qubitTargets)
-                return
-
-            if self.__isControlledSimpleGate(node.func.id):
-                # These are single target controlled quantum operations
-                MAX_ARGS = 2
-                numValues = len(self.valueStack)
-                if numValues != MAX_ARGS:
-                    raise RuntimeError(
-                        "invalid number of arguments passed to callable {} ({} vs required {})"
-                        .format(node.func.id, len(node.args), MAX_ARGS))
-                target = self.popValue()
-                control = self.popValue()
-                negatedControlQubits = getNegatedControlQubits([control])
-                checkControlAndTargetTypes([control], [target])
-                # Map `cx` to `XOp`...
-                opCtor = getattr(
-                    quake, '{}Op'.format(node.func.id.title()[1:].upper()))
-                opCtor([], [], [control], [target],
-                       negated_qubit_controls=negatedControlQubits)
-                return
-
-            if self.__isRotationGate(node.func.id):
-                numValues = len(self.valueStack)
-                if numValues < 2:
-                    self.emitFatalError(
-                        f'invalid number of arguments ({numValues}) passed to {node.func.id} (requires at least 2 arguments)',
-                        node)
-                qubitTargets = [self.popValue() for _ in range(numValues - 1)]
-                qubitTargets.reverse()
-                param = self.popValue()
-                if IntegerType.isinstance(param.type):
-                    param = arith.SIToFPOp(self.getFloatType(), param).result
-                elif not F64Type.isinstance(param.type):
-                    self.emitFatalError(
-                        'rotational parameter must be a float, or int.', node)
-                checkControlAndTargetTypes([], qubitTargets)
-                self.__applyQuantumOperation(node.func.id, [param],
-                                             qubitTargets)
-                return
-
-            if self.__isControlledRotationGate(node.func.id):
-                ## These are single target, one parameter, controlled quantum operations
-                MAX_ARGS = 3
-                numValues = len(self.valueStack)
-                if numValues != MAX_ARGS:
-                    raise RuntimeError(
-                        "invalid number of arguments passed to callable {} ({} vs required {})"
-                        .format(node.func.id, len(node.args), MAX_ARGS))
-                target = self.popValue()
-                control = self.popValue()
-                negatedControlQubits = getNegatedControlQubits([control])
-                checkControlAndTargetTypes([control], [target])
-                param = self.popValue()
-                if IntegerType.isinstance(param.type):
-                    param = arith.SIToFPOp(self.getFloatType(), param).result
-                elif not F64Type.isinstance(param.type):
-                    self.emitFatalError(
-                        'rotational parameter must be a float, or int.', node)
-                # Map `crx` to `RxOp`...
-                opCtor = getattr(
-                    quake, '{}Op'.format(node.func.id.title()[1:].capitalize()))
-                opCtor([], [param], [control], [target],
-                       negated_qubit_controls=negatedControlQubits)
+                processQuakeCtor(node.func.id.title(),
+                                 node.args,
+                                 isCtrl=False,
+                                 isAdj=False)
                 return
 
             if self.__isAdjointSimpleGate(node.func.id):
-                target = self.popValue()
-                checkControlAndTargetTypes([], [target])
-                # Map `sdg` to `SOp`...
-                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()[0]))
-                if quake.VeqType.isinstance(target.type):
+                processQuakeCtor(node.func.id[0].title(),
+                                 node.args,
+                                 isCtrl=False,
+                                 isAdj=True)
+                return
 
-                    def bodyBuilder(iterVal):
-                        q = quake.ExtractRefOp(self.getRefType(),
-                                               target,
-                                               -1,
-                                               index=iterVal).result
-                        opCtor([], [], [], [q], is_adj=True)
+            if self.__isControlledSimpleGate(node.func.id):
+                processQuakeCtor(node.func.id[1:].title(),
+                                 node.args,
+                                 isCtrl=True,
+                                 isAdj=False)
+                return
 
-                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                              target).result
-                    self.createInvariantForLoop(veqSize, bodyBuilder)
-                    return
-                elif quake.RefType.isinstance(target.type):
-                    opCtor([], [], [], [target], is_adj=True)
-                    return
-                else:
-                    self.emitFatalError(
-                        'adj quantum operation on incorrect type {}.'.format(
-                            target.type), node)
+            if self.__isRotationGate(node.func.id):
+                processQuakeCtor(node.func.id.title(),
+                                 node.args,
+                                 isCtrl=False,
+                                 isAdj=False,
+                                 numParams=1)
+                return
+
+            if self.__isControlledRotationGate(node.func.id):
+                processQuakeCtor(node.func.id[1:].title(),
+                                 node.args,
+                                 isCtrl=True,
+                                 isAdj=False,
+                                 numParams=1)
                 return
 
             if self.__isMeasurementGate(node.func.id):
@@ -2269,105 +2646,68 @@ class PyASTBridge(ast.NodeVisitor):
                         self.debug_msg(lambda: f'[(Inline) Visit Constant]',
                                        userProvidedRegName.value)
                         registerName = userProvidedRegName.value.value
-                qubits = [self.popValue() for _ in range(len(self.valueStack))]
-                checkControlAndTargetTypes([], qubits)
-                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
-                i1Ty = self.getIntegerType(1)
-                resTy = i1Ty if len(qubits) == 1 and quake.RefType.isinstance(
-                    qubits[0].type) else cc.StdvecType.get(i1Ty)
-                measTy = quake.MeasureType.get(
-                ) if len(qubits) == 1 and quake.RefType.isinstance(
-                    qubits[0].type) else cc.StdvecType.get(
-                        quake.MeasureType.get())
-                label = registerName
-                if not label:
-                    label = None
-                measureResult = opCtor(measTy, [], qubits,
-                                       registerName=label).result
+
+                qubits = self.__groupValues(node.args, [(1, -1)])
+                label = registerName or None
+                if len(qubits) == 1 and quake.RefType.isinstance(
+                        qubits[0].type):
+                    measTy = quake.MeasureType.get()
+                    resTy = self.getIntegerType(1)
+                else:
+                    measTy = cc.StdvecType.get(quake.MeasureType.get())
+                    resTy = cc.StdvecType.get(self.getIntegerType(1))
+                measureResult = processQuantumOperation(
+                    node.func.id.title(), [],
+                    qubits,
+                    measTy,
+                    broadcast=False,
+                    registerName=label).result
+
+                # FIXME: needs to be revised when we properly distinguish measurement types
                 if pushResultToStack:
                     self.pushValue(
                         quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
             if node.func.id == 'swap':
-                qubitB = self.popValue()
-                qubitA = self.popValue()
-                checkControlAndTargetTypes([], [qubitA, qubitB])
-                opCtor = getattr(quake, '{}Op'.format(node.func.id.title()))
-                opCtor([], [], [], [qubitA, qubitB])
+                processQuakeCtor(node.func.id.title(),
+                                 node.args,
+                                 isCtrl=False,
+                                 isAdj=False,
+                                 numTargets=2)
                 return
 
             if node.func.id == 'reset':
-                target = self.popValue()
-                checkControlAndTargetTypes([], [target])
-                if quake.RefType.isinstance(target.type):
-                    quake.ResetOp([], target)
-                    return
-                if quake.VeqType.isinstance(target.type):
-
-                    def bodyBuilder(iterVal):
-                        q = quake.ExtractRefOp(
-                            self.getRefType(),
-                            target,
-                            -1,  # `kDynamicIndex`
-                            index=iterVal).result
-                        quake.ResetOp([], q)
-
-                    veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                              target).result
-                    self.createInvariantForLoop(veqSize, bodyBuilder)
-                    return
-                self.emitFatalError(
-                    'reset quantum operation on incorrect type {}.'.format(
-                        target.type), node)
+                targets = self.__groupValues(node.args, [(1, -1)])
+                processQuantumOperation(node.func.id.title(), [],
+                                        targets,
+                                        broadcast=lambda q: q)
+                return
 
             if node.func.id == 'u3':
-                # Single target, three parameters `u3(θ,φ,λ)`
-                all_args = [
-                    self.popValue() for _ in range(len(self.valueStack))
-                ]
-                if len(all_args) < 4:
-                    self.emitFatalError(
-                        f'invalid number of arguments ({len(all_args)}) passed to {node.func.id} (requires at least 4 arguments)',
-                        node)
-                qubitTargets = all_args[:-3]
-                qubitTargets.reverse()
-                checkControlAndTargetTypes([], qubitTargets)
-                params = all_args[-3:]
-                params.reverse()
-                for idx, val in enumerate(params):
-                    if IntegerType.isinstance(val.type):
-                        params[idx] = arith.SIToFPOp(self.getFloatType(),
-                                                     val).result
-                    elif not F64Type.isinstance(val.type):
-                        self.emitFatalError(
-                            'rotational parameter must be a float, or int.',
-                            node)
-                self.__applyQuantumOperation(node.func.id, params, qubitTargets)
+                processQuakeCtor(node.func.id.title(),
+                                 node.args,
+                                 isCtrl=False,
+                                 isAdj=False,
+                                 numParams=3)
                 return
 
             if node.func.id == 'exp_pauli':
-                pauliWord = self.popValue()
-                qubits = self.popValue()
-                checkControlAndTargetTypes([], [qubits])
-                theta = self.popValue()
-                if IntegerType.isinstance(theta.type):
-                    theta = arith.SIToFPOp(self.getFloatType(), theta).result
-                quake.ExpPauliOp([], [theta], [], [qubits], pauli=pauliWord)
+                # Note: C++ also has a constructor that takes an `f64`, `string`,
+                # any any number of qubits. We don't support this here.
+                theta, target, pauliWord = self.__groupValues(
+                    node.args, [1, 1, 1])
+                theta = self.changeOperandToType(self.getFloatType(), theta)
+                processQuantumOperation("ExpPauli", [], [target], [], [theta],
+                                        broadcast=False,
+                                        pauli=pauliWord)
                 return
 
             if node.func.id in globalRegisteredOperations:
                 unitary = globalRegisteredOperations[node.func.id]
                 numTargets = int(np.log2(np.sqrt(unitary.size)))
-
-                numValues = len(self.valueStack)
-                if numValues != numTargets:
-                    self.emitFatalError(
-                        f'invalid number of arguments ({numValues}) passed to {node.func.id} (requires {numTargets} arguments)',
-                        node)
-
-                targets = [self.popValue() for _ in range(numTargets)]
-                targets.reverse()
+                targets = self.__groupValues(node.args,
+                                             [(numTargets, numTargets)])
 
                 for i, t in enumerate(targets):
                     if not quake.RefType.isinstance(t.type):
@@ -2416,29 +2756,30 @@ class PyASTBridge(ast.NodeVisitor):
                 otherKernel = SymbolTable(self.module.operation)[nvqppPrefix +
                                                                  node.func.id]
 
-                processFunctionCall(otherKernel.type, len(node.args))
+                res = processFunctionCall(otherKernel)
+                if res is not None:
+                    self.pushValue(res)
                 return
 
             elif node.func.id in self.symbolTable:
                 val = self.symbolTable[node.func.id]
                 if cc.CallableType.isinstance(val.type):
                     callableTy = cc.CallableType.getFunctionType(val.type)
-                    numVals = len(self.valueStack)
-                    values = [self.popValue() for _ in range(numVals)]
-                    values.reverse()
-                    values = convertArguments(
-                        FunctionType(callableTy).inputs, values)
+                    funcTy = FunctionType(callableTy)
+                    numArgs = len(funcTy.inputs)
+                    values = self.__groupValues(node.args, [(numArgs, numArgs)])
+                    values = convertArguments(funcTy.inputs, values)
                     callable = cc.CallableFuncOp(callableTy, val).result
                     func.CallIndirectOp([], callable, values)
                     return
-                else:
-                    self.emitFatalError(
-                        f"`{node.func.id}` object is not callable, found symbol of type {val.type}",
-                        node)
+
+                self.emitFatalError(
+                    f"`{node.func.id}` object is not callable, found symbol of type {val.type}",
+                    node)
 
             elif node.func.id == 'int':
                 # cast operation
-                value = self.popValue()
+                value = self.__groupValues(node.args, [1])
                 casted = self.changeOperandToType(IntegerType.get_signless(64),
                                                   value,
                                                   allowDemotion=True)
@@ -2446,33 +2787,17 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             elif node.func.id == 'list':
-                if len(self.valueStack) == 2:
-                    maybeIterableSize = self.popValue()
-                    maybeIterable = self.popValue()
-
-                    # Make sure that we have a list + size
-                    if IntegerType.isinstance(maybeIterableSize.type):
-                        if cc.PointerType.isinstance(maybeIterable.type):
-                            ptrEleTy = cc.PointerType.getElementType(
-                                maybeIterable.type)
-                            if cc.ArrayType.isinstance(ptrEleTy):
-                                # We're good, just pass this back through.
-                                self.pushValue(maybeIterable)
-                                self.pushValue(maybeIterableSize)
-                                return
-                if len(self.valueStack) == 1:
-                    arrayTy = self.valueStack[0].type
-                    if cc.PointerType.isinstance(arrayTy):
-                        arrayTy = cc.PointerType.getElementType(arrayTy)
-                    if cc.StdvecType.isinstance(arrayTy):
-                        return
-                    if cc.ArrayType.isinstance(arrayTy):
-                        return
-
-                self.emitFatalError('Invalid list() cast requested.', node)
+                # The expected Python behavior is that a constructor call
+                # to list creates a new list (a shallow copy).
+                value = self.__groupValues(node.args, [1])
+                copy = self.__copyAndValidateContainer(value, node.args[0],
+                                                       False)
+                self.pushValue(copy)
+                return
 
             elif node.func.id in ['print_i64', 'print_f64']:
-                self.__insertDbgStmt(self.popValue(), node.func.id)
+                value = self.__groupValues(node.args, [1])
+                self.__insertDbgStmt(value, node.func.id)
                 return
 
             elif node.func.id in globalRegisteredTypes.classes:
@@ -2485,11 +2810,21 @@ class PyASTBridge(ast.NodeVisitor):
                         f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True).",
                         node)
 
-                # Alloca the struct
+                if node.keywords:
+                    self.emitFatalError(
+                        "keyword arguments for data classes are not yet supported",
+                        node)
+
                 structTys = [
                     mlirTypeFromPyType(v, self.ctx)
                     for _, v in annotations.items()
                 ]
+
+                numArgs = len(structTys)
+                ctorArgs = self.__groupValues(node.args, [(numArgs, numArgs)])
+                ctorArgs = convertArguments(structTys, ctorArgs)
+                for idx, arg in enumerate(ctorArgs):
+                    self.__validate_container_entry(arg, node.args[idx])
 
                 structTy = mlirTryCreateStructType(structTys,
                                                    name=node.func.id,
@@ -2510,12 +2845,6 @@ class PyASTBridge(ast.NodeVisitor):
                         'struct types with user specified methods are not allowed.',
                         node)
 
-                ctorArgs = [
-                    self.popValue() for _ in range(len(self.valueStack))
-                ]
-                ctorArgs.reverse()
-                ctorArgs = convertArguments(structTys, ctorArgs)
-
                 if quake.StruqType.isinstance(structTy):
                     # If we have a quantum struct. We cannot allocate classical
                     # memory and load / store quantum type values to that memory
@@ -2523,17 +2852,14 @@ class PyASTBridge(ast.NodeVisitor):
                     self.pushValue(quake.MakeStruqOp(structTy, ctorArgs).result)
                     return
 
-                stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
-                                        TypeAttr.get(structTy)).result
-
-                # loop over each type and `compute_ptr` / store
-                for i, ty in enumerate(structTys):
-                    eleAddr = cc.ComputePtrOp(
-                        cc.PointerType.get(ty), stackSlot, [],
-                        DenseI32ArrayAttr.get([i], context=self.ctx)).result
-                    cc.StoreOp(ctorArgs[i], eleAddr)
-                self.pushValue(stackSlot)
+                struct = cc.UndefOp(structTy)
+                for idx, element in enumerate(ctorArgs):
+                    struct = cc.InsertValueOp(
+                        structTy, struct, element,
+                        DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+                self.pushValue(struct)
                 return
+
             else:
                 self.emitFatalError(
                     "unhandled function call - {}, known kernels are {}".format(
@@ -2550,6 +2876,40 @@ class PyASTBridge(ast.NodeVisitor):
                 # Handled in the Attribute visit,
                 # since `numpy` arrays have a size attribute
                 self.visit(node.func)
+                self.pushValue(self.popValue())
+                return
+
+            if node.func.attr == 'copy':
+                self.visit(node.func.value)
+                funcVal = self.popValue()
+                deepCopy, dTy = None, None
+
+                for keyword in node.keywords:
+                    if keyword.arg == 'deep':
+                        deepCopy = keyword.value
+                    elif keyword.arg == 'dtype':
+                        self.visit(keyword.value)
+                        dTy = self.popValue()
+                    else:
+                        self.emitFatalError(f"unknown keyword `{keyword.arg}`",
+                                            node)
+
+                if len(node.args) == 1 and deepCopy is None:
+                    deepCopy = node.args[0]
+                else:
+                    self.__groupValues(node.args, [0])
+                if deepCopy:
+                    if not isinstance(deepCopy, ast.Constant):
+                        self.emitFatalError(
+                            "argument to `copy` must be a constant", node)
+                    deepCopy = deepCopy.value
+
+                # If we created a deep copy, we can set the parent node
+                # of the value to copy to be this node for validation purposes.
+                pyVal = node if deepCopy else node.func.value
+                copy = self.__copyAndValidateContainer(funcVal, pyVal, deepCopy,
+                                                       dTy)
+                self.pushValue(copy)
                 return
 
             if self.__isSupportedVectorFunction(node.func.attr):
@@ -2559,7 +2919,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # we make the functions we support on values explicit
                 # somewhere, there is no way around that.
                 self.visit(node.func.value)
-                funcVal = self.ifPointerThenLoad(self.popValue())
+                funcVal = self.popValue()
 
                 # Just to be nice and give a dedicated error.
                 if (node.func.attr == 'append' and
@@ -2578,12 +2938,9 @@ class PyASTBridge(ast.NodeVisitor):
                         node)
 
                 funcArg = None
-                if len(node.args) > 1:
-                    self.emitFatalError(
-                        f'call to {node.func.attr} supports at most one value')
-                elif len(node.args) == 1:
-                    self.visit(node.args[0])
-                    funcArg = self.ifPointerThenLoad(self.popValue())
+                args = self.__groupValues(node.args, [(0, 1)])
+                if args:
+                    funcArg = args[0]
                     if not IntegerType.isinstance(funcArg.type):
                         self.emitFatalError(
                             f'expecting an integer argument for call to {node.func.attr}',
@@ -2647,39 +3004,19 @@ class PyASTBridge(ast.NodeVisitor):
             if isinstance(node.func.value, ast.Name):
 
                 if node.func.value.id in ['numpy', 'np']:
-                    [self.visit(arg) for arg in node.args]
 
-                    namedArgs = {}
-                    for keyword in node.keywords:
-                        self.visit(keyword.value)
-                        namedArgs[keyword.arg] = self.popValue()
-
-                    value = self.popValue()
+                    value = self.__groupValues(node.args, [1])
 
                     if node.func.attr == 'array':
-                        # `np.array(vec, <dtype = ty>)`
-                        arrayType = value.type
-                        if cc.PointerType.isinstance(value.type):
-                            arrayType = cc.PointerType.getElementType(
-                                value.type)
-
-                        if cc.StdvecType.isinstance(arrayType):
-                            eleTy = cc.StdvecType.getElementType(arrayType)
-                            dTy = eleTy
-                            if len(namedArgs) > 0:
-                                dTy = namedArgs['dtype']
-
-                            # Convert the vector to the provided data type if needed.
-                            self.pushValue(
-                                self.__copyVectorAndCastElements(
-                                    value, dTy, allowDemotion=True))
-                            return
-
-                        raise self.emitFatalError(
-                            f"unexpected numpy array initializer type: {value.type}",
-                            node)
-
-                    value = self.ifPointerThenLoad(value)
+                        # The expected Python behavior is that a constructor call
+                        # to array creates a new array (a shallow copy). Additionally, since
+                        # a new value is created, we need to make sure container entries
+                        # are properly validated. To not duplicate the logic, we simply
+                        # call `copy` here.
+                        self.visit_Call(
+                            ast.Call(ast.Attribute(node.args[0], 'copy'), [],
+                                     node.keywords))
+                        return
 
                     if node.func.attr in ['complex128', 'complex64']:
                         if node.func.attr == 'complex128':
@@ -2778,20 +3115,19 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                [self.visit(arg) for arg in node.args]
-
                 if node.func.value.id == 'cudaq':
                     if node.func.attr == 'complex':
+                        self.__groupValues(node.args, [0])
                         self.pushValue(self.simulationDType())
                         return
 
                     if node.func.attr == 'amplitudes':
-                        value = self.popValue()
-                        arrayType = value.type
+                        value = self.__groupValues(node.args, [1])
+
+                        valueTy = value.type
                         if cc.PointerType.isinstance(value.type):
-                            arrayType = cc.PointerType.getElementType(
-                                value.type)
-                        if cc.StdvecType.isinstance(arrayType):
+                            valueTy = cc.PointerType.getElementType(value.type)
+                        if cc.StdvecType.isinstance(valueTy):
                             self.pushValue(value)
                             return
 
@@ -2800,32 +3136,26 @@ class PyASTBridge(ast.NodeVisitor):
                             node)
 
                     if node.func.attr == 'qvector':
-                        if len(self.valueStack) == 0:
+                        if len(node.args) == 0:
                             self.emitFatalError(
                                 'qvector does not have default constructor. Init from size or existing state.',
                                 node)
 
-                        valueOrPtr = self.popValue()
-                        initializerTy = valueOrPtr.type
+                        value = self.__groupValues(node.args, [1])
 
-                        if cc.PointerType.isinstance(initializerTy):
-                            initializerTy = cc.PointerType.getElementType(
-                                initializerTy)
-
-                        if (IntegerType.isinstance(initializerTy)):
+                        if (IntegerType.isinstance(value.type)):
                             # handle `cudaq.qvector(n)`
-                            value = self.ifPointerThenLoad(valueOrPtr)
                             ty = self.getVeqType()
                             qubits = quake.AllocaOp(ty, size=value).result
                             self.pushValue(qubits)
                             return
-                        if cc.StdvecType.isinstance(initializerTy):
+
+                        if cc.StdvecType.isinstance(value.type):
                             # handle `cudaq.qvector(initState)`
 
                             # Validate the length in case of a constant initializer:
                             # `cudaq.qvector([1., 0., ...])`
                             # `cudaq.qvector(np.array([1., 0., ...]))`
-                            value = self.ifPointerThenLoad(valueOrPtr)
                             listScalar = None
                             arrNode = node.args[0]
                             if isinstance(arrNode, ast.List):
@@ -2856,7 +3186,6 @@ class PyASTBridge(ast.NodeVisitor):
                             # TODO: Dynamically check if number of qubits is power of 2
                             # and if the state is normalized
 
-                            ptrTy = cc.PointerType.get(eleTy)
                             arrTy = cc.ArrayType.get(eleTy)
                             ptrArrTy = cc.PointerType.get(arrTy)
                             veqTy = quake.VeqType.get()
@@ -2869,19 +3198,20 @@ class PyASTBridge(ast.NodeVisitor):
                             self.pushValue(init)
                             return
 
-                        if cc.StateType.isinstance(initializerTy):
+                        if (cc.PointerType.isinstance(value.type) and
+                                cc.StateType.isinstance(
+                                    cc.PointerType.getElementType(value.type))):
                             # handle `cudaq.qvector(state)`
-                            statePtr = self.ifNotPointerThenStore(valueOrPtr)
 
                             i64Ty = self.getIntegerType()
-                            numQubits = quake.GetNumberOfQubitsOp(
-                                i64Ty, statePtr).result
+                            numQubits = quake.GetNumberOfQubitsOp(i64Ty,
+                                                                  value).result
 
                             veqTy = quake.VeqType.get()
                             qubits = quake.AllocaOp(veqTy,
                                                     size=numQubits).result
                             init = quake.InitializeStateOp(
-                                veqTy, qubits, statePtr).result
+                                veqTy, qubits, value).result
 
                             self.pushValue(init)
                             return
@@ -2891,8 +3221,7 @@ class PyASTBridge(ast.NodeVisitor):
                             node)
 
                     if node.func.attr == "qubit":
-                        if len(self.valueStack) == 1 and IntegerType.isinstance(
-                                self.valueStack[0].type):
+                        if len(node.args) != 0:
                             self.emitFatalError(
                                 'cudaq.qubit() constructor does not take any arguments. To construct a vector of qubits, use `cudaq.qvector(N)`.'
                             )
@@ -2900,34 +3229,132 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
                     if node.func.attr == 'adjoint' or node.func.attr == 'control':
-                        processControlAndAdjoint(node.args[0], node.func.attr)
+
+                        # NOTE: We currently generally don't have the means in the
+                        # compiler to handle composition of control and adjoint, since
+                        # control and adjoint are not proper functors (i.e. there is
+                        # no way to obtain a new callable object that is the adjoint
+                        # or controlled version of another callable).
+                        # Since we don't really treat callables as first-class values,
+                        # the first argument to control and adjoint indeed has to be
+                        # a Name object.
+                        if not node.args or not isinstance(
+                                node.args[0], ast.Name):
+                            self.emitFatalError(
+                                f'unsupported argument in call to {node.func.attr} - first argument must be a symbol name',
+                                node)
+                        otherFuncName = node.args[0].id
+                        kwargs = {"is_adj": node.func.attr == 'adjoint'}
+
+                        if otherFuncName in self.symbolTable:
+                            self.visit(node.args[0])
+                            fctArg = self.popValue()
+                            if not cc.CallableType.isinstance(fctArg.type):
+                                self.emitFatalError(
+                                    f"{otherFuncName} is not a quantum kernel",
+                                    node)
+                            functionTy = FunctionType(
+                                cc.CallableType.getFunctionType(fctArg.type))
+                            inputTys, outputTys = functionTy.inputs, functionTy.results
+                            indirectCallee = [fctArg]
+                        elif otherFuncName in globalKernelRegistry:
+                            otherFunc = globalKernelRegistry[otherFuncName]
+                            inputTys, outputTys = otherFunc.arguments.types, otherFunc.results.types
+                            indirectCallee = []
+                            kwargs["callee"] = FlatSymbolRefAttr.get(
+                                nvqppPrefix + otherFuncName)
+                        elif otherFuncName in globalRegisteredOperations:
+                            self.emitFatalError(
+                                f"calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported",
+                                node)
+                        elif self.__isUnitaryGate(
+                                otherFuncName) or self.__isMeasurementGate(
+                                    otherFuncName):
+                            self.emitFatalError(
+                                f"calling cudaq.control or cudaq.adjoint on a built-in gate is not supported",
+                                node)
+                        else:
+                            self.emitFatalError(
+                                f"{otherFuncName} is not a known quantum kernel - maybe a cudaq.kernel attribute is missing?.",
+                                node)
+
+                        numArgs = len(inputTys)
+                        invert_controls = lambda: None
+                        if node.func.attr == 'control':
+                            controls, args = self.__groupValues(
+                                node.args[1:], [(1, -1), (numArgs, numArgs)])
+                            qvec_or_qubits = (
+                                all((quake.RefType.isinstance(v.type)
+                                     for v in controls)) or
+                                (len(controls) == 1 and
+                                 quake.VeqType.isinstance(controls[0].type)))
+                            if not qvec_or_qubits:
+                                self.emitFatalError(
+                                    f'invalid argument type for control operand',
+                                    node)
+                            # TODO: it would be cleaner to add support for negated control
+                            # qubits to `quake.ApplyOp`
+                            negatedControlQubits = self.controlNegations.copy()
+                            self.controlNegations.clear()
+                            if negatedControlQubits:
+                                invert_controls = lambda: processQuantumOperation(
+                                    'X', [], negatedControlQubits, [], [])
+                        else:
+                            controls, args = self.__groupValues(
+                                node.args[1:], [(0, 0), (numArgs, numArgs)])
+
+                        args = convertArguments(inputTys, args)
+                        if len(outputTys) != 0:
+                            self.emitFatalError(
+                                f'cannot take {node.func.attr} of kernel {otherFuncName} that returns a value',
+                                node)
+                        invert_controls()
+                        quake.ApplyOp([], indirectCallee, controls, args,
+                                      **kwargs)
+                        invert_controls()
                         return
 
                     if node.func.attr == 'apply_noise':
-                        # Pop off all the arguments we need
-                        values = [
-                            self.popValue() for _ in range(len(self.valueStack))
+
+                        supportedChannels = [
+                            'DepolarizationChannel', 'AmplitudeDampingChannel',
+                            'PhaseFlipChannel', 'BitFlipChannel',
+                            'PhaseDamping', 'ZError', 'XError', 'YError',
+                            'Pauli1', 'Pauli2', 'Depolarization1',
+                            'Depolarization2'
                         ]
-                        # They are in reverse order
-                        values.reverse()
-                        # First one should be the number of Kraus channel parameters
-                        numParamsVal = values[0]
-                        # Shrink the arguments down
-                        values = values[1:]
 
-                        # Need to get the number of parameters as an integer
-                        concreteIntAttr = IntegerAttr(
-                            numParamsVal.owner.attributes['value'])
-                        numParams = concreteIntAttr.value
+                        # The first argument must be the Kraus channel
+                        numParams, key = 0, None
+                        if (isinstance(node.args[0], ast.Attribute) and
+                                node.args[0].value.id == 'cudaq' and
+                                node.args[0].attr in supportedChannels):
 
-                        # Next Value is our generated key for the channel
-                        # Get it and shrink the list
-                        key = values[0]
-                        values = values[1:]
+                            cudaq_module = importlib.import_module('cudaq')
+                            channel_class = getattr(cudaq_module,
+                                                    node.args[0].attr)
+                            numParams = channel_class.num_parameters
+                            key = self.getConstantInt(hash(channel_class))
+                        elif (isinstance(node.args[0], ast.Name) and
+                              node.args[0].id in self.capturedVars):
+                            arg = self.capturedVars[node.args[0].id]
+                            try:
+                                # We should have a custom Kraus channel.
+                                if issubclass(arg, cudaq_runtime.KrausChannel):
+                                    numParams = arg.num_parameters
+                                    key = self.getConstantInt(hash(arg))
+                            except:
+                                pass
+                        if key is None:
+                            self.emitFatalError(
+                                "unsupported argument for Kraus channel in apply_noise",
+                                node)
 
-                        # Now we know the next `numParams` arguments are
-                        # our Kraus channel parameters
-                        params = values[:numParams]
+                        # This currently requires at least one qubit argument
+                        params, values = self.__groupValues(
+                            node.args[1:], [(numParams, numParams), (1, -1)])
+                        checkControlAndTargetTypes([], values)
+
                         for i, p in enumerate(params):
                             # If we have a F64 value, we want to
                             # store it to a pointer
@@ -2938,63 +3365,24 @@ class PyASTBridge(ast.NodeVisitor):
                                 cc.StoreOp(p, alloca)
                                 params[i] = alloca
 
-                        # The remaining arguments are the qubits
-                        asVeq = quake.ConcatOp(self.getVeqType(),
-                                               values[numParams:]).result
+                        asVeq = quake.ConcatOp(self.getVeqType(), values).result
                         quake.ApplyNoiseOp(params, [asVeq], key=key)
                         return
 
                     if node.func.attr == 'compute_action':
-                        # There can only be 2 arguments here.
-                        action = None
-                        compute = None
-                        actionArg = node.args[1]
-                        if isinstance(actionArg, ast.Name):
-                            actionName = actionArg.id
-                            if actionName in self.symbolTable:
-                                action = self.symbolTable[actionName]
-                            else:
-                                self.emitFatalError(
-                                    "could not find action lambda / function in the symbol table.",
-                                    node)
-                        else:
-                            action = self.popValue()
-
-                        computeArg = node.args[0]
-                        if isinstance(computeArg, ast.Name):
-                            computeName = computeArg.id
-                            if computeName in self.symbolTable:
-                                compute = self.symbolTable[computeName]
-                            else:
-                                self.emitFatalError(
-                                    "could not find compute lambda / function in the symbol table.",
-                                    node)
-                        else:
-                            compute = self.popValue()
-
+                        compute, action = self.__groupValues(node.args, [2])
                         quake.ComputeActionOp(compute, action)
                         return
 
                     if node.func.attr == 'to_integer':
-                        boolVec = self.popValue()
-                        boolVec = self.ifPointerThenLoad(boolVec)
-                        if not cc.StdvecType.isinstance(boolVec.type):
-                            self.emitFatalError(
-                                "to_integer expects a vector of booleans. Got type {}"
-                                .format(boolVec.type), node)
-                        elemTy = cc.StdvecType.getElementType(boolVec.type)
-                        if elemTy != self.getIntegerType(1):
-                            self.emitFatalError(
-                                "to_integer expects a vector of booleans. Got type {}"
-                                .format(boolVec.type), node)
+                        boolVec = self.__groupValues(node.args, [1])
+                        args = convertArguments(
+                            [cc.StdvecType.get(self.getIntegerType(1))],
+                            [boolVec])
                         cudaqConvertToInteger = "__nvqpp_cudaqConvertToInteger"
-                        # Load the intrinsic
                         load_intrinsic(self.module, cudaqConvertToInteger)
-                        # Signature:
-                        # `func.func private @__nvqpp_cudaqConvertToInteger(%arg : !cc.stdvec<i1>) -> i64`
-                        resultTy = self.getIntegerType(64)
-                        result = func.CallOp([resultTy], cudaqConvertToInteger,
-                                             [boolVec]).result
+                        result = func.CallOp([self.getIntegerType(64)],
+                                             cudaqConvertToInteger, args).result
                         self.pushValue(result)
                         return
 
@@ -3023,207 +3411,63 @@ class PyASTBridge(ast.NodeVisitor):
                 # We have a `func_name.ctrl`
                 if self.__isSimpleGate(node.func.value.id):
                     if node.func.attr == 'ctrl':
-                        target = self.popValue()
-                        # Should be number of arguments minus one for the controls
-                        controls = [
-                            self.popValue() for i in range(len(node.args) - 1)
-                        ]
-                        if not controls:
-                            self.emitFatalError(
-                                'controlled operation requested without any control argument(s).',
-                                node)
-                        negatedControlQubits = getNegatedControlQubits(controls)
-
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        checkControlAndTargetTypes(controls, [target])
-                        opCtor([], [],
-                               controls, [target],
-                               negated_qubit_controls=negatedControlQubits)
+                        processQuakeCtor(node.func.value.id.title(),
+                                         node.args,
+                                         isCtrl=True,
+                                         isAdj=False)
                         return
                     if node.func.attr == 'adj':
-                        target = self.popValue()
-                        checkControlAndTargetTypes([], [target])
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        if quake.VeqType.isinstance(target.type):
-
-                            def bodyBuilder(iterVal):
-                                q = quake.ExtractRefOp(self.getRefType(),
-                                                       target,
-                                                       -1,
-                                                       index=iterVal).result
-                                opCtor([], [], [], [q], is_adj=True)
-
-                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                      target).result
-                            self.createInvariantForLoop(veqSize, bodyBuilder)
-                            return
-                        elif quake.RefType.isinstance(target.type):
-                            opCtor([], [], [], [target], is_adj=True)
-                            return
-                        else:
-                            self.emitFatalError(
-                                'adj quantum operation on incorrect type {}.'.
-                                format(target.type), node)
-
+                        processQuakeCtor(node.func.value.id.title(),
+                                         node.args,
+                                         isCtrl=False,
+                                         isAdj=True)
+                        return
                     self.emitFatalError(
                         f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                     )
-
-                # We have a `func_name.ctrl`
-                if node.func.value.id == 'swap' and node.func.attr == 'ctrl':
-                    targetB = self.popValue()
-                    targetA = self.popValue()
-                    controls = [
-                        self.popValue() for i in range(len(self.valueStack))
-                    ]
-                    if not controls:
-                        self.emitFatalError(
-                            'controlled operation requested without any control argument(s).',
-                            node)
-                    negatedControlQubits = getNegatedControlQubits(controls)
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-                    checkControlAndTargetTypes(controls, [targetA, targetB])
-                    opCtor([], [],
-                           controls, [targetA, targetB],
-                           negated_qubit_controls=negatedControlQubits)
-                    return
 
                 if self.__isRotationGate(node.func.value.id):
                     if node.func.attr == 'ctrl':
-                        target = self.popValue()
-                        controls = [
-                            self.popValue() for i in range(len(self.valueStack))
-                        ]
-                        param = controls[-1]
-                        controls = controls[:-1]
-                        if not controls:
-                            self.emitFatalError(
-                                'controlled operation requested without any control argument(s).',
-                                node)
-                        negatedControlQubits = getNegatedControlQubits(controls)
-                        if IntegerType.isinstance(param.type):
-                            param = arith.SIToFPOp(self.getFloatType(),
-                                                   param).result
-                        elif not F64Type.isinstance(param.type):
-                            self.emitFatalError(
-                                'rotational parameter must be a float, or int.',
-                                node)
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        checkControlAndTargetTypes(controls, [target])
-                        opCtor([], [param],
-                               controls, [target],
-                               negated_qubit_controls=negatedControlQubits)
+                        processQuakeCtor(node.func.value.id.title(),
+                                         node.args,
+                                         isCtrl=True,
+                                         isAdj=False,
+                                         numParams=1)
                         return
-
                     if node.func.attr == 'adj':
-                        target = self.popValue()
-                        param = self.popValue()
-                        if IntegerType.isinstance(param.type):
-                            param = arith.SIToFPOp(self.getFloatType(),
-                                                   param).result
-                        elif not F64Type.isinstance(param.type):
-                            self.emitFatalError(
-                                'rotational parameter must be a float, or int.',
-                                node)
-                        opCtor = getattr(
-                            quake, '{}Op'.format(node.func.value.id.title()))
-                        checkControlAndTargetTypes([], [target])
-                        if quake.VeqType.isinstance(target.type):
-
-                            def bodyBuilder(iterVal):
-                                q = quake.ExtractRefOp(self.getRefType(),
-                                                       target,
-                                                       -1,
-                                                       index=iterVal).result
-                                opCtor([], [param], [], [q], is_adj=True)
-
-                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                      target).result
-                            self.createInvariantForLoop(veqSize, bodyBuilder)
-                            return
-                        elif quake.RefType.isinstance(target.type):
-                            opCtor([], [param], [], [target], is_adj=True)
-                            return
-                        else:
-                            self.emitFatalError(
-                                'adj quantum operation on incorrect type {}.'.
-                                format(target.type), node)
-
+                        processQuakeCtor(node.func.value.id.title(),
+                                         node.args,
+                                         isCtrl=False,
+                                         isAdj=True,
+                                         numParams=1)
+                        return
                     self.emitFatalError(
                         f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
                     )
 
+                if node.func.value.id == 'swap' and node.func.attr == 'ctrl':
+                    processQuakeCtor(node.func.value.id.title(),
+                                     node.args,
+                                     isCtrl=True,
+                                     isAdj=False,
+                                     numTargets=2)
+                    return
+
                 if node.func.value.id == 'u3':
-                    numValues = len(self.valueStack)
-                    target = self.popValue()
-                    other_args = [self.popValue() for _ in range(numValues - 1)]
-
-                    opCtor = getattr(quake,
-                                     '{}Op'.format(node.func.value.id.title()))
-
                     if node.func.attr == 'ctrl':
-                        controls = other_args[:-3]
-                        if not controls:
-                            self.emitFatalError(
-                                'controlled operation requested without any control argument(s).',
-                                node)
-                        negatedControlQubits = getNegatedControlQubits(controls)
-                        params = other_args[-3:]
-                        params.reverse()
-                        for idx, val in enumerate(params):
-                            if IntegerType.isinstance(val.type):
-                                params[idx] = arith.SIToFPOp(
-                                    self.getFloatType(), val).result
-                            elif not F64Type.isinstance(val.type):
-                                self.emitFatalError(
-                                    'rotational parameter must be a float, or int.',
-                                    node)
-
-                        checkControlAndTargetTypes(controls, [target])
-                        opCtor([],
-                               params,
-                               controls, [target],
-                               negated_qubit_controls=negatedControlQubits)
+                        processQuakeCtor(node.func.value.id.title(),
+                                         node.args,
+                                         isCtrl=True,
+                                         isAdj=False,
+                                         numParams=3)
                         return
-
                     if node.func.attr == 'adj':
-                        params = other_args
-                        params.reverse()
-                        for idx, val in enumerate(params):
-                            if IntegerType.isinstance(val.type):
-                                params[idx] = arith.SIToFPOp(
-                                    self.getFloatType(), val).result
-                            elif not F64Type.isinstance(val.type):
-                                self.emitFatalError(
-                                    'rotational parameter must be a float, or int.',
-                                    node)
-
-                        checkControlAndTargetTypes([], [target])
-                        if quake.VeqType.isinstance(target.type):
-
-                            def bodyBuilder(iterVal):
-                                q = quake.ExtractRefOp(self.getRefType(),
-                                                       target,
-                                                       -1,
-                                                       index=iterVal).result
-                                opCtor([], params, [], [q], is_adj=True)
-
-                            veqSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                      target).result
-                            self.createInvariantForLoop(veqSize, bodyBuilder)
-                            return
-                        elif quake.RefType.isinstance(target.type):
-                            opCtor([], params, [], [target], is_adj=True)
-                            return
-                        else:
-                            self.emitFatalError(
-                                'adj quantum operation on incorrect type {}.'.
-                                format(target.type), node)
-
+                        processQuakeCtor(node.func.value.id.title(),
+                                         node.args,
+                                         isCtrl=False,
+                                         isAdj=True,
+                                         numParams=3)
+                        return
                     self.emitFatalError(
                         f'unknown attribute {node.func.attr} on u3', node)
 
@@ -3236,18 +3480,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                     unitary = globalRegisteredOperations[node.func.value.id]
                     numTargets = int(np.log2(np.sqrt(unitary.size)))
-                    numValues = len(self.valueStack)
-                    targets = [self.popValue() for _ in range(numTargets)]
-                    targets.reverse()
-
-                    for i, t in enumerate(targets):
-                        if not quake.RefType.isinstance(t.type):
-                            self.emitFatalError(
-                                f'invalid target operand {i}, broadcasting is not supported on custom operations.'
-                            )
-
                     globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
-
                     currentST = SymbolTable(self.module.operation)
                     if not globalName in currentST:
                         with InsertionPoint(self.module.body):
@@ -3255,24 +3488,26 @@ class PyASTBridge(ast.NodeVisitor):
                                 self.loc, self.module, globalName,
                                 unitary.tolist())
 
-                    negatedControlQubits = None
-                    controls = []
-                    is_adj = False
-
                     if node.func.attr == 'ctrl':
-                        controls = [
-                            self.popValue()
-                            for _ in range(numValues - numTargets)
-                        ]
-                        if not controls:
-                            self.emitFatalError(
-                                'controlled operation requested without any control argument(s).',
-                                node)
+                        controls, targets = self.__groupValues(
+                            node.args, [(1, -1), (numTargets, numTargets)])
                         negatedControlQubits = getNegatedControlQubits(controls)
+                        is_adj = False
                     if node.func.attr == 'adj':
+                        controls, targets = self.__groupValues(
+                            node.args, [0, (numTargets, numTargets)])
+                        negatedControlQubits = None
                         is_adj = True
 
                     checkControlAndTargetTypes(controls, targets)
+                    # The check above makes sure targets are either a list
+                    # of individual qubits, or a single `qvector`. Since
+                    # a `qvector` is not allowed, we check this here:
+                    if not quake.RefType.isinstance(targets[0].type):
+                        self.emitFatalError(
+                            f'invalid target operand - target must not be a qvector'
+                        )
+
                     quake.CustomUnitarySymbolOp(
                         [],
                         generator=FlatSymbolRefAttr.get(globalName),
@@ -3297,42 +3532,18 @@ class PyASTBridge(ast.NodeVisitor):
                 "CUDA-Q only supports single generators for list comprehension.",
                 node)
 
-        # Let's handle the following `listVar` types
-        # `   %9 = cc.alloca !cc.array<!cc.stdvec<T> x 2> -> ptr<array<stdvec<T> x N>`
-        # or
-        # `    %3 = cc.alloca T[%2 : i64] -> ptr<array<T>>`
         self.visit(node.generators[0].iter)
-
-        if len(self.valueStack) == 1:
-            iterable = self.ifPointerThenLoad(self.popValue())
-            iterableSize = None
-            if cc.StdvecType.isinstance(iterable.type):
-                iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                               iterable).result
-                iterTy = cc.StdvecType.getElementType(iterable.type)
-                iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
-                iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
-            elif quake.VeqType.isinstance(iterable.type):
-                iterableSize = quake.VeqSizeOp(self.getIntegerType(),
-                                               iterable).result
-                iterTy = quake.RefType.get()
-            if iterableSize is None:
-                self.emitFatalError(
-                    "CUDA-Q only supports list comprehension on ranges and arrays",
-                    node)
-        elif len(self.valueStack) == 2:
-            iterableSize = self.popValue()
-            iterable = self.popValue()
-            if not cc.PointerType.isinstance(iterable.type):
-                self.emitFatalError(
-                    "CUDA-Q only supports list comprehension on ranges and arrays",
-                    node)
-            iterArrTy = cc.PointerType.getElementType(iterable.type)
-            if not cc.ArrayType.isinstance(iterArrTy):
-                self.emitFatalError(
-                    "CUDA-Q only supports list comprehension on ranges and arrays",
-                    node)
-            iterTy = cc.ArrayType.getElementType(iterArrTy)
+        iterable = self.popValue()
+        if cc.StdvecType.isinstance(iterable.type):
+            iterableSize = cc.StdvecSizeOp(self.getIntegerType(),
+                                           iterable).result
+            iterTy = cc.StdvecType.getElementType(iterable.type)
+            iterArrPtrTy = cc.PointerType.get(cc.ArrayType.get(iterTy))
+            iterable = cc.StdvecDataOp(iterArrPtrTy, iterable).result
+        elif quake.VeqType.isinstance(iterable.type):
+            iterableSize = quake.VeqSizeOp(self.getIntegerType(),
+                                           iterable).result
+            iterTy = quake.RefType.get()
         else:
             self.emitFatalError(
                 "CUDA-Q only supports list comprehension on ranges and arrays",
@@ -3352,11 +3563,13 @@ class PyASTBridge(ast.NodeVisitor):
             forNode.target = node.generators[0].target
             forNode.body = [node.elt]
             forNode.orelse = []
+            forNode.lineno = node.lineno
+            # this loop could be marked as invariant if we didn't use `visit_For`
             self.visit_For(forNode)
 
         target_types = {}
 
-        def get_item_type(target, targetType):
+        def get_target_type(target, targetType):
             if isinstance(target, ast.Name):
                 if target.id in target_types:
                     self.emitFatalError(
@@ -3373,12 +3586,12 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         "shape mismatch in tuple deconstruction", node)
                 for i, ty in enumerate(types):
-                    get_item_type(target.elts[i], ty)
+                    get_target_type(target.elts[i], ty)
             else:
                 self.emitFatalError(
                     "unsupported target in tuple deconstruction", node)
 
-        get_item_type(node.generators[0].target, iterTy)
+        get_target_type(node.generators[0].target, iterTy)
 
         # We need to know the element type of the list we are creating.
         # Unfortunately, dynamic typing makes this a bit painful.
@@ -3398,7 +3611,12 @@ class PyASTBridge(ast.NodeVisitor):
                 elts = [get_item_type(v) for v in pyval.elts]
                 if None in elts:
                     return None
-                return cc.PointerType.get(cc.StructType.getNamed("tuple", elts))
+                structTy = mlirTryCreateStructType(elts, context=self.ctx)
+                if not structTy:
+                    # we return anything here since, or rather to make sure that,
+                    # a comprehensive error is generated when `elt` is walked below.
+                    return cc.StructType.getNamed("tuple", elts)
+                return structTy
             elif (isinstance(pyval, ast.Subscript) and
                   IntegerType.isinstance(get_item_type(pyval.slice))):
                 parentType = get_item_type(pyval.value)
@@ -3430,13 +3648,8 @@ class PyASTBridge(ast.NodeVisitor):
                 return cc.StdvecType.get(base_elTy)
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
-                    # supported for calls but not here:
-                    # 'range', 'enumerate', 'list'
-                    if pyval.func.id == 'len' or pyval.func.id == 'int':
-                        return IntegerType.get_signless(64)
-                    elif pyval.func.id == 'complex':
-                        return self.getComplexType()
-                    elif self.__isUnitaryGate(
+                    # supported for calls but not here: 'range', 'enumerate'
+                    if self.__isUnitaryGate(
                             pyval.func.id) or pyval.func.id == 'reset':
                         process_void_list()
                         return None
@@ -3489,25 +3702,31 @@ class PyASTBridge(ast.NodeVisitor):
                     elif pyval.func.id in globalRegisteredTypes.classes:
                         _, annotations = globalRegisteredTypes.getClassAttributes(
                             pyval.func.id)
-                        structTys = [
+                        elts = [
                             mlirTypeFromPyType(v, self.ctx)
                             for _, v in annotations.items()
                         ]
-                        # no need to do much verification on the validity of the type here -
-                        # this will be handled when we build the body
-                        isStruq = any(
-                            (self.isQuantumType(t) for t in structTys))
-                        if isStruq:
-                            return quake.StruqType.getNamed(
-                                pyval.func.id, structTys)
-                        else:
-                            return cc.PointerType.get(
-                                cc.StructType.getNamed(pyval.func.id,
-                                                       structTys))
-                elif (isinstance(pyval.func, ast.Attribute) and
-                      (pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj')):
-                    process_void_list()
-                    return None
+                        structTy = mlirTryCreateStructType(elts,
+                                                           pyval.func.id,
+                                                           context=self.ctx)
+                        if not structTy:
+                            # we return anything here since, or rather to make sure that,
+                            # a comprehensive error is generated when `elt` is walked below.
+                            return cc.StructType.getNamed(pyval.func.id, elts)
+                        return structTy
+                    elif pyval.func.id == 'len' or pyval.func.id == 'int':
+                        return IntegerType.get_signless(64)
+                    elif pyval.func.id == 'complex':
+                        return self.getComplexType()
+                    elif pyval.func.id == 'list' and len(pyval.args) == 1:
+                        return get_item_type(pyval.args[0])
+                elif isinstance(pyval.func, ast.Attribute):
+                    if (pyval.func.attr == 'copy' and
+                            'dtype' not in pyval.keywords):
+                        return get_item_type(pyval.func.value)
+                    if pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj':
+                        process_void_list()
+                        return None
                 self.emitFatalError("unsupported call in list comprehension",
                                     node)
             elif isinstance(pyval, ast.Compare):
@@ -3541,8 +3760,7 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         resultVecTy = cc.StdvecType.get(listElemTy)
-        isBool = listElemTy == self.getIntegerType(1)
-        if isBool:
+        if listElemTy == self.getIntegerType(1):
             listElemTy = self.getIntegerType(8)
         listTy = cc.ArrayType.get(listElemTy)
         listValue = cc.AllocaOp(cc.PointerType.get(listTy),
@@ -3558,31 +3776,38 @@ class PyASTBridge(ast.NodeVisitor):
         def bodyBuilder(iterVar):
             self.symbolTable.pushScope()
             if quake.VeqType.isinstance(iterable.type):
-                loadedEle = quake.ExtractRefOp(iterTy,
-                                               iterable,
-                                               -1,
-                                               index=iterVar).result
+                iterVal = quake.ExtractRefOp(iterTy,
+                                             iterable,
+                                             -1,
+                                             index=iterVar).result
             else:
                 eleAddr = cc.ComputePtrOp(
                     cc.PointerType.get(iterTy), iterable, [iterVar],
                     DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                loadedEle = cc.LoadOp(eleAddr).result
-            self.__deconstructAssignment(node.generators[0].target, loadedEle)
+                iterVal = cc.LoadOp(eleAddr).result
+
+            # We don't do support anything within list comprehensions that would
+            # require being careful about assigning references, so simply
+            # adding them to the symbol table is enough for list comprehension.
+            self.__deconstructAssignment(node.generators[0].target, iterVal)
             self.visit(node.elt)
-            result = self.popValue()
+            element = self.popValue()
+            # We do need to be careful, however, about validating the list elements.
+            self.__validate_container_entry(element, node.elt)
+
             listValueAddr = cc.ComputePtrOp(
                 cc.PointerType.get(listElemTy), listValue, [iterVar],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-
-            if isBool:
-                result = self.changeOperandToType(self.getIntegerType(8),
-                                                  result)
-            cc.StoreOp(result, listValueAddr)
+            element = self.changeOperandToType(listElemTy,
+                                               element,
+                                               allowDemotion=False)
+            cc.StoreOp(element, listValueAddr)
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(iterableSize, bodyBuilder)
-        self.pushValue(
-            cc.StdvecInitOp(resultVecTy, listValue, length=iterableSize).result)
+        self.createInvariantForLoop(bodyBuilder, iterableSize)
+        res = cc.StdvecInitOp(resultVecTy, listValue,
+                              length=iterableSize).result
+        self.pushValue(res)
         return
 
     def visit_List(self, node):
@@ -3611,14 +3836,14 @@ class PyASTBridge(ast.NodeVisitor):
                 listElementValues.append(evalElem)
             else:
                 self.visit(element)
-                # We do not store lists of pointers
-                evalElem = self.ifPointerThenLoad(self.popValue())
+                evalElem = self.popValue()
                 if self.isQuantumType(
                         evalElem.type) and not quake.RefType.isinstance(
                             evalElem.type):
                     self.emitFatalError(
                         "list must not contain a qvector or quantum struct - use `*` operator to unpack qvectors",
                         node)
+                self.__validate_container_entry(evalElem, element)
                 listElementValues.append(evalElem)
 
         numQuantumTs = sum(
@@ -3659,9 +3884,7 @@ class PyASTBridge(ast.NodeVisitor):
             ]
 
         # Turn this List into a StdVec<T>
-        self.pushValue(
-            self.__createStdvecWithKnownValues(len(node.elts),
-                                               listElementValues))
+        self.pushValue(self.__createStdvecWithKnownValues(listElementValues))
 
     def visit_Constant(self, node):
         """
@@ -3733,11 +3956,16 @@ class PyASTBridge(ast.NodeVisitor):
         # handle complex slice, VAR[lower:upper]
         if isinstance(node.slice, ast.Slice):
             self.debug_msg(lambda: f'[(Inline) Visit Slice]', node.slice)
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "slicing a list or qvector does not produce a modifiable value",
+                    node)
+
             self.visit(node.value)
-            var = self.ifPointerThenLoad(self.popValue())
+            var = self.popValue()
             vectorSize = get_size(var)
 
-            lowerVal, upperVal, stepVal = (None, None, None)
+            lowerVal, upperVal = None, None
             if node.slice.lower is not None:
                 self.visit(node.slice.lower)
                 lowerVal = fix_negative_idx(self.popValue(), lambda: vectorSize)
@@ -3795,16 +4023,41 @@ class PyASTBridge(ast.NodeVisitor):
 
             return
 
-        self.generic_visit(node)
+        # Only variable names, subscripts and attributes can
+        # produce modifiable values. Anything else produces an
+        # immutable value. We make sure the visit gets processed
+        # such that the rest of the code can give a proper error.
+        value_root = node.value
+        while (isinstance(value_root, ast.Subscript) or
+               isinstance(value_root, ast.Attribute)):
+            value_root = value_root.value
+        if self.pushPointerValue and not isinstance(value_root, ast.Name):
+            self.pushPointerValue = False
+            self.visit(node.value)
+            var = self.popValue()
+            self.pushPointerValue = True
+        else:
+            # `isSubscriptRoot` is only used/needed to enable
+            # modification of items in lists and dataclasses
+            # contained in a tuple
+            subscriptRoot = self.isSubscriptRoot
+            self.isSubscriptRoot = True
+            self.visit(node.value)
+            var = self.popValue()
+            self.isSubscriptRoot = subscriptRoot
 
-        assert len(self.valueStack) > 1
-
-        # get the last name, should be name of var being subscripted
-        var = self.ifPointerThenLoad(self.popValue())
+        pushPtr = self.pushPointerValue
+        self.pushPointerValue = False
+        self.visit(node.slice)
         idx = self.popValue()
+        self.pushPointerValue = pushPtr
 
-        # Support `VAR[-1]` as the last element of `VAR`
         if quake.VeqType.isinstance(var.type):
+            if self.pushPointerValue:
+                self.emitFatalError(
+                    "indexing into a qvector does not produce a modifyable value",
+                    node)
+
             if not IntegerType.isinstance(idx.type):
                 self.emitFatalError(
                     f'invalid index variable type used for qvector extraction ({idx.type})',
@@ -3814,6 +4067,44 @@ class PyASTBridge(ast.NodeVisitor):
                 quake.ExtractRefOp(self.getRefType(), var, -1,
                                    index=idx).result)
             return
+
+        if cc.PointerType.isinstance(var.type):
+            # We should only ever get a pointer if we
+            # explicitly asked for it.
+            assert self.pushPointerValue
+            varType = cc.PointerType.getElementType(var.type)
+            if cc.StdvecType.isinstance(varType):
+                # We can get a pointer to a vector (only) if we
+                # are updating a struct item that is a pointer.
+                if self.pushPointerValue:
+                    # In this case, it should be save to load
+                    # the vector, since the underlying data is
+                    # not loaded.
+                    var = cc.LoadOp(var).result
+
+            if cc.StructType.isinstance(varType):
+                structName = cc.StructType.getName(varType)
+                if not self.isSubscriptRoot and structName == 'tuple':
+                    self.emitFatalError("tuple value cannot be modified", node)
+                if not isinstance(node.slice, ast.Constant):
+                    if self.pushPointerValue:
+                        if structName == 'tuple':
+                            self.emitFatalError(
+                                "tuple value cannot be modified via non-constant subscript",
+                                node)
+                        self.emitFatalError(
+                            f"{structName} value cannot be modified via non-constant subscript - use attribute access instead",
+                            node)
+
+                idxVal = node.slice.value
+                structTys = cc.StructType.getTypes(varType)
+                eleAddr = cc.ComputePtrOp(cc.PointerType.get(structTys[idxVal]),
+                                          var, [],
+                                          DenseI32ArrayAttr.get([idxVal
+                                                                ])).result
+                if self.pushPointerValue:
+                    self.pushValue(eleAddr)
+                    return
 
         if cc.StdvecType.isinstance(var.type):
             idx = fix_negative_idx(idx, lambda: get_size(var))
@@ -3829,7 +4120,7 @@ class PyASTBridge(ast.NodeVisitor):
                 elePtrTy, vecPtr, [idx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                       context=self.ctx)).result
-            if self.subscriptPushPointerValue:
+            if self.pushPointerValue:
                 self.pushValue(eleAddr)
                 return
             val = cc.LoadOp(eleAddr).result
@@ -3837,24 +4128,6 @@ class PyASTBridge(ast.NodeVisitor):
                 val = self.changeOperandToType(self.getIntegerType(1), val)
             self.pushValue(val)
             return
-
-        if cc.PointerType.isinstance(var.type):
-            ptrEleTy = cc.PointerType.getElementType(var.type)
-            # Return the pointer if someone asked for it
-            if self.subscriptPushPointerValue:
-                self.pushValue(var)
-                return
-            if cc.ArrayType.isinstance(ptrEleTy):
-                # Here we want subscript on `ptr<array<>>`
-                arrayEleTy = cc.ArrayType.getElementType(ptrEleTy)
-                ptrEleTy = cc.PointerType.get(arrayEleTy)
-                casted = cc.CastOp(ptrEleTy, var).result
-                eleAddr = cc.ComputePtrOp(
-                    ptrEleTy, casted, [idx],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                          context=self.ctx)).result
-                self.pushValue(cc.LoadOp(eleAddr).result)
-                return
 
         def get_idx_value(upper_bound):
             idxValue = None
@@ -3877,33 +4150,29 @@ class PyASTBridge(ast.NodeVisitor):
         # We allow subscripts into `Structs`, but only if we don't need a pointer
         # (i.e. no updating of Tuples).
         if cc.StructType.isinstance(var.type):
-            if self.subscriptPushPointerValue:
+            if self.pushPointerValue:
+                structName = cc.StructType.getName(var.type)
+                if structName == 'tuple':
+                    self.emitFatalError("tuple value cannot be modified", node)
                 self.emitFatalError(
-                    "indexing into tuple or dataclass must not modify value",
+                    f"{structName} value cannot be modified - use `.copy(deep)` to create a new value that can be modified",
                     node)
 
-            # Handle the case where we have a tuple member extraction, memory semantics
             memberTys = cc.StructType.getTypes(var.type)
             idxValue = get_idx_value(len(memberTys))
 
-            structPtr = self.ifNotPointerThenStore(var)
-            eleAddr = cc.ComputePtrOp(
-                cc.PointerType.get(memberTys[idxValue]), structPtr, [],
-                DenseI32ArrayAttr.get([idxValue], context=self.ctx)).result
+            member = cc.ExtractValueOp(memberTys[idxValue], var, [],
+                                       DenseI32ArrayAttr.get([idxValue])).result
 
-            # Return the pointer if someone asked for it
-            if self.subscriptPushPointerValue:
-                self.pushValue(eleAddr)
-                return
-            self.pushValue(cc.LoadOp(eleAddr).result)
+            self.pushValue(member)
             return
 
-        # Let's allow subscripts into `Struqs`, but only if we don't need a pointer
+        # We allow subscripts into `Struqs`, but only if we don't need a pointer
         # (i.e. no updating of `Struqs`).
         if quake.StruqType.isinstance(var.type):
-            if self.subscriptPushPointerValue:
+            if self.pushPointerValue:
                 self.emitFatalError(
-                    "indexing into quantum tuple or dataclass must not modify value",
+                    "indexing into quantum tuple or dataclass does not produce a modifiable value",
                     node)
 
             memberTys = quake.StruqType.getTypes(var.type)
@@ -3924,6 +4193,8 @@ class PyASTBridge(ast.NodeVisitor):
         `veq` type, the `stdvec` type, and the result of range() and
         enumerate().
         """
+
+        getValues = None
         if isinstance(node.iter, ast.Call):
             self.debug_msg(lambda: f'[(Inline) Visit Call]', node.iter)
 
@@ -3931,287 +4202,174 @@ class PyASTBridge(ast.NodeVisitor):
             # by just building a for loop with N as the upper value,
             # no need to generate an array from the `range` call.
             if node.iter.func.id == 'range':
-                # This is a range(N) for loop, we just need
-                # the upper bound N for this loop
-                [self.visit(arg) for arg in node.iter.args]
+                iterable = None
                 startVal, endVal, stepVal, isDecrementing = self.__processRangeLoopIterationBounds(
                     node.iter.args)
-
-                if not isinstance(node.target, ast.Name):
-                    self.emitFatalError(
-                        "iteration variable must be a single name", node)
-
-                def bodyBuilder(iterVar):
-                    self.symbolTable.pushScope()
-                    self.symbolTable.add(node.target.id, iterVar)
-                    [self.visit(b) for b in node.body]
-                    self.symbolTable.popScope()
-
-                self.createInvariantForLoop(endVal,
-                                            bodyBuilder,
-                                            startVal=startVal,
-                                            stepVal=stepVal,
-                                            isDecrementing=isDecrementing,
-                                            elseStmts=node.orelse)
-
-                return
+                getValues = lambda iterVar: iterVar
 
             # We can simplify `for i,j in enumerate(L)` MLIR code immensely
             # by just building a for loop over the iterable object L and using
             # the index into that iterable and the element.
-            if node.iter.func.id == 'enumerate':
-                [self.visit(arg) for arg in node.iter.args]
-                if len(self.valueStack) == 2:
-                    iterable = self.popValue()
-                    self.popValue()
-                else:
-                    assert len(self.valueStack) == 1
-                    iterable = self.popValue()
-                iterable = self.ifPointerThenLoad(iterable)
-                totalSize = None
-                extractFunctor = None
+            elif node.iter.func.id == 'enumerate':
+                if len(node.iter.args) != 1:
+                    self.emitFatalError(
+                        "invalid number of arguments to enumerate - expecting 1 argument",
+                        node)
 
-                beEfficient = False
-                if quake.VeqType.isinstance(iterable.type):
-                    totalSize = quake.VeqSizeOp(self.getIntegerType(),
-                                                iterable).result
+                self.visit(node.iter.args[0])
+                iterable = self.popValue()
+                getValues = lambda iterVar, v: (iterVar, v)
 
-                    def functor(seq, idx):
-                        q = quake.ExtractRefOp(self.getRefType(),
-                                               seq,
-                                               -1,
-                                               index=idx).result
-                        return [idx, q]
+        if not getValues:
+            self.visit(node.iter)
+            iterable = self.popValue()
 
-                    extractFunctor = functor
-                    beEfficient = True
-                elif cc.StdvecType.isinstance(iterable.type):
-                    totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                                iterable).result
+        if iterable:
 
-                    def functor(seq, idx):
-                        vecTy = cc.StdvecType.getElementType(seq.type)
-                        dataTy = cc.PointerType.get(vecTy)
-                        arrTy = vecTy
-                        if not cc.ArrayType.isinstance(arrTy):
-                            arrTy = cc.ArrayType.get(vecTy)
-                        dataArrTy = cc.PointerType.get(arrTy)
-                        data = cc.StdvecDataOp(dataArrTy, seq).result
-                        v = cc.ComputePtrOp(
-                            dataTy, data, [idx],
-                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                                  context=self.ctx)).result
-                        return [idx, v]
+            isDecrementing = False
+            startVal = self.getConstantInt(0)
+            stepVal = self.getConstantInt(1)
+            relevantVals = getValues or (lambda iterVar, v: v)
 
-                    extractFunctor = functor
-                    beEfficient = True
-
-                if beEfficient:
-
-                    if (not isinstance(node.target, ast.Tuple) or
-                            len(node.target.elts) != 2):
-                        self.emitFatalError(
-                            "iteration variable must be a tuple of two items",
-                            node)
-
-                    def bodyBuilder(iterVar):
-                        self.symbolTable.pushScope()
-                        values = extractFunctor(iterable, iterVar)
-                        assert (len(values) == 2)
-                        for i, v in enumerate(values):
-                            self.__deconstructAssignment(node.target.elts[i], v)
-                        [self.visit(b) for b in node.body]
-                        self.symbolTable.popScope()
-
-                    self.createInvariantForLoop(totalSize,
-                                                bodyBuilder,
-                                                elseStmts=node.orelse)
-                    return
-
-        self.visit(node.iter)
-        assert len(self.valueStack) > 0 and len(self.valueStack) < 3
-
-        totalSize = None
-        iterable = None
-        extractFunctor = None
-
-        # It could be that its the only value we have,
-        # in which case we know we have for var in iterable,
-        # but we could also have another value on the stack,
-        # the total size of the iterable, produced by range() / enumerate()
-        if len(self.valueStack) == 1:
-            # Get the iterable from the stack
-            iterable = self.ifPointerThenLoad(self.popValue())
             # we currently handle `veq` and `stdvec` types
             if quake.VeqType.isinstance(iterable.type):
                 size = quake.VeqType.getSize(iterable.type)
                 if quake.VeqType.hasSpecifiedSize(iterable.type):
-                    totalSize = self.getConstantInt(size)
+                    endVal = self.getConstantInt(size)
                 else:
-                    totalSize = quake.VeqSizeOp(self.getIntegerType(64),
-                                                iterable).result
+                    endVal = quake.VeqSizeOp(self.getIntegerType(),
+                                             iterable).result
 
-                def functor(iter, idx):
-                    return quake.ExtractRefOp(self.getRefType(),
-                                              iter,
-                                              -1,
-                                              index=idx).result
+                def loadElement(iterVar):
+                    val = quake.ExtractRefOp(self.getRefType(),
+                                             iterable,
+                                             -1,
+                                             index=iterVar).result
+                    return relevantVals(iterVar, val)
 
-                extractFunctor = functor
+                getValues = loadElement
+
             elif cc.StdvecType.isinstance(iterable.type):
                 iterEleTy = cc.StdvecType.getElementType(iterable.type)
-                totalSize = cc.StdvecSizeOp(self.getIntegerType(),
-                                            iterable).result
                 isBool = iterEleTy == self.getIntegerType(1)
                 if isBool:
                     iterEleTy = self.getIntegerType(8)
+                endVal = cc.StdvecSizeOp(self.getIntegerType(), iterable).result
 
-                def functor(iter, idxVal):
+                def loadElement(iterVar):
                     elePtrTy = cc.PointerType.get(iterEleTy)
                     arrTy = cc.ArrayType.get(iterEleTy)
                     ptrArrTy = cc.PointerType.get(arrTy)
-                    vecPtr = cc.StdvecDataOp(ptrArrTy, iter).result
+                    vecPtr = cc.StdvecDataOp(ptrArrTy, iterable).result
                     eleAddr = cc.ComputePtrOp(
-                        elePtrTy, vecPtr, [idxVal],
+                        elePtrTy, vecPtr, [iterVar],
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx)).result
-                    result = cc.LoadOp(eleAddr).result
+                    val = cc.LoadOp(eleAddr).result
                     if isBool:
-                        result = self.changeOperandToType(
-                            self.getIntegerType(1), result)
-                    return result
+                        val = self.changeOperandToType(self.getIntegerType(1),
+                                                       val)
+                    return relevantVals(iterVar, val)
 
-                extractFunctor = functor
+                getValues = loadElement
 
             else:
                 self.emitFatalError('{} iterable type not supported.', node)
 
-        else:
-            # In this case, we are coming from range() or enumerate(),
-            # and the iterable is a cc.array and the total size of the
-            # array is on the stack, pop it here
-            totalSize = self.popValue()
-            # Get the iterable from the stack
-            iterable = self.popValue()
-
-            # Double check our types are right
-            assert cc.PointerType.isinstance(iterable.type)
-            arrayType = cc.PointerType.getElementType(iterable.type)
-            assert cc.ArrayType.isinstance(arrayType)
-            elementType = cc.ArrayType.getElementType(arrayType)
-
-            def functor(iter, idx):
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(elementType), iter, [idx],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                          context=self.ctx)).result
-                return cc.LoadOp(eleAddr).result
-
-            extractFunctor = functor
-
-        def bodyBuilder(iterVar):
+        def blockBuilder(iterVar, stmts):
             self.symbolTable.pushScope()
-            # we set the extract functor above, use it here
-            value = extractFunctor(iterable, iterVar)
-            self.__deconstructAssignment(node.target, value)
-            [self.visit(b) for b in node.body]
+            values = getValues(iterVar)
+            # We need to create proper assignments to the loop
+            # iteration variable(s) to have consistent behavior.
+            assignNode = ast.Assign()
+            assignNode.targets = [node.target]
+            assignNode.value = values
+            assignNode.lineno = node.lineno
+            self.visit(assignNode)
+            [self.visit(b) for b in stmts]
             self.symbolTable.popScope()
 
-        self.createInvariantForLoop(totalSize,
-                                    bodyBuilder,
-                                    elseStmts=node.orelse)
+        self.createMonotonicForLoop(
+            lambda iterVar: blockBuilder(iterVar, node.body),
+            startVal=startVal,
+            stepVal=stepVal,
+            endVal=endVal,
+            isDecrementing=isDecrementing,
+            orElseBuilder=None if not node.orelse else
+            lambda iterVar: blockBuilder(iterVar, node.orelse))
 
     def visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
-        loop = cc.LoopOp([], [], BoolAttr.get(False))
-        whileBlock = Block.create_at_start(loop.whileRegion, [])
-        with InsertionPoint(whileBlock):
+
+        def evalCond(args):
             # BUG you cannot print MLIR values while building the cc `LoopOp` while region.
             # verify will get called, no terminator yet, CCOps.cpp:520
             v = self.verbose
             self.verbose = False
             self.visit(node.test)
-            condition = self.popValue()
-            if self.getIntegerType(1) != condition.type:
-                # not equal to 0, then compare with 1
-                condPred = IntegerAttr.get(self.getIntegerType(), 1)
-                condition = arith.CmpIOp(condPred, condition,
-                                         self.getConstantInt(0)).result
-            cc.ConditionOp(condition, [])
+            condition = self.__arithmetic_to_bool(self.popValue())
             self.verbose = v
+            return condition
 
-        bodyBlock = Block.create_at_start(loop.bodyRegion, [])
-        with InsertionPoint(bodyBlock):
-            self.symbolTable.pushScope()
-            self.pushForBodyStack([])
-            [self.visit(b) for b in node.body]
-            if not self.hasTerminator(bodyBlock):
-                cc.ContinueOp([])
-            self.popForBodyStack()
-            self.symbolTable.popScope()
-
-        stepBlock = Block.create_at_start(loop.stepRegion, [])
-        with InsertionPoint(stepBlock):
-            cc.ContinueOp([])
-
-        if node.orelse:
-            elseBlock = Block.create_at_start(loop.elseRegion, [])
-            with InsertionPoint(elseBlock):
-                self.symbolTable.pushScope()
-                for stmt in node.orelse:
-                    self.visit(stmt)
-                if not self.hasTerminator(elseBlock):
-                    cc.ContinueOp(elseBlock.arguments)
-                self.symbolTable.popScope()
+        self.createForLoop([], lambda _: [self.visit(b) for b in node.body], [],
+                           evalCond, lambda _: [], None if not node.orelse else
+                           lambda _: [self.visit(stmt) for stmt in node.orelse])
 
     def visit_BoolOp(self, node):
         """
         Convert boolean operations into equivalent MLIR operations using the
         Arith Dialect.
         """
-        shortCircuitWhenTrue = isinstance(node.op, ast.Or)
         if isinstance(node.op, ast.And) or isinstance(node.op, ast.Or):
+
             # Visit the LHS and pop the value
             # Note we want any `mz(q)` calls to push their
             # result value to the stack, so we set a non-None
             # variable name here.
             self.currentAssignVariableName = ''
             self.visit(node.values[0])
-            lhs = self.popValue()
-            zero = self.getConstantInt(0, IntegerType(lhs.type).width)
+            cond = self.__arithmetic_to_bool(self.popValue())
 
-            cond = arith.CmpIOp(
-                self.getIntegerAttr(self.getIntegerType(),
-                                    1 if shortCircuitWhenTrue else 0), lhs,
-                zero).result
+            def process_boolean_op(prior, values):
 
-            ifOp = cc.IfOp([cond.type], cond, [])
-            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-            with InsertionPoint(thenBlock):
+                if len(values) == 0:
+                    return prior
+
                 if isinstance(node.op, ast.And):
-                    constantFalse = arith.ConstantOp(cond.type,
-                                                     BoolAttr.get(False))
-                    cc.ContinueOp([constantFalse])
-                else:
-                    cc.ContinueOp([cond])
+                    prior = arith.XOrIOp(prior, self.getConstantInt(1,
+                                                                    1)).result
 
-            elseBlock = Block.create_at_start(ifOp.elseRegion, [])
-            with InsertionPoint(elseBlock):
-                self.symbolTable.pushScope()
-                self.pushIfStmtBlockStack()
-                self.visit(node.values[1])
-                rhs = self.popValue()
-                cc.ContinueOp([rhs])
-                self.popIfStmtBlockStack()
-                self.symbolTable.popScope()
+                ifOp = cc.IfOp([prior.type], prior, [])
+                thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                with InsertionPoint(thenBlock):
+                    if isinstance(node.op, ast.And):
+                        constantFalse = arith.ConstantOp(
+                            prior.type, BoolAttr.get(False))
+                        cc.ContinueOp([constantFalse])
+                    else:
+                        cc.ContinueOp([prior])
 
+                elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                with InsertionPoint(elseBlock):
+                    self.symbolTable.pushScope()
+                    self.pushIfStmtBlockStack()
+                    self.visit(values[0])
+                    rhs = process_boolean_op(
+                        self.__arithmetic_to_bool(self.popValue()), values[1:])
+                    cc.ContinueOp([rhs])
+                    self.popIfStmtBlockStack()
+                    self.symbolTable.popScope()
+
+                return ifOp.result
+
+            self.pushValue(process_boolean_op(cond, node.values[1:]))
             # Reset the assign variable name
             self.currentAssignVariableName = None
-
-            self.pushValue(ifOp.result)
             return
+
+        self.emitFatalError(f'unsupported boolean expression {node.op}', node)
 
     def visit_Compare(self, node):
         """
@@ -4248,6 +4406,9 @@ class PyASTBridge(ast.NodeVisitor):
                                              item2,
                                              allowDemotion=False)
             return item1, item2
+
+        # To understand the integer attributes used here (the predicates)
+        # see `arith::CmpIPredicate` and `arith::CmpFPredicate`.
 
         def compare_equality(item1, item2):
             # TODO: the In/NotIn case should be recursive such
@@ -4342,31 +4503,41 @@ class PyASTBridge(ast.NodeVisitor):
         if isinstance(op, (ast.In, ast.NotIn)):
 
             # Type validation and vector initialization
-            if not (cc.StdvecType.isinstance(right.type) or
-                    cc.ArrayType.isinstance(right.type)):
+            if not cc.StdvecType.isinstance(right.type):
                 self.emitFatalError(
                     "Right operand must be a list/vector for 'in' comparison")
+            vectSize = cc.StdvecSizeOp(self.getIntegerType(), right).result
 
             # Loop setup
             i1_type = self.getIntegerType(1)
+            trueVal = self.getConstantInt(1, 1)
             accumulator = cc.AllocaOp(cc.PointerType.get(i1_type),
                                       TypeAttr.get(i1_type)).result
-            cc.StoreOp(self.getConstantInt(0, 1), accumulator)
+            cc.StoreOp(trueVal, accumulator)
 
             # Element comparison loop
-            def check_element(idx):
-                element = self.__load_vector_element(right, idx)
+            def check_element(args):
+                element = self.__load_vector_element(right, args[0])
                 compRes = compare_equality(left, element)
+                neqRes = arith.XOrIOp(compRes, trueVal).result
                 current = cc.LoadOp(accumulator).result
-                cc.StoreOp(arith.OrIOp(current, compRes), accumulator)
+                cc.StoreOp(arith.AndIOp(current, neqRes), accumulator)
 
-            self.createInvariantForLoop(self.__get_vector_size(right),
-                                        check_element)
+            def check_condition(args):
+                notListEnd = arith.CmpIOp(IntegerAttr.get(iTy, 2), args[0],
+                                          vectSize).result
+                notFound = cc.LoadOp(accumulator).result
+                return arith.AndIOp(notListEnd, notFound).result
+
+            # Break early if we found the item
+            self.createForLoop(
+                [self.getIntegerType()], check_element,
+                [self.getConstantInt(0)], check_condition, lambda args:
+                [arith.AddIOp(args[0], self.getConstantInt(1)).result])
 
             final_result = cc.LoadOp(accumulator).result
-            if isinstance(op, ast.NotIn):
-                final_result = arith.XOrIOp(final_result,
-                                            self.getConstantInt(1, 1)).result
+            if isinstance(op, ast.In):
+                final_result = arith.XOrIOp(final_result, trueVal).result
             self.pushValue(final_result)
 
             return
@@ -4382,26 +4553,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentAssignVariableName = ''
         self.visit(node.test)
         self.currentAssignVariableName = None
-
-        condition = self.popValue()
-        condition = self.ifPointerThenLoad(condition)
-
-        # To understand the integer attributes used here (the predicates)
-        # see `arith::CmpIPredicate` and `arith::CmpFPredicate`.
-
-        if self.getIntegerType(1) != condition.type:
-            if IntegerType.isinstance(condition.type):
-                condPred = IntegerAttr.get(self.getIntegerType(), 1)
-                condition = arith.CmpIOp(condPred, condition,
-                                         self.getConstantInt(0)).result
-
-            elif F64Type.isinstance(condition.type):
-                condPred = IntegerAttr.get(self.getIntegerType(), 13)
-                condition = arith.CmpFOp(condPred, condition,
-                                         self.getConstantFloat(0)).result
-            else:
-                self.emitFatalError("condition cannot be converted to bool",
-                                    node)
+        condition = self.__arithmetic_to_bool(self.popValue())
 
         ifOp = cc.IfOp([], condition, [])
         thenBlock = Block.create_at_start(ifOp.thenRegion, [])
@@ -4434,63 +4586,93 @@ class PyASTBridge(ast.NodeVisitor):
         self.visit(node.value)
         self.walkingReturnNode = False
 
-        if len(self.valueStack) == 0:
+        if self.valueStack.currentNumValues == 0:
             return
 
-        result = self.ifPointerThenLoad(self.popValue())
-        result = self.ifPointerThenLoad(result)
         result = self.changeOperandToType(self.knownResultType,
-                                          result,
+                                          self.popValue(),
                                           allowDemotion=True)
 
-        if cc.StdvecType.isinstance(result.type):
+        # Generally, anything that was allocated locally on the stack
+        # needs to be copied to the heap to ensure it lives past the
+        # the function. This holds recursively; if we have a struct
+        # that contains a list, then the list data may need to be
+        # copied if it was allocated inside the function.
+        def copy_list_to_heap(value):
             symName = '__nvqpp_vectorCopyCtor'
             load_intrinsic(self.module, symName)
-            eleTy = cc.StdvecType.getElementType(result.type)
+            elemTy = cc.StdvecType.getElementType(value.type)
+            if elemTy == self.getIntegerType(1):
+                elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
             arrTy = cc.ArrayType.get(self.getIntegerType(8))
             ptrArrTy = cc.PointerType.get(arrTy)
-            resBuf = cc.StdvecDataOp(ptrArrTy, result).result
-            # TODO Revisit this calculation
-            byteWidth = 16 if ComplexType.isinstance(eleTy) else 8
-            eleSize = self.getConstantInt(byteWidth)
-            dynSize = cc.StdvecSizeOp(self.getIntegerType(), result).result
+            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
+            eleSize = cc.SizeOfOp(self.getIntegerType(),
+                                  TypeAttr.get(elemTy)).result
+            dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
             resBuf = cc.CastOp(ptrTy, resBuf)
             heapCopy = func.CallOp([ptrTy], symName,
                                    [resBuf, dynSize, eleSize]).result
-            res = cc.StdvecInitOp(result.type, heapCopy, length=dynSize).result
-            func.ReturnOp([res])
-            return
+            return cc.StdvecInitOp(value.type, heapCopy, length=dynSize).result
+
+        rootVal = self.__get_root_value(node.value)
+        if rootVal and self.isFunctionArgument(rootVal):
+            # If we allow assigning a value that contains a list to an item
+            # of a function argument (which we do with the exceptions
+            # commented below), then we necessarily need to make a copy when
+            # we return function arguments, or function argument elements,
+            # that contain lists, since we have to assume that their data may
+            # be allocated on the stack. However, this leads to incorrect
+            # behavior if a returned list was indeed caller-side allocated
+            # (and should correspondingly have been returned by reference).
+            # Rather than preventing that lists in function arguments can be
+            # updated, we instead ensure that lists contained in function
+            # arguments stay recognizable as such, and prevent that function
+            # arguments that contain list are returned.
+            # NOTE: Why is seems straightforward in principle to fail only
+            # for when we return *inner* lists of function arguments, this
+            # is still not a good option for two reasons:
+            # 1) Even if we return the reference to the outer list correctly,
+            # any caller-side assignment of the return value would no longer
+            # be recognizable as being the same reference given as argument,
+            # which is a problem if the list was an argument to the caller.
+            # I.e. while this works for one function indirection, it does
+            # not work for two (see assignment tests).
+            # 2) To ensure that we don't have any memory leaks, we copy any
+            # lists returned from function calls to the stack. This copy (as
+            # of the time of writing this) results in a segfault when the
+            # list is not on the heap. As it is, we hence indeed have to copy
+            # every returned list to the heap, followed by a copy to the stack
+            # in the caller. Subsequent optimization passes should largely
+            # eliminate unnecessary copies.
+            if (self.containsList(result.type)):
+                self.emitFatalError(
+                    "return value must not contain a list that is a function argument or an item in a function argument"
+                    +
+                    " - for device kernels, lists passed as arguments will be modified in place; "
+                    +
+                    "remove the return value or use .copy(deep) to create a copy",
+                    node)
+        else:
+            result = self.__migrateLists(result, copy_list_to_heap)
 
         if self.symbolTable.numLevels() > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
-
         func.ReturnOp([result])
 
     def visit_Tuple(self, node):
         """
         Map tuples in the Python AST to equivalents in MLIR.
         """
-        # FIXME: The handling of tuples in Python likely needs to be examined carefully;
-        # The corresponding issue to clarify the expected behavior is
-        # https://github.com/NVIDIA/cuda-quantum/issues/3031
-        # I re-enabled the tuple support in kernel signatures, given that we were already
-        # allowing the use of data classes everywhere, and supporting tuple use within a
-        # kernel. It hence seems that any issues with tuples also apply to named structs.
 
-        self.generic_visit(node)
-
-        elementValues = [self.popValue() for _ in range(len(node.elts))]
+        [self.visit(el) for el in node.elts]
+        elementValues = self.popAllValues(len(node.elts))
         elementValues.reverse()
-
-        # We do not store structs of pointers
-        elementValues = [
-            cc.LoadOp(ele).result
-            if cc.PointerType.isinstance(ele.type) else ele
-            for ele in elementValues
-        ]
+        for idx, value in enumerate(elementValues):
+            self.__validate_container_entry(value, node.elts[idx])
 
         structTys = [v.type for v in elementValues]
         structTy = mlirTryCreateStructType(structTys, context=self.ctx)
@@ -4501,27 +4683,23 @@ class PyASTBridge(ast.NodeVisitor):
 
         if quake.StruqType.isinstance(structTy):
             self.pushValue(quake.MakeStruqOp(structTy, elementValues).result)
-        else:
-            stackSlot = cc.AllocaOp(cc.PointerType.get(structTy),
-                                    TypeAttr.get(structTy)).result
-
-            # loop over each type and `compute_ptr` / store
-            for i, ty in enumerate(structTys):
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(ty), stackSlot, [],
-                    DenseI32ArrayAttr.get([i], context=self.ctx)).result
-                cc.StoreOp(elementValues[i], eleAddr)
-
-            self.pushValue(stackSlot)
             return
+
+        struct = cc.UndefOp(structTy)
+        for idx, element in enumerate(elementValues):
+            struct = cc.InsertValueOp(
+                structTy, struct, element,
+                DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+        self.pushValue(struct)
 
     def visit_UnaryOp(self, node):
         """
         Map unary operations in the Python AST to equivalents in MLIR.
         """
 
-        self.generic_visit(node)
+        self.visit(node.operand)
         operand = self.popValue()
+
         # Handle qubit negations
         if isinstance(node.op, ast.Invert):
             if quake.RefType.isinstance(operand.type):
@@ -4556,13 +4734,9 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if isinstance(node.op, ast.Not):
-            if not IntegerType.isinstance(operand.type):
-                self.emitFatalError("UnaryOp Not() on non-integer value.", node)
-
-            zero = self.getConstantInt(0, IntegerType(operand.type).width)
             self.pushValue(
-                arith.CmpIOp(IntegerAttr.get(self.getIntegerType(), 0), operand,
-                             zero).result)
+                arith.XOrIOp(self.__arithmetic_to_bool(operand),
+                             self.getConstantInt(1, 1)).result)
             return
 
         self.emitFatalError("unhandled UnaryOp.", node)
@@ -4600,9 +4774,6 @@ class PyASTBridge(ast.NodeVisitor):
         Process a binary operation in the AST and map them to equivalents in the 
         MLIR. This method handles arithmetic operations between values. 
         """
-
-        left = self.ifPointerThenLoad(left)
-        right = self.ifPointerThenLoad(right)
 
         # type promotion for anything except pow to match Python behavior
         if not issubclass(nodeType, ast.Pow):
@@ -4777,36 +4948,45 @@ class PyASTBridge(ast.NodeVisitor):
         MLIR. This method handles arithmetic operations between values. 
         """
 
-        # Get the left and right parts of this expression
         self.visit(node.left)
         left = self.popValue()
         self.visit(node.right)
         right = self.popValue()
 
+        # pushes to the value stack
         self.__process_binary_op(left, right, type(node.op))
 
     def visit_AugAssign(self, node):
         """
         Visit augment-assign operations (e.g. +=). 
         """
-        target = None
 
-        if isinstance(node.target,
-                      ast.Name) and node.target.id in self.symbolTable:
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.target)
-            target = self.symbolTable[node.target.id]
-        else:
+        self.pushPointerValue = True
+        self.visit(node.target)
+        self.pushPointerValue = False
+        target = self.popValue()
+
+        if not cc.PointerType.isinstance(target.type):
             self.emitFatalError(
                 "augment-assign target variable is not defined or "
                 "cannot be assigned to.", node)
 
         self.visit(node.value)
         value = self.popValue()
-
         loaded = cc.LoadOp(target).result
-        self.__process_binary_op(loaded, value, type(node.op))
 
+        # NOTE: `aug-assign` is usually defined as producing a value,
+        # which we are not doing here. However, if this produces
+        # a value, then we need to start worrying that arbitrary
+        # expressions might contain assignments, which would require
+        # updates to the bridge in a bunch of places and add some
+        # complexity. We hence effectively disallow using
+        # any kind of assignment as expression.
+        self.valueStack.pushFrame()
+        self.__process_binary_op(loaded, value, type(node.op))
+        self.valueStack.popFrame()
         res = self.popValue()
+
         if res.type != loaded.type:
             self.emitFatalError(
                 "augment-assign must not change the variable type", node)
@@ -4820,44 +5000,38 @@ class PyASTBridge(ast.NodeVisitor):
 
         if node.id in self.symbolTable:
             value = self.symbolTable[node.id]
-            if cc.PointerType.isinstance(value.type):
-                eleTy = cc.PointerType.getElementType(value.type)
-                if cc.ArrayType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-                # Retain `ptr<i8>`
-                if IntegerType.isinstance(eleTy) and IntegerType(
-                        eleTy).width == 8:
-                    self.pushValue(value)
-                    return
-                if cc.StdvecType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-                if cc.StateType.isinstance(eleTy):
-                    self.pushValue(value)
-                    return
-                loaded = cc.LoadOp(value).result
-                self.pushValue(loaded)
-            elif cc.CallableType.isinstance(
-                    value.type) and not BlockArgument.isinstance(value):
+            if (self.pushPointerValue or
+                    not cc.PointerType.isinstance(value.type)):
+                self.pushValue(value)
                 return
-            else:
-                self.pushValue(self.symbolTable[node.id])
+
+            eleTy = cc.PointerType.getElementType(value.type)
+
+            # Retain state types as pointers
+            # (function arguments of `StateType` are passed as pointers)
+            if cc.StateType.isinstance(eleTy):
+                self.pushValue(value)
+                return
+
+            loaded = cc.LoadOp(value).result
+            self.pushValue(loaded)
             return
 
         if node.id in self.capturedVars:
             # Only support a small subset of types here
             complexType = type(1j)
             value = self.capturedVars[node.id]
+            processed = False
 
             if isinstance(value, State):
                 self.pushValue(self.capturedDataStorage.storeCudaqState(value))
-                return
+                processed = True
 
-            if isinstance(value, (list, np.ndarray)) and isinstance(
+            elif isinstance(value, (list, np.ndarray)) and isinstance(
                     value[0],
                 (int, bool, float, np.int32, np.int64, np.float32, np.float64,
                  complexType, np.complex64, np.complex128)):
+
                 elementValues = None
                 if isinstance(value[0], bool):
                     elementValues = [self.getConstantInt(el, 1) for el in value]
@@ -4887,68 +5061,49 @@ class PyASTBridge(ast.NodeVisitor):
                     # Save the copy of the captured list so we can compare
                     # it to the scope to detect changes on recompilation.
                     self.dependentCaptureVars[node.id] = value.copy()
-                    mlirVal = self.__createStdvecWithKnownValues(
-                        len(value), elementValues)
+                    mlirVal = self.__createStdvecWithKnownValues(elementValues)
+                    # This is just basically a form of caching to ensure that
+                    # we only ever create one copy of a captured value.
                     self.symbolTable.add(node.id, mlirVal, 0)
                     self.pushValue(mlirVal)
-                    return
+                    processed = True
 
-            mlirValCreator = None
-            self.dependentCaptureVars[node.id] = value
-            if isinstance(value, bool):
-                mlirValCreator = lambda: self.getConstantInt(value, 1)
-            elif isinstance(value, np.int32):
-                mlirValCreator = lambda: self.getConstantInt(value, width=32)
-            elif isinstance(value, (int, np.int64)):
-                mlirValCreator = lambda: self.getConstantInt(value)
-            elif isinstance(value, np.float32):
-                mlirValCreator = lambda: self.getConstantFloat(value, width=32)
-            elif isinstance(value, (float, np.float64)):
-                mlirValCreator = lambda: self.getConstantFloat(value)
-            elif isinstance(value, np.complex64):
-                mlirValCreator = lambda: self.getConstantComplex(value,
-                                                                 width=32)
-            elif isinstance(value, complexType) or isinstance(
-                    value, np.complex128):
-                mlirValCreator = lambda: self.getConstantComplex(value,
-                                                                 width=64)
+            else:
 
-            if mlirValCreator != None:
-                with InsertionPoint.at_block_begin(self.entry):
-                    mlirVal = mlirValCreator()
-                    stackSlot = cc.AllocaOp(cc.PointerType.get(mlirVal.type),
-                                            TypeAttr.get(mlirVal.type)).result
-                    cc.StoreOp(mlirVal, stackSlot)
-                    # Store at the top-level
-                    self.symbolTable.add(node.id, stackSlot, 0)
-                # to match the behavior as when we load them from the symbol table
-                loaded = cc.LoadOp(stackSlot).result
-                self.pushValue(loaded)
+                mlirVal = None
+                self.dependentCaptureVars[node.id] = value
+                if isinstance(value, bool):
+                    mlirVal = self.getConstantInt(value, 1)
+                elif isinstance(value, np.int32):
+                    mlirVal = self.getConstantInt(value, width=32)
+                elif isinstance(value, (int, np.int64)):
+                    mlirVal = self.getConstantInt(value)
+                elif isinstance(value, np.float32):
+                    mlirVal = self.getConstantFloat(value, width=32)
+                elif isinstance(value, (float, np.float64)):
+                    mlirVal = self.getConstantFloat(value)
+                elif isinstance(value, np.complex64):
+                    mlirVal = self.getConstantComplex(value, width=32)
+                elif isinstance(value, complexType) or isinstance(
+                        value, np.complex128):
+                    mlirVal = self.getConstantComplex(value, width=64)
+
+                if mlirVal != None:
+                    self.pushValue(mlirVal)
+                    processed = True
+
+            if processed:
+                if self.pushPointerValue:
+                    self.emitFatalError(
+                        "CUDA-Q does not allow assignments to variables captured from parent scope",
+                        node)
                 return
-
-            errorType = type(value).__name__
-            if (isinstance(value, list)):
-                errorType = f"{errorType}[{type(value[0]).__name__}]"
-
-            try:
-                if issubclass(value, cudaq_runtime.KrausChannel):
-                    # Here we have a KrausChannel as part of the AST.  We want
-                    # to create a hash value from it, and we then want to push
-                    # the number of parameters and that hash value. This can
-                    # only be used with apply_noise.
-                    if not hasattr(value, 'num_parameters'):
-                        self.emitFatalError(
-                            'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
-                        )
-
-                    self.pushValue(self.getConstantInt(value.num_parameters))
-                    self.pushValue(self.getConstantInt(hash(value)))
-                    return
-            except TypeError:
-                pass
 
             if (node.id not in globalKernelRegistry and
                     node.id not in globalRegisteredOperations):
+                errorType = type(value).__name__
+                if (isinstance(value, list)):
+                    errorType = f"{errorType}[{type(value[0]).__name__}]"
                 self.emitFatalError(
                     f"Invalid type for variable ({node.id}) captured from parent scope (only int, bool, float, complex, cudaq.State, and list/np.ndarray[int|bool|float|complex] accepted, type was {errorType}).",
                     node)
@@ -4971,9 +5126,8 @@ class PyASTBridge(ast.NodeVisitor):
         # Throw an exception for the case that the name is not
         # in the symbol table
         self.emitFatalError(
-            f"Invalid variable name requested - '{node.id}' is "
-            f"not defined within the quantum kernel it is used "
-            f"in.", node)
+            f"Invalid variable name requested - '{node.id}' is not defined within the scope it is used in.",
+            node)
 
 
 def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
@@ -5021,21 +5175,23 @@ def compile_to_mlir(astModule, capturedDataStorage: CapturedDataStorage,
     # Visit dependent kernels recursively to
     # ensure we have all necessary kernels added to the
     # module
-    transitiveDeps = depKernels
+    transitiveDeps = {**depKernels}
     while len(transitiveDeps):
         # For each found dependency, see if that kernel
         # has further dependencies
-        for depKernelName, depKernelAst in transitiveDeps.items():
+        newDeps = {}
+        for _, depKernelAst in transitiveDeps.items():
             localVis = FindDepKernelsVisitor(bridge.ctx)
             localVis.visit(depKernelAst[0])
             # Append the found dependencies to our running tally
-            depKernels = {**depKernels, **localVis.depKernels}
-            # Reset for the next go around
-            transitiveDeps = localVis.depKernels
+            for k in localVis.depKernels:
+                if not k in depKernels:
+                    v = localVis.depKernels[k]
+                    depKernels[k] = v
+                    newDeps[k] = v
             # Update the call graph
-            callGraph[localVis.kernelName] = {
-                k for k, v in localVis.depKernels.items()
-            }
+            callGraph[localVis.kernelName] = {k for k in localVis.depKernels}
+        transitiveDeps = newDeps
 
     # Sort the call graph topologically
     callGraphSorter = graphlib.TopologicalSorter(callGraph)

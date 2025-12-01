@@ -52,7 +52,7 @@ def test_qpu_call_return_vector():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__func_achat(
 # CHECK-SAME:                                            %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.stdvec<i1> attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 8 : i64
+# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 # CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
 # CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
@@ -65,8 +65,9 @@ def test_qpu_call_return_vector():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__func_shiim(
 # CHECK-SAME:                                            %[[VAL_0:.*]]: !quake.veq<?>) -> i64 attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_10:.*]] = arith.constant 0 : i8
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 # CHECK:           %[[VAL_3:.*]] = quake.subveq %[[VAL_0]], 1, 2 : (!quake.veq<?>) -> !quake.veq<2>
 # CHECK:           %[[VAL_4:.*]] = quake.relax_size %[[VAL_3]] : (!quake.veq<2>) -> !quake.veq<?>
 # CHECK:           %[[VAL_5:.*]] = call @__nvqpp__mlirgen__func_achat(%[[VAL_4]]) : (!quake.veq<?>) -> !cc.stdvec<i1>
@@ -75,23 +76,20 @@ def test_qpu_call_return_vector():
 # CHECK:           %[[VAL_8:.*]] = cc.alloca i8{{\[}}%[[VAL_7]] : i64]
 # CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_8]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
 # CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_9]], %[[VAL_6]], %[[VAL_7]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
-# CHECK:           %[[VAL_10:.*]] = cc.stdvec_init %[[VAL_8]], %[[VAL_7]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.stdvec<i1>
-# CHECK:           %[[VAL_11:.*]] = cc.alloca !cc.stdvec<i1>
-# CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<!cc.stdvec<i1>>
 # CHECK:           %[[VAL_12:.*]] = cc.alloca i64
 # CHECK:           cc.store %[[VAL_2]], %[[VAL_12]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_13:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.stdvec<i1>>
-# CHECK:           %[[VAL_14:.*]] = cc.stdvec_size %[[VAL_13]] : (!cc.stdvec<i1>) -> i64
 # CHECK:           %[[VAL_15:.*]] = cc.loop while ((%[[VAL_16:.*]] = %[[VAL_2]]) -> (i64)) {
-# CHECK:             %[[VAL_17:.*]] = arith.cmpi slt, %[[VAL_16]], %[[VAL_14]] : i64
+# CHECK:             %[[VAL_17:.*]] = arith.cmpi slt, %[[VAL_16]], %[[VAL_7]] : i64
 # CHECK:             cc.condition %[[VAL_17]](%[[VAL_16]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_18:.*]]: i64):
-# CHECK:             %[[VAL_19:.*]] = cc.stdvec_data %[[VAL_13]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
-# CHECK:             %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_19]]{{\[}}%[[VAL_18]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+# CHECK:             %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_8]]{{\[}}%[[VAL_18]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
 # CHECK:             %[[VAL_21:.*]] = cc.load %[[VAL_20]] : !cc.ptr<i8>
-# CHECK:             %[[VAL_22:.*]] = cc.cast %[[VAL_21]] : (i8) -> i1
-# CHECK:             cc.if(%[[VAL_22]]) {
+# CHECK:             %[[VAL_11:.*]] = arith.cmpi ne, %[[VAL_21]], %[[VAL_10]] : i8
+# CHECK:             %[[VAL_13:.*]] = cc.alloca i1
+# CHECK:             cc.store %[[VAL_11]], %[[VAL_13]] : !cc.ptr<i1>
+# CHECK:             %[[VAL_14:.*]] = cc.load %[[VAL_13]] : !cc.ptr<i1>
+# CHECK:             cc.if(%[[VAL_14]]) {
 # CHECK:               %[[VAL_23:.*]] = cc.load %[[VAL_12]] : !cc.ptr<i64>
 # CHECK:               %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_1]] : i64
 # CHECK:               cc.store %[[VAL_24]], %[[VAL_12]] : !cc.ptr<i64>
@@ -101,7 +99,7 @@ def test_qpu_call_return_vector():
 # CHECK:           ^bb0(%[[VAL_25:.*]]: i64):
 # CHECK:             %[[VAL_26:.*]] = arith.addi %[[VAL_25]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_26]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_27:.*]] = cc.load %[[VAL_12]] : !cc.ptr<i64>
 # CHECK:           return %[[VAL_27]] : i64
 # CHECK:         }

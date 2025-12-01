@@ -178,6 +178,21 @@ if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
   OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
 fi
 
+# Check for ccache and configure compiler launcher
+CCACHE_FLAGS=""
+if [ -x "$(command -v ccache)" ]; then
+  echo "ccache detected. Configuring build to use ccache for faster recompilation."
+  CCACHE_FLAGS="\
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+  # Also enable ccache for CUDA if CUDA compiler is available
+  if [ -n "$cuda_driver" ]; then
+    CCACHE_FLAGS+=" -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache"
+  fi
+else
+  echo "ccache not found. To speed up recompilation, consider installing ccache."
+fi
+
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
@@ -189,6 +204,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
+  ${CCACHE_FLAGS} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
