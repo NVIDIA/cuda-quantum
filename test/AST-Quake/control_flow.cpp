@@ -20,27 +20,27 @@ void g3();
 void g4();
 
 struct C {
-   void operator()() __qpu__ {
-      cudaq::qvector r(2);
-      g1();
-      for (int i = 0; i < 10; ++i) {
-	 if (f1(i)) {
-	    cudaq::qubit q;
-	    x<cudaq::ctrl>(q,r[0]);
-	    break;
-	 }
-	 x<cudaq::ctrl>(r[0],r[1]);
-	 g2();
-	 if (f2(i)) {
-	    y(r[1]);
-	    continue;
-	 }
-	 g3();
-	 z(r);
-      }
-      g4();
-      mz(r);
-   }
+   	void operator()() __qpu__ {
+    	cudaq::qvector r(2);
+    	g1();
+      	for (int i = 0; i < 10; ++i) {
+	 		if (f1(i)) {
+	    		cudaq::qubit q;
+	    		x<cudaq::ctrl>(q,r[0]);
+	    		break;
+	 		}
+	 		x<cudaq::ctrl>(r[0],r[1]);
+	 		g2();
+	 		if (f2(i)) {
+	    		y(r[1]);
+	    		continue;
+	 		}
+	 		g3();
+	 		z(r);
+      	}
+      	g4();
+      	mz(r);
+   	}
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
@@ -109,26 +109,26 @@ struct C {
 // CHECK:         }
 
 struct D {
-   void operator()() __qpu__ {
-      cudaq::qvector r(2);
-      g1();
-      for (int i = 0; i < 10; ++i) {
-	 if (f1(i)) {
-	    cudaq::qubit q;
-	    x<cudaq::ctrl>(q,r[0]);
-	    continue;
-	 }
-	 x<cudaq::ctrl>(r[0],r[1]);
-	 g2();
-	 if (f2(i)) {
-	    y(r[1]);
-	    break;
-	 }
-	 g3();
-	 z(r);
-      }
-      g4();
-      mz(r);
+   	void operator()() __qpu__ {
+      	cudaq::qvector r(2);
+      	g1();
+      	for (int i = 0; i < 10; ++i) {
+	 		if (f1(i)) {
+	    		cudaq::qubit q;
+	    		x<cudaq::ctrl>(q,r[0]);
+	    		continue;
+	 		}
+	 		x<cudaq::ctrl>(r[0],r[1]);
+	 		g2();
+	 		if (f2(i)) {
+	    		y(r[1]);
+	    		break;
+	 		}
+	 		g3();
+	 		z(r);
+      	}
+      	g4();
+      	mz(r);
    }
 };
 
@@ -199,25 +199,25 @@ struct D {
 
 struct E {
    void operator()() __qpu__ {
-      cudaq::qvector r(2);
-      g1();
-      for (int i = 0; i < 10; ++i) {
-	 if (f1(i)) {
-	    cudaq::qubit q;
-	    x<cudaq::ctrl>(q,r[0]);
-	    return;
-	 }
-	 x<cudaq::ctrl>(r[0],r[1]);
-	 g2();
-	 if (f2(i)) {
-	    y(r[1]);
-	    break;
-	 }
-	 g3();
-	 z(r);
-      }
-      g4();
-      mz(r);
+    	cudaq::qvector r(2);
+      	g1();
+      	for (int i = 0; i < 10; ++i) {
+	 		if (f1(i)) {
+	    		cudaq::qubit q;
+	    		x<cudaq::ctrl>(q,r[0]);
+	    		return;
+	 		}
+	 		x<cudaq::ctrl>(r[0],r[1]);
+	 		g2();
+	 		if (f2(i)) {
+	    		y(r[1]);
+	    		break;
+	 		}
+	 		g3();
+	 		z(r);
+      	}
+      	g4();
+      	mz(r);
    }
 };
 
@@ -286,26 +286,26 @@ struct E {
 // CHECK:           return
 
 struct F {
-   void operator()() __qpu__ {
-      cudaq::qvector r(2);
-      g1();
-      for (int i = 0; i < 10; ++i) {
-	 if (f1(i)) {
-	    cudaq::qubit q;
-	    x<cudaq::ctrl>(q,r[0]);
-	    continue;
-	 }
-	 x<cudaq::ctrl>(r[0],r[1]);
-	 g2();
-	 if (f2(i)) {
-	    y(r[1]);
-	    return;
-	 }
-	 g3();
-	 z(r);
-      }
-      g4();
-      mz(r);
+	void operator()() __qpu__ {
+      	cudaq::qvector r(2);
+      	g1();
+      	for (int i = 0; i < 10; ++i) {
+	 		if (f1(i)) {
+	    		cudaq::qubit q;
+	    		x<cudaq::ctrl>(q,r[0]);
+	    		continue;
+	 		}
+	 		x<cudaq::ctrl>(r[0],r[1]);
+	 		g2();
+	 		if (f2(i)) {
+	    		y(r[1]);
+	    		return;
+	 		}
+	 		g3();
+	 		z(r);
+      	}
+      	g4();
+      	mz(r);
    }
 };
 
