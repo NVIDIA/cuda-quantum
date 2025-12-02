@@ -120,7 +120,7 @@ it is applied to a qumode where the number of photons is already at the minimum
 value 0, the operation has no effect:
 
 .. math::  A \ket{1} =  \ket{0}
-
+:spellcheck-disable:
 .. math::  \begin{bmatrix}
                 1 & 1 & 0 & 0 & \dots & 0 & 0 \\
                 0 & 0 & 1 & 0 & \dots & 0 & 0 \\
@@ -132,7 +132,7 @@ value 0, the operation has no effect:
             \end{bmatrix}
             \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
             \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}
-
+:spellcheck-enable:
 .. literalinclude:: ../../../snippets/python/using/examples/annihilate_photonic_gate.py
     :language: python
     :start-after: [Begin Docs]
