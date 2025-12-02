@@ -199,3 +199,24 @@ int main() {
   return 0;
 }
 ```
+
+## What Happens Under the Hood
+
+1. **Compilation**: `cudaq::device_call(0, decoder_enqueue, syndrome)` becomes:
+   - Serialize: `[function_id=hash("decoder_enqueue"), args=[syndrome]]`
+   - Network op: RDMA WRITE to RTH ring buffer
+
+2. **RTH receives packet**:
+   - Daemon's dispatcher polls Channel
+   - Looks up `function_id` in FunctionRegistry
+   - Creates `InputStream` from packet buffer
+   - Calls wrapper: `decoder_enqueue_wrapper(in, out)`
+   - Wrapper auto-deserializes: `uint64_t syndrome = in.read<uint64_t>()`
+   - Calls actual function: `decoder_enqueue(syndrome)`
+   - For functions with return value: `out.write(result)`
+   - Sends response via RDMA SEND
+
+3. **FPGA receives response**:
+   - Polls for RDMA SEND completion
+   - Deserializes result
+   - Continues quantum execution
