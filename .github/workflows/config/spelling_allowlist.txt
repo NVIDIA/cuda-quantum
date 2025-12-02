@@ -108,6 +108,7 @@ QPUs
 QPU’s
 QTX
 QX
+Qilimanjaro
 Qiskit
 QuEra
 QuTiP
