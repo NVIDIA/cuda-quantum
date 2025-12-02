@@ -2272,8 +2272,8 @@ class PyASTBridge(ast.NodeVisitor):
                 return
 
             if self.__isSimpleGate(node.func.id):
-                # Here we enable application of the op on all the
-                # provided arguments, e.g. `x(qubit)`, `x(qvector)`, `x(q, r)`, etc.
+                # Here we enable application of the op on all the provided
+                # arguments, e.g. `x(qubit)`, `x(qvector)`, `x(q, r)`, etc.
                 numValues = len(self.valueStack)
                 qubitTargets = [self.popValue() for _ in range(numValues)]
                 qubitTargets.reverse()
@@ -2287,8 +2287,9 @@ class PyASTBridge(ast.NodeVisitor):
                 numValues = len(self.valueStack)
                 if numValues != MAX_ARGS:
                     raise RuntimeError(
-                        "invalid number of arguments passed to callable {} ({} vs required {})"
-                        .format(node.func.id, len(node.args), MAX_ARGS))
+                        "invalid number of arguments passed to callable {} "
+                        "({} vs required {})".format(node.func.id,
+                                                     len(node.args), MAX_ARGS))
                 target = self.popValue()
                 control = self.popValue()
                 negatedControlQubits = getNegatedControlQubits([control])
@@ -3257,8 +3258,10 @@ class PyASTBridge(ast.NodeVisitor):
                                 format(target.type), node)
 
                     self.emitFatalError(
-                        f'Unknown attribute on quantum operation {node.func.value.id} ({node.func.attr}). {maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
-                    )
+                        f'Unknown attribute on quantum operation '
+                        f'{node.func.value.id} ({node.func.attr}). '
+                        f'{maybeProposeOpAttrFix(node.func.value.id, '
+                        f'node.func.attr)}')
 
                 if node.func.value.id == 'u3':
                     numValues = len(self.valueStack)
@@ -3272,8 +3275,8 @@ class PyASTBridge(ast.NodeVisitor):
                         controls = other_args[:-3]
                         if not controls:
                             self.emitFatalError(
-                                'controlled operation requested without any control argument(s).',
-                                node)
+                                'controlled operation requested without any '
+                                'control argument(s).', node)
                         negatedControlQubits = getNegatedControlQubits(controls)
                         params = other_args[-3:]
                         params.reverse()
@@ -3283,8 +3286,8 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.getFloatType(), val).result
                             elif not F64Type.isinstance(val.type):
                                 self.emitFatalError(
-                                    'rotational parameter must be a float, or int.',
-                                    node)
+                                    'rotational parameter must be a float, or '
+                                    'int.', node)
 
                         checkControlAndTargetTypes(controls, [target])
                         opCtor([],
@@ -3302,8 +3305,8 @@ class PyASTBridge(ast.NodeVisitor):
                                     self.getFloatType(), val).result
                             elif not F64Type.isinstance(val.type):
                                 self.emitFatalError(
-                                    'rotational parameter must be a float, or int.',
-                                    node)
+                                    'rotational parameter must be a float, or '
+                                    'int.', node)
 
                         checkControlAndTargetTypes([], [target])
                         if quake.VeqType.isinstance(target.type):
@@ -3334,8 +3337,8 @@ class PyASTBridge(ast.NodeVisitor):
                 if node.func.value.id in globalRegisteredOperations:
                     if not node.func.attr == 'ctrl' and not node.func.attr == 'adj':
                         self.emitFatalError(
-                            f'Unknown attribute on custom operation {node.func.value.id} ({node.func.attr}).'
-                        )
+                            f'Unknown attribute on custom operation '
+                            f'{node.func.value.id} ({node.func.attr}).')
 
                     unitary = globalRegisteredOperations[node.func.value.id]
                     numTargets = int(np.log2(np.sqrt(unitary.size)))
@@ -3346,8 +3349,8 @@ class PyASTBridge(ast.NodeVisitor):
                     for i, t in enumerate(targets):
                         if not quake.RefType.isinstance(t.type):
                             self.emitFatalError(
-                                f'invalid target operand {i}, broadcasting is not supported on custom operations.'
-                            )
+                                f'invalid target operand {i}, broadcasting is not '
+                                f'supported on custom operations.')
 
                     globalName = f'{nvqppPrefix}{node.func.value.id}_generator_{numTargets}.rodata'
 
@@ -3369,8 +3372,8 @@ class PyASTBridge(ast.NodeVisitor):
                         ]
                         if not controls:
                             self.emitFatalError(
-                                'controlled operation requested without any control argument(s).',
-                                node)
+                                'controlled operation requested without any '
+                                'control argument(s).', node)
                         negatedControlQubits = getNegatedControlQubits(controls)
                     if node.func.attr == 'adj':
                         is_adj = True
