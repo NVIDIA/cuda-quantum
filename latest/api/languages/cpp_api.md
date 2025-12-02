@@ -12915,6 +12915,12 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     :::
     :::
 
+    ::: {.admonition .note}
+    Note
+
+    This function is only available when using simulator backends.
+    :::
+
     Parameters[:]{.colon}
 
     :   -   **kernel** -- The quantum callable with non-trivial function
