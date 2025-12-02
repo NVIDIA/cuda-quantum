@@ -36,12 +36,50 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test_config.h.in"
                @ONLY)
 include_directories(${CMAKE_BINARY_DIR}/include)
 
-# ======= Phase 1: Old tests removed ==========================================
-# All old tests using device_ptr API have been removed.
-# New Daemon-based tests will be added in Phase 4 of the integration plan.
-# ==============================================================================
+# ======= Phase 4: New Test Infrastructure ====================================
 
-message(STATUS "Unit tests: Phase 1 - old tests removed, new tests will be added in Phase 4")
-message(STATUS "  See docs/integration_plan.md Phase 4 for upcoming test infrastructure")
+# Test utilities library (LoopbackChannel for testing without hardware)
+add_library(test_utils STATIC
+  test_utils/loopback_channel.cpp
+)
+
+target_include_directories(test_utils
+  PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CUDAQ_NVQLINK_INCLUDE_DIR}
+)
+
+target_link_libraries(test_utils
+  PUBLIC
+    nvqlink_network
+)
+
+# Daemon tests
+add_executable(test_daemon test_daemon.cpp)
+target_link_libraries(test_daemon 
+  PRIVATE 
+    GTest::gtest_main
+    cudaq-nvqlink
+    nvqlink_daemon
+    test_utils
+)
+add_dependencies(NVQLINKUnitTests test_daemon)
+gtest_discover_tests(test_daemon)
+
+# Stream tests (serialization/deserialization)
+add_executable(test_streams test_streams.cpp)
+target_link_libraries(test_streams 
+  PRIVATE 
+    GTest::gtest_main
+    nvqlink_network
+)
+add_dependencies(NVQLINKUnitTests test_streams)
+gtest_discover_tests(test_streams)
+
+message(STATUS "Unit tests: Phase 4 - New Daemon-based tests added")
+message(STATUS "  - test_daemon (with LoopbackChannel)")
+message(STATUS "  - test_streams (serialization)")
+
+# ==============================================================================
 
 
