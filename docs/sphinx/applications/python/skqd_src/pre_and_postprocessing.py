@@ -71,17 +71,17 @@ def extract_coeffs_and_paulis(H: cudaq.SpinOperator):
 def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
                                      hamiltonian_coefficients_numpy, use_gpu):
     """
-    GPU-accelerated, vectorized implementation of projected_hamiltonian.
+    GPU-accelerated, `vectorized` implementation of projected_hamiltonian.
     
     Uses CuPy when GPU is available, otherwise falls back to NumPy.
     Produces bit-for-bit identical results to the original function.
     
     Args:
         basis_states: (n_basis, n_qubits) array of basis state bit vectors
-        hamiltonian_pauli_words: list of Pauli strings (e.g., ['XYZII', 'ZZXYI'])
-        hamiltonian_coefficients_numpy: array of coefficients for each Pauli term
+        `hamiltonian_pauli_words: list of Pauli strings (e.g., ['XYZII', 'ZZXYI'])`
+        `hamiltonian_coefficients_numpy: array of coefficients for each Pauli term`
         verbose: if True, print debug info (not used in accelerated version)
-        use_gpu: True (force GPU), or False (force CPU)
+        `use_gpu: True (force GPU), or False (force CPU)`
     
     Returns:
         matrix_rows, matrix_cols, matrix_elements: lists matching original function
@@ -110,9 +110,9 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
                             dtype=np.int8)
     pauli_ops = xp.asarray(pauli_ops_np)  # (n_terms, n_qubits)
 
-    # Broadcast for all (basis_state, pauli_term) combinations
+    # Broadcast for all (basis_state, `pauli_term`) combinations
     # states_expanded: (n_basis, 1, n_qubits)
-    # pauli_expanded:  (1, n_terms, n_qubits)
+    # `pauli_expanded`:  (1, n_terms, n_qubits)
     states_expanded = basis_states_xp[:, None, :]
     pauli_expanded = pauli_ops[None, :, :]
 
@@ -165,7 +165,7 @@ def vectorized_projected_hamiltonian(basis_states, hamiltonian_pauli_words,
     # Binary search to find potential match positions
     search_positions = xp.searchsorted(sorted_basis_ints, transformed_flat)
 
-    # Validate matches (searchsorted finds insertion point, not necessarily exact match)
+    # Validate matches (`searchsorted` finds insertion point, not necessarily exact match)
     in_bounds = search_positions < n_basis
     search_positions_clipped = xp.minimum(search_positions, n_basis - 1)
     actually_found = in_bounds & (sorted_basis_ints[search_positions_clipped]
@@ -220,7 +220,7 @@ def projected_hamiltonian(basis_states, hamiltonian_pauli_words,
             for qubit_position, pauli_op in enumerate(
                     pauli_operator
             ):  #loop over each qubit in each term of the Hamiltonian
-                # print('pauli_op, qubit_position', pauli_op, qubit_position)
+                # `print('pauli_op, qubit_position', pauli_op, qubit_position)`
 
                 if pauli_op == 'I':
                     pass
