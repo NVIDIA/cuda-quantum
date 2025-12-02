@@ -157,6 +157,7 @@ bitstring
 bitstrings
 bitwidth
 bitwidths
+bmatrix
 bool
 boolean
 boson
@@ -373,6 +374,7 @@ upvote
 variadic
 variational
 vazirani
+vdots
 vectorization
 verifier
 vertices
