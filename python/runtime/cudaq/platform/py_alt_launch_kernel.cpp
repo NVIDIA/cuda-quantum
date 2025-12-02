@@ -202,29 +202,14 @@ ExecutionEngine *jitKernel(const std::string &name, MlirModule module,
       pm.enableIRPrinting();
     }
 
-    std::string error_msg;
-    mlir::DiagnosticEngine &engine = context->getDiagEngine();
-    auto handlerId = engine.registerHandler(
-        [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
-          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
-            error_msg += diag.str();
-            return mlir::failure(false);
-          }
-          return mlir::failure();
-        });
-
     DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-
-    if (failed(pm.run(cloned))) {
-      engine.eraseHandler(handlerId);
+    if (failed(pm.run(cloned)))
       throw std::runtime_error(
-          "failed to JIT compile the Quake representation\n" + error_msg);
-    }
+          "cudaq::builder failed to JIT compile the Quake representation.");
     timingScope.stop();
-    engine.eraseHandler(handlerId);
 
     // The "fast" instruction selection compilation algorithm is actually very
     // slow for large quantum circuits. Disable that here. Revisit this
@@ -332,12 +317,6 @@ jitAndCreateArgs(const std::string &name, MlirModule module,
         .Case([&](cudaq::cc::StructType ty) {
           auto funcOp = getKernelFuncOp(module, name);
           auto [size, offsets] = getTargetLayout(funcOp, ty);
-          auto memberTys = ty.getMembers();
-          for (auto mTy : memberTys) {
-            if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(mTy))
-              throw std::runtime_error("return values with dynamically sized "
-                                       "element types are not yet supported");
-          }
           auto ourAllocatedArg = std::malloc(size);
           runtimeArgs.emplace_back(ourAllocatedArg,
                                    [](void *ptr) { std::free(ptr); });
@@ -918,34 +897,18 @@ MlirModule synthesizeKernel(const std::string &name, MlirModule module,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
-  if (disableMLIRthreading || enablePrintMLIREachPass)
-    context->disableMultithreading();
-  if (enablePrintMLIREachPass)
-    pm.enableIRPrinting();
-
-  std::string error_msg;
-  mlir::DiagnosticEngine &engine = context->getDiagEngine();
-  auto handlerId = engine.registerHandler(
-      [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
-        if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
-          error_msg += diag.str();
-          return mlir::failure(false);
-        }
-        return mlir::failure();
-      });
-
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-
-  if (failed(pm.run(cloned))) {
-    engine.eraseHandler(handlerId);
+  if (disableMLIRthreading || enablePrintMLIREachPass)
+    context->disableMultithreading();
+  if (enablePrintMLIREachPass)
+    pm.enableIRPrinting();
+  if (failed(pm.run(cloned)))
     throw std::runtime_error(
-        "failed to JIT compile the Quake representation\n" + error_msg);
-  }
+        "cudaq::builder failed to JIT compile the Quake representation.");
   timingScope.stop();
-  engine.eraseHandler(handlerId);
   std::free(rawArgs);
   return wrap(cloned);
 }

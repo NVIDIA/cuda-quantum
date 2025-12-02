@@ -191,8 +191,6 @@ couplers
 cuQuantum
 cuTensor
 cudaq
-dataclass
-dataclasses
 dataflow
 ddots
 deallocate
