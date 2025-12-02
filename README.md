@@ -11,7 +11,7 @@ is welcome. This work will continue to rapidly evolve as we learn what works and
 
 ```bash
 # Configure, need cmake 3.28+
-cmake -G Ninja .. -DCUDAQ_NVQLINK_INCLUDE_TESTS=ON
+cmake -G Ninja .. -DNVQLINK_BUILD_TESTS=ON
 # Build
 ninja 
 # Test

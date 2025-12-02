@@ -51,5 +51,9 @@ install(DIRECTORY ${CUDAQ_NVQLINK_INCLUDE_DIR}/cudaq
   FILES_MATCHING PATTERN "*.h"
 )
 
+add_subdirectory(daemon)
+add_subdirectory(network)
+add_subdirectory(utils)
+
 # FIXME:
 # add_subdirectory(plugins)

@@ -41,7 +41,7 @@ add_library(shmem-add SHARED test_device_libraries/add.cpp)
 
 add_executable(test_cpu_shmem_device test_cpu_shmem_device.cpp)
 target_link_libraries(test_cpu_shmem_device PRIVATE GTest::gtest_main cudaq-nvqlink)
-add_dependencies(CUDAQXNVQLINKUnitTests test_cpu_shmem_device)
+add_dependencies(NVQLINKUnitTests test_cpu_shmem_device)
 gtest_discover_tests(test_cpu_shmem_device)
 # ==============================================================================
 
@@ -52,12 +52,12 @@ if (CUDA_FOUND)
 
   add_executable(test_cuda_device test_cuda_device.cpp)
   target_link_libraries(test_cuda_device PRIVATE GTest::gtest_main cudaq-nvqlink)
-  add_dependencies(CUDAQXNVQLINKUnitTests test_cuda_device)
+  add_dependencies(NVQLINKUnitTests test_cuda_device)
   gtest_discover_tests(test_cuda_device)
 
   add_executable(test_nv_rdma_device test_nv_rdma_device.cu)
   target_link_libraries(test_nv_rdma_device PRIVATE GTest::gtest_main cudaq-nvqlink)
-  add_dependencies(CUDAQXNVQLINKUnitTests test_nv_rdma_device)
+  add_dependencies(NVQLINKUnitTests test_nv_rdma_device)
   gtest_discover_tests(test_nv_rdma_device)
 endif() 
 # ==============================================================================
@@ -66,14 +66,14 @@ endif()
 # ======= Shmem Channel Tests ==================================================
 add_executable(test_cudaq_compiler test_cudaq_compiler.cpp)
 target_link_libraries(test_cudaq_compiler PRIVATE GTest::gtest_main cudaq-nvqlink)
-add_dependencies(CUDAQXNVQLINKUnitTests test_cudaq_compiler)
+add_dependencies(NVQLINKUnitTests test_cudaq_compiler)
 gtest_discover_tests(test_cudaq_compiler)
 # ==============================================================================
 
 # ======= NVQLink Integration Tests ============================================
 add_executable(test_nvqlink test_nvqlink.cpp)
 target_link_libraries(test_nvqlink PRIVATE GTest::gtest_main cudaq-nvqlink)
-add_dependencies(CUDAQXNVQLINKUnitTests test_nvqlink)
+add_dependencies(NVQLINKUnitTests test_nvqlink)
 gtest_discover_tests(test_nvqlink)
 # ==============================================================================
 
