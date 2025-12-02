@@ -20,12 +20,9 @@ namespace cudaq::nvqlink {
 /// - Execution control (START/STOP/ABORT commands)
 struct QCSDeviceConfig {
   std::string name;
-  uint16_t control_port{9999};  // UDP port for control plane
+  uint16_t control_port{9999}; // UDP port for control plane
 
-  bool is_valid() const {
-    return !name.empty() && control_port > 0;
-  }
+  bool is_valid() const { return !name.empty() && control_port > 0; }
 };
 
 } // namespace cudaq::nvqlink
-

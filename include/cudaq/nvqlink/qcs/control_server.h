@@ -11,7 +11,7 @@
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstdint>
-#include <infiniband/verbs.h>  // For ibv_gid
+#include <infiniband/verbs.h>
 #include <nlohmann/json.hpp>
 #include <string>
 
@@ -66,8 +66,7 @@ public:
   /// @brief Send a command to QCS
   /// @param cmd Command string (e.g., "START", "STOP", "ABORT")
   /// @param params Optional JSON parameters
-  void send_command(const std::string &cmd,
-                    const nlohmann::json &params = {});
+  void send_command(const std::string &cmd, const nlohmann::json &params = {});
 
   /// @brief Wait for response from QCS
   /// @param timeout Maximum time to wait for response
@@ -92,4 +91,3 @@ private:
 };
 
 } // namespace cudaq::nvqlink
-

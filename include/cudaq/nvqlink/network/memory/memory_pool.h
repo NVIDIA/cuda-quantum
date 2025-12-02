@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/nvqlink/daemon/config.h"  // For DatapathMode
-#include "cudaq/nvqlink/network/config.h"  // For MemoryConfig
+#include "cudaq/nvqlink/daemon/config.h"
+#include "cudaq/nvqlink/network/config.h"
 #include "cudaq/nvqlink/network/memory/buffer.h"
 
 #include <mutex>

@@ -15,8 +15,8 @@ namespace cudaq::nvqlink {
 /// @brief LQPU configuration
 /// @details Logical Quantum Processing Unit configuration.
 /// In the new architecture, LQPU is just configuration data,
-/// not a device container. Actual runtime components (Daemon, QCSDevice, Channel)
-/// are managed explicitly.
+/// not a device container. Actual runtime components (Daemon, QCSDevice,
+/// Channel) are managed explicitly.
 struct LQPUConfig {
   std::string name;
   // Future: add connection/deployment info as needed

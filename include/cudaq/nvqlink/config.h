@@ -10,7 +10,6 @@
 
 // Convenience umbrella header - includes all configuration headers
 
-#include "cudaq/nvqlink/network/config.h"  // ChannelConfig, MemoryConfig
-#include "cudaq/nvqlink/daemon/config.h"   // DaemonConfig, ComputeConfig, DatapathMode
-#include "cudaq/nvqlink/qcs/config.h"      // QCSDeviceConfig
-
+#include "cudaq/nvqlink/daemon/config.h"
+#include "cudaq/nvqlink/network/config.h"
+#include "cudaq/nvqlink/qcs/config.h"

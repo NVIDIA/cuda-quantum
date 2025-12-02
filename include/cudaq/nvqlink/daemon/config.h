@@ -56,4 +56,3 @@ private:
 };
 
 } // namespace cudaq::nvqlink
-

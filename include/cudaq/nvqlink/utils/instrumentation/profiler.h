@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/nvqlink/utils/instrumentation/domains.h"
+
 #include <cstdint>
 
 /// @file profiler.hpp

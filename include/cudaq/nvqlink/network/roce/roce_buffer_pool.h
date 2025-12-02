@@ -10,9 +10,8 @@
 
 #include "cudaq/nvqlink/network/memory/buffer.h"
 
-#include <infiniband/verbs.h>
-
 #include <cstdint>
+#include <infiniband/verbs.h>
 #include <memory>
 #include <unordered_map>
 #include <vector>

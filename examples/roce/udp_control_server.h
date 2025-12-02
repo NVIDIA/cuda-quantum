@@ -39,9 +39,9 @@ public:
   /// @param running_flag Pointer to flag for checking if server should keep
   /// running
   /// @return true if all channels setup succeeded, false otherwise
-  bool
-  exchange_multi_channel(const std::vector<cudaq::nvqlink::RoCEChannel *> &channels,
-                         volatile bool *running_flag);
+  bool exchange_multi_channel(
+      const std::vector<cudaq::nvqlink::RoCEChannel *> &channels,
+      volatile bool *running_flag);
 
 private:
   uint16_t port_;

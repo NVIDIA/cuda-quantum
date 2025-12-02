@@ -8,9 +8,8 @@
 
 #pragma once
 
-#include <infiniband/verbs.h>
-
 #include <cstdint>
+#include <infiniband/verbs.h>
 #include <string>
 
 namespace cudaq::nvqlink {

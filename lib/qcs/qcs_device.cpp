@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "cudaq/nvqlink/qcs/qcs_device.h"
-#include "cudaq/nvqlink/qcs/control_server.h"
 #include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/qcs/control_server.h"
 #include "cudaq/nvqlink/utils/instrumentation/logger.h"
 
 #include <stdexcept>
@@ -23,8 +23,8 @@ QCSDevice::QCSDevice(const QCSDeviceConfig &config) : config_(config) {
   control_server_ = std::make_unique<ControlServer>(config_.control_port);
 
   NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                   "QCSDevice created: name={}, control_port={}",
-                   config_.name, config_.control_port);
+                   "QCSDevice created: name={}, control_port={}", config_.name,
+                   config_.control_port);
 }
 
 QCSDevice::~QCSDevice() {
@@ -44,8 +44,8 @@ void QCSDevice::establish_connection(RoCEChannel *channel) {
   if (connected_)
     throw std::runtime_error("Already connected");
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                   "Establishing connection to QCS '{}'...", config_.name);
+  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Establishing connection to QCS '{}'...",
+                   config_.name);
 
   // Start UDP control server
   control_server_->start();
@@ -60,17 +60,16 @@ void QCSDevice::establish_connection(RoCEChannel *channel) {
   connection_info_.local_qpn = params.qpn;
   connection_info_.ring_buffer_addr = params.vaddr;
   connection_info_.rkey = params.rkey;
-  
+
   // Copy GID
   std::memcpy(connection_info_.local_gid.data(), params.gid.raw,
               sizeof(params.gid.raw));
 
   connected_ = true;
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                   "QCS connection established: QPN={}, vaddr=0x{:x}",
-                   connection_info_.local_qpn,
-                   connection_info_.ring_buffer_addr);
+  NVQLINK_LOG_INFO(
+      DOMAIN_NETWORK, "QCS connection established: QPN={}, vaddr=0x{:x}",
+      connection_info_.local_qpn, connection_info_.ring_buffer_addr);
 }
 
 void QCSDevice::disconnect() {
@@ -82,8 +81,8 @@ void QCSDevice::disconnect() {
     control_server_->send_command("STOP");
     NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Sent STOP command to QCS");
   } catch (const std::exception &e) {
-    NVQLINK_LOG_WARNING(DOMAIN_NETWORK,
-                        "Failed to send STOP command: {}", e.what());
+    NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "Failed to send STOP command: {}",
+                        e.what());
   }
 
   control_server_->stop();
@@ -156,4 +155,3 @@ void QCSDevice::abort() {
 
   NVQLINK_LOG_INFO(DOMAIN_NETWORK, "ABORT command sent to QCS");
 }
-

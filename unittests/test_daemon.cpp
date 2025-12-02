@@ -49,7 +49,7 @@ TEST_F(DaemonTest, Construction) {
 
   // Create daemon with loopback channel
   auto daemon = std::make_unique<Daemon>(config, std::move(channel));
-  
+
   EXPECT_FALSE(daemon->is_running());
 }
 
@@ -121,7 +121,7 @@ TEST_F(DaemonTest, CPUModeNoCores) {
   config.id = "test";
   config.datapath_mode = DatapathMode::CPU;
   // Invalid: no CPU cores specified for CPU mode
-  
+
   EXPECT_FALSE(config.is_valid());
 }
 
@@ -159,4 +159,3 @@ TEST_F(DaemonTest, GetStats) {
 // 2. Injecting properly formatted RPC packets via LoopbackChannel
 // 3. Verifying responses
 // These are more complex integration tests and may be added later
-

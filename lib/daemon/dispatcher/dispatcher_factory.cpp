@@ -17,8 +17,8 @@ using namespace cudaq::nvqlink;
 
 std::unique_ptr<Dispatcher>
 cudaq::nvqlink::create_dispatcher(DatapathMode mode, Channel *channel,
-                           FunctionRegistry *registry,
-                           const ComputeConfig &compute_config) {
+                                  FunctionRegistry *registry,
+                                  const ComputeConfig &compute_config) {
   switch (mode) {
   case DatapathMode::CPU:
     return std::make_unique<CPUDispatcher>(channel, registry, compute_config);

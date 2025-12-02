@@ -9,10 +9,10 @@
 #include "cudaq/nvqlink/network/roce/roce_channel.h"
 #include "udp_control_server.h"
 #include "utils.h"
-#include "cudaq/nvqlink/utils/instrumentation/profiler.h"
 #include "cudaq/nvqlink/network/serialization/input_stream.h"
 #include "cudaq/nvqlink/network/serialization/output_stream.h"
 #include "cudaq/nvqlink/network/steering/verbs_flow_switch.h"
+#include "cudaq/nvqlink/utils/instrumentation/profiler.h"
 
 #include <atomic>
 #include <chrono>

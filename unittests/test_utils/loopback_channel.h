@@ -40,9 +40,13 @@ public:
   void release_buffer(Buffer *buffer) override;
   uint32_t receive_burst(Buffer **buffers, uint32_t max) override;
   uint32_t send_burst(Buffer **buffers, uint32_t count) override;
-  void register_memory(void *addr, size_t size) override {} // No-op for loopback
-  ChannelModel get_execution_model() const override { return ChannelModel::POLLING; }
-  void configure_queues(const std::vector<uint32_t> &queue_ids) override {} // No-op for loopback
+  void register_memory(void *addr, size_t size) override {
+  } // No-op for loopback
+  ChannelModel get_execution_model() const override {
+    return ChannelModel::POLLING;
+  }
+  void configure_queues(const std::vector<uint32_t> &queue_ids) override {
+  } // No-op for loopback
 
   // Test helpers
   /// @brief Inject a packet into the RX queue (simulates incoming packet)
@@ -81,4 +85,3 @@ private:
 };
 
 } // namespace cudaq::nvqlink::test
-

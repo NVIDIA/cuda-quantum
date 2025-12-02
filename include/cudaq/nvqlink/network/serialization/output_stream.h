@@ -134,7 +134,8 @@ private:
   Channel *channel_{nullptr};
   Buffer *current_buffer_{nullptr};
 
-  // Both modes (buffer_start_ must be before write_ptr_ and write_end_ due to initialization order)
+  // Both modes (buffer_start_ must be before write_ptr_ and write_end_ due to
+  // initialization order)
   char *buffer_start_{nullptr};
   char *write_ptr_{nullptr};
   const char *write_end_{nullptr};

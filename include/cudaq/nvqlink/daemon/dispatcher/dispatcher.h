@@ -8,8 +8,8 @@
 
 #pragma once
 
+#include "cudaq/nvqlink/daemon/config.h"
 #include "cudaq/nvqlink/network/channel.h"
-#include "cudaq/nvqlink/daemon/config.h"  // For DatapathMode, ComputeConfig
 
 #include <cstdint>
 #include <memory>

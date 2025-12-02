@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/nvqlink/qcs/config.h"
+
 #include <array>
 #include <cstdint>
 #include <memory>
@@ -118,4 +119,3 @@ private:
 };
 
 } // namespace cudaq::nvqlink
-

@@ -115,47 +115,47 @@ void shutdown();
 // Unified API Macros (NVTX Implementation)
 //===----------------------------------------------------------------------===//
 
-#define NVQLINK_TRACE_SCOPE(domain, name)                                            \
+#define NVQLINK_TRACE_SCOPE(domain, name)                                      \
   nvqlink::nvtx::ScopedRange _nvtx_s##__LINE__(                                \
       _NVQLINK_NVTX_DOMAIN(domain), name, nvqlink::profiler::CAT_FULL,         \
       nvqlink::profiler::COLOR_FULL)
 
-#define NVQLINK_TRACE_SCOPE_COLOR(domain, name, color)                               \
+#define NVQLINK_TRACE_SCOPE_COLOR(domain, name, color)                         \
   nvqlink::nvtx::ScopedRange _nvtx_sc##__LINE__(                               \
       _NVQLINK_NVTX_DOMAIN(domain), name, nvqlink::profiler::CAT_FULL, color)
 
-#define NVQLINK_TRACE_HOTPATH(domain, name)                                          \
+#define NVQLINK_TRACE_HOTPATH(domain, name)                                    \
   nvqlink::nvtx::ScopedRange _nvtx_h##__LINE__(                                \
       _NVQLINK_NVTX_DOMAIN(domain), name, nvqlink::profiler::CAT_HOT_PATH,     \
       nvqlink::profiler::COLOR_HOTPATH)
 
-#define NVQLINK_TRACE_HOTPATH_PAYLOAD(domain, name, payload)                         \
+#define NVQLINK_TRACE_HOTPATH_PAYLOAD(domain, name, payload)                   \
   nvqlink::nvtx::ScopedRange _nvtx_hp##__LINE__(                               \
       _NVQLINK_NVTX_DOMAIN(domain), name, nvqlink::profiler::CAT_HOT_PATH,     \
       nvqlink::profiler::COLOR_HOTPATH, payload)
 
-#define NVQLINK_TRACE_FULL(domain, name)                                             \
+#define NVQLINK_TRACE_FULL(domain, name)                                       \
   nvqlink::nvtx::ScopedRange _nvtx_f##__LINE__(                                \
       _NVQLINK_NVTX_DOMAIN(domain), name, nvqlink::profiler::CAT_FULL,         \
       nvqlink::profiler::COLOR_FULL)
 
-#define NVQLINK_TRACE_MEMORY(name)                                                   \
+#define NVQLINK_TRACE_MEMORY(name)                                             \
   nvqlink::nvtx::ScopedRange _nvtx_m##__LINE__(                                \
       nvqlink::nvtx::domain_memory, name, nvqlink::profiler::CAT_HOT_PATH,     \
       nvqlink::profiler::COLOR_MEMORY)
 
-#define NVQLINK_TRACE_USER_RANGE(name)                                               \
+#define NVQLINK_TRACE_USER_RANGE(name)                                         \
   nvqlink::nvtx::ScopedRange _nvtx_u##__LINE__(                                \
       nvqlink::nvtx::domain_user, name, nvqlink::profiler::CAT_HOT_PATH,       \
       nvqlink::profiler::COLOR_USER)
 
-#define NVQLINK_TRACE_COUNTER(name, value)                                           \
+#define NVQLINK_TRACE_COUNTER(name, value)                                     \
   nvqlink::nvtx::counter(nvqlink::nvtx::domain_memory, name, value)
 
-#define NVQLINK_TRACE_MARK(domain, msg)                                              \
+#define NVQLINK_TRACE_MARK(domain, msg)                                        \
   nvqlink::nvtx::mark(_NVQLINK_NVTX_DOMAIN(domain), msg)
 
-#define NVQLINK_TRACE_MARK_ERROR(domain, msg)                                        \
+#define NVQLINK_TRACE_MARK_ERROR(domain, msg)                                  \
   nvqlink::nvtx::mark(_NVQLINK_NVTX_DOMAIN(domain), msg)
 
 #define NVQLINK_TRACE_NAME_THREAD(name) nvtxNameOsThreadA(pthread_self(), name)

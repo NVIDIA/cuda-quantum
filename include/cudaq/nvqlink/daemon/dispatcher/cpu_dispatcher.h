@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include "cudaq/nvqlink/network/channel.h"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatcher.h"
+#include "cudaq/nvqlink/network/channel.h"
+
 #include <atomic>
 #include <thread>
 #include <vector>

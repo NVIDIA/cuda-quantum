@@ -14,7 +14,7 @@ namespace cudaq::nvqlink {
 
 /// @brief Initialize NVQLink runtime
 /// @param cfg LQPU configuration
-void initialize(const LQPUConfig& cfg);
+void initialize(const LQPUConfig &cfg);
 
 /// @brief Shutdown NVQLink runtime
 void shutdown();

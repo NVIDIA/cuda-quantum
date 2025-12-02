@@ -14,7 +14,6 @@
 
 namespace cudaq::nvqlink {
 
-
 /// Device-side packet queue handles for GPU direct access.
 ///
 /// Contains raw pointers to NIC queue data structures that

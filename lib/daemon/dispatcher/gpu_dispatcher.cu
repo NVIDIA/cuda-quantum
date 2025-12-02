@@ -1,14 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - Present NVIDIA Corporation & Affiliates.               *
+ *                                                                             *
  * All rights reserved.                                                        *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
 #include "cudaq/nvqlink/daemon/dispatcher/gpu_dispatcher.h"
+#include "cudaq/nvqlink/daemon/registry/function_registry.h"
 #include "cudaq/nvqlink/utils/instrumentation/logger.h"
 #include "cudaq/nvqlink/utils/instrumentation/profiler.h"
-#include "cudaq/nvqlink/daemon/registry/function_registry.h"
 
 #include <cstdint>
 #include <cuda_runtime.h>

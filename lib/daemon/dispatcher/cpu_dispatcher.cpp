@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "cudaq/nvqlink/daemon/dispatcher/cpu_dispatcher.h"
-#include "cudaq/nvqlink/utils/instrumentation/logger.h"
-#include "cudaq/nvqlink/utils/instrumentation/profiler.h"
 #include "cudaq/nvqlink/daemon/registry/function_registry.h"
 #include "cudaq/nvqlink/network/serialization/input_stream.h"
 #include "cudaq/nvqlink/network/serialization/output_stream.h"
+#include "cudaq/nvqlink/utils/instrumentation/logger.h"
+#include "cudaq/nvqlink/utils/instrumentation/profiler.h"
 
 #include <cstring>
 

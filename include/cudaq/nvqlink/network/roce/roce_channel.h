@@ -15,7 +15,6 @@
 #include "cudaq/nvqlink/network/steering/flow_switch.h"
 
 #include <infiniband/verbs.h>
-
 #include <memory>
 #include <unordered_map>
 #include <vector>

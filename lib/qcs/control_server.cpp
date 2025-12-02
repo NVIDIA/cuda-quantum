@@ -24,9 +24,7 @@ ControlServer::ControlServer(uint16_t port)
   std::memset(&client_addr_, 0, sizeof(client_addr_));
 }
 
-ControlServer::~ControlServer() {
-  stop();
-}
+ControlServer::~ControlServer() { stop(); }
 
 void ControlServer::start() {
   if (sock_fd_ >= 0)
@@ -61,8 +59,8 @@ void ControlServer::start() {
   tv.tv_usec = 0;
   setsockopt(sock_fd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                   "Control server listening on UDP port {}", port_);
+  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Control server listening on UDP port {}",
+                   port_);
 }
 
 void ControlServer::stop() {
@@ -82,8 +80,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
 
   // Wait for DISCOVER packet from client
   if (!client_connected_) {
-    NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                     "Waiting for QCS discovery packet...");
+    NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Waiting for QCS discovery packet...");
 
     char buf[4096];
     socklen_t len = sizeof(client_addr_);
@@ -92,7 +89,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
     int max_attempts = 60; // 60 seconds max wait
     for (int attempt = 0; attempt < max_attempts; ++attempt) {
       ssize_t n = recvfrom(sock_fd_, buf, sizeof(buf), 0,
-                          (struct sockaddr *)&client_addr_, &len);
+                           (struct sockaddr *)&client_addr_, &len);
 
       if (n < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -101,8 +98,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
       }
 
       // Got discovery packet
-      NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                       "QCS discovered: {}:{}",
+      NVQLINK_LOG_INFO(DOMAIN_NETWORK, "QCS discovered: {}:{}",
                        inet_ntoa(client_addr_.sin_addr),
                        ntohs(client_addr_.sin_port));
       client_connected_ = true;
@@ -131,27 +127,28 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
   // Send params to client (with retries)
   const int max_retries = 5;
   for (int retry = 0; retry < max_retries; ++retry) {
-    ssize_t sent = sendto(sock_fd_, msg.c_str(), msg.length(), 0,
-                         (struct sockaddr *)&client_addr_, sizeof(client_addr_));
+    ssize_t sent =
+        sendto(sock_fd_, msg.c_str(), msg.length(), 0,
+               (struct sockaddr *)&client_addr_, sizeof(client_addr_));
 
     if (sent < 0)
       throw std::runtime_error("Failed to send channel params");
 
-    NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                     "Sent channel params: QPN={}, GID={}, vaddr=0x{:x}, rkey=0x{:x}",
-                     params.qpn, gid_to_string(params.gid), params.vaddr, params.rkey);
+    NVQLINK_LOG_INFO(
+        DOMAIN_NETWORK,
+        "Sent channel params: QPN={}, GID={}, vaddr=0x{:x}, rkey=0x{:x}",
+        params.qpn, gid_to_string(params.gid), params.vaddr, params.rkey);
 
     // Wait for ACK with client params
     char buf[4096];
     socklen_t len = sizeof(client_addr_);
 
     ssize_t n = recvfrom(sock_fd_, buf, sizeof(buf), 0,
-                        (struct sockaddr *)&client_addr_, &len);
+                         (struct sockaddr *)&client_addr_, &len);
 
     if (n < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        NVQLINK_LOG_WARNING(DOMAIN_NETWORK,
-                            "No ACK received, retrying ({}/{})",
+        NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "No ACK received, retrying ({}/{})",
                             retry + 1, max_retries);
         continue;
       }
@@ -166,8 +163,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
       uint32_t client_qpn = client_j["qpn"];
       std::string client_gid_str = client_j["gid"];
 
-      NVQLINK_LOG_INFO(DOMAIN_NETWORK,
-                       "Received ACK: QPN={}, GID={}",
+      NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Received ACK: QPN={}, GID={}",
                        client_qpn, client_gid_str);
 
       // Configure QP with client params
@@ -179,8 +175,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
       return true;
 
     } catch (const std::exception &e) {
-      NVQLINK_LOG_WARNING(DOMAIN_NETWORK,
-                          "Failed to parse ACK: {}", e.what());
+      NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "Failed to parse ACK: {}", e.what());
       continue;
     }
   }
@@ -206,7 +201,7 @@ void ControlServer::send_command(const std::string &cmd,
 
   std::string msg_str = msg.dump();
   ssize_t sent = sendto(sock_fd_, msg_str.c_str(), msg_str.length(), 0,
-                       (struct sockaddr *)&client_addr_, sizeof(client_addr_));
+                        (struct sockaddr *)&client_addr_, sizeof(client_addr_));
 
   if (sent < 0)
     throw std::runtime_error("Failed to send command: " + cmd);
@@ -214,7 +209,8 @@ void ControlServer::send_command(const std::string &cmd,
   NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Sent command: {}", cmd);
 }
 
-nlohmann::json ControlServer::wait_for_response(std::chrono::milliseconds timeout) {
+nlohmann::json
+ControlServer::wait_for_response(std::chrono::milliseconds timeout) {
   if (sock_fd_ < 0)
     throw std::runtime_error("Control server not started");
 
@@ -228,7 +224,7 @@ nlohmann::json ControlServer::wait_for_response(std::chrono::milliseconds timeou
   socklen_t len = sizeof(client_addr_);
 
   ssize_t n = recvfrom(sock_fd_, buf, sizeof(buf), 0,
-                      (struct sockaddr *)&client_addr_, &len);
+                       (struct sockaddr *)&client_addr_, &len);
 
   if (n < 0) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -260,4 +256,3 @@ union ibv_gid ControlServer::string_to_gid(const std::string &gid_str) {
   inet_pton(AF_INET6, gid_str.c_str(), gid.raw);
   return gid;
 }
-

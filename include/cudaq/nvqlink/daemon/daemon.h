@@ -8,12 +8,12 @@
 
 #pragma once
 
-#include "cudaq/nvqlink/network/channel.h"
 #include "cudaq/nvqlink/daemon/config.h"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatcher.h"
 #include "cudaq/nvqlink/daemon/registry/function_registry.h"
 #include "cudaq/nvqlink/daemon/registry/function_traits.h"
 #include "cudaq/nvqlink/daemon/registry/function_wrapper.h"
+#include "cudaq/nvqlink/network/channel.h"
 
 #include <atomic>
 #include <memory>
@@ -62,13 +62,12 @@ public:
     using Traits = function_traits<std::remove_cvref_t<F>>;
     using Return = typename Traits::return_type;
 
-    FunctionMetadata meta{
-        .function_id = hash_name(name),
-        .name = std::string(name),
-        .type = FunctionType::CPU,
-        .max_result_size = serialized_size<Return>(),
-        .cpu_function = make_wrapper(std::forward<F>(func)),
-        .gpu_function = nullptr};
+    FunctionMetadata meta{.function_id = hash_name(name),
+                          .name = std::string(name),
+                          .type = FunctionType::CPU,
+                          .max_result_size = serialized_size<Return>(),
+                          .cpu_function = make_wrapper(std::forward<F>(func)),
+                          .gpu_function = nullptr};
 
     register_function(meta); // Calls existing method, checks collision
   }

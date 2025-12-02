@@ -9,7 +9,6 @@
 #pragma once
 
 #include <cstddef>
-
 #include <cuda_runtime.h>
 
 namespace cudaq::nvqlink {

@@ -94,18 +94,19 @@ uint32_t LoopbackChannel::receive_burst(Buffer **buffers, uint32_t max) {
     return 0;
 
   std::lock_guard<std::mutex> rx_lock(rx_mutex_);
-  
+
   uint32_t received = 0;
   while (received < max && !rx_queue_.empty()) {
     auto &packet = rx_queue_.front();
-    
+
     // Get a buffer
     Buffer *buffer = acquire_buffer();
     if (!buffer)
       break; // No buffers available
 
     // Copy packet data to buffer
-    size_t capacity = buffer->get_total_size() - buffer->get_headroom() - buffer->get_tailroom();
+    size_t capacity = buffer->get_total_size() - buffer->get_headroom() -
+                      buffer->get_tailroom();
     if (packet.size() > capacity) {
       release_buffer(buffer);
       rx_queue_.pop(); // Drop oversized packet
@@ -114,7 +115,7 @@ uint32_t LoopbackChannel::receive_burst(Buffer **buffers, uint32_t max) {
 
     std::memcpy(buffer->get_data(), packet.data(), packet.size());
     buffer->set_data_length(packet.size());
-    
+
     buffers[received++] = buffer;
     rx_queue_.pop();
   }
@@ -127,15 +128,16 @@ uint32_t LoopbackChannel::send_burst(Buffer **buffers, uint32_t count) {
     return 0;
 
   std::lock_guard<std::mutex> tx_lock(tx_mutex_);
-  
+
   for (uint32_t i = 0; i < count; ++i) {
     Buffer *buffer = buffers[i];
     if (!buffer)
       continue;
 
     // Copy buffer data to TX queue
-    uint8_t *data_start = static_cast<uint8_t*>(buffer->get_data());
-    std::vector<uint8_t> packet(data_start, data_start + buffer->get_data_length());
+    uint8_t *data_start = static_cast<uint8_t *>(buffer->get_data());
+    std::vector<uint8_t> packet(data_start,
+                                data_start + buffer->get_data_length());
     tx_queue_.push(std::move(packet));
   }
 
@@ -144,7 +146,7 @@ uint32_t LoopbackChannel::send_burst(Buffer **buffers, uint32_t count) {
 
 void LoopbackChannel::inject_rx_packet(const void *data, size_t len) {
   std::lock_guard<std::mutex> lock(rx_mutex_);
-  
+
   std::vector<uint8_t> packet(static_cast<const uint8_t *>(data),
                               static_cast<const uint8_t *>(data) + len);
   rx_queue_.push(std::move(packet));
@@ -152,7 +154,7 @@ void LoopbackChannel::inject_rx_packet(const void *data, size_t len) {
 
 std::vector<uint8_t> LoopbackChannel::pop_tx_packet() {
   std::lock_guard<std::mutex> lock(tx_mutex_);
-  
+
   if (tx_queue_.empty())
     return {};
 
@@ -175,4 +177,3 @@ size_t LoopbackChannel::tx_queue_size() const {
   std::lock_guard<std::mutex> lock(tx_mutex_);
   return tx_queue_.size();
 }
-

@@ -10,7 +10,7 @@
 
 namespace cudaq::nvqlink {
 
-void initialize(const LQPUConfig& cfg) {
+void initialize(const LQPUConfig &cfg) {
   // TODO: Initialize based on new architecture
   // Stub implementation for Phase 1
 }
@@ -26,5 +26,4 @@ extern "C" {
 
 // Old dispatch function removed - will be replaced by Daemon's FunctionRegistry
 // When needed, device_call will be routed through the Daemon
-
 }

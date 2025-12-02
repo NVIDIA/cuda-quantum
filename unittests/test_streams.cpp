@@ -9,8 +9,8 @@
 #include "cudaq/nvqlink/network/serialization/input_stream.h"
 #include "cudaq/nvqlink/network/serialization/output_stream.h"
 
-#include <gtest/gtest.h>
 #include <cstring>
+#include <gtest/gtest.h>
 #include <vector>
 
 using namespace cudaq::nvqlink;
@@ -46,12 +46,12 @@ TEST_F(StreamTest, InputStreamBasicTypes) {
   out.write(static_cast<uint64_t>(12345678901234ULL));
   out.write(3.14159f);
   out.write(2.71828);
-  
+
   size_t bytes_written = out.bytes_written();
 
   // Now read it back
   InputStream in(buffer_memory.data(), bytes_written);
-  
+
   EXPECT_EQ(in.read<uint32_t>(), 42);
   EXPECT_EQ(in.read<uint64_t>(), 12345678901234ULL);
   EXPECT_FLOAT_EQ(in.read<float>(), 3.14159f);
@@ -62,7 +62,7 @@ TEST_F(StreamTest, RoundTripInteger) {
   OutputStream out(buffer_memory.data(), buffer_memory.size());
   int value = 123456;
   out.write(value);
-  
+
   size_t bytes_written = out.bytes_written();
 
   InputStream in(buffer_memory.data(), bytes_written);
@@ -73,12 +73,12 @@ TEST_F(StreamTest, RoundTripInteger) {
 
 TEST_F(StreamTest, RoundTripMultipleValues) {
   OutputStream out(buffer_memory.data(), buffer_memory.size());
-  
+
   uint8_t u8 = 255;
   uint16_t u16 = 65535;
   uint32_t u32 = 4294967295U;
   int32_t i32 = -12345;
-  
+
   out.write(u8);
   out.write(u16);
   out.write(u32);
@@ -86,7 +86,7 @@ TEST_F(StreamTest, RoundTripMultipleValues) {
 
   size_t bytes_written = out.bytes_written();
   InputStream in(buffer_memory.data(), bytes_written);
-  
+
   EXPECT_EQ(in.read<uint8_t>(), u8);
   EXPECT_EQ(in.read<uint16_t>(), u16);
   EXPECT_EQ(in.read<uint32_t>(), u32);
@@ -101,7 +101,7 @@ TEST_F(StreamTest, RoundTripStruct) {
   };
 
   OutputStream out(buffer_memory.data(), buffer_memory.size());
-  
+
   TestData data{42, 3.14f, 1234567890.0};
   out.write(data);
 
@@ -116,7 +116,7 @@ TEST_F(StreamTest, RoundTripStruct) {
 
 TEST_F(StreamTest, RoundTripMultipleStructs) {
   OutputStream out(buffer_memory.data(), buffer_memory.size());
-  
+
   // Write multiple values in sequence
   for (uint32_t i = 0; i < 5; ++i) {
     out.write(i);
@@ -124,7 +124,7 @@ TEST_F(StreamTest, RoundTripMultipleStructs) {
 
   size_t bytes_written = out.bytes_written();
   InputStream in(buffer_memory.data(), bytes_written);
-  
+
   // Read them back
   for (uint32_t i = 0; i < 5; ++i) {
     EXPECT_EQ(in.read<uint32_t>(), i);
@@ -153,23 +153,23 @@ TEST_F(StreamTest, BytesReadTracking) {
 
 TEST_F(StreamTest, RemainingCapacity) {
   OutputStream out(buffer_memory.data(), buffer_memory.size());
-  
+
   size_t initial_capacity = out.remaining_capacity();
   EXPECT_EQ(initial_capacity, buffer_memory.size());
 
   out.write(static_cast<uint64_t>(42));
-  
+
   size_t after_write = out.remaining_capacity();
   EXPECT_EQ(after_write, initial_capacity - sizeof(uint64_t));
 }
 
 TEST_F(StreamTest, WriteToCapacity) {
   OutputStream out(buffer_memory.data(), buffer_memory.size());
-  
+
   // Fill buffer with uint64_t values
   size_t capacity = out.remaining_capacity();
   size_t num_values = capacity / sizeof(uint64_t);
-  
+
   for (size_t i = 0; i < num_values; ++i) {
     out.write(static_cast<uint64_t>(i));
   }

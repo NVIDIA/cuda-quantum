@@ -48,36 +48,36 @@ inline void shutdown() {}
 //===----------------------------------------------------------------------===//
 
 /// Basic scoped range with domain context
-#define NVQLINK_TRACE_SCOPE(domain, name)                                            \
+#define NVQLINK_TRACE_SCOPE(domain, name)                                      \
   ZoneScopedN(NVQLINK_TRACY_NAME(domain, name))
 
 /// Scoped range with custom color
-#define NVQLINK_TRACE_SCOPE_COLOR(domain, name, color)                               \
+#define NVQLINK_TRACE_SCOPE_COLOR(domain, name, color)                         \
   ZoneNamedNC(_tracy_zone_##__LINE__, NVQLINK_TRACY_NAME(domain, name), color, \
               true)
 
 /// Hot path instrumentation (green)
-#define NVQLINK_TRACE_HOTPATH(domain, name)                                          \
+#define NVQLINK_TRACE_HOTPATH(domain, name)                                    \
   NVQLINK_TRACE_SCOPE_COLOR(domain, name, nvqlink::profiler::COLOR_HOTPATH)
 
 /// Hot path with payload (Tracy doesn't support payloads in zone names,
 /// but we can use TracyMessageL to log the value)
-#define NVQLINK_TRACE_HOTPATH_PAYLOAD(domain, name, payload)                         \
+#define NVQLINK_TRACE_HOTPATH_PAYLOAD(domain, name, payload)                   \
   ZoneNamedNC(_tracy_zone_##__LINE__, NVQLINK_TRACY_NAME(domain, name),        \
               nvqlink::profiler::COLOR_HOTPATH, true);                         \
   ZoneValue(_tracy_zone_##__LINE__, payload)
 
 /// Full/control path instrumentation (blue)
-#define NVQLINK_TRACE_FULL(domain, name)                                             \
+#define NVQLINK_TRACE_FULL(domain, name)                                       \
   NVQLINK_TRACE_SCOPE_COLOR(domain, name, nvqlink::profiler::COLOR_FULL)
 
 /// Memory operation instrumentation (orange)
-#define NVQLINK_TRACE_MEMORY(name)                                                   \
+#define NVQLINK_TRACE_MEMORY(name)                                             \
   ZoneNamedNC(_tracy_zone_mem_##__LINE__, NVQLINK_TRACY_NAME(memory, name),    \
               nvqlink::profiler::COLOR_MEMORY, true)
 
 /// User function instrumentation (yellow)
-#define NVQLINK_TRACE_USER_RANGE(name)                                               \
+#define NVQLINK_TRACE_USER_RANGE(name)                                         \
   ZoneNamedNC(_tracy_zone_user_##__LINE__, NVQLINK_TRACY_NAME(user, name),     \
               nvqlink::profiler::COLOR_USER, true)
 
@@ -89,7 +89,7 @@ inline void shutdown() {}
 #define NVQLINK_TRACE_MARK(domain, msg) TracyMessageL(msg)
 
 /// Error marker (red color)
-#define NVQLINK_TRACE_MARK_ERROR(domain, msg)                                        \
+#define NVQLINK_TRACE_MARK_ERROR(domain, msg)                                  \
   TracyMessageLC(msg, nvqlink::profiler::COLOR_ERROR)
 
 /// Thread naming for better visualization

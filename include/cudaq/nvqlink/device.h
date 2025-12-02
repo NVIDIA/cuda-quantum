@@ -13,7 +13,8 @@
 
 namespace cudaq::nvqlink {
 
-/// @brief Memory pointer abstraction (kept for reference, not used by new architecture)
+/// @brief Memory pointer abstraction (kept for reference, not used by new
+/// architecture)
 /// @details Represents a pointer to memory allocated on a quantum processing
 /// unit (controller or classical device). Encapsulates device memory management
 /// details including location and size.
