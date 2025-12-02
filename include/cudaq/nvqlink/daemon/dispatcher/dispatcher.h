@@ -8,14 +8,13 @@
 #pragma once
 
 #include "cudaq/nvqlink/network/channel.h"
-#include "cudaq/nvqlink/network/config.h"
+#include "cudaq/nvqlink/daemon/config.h"  // For DatapathMode, ComputeConfig
 
 #include <cstdint>
 #include <memory>
 
 namespace cudaq::nvqlink {
 
-class ComputeConfig;
 class FunctionRegistry;
 
 /// Abstract dispatcher interface.

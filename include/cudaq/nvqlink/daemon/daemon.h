@@ -8,7 +8,7 @@
 #pragma once
 
 #include "cudaq/nvqlink/network/channel.h"
-#include "cudaq/nvqlink/network/config.h"
+#include "cudaq/nvqlink/daemon/config.h"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatcher.h"
 #include "cudaq/nvqlink/daemon/registry/function_registry.h"
 #include "cudaq/nvqlink/daemon/registry/function_traits.h"
