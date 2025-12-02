@@ -101,6 +101,8 @@ endif()
 # External Dependencies 
 # ==============================================================================
 
+find_package(Threads REQUIRED)
+
 add_subdirectory(lib)
 
 if (NVQLINK_BUILD_EXAMPLES)

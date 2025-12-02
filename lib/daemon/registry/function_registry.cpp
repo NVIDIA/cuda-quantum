@@ -7,7 +7,9 @@
 
 #include "cudaq/nvqlink/daemon/registry/function_registry.h"
 
+#ifdef __CUDACC__
 #include <cuda_runtime.h>
+#endif
 #include <stdexcept>
 
 using namespace cudaq::nvqlink;
@@ -30,6 +32,7 @@ FunctionRegistry::lookup(std::uint32_t function_id) const {
   return (it != functions_.end()) ? &it->second : nullptr;
 }
 
+#ifdef __CUDACC__
 FunctionRegistry::GPUFunctionTable
 FunctionRegistry::get_gpu_function_table() const {
   // Allocate device memory for function table
@@ -68,3 +71,4 @@ FunctionRegistry::get_gpu_function_table() const {
 
   return gpu_table_;
 }
+#endif

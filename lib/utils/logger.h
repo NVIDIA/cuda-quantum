@@ -7,8 +7,8 @@
  ******************************************************************************/
 #pragma once
 
-// spdlog's fmtlib...
-#include <fmt/fmt.h>
+// spdlog's bundled fmtlib
+#include <spdlog/fmt/fmt.h>
 
 #include <functional>
 #include <mutex>

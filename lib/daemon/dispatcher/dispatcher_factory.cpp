@@ -6,7 +6,9 @@
  ******************************************************************************/
 
 #include "cudaq/nvqlink/daemon/dispatcher/cpu_dispatcher.h"
+#ifdef __CUDACC__
 #include "cudaq/nvqlink/daemon/dispatcher/gpu_dispatcher.h"
+#endif
 
 #include <stdexcept>
 
@@ -20,7 +22,11 @@ cudaq::nvqlink::create_dispatcher(DatapathMode mode, Channel *channel,
   case DatapathMode::CPU:
     return std::make_unique<CPUDispatcher>(channel, registry, compute_config);
   case DatapathMode::GPU:
+#ifdef __CUDACC__
     return std::make_unique<GPUDispatcher>(channel, registry, compute_config);
+#else
+    throw std::runtime_error("GPU mode requested but CUDA is not available");
+#endif
   default:
     throw std::invalid_argument("Unknown datapath mode");
   }

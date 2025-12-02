@@ -7,7 +7,10 @@
 # ============================================================================ #
 
 set(CUDAQ_LIBRARY_MODE ON)
-find_package(CUDAQ)
+find_package(CUDAQ QUIET)
 if (CUDAQ_FOUND)
+  message(STATUS "CUDA-Q found: Enabling CUDA-Q compiler support")
   add_subdirectory(cudaq)
+else()
+  message(STATUS "CUDA-Q not found: Disabling CUDA-Q compiler support (optional)")
 endif()

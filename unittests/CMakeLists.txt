@@ -36,45 +36,12 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test_config.h.in"
                @ONLY)
 include_directories(${CMAKE_BINARY_DIR}/include)
 
-# ======= Shmem Channel Tests ==================================================
-add_library(shmem-add SHARED test_device_libraries/add.cpp)
-
-add_executable(test_cpu_shmem_device test_cpu_shmem_device.cpp)
-target_link_libraries(test_cpu_shmem_device PRIVATE GTest::gtest_main cudaq-nvqlink)
-add_dependencies(NVQLINKUnitTests test_cpu_shmem_device)
-gtest_discover_tests(test_cpu_shmem_device)
+# ======= Phase 1: Old tests removed ==========================================
+# All old tests using device_ptr API have been removed.
+# New Daemon-based tests will be added in Phase 4 of the integration plan.
 # ==============================================================================
 
-# ======= CUDA Channel Tests ===================================================
-if (CUDA_FOUND) 
-  add_library(vec-add OBJECT test_device_libraries/vec_add.cu)
-  set_property(TARGET vec-add PROPERTY CUDA_FATBIN_COMPILATION ON)
-
-  add_executable(test_cuda_device test_cuda_device.cpp)
-  target_link_libraries(test_cuda_device PRIVATE GTest::gtest_main cudaq-nvqlink)
-  add_dependencies(NVQLINKUnitTests test_cuda_device)
-  gtest_discover_tests(test_cuda_device)
-
-  add_executable(test_nv_rdma_device test_nv_rdma_device.cu)
-  target_link_libraries(test_nv_rdma_device PRIVATE GTest::gtest_main cudaq-nvqlink)
-  add_dependencies(NVQLINKUnitTests test_nv_rdma_device)
-  gtest_discover_tests(test_nv_rdma_device)
-endif() 
-# ==============================================================================
-
-
-# ======= Shmem Channel Tests ==================================================
-add_executable(test_cudaq_compiler test_cudaq_compiler.cpp)
-target_link_libraries(test_cudaq_compiler PRIVATE GTest::gtest_main cudaq-nvqlink)
-add_dependencies(NVQLINKUnitTests test_cudaq_compiler)
-gtest_discover_tests(test_cudaq_compiler)
-# ==============================================================================
-
-# ======= NVQLink Integration Tests ============================================
-add_executable(test_nvqlink test_nvqlink.cpp)
-target_link_libraries(test_nvqlink PRIVATE GTest::gtest_main cudaq-nvqlink)
-add_dependencies(NVQLINKUnitTests test_nvqlink)
-gtest_discover_tests(test_nvqlink)
-# ==============================================================================
+message(STATUS "Unit tests: Phase 1 - old tests removed, new tests will be added in Phase 4")
+message(STATUS "  See docs/integration_plan.md Phase 4 for upcoming test infrastructure")
 
 

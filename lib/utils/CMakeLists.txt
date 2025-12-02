@@ -7,8 +7,8 @@
 # ============================================================================ #
 
 # Build utils library with conditional instrumentation based on backend selection
-set(NVQLINK_UTILS_SOURCES ""
-  #logger.cpp
+set(NVQLINK_UTILS_SOURCES
+  logger.cpp
 )
 
 # Add profiler backend sources
@@ -29,7 +29,7 @@ target_include_directories(nvqlink_utils
     $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(nvqlink_utils PUBLIC Threads::Threads)
+target_link_libraries(nvqlink_utils PUBLIC Threads::Threads spdlog::spdlog)
 
 #===============================================================================
 # Profiler Backend Configuration

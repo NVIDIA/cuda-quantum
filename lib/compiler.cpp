@@ -6,14 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq/nvqlink/compiler.h"
-#include "cudaq/nvqlink/rt_host.h"
 
 #include <regex>
 #include <sstream>
 #include <string>
 
 INSTANTIATE_REGISTRY_NO_ARGS(cudaq::nvqlink::compiler);
-INSTANTIATE_REGISTRY(cudaq::nvqlink::rt_host, cudaq::nvqlink::lqpu&);
 
 namespace cudaq::nvqlink::details {
 

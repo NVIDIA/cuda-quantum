@@ -26,7 +26,6 @@ add_library(${LIBRARY_NAME} SHARED
 )
 
 add_subdirectory(compilers)
-add_subdirectory(devices)
 
 target_include_directories(${LIBRARY_NAME}
   PUBLIC 

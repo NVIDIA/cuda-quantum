@@ -12,7 +12,9 @@
 #include <cassert>
 #include <cerrno>
 #include <cstring>
+#ifdef __CUDACC__
 #include <cuda_runtime.h>
+#endif
 #include <stdexcept>
 #include <sys/mman.h>
 #include <unistd.h>
@@ -29,10 +31,15 @@ MemoryPool::MemoryPool(const MemoryConfig &config, DatapathMode mode)
   NVQLINK_TRACE_COUNTER("buffer_size_bytes", config_.buffer_size_bytes);
   NVQLINK_TRACE_COUNTER("total_buffers", total_buffers_);
 
-  if (mode_ == DatapathMode::CPU)
+  if (mode_ == DatapathMode::CPU) {
     allocate_cpu_memory();
-  else
+  } else {
+#ifdef __CUDACC__
     allocate_gpu_memory();
+#else
+    throw std::runtime_error("GPU mode requested but CUDA is not available");
+#endif
+  }
 }
 
 MemoryPool::~MemoryPool() {
@@ -53,8 +60,10 @@ MemoryPool::~MemoryPool() {
   }
 
   assert(mode_ == DatapathMode::GPU);
+#ifdef __CUDACC__
   if (gpu_base_addr_)
     cudaFree(gpu_base_addr_);
+#endif
 }
 
 void MemoryPool::allocate_cpu_memory() {
@@ -125,6 +134,7 @@ void MemoryPool::allocate_cpu_memory() {
                    total_buffers_, config_.buffer_size_bytes);
 }
 
+#ifdef __CUDACC__
 void MemoryPool::allocate_gpu_memory() {
   cudaError_t err = cudaMalloc(&gpu_base_addr_, config_.pool_size_bytes);
   if (err != cudaSuccess) {
@@ -142,6 +152,7 @@ void MemoryPool::allocate_gpu_memory() {
     ptr += config_.buffer_size_bytes;
   }
 }
+#endif
 
 Buffer *MemoryPool::allocate() {
   NVQLINK_TRACE_MEMORY("allocate");
