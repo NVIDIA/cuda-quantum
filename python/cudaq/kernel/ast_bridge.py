@@ -2801,7 +2801,8 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(value)
                         return
 
-                    # Promote argument's types for `numpy.func` calls to match python's semantics
+                    # Promote argument's types for `numpy.func` calls to match
+                    # python's semantics
                     if self.__isSupportedNumpyFunction(node.func.attr):
                         if ComplexType.isinstance(value.type):
                             value = self.changeOperandToType(
@@ -2859,8 +2860,8 @@ class PyASTBridge(ast.NodeVisitor):
                     if node.func.attr == 'ceil':
                         if ComplexType.isinstance(value.type):
                             self.emitFatalError(
-                                f"numpy call ({node.func.attr}) is not supported for complex numbers",
-                                node)
+                                f"numpy call ({node.func.attr}) is not supported "
+                                f"for complex numbers", node)
                             return
                         self.pushValue(math.CeilOp(value).result)
                         return
@@ -3260,8 +3261,8 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f'Unknown attribute on quantum operation '
                         f'{node.func.value.id} ({node.func.attr}). '
-                        f'{maybeProposeOpAttrFix(node.func.value.id, '
-                        f'node.func.attr)}')
+                        f'{maybeProposeOpAttrFix(node.func.value.id, node.func.attr)}'
+                    )
 
                 if node.func.value.id == 'u3':
                     numValues = len(self.valueStack)
