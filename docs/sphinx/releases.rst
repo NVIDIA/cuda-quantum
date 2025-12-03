@@ -20,7 +20,7 @@ for real-time decoding on Quantinuum backends, and adds support for submission
 to QCI backends. Check out the release notes below to learn about additional 
 new content.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cudaq/0.13.0>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.13.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.13.0>`__
@@ -39,7 +39,7 @@ Python 3.13.
 
 *Note*: Support for Python 3.10 will be removed in future releases.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cudaq/0.12.0>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.12.0>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.12.0>`__
