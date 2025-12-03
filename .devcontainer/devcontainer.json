@@ -2,9 +2,8 @@
     "name": "NVQLink Development",
     "build": {
         "dockerfile": "../docker/Dockerfile",
-        "args": { 
-            "destination": "workspaces/host",
-            "network": "host"
+        "args": {
+            "base_image": "ghcr.io/nvidia/cuda-quantum-dev:ext-cu12.6-gcc11-main"
         }
     },
     "capAdd": ["SYS_PTRACE", "NET_ADMIN", "SYS_MODULE", "IPC_LOCK"],
