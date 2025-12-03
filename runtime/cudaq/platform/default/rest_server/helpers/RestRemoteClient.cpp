@@ -17,14 +17,6 @@ public:
   RemoteRestRuntimeClient() : BaseRemoteRestRuntimeClient() {}
 };
 
-/// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
-class NvcfRuntimeClient : public cudaq::BaseNvcfRuntimeClient {
-public:
-  /// @brief The constructor
-  NvcfRuntimeClient() : BaseNvcfRuntimeClient() {}
-};
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, RemoteRestRuntimeClient, rest)
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, NvcfRuntimeClient, NVCF)

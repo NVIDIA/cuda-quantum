@@ -22,7 +22,6 @@
 namespace cudaq {
 class gradient;
 class optimizer;
-class SerializedCodeExecutionContext;
 
 /// Expose the function that will return the current ExecutionManager
 ExecutionManager *getExecutionManager();
@@ -192,12 +191,6 @@ public:
                                "kernel in streamlined for JIT mode on local "
                                "simulated QPU. This is not supported.");
   }
-
-  /// Launch serialized code for remote execution. Subtypes that support this
-  /// should override this function.
-  virtual void launchSerializedCodeExecution(
-      const std::string &name,
-      cudaq::SerializedCodeExecutionContext &serializeCodeExecutionObject) {}
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.

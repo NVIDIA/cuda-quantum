@@ -32,7 +32,6 @@
 
 # Note: To run the target tests, make sure to set all necessary API keys:
 # COPY docs/sphinx/targets/python /tmp/targets/
-# ENV NVQC_API_KEY=...
 # ENV ...
 
 __optind__=$OPTIND
@@ -177,7 +176,7 @@ fi
 # Run snippets in docs
 # Some snippets generate plots
 python3 -m pip install --user matplotlib
-for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
+for ex in `find "$root_folder/snippets" -name '*.py'`; do
     echo "Executing $ex"
     python3 "$ex"
     if [ ! $? -eq 0 ]; then
@@ -185,16 +184,6 @@ for ex in `find "$root_folder/snippets" -name '*.py' -not -path '*/nvqc/*'`; do
         status_sum=$((status_sum+1))
     fi
 done
-if [ -n "${NVQC_API_KEY}" ]; then
-    for ex in `find "$root_folder/snippets" -name '*.py' -path '*/nvqc/*'`; do
-        echo "Executing $ex"
-        python3 "$ex"
-        if [ ! $? -eq 0 ]; then
-            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-            status_sum=$((status_sum+1))
-        fi
-    done
-fi
 
 # Run examples
 # Some examples generate plots
@@ -207,9 +196,6 @@ for ex in `find "$root_folder/examples" -name '*.py'`; do
             # Skipped because GitHub does not have the necessary authentication token 
             # to submit a (paid) job to Amazon Braket (includes QuEra).
             echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
-            skip_example=true
-        elif [ "$t" == "nvqc" ] && [ -z "${NVQC_API_KEY}" ]; then 
-            echo -e "\e[01;31mWarning: Explicitly set target nvqc in $ex; skipping validation due to missing API key.\e[0m" >&2
             skip_example=true
         elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
             echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
@@ -245,9 +231,6 @@ if [ -d "$root_folder/targets" ]; then
                 skip_example=true
             elif [ "$t" == "oqc" ] && [ -z "${OQC_URL}" ]; then 
                 echo -e "\e[01;31mWarning: Explicitly set target oqc in $ex; skipping validation due to missing URL.\e[0m" >&2
-                skip_example=true
-            elif [ "$t" == "nvqc" ] && [ -z "${NVQC_API_KEY}" ]; then 
-                echo -e "\e[01;31mWarning: Explicitly set target nvqc in $ex; skipping validation due to missing API key.\e[0m" >&2
                 skip_example=true
             elif [ "$t" == "pasqal" ] && [ -z "${PASQAL_PASSWORD}" ]; then
                 echo -e "\e[01;31mWarning: Explicitly set target pasqal in $ex; skipping validation due to missing token.\e[0m" >&2
