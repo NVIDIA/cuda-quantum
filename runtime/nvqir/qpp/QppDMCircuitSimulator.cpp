@@ -109,7 +109,7 @@ struct QppDmState : public cudaq::SimulationState {
   }
 
   std::unique_ptr<cudaq::SimulationState>
-  createFromData(const state_data &data) {
+  createFromData(const state_data &data) override {
     if (std::holds_alternative<cudaq::complex_matrix>(data)) {
       // Input is a density matrix
       auto &cMat = std::get<complex_matrix>(data);
