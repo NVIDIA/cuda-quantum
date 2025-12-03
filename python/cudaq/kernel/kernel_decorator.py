@@ -93,6 +93,21 @@ class PyKernelDecorator(object):
         self.qkeModule = None
         # The nvqModule will be (if present) the default simulation ModuleOp
         self.nvqModule = None
+
+        def recover_module(name):
+            """
+            All decorators are defined in this (kernel_decorator.py) module.
+            Strip all the frames from this module until we find the next
+            enclosing frame.
+            """
+            frame = inspect.currentframe()
+            while inspect.getmodule(frame).__name__ != name:
+                frame = frame.f_back
+            while inspect.getmodule(frame).__name__ == name:
+                frame = frame.f_back
+            return inspect.getmodule(frame)
+
+        self.defModule = recover_module('cudaq.kernel.kernel_decorator')
         self.verbose = verbose
         self.argTypes = None
 
@@ -519,14 +534,14 @@ class PyKernelDecorator(object):
             location=j['location'],
             overrideGlobalScopedVars=overrideDict)
 
-    def __convertStringsToPauli__(self, arg):
+    def convertStringsToPauli(self, arg):
         if isinstance(arg, str):
             # Only allow `pauli_word` as string input
             emitErrorIfInvalidPauli(arg)
             return cudaq_runtime.pauli_word(arg)
 
         if issubclass(type(arg), list):
-            return [self.__convertStringsToPauli__(a) for a in arg]
+            return [self.convertStringsToPauli(a) for a in arg]
 
         return arg
 
@@ -536,19 +551,25 @@ class PyKernelDecorator(object):
         return len(self.argTypes)
 
     def handle_call_arguments(self, *args, ignoreReturnType=False):
-        # Preprocess all the normal arguments
+        """
+        Resolve all the arguments at the call site for this decorator.
+        """
+        # Process all the normal arguments
         processedArgs = []
-        callableNames = []
-        self.process_arguments_to_call(processedArgs, args)
+        callingModule = inspect.getmodule(inspect.currentframe().f_back.f_back)
+        self.process_arguments_to_call(processedArgs, callingModule, args)
 
-        # Preprocess any lifted arguments
+        # Process any lifted arguments
         if self.liftedArgs:
+            resMod = None
+            if callingModule != self.defModule:
+                resMod = self.defModule
             for j, a in enumerate(self.liftedArgs):
                 i = self.firstLiftedPos + j
-                # get the value associated with the variable named "a"
-                # in the current context.
-                a_value = recover_value_of(a)
-                self.process_argument(processedArgs, i, a_value)
+                # get the value associated with the variable named "a" in the
+                # current context.
+                a_value = recover_value_of(a, None)
+                self.process_argument(processedArgs, i, a_value, resMod)
 
         # Specialize quake code via argument synthesis, lower to full QIR.
         specialized_module = self.convert_to_full_qir(processedArgs)
@@ -568,7 +589,9 @@ class PyKernelDecorator(object):
         to machine code will occur here.
         """
 
-        # If this target requires library mode (no MLIR compilation), just launch it.
+        # If this target requires library mode (no MLIR compilation), just
+        # launch it.
+        callingModule = inspect.getmodule(inspect.currentframe().f_back)
         handler = get_target_handler()
         if handler.call_processed(self.kernelFunction, args) is True:
             return
@@ -579,22 +602,22 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
-    def resolve_decorator_at_callsite(self):
+    def resolve_decorator_at_callsite(self, resMod):
         # Resolve all lifted arguments for `self`.
         processedArgs = []
         for j, la in enumerate(self.liftedArgs):
             i = self.firstLiftedPos + j
-            la_value = recover_value_of(la)
-            self.process_argument(processedArgs, i, la_value)
+            la_value = recover_value_of(la, resMod)
+            self.process_argument(processedArgs, i, la_value, resMod)
         return DecoratorCapture(self, processedArgs)
 
-    def process_argument(self, processedArgs, i, arg):
+    def process_argument(self, processedArgs, i, arg, resMod):
         if isa_kernel_decorator(arg):
-            rdr = arg.resolve_decorator_at_callsite()
+            rdr = arg.resolve_decorator_at_callsite(arg.defModule)
             processedArgs.append(rdr)
             return
 
-        arg = self.__convertStringsToPauli__(arg)
+        arg = self.convertStringsToPauli(arg)
         mlirType = mlirTypeFromPyType(type(arg),
                                       getMLIRContext(),
                                       argInstance=arg,
@@ -629,9 +652,9 @@ class PyKernelDecorator(object):
         else:
             processedArgs.append(arg)
 
-    def process_arguments_to_call(self, processedArgs, args):
+    def process_arguments_to_call(self, processedArgs, resMod, args):
         for i, arg in enumerate(args):
-            self.process_argument(processedArgs, i, arg)
+            self.process_argument(processedArgs, i, arg, resMod)
 
 
 def mk_decorator(builder):

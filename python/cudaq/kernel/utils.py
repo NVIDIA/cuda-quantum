@@ -12,6 +12,7 @@ import inspect
 import re
 import sys
 import traceback
+import importlib
 import numpy as np
 from typing import get_origin, Callable, List
 import types
@@ -106,17 +107,70 @@ def recover_func_op(module, name):
     return None
 
 
-def recover_value_of_or_none(name):
+def resolve_qualified_symbol(y):
+    """
+    If `y` is a qualified symbol (containing a '.' in the name), then resolve
+    the symbol to the kernel decorator object. Returns `None` if the qualified
+    name cannot be resolved.
+
+    For legacy reasons, this supports improper use of qualified names. For
+    example, in the module `cudaq.kernels.uccsd` there is a kernel named
+    `uccsd`. However, legacy tests just use the module name and omit the kernel
+    decorator name.
+    """
+    parts = y.split('.')
+    for i in range(len(parts), 0, -1):
+        modName = ".".join(parts[:i])
+        try:
+            mod = importlib.import_module(modName)
+        except ModuleNotFoundError:
+            continue
+        obj = mod
+        try:
+            for attr in parts[i:]:
+                obj = getattr(obj, attr)
+        except AttributeError:
+            return None
+        from .kernel_decorator import isa_kernel_decorator
+        if not isa_kernel_decorator(obj):
+            # FIXME: Legacy hack to support incorrect Python spellings of kernel
+            # names.
+            try:
+                obj = getattr(obj, parts[-1])
+            except AttributeError:
+                pass
+        return obj
+    return None
+
+
+def recover_value_of_or_none(name, resMod):
     """
     Recover the Python value of the symbol `name` from the enclosing context.
     The enclosing context is the context in which the `PyKernelDecorator`
     object's `__init__` or `__call__` method were invoked.
 
-    Note that this need not work with a `PyKernel` object as the semantics of
+    If `name` is qualified, then lookup the symbol in the module that is
+    specified in the name itself.
+
+    If there is a resolve-in module, `resMod`, then resolve the symbol in the
+    given module.
+
+    Otherwise, the symbol is neither qualified nor is there another module to
+    resolve the name in.  So perform a normal LEGB resolution of the symbol in
+    the current set of stack frames. (Actually, EGB since the symbol cannot be
+    local.)
+
+    Note that this need not be used with a `PyKernel` object as the semantics of
     the kernel builder presumes immediate lookup and resolution of all symbols
     during construction.
     """
     from .kernel_decorator import isa_kernel_decorator
+
+    if '.' in name:
+        return resolve_qualified_symbol(name)
+
+    if resMod:
+        return resMod.__dict__.get(name, None)
 
     def drop_front():
         drop = 0
@@ -149,10 +203,11 @@ def is_recovered_value_ok(result):
     return False
 
 
-def recover_value_of(name):
-    result = recover_value_of_or_none(name)
+def recover_value_of(name, resMod):
+    result = recover_value_of_or_none(name, resMod)
     if is_recovered_value_ok(result):
         return result
+    print(resMod)
     raise RuntimeError("'" + name + "' is not available in this scope.")
 
 
