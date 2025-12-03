@@ -245,6 +245,7 @@ draw = cudaq_runtime.draw
 get_unitary = cudaq_runtime.get_unitary
 run = cudaq_runtime.run
 estimate_resources = cudaq_runtime.estimate_resources
+trace_kernel = cudaq_runtime.trace_kernel
 translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring
