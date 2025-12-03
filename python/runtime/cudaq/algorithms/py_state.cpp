@@ -269,23 +269,19 @@ static cudaq::state createStateFromPyBuffer(py::buffer data,
   if (info.format != py::format_descriptor<std::complex<float>>::format() &&
       info.format != py::format_descriptor<std::complex<double>>::format())
     throw std::runtime_error(
-        "A numpy array with only floating point elements passed "
-        "to "
-        "state.from_data. input must be of complex float type, "
-        "please "
-        "add to your array creation `dtype=numpy.complex64` if "
-        "simulation is FP32 and `dtype=numpy.complex128` if "
-        "simulation if FP64, or dtype=cudaq.complex() for "
-        "precision-agnostic code");
+        "A numpy array with only floating point elements passed to "
+        "`state.from_data`. Input must be of complex float type. Please add to "
+        "your array creation `dtype=numpy.complex64` if simulation is FP32 and "
+        "`dtype=numpy.complex128` if simulation is FP64, or "
+        "`dtype=cudaq.complex()` for precision-agnostic code.");
 
   if (!isHostData || info.shape.size() == 1) {
-    if (info.format == py::format_descriptor<std::complex<float>>::format()) {
+    if (info.format == py::format_descriptor<std::complex<float>>::format())
       return state::from_data(std::make_pair(
           reinterpret_cast<std::complex<float> *>(info.ptr), info.size));
-    } else {
-      return state::from_data(std::make_pair(
-          reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
-    }
+
+    return state::from_data(std::make_pair(
+        reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
   } else { // 2D array
     const std::size_t rows = info.shape[0];
     const std::size_t cols = info.shape[1];
@@ -304,19 +300,18 @@ static cudaq::state createStateFromPyBuffer(py::buffer data,
         rowMajor ? cudaq::complex_matrix::order::row_major
                  : cudaq::complex_matrix::order::column_major;
     const cudaq::complex_matrix::Dimensions dim = {rows, cols};
-    if (isDoublePrecision) {
+    if (isDoublePrecision)
       return state::from_data(cudaq::complex_matrix(
           std::vector<cudaq::complex_matrix::value_type>(
               reinterpret_cast<std::complex<double> *>(info.ptr),
               reinterpret_cast<std::complex<double> *>(info.ptr) + info.size),
           dim, matOrder));
-    } else {
-      return state::from_data(cudaq::complex_matrix(
-          std::vector<cudaq::complex_matrix::value_type>(
-              reinterpret_cast<std::complex<float> *>(info.ptr),
-              reinterpret_cast<std::complex<float> *>(info.ptr) + info.size),
-          dim, matOrder));
-    }
+
+    return state::from_data(cudaq::complex_matrix(
+        std::vector<cudaq::complex_matrix::value_type>(
+            reinterpret_cast<std::complex<float> *>(info.ptr),
+            reinterpret_cast<std::complex<float> *>(info.ptr) + info.size),
+        dim, matOrder));
   }
 }
 
