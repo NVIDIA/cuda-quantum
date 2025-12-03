@@ -81,7 +81,7 @@ public:
     return m_state->m_tensorOps;
   }
 
-  template <typename ScalarTy> 
+  template <typename ScalarTy>
   friend class SimulatorTensorNet;
 
 protected:
