@@ -50,6 +50,8 @@ Quantum Photonic States
 We define a qumode (qudit) to have the states
 :math:`\ket{0}`, :math:`\ket{1}`, ... :math:`\ket{d}` in Dirac notation where:
 
+:spellcheck-disable:
+
 .. math:: \ket{0} = \begin{bmatrix} 1 & 0 & 0 & \dots & 0 \end{bmatrix} ^ \top
 
 .. math:: \ket{1} = \begin{bmatrix} 0 & 1 & 0 & \dots & 0 \end{bmatrix}^ \top
@@ -59,6 +61,8 @@ We define a qumode (qudit) to have the states
 .. math:: \vdots
 
 .. math:: \ket{d} = \begin{bmatrix} 0 & 0 & 0 & \dots & 1 \end{bmatrix}^ \top
+
+:spellcheck-enable:
 
 where the linear combinations of states or superpositions are:
 
@@ -94,6 +98,8 @@ qumode up to a maximum given by the qudit level :math:`d`:
 
 .. math::  C \ket{0} = \ket{1} 
 
+:spellcheck-disable:
+
 .. math::  \begin{bmatrix}
                 0 & 0 & \dots & 0 & 0 & 0 & 0 \\
                 1 & 0 & \dots & 0 & 0 & 0 & 0 \\
@@ -105,6 +111,8 @@ qumode up to a maximum given by the qudit level :math:`d`:
             \end{bmatrix}
             \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
             \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}
+
+:spellcheck-enable:
 
 .. literalinclude:: ../../../snippets/python/using/examples/create_photonic_gate.py
     :language: python
@@ -121,6 +129,8 @@ value 0, the operation has no effect:
 
 .. math::  A \ket{1} =  \ket{0}
 
+:spellcheck-disable:
+
 .. math::  \begin{bmatrix}
                 1 & 1 & 0 & 0 & \dots & 0 & 0 \\
                 0 & 0 & 1 & 0 & \dots & 0 & 0 \\
@@ -132,6 +142,8 @@ value 0, the operation has no effect:
             \end{bmatrix}
             \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
             \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}
+
+:spellcheck-enable:
 
 .. literalinclude:: ../../../snippets/python/using/examples/annihilate_photonic_gate.py
     :language: python
