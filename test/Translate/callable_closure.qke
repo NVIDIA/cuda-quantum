@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-translate --convert-to=qir | FileCheck %s
+// RUN: cudaq-translate --convert-to=qir -o %t && cat %t && FileCheck %s < %t
 
 module attributes {cc.python_uniqued = "kernel0..0x7c72351ce620", llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", quake.mangled_name_map = {__nvqpp__mlirgen__kernel0..0x7c72351ce620 = "__nvqpp__mlirgen__kernel0..0x7c72351ce620_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__kernel0..0x7c72351ce620(%arg0: i64 {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
