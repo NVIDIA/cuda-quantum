@@ -39,6 +39,7 @@ target_link_libraries(test_quantinuum_util
   cudaq
   cudaq-common 
   cudaq-operator
+  cudaq-platform-default
   gtest_main)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_quantinuum_util PRIVATE -Wl,--no-as-needed)

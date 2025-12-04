@@ -252,6 +252,69 @@ static py::buffer_info getCupyBufferInfo(py::buffer cupy_buffer) {
   );
 }
 
+static cudaq::state createStateFromPyBuffer(py::buffer data,
+                                            LinkedLibraryHolder &holder) {
+  const bool isHostData = !py::hasattr(data, "__cuda_array_interface__");
+  // Check that the target is GPU-based, i.e., can handle device
+  // pointer.
+  if (!holder.getTarget().config.GpuRequired && !isHostData)
+    throw std::runtime_error(
+        fmt::format("Current target '{}' does not support CuPy arrays.",
+                    holder.getTarget().name));
+
+  auto info = isHostData ? data.request() : getCupyBufferInfo(data);
+  if (info.shape.size() > 2)
+    throw std::runtime_error(
+        "state.from_data only supports 1D or 2D array data.");
+  if (info.format != py::format_descriptor<std::complex<float>>::format() &&
+      info.format != py::format_descriptor<std::complex<double>>::format())
+    throw std::runtime_error(
+        "A numpy array with only floating point elements passed to "
+        "`state.from_data`. Input must be of complex float type. Please add to "
+        "your array creation `dtype=numpy.complex64` if simulation is FP32 and "
+        "`dtype=numpy.complex128` if simulation is FP64, or "
+        "`dtype=cudaq.complex()` for precision-agnostic code.");
+
+  if (!isHostData || info.shape.size() == 1) {
+    if (info.format == py::format_descriptor<std::complex<float>>::format())
+      return state::from_data(std::make_pair(
+          reinterpret_cast<std::complex<float> *>(info.ptr), info.size));
+
+    return state::from_data(std::make_pair(
+        reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
+  } else { // 2D array
+    const std::size_t rows = info.shape[0];
+    const std::size_t cols = info.shape[1];
+    if (rows != cols)
+      throw std::runtime_error(
+          "state.from_data 2D array (density matrix) input must be "
+          "square matrix data.");
+    const bool isDoublePrecision =
+        info.format == py::format_descriptor<std::complex<double>>::format();
+    const int64_t dataSize = isDoublePrecision ? sizeof(std::complex<double>)
+                                               : sizeof(std::complex<float>);
+    const bool rowMajor =
+        info.strides[1] ==
+        dataSize; // check row-major: second stride == element size
+    const cudaq::complex_matrix::order matOrder =
+        rowMajor ? cudaq::complex_matrix::order::row_major
+                 : cudaq::complex_matrix::order::column_major;
+    const cudaq::complex_matrix::Dimensions dim = {rows, cols};
+    if (isDoublePrecision)
+      return state::from_data(cudaq::complex_matrix(
+          std::vector<cudaq::complex_matrix::value_type>(
+              reinterpret_cast<std::complex<double> *>(info.ptr),
+              reinterpret_cast<std::complex<double> *>(info.ptr) + info.size),
+          dim, matOrder));
+
+    return state::from_data(cudaq::complex_matrix(
+        std::vector<cudaq::complex_matrix::value_type>(
+            reinterpret_cast<std::complex<float> *>(info.ptr),
+            reinterpret_cast<std::complex<float> *>(info.ptr) + info.size),
+        dim, matOrder));
+  }
+}
+
 /// @brief Bind the get_state cudaq function
 void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
   py::enum_<InitialState>(mod, "InitialStateType",
@@ -299,35 +362,7 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&](py::buffer data) {
-            const bool isHostData =
-                !py::hasattr(data, "__cuda_array_interface__");
-            // Check that the target is GPU-based, i.e., can handle device
-            // pointer.
-            if (!holder.getTarget().config.GpuRequired && !isHostData)
-              throw std::runtime_error(fmt::format(
-                  "Current target '{}' does not support CuPy arrays.",
-                  holder.getTarget().name));
-
-            auto info = isHostData ? data.request() : getCupyBufferInfo(data);
-            if (info.format ==
-                py::format_descriptor<std::complex<float>>::format()) {
-              return state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<float> *>(info.ptr),
-                  info.size));
-            }
-            if (info.format ==
-                py::format_descriptor<std::complex<double>>::format()) {
-              return state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<double> *>(info.ptr),
-                  info.size));
-            }
-            throw std::runtime_error(
-                "A numpy array with only floating point elements passed to "
-                "state.from_data. input must be of complex float type, "
-                "please add to your array creation `dtype=numpy.complex64` if "
-                "simulation is FP32 and `dtype=numpy.complex128` if "
-                "simulation if FP64, or dtype=cudaq.complex() for "
-                "precision-agnostic code");
+            return createStateFromPyBuffer(data, holder);
           },
           "Return a state from data.")
       .def_static(
@@ -611,63 +646,8 @@ index pair.
             if (self.get_num_tensors() != 1)
               throw std::runtime_error("overlap NumPy interop only supported "
                                        "for vector and matrix state data.");
-
-            const bool isHostData =
-                !py::hasattr(other, "__cuda_array_interface__");
-            // Check that the target is GPU-based, i.e., can handle device
-            // pointer.
-            if (!holder.getTarget().config.GpuRequired && !isHostData)
-              throw std::runtime_error(fmt::format(
-                  "Current target '{}' does not support CuPy arrays.",
-                  holder.getTarget().name));
-            py::buffer_info info =
-                isHostData ? other.request() : getCupyBufferInfo(other);
-
-            if (info.shape.size() > 2)
-              throw std::runtime_error(
-                  "overlap NumPy/CuPy interop only supported "
-                  "for vector and matrix state data.");
-
-            // Check that the shapes are compatible
-            std::size_t otherNumElements = 1;
-            for (std::size_t i = 0; std::size_t shapeElement : info.shape) {
-              otherNumElements *= shapeElement;
-              if (shapeElement != self.get_tensor().extents[i++])
-                throw std::runtime_error(
-                    "overlap error - invalid shape of input buffer.");
-            }
-
-            // Compute the overlap in the case that the
-            // input buffer is FP64
-            if (info.itemsize == 16) {
-              // if this state is FP32, then we have to throw an error
-              if (self.get_precision() == SimulationState::precision::fp32)
-                throw std::runtime_error(
-                    "simulation state is FP32 but provided state buffer for "
-                    "overlap is FP64.");
-
-              auto otherState = state::from_data(std::make_pair(
-                  reinterpret_cast<complex *>(info.ptr), otherNumElements));
-              return self.overlap(otherState);
-            }
-
-            // Compute the overlap in the case that the
-            // input buffer is FP32
-            if (info.itemsize == 8) {
-              // if this state is FP64, then we have to throw an error
-              if (self.get_precision() == SimulationState::precision::fp64)
-                throw std::runtime_error(
-                    "simulation state is FP64 but provided state buffer for "
-                    "overlap is FP32.");
-              auto otherState = state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<float> *>(info.ptr),
-                  otherNumElements));
-              return self.overlap(otherState);
-            }
-
-            // We only support complex f32 and f64 types
-            throw std::runtime_error(
-                "invalid buffer element type size for overlap computation.");
+            auto otherState = createStateFromPyBuffer(other, holder);
+            return self.overlap(otherState);
           },
           "Compute the overlap between the provided :class:`State`'s.")
       .def(

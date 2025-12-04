@@ -11,7 +11,6 @@
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
-#include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
@@ -19,6 +18,8 @@
 #include <string_view>
 
 namespace cudaq {
+
+class SimulationState;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.

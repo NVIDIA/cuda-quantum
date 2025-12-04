@@ -35,6 +35,13 @@ std::vector<cudaq::complex> randomState(int numQubits) {
 
 struct test_state_vector_init {
   void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
+    cudaq::qvector q(stateVec);
+    mz(q);
+  }
+};
+
+struct test_state_vector_init_state_ctor {
+  void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
     cudaq::qvector q(cudaq::state{stateVec});
     mz(q);
   }
@@ -46,26 +53,31 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   constexpr int numShots = 1000000;
   const auto stateVec = randomState(numQubits);
   cudaq::set_random_seed(13); // set for repeatability
-  auto counts = cudaq::sample(numShots, test_state_vector_init{}, stateVec);
-  counts.dump();
-  for (const auto &[bitStrOrg, count] : counts) {
-    auto bitStr = bitStrOrg;
-    std::reverse(bitStr.begin(), bitStr.end());
-    const int val = std::stoi(bitStr, nullptr, 2);
-    const double prob = 1.0 * count / numShots;
-    const double expectedProb = std::norm(stateVec[val]);
-    if (expectedProb > 1e-6) {
-      const double relError = std::abs(expectedProb - prob) / expectedProb;
-      // Less than 10% difference (relative)
-      EXPECT_LT(relError, 0.1);
+
+  auto runTest = [&](auto &&kernel) {
+    auto counts = cudaq::sample(numShots, kernel, stateVec);
+    counts.dump();
+    for (const auto &[bitStrOrg, count] : counts) {
+      auto bitStr = bitStrOrg;
+      std::reverse(bitStr.begin(), bitStr.end());
+      const int val = std::stoi(bitStr, nullptr, 2);
+      const double prob = 1.0 * count / numShots;
+      const double expectedProb = std::norm(stateVec[val]);
+      if (expectedProb > 1e-6) {
+        const double relError = std::abs(expectedProb - prob) / expectedProb;
+        // Less than 10% difference (relative)
+        EXPECT_LT(relError, 0.1);
+      }
     }
-  }
+  };
+  runTest(test_state_vector_init{});
+  runTest(test_state_vector_init_state_ctor{});
 }
 
 // Same as test_state_vector_init with some dummy gates
 struct test_state_vector_init_gate {
   void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
-    cudaq::qvector q(cudaq::state{stateVec});
+    cudaq::qvector q(stateVec);
     // Identity
     cudaq::exp_pauli(1.0, q, "XXXXX");
     cudaq::exp_pauli(-1.0, q, "XXXXX");
@@ -126,7 +138,7 @@ struct test_resizing {
 struct test_bell_init {
   void operator()() __qpu__ {
     // Start with an initial allocation of 2 qubits in a specific state.
-    cudaq::qvector q(cudaq::state{M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
+    cudaq::qvector q({M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
     mz(q);
   }
 };
@@ -136,7 +148,7 @@ struct test_state_expand_init {
     cudaq::qvector q(2);
     x(q);
     // Add 2 more qubits in Bell state
-    cudaq::qvector q1(cudaq::state{M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
+    cudaq::qvector q1({M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
     mz(q);
     mz(q1);
   }

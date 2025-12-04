@@ -108,13 +108,40 @@ struct QppDmState : public cudaq::SimulationState {
     return state(indices[0], indices[1]);
   }
 
+  std::unique_ptr<cudaq::SimulationState>
+  createFromData(const state_data &data) override {
+    if (std::holds_alternative<cudaq::complex_matrix>(data)) {
+      // Input is a density matrix
+      auto &cMat = std::get<complex_matrix>(data);
+      if (cMat.rows() != cMat.cols())
+        throw std::runtime_error(
+            "[qpp-dm-state] complex matrix must be square for density matrix.");
+      // Check that it must be a power of 2
+      if (std::bitset<64>(cMat.rows()).count() != 1)
+        throw std::runtime_error("[qpp-dm-state] complex matrix size must be a "
+                                 "power of 2 for density matrix.");
+
+      auto *dataPtr =
+          reinterpret_cast<void *>(const_cast<complex_matrix &>(cMat).get_data(
+              complex_matrix::order::row_major));
+
+      return std::make_unique<QppDmState>(Eigen::Map<qpp::cmat>(
+          reinterpret_cast<std::complex<double> *>(dataPtr), cMat.rows(),
+          cMat.cols()));
+    }
+    // Use the base implementation (1D state vector data)
+    return SimulationState::createFromData(data);
+  }
+
   std::unique_ptr<SimulationState>
-  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
-    if ((size < 4) || (std::countr_zero(size) & 1))
-      throw std::runtime_error("size must be a value equal to 4**N");
-    auto s = std::sqrt(size); // 4**N -> (2**N x 2**N)
-    return std::make_unique<QppDmState>(Eigen::Map<qpp::cmat>(
-        reinterpret_cast<std::complex<double> *>(ptr), s, s));
+  createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
+    // This is state vector data (1D array), convert it to density matrix: rho =
+    // |psi><psi|
+    auto *stateData =
+        reinterpret_cast<std::complex<double> *>(const_cast<void *>(ptr));
+    qpp::ket psi = qpp::ket::Map(stateData, size);
+    qpp::cmat dm = psi * psi.adjoint();
+    return std::make_unique<QppDmState>(std::move(dm));
   }
 
   void dump(std::ostream &os) const override { os << state << std::endl; }
