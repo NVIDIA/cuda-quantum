@@ -25,6 +25,7 @@ add_cudaq_library(OptTransforms
   DeadStoreRemoval.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
+  DecompositionPatternSelection.cpp
   DelayMeasurements.cpp
   DeleteStates.cpp
   DistributedDeviceCall.cpp

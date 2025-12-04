@@ -8,13 +8,18 @@
 
 #include "DecompositionPatterns.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include <memory>
 
 using namespace mlir;
 
@@ -39,8 +44,16 @@ struct Decomposition
   /// Initialize the decomposer by building the set of patterns used during
   /// execution.
   LogicalResult initialize(MLIRContext *context) override {
+
     RewritePatternSet owningPatterns(context);
-    cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+    if (!basis.empty()) {
+      // Restrict to patterns useful for the target basis
+      cudaq::selectDecompositionPatterns(owningPatterns, basis,
+                                         disabledPatterns, enabledPatterns);
+    } else {
+      cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+    }
+
     patterns = FrozenRewritePatternSet(std::move(owningPatterns),
                                        disabledPatterns, enabledPatterns);
     return success();
