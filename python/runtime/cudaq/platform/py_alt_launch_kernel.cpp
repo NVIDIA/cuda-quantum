@@ -1126,6 +1126,20 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
       "Merge the two Modules into a single Module.");
 
   mod.def(
+      "mergeMLIRString",
+      [](MlirModule modA, const std::string &text) {
+        auto moduleA = unwrap(modA).clone();
+        auto *ctx = moduleA.getContext();
+        auto moduleB = mlir::parseSourceString<mlir::ModuleOp>(text, ctx);
+        auto modB = moduleB.get();
+        if (!modB)
+          throw std::runtime_error("could not translate text");
+        cudaq::opt::factory::mergeModules(moduleA, modB);
+        return wrap(moduleA);
+      },
+      "Merge the first Module and the Quake text into a single new Module.");
+
+  mod.def(
       "synthPyCallable",
       [](MlirModule modA, const std::vector<std::string> &funcNames) {
         auto m = unwrap(modA);

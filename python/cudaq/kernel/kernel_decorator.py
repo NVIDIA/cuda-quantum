@@ -89,14 +89,14 @@ class PyKernelDecorator(object):
                              if self.kernelFunction is not None else ('', 0))
 
         self.capturedDataStorage = None
-        # The qkeModule will be the quake target independent ModuleOp
+        # The `qkeModule` will be the quake target independent ModuleOp
         self.qkeModule = None
-        # The nvqModule will be (if present) the default simulation ModuleOp
+        # The `nvqModule` will be (if present) the default simulation ModuleOp
         self.nvqModule = None
 
         def recover_module(name):
             """
-            All decorators are defined in this (kernel_decorator.py) module.
+            All decorators are defined in this (`kernel_decorator.py`) module.
             Strip all the frames from this module until we find the next
             enclosing frame.
             """
@@ -161,7 +161,7 @@ class PyKernelDecorator(object):
                 self.__dict__.update(vars(decorator))
                 # replace the MLIR module
                 self.qkeModule = module
-                # update the argTypes as specialization may have changed them
+                # update the `argTypes` as specialization may have changed them
                 funcOp = recover_func_op(module,
                                          nvqppPrefix + decorator.uniqName)
                 self.argTypes = FunctionType(
@@ -214,7 +214,7 @@ class PyKernelDecorator(object):
         self.pre_compile()
 
     def __del__(self):
-        # explictly call del on the MLIR ModuleOp wrappers.
+        # explicitly call `del` on the MLIR `ModuleOp` wrappers.
         if self.qkeModule:
             del self.qkeModule
         if self.nvqModule:
@@ -252,7 +252,7 @@ class PyKernelDecorator(object):
         if handler.skip_compilation():
             return
 
-        # Otherwise, precompile the kernel to portable MLIR.
+        # Otherwise, `precompile` the kernel to portable MLIR.
         if self.qkeModule:
             raise RuntimeError(self.name + " was already compiled")
         self.capturedDataStorage = None
@@ -309,7 +309,6 @@ class PyKernelDecorator(object):
         outputs = FunctionType(
             TypeAttr(func_op.attributes['function_type']).value).results
         outTy = outputs[0] if outputs else self.get_none_type()
-        #cudaq_runtime.lower_to_codegen(self.uniqName, result, *argValues)
 
         if argValues:
             # Assume all arguments were synthesized.
@@ -330,7 +329,8 @@ class PyKernelDecorator(object):
         # NB: this method used by tests.
         if isinstance(otherMod, str):
             raise RuntimeError("otherMod must be an MlirModule")
-        newMod = cudaq_runtime.mergeExternalMLIR(self.qkeModule, otherMod)
+        newMod = cudaq_runtime.mergeExternalMLIR(self.qkeModule,
+                                                 otherMod.qkeModule)
         # Get the name of the kernel entry point
         name = self.uniqName
         for op in newMod.body:
@@ -340,20 +340,32 @@ class PyKernelDecorator(object):
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
-        return PyKernelDecorator(None, kernelName=name, module=newMod)
+        return PyKernelDecorator(None,
+                                 kernelName=name,
+                                 module=newMod,
+                                 decorator=self)
 
-    def synthesize_callable_arguments(self, funcNames):
+    def merge_quake_source(self, quakeText):
         """
-        Given this Kernel has callable block arguments, synthesize away these
-        callable arguments with the in-module FuncOps with given names. The name
-        at index 0 in the list corresponds to the first callable block argument,
-        index 1 to the second callable block argument, etc.
+        Merge a module of quake code from source text form into this decorator's
+        `qkeModule` attribute.
         """
-        cudaq_runtime.synthPyCallable(self.qkeModule, funcNames)
-        # Reset the argument types by removing the Callable
-        self.argTypes = [
-            a for a in self.argTypes if not cc.CallableType.isinstance(a)
-        ]
+        if not isinstance(quakeText, str):
+            raise RuntimeError("argument must be a string")
+        newMod = cudaq_runtime.mergeMLIRString(self.qkeModule, quakeText)
+        # Get the name of the kernel entry point
+        name = self.uniqName
+        for op in newMod.body:
+            if isinstance(op, func.FuncOp):
+                for attr in op.attributes:
+                    if 'cudaq-entrypoint' == attr.name:
+                        name = op.name.value.removeprefix(nvqppPrefix)
+                        break
+
+        return PyKernelDecorator(None,
+                                 kernelName=name,
+                                 module=newMod,
+                                 decorator=self)
 
     def extract_c_function_pointer(self, name=None):
         """
