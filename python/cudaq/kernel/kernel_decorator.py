@@ -556,20 +556,27 @@ class PyKernelDecorator(object):
         """
         # Process all the normal arguments
         processedArgs = []
-        callingModule = inspect.getmodule(inspect.currentframe().f_back.f_back)
+
+        def recover_calling_module():
+            frame = inspect.currentframe().f_back
+            name = inspect.getmodule(frame).__name__
+            while (name.startswith("cudaq.kernel") or
+                   name.startswith("cudaq.runtime")):
+                frame = frame.f_back
+                name = inspect.getmodule(frame).__name__
+            return inspect.getmodule(frame)
+
+        callingModule = recover_calling_module()
         self.process_arguments_to_call(processedArgs, callingModule, args)
 
         # Process any lifted arguments
         if self.liftedArgs:
-            resMod = None
-            if callingModule != self.defModule:
-                resMod = self.defModule
             for j, a in enumerate(self.liftedArgs):
                 i = self.firstLiftedPos + j
                 # get the value associated with the variable named "a" in the
                 # current context.
                 a_value = recover_value_of(a, None)
-                self.process_argument(processedArgs, i, a_value, resMod)
+                self.process_argument(processedArgs, i, a_value, callingModule)
 
         # Specialize quake code via argument synthesis, lower to full QIR.
         specialized_module = self.convert_to_full_qir(processedArgs)
@@ -591,7 +598,6 @@ class PyKernelDecorator(object):
 
         # If this target requires library mode (no MLIR compilation), just
         # launch it.
-        callingModule = inspect.getmodule(inspect.currentframe().f_back)
         handler = get_target_handler()
         if handler.call_processed(self.kernelFunction, args) is True:
             return
@@ -602,18 +608,21 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
-    def resolve_decorator_at_callsite(self, resMod):
+    def resolve_decorator_at_callsite(self, callingMod):
         # Resolve all lifted arguments for `self`.
         processedArgs = []
         for j, la in enumerate(self.liftedArgs):
             i = self.firstLiftedPos + j
+            resMod = None
+            if callingMod != self.defModule:
+                resMod = self.defModule
             la_value = recover_value_of(la, resMod)
-            self.process_argument(processedArgs, i, la_value, resMod)
+            self.process_argument(processedArgs, i, la_value, callingMod)
         return DecoratorCapture(self, processedArgs)
 
-    def process_argument(self, processedArgs, i, arg, resMod):
+    def process_argument(self, processedArgs, i, arg, callingMod):
         if isa_kernel_decorator(arg):
-            rdr = arg.resolve_decorator_at_callsite(arg.defModule)
+            rdr = arg.resolve_decorator_at_callsite(callingMod)
             processedArgs.append(rdr)
             return
 
