@@ -36,7 +36,7 @@ def test_kernel_float_params_f64():
 
     with pytest.raises(RuntimeError) as e:
         state = cudaq.State.from_data(f)
-    assert 'A numpy array with only floating point elements passed to state.from_data.' in repr(
+    assert 'A numpy array with only floating point elements passed to `state.from_data`.' in repr(
         e)
 
 
@@ -50,7 +50,7 @@ def test_kernel_float_params_f32():
 
     with pytest.raises(RuntimeError) as e:
         state = cudaq.State.from_data(f)
-    assert 'A numpy array with only floating point elements passed to state.from_data.' in repr(
+    assert 'A numpy array with only floating point elements passed to `state.from_data`.' in repr(
         e)
 
 
