@@ -1,11 +1,6 @@
 {
     "name": "NVQLink Development",
-    "build": {
-        "dockerfile": "../docker/Dockerfile",
-        "args": {
-            "base_image": "ghcr.io/nvidia/cuda-quantum-dev:ext-cu12.6-gcc11-main"
-        }
-    },
+    "image": "nvqlink-prototype:0.1.0",
     "capAdd": ["SYS_PTRACE", "NET_ADMIN", "SYS_MODULE", "IPC_LOCK"],
 	"securityOpt": [ "seccomp=unconfined" ],
     "mounts": [
@@ -15,6 +10,8 @@
         "source=/sys/devices,target=/sys/devices,type=bind",
         "source=/opt/mellanox/gdrcopy,target=/opt/mellanox/gdrcopy,type=bind"
     ],
+    "overrideCommand": true,
+    "remoteUser": "root",
     "runArgs": [
         "--privileged",
         "--gpus=all",

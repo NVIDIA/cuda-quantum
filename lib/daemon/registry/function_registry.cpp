@@ -8,9 +8,11 @@
 
 #include "cudaq/nvqlink/daemon/registry/function_registry.h"
 
-#ifdef __CUDACC__
+#ifdef NVQLINK_HAVE_CUDA
 #include <cuda_runtime.h>
+#include "cudaq/nvqlink/daemon/registry/gpu_function_registry.h"
 #endif
+
 #include <stdexcept>
 
 using namespace cudaq::nvqlink;
@@ -33,7 +35,7 @@ FunctionRegistry::lookup(std::uint32_t function_id) const {
   return (it != functions_.end()) ? &it->second : nullptr;
 }
 
-#ifdef __CUDACC__
+#ifdef NVQLINK_HAVE_CUDA
 FunctionRegistry::GPUFunctionTable
 FunctionRegistry::get_gpu_function_table() const {
   // Allocate device memory for function table
@@ -72,4 +74,66 @@ FunctionRegistry::get_gpu_function_table() const {
 
   return gpu_table_;
 }
-#endif
+
+void* FunctionRegistry::get_gpu_registry() const {
+  // Build GPU function registry for NVQLink streaming interface
+  // This converts from FunctionRegistry format to GPUFunctionRegistry format
+  // Used by any GPU kernel using GPUInputStream/GPUOutputStream (e.g., DOCA kernel)
+  
+  if (device_gpu_registry_) {
+    return device_gpu_registry_; // Return cached registry
+  }
+  
+  // Count GPU functions
+  std::size_t gpu_func_count = 0;
+  for (const auto& [id, metadata] : functions_) {
+    if (metadata.type == FunctionType::GPU) {
+      ++gpu_func_count;
+    }
+  }
+  
+  if (gpu_func_count == 0) {
+    return nullptr; // No GPU functions registered
+  }
+  
+  if (gpu_func_count > GPUFunctionRegistry::MAX_FUNCTIONS) {
+    throw std::runtime_error(
+        "Too many GPU functions: " + std::to_string(gpu_func_count) +
+        " exceeds maximum " + std::to_string(GPUFunctionRegistry::MAX_FUNCTIONS));
+  }
+  
+  // Build host-side registry
+  GPUFunctionRegistry host_registry;
+  host_registry.num_functions = 0;
+  
+  for (const auto& [id, metadata] : functions_) {
+    if (metadata.type == FunctionType::GPU) {
+      GPUFunctionWrapper wrapper;
+      wrapper.invoke = reinterpret_cast<GPUFunctionWrapper::InvokeFunc>(metadata.gpu_function);
+      wrapper.function_id = id;
+      
+      host_registry.functions[host_registry.num_functions++] = wrapper;
+    }
+  }
+  
+  // Allocate device memory and copy
+  GPUFunctionRegistry* device_registry = nullptr;
+  cudaError_t err = cudaMalloc(&device_registry, sizeof(GPUFunctionRegistry));
+  if (err != cudaSuccess) {
+    throw std::runtime_error("Failed to allocate device memory for GPU registry: " +
+                           std::string(cudaGetErrorString(err)));
+  }
+  
+  err = cudaMemcpy(device_registry, &host_registry, sizeof(GPUFunctionRegistry),
+                   cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    cudaFree(device_registry);
+    throw std::runtime_error("Failed to copy GPU registry to device: " +
+                           std::string(cudaGetErrorString(err)));
+  }
+  
+  device_gpu_registry_ = device_registry;
+  return device_gpu_registry_;
+}
+
+#endif // NVQLINK_HAVE_CUDA

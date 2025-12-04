@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 
 #include <arpa/inet.h>
 #include <cstdint>

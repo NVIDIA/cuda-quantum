@@ -39,4 +39,10 @@ target_link_libraries(nvqlink_daemon
 
 if(CUDA_FOUND)
   target_link_libraries(nvqlink_daemon PUBLIC CUDA::cudart)
+  target_compile_definitions(nvqlink_daemon PUBLIC NVQLINK_HAVE_CUDA)
+endif()
+
+# Add DOCA support if enabled
+if(NVQLINK_ENABLE_DOCA)
+  target_compile_definitions(nvqlink_daemon PUBLIC NVQLINK_ENABLE_DOCA)
 endif()

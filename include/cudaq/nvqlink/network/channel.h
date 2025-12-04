@@ -132,10 +132,18 @@ public:
 
   // GPU mode - returns GPU memory handles for persistent kernel
   struct GPUMemoryHandles {
-    void *rx_queue_addr;
-    void *tx_queue_addr;
-    void *buffer_pool_addr;
+    void *rx_queue_addr;       // QP handle (RoCE) or doca_gpu_dev_verbs_qp* (DOCA)
+    void *tx_queue_addr;       // Same as rx_queue_addr for bidirectional
+    void *buffer_pool_addr;    // GPU buffer address
     std::size_t buffer_pool_size;
+    
+    // DOCA-specific fields (null/zero for non-DOCA channels)
+    void *cq_rq_addr;          // doca_gpu_dev_verbs_cq* (DOCA receive CQ)
+    std::uint32_t buffer_mkey; // Memory key for RDMA operations
+    std::uint32_t *exit_flag;  // CPU-side exit flag (for host writes)
+    std::uint32_t *gpu_exit_flag; // GPU-side exit flag (for kernel reads)
+    std::size_t page_size;     // Buffer page/slot size
+    unsigned num_pages;        // Number of buffer pages/slots
   };
   virtual GPUMemoryHandles get_gpu_memory_handles() {
     return {}; // Only implemented by GPU channels

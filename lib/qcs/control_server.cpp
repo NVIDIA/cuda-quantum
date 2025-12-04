@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/nvqlink/qcs/control_server.h"
-#include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 #include "cudaq/nvqlink/utils/instrumentation/logger.h"
 
 #include <arpa/inet.h>
@@ -59,7 +59,7 @@ void ControlServer::start() {
   tv.tv_usec = 0;
   setsockopt(sock_fd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Control server listening on UDP port {}",
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Control server listening on UDP port {}",
                    port_);
 }
 
@@ -80,7 +80,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
 
   // Wait for DISCOVER packet from client
   if (!client_connected_) {
-    NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Waiting for QCS discovery packet...");
+    NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Waiting for QCS discovery packet...");
 
     char buf[4096];
     socklen_t len = sizeof(client_addr_);
@@ -98,7 +98,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
       }
 
       // Got discovery packet
-      NVQLINK_LOG_INFO(DOMAIN_NETWORK, "QCS discovered: {}:{}",
+      NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "QCS discovered: {}:{}",
                        inet_ntoa(client_addr_.sin_addr),
                        ntohs(client_addr_.sin_port));
       client_connected_ = true;
@@ -135,7 +135,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
       throw std::runtime_error("Failed to send channel params");
 
     NVQLINK_LOG_INFO(
-        DOMAIN_NETWORK,
+        DOMAIN_CHANNEL,
         "Sent channel params: QPN={}, GID={}, vaddr=0x{:x}, rkey=0x{:x}",
         params.qpn, gid_to_string(params.gid), params.vaddr, params.rkey);
 
@@ -148,7 +148,7 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
 
     if (n < 0) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "No ACK received, retrying ({}/{})",
+        NVQLINK_LOG_WARNING(DOMAIN_CHANNEL, "No ACK received, retrying ({}/{})",
                             retry + 1, max_retries);
         continue;
       }
@@ -163,24 +163,24 @@ bool ControlServer::exchange_connection_params(RoCEChannel *channel) {
       uint32_t client_qpn = client_j["qpn"];
       std::string client_gid_str = client_j["gid"];
 
-      NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Received ACK: QPN={}, GID={}",
+      NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Received ACK: QPN={}, GID={}",
                        client_qpn, client_gid_str);
 
       // Configure QP with client params
       union ibv_gid client_gid = string_to_gid(client_gid_str);
       channel->set_remote_qp(client_qpn, client_gid);
 
-      NVQLINK_LOG_INFO(DOMAIN_NETWORK,
+      NVQLINK_LOG_INFO(DOMAIN_CHANNEL,
                        "RDMA connection established successfully");
       return true;
 
     } catch (const std::exception &e) {
-      NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "Failed to parse ACK: {}", e.what());
+      NVQLINK_LOG_WARNING(DOMAIN_CHANNEL, "Failed to parse ACK: {}", e.what());
       continue;
     }
   }
 
-  NVQLINK_LOG_ERROR(DOMAIN_NETWORK,
+  NVQLINK_LOG_ERROR(DOMAIN_CHANNEL,
                     "Failed to establish connection after {} retries",
                     max_retries);
   return false;
@@ -206,7 +206,7 @@ void ControlServer::send_command(const std::string &cmd,
   if (sent < 0)
     throw std::runtime_error("Failed to send command: " + cmd);
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Sent command: {}", cmd);
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Sent command: {}", cmd);
 }
 
 nlohmann::json

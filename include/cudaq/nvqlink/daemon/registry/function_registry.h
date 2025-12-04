@@ -81,9 +81,23 @@ public:
   };
   GPUFunctionTable get_gpu_function_table() const;
 
+  /// Get GPU function registry for NVQLink streaming interface
+  /// 
+  /// Converts registered functions to GPUFunctionRegistry format
+  /// for use with GPU kernels that use GPUInputStream/GPUOutputStream.
+  /// Returns device pointer.
+  /// 
+  /// This is the standard NVQLink GPU function dispatch format,
+  /// used by DOCA kernels and any future GPU kernels using the
+  /// streaming interface.
+  /// 
+  /// @return Device pointer to GPUFunctionRegistry (device memory)
+  void* get_gpu_registry() const;
+
 private:
   std::unordered_map<std::uint32_t, FunctionMetadata> functions_;
-  mutable GPUFunctionTable gpu_table_; // Cached GPU function table
+  mutable GPUFunctionTable gpu_table_; // Cached GPU function table (legacy format)
+  mutable void* device_gpu_registry_ = nullptr; // Cached GPUFunctionRegistry (NVQLink format)
 };
 
 } // namespace cudaq::nvqlink

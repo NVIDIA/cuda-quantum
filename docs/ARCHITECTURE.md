@@ -772,7 +772,7 @@ Why this works:
 
 **Source:**
 
-- `include/cudaq/nvqlink/network/roce/roce_ring_buffer.h`,
+- `include/cudaq/nvqlink/network/channels/roce/roce_ring_buffer.h`,
 - `examples/roce/roce_daemon_client.cpp`
 
 ## 7. Deployment View
@@ -891,7 +891,7 @@ public:
 
 ### 8.3 RoCE/RDMA Backend
 
-**Location:** `include/cudaq/nvqlink/network/roce/`
+**Location:** `include/cudaq/nvqlink/network/channels/roce/`
 
 The RoCE backend implements RDMA communication using Unreliable Connection (UC) mode with memory polling:
 
@@ -1061,7 +1061,7 @@ WIP
 
 ```cpp
 #include "cudaq/nvqlink/daemon/daemon.h"
-#include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 #include "cudaq/nvqlink/qcs/qcs_device.h"
 
 // Application callbacks
@@ -1115,7 +1115,7 @@ int main() {
 ### A.2 Direct I/O (Channel Mode)
 
 ```cpp
-#include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 #include "cudaq/nvqlink/network/serialization/input_stream.h"
 #include "cudaq/nvqlink/network/serialization/output_stream.h"
 

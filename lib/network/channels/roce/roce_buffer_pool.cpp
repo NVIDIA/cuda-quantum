@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/nvqlink/network/roce/roce_buffer_pool.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_buffer_pool.h"
 #include "cudaq/nvqlink/utils/instrumentation/logger.h"
 
 #include <cstring>

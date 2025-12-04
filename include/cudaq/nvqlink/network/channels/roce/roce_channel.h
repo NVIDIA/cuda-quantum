@@ -9,9 +9,9 @@
 #pragma once
 
 #include "cudaq/nvqlink/network/channel.h"
-#include "cudaq/nvqlink/network/roce/roce_buffer_pool.h"
-#include "cudaq/nvqlink/network/roce/roce_ring_buffer.h"
-#include "cudaq/nvqlink/network/roce/verbs_context.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_buffer_pool.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_ring_buffer.h"
+#include "cudaq/nvqlink/network/channels/roce/verbs_context.h"
 #include "cudaq/nvqlink/network/steering/flow_switch.h"
 
 #include <infiniband/verbs.h>

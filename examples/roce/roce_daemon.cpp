@@ -12,7 +12,7 @@
 #include "cudaq/nvqlink/daemon/registry/function_traits.h"
 #include "cudaq/nvqlink/daemon/registry/function_wrapper.h"
 #include "cudaq/nvqlink/network/config.h"
-#include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 #include "cudaq/nvqlink/network/steering/verbs_flow_switch.h"
 
 #include <csignal>

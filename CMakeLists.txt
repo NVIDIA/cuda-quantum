@@ -37,6 +37,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 set(CUDAQ_NVQLINK_SOURCE_DIR  ${CMAKE_CURRENT_SOURCE_DIR})
 set(CUDAQ_NVQLINK_INCLUDE_DIR ${CUDAQ_NVQLINK_SOURCE_DIR}/include)
 
+# Add cmake directory to module path for custom Find modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 # Options
 # ==============================================================================
 
@@ -46,6 +49,8 @@ option(NVQLINK_BUILD_EXAMPLES
        "Generate build targets for the NVQLINK example programs" ON)
 option(NVQLINK_ENABLE_ROCE
        "Enable RoCE backend using libibverbs" OFF)
+option(NVQLINK_ENABLE_DOCA
+       "Enable DOCA GPUNetIO backend for GPU-controlled RDMA" OFF)
 
 # Profiler backend selection
 set(NVQLINK_PROFILER_BACKEND "NONE" CACHE STRING "Profiler backend (NONE, NVTX, TRACY)")
@@ -107,6 +112,7 @@ add_subdirectory(lib)
 
 if (NVQLINK_BUILD_EXAMPLES)
   add_subdirectory(examples/roce)
+  add_subdirectory(examples/doca)
 endif()
 
 if (NVQLINK_BUILD_TESTS)

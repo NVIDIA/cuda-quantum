@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/nvqlink/qcs/qcs_device.h"
-#include "cudaq/nvqlink/network/roce/roce_channel.h"
+#include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 #include "cudaq/nvqlink/qcs/control_server.h"
 #include "cudaq/nvqlink/utils/instrumentation/logger.h"
 
@@ -22,7 +22,7 @@ QCSDevice::QCSDevice(const QCSDeviceConfig &config) : config_(config) {
   // Create control server with UDP socket
   control_server_ = std::make_unique<ControlServer>(config_.control_port);
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK,
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL,
                    "QCSDevice created: name={}, control_port={}", config_.name,
                    config_.control_port);
 }
@@ -44,7 +44,7 @@ void QCSDevice::establish_connection(RoCEChannel *channel) {
   if (connected_)
     throw std::runtime_error("Already connected");
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Establishing connection to QCS '{}'...",
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Establishing connection to QCS '{}'...",
                    config_.name);
 
   // Start UDP control server
@@ -68,7 +68,7 @@ void QCSDevice::establish_connection(RoCEChannel *channel) {
   connected_ = true;
 
   NVQLINK_LOG_INFO(
-      DOMAIN_NETWORK, "QCS connection established: QPN={}, vaddr=0x{:x}",
+      DOMAIN_CHANNEL, "QCS connection established: QPN={}, vaddr=0x{:x}",
       connection_info_.local_qpn, connection_info_.ring_buffer_addr);
 }
 
@@ -79,16 +79,16 @@ void QCSDevice::disconnect() {
   try {
     // Send STOP command to QCS
     control_server_->send_command("STOP");
-    NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Sent STOP command to QCS");
+    NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Sent STOP command to QCS");
   } catch (const std::exception &e) {
-    NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "Failed to send STOP command: {}",
+    NVQLINK_LOG_WARNING(DOMAIN_CHANNEL, "Failed to send STOP command: {}",
                         e.what());
   }
 
   control_server_->stop();
   connected_ = false;
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Disconnected from QCS");
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Disconnected from QCS");
 }
 
 void QCSDevice::upload_program(const std::vector<std::byte> &binary) {
@@ -106,7 +106,7 @@ void QCSDevice::upload_program(const std::vector<std::byte> &binary) {
   // - Use RDMA WRITE for direct memory transfer
   //
   // For now, just log a warning
-  NVQLINK_LOG_WARNING(DOMAIN_NETWORK,
+  NVQLINK_LOG_WARNING(DOMAIN_CHANNEL,
                       "Program upload not yet implemented (size={} bytes)",
                       binary.size());
 
@@ -123,12 +123,12 @@ void QCSDevice::trigger() {
   if (!connected_)
     throw std::runtime_error("Not connected to QCS");
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "Triggering QCS program execution");
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "Triggering QCS program execution");
 
   // Send START command
   control_server_->send_command("START");
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK,
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL,
                    "START command sent - QCS should begin execution");
 }
 
@@ -149,9 +149,9 @@ void QCSDevice::abort() {
   if (!connected_)
     throw std::runtime_error("Not connected to QCS");
 
-  NVQLINK_LOG_WARNING(DOMAIN_NETWORK, "Aborting QCS program execution");
+  NVQLINK_LOG_WARNING(DOMAIN_CHANNEL, "Aborting QCS program execution");
 
   control_server_->send_command("ABORT");
 
-  NVQLINK_LOG_INFO(DOMAIN_NETWORK, "ABORT command sent to QCS");
+  NVQLINK_LOG_INFO(DOMAIN_CHANNEL, "ABORT command sent to QCS");
 }

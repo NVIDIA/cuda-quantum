@@ -11,6 +11,11 @@
 #include "cudaq/nvqlink/utils/instrumentation/logger.h"
 #include "cudaq/nvqlink/utils/instrumentation/profiler.h"
 
+#ifdef NVQLINK_ENABLE_DOCA
+#include "cudaq/nvqlink/network/channels/doca/doca_rpc_kernel.h"
+#include "cudaq/nvqlink/daemon/registry/gpu_function_registry.h"
+#endif
+
 #include <cstdint>
 #include <cuda_runtime.h>
 
@@ -124,14 +129,25 @@ void GPUDispatcher::stop() {
 
   NVQLINK_LOG_INFO(DOMAIN_DISPATCHER, "Signaling GPU kernel to shutdown...");
 
-  // Signal kernel to exit
+  // Signal kernel to exit (standard RoCE path)
   int shutdown = 1;
   cudaMemcpy(device_shutdown_flag_, &shutdown, sizeof(int),
              cudaMemcpyHostToDevice);
 
+  // For DOCA channels, signal via channel's exit flag
+  // This matches Hololink's pattern: cpu_exit_flag[0] = 1
+  auto gpu_handles = channel_->get_gpu_memory_handles();
+  if (gpu_handles.exit_flag != nullptr) {
+    // Direct write to GPU_CPU mapped memory (same as Hololink destructor)
+    *gpu_handles.exit_flag = 1;
+  }
+
   NVQLINK_LOG_INFO(DOMAIN_DISPATCHER, "Waiting for GPU kernel to complete...");
 
   // Wait for kernel completion
+  // NOTE: DOCA kernel may be blocked in receive() waiting for packets.
+  // Like Hololink, we just wait - the kernel exits when a packet arrives
+  // and it checks the exit flag, or when the stream is destroyed.
   cudaError_t err = cudaStreamSynchronize(stream_);
   if (err != cudaSuccess) {
     NVQLINK_LOG_WARNING(DOMAIN_DISPATCHER, "Warning: GPU kernel error: {}",
@@ -185,7 +201,37 @@ void GPUDispatcher::launch_persistent_kernel() {
                    "Launching kernel with {} blocks, {} threads per block",
                    blocks, threads);
 
-  // Launch kernel ASYNCHRONOUSLY on the stream
+#ifdef NVQLINK_ENABLE_DOCA
+  // Detect DOCA channel via cq_rq_addr (polymorphic detection)
+  if (gpu_handles.cq_rq_addr != nullptr) {
+    NVQLINK_LOG_INFO(DOMAIN_DISPATCHER, "Detected DOCA channel, launching DOCA RPC kernel");
+    
+    // Get GPU function registry (NVQLink streaming interface format)
+    auto* gpu_registry = static_cast<GPUFunctionRegistry*>(
+        registry_->get_gpu_registry());
+    
+    // Launch DOCA RPC kernel
+    // Pass gpu_exit_flag for kernel to read (host writes to exit_flag)
+    doca_error_t result = doca_rpc_kernel(
+        stream_,
+        static_cast<doca_gpu_dev_verbs_qp*>(gpu_handles.rx_queue_addr),
+        gpu_handles.gpu_exit_flag,
+        static_cast<std::uint8_t*>(gpu_handles.buffer_pool_addr),
+        gpu_handles.page_size,
+        gpu_handles.buffer_mkey,
+        gpu_handles.num_pages,
+        gpu_registry,
+        blocks,
+        threads);
+    
+    if (result != DOCA_SUCCESS) {
+      throw std::runtime_error("DOCA RPC kernel launch failed");
+    }
+    return;
+  }
+#endif
+
+  // Launch standard RoCE kernel ASYNCHRONOUSLY on the stream
   daemon_persistent_kernel<<<blocks, threads, 0, stream_>>>(
       gpu_handles.rx_queue_addr, gpu_handles.tx_queue_addr,
       gpu_handles.buffer_pool_addr, func_table.device_function_ptrs,

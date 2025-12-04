@@ -10,6 +10,7 @@
 
 #include <arpa/inet.h>
 #include <cstring>
+#include <dirent.h>
 #include <fstream>
 #include <ifaddrs.h>
 #include <net/if.h>
@@ -19,19 +20,53 @@
 #include <unistd.h>
 
 inline std::string get_interface_name(const std::string &roce_device) {
-  // Map RoCE device to network interface by reading sysfs parent file
+  // Try multiple methods to map RoCE device to network interface
+  
+  // Method 1: Read parent file (works for soft-RoCE)
   std::string sysfs_path = "/sys/class/infiniband/" + roce_device + "/parent";
-
   std::ifstream parent_file(sysfs_path);
   if (parent_file.is_open()) {
     std::string iface_name;
     std::getline(parent_file, iface_name);
     parent_file.close();
-
+    
     // Trim whitespace
     iface_name.erase(0, iface_name.find_first_not_of(" \t\r\n"));
     iface_name.erase(iface_name.find_last_not_of(" \t\r\n") + 1);
+    
+    if (!iface_name.empty()) {
+      return iface_name;
+    }
+  }
 
+  // Method 2: Check device/net/ directory (works for hardware NICs like mlx5)
+  std::string net_dir = "/sys/class/infiniband/" + roce_device + "/device/net/";
+  DIR *dir = opendir(net_dir.c_str());
+  if (dir) {
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != nullptr) {
+      std::string name = entry->d_name;
+      if (name != "." && name != "..") {
+        closedir(dir);
+        return name; // Return first interface found
+      }
+    }
+    closedir(dir);
+  }
+
+  // Method 3: Check ports/1/gid_attrs/ndevs/0 (another common location)
+  std::string port_path = "/sys/class/infiniband/" + roce_device + 
+                          "/ports/1/gid_attrs/ndevs/0";
+  std::ifstream port_file(port_path);
+  if (port_file.is_open()) {
+    std::string iface_name;
+    std::getline(port_file, iface_name);
+    port_file.close();
+    
+    // Trim whitespace
+    iface_name.erase(0, iface_name.find_first_not_of(" \t\r\n"));
+    iface_name.erase(iface_name.find_last_not_of(" \t\r\n") + 1);
+    
     if (!iface_name.empty()) {
       return iface_name;
     }
