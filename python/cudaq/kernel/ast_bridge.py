@@ -35,7 +35,7 @@ from .utils import (Color, globalAstRegistry, globalRegisteredOperations,
                     mlirTypeFromPyType, mlirTypeToPyType, getMLIRContext,
                     recover_func_op, is_recovered_value_ok,
                     recover_value_of_or_none, cudaq__unique_attr_name,
-                    mlirTryCreateStructType)
+                    mlirTryCreateStructType, resolve_qualified_symbol)
 
 State = cudaq_runtime.State
 
@@ -2625,9 +2625,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.pushValue(stackSlot)
                 return
 
-            self.emitFatalError(
-                "unhandled function call - {}, known kernels are {}".format(
-                    node.func.id, globalKernelRegistry.keys()), node)
+            self.emitFatalError(f"unhandled function call - {node.func.id}",
+                                node)
 
         elif isinstance(node.func, ast.Attribute):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
@@ -3390,7 +3389,44 @@ class PyASTBridge(ast.NodeVisitor):
                         negated_qubit_controls=negatedControlQubits)
                     return
 
-        self.emitFatalError(f"unknown function call", node)
+            # See if this is a path-qualified reference to a kernel.
+            def getCallFullName(n):
+                parts = []
+                while isinstance(n, ast.Attribute):
+                    parts.append(n.attr)
+                    n = n.value
+                if isinstance(n, ast.Name):
+                    parts.append(n.id)
+                else:
+                    return None
+                return ".".join(reversed(parts))
+
+            fullName = getCallFullName(node.func)
+            if fullName is not None:
+                dec = resolve_qualified_symbol(fullName)
+                if dec is not None:
+                    callee, fType = processDecoratorCall(dec, fullName)
+                    declArgs = (dec.firstLiftedPos if dec.firstLiftedPos
+                                is not None else len(fType.inputs))
+                    if declArgs != len(node.args):
+                        funcName = (node.func.id if hasattr(node.func, 'id')
+                                    else node.func.attr)
+                        self.emitFatalError(
+                            f"invalid number of arguments passed to callable "
+                            f"{funcName} ({len(node.args)} vs "
+                            f"required {declArgs})", node)
+                    [self.visit(arg) for arg in node.args]
+                    values = [self.popValue() for _ in node.args]
+                    values.reverse()
+                    values = [self.ifPointerThenLoad(v) for v in values]
+                    call = cc.CallCallableOp(fType.results, callee, values)
+                    sa = StringAttr.get(name)
+                    call.attributes.__setitem__('symbol', sa)
+                    for r in call.results:
+                        self.pushValue(r)
+                    return
+
+        self.emitFatalError("unknown function call", node)
 
     def visit_ListComp(self, node):
         """
@@ -5000,7 +5036,7 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         # Check if a nonlocal symbol, and process it.
-        value = recover_value_of_or_none(node.id)
+        value = recover_value_of_or_none(node.id, None)
         if not is_recovered_value_ok(value):
             # Throw an exception for the case that the name is not in the
             # kernel's symbol table and not a valid nonlocal symbol.
