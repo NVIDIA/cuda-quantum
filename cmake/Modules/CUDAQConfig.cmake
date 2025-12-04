@@ -23,9 +23,6 @@ find_dependency(CUDAQEmDefault REQUIRED)
 set (CUDAQPlatformDefault_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPlatformDefault REQUIRED)
 
-set (CUDAQDefaultQPU_DIR "${CUDAQ_CMAKE_DIR}")
-find_dependency(CUDAQDefaultQPU REQUIRED)
-
 set (CUDAQNlopt_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQNlopt REQUIRED)
 
