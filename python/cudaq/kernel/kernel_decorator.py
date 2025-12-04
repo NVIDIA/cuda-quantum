@@ -252,7 +252,7 @@ class PyKernelDecorator(object):
         if handler.skip_compilation():
             return
 
-        # Otherwise, precompile the kernel to portable MLIR.
+        # Otherwise, `precompile` the kernel to portable MLIR.
         if self.qkeModule:
             raise RuntimeError(self.name + " was already compiled")
         self.capturedDataStorage = None
