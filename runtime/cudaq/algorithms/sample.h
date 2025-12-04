@@ -16,6 +16,7 @@
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
+bool kernelHasMeasurements(const std::string &);
 namespace detail {
 bool isKernelGenerated(const std::string &);
 }
@@ -98,6 +99,31 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   auto isQuantumDevice =
       !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+
+  auto hasMeasurements = cudaq::kernelHasMeasurements(kernelName);
+  if (hasMeasurements) {
+    if (isQuantumDevice) {
+      // Hardware: Error immediately
+      throw std::runtime_error(
+          "Kernels with explicit measurement operations cannot be used with "
+          "`cudaq::sample` on hardware targets. Please remove all "
+          "measurements from the kernel, qubits will be automatically measured "
+          "at the end when sampling a kernel."
+          "Alternatively, use `cudaq::run` API, if supported on this target.");
+    } else {
+      // Simulators: Warning for now, but indicate future deprecation
+      if (!explicitMeasurements) {
+        printf(
+            "WARNING: Using `cudaq::sample` with a kernel that contains "
+            "explicit measurements is deprecated and will be disallowed in a "
+            "future release. Please remove all measurements from the kernel, "
+            "qubits will be automatically measured at the end when sampling a "
+            "kernel.\n"
+            "Alternatively, use `cudaq::run` which preserves individual "
+            "measurement results.");
+      }
+    }
+  }
 
   // Loop until all shots are returned.
   cudaq::sample_result counts;
