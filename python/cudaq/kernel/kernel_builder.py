@@ -550,8 +550,8 @@ class PyKernel(object):
                         element, eleTy)
                 else:
                     emitFatalError(
-                        f"CUDA-Q kernel builder could not process runtime list-like element type ({pyType})."
-                    )
+                        f"CUDA-Q kernel builder could not process runtime "
+                        f"list-like element type ({pyType}).")
 
                 cc.StoreOp(elementVal, eleAddr)
                 # Python is weird, but interesting.
@@ -564,8 +564,8 @@ class PyKernel(object):
                                    length=size).result
 
         emitFatalError(
-            f"CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."
-        )
+            f"CUDA-Q kernel builder could not translate runtime argument of "
+            f"type {pyType} to internal IR value.")
 
     def createInvariantForLoop(self,
                                endVal,
@@ -669,8 +669,8 @@ class PyKernel(object):
                 otherST = SymbolTable(otherModule.operation)
                 if calleeName not in otherST:
                     emitFatalError(
-                        f"Invalid called function `{calleeName}`- cannot find the function in the symbol table"
-                    )
+                        f"Invalid called function `{calleeName}`- cannot find"
+                        f" the function in the symbol table")
 
                 cloned = otherST[calleeName].operation.clone()
                 if 'cudaq-entrypoint' in cloned.operation.attributes:
@@ -735,7 +735,8 @@ class PyKernel(object):
         """
         if canonicalize:
             pm = PassManager.parse(
-                "builtin.module(func.func(unwind-lowering,canonicalize,cse,quake-add-metadata),quake-propagate-metadata)",
+                "builtin.module(func.func(unwind-lowering,canonicalize,"
+                "cse,quake-add-metadata),quake-propagate-metadata)",
                 context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
             pm.run(cloned)
@@ -936,8 +937,8 @@ class PyKernel(object):
                 if isinstance(arg, cudaq_runtime.SpinOperator):
                     if arg.term_count > 1:
                         emitFatalError(
-                            'exp_pauli operation requires a SpinOperator composed of a single term.'
-                        )
+                            'exp_pauli operation requires a '
+                            'SpinOperator composed of a single term.')
                     arg, *_ = arg
                     arg = arg.get_pauli_word()
 
@@ -1558,20 +1559,19 @@ class PyKernel(object):
             # We needs to have noise channel parameters + qubit arguments
             if isinstance(args[0], list):
                 if len(args[0]) != noise_channel.num_parameters:
-                    emitFatalError(
-                        f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}`"
-                    )
+                    emitFatalError(f"Invalid number of arguments passed to "
+                                   f"apply_noise for channel `{noise_channel}`")
             elif len(args) <= noise_channel.num_parameters:
-                emitFatalError(
-                    f"Invalid number of arguments passed to apply_noise for channel `{noise_channel}`"
-                )
+                emitFatalError(f"Invalid number of arguments passed to "
+                               f"apply_noise for channel `{noise_channel}`")
 
         with self.insertPoint, self.loc:
             noise_channel_params = []
             target_qubits = []
 
             if isinstance(args[0], list):
-                # If the first argument is a list, assuming that it is the list of noise channel parameters.
+                # If the first argument is a list, assuming that it is the list
+                # of noise channel parameters.
                 noise_channel_params = [
                     self.process_channel_param(p) for p in args[0]
                 ]
