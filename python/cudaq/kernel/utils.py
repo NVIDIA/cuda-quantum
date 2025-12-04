@@ -207,7 +207,6 @@ def recover_value_of(name, resMod):
     result = recover_value_of_or_none(name, resMod)
     if is_recovered_value_ok(result):
         return result
-    print(resMod)
     raise RuntimeError("'" + name + "' is not available in this scope.")
 
 
