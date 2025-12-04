@@ -330,7 +330,8 @@ class PyKernelDecorator(object):
         # NB: this method used by tests.
         if isinstance(otherMod, str):
             raise RuntimeError("otherMod must be an MlirModule")
-        newMod = cudaq_runtime.mergeExternalMLIR(self.qkeModule, otherMod)
+        newMod = cudaq_runtime.mergeExternalMLIR(self.qkeModule,
+                                                 otherMod.qkeModule)
         # Get the name of the kernel entry point
         name = self.uniqName
         for op in newMod.body:
@@ -340,20 +341,32 @@ class PyKernelDecorator(object):
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
-        return PyKernelDecorator(None, kernelName=name, module=newMod)
+        return PyKernelDecorator(None,
+                                 kernelName=name,
+                                 module=newMod,
+                                 decorator=self)
 
-    def synthesize_callable_arguments(self, funcNames):
+    def merge_quake_source(self, quakeText):
         """
-        Given this Kernel has callable block arguments, synthesize away these
-        callable arguments with the in-module FuncOps with given names. The name
-        at index 0 in the list corresponds to the first callable block argument,
-        index 1 to the second callable block argument, etc.
+        Merge a module of quake code from source text form into this decorator's
+        `qkeModule` attribute.
         """
-        cudaq_runtime.synthPyCallable(self.qkeModule, funcNames)
-        # Reset the argument types by removing the Callable
-        self.argTypes = [
-            a for a in self.argTypes if not cc.CallableType.isinstance(a)
-        ]
+        if not isinstance(quakeText, str):
+            raise RuntimeError("argument must be a string")
+        newMod = cudaq_runtime.mergeMLIRString(self.qkeModule, quakeText)
+        # Get the name of the kernel entry point
+        name = self.uniqName
+        for op in newMod.body:
+            if isinstance(op, func.FuncOp):
+                for attr in op.attributes:
+                    if 'cudaq-entrypoint' == attr.name:
+                        name = op.name.value.removeprefix(nvqppPrefix)
+                        break
+
+        return PyKernelDecorator(None,
+                                 kernelName=name,
+                                 module=newMod,
+                                 decorator=self)
 
     def extract_c_function_pointer(self, name=None):
         """
