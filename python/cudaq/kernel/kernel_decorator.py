@@ -89,14 +89,14 @@ class PyKernelDecorator(object):
                              if self.kernelFunction is not None else ('', 0))
 
         self.capturedDataStorage = None
-        # The qkeModule will be the quake target independent ModuleOp
+        # The `qkeModule` will be the quake target independent ModuleOp
         self.qkeModule = None
-        # The nvqModule will be (if present) the default simulation ModuleOp
+        # The `nvqModule` will be (if present) the default simulation ModuleOp
         self.nvqModule = None
 
         def recover_module(name):
             """
-            All decorators are defined in this (kernel_decorator.py) module.
+            All decorators are defined in this (`kernel_decorator.py`) module.
             Strip all the frames from this module until we find the next
             enclosing frame.
             """
@@ -161,7 +161,7 @@ class PyKernelDecorator(object):
                 self.__dict__.update(vars(decorator))
                 # replace the MLIR module
                 self.qkeModule = module
-                # update the argTypes as specialization may have changed them
+                # update the `argTypes` as specialization may have changed them
                 funcOp = recover_func_op(module,
                                          nvqppPrefix + decorator.uniqName)
                 self.argTypes = FunctionType(
@@ -214,7 +214,7 @@ class PyKernelDecorator(object):
         self.pre_compile()
 
     def __del__(self):
-        # explictly call del on the MLIR ModuleOp wrappers.
+        # explicitly call `del` on the MLIR `ModuleOp` wrappers.
         if self.qkeModule:
             del self.qkeModule
         if self.nvqModule:
@@ -309,7 +309,6 @@ class PyKernelDecorator(object):
         outputs = FunctionType(
             TypeAttr(func_op.attributes['function_type']).value).results
         outTy = outputs[0] if outputs else self.get_none_type()
-        #cudaq_runtime.lower_to_codegen(self.uniqName, result, *argValues)
 
         if argValues:
             # Assume all arguments were synthesized.
