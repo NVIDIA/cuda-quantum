@@ -33,7 +33,7 @@ struct kernel {
 // CHECK:         %[[VAL_5:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // CHECK:         %[[VAL_6:.*]] = bitcast double* %[[VAL_4]] to i8*
 // CHECK:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(40) %[[VAL_6]], i8 0, i64 40, i1 false)
-// CHECK:         %[[VAL_7:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 16)
+// CHECK:         %[[VAL_7:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_5]], i64 4)
 // CHECK:         %[[VAL_8:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_7]])
 // CHECK:         %[[VAL_9:.*]] = call %[[VAL_10:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_8]], i8** %[[VAL_7]])
 // CHECK:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_7]])
