@@ -428,7 +428,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 3
 // QIR:         store double 0.000000e+00, double* %[[VAL_4]], align 8
 // QIR:         %[[VAL_5:.*]] = bitcast [4 x double]* %[[VAL_0]] to i8*
-// QIR:         %[[VAL_6:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 16)
+// QIR:         %[[VAL_6:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_5]], i64 4)
 // QIR:         %[[VAL_7:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_6]])
 // QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_7]], i8** %[[VAL_6]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_6]])
@@ -447,7 +447,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 3
 // QIR:         store double 0.000000e+00, double* %[[VAL_4]], align 8
 // QIR:         %[[VAL_5:.*]] = bitcast [4 x double]* %[[VAL_0]] to i8*
-// QIR:         %[[VAL_6:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 16)
+// QIR:         %[[VAL_6:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_5]], i64 4)
 // QIR:         %[[VAL_7:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_6]])
 // QIR:         %[[VAL_8:.*]] = call %[[VAL_9:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_7]], i8** %[[VAL_6]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_6]])
@@ -471,7 +471,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_7:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // QIR:         %[[VAL_8:.*]] = bitcast double* %[[VAL_6]] to i8*
 // QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(24) %[[VAL_8]], i8 0, i64 24, i1 false)
-// QIR:         %[[VAL_9:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_7]], i64 16)
+// QIR:         %[[VAL_9:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_7]], i64 4)
 // QIR:         %[[VAL_10:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_9]])
 // QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_10]], i8** %[[VAL_9]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_9]])
@@ -495,7 +495,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_7:.*]] = bitcast [4 x { double, double }]* %[[VAL_0]] to i8*
 // QIR:         %[[VAL_8:.*]] = bitcast double* %[[VAL_6]] to i8*
 // QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(24) %[[VAL_8]], i8 0, i64 24, i1 false)
-// QIR:         %[[VAL_9:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_7]], i64 16)
+// QIR:         %[[VAL_9:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_7]], i64 4)
 // QIR:         %[[VAL_10:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_9]])
 // QIR:         %[[VAL_11:.*]] = call %[[VAL_12:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_10]], i8** %[[VAL_9]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_9]])
@@ -547,7 +547,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_28:.*]] = bitcast [4 x { double, double }]* %[[VAL_16]] to i8*
 // QIR:         %[[VAL_29:.*]] = bitcast double* %[[VAL_27]] to i8*
 // QIR:         call void @llvm.memset.p0i8.i64(i8* noundef nonnull align 8 dereferenceable(16) %[[VAL_29]], i8 0, i64 16, i1 false)
-// QIR:         %[[VAL_30:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_28]], i64 16)
+// QIR:         %[[VAL_30:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_28]], i64 4)
 // QIR:         %[[VAL_31:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_30]])
 // QIR:         %[[VAL_32:.*]] = call %[[VAL_33:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_31]], i8** %[[VAL_30]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_30]])
@@ -565,8 +565,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_6:.*]] = bitcast double* %[[VAL_1]] to i8*
 // QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %[[VAL_5]], i8* align 1 %[[VAL_6]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(i8* %[[VAL_6]])
-// QIR:         %[[VAL_7:.*]] = shl nuw i64 1, %[[VAL_2]]
-// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 %[[VAL_7]])
+// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_5]], i64
 // QIR:         %[[VAL_9:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_8]])
 // QIR:         %[[VAL_10:.*]] = call %[[VAL_11:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_9]], i8** %[[VAL_8]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_8]])
@@ -584,8 +583,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_6:.*]] = bitcast double* %[[VAL_1]] to i8*
 // QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %[[VAL_5]], i8* align 1 %[[VAL_6]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(i8* %[[VAL_6]])
-// QIR:         %[[VAL_7:.*]] = shl nuw i64 1, %[[VAL_2]]
-// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 %[[VAL_7]])
+// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_5]], i64
 // QIR:         %[[VAL_9:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_8]])
 // QIR:         %[[VAL_10:.*]] = call %[[VAL_11:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_9]], i8** %[[VAL_8]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_8]])
@@ -603,8 +601,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_6:.*]] = bitcast { double, double }* %[[VAL_1]] to i8*
 // QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %[[VAL_5]], i8* align 1 %[[VAL_6]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(i8* %[[VAL_6]])
-// QIR:         %[[VAL_7:.*]] = shl nuw i64 1, %[[VAL_2]]
-// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 %[[VAL_7]])
+// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_5]], i64
 // QIR:         %[[VAL_9:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_8]])
 // QIR:         %[[VAL_10:.*]] = call %[[VAL_11:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_9]], i8** %[[VAL_8]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_8]])
@@ -622,8 +619,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_6:.*]] = bitcast { double, double }* %[[VAL_1]] to i8*
 // QIR:         call void @llvm.memcpy.p0i8.p0i8.i64(i8* nonnull align 8 %[[VAL_5]], i8* align 1 %[[VAL_6]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(i8* %[[VAL_6]])
-// QIR:         %[[VAL_7:.*]] = shl nuw i64 1, %[[VAL_2]]
-// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_5]], i64 %[[VAL_7]])
+// QIR:         %[[VAL_8:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_complex_f64(i8* nonnull %[[VAL_5]], i64
 // QIR:         %[[VAL_9:.*]] = call i64 @__nvqpp_cudaq_state_numberOfQubits(i8** %[[VAL_8]])
 // QIR:         %[[VAL_10:.*]] = call %[[VAL_11:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 %[[VAL_9]], i8** %[[VAL_8]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_8]])
@@ -638,7 +634,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_2:.*]] = getelementptr inbounds [2 x double], [2 x double]* %[[VAL_0]], i64 0, i64 1
 // QIR:         store double 1.000000e+00, double* %[[VAL_2]], align 8
 // QIR:         %[[VAL_3:.*]] = bitcast [2 x double]* %[[VAL_0]] to i8*
-// QIR:         %[[VAL_4:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_3]], i64 4)
+// QIR:         %[[VAL_4:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_3]], i64 2)
 // QIR:         %[[VAL_5:.*]] = call %[[VAL_6:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 1, i8** %[[VAL_4]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_4]])
 // QIR:         %[[VAL_7:.*]] = call %[[VAL_8:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_5]], i64 0)
@@ -657,7 +653,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_2:.*]] = getelementptr inbounds [2 x double], [2 x double]* %[[VAL_0]], i64 0, i64 1
 // QIR:         store double 0x3FE6A09E667F3BCD, double* %[[VAL_2]], align 8
 // QIR:         %[[VAL_3:.*]] = bitcast [2 x double]* %[[VAL_0]] to i8*
-// QIR:         %[[VAL_4:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_fp64(i8* nonnull %[[VAL_3]], i64 4)
+// QIR:         %[[VAL_4:.*]] = call i8** @__nvqpp_cudaq_state_createFromData_f64(i8* nonnull %[[VAL_3]], i64 2)
 // QIR:         %[[VAL_5:.*]] = call %[[VAL_6:.*]]* @__quantum__rt__qubit_allocate_array_with_cudaq_state_ptr(i64 1, i8** %[[VAL_4]])
 // QIR:         call void @__nvqpp_cudaq_state_delete(i8** %[[VAL_4]])
 // QIR:         %[[VAL_7:.*]] = call %[[VAL_8:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_5]], i64 0)

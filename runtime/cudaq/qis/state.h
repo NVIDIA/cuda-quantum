@@ -43,27 +43,60 @@ public:
   /// responsible for providing (and verifying) the element values. These values
   /// must be correct for the simulator that is in use.
   state(const std::vector<std::complex<double>> &vector) { initialize(vector); }
+  state(std::vector<std::complex<double>> &&vector) {
+    std::vector<std::complex<double>> v{std::move(vector)};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
   state(const std::vector<std::complex<float>> &vector) { initialize(vector); }
+  state(std::vector<std::complex<float>> &&vector) {
+    std::vector<std::complex<float>> v{std::move(vector)};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
   state(const std::vector<double> &vector) {
     initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
   }
   state(std::vector<double> &&vector) {
-    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
-  }
-  state(const std::initializer_list<double> &list) {
-    initialize(std::vector<cudaq::complex>{list.begin(), list.end()});
+    std::vector<double> v{std::move(vector)};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
   }
   state(const std::vector<float> &vector) {
     initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
   }
   state(std::vector<float> &&vector) {
-    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
+    std::vector<float> v{std::move(vector)};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
   }
-  state(const std::initializer_list<float> &list) {
-    initialize(std::vector<cudaq::complex>{list.begin(), list.end()});
+  state(const std::initializer_list<std::complex<double>> &list) {
+    std::vector<std::complex<double>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<std::complex<double>> &&list) {
+    std::vector<std::complex<double>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
   }
   state(const std::initializer_list<std::complex<float>> &list) {
-    initialize(std::vector<cudaq::complex>{list.begin(), list.end()});
+    std::vector<std::complex<float>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<std::complex<float>> &&list) {
+    std::vector<std::complex<float>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::initializer_list<double> &list) {
+    std::vector<double> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<double> &&list) {
+    std::vector<double> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::initializer_list<float> &list) {
+    std::vector<float> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<float> &&list) {
+    std::vector<float> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
   }
 
   /// @brief Copy assignment
