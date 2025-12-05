@@ -498,7 +498,7 @@ public:
       // Mark all newly merged kernels private.
       for (auto &op : moduleOp)
         if (auto f = dyn_cast<mlir::func::FuncOp>(op))
-          if (f != func)
+          if (f.getName() != func.getName())
             f.setPrivate();
 
       if (!rawArgs.empty()) {
@@ -610,6 +610,8 @@ public:
 
     auto entryPointFunc = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+    assert(entryPointFunc &&
+           "Could not find entry point function after lowering pipeline.");
     std::vector<std::size_t> mapping_reorder_idx;
     if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
             entryPointFunc->getAttr("mapping_reorder_idx"))) {
