@@ -454,12 +454,10 @@ jobs:
               echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.OQC_URL }}"
               echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
-              echo "::add-mask::${{ secrets.OQC_PASSWORD }}"
               echo "::add-mask::${{ secrets.OQC_DEVICE }}"
               echo "::add-mask::${{ secrets.OQC_AUTH_TOKEN }}"
               echo "OQC_URL=${{ secrets.OQC_URL }}" >> $GITHUB_ENV
               echo "OQC_EMAIL=${{ secrets.BACKEND_LOGIN_EMAIL }}" >> $GITHUB_ENV
-              echo "OQC_PASSWORD=${{ secrets.OQC_PASSWORD }}" >> $GITHUB_ENV
               echo "OQC_DEVICE=${{ secrets.OQC_DEVICE }}" >> $GITHUB_ENV
               echo "OQC_AUTH_TOKEN=${{ secrets.OQC_AUTH_TOKEN }}" >> $GITHUB_ENV
               ;;

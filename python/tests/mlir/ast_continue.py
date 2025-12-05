@@ -9,6 +9,7 @@
 # RUN: PYTHONPATH=../../ pytest -rP  %s | FileCheck %s
 
 import cudaq
+import numpy
 
 
 def test_continue():
@@ -43,6 +44,8 @@ def test_continue():
 # CHECK:             cc.condition %[[VAL_11]](%[[VAL_10]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
+# CHECK:             %[[VAL_25:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_12]], %[[VAL_25]] : !cc.ptr<i64>
 # CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
 # CHECK:             %[[VAL_14:.*]] = math.fpowi %[[VAL_13]], %[[VAL_2]] : f64, i64
 # CHECK:             %[[VAL_15:.*]] = arith.addf %[[VAL_13]], %[[VAL_14]] : f64
@@ -51,13 +54,15 @@ def test_continue():
 # CHECK:             %[[VAL_17:.*]] = arith.cmpf ogt, %[[VAL_16]], %[[VAL_1]] : f64
 # CHECK:             cf.cond_br %[[VAL_17]], ^bb1, ^bb2
 # CHECK:           ^bb1:
-# CHECK:             %[[VAL_18:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
+# CHECK:             %[[VAL_26:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_18:.*]] = arith.remui %[[VAL_26]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_19:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_18]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.x %[[VAL_19]] : (!quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_12]] : i64
 # CHECK:           ^bb2:
 # CHECK:             %[[VAL_20:.*]] = cc.load %[[VAL_7]] : !cc.ptr<f64>
-# CHECK:             %[[VAL_21:.*]] = arith.remui %[[VAL_12]], %[[VAL_6]] : i64
+# CHECK:             %[[VAL_27:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_21:.*]] = arith.remui %[[VAL_27]], %[[VAL_6]] : i64
 # CHECK:             %[[VAL_22:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_21]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.ry (%[[VAL_20]]) %[[VAL_22]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_12]] : i64
@@ -65,6 +70,24 @@ def test_continue():
 # CHECK:           ^bb0(%[[VAL_23:.*]]: i64):
 # CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_24]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
+
+
+def test_continue2():
+
+    @cudaq.kernel(verbose=False)
+    def kernel(x: float):
+        qs = cudaq.qvector(6)
+        for idx, q in enumerate(qs):
+            if idx < 3:
+                continue
+            ry(x, q)
+
+    res = cudaq.sample(kernel, numpy.pi)
+    assert len(res) == 1 and '000111' in res
+    print(f"output test1: {res}")
+
+
+# CHECK-LABEL:  output test1: { 000111:1000 }

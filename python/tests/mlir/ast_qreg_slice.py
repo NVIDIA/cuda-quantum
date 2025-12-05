@@ -75,7 +75,6 @@ def test_slice():
 # CHECK:           %[[VAL_16:.*]] = quake.extract_ref %[[VAL_14]][1] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           quake.z %[[VAL_16]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<!cc.array<i64 x ?>>
 # CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_3]], %[[VAL_19]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_20:.*]] = cc.compute_ptr %[[VAL_17]][1] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
@@ -86,35 +85,30 @@ def test_slice():
 # CHECK:           cc.store %[[VAL_1]], %[[VAL_22]] : !cc.ptr<i64>
 # CHECK:           %[[VAL_23:.*]] = cc.compute_ptr %[[VAL_17]][4] : (!cc.ptr<!cc.array<i64 x 5>>) -> !cc.ptr<i64>
 # CHECK:           cc.store %[[VAL_5]], %[[VAL_23]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_24:.*]] = cc.stdvec_init %[[VAL_18]], %[[VAL_5]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
-# CHECK:           %[[VAL_25:.*]] = cc.alloca !cc.stdvec<i64>
-# CHECK:           cc.store %[[VAL_24]], %[[VAL_25]] : !cc.ptr<!cc.stdvec<i64>>
-# CHECK:           %[[VAL_26:.*]] = cc.load %[[VAL_25]] : !cc.ptr<!cc.stdvec<i64>>
-# CHECK:           %[[VAL_27:.*]] = cc.stdvec_data %[[VAL_26]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
-# CHECK:           %[[VAL_28:.*]] = cc.compute_ptr %[[VAL_27]][2] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i64>
-# CHECK:           %[[VAL_29:.*]] = cc.stdvec_init %[[VAL_28]], %[[VAL_2]] : (!cc.ptr<i64>, i64) -> !cc.stdvec<i64>
-# CHECK:           %[[VAL_30:.*]] = cc.alloca !cc.stdvec<i64>
-# CHECK:           cc.store %[[VAL_29]], %[[VAL_30]] : !cc.ptr<!cc.stdvec<i64>>
-# CHECK:           %[[VAL_31:.*]] = cc.load %[[VAL_30]] : !cc.ptr<!cc.stdvec<i64>>
-# CHECK:           %[[VAL_32:.*]] = cc.stdvec_size %[[VAL_31]] : (!cc.stdvec<i64>) -> i64
 # CHECK:           %[[VAL_33:.*]] = cc.loop while ((%[[VAL_34:.*]] = %[[VAL_6]]) -> (i64)) {
-# CHECK:             %[[VAL_35:.*]] = arith.cmpi slt, %[[VAL_34]], %[[VAL_32]] : i64
+# CHECK:             %[[VAL_35:.*]] = arith.cmpi slt, %[[VAL_34]], %[[VAL_2]] : i64
 # CHECK:             cc.condition %[[VAL_35]](%[[VAL_34]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_36:.*]]: i64):
-# CHECK:             %[[VAL_37:.*]] = cc.stdvec_data %[[VAL_31]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+# CHECK:             %[[VAL_37:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
 # CHECK:             %[[VAL_38:.*]] = cc.compute_ptr %[[VAL_37]]{{\[}}%[[VAL_36]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
 # CHECK:             %[[VAL_39:.*]] = cc.load %[[VAL_38]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_40:.*]] = arith.remui %[[VAL_36]], %[[VAL_1]] : i64
+# CHECK:             %[[VAL_50:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_36]], %[[VAL_50]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_51:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_39]], %[[VAL_51]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_52:.*]] = cc.load %[[VAL_51]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_53:.*]] = cc.load %[[VAL_50]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_40:.*]] = arith.remui %[[VAL_53]], %[[VAL_1]] : i64
 # CHECK:             %[[VAL_41:.*]] = quake.extract_ref %[[VAL_7]]{{\[}}%[[VAL_40]]] : (!quake.veq<4>, i64) -> !quake.ref
-# CHECK:             %[[VAL_42:.*]] = arith.sitofp %[[VAL_39]] : i64 to f64
+# CHECK:             %[[VAL_42:.*]] = cc.cast signed %[[VAL_52]] : (i64) -> f64
 # CHECK:             quake.ry (%[[VAL_42]]) %[[VAL_41]] : (f64, !quake.ref) -> ()
 # CHECK:             cc.continue %[[VAL_36]] : i64
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_43:.*]]: i64):
 # CHECK:             %[[VAL_44:.*]] = arith.addi %[[VAL_43]], %[[VAL_3]] : i64
 # CHECK:             cc.continue %[[VAL_44]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           %[[VAL_45:.*]] = quake.extract_ref %[[VAL_7]][3] : (!quake.veq<4>) -> !quake.ref
 # CHECK:           quake.rz (%[[VAL_4]]) %[[VAL_45]] : (f64, !quake.ref) -> ()
 # CHECK:           return

@@ -213,6 +213,22 @@ bool isDynamicType(Type ty) {
   return false;
 }
 
+bool isDynamicallySizedType(Type ty) {
+  if (isa<SpanLikeType>(ty))
+    return false;
+  if (auto strTy = dyn_cast<StructType>(ty)) {
+    for (auto memTy : strTy.getMembers())
+      if (isDynamicallySizedType(memTy))
+        return true;
+    return false;
+  }
+  if (auto arrTy = dyn_cast<ArrayType>(ty))
+    return arrTy.isUnknownSize() ||
+           isDynamicallySizedType(arrTy.getElementType());
+  // Note: this isn't considering quake, builtin, etc. types.
+  return false;
+}
+
 CallableType CallableType::getNoSignature(MLIRContext *ctx) {
   return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }

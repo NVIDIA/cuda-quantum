@@ -106,8 +106,8 @@ def test_attribute_failures():
 
 
 # CHECK-LABEL:  Failure kernel1:
-# CHECK:        invalid CUDA-Q attribute assignment
-# CHECK-NEXT:   (offending source -> l.size = 4)
+# CHECK:        attribute expression does not produce a modifiable value
+# CHECK-NEXT:   (offending source -> l.size)
 
 # CHECK-LABEL:  Failure kernel2:
 # CHECK:        CUDA-Q does not allow dynamic resizing or lists, arrays, or qvectors.

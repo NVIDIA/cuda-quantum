@@ -304,8 +304,7 @@ module {
 // CHECK:           %[[VAL_87:.*]] = cc.cast unsigned %[[VAL_85]] : (i1) -> i8
 // CHECK:           cc.store %[[VAL_87]], %[[VAL_86]] : !cc.ptr<i8>
 // CHECK:           %[[VAL_88:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_89:.*]] = arith.negf %[[VAL_4]] : f64
-// CHECK:           quake.rz (%[[VAL_89]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz<adj> (%[[VAL_4]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry<adj> (%[[VAL_3]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz<adj> (%[[VAL_2]]) %[[VAL_88]] : (f64, !quake.ref) -> ()

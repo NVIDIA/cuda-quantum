@@ -544,7 +544,7 @@ def evolve_single_async(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
-    if store_intermediate_results:
+    if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
             num_qubits,
             compute_step_matrix,
@@ -579,12 +579,12 @@ def evolve_single_async(
             return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         if len(collapse_operators) > 0:
-            cudaq_runtime.evolve_async(initial_state,
-                                       kernel,
-                                       parameters[-1],
-                                       observable_spinops,
-                                       noise_model=noise,
-                                       shots_count=shots_count)
+            return cudaq_runtime.evolve_async(initial_state,
+                                              kernel,
+                                              parameters[-1],
+                                              observable_spinops,
+                                              noise_model=noise,
+                                              shots_count=shots_count)
         return cudaq_runtime.evolve_async(initial_state,
                                           kernel,
                                           parameters[-1],
