@@ -52,12 +52,24 @@ static LayoutInfoType extractLayout(const std::string &kernelName,
   if (!fnOp)
     throw std::runtime_error("Could not find " + kernelName +
                              " function in the module.");
-  if (!fnOp->hasAttr(cudaq::runtime::enableCudaqRun))
-    throw std::runtime_error("Run kernel " + kernelName +
-                             " incorrectly annotated.");
-  auto arrAttr = cast<ArrayAttr>(fnOp->getAttr(cudaq::runtime::enableCudaqRun));
   // Extract layout information from the function's return type.
-  Type returnTy = cast<TypeAttr>(arrAttr[0]).getValue();
+  Type returnTy = [&]() {
+    if (fnOp->hasAttr(cudaq::runtime::enableCudaqRun)) {
+      auto arrAttr =
+          cast<ArrayAttr>(fnOp->getAttr(cudaq::runtime::enableCudaqRun));
+      return cast<TypeAttr>(arrAttr[0]).getValue();
+    }
+
+    func::FuncOp kernelFunc = dyn_cast<func::FuncOp>(fnOp);
+    if (!kernelFunc)
+      throw std::runtime_error("expected a func::FuncOp.");
+    if (kernelFunc.getResultTypes().size() == 0)
+      throw std::runtime_error("function has no return type.");
+    if (kernelFunc.getResultTypes().size() > 1)
+      throw std::runtime_error("function has multiple return types.");
+    return kernelFunc.getResultTypes()[0];
+  }();
+
   auto attr = moduleOp->getAttr(cudaq::opt::factory::targetDataLayoutAttrName);
   if (!attr)
     throw std::runtime_error("module is malformed. missing data layout.");

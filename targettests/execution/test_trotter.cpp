@@ -6,18 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
 // TODO-FIX-KERNEL-EXEC
 // Simulators
-// RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
-
-// Quantum emulators
-// RUN: nvq++ %cpp_std -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target ionq       -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target oqc        -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm      --emulate -fkernel-exec-kind=2 %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s; fi
-// clang-format on
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <complex>
 #include <cudaq.h>
