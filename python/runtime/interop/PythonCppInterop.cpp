@@ -119,7 +119,7 @@ __attribute__((visibility("default"))) void
 registerDeviceKernel(const std::string &module, const std::string &name,
                      const std::string &mangled) {
   auto key = module + "." + name;
-  deviceKernelMLIRMap.insert({key, getMLIRCodeAndName(name, mangled)});
+  deviceKernelMLIRMap[key] = getMLIRCodeAndName(name, mangled);
 }
 
 bool isRegisteredDeviceModule(const std::string &compositeName) {
