@@ -610,10 +610,9 @@ public:
             "Could not successfully apply resource count preprocess.");
     }
 
-    auto entryPointFunc = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
-        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
-    assert(entryPointFunc &&
-           "Could not find entry point function after lowering pipeline.");
+    assert(
+        moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
+        "Entry point function must survive the lowering pipeline.");
     std::vector<std::size_t> mapping_reorder_idx;
     if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
             epFunc->getAttr("mapping_reorder_idx"))) {
