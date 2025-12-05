@@ -359,8 +359,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     return statePtrVal;
   }
 
-  TODO("cudaq::state* argument synthesis for quantum hardware for c functions");
-  return {};
+  throw std::runtime_error(
+      "cudaq::state* argument synthesis for quantum hardware is not supported");
 }
 
 static bool isSupportedRecursiveSpan(cudaq::cc::StdvecType ty) {
