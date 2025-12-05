@@ -123,7 +123,8 @@ public:
       throw std::runtime_error("no kernel named " + name + " found in module");
 
     // Merge other modules (e.g., if there are device kernel calls).
-    cudaq::detail::mergeAllCallableClosures(module, name, *rawArgs);
+    if (rawArgs && !rawArgs->empty())
+      cudaq::detail::mergeAllCallableClosures(module, name, *rawArgs);
 
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
