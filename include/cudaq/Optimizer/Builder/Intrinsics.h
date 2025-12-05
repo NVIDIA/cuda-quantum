@@ -53,10 +53,14 @@ static constexpr const char getNumQubitsFromCudaqState[] =
     "__nvqpp_cudaq_state_numberOfQubits";
 
 // Create a new state from data.
-static constexpr const char createCudaqStateFromDataFP64[] =
-    "__nvqpp_cudaq_state_createFromData_fp64";
-static constexpr const char createCudaqStateFromDataFP32[] =
-    "__nvqpp_cudaq_state_createFromData_fp32";
+static constexpr const char createCudaqStateFromDataComplexF64[] =
+    "__nvqpp_cudaq_state_createFromData_complex_f64";
+static constexpr const char createCudaqStateFromDataComplexF32[] =
+    "__nvqpp_cudaq_state_createFromData_complex_f32";
+static constexpr const char createCudaqStateFromDataF64[] =
+    "__nvqpp_cudaq_state_createFromData_f64";
+static constexpr const char createCudaqStateFromDataF32[] =
+    "__nvqpp_cudaq_state_createFromData_f32";
 
 // Delete a state created by the runtime functions above.
 static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
