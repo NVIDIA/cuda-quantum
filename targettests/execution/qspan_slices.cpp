@@ -8,13 +8,15 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target anyon                              --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon --anyon-machine berkeley-25q --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq                               --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm                                --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc                                --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum                         --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: nvq++ --emulate %s -o %t --target anyon && %t | FileCheck %s
+// RUN: nvq++ --emulate %s -o %t --target anyon --anyon-machine berkeley-25q && %t | FileCheck %s
+// RUN: nvq++ --emulate %s -o %t --target ionq && %t | FileCheck %s
+// RUN: nvq++ --emulate %s -o %t --target iqm && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --emulate %s -o %t --target oqc && %t | FileCheck %s
+// RUN: nvq++ --emulate %s -o %t --target quantinuum && %t | FileCheck %s
+// RUN: if %qci_avail; then \
+// RUN: nvq++ --emulate %s -o %t --target qci && %t | FileCheck %s; fi
+
 // Tests for --disable-qubit-mapping:
 // RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
 // RUN: nvq++ -v %s -o %t --target iqm --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t |& FileCheck --check-prefix=DISABLE %s

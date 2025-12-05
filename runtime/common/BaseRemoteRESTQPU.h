@@ -466,11 +466,11 @@ public:
                       mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr,
                       void *updatedArgs) {
     // Extract the kernel name
-    auto func = m_module.template lookupSymbol<mlir::func::FuncOp>(
+    auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
     auto moduleOp = lowerQuakeCodeBuildModule<destroyContext>(
-        kernelName, m_module, contextPtr, func);
+        kernelName, m_module, contextPtr, origFn);
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
@@ -491,14 +491,16 @@ public:
         throw std::runtime_error("Remote rest platform Quake lowering failed.");
     };
 
+    auto epFunc =
+        moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(contextPtr);
       detail::mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
 
-      // Mark all newly merged kernels private.
+      // Mark all newly merged kernels private, and leave the entry point alone.
       for (auto &op : moduleOp)
         if (auto f = dyn_cast<mlir::func::FuncOp>(op))
-          if (f.getName() != func.getName())
+          if (f != epFunc)
             f.setPrivate();
 
       if (!rawArgs.empty()) {
@@ -614,7 +616,7 @@ public:
            "Could not find entry point function after lowering pipeline.");
     std::vector<std::size_t> mapping_reorder_idx;
     if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-            entryPointFunc->getAttr("mapping_reorder_idx"))) {
+            epFunc->getAttr("mapping_reorder_idx"))) {
       mapping_reorder_idx.resize(mappingAttr.size());
       std::transform(mappingAttr.begin(), mappingAttr.end(),
                      mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
