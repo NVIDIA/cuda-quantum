@@ -14,7 +14,7 @@
 #ifndef CUDAQ_BACKEND_STIM
 
 std::vector<cudaq::complex> randomState(int numQubits) {
-  std::vector<cudaq::complex> stateVec(2 * numQubits);
+  std::vector<cudaq::complex> stateVec(1 << numQubits);
   std::generate(stateVec.begin(), stateVec.end(), []() -> cudaq::complex {
     thread_local std::default_random_engine
         generator; // thread_local so we don't have to do any locking
