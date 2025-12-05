@@ -122,6 +122,10 @@ public:
     if (!func)
       throw std::runtime_error("no kernel named " + name + " found in module");
 
+    // Merge other modules (e.g., if there are device kernel calls).
+    if (rawArgs && !rawArgs->empty())
+      cudaq::detail::mergeAllCallableClosures(module, name, *rawArgs);
+
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
     mlir::ImplicitLocOpBuilder builder(location, &mlirContext);
@@ -155,8 +159,6 @@ public:
     if (rawArgs || args) {
       mlir::PassManager pm(&mlirContext);
       if (rawArgs && !rawArgs->empty()) {
-        // Merge other modules (e.g., if there are device kernel calls).
-        cudaq::detail::mergeAllCallableClosures(module, name, *rawArgs);
         CUDAQ_INFO("Run Argument Synth.\n");
         opt::ArgumentConverter argCon(name, moduleOp);
         argCon.gen_drop_front(*rawArgs, startingArgIdx);
