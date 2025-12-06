@@ -91,6 +91,9 @@ private:
   /// number of times the Instruction is used.
   std::unordered_map<Instruction, std::size_t, InstructionHash> instructions;
 
+  /// @brief Keep track of gate count by name
+  std::map<std::string, std::size_t> gateCountsByName;
+
   /// @brief Keep track of the total number of gates. We keep this
   /// here so we don't have to keep recomputing it.
   std::size_t totalGates = 0;

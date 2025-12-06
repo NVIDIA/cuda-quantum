@@ -47,12 +47,10 @@ std::size_t Resources::count_controls(const std::string &name,
 }
 
 std::size_t Resources::count(const std::string &name) const {
-  std::size_t result = 0;
-  for (auto &[instruction, count] : instructions)
-    if (instruction.name == name)
-      result += count;
-
-  return result;
+  auto it = gateCountsByName.find(name);
+  if (it == gateCountsByName.end())
+    return 0;
+  return it->second;
 }
 
 std::size_t Resources::count() const { return totalGates; }
@@ -68,6 +66,8 @@ void Resources::appendInstruction(const std::string &name,
   }
 
   totalGates += count;
+
+  gateCountsByName[name] += count;
 }
 
 void Resources::dump(std::ostream &os) const {
@@ -92,6 +92,7 @@ void Resources::dump() const { dump(std::cout); }
 
 void Resources::clear() {
   instructions.clear();
+  gateCountsByName.clear();
   numQubits = 0;
   totalGates = 0;
 }
@@ -99,13 +100,6 @@ void Resources::clear() {
 void Resources::addQubit() { numQubits++; }
 
 std::map<std::string, std::size_t> Resources::gateCounts() const {
-  std::map<std::string, std::size_t> out;
-  for (const auto &entry : instructions) {
-    const auto &instr = entry.first;
-    auto count = entry.second;
-
-    out[instr.name] += count;
-  }
-  return out;
+  return gateCountsByName;
 }
 } // namespace cudaq
