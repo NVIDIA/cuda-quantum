@@ -9,6 +9,7 @@
 #pragma once
 
 #include "Trace.h"
+#include <map>
 #include <ostream>
 #include <unordered_map>
 #include <vector>
@@ -81,6 +82,8 @@ public:
 
   /// @brief Register the usage of an additional qubit
   void addQubit();
+
+  std::map<std::string, std::size_t> gateCounts() const;
 
 private:
   /// @brief Map of Instructions in the current kernel to the

@@ -46,6 +46,17 @@ def test_basic():
     assert counts.count("s") == 1
     assert counts.count("t") == 1
 
+    d = counts.to_dict()
+    assert d["rx"] == 1
+    assert d["ry"] == 1
+    assert d["rz"] == 1
+    assert d["h"] == 1
+    assert d["x"] == 1
+    assert d["y"] == 1
+    assert d["z"] == 1
+    assert d["s"] == 1
+    assert d["t"] == 1
+
 
 def test_choice_function():
 
@@ -73,6 +84,14 @@ def test_choice_function():
     assert counts2.count("h") == 1
     assert counts2.count("x") == 1
 
+    d1 = counts1.to_dict()
+    d2 = counts2.to_dict()
+    assert isinstance(d1, dict)
+    assert isinstance(d2, dict)
+    assert d1["h"] == 1
+    assert d2["h"] == 1
+    assert d2["x"] == 1
+
     cudaq.set_target("quantinuum", emulate=True)
     counts1 = cudaq.estimate_resources(mykernel)
     counts2 = cudaq.estimate_resources(mykernel, choice=choice)
@@ -80,6 +99,12 @@ def test_choice_function():
     assert counts1.count("h") == 1
     assert counts2.count("h") == 1
     assert counts2.count("x") == 1
+
+    d1 = counts1.to_dict()
+    d2 = counts2.to_dict()
+    assert d1["h"] == 1
+    assert d2["h"] == 1
+    assert d2["x"] == 1
 
 
 def test_choice_function():
@@ -162,10 +187,20 @@ def test_loop_with_args():
     assert counts.count("rx") == 3
     assert counts.count("h") == 1
 
+    d = counts.to_dict()
+    assert isinstance(d, dict)
+    assert d["rx"] == 3
+    assert d["h"] == 1
+
     cudaq.set_target("qci", emulate=True)
     counts = cudaq.estimate_resources(caller, 3, [4.0, 5.0, 6.0])
     assert counts.count("rx") == 3
     assert counts.count("h") == 1
+
+    d = counts.to_dict()
+    assert isinstance(d, dict)
+    assert d["rx"] == 3
+    assert d["h"] == 1
 
 
 # leave for gdb debugging

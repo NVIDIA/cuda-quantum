@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 namespace cudaq {
@@ -96,4 +97,15 @@ void Resources::clear() {
 }
 
 void Resources::addQubit() { numQubits++; }
+
+std::map<std::string, std::size_t> Resources::gateCounts() const {
+  std::map<std::string, std::size_t> out;
+  for (const auto &entry : instructions) {
+    const auto &instr = entry.first;
+    auto count = entry.second;
+
+    out[instr.name] += count;
+  }
+  return out;
+}
 } // namespace cudaq
