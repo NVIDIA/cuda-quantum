@@ -83,6 +83,7 @@ public:
   /// @brief Register the usage of an additional qubit
   void addQubit();
 
+  /// @brief Returns a dictionary mapping gate names to counts
   std::map<std::string, std::size_t> gateCounts() const;
 
 private:
