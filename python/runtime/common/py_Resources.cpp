@@ -55,6 +55,10 @@ This includes all gate counts.)#")
           },
           "Return a string of the raw resource counts that are stored in "
           "`self`.\n")
+      .def(
+          "to_dict", [](Resources &self) { return self.gateCounts(); },
+          "Return a dictionary of the raw resource counts that are stored in "
+          "`self`.\n")
       .def("clear", &Resources::clear, "Clear out all metadata from `self`.\n");
 }
 
