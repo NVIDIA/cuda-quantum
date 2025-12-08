@@ -115,7 +115,7 @@ void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
     }
   }
   target.platformName = foundPlatformName.value_or("default");
-  target.simulatorName = foundSimulatorName.value_or("qpp");
+  target.simulatorName = foundSimulatorName.value_or("");
   target.precision = precision;
 }
 
@@ -445,7 +445,7 @@ void LinkedLibraryHolder::setTarget(
                                " doesn't define a simulator. Please check your "
                                "CUDAQ_DEFAULT_SIMULATOR environment variable.");
   }
-  __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
+  __nvqir__setCircuitSimulator(getSimulator(simName));
   auto *platform = getPlatform(target.platformName);
 
   // Pack the config into the backend string name
@@ -503,7 +503,7 @@ Resources *python::detail::getResourceCounts() {
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
-  if (holder) {
+  if (holder && cudaq::__internal__::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();
     const std::string codegenEmission =
         runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);
