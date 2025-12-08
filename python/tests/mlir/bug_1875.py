@@ -35,12 +35,13 @@ def test_bug_1875():
     assert 'a' in result.register_names
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_break() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant false
-# CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_break
+# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant false
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.ref
+# CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
 # CHECK:           quake.h %[[VAL_3]] : (!quake.ref) -> ()
 # CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
