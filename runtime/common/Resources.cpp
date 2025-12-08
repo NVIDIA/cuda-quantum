@@ -47,10 +47,12 @@ std::size_t Resources::count_controls(const std::string &name,
 }
 
 std::size_t Resources::count(const std::string &name) const {
-  auto it = gateCountsByName.find(name);
-  if (it == gateCountsByName.end())
-    return 0;
-  return it->second;
+  std::size_t result = 0;
+  for (auto &[instruction, count] : instructions)
+    if (instruction.name == name)
+      result += count;
+
+  return result;
 }
 
 std::size_t Resources::count() const { return totalGates; }
