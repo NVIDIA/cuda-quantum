@@ -23,12 +23,12 @@ def test_bad_arg_checking_fix_1130():
     print(qernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:          (%[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][0] : (!quake.veq<2>) -> !quake.ref
 # CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           call @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(%[[VAL_2]], %[[VAL_3]], %[[VAL_0]]) : (!quake.ref, !quake.ref, f64) -> ()
+# CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_2]], %[[VAL_3]], %[[VAL_0]]) : (!quake.ref, !quake.ref, f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
