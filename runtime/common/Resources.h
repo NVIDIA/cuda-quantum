@@ -9,7 +9,6 @@
 #pragma once
 
 #include "Trace.h"
-#include <map>
 #include <ostream>
 #include <unordered_map>
 #include <vector>
@@ -84,15 +83,12 @@ public:
   void addQubit();
 
   /// @brief Returns a dictionary mapping gate names to counts
-  std::map<std::string, std::size_t> gateCounts() const;
+  std::unordered_map<std::string, std::size_t> gateCounts() const;
 
 private:
   /// @brief Map of Instructions in the current kernel to the
   /// number of times the Instruction is used.
   std::unordered_map<Instruction, std::size_t, InstructionHash> instructions;
-
-  /// @brief Keep track of gate count by name
-  std::map<std::string, std::size_t> gateCountsByName;
 
   /// @brief Keep track of the total number of gates. We keep this
   /// here so we don't have to keep recomputing it.
