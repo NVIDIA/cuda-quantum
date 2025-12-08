@@ -493,9 +493,11 @@ public:
 
     auto epFunc =
         moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
+    const bool isPython = moduleOp->hasAttr(runtime::pythonUniqueAttrName);
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(contextPtr);
-      detail::mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
+      if (isPython)
+        detail::mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
 
       // Mark all newly merged kernels private, and leave the entry point alone.
       for (auto &op : moduleOp)
