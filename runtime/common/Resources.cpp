@@ -67,7 +67,10 @@ void Resources::appendInstruction(const std::string &name,
 
   totalGates += count;
 
-  gateCountsByName[name] += count;
+  std::string gatestr(nControls, 'c');
+  gatestr += name;
+
+  gateCountsByName[gatestr] += count;
 }
 
 void Resources::dump(std::ostream &os) const {
