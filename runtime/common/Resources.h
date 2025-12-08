@@ -39,7 +39,7 @@ public:
     /// @brief The number of controls
     std::size_t nControls;
 
-    Instruction(const std::string &n) : name(n) {}
+    Instruction(const std::string &n) : name(n), nControls(0) {}
 
     /// @brief The constructor
     Instruction(const std::string &n, const size_t c) : name(n), nControls(c) {}
