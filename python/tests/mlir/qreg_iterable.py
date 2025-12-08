@@ -22,14 +22,11 @@ def test_qreg_iter():
     print(foo)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__foo(
-# CHECK-SAME:                                     %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__foo
+# CHECK-SAME:      (%[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:           %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:           %[[VAL_2:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_3:.*]] = cc.alloca i64
-# CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_4]] : i64]
+# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_0]] : i64]
 # CHECK:           %[[VAL_6:.*]] = quake.veq_size %[[VAL_5]] : (!quake.veq<?>) -> i64
 # CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_2]]) -> (i64)) {
 # CHECK:             %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_6]] : i64
