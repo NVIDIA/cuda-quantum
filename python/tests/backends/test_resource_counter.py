@@ -58,6 +58,39 @@ def test_basic():
     assert d["t"] == 1
 
 
+def test_control_gates_resources():
+
+    @cudaq.kernel
+    def mykernel():
+        q = cudaq.qvector(3)
+        x(q[0])
+        x.ctrl(q[0], q[1])
+        x.ctrl([q[0], q[1]], q[2])
+        h(q[0])
+        h.ctrl(q[0], q[1])
+
+    counts = cudaq.estimate_resources(mykernel)
+
+    assert counts.count_controls("x", 0) == 1
+    assert counts.count_controls("x", 1) == 1
+    assert counts.count_controls("x", 2) == 1
+
+    assert counts.count_controls("h", 0) == 1
+    assert counts.count_controls("h", 1) == 1
+
+    assert counts.count() == 5
+
+    d = counts.to_dict()
+    assert isinstance(d, dict)
+
+    assert d["x"] == 1
+    assert d["h"] == 1
+
+    assert d["cx"] == 1
+    assert d["ccx"] == 1
+    assert d["ch"] == 1
+
+
 def test_choice_function():
 
     @cudaq.kernel
