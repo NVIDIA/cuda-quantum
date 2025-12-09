@@ -16,10 +16,11 @@ from typing import get_origin
 
 import numpy as np
 from cudaq.mlir.ir import (BoolAttr, Block, Context, Module, TypeAttr, UnitAttr,
-                           FunctionType, DictAttr, F32Type, F64Type, NoneType, ArrayAttr,
-                           Location, FloatAttr, StringAttr, IntegerAttr,
-                           IntegerType, ComplexType, InsertionPoint,
-                           SymbolTable, DenseI32ArrayAttr, FlatSymbolRefAttr)
+                           FunctionType, DictAttr, F32Type, F64Type, NoneType,
+                           ArrayAttr, Location, FloatAttr, StringAttr,
+                           IntegerAttr, IntegerType, ComplexType,
+                           InsertionPoint, SymbolTable, DenseI32ArrayAttr,
+                           FlatSymbolRefAttr)
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
                                  func, math)
@@ -697,7 +698,8 @@ class PyKernel(object):
             if isinstance(target, cc.CreateLambdaOp):
                 otherFuncCloned = target
                 otherModule = self.module
-                otherFTy = FunctionType(TypeAttr(target.attributes['function_type']).value).inputs
+                otherFTy = FunctionType(
+                    TypeAttr(target.attributes['function_type']).value).inputs
             else:
                 otherFuncCloned, otherModule = self.__cloneOrGetFunction(
                     target.name, self.module, target)
