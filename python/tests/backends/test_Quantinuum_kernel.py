@@ -244,6 +244,20 @@ def test_exp_pauli():
     assert not '10' in counts
 
 
+def test_draw():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    # Test here is that this does not raise an exception
+    result = cudaq.draw(kernel)
+    assert result is ''
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

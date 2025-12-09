@@ -1,0 +1,105 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+module attributes {cc.python_uniqued = "kernel0..0x7c72351ce620", llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", quake.mangled_name_map = {__nvqpp__mlirgen__kernel0..0x7c72351ce620 = "__nvqpp__mlirgen__kernel0..0x7c72351ce620_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel0..0x7c72351ce620(%arg0: i64 {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %c4_i64 = arith.constant 4 : i64
+    %0 = cc.alloca i64
+    cc.store %c4_i64, %0 : !cc.ptr<i64>
+    %1 = cc.instantiate_callable @__nvqpp__callable.thunk.lambda.0(%0) : (!cc.ptr<i64>) -> !cc.callable<() -> ()>
+    %2 = cc.callable_closure %1 : (!cc.callable<() -> ()>) -> !cc.ptr<i64>
+    %3 = cc.load %2 : !cc.ptr<i64>
+    %4 = quake.alloca !quake.veq<?>[%3 : i64]
+    %5 = quake.veq_size %4 : (!quake.veq<?>) -> i64
+    %6 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+      %7 = arith.cmpi slt, %arg1, %5 : i64
+      cc.condition %7(%arg1 : i64)
+    } do {
+    ^bb0(%arg1: i64):
+      %7 = quake.extract_ref %4[%arg1] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.x %7 : (!quake.ref) -> ()
+      cc.continue %arg1 : i64
+    } step {
+    ^bb0(%arg1: i64):
+      %7 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %7 : i64
+    } {invariant}
+    quake.dealloc %4 : !quake.veq<?>
+    return
+  }
+  func.func private @__nvqpp__callable.thunk.lambda.0(%arg0: !cc.callable<() -> ()>) attributes {"cudaq-kernel"} {
+    %c0_i64 = arith.constant 0 : i64
+    %c1_i64 = arith.constant 1 : i64
+    %0 = cc.callable_closure %arg0 : (!cc.callable<() -> ()>) -> !cc.ptr<i64>
+    %1 = cc.load %0 : !cc.ptr<i64>
+    %2 = quake.alloca !quake.veq<?>[%1 : i64]
+    %3 = quake.veq_size %2 : (!quake.veq<?>) -> i64
+    %4 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+      %5 = arith.cmpi slt, %arg1, %3 : i64
+      cc.condition %5(%arg1 : i64)
+    } do {
+    ^bb0(%arg1: i64):
+      %5 = quake.extract_ref %2[%arg1] : (!quake.veq<?>, i64) -> !quake.ref
+      quake.x %5 : (!quake.ref) -> ()
+      cc.continue %arg1 : i64
+    } step {
+    ^bb0(%arg1: i64):
+      %5 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %5 : i64
+    } {invariant}
+    quake.dealloc %2 : !quake.veq<?>
+    return
+  }
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__kernel0..0x7c72351ce620(i64 
+// CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 4)
+// CHECK:         %[[VAL_3:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_2]]* %[[VAL_1]])
+// CHECK:         %[[VAL_4:.*]] = icmp sgt i64 %[[VAL_3]], 0
+// CHECK:         br i1 %[[VAL_4]], label %[[VAL_5:.*]], label %[[VAL_6:.*]]
+// CHECK:         ; preds = %[[VAL_7:.*]], %[[VAL_5]]
+// CHECK:         %[[VAL_8:.*]] = phi i64 [ %[[VAL_9:.*]], %[[VAL_5]] ], [ 0, %[[VAL_7]] ]
+// CHECK:         %[[VAL_10:.*]] = tail call %[[VAL_11:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 %[[VAL_8]])
+// CHECK:         %[[VAL_12:.*]] = load %[[VAL_11]]*, %[[VAL_11]]** %[[VAL_10]], align 8
+// CHECK:         tail call void @__quantum__qis__x(%[[VAL_11]]* %[[VAL_12]])
+// CHECK:         %[[VAL_9]] = add nuw nsw i64 %[[VAL_8]], 1
+// CHECK:         %[[VAL_13:.*]] = icmp eq i64 %[[VAL_9]], %[[VAL_3]]
+// CHECK:         br i1 %[[VAL_13]], label %[[VAL_6]], label %[[VAL_5]]
+// CHECK:         ; preds = %[[VAL_5]], %[[VAL_7]]
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_2]]* %[[VAL_1]])
+// CHECK:         ret void
+// CHECK:       }
+
+// CHECK-LABEL: define void @__nvqpp__callable.thunk.lambda.0({ i8*, i8* } 
+// CHECK-SAME:    %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = extractvalue { i8*, i8* } %[[VAL_0]], 1
+// CHECK:         %[[VAL_2:.*]] = bitcast i8* %[[VAL_1]] to i64**
+// CHECK:         %[[VAL_3:.*]] = load i64*, i64** %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = load i64, i64* %[[VAL_3]], align 8
+// CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_6:.*]]* @__quantum__rt__qubit_allocate_array(i64 %[[VAL_4]])
+// CHECK:         %[[VAL_7:.*]] = tail call i64 @__quantum__rt__array_get_size_1d(%[[VAL_6]]* %[[VAL_5]])
+// CHECK:         %[[VAL_8:.*]] = icmp sgt i64 %[[VAL_7]], 0
+// CHECK:         br i1 %[[VAL_8]], label %[[VAL_9:.*]], label %[[VAL_10:.*]]
+// CHECK:         ; preds = %[[VAL_11:.*]], %[[VAL_9]]
+// CHECK:         %[[VAL_12:.*]] = phi i64 [ %[[VAL_13:.*]], %[[VAL_9]] ], [ 0, %[[VAL_11]] ]
+// CHECK:         %[[VAL_14:.*]] = tail call %[[VAL_15:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]]* %[[VAL_5]], i64 %[[VAL_12]])
+// CHECK:         %[[VAL_16:.*]] = load %[[VAL_15]]*, %[[VAL_15]]** %[[VAL_14]], align 8
+// CHECK:         tail call void @__quantum__qis__x(%[[VAL_15]]* %[[VAL_16]])
+// CHECK:         %[[VAL_13]] = add nuw nsw i64 %[[VAL_12]], 1
+// CHECK:         %[[VAL_17:.*]] = icmp eq i64 %[[VAL_13]], %[[VAL_7]]
+// CHECK:         br i1 %[[VAL_17]], label %[[VAL_10]], label %[[VAL_9]]
+// CHECK:         ; preds = %[[VAL_9]], %[[VAL_11]]
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_5]])
+// CHECK:         ret void
+// CHECK:       }
+

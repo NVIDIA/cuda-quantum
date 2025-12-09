@@ -125,7 +125,9 @@ Returns:
   # Output
   #      ╭───╮╭──────────╮
   # q0 : ┤ h ├┤ ry(0.59) ├
-  #      ╰───╯╰──────────╯)#");
+  #      ╰───╯╰──────────╯
+
+Note: This function is only available when using simulator backends.)#");
 }
 
 } // namespace cudaq
