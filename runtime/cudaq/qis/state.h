@@ -45,12 +45,12 @@ public:
   state(const std::vector<std::complex<double>> &vector) { initialize(vector); }
   state(std::vector<std::complex<double>> &&vector) {
     std::vector<std::complex<double>> v{std::move(vector)};
-    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+    initialize(v);
   }
   state(const std::vector<std::complex<float>> &vector) { initialize(vector); }
   state(std::vector<std::complex<float>> &&vector) {
     std::vector<std::complex<float>> v{std::move(vector)};
-    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+    initialize(v);
   }
   state(const std::vector<double> &vector) {
     initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});

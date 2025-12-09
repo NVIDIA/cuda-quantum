@@ -133,20 +133,34 @@ std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
 // Code gen helpers to convert spans (device side data) to state objects.
 state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *d,
                                                       std::size_t size) {
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
   return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
 state *__nvqpp_cudaq_state_createFromData_f64(double *d, std::size_t size) {
-  return new state(std::vector<double>{d, d + size});
+
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
 state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *d,
                                                       std::size_t size) {
-  return new state(std::vector<std::complex<float>>{d, d + size});
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
 state *__nvqpp_cudaq_state_createFromData_f32(float *d, std::size_t size) {
-  return new state(std::vector<float>{d, d + size});
+
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
 void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }
