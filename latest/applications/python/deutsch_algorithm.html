@@ -532,12 +532,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -551,6 +551,7 @@
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1092,7 +1093,7 @@ The function is constant
 </section>
 <section id="Quantum-oracles">
 <h2>Quantum oracles<a class="headerlink" href="#Quantum-oracles" title="Permalink to this heading">¶</a></h2>
-<p><img alt="949ef328bf834d4e9c10fcee90db9381" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
+<p><img alt="240c3202d034423aa37c70f1c7049db2" class="no-scaled-link" src="../../_images/oracle.png" style="width: 300px; height: 150px;" /></p>
 <p>Suppose we have <span class="math notranslate nohighlight">\(f(x): \{0,1\} \longrightarrow \{0,1\}\)</span>. We can compute this function on a quantum computer using oracles which we treat as black box functions that yield the output with an appropriate sequence of logical gates.</p>
 <p>Above you see an oracle represented as <span class="math notranslate nohighlight">\(U_f\)</span> which allows us to transform the state <span class="math notranslate nohighlight">\(\ket{x}\ket{y}\)</span> into:</p>
 <div class="math notranslate nohighlight">
@@ -1140,7 +1141,7 @@ U_f\ket{+}\ket{0} &amp;= U_f \tfrac{1}{\sqrt{2}}(\ket{0}+\ket{1}) \ket{0} \\
 <h2>Deutsch’s Algorithm:<a class="headerlink" href="#Deutsch's-Algorithm:" title="Permalink to this heading">¶</a></h2>
 <p>Our aim is to find out if <span class="math notranslate nohighlight">\(f: \{0,1\} \longrightarrow \{0,1\}\)</span> is a constant or a balanced function? If constant, <span class="math notranslate nohighlight">\(f(0) = f(1)\)</span>, and if balanced, <span class="math notranslate nohighlight">\(f(0) \neq f(1)\)</span>.</p>
 <p>We step through the circuit diagram below and follow the math after the application of each gate.</p>
-<p><img alt="c175811b79df413a810f2930a7cdb49b" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
+<p><img alt="1daa5c2d2d6c43f0858be444f5659cbe" class="no-scaled-link" src="../../_images/deutsch.png" style="width: 500px; height: 210px;" /></p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi_0}  =  \ket{01}
 \tag{1}\]</div>

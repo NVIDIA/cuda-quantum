@@ -822,8 +822,6 @@ latest
     -   [Sample-Based Krylov Quantum Diagonalization (SKQD)](#){.current
         .reference .internal}
         -   [Why SKQD?](#Why-SKQD?){.reference .internal}
-        -   [Setup and Imports](#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -832,6 +830,9 @@ latest
                 .internal}
             -   [The SKQD Algorithm](#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -851,6 +852,9 @@ latest
             .internal}
             -   [What to Expect:](#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1788,47 +1792,6 @@ SKQD addresses these fundamental limitations:
     to near-term quantum devices than deep variational ansätze
 :::
 
-::: {#Setup-and-Imports .section}
-## Setup and Imports[¶](#Setup-and-Imports "Permalink to this heading"){.headerlink}
-
-::: {.nbinput .docutils .container}
-::: {.prompt .highlight-none .notranslate}
-::: highlight
-    [1]:
-:::
-:::
-
-::: {.input_area .highlight-ipython3 .notranslate}
-::: highlight
-    import cudaq
-
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    from skqd_src.pre_and_postprocessing import *
-
-    cudaq.set_target("nvidia")
-
-    cudaq.set_random_seed(42)
-    np.random.seed(43)
-
-    print("Using:", cudaq.__version__)
-:::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum e1958798aad2b53eea1bb398be1187da31835020)
-:::
-:::
-:::
-:::
-
 ::: {#Understanding-Krylov-Subspaces .section}
 ## Understanding Krylov Subspaces[¶](#Understanding-Krylov-Subspaces "Permalink to this heading"){.headerlink}
 
@@ -1863,38 +1826,81 @@ quantum measurements!
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
+    [1]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    import cudaq
+    import matplotlib.pyplot as plt
+    import cupy as cp
+    import numpy as np
+    from skqd_src.pre_and_postprocessing import *
+
+    use_gpu = True #this is for postprocessing, the quantum circuit simulation is done on GPU via the nvidia target using CUDA-Q
+    if use_gpu == True:
+        from cupyx.scipy.sparse import csr_matrix
+        from cupyx.scipy.sparse.linalg import eigsh
+    else:
+        from scipy.sparse import csr_matrix
+        from scipy.sparse.linalg import eigsh
+
+
+    cudaq.set_target('nvidia')
+    cudaq.set_random_seed(42)
+    np.random.seed(43)
+    cp.random.seed(44)
+:::
+:::
+:::
+:::
+:::
+
+::: {#Problem-Setup:-22-Qubit-Heisenberg-Model .section}
+## Problem Setup: 22-Qubit Heisenberg Model[¶](#Problem-Setup:-22-Qubit-Heisenberg-Model "Permalink to this heading"){.headerlink}
+
+We'll demonstrate SKQD on a 1D Heisenberg spin chain with 22 qubits:
+
+::: {.math .notranslate .nohighlight}
+\\\[H = \\sum\_{i} \\left(J_x \\sigma_i\^x \\sigma\_{i+1}\^x + J_y
+\\sigma_i\^y \\sigma\_{i+1}\^y + J_z \\sigma_i\^z
+\\sigma\_{i+1}\^z\\right) + \\sum_i \\left(h_x \\sigma_i\^x + h_y
+\\sigma_i\^y + h_z \\sigma_i\^z\\right)\\\]
+:::
+
+::: {.nbinput .nblast .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
     [2]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    num_spins = 22  # Number of qubits/spins in our chain
-    measurement_shots = 100_000  # Number of measurements per Krylov state
+    num_spins = 22
 
-    # Krylov subspace parameters
-    krylov_subspace_dimension = 5  # Size of Krylov subspace K^r
-    num_trotter_steps = 8  # Trotter decomposition steps for time evolution
-    total_evolution_time = np.pi  # Total evolution time per Krylov step
-    time_step = total_evolution_time / num_trotter_steps  # Individual Trotter time step
+    if num_spins >= 63:
+        raise ValueError(f"Vectorized implementation of postprocessing supports max 62 qubits due to int64 packing. Requested: {num_spins}")
 
-    # Classical eigenvalue solver configuration
-    eigenvalue_solver_options = {
-        "k": 2,
-        "which": "SA"
-    }  # Find 2 smallest eigenvalues
+    shots = 100_000
 
-    Jx, Jy, Jz = 1.0, 1.0, 1.0  # Coupling coefficients for Heisenberg Hamiltonian
+    total_time_evolution = np.pi
+    num_trotter_steps = 8
+    dt = total_time_evolution / num_trotter_steps
+
+    max_k = 12  # largest k for U^k
+
+    eigenvalue_solver_options = {"k": 2, "which": "SA"}  # Find 2 smallest eigenvalues
+
+
+
+    Jx, Jy, Jz = 1.0, 1.0, 1.0
     h_x, h_y, h_z = np.ones(num_spins), np.ones(num_spins), np.ones(num_spins)
-    spin_hamiltonian = create_heisenberg_hamiltonian(num_spins, Jx, Jy, Jz, h_x,
-                                                     h_y, h_z)
-    exact_ground_state_energy = -38.272304  # Exact ground state energy (computed via classical exact diagonalization)
-
-    # Extract Hamiltonian components for CUDA-Q circuits and classical processing
-    hamiltonian_coefficients, pauli_operator_words, pauli_operator_strings = extract_hamiltonian_data(
-        spin_hamiltonian)
+    H = create_heisenberg_hamiltonian(num_spins, Jx, Jy, Jz, h_x, h_y, h_z)
+    exact_ground_state_energy = -38.272304 # Computed via exact diagonalization
+    hamiltonian_coefficients, pauli_words = extract_coeffs_and_paulis(H)
     hamiltonian_coefficients_numpy = np.array(hamiltonian_coefficients)
-:::
 :::
 :::
 :::
@@ -1907,10 +1913,10 @@ For SKQD, we generate the Krylov sequence:
 
 ::: {.math .notranslate .nohighlight}
 \\\[\|\\psi_0\\rangle, U\|\\psi_0\\rangle, U\^2\|\\psi_0\\rangle,
-\\ldots, U\^{r-1}\|\\psi_0\\rangle\\\]
+\\ldots, U\^{k-1}\|\\psi_0\\rangle\\\]
 :::
 
-where [\\(U = e\^{-iH\\Delta t}\\)]{.math .notranslate .nohighlight} is
+where [\\(U = e\^{-iHT}\\)]{.math .notranslate .nohighlight} is
 approximated via Trotter decomposition.
 
 **Implementation Strategy**: 1. Start with reference state
@@ -1931,43 +1937,44 @@ Accumulate measurement statistics across all Krylov powers
 ::: highlight
     @cudaq.kernel
     def quantum_krylov_evolution_circuit(
-            num_qubits: int, krylov_power: int, trotter_steps: int,
-            time_step: float, pauli_operator_words: list[cudaq.pauli_word],
-            hamiltonian_coefficients: list[float]):
-        """
-        CUDA-Q kernel for generating Krylov states via quantum time evolution.
+            num_qubits: int,
+            krylov_power: int,
+            trotter_steps: int,
+            dt: float,
+            H_pauli_words: list[cudaq.pauli_word],
+            H_coeffs: list[float]):
 
-        This kernel implements the core quantum computation of SKQD:
-        1. Prepare Néel reference state |ψ⟩ = |010101...⟩
-        2. Apply time evolution U = e^{-iH*dt} using Trotter decomposition
-        3. Repeat k times to get U^k|ψ⟩
-        4. Measure in computational basis
+        """
+        Generate Krylov states via repeated time evolution.
+
+        Args:
+            num_qubits: Number of qubits in the system
+            krylov_power: Power k for computing U^k|ψ⟩
+            trotter_steps: Number of Trotter steps for each U application
+            dt: Time step for Trotter decomposition
+            H_pauli_words: Pauli decomposition of Hamiltonian
+            H_coeffs: Coefficients for each Pauli term
+
+        Returns:
+            Measurement results in computational basis
         """
 
-        # Allocate quantum register
         qubits = cudaq.qvector(num_qubits)
 
-        # Step 1: Prepare Néel state as reference |010101...⟩
+        #Prepare Néel state as reference |010101...⟩
         for qubit_index in range(num_qubits):
             if qubit_index % 2 == 0:
                 x(qubits[qubit_index])
 
-        # Step 2: Apply time evolution U^k = (e^{-iH*dt})^k
-        for _ in range(krylov_power):  # Apply U exactly k times
 
-            # Each application of U uses Trotter decomposition: U ≈ ∏ᵢ e^{-ih_i*dt/n}
-            for _ in range(trotter_steps):
+        for _ in range(krylov_power):                                            #applies U^k where U = exp(-iHT)
 
-                # Apply each Pauli term in the Hamiltonian
-                # exp_pauli(θ, qubits, P) implements e^{-iθP} for Pauli string P
-                for term_index in range(len(hamiltonian_coefficients)):
+            for _ in range(trotter_steps):                                       #applies exp(-iHT)
 
-                    coefficient = hamiltonian_coefficients[term_index]
-                    pauli_term = pauli_operator_words[term_index]
+                for i in range(len(H_coeffs)):                                   #applies exp(-iHdt)
+                    exp_pauli( -1 * H_coeffs[i] * dt, qubits, H_pauli_words[i])  #applies exp(-ihdt)
 
-                    exp_pauli(coefficient * time_step, qubits, pauli_term)
 
-        # Step 3: Measure all qubits in computational (Z) basis
         mz(qubits)
 :::
 :::
@@ -1980,11 +1987,11 @@ Accumulate measurement statistics across all Krylov powers
 ::: {#The-Sampling-Process .section}
 ### The Sampling Process[¶](#The-Sampling-Process "Permalink to this heading"){.headerlink}
 
-For each [\\(k = 0, 1, 2, \\ldots, r-1\\)]{.math .notranslate
-.nohighlight}: 1. **Prepare** the state
-[\\(U\^k\|\\psi\\rangle\\)]{.math .notranslate .nohighlight} using our
-quantum circuit 2. **Measure** in the computational basis many times 3.
-**Collect** the resulting bitstring counts
+For each krylov power \$ = 0, 1, 2, [\\ldots]{.math}, k-1\$: 1.
+**Prepare** the state [\\(U\^k\|\\psi\\rangle\\)]{.math .notranslate
+.nohighlight} using our quantum circuit 2. **Measure** in the
+computational basis many times 3. **Collect** the resulting bitstring
+counts
 
 The key insight: these measurement outcomes give us a statistical
 representation of each Krylov state, which we can then use to construct
@@ -1999,32 +2006,25 @@ our computational subspace classically.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    # Storage for measurement results from each Krylov state
-    measurement_results_all = []
+    all_measurement_results = []
 
-    # Execute quantum circuit for each Krylov power k = 0, 1, 2, ..., r-1
-    for krylov_power in range(krylov_subspace_dimension):
+    for krylov_power in range(max_k):
+        print(f"Generating Krylov state U^{krylov_power}...")
 
-        print(f"   • Sampling U^{krylov_power}|ψ⟩...")
-
-        # Run the quantum circuit and collect measurement statistics
         sampling_result = cudaq.sample(
             quantum_krylov_evolution_circuit,
-            num_spins,  # Number of qubits
-            krylov_power,  # How many times to apply U
-            num_trotter_steps,  # Trotter decomposition steps
-            time_step,  # Time step per evolution
-            pauli_operator_words,  # Hamiltonian Pauli terms
-            hamiltonian_coefficients,  # Hamiltonian coefficients
-            shots_count=measurement_shots  # Number of measurements
-        )
+            num_spins,
+            krylov_power,
+            num_trotter_steps,
+            dt,
+            pauli_words,
+            hamiltonian_coefficients,
+            shots_count=shots)
 
-        # Convert CUDA-Q result to standard dictionary format
-        measurement_dict = dict(sampling_result.items())
-        measurement_results_all.append(measurement_dict)
+        all_measurement_results.append(dict(sampling_result.items()))
 
-    accumulated_measurement_data = accumulate_krylov_measurements(
-        measurement_results_all, krylov_subspace_dimension)
+
+    cumulative_results = calculate_cumulative_results(all_measurement_results)
 :::
 :::
 :::
@@ -2035,11 +2035,18 @@ our computational subspace classically.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-       • Sampling U^0|ψ⟩...
-       • Sampling U^1|ψ⟩...
-       • Sampling U^2|ψ⟩...
-       • Sampling U^3|ψ⟩...
-       • Sampling U^4|ψ⟩...
+    Generating Krylov state U^0...
+    Generating Krylov state U^1...
+    Generating Krylov state U^2...
+    Generating Krylov state U^3...
+    Generating Krylov state U^4...
+    Generating Krylov state U^5...
+    Generating Krylov state U^6...
+    Generating Krylov state U^7...
+    Generating Krylov state U^8...
+    Generating Krylov state U^9...
+    Generating Krylov state U^10...
+    Generating Krylov state U^11...
 :::
 :::
 :::
@@ -2093,7 +2100,7 @@ the computational subspace:
     \\rangle\\\]
     :::
 
-::: {.nbinput .docutils .container}
+::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
     [5]:
@@ -2102,55 +2109,23 @@ the computational subspace:
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    # Storage for ground state energy estimates at each Krylov dimension
-    estimated_ground_state_energies = []
+    energies = []
 
-    print("Performing classical diagonalization for each Krylov subspace...")
+    for k in range(1, max_k):
 
-    # Process each accumulated subspace (k=1,2,3,... since k=0 is just the reference state)
-    for subspace_index, measurement_data in enumerate(accumulated_measurement_data):
+        cumulative_subspace_results = cumulative_results[k]
+        basis_states = get_basis_states_as_array(cumulative_subspace_results, num_spins)
+        subspace_dimension = len(cumulative_subspace_results)
+        assert len(cumulative_subspace_results) == basis_states.shape[0]
 
-        # Extract unique computational basis states from measurement data
-        computational_basis_states = extract_basis_states_from_measurements(
-            measurement_data)
-        subspace_dimension = computational_basis_states.shape[0]
+        # matrix_rows, matrix_cols, matrix_elements = projected_hamiltonian(basis_states, pauli_words, hamiltonian_coefficients_numpy, verbose) #slower non-vectorized implementation
 
-        # Skip k=0 case (just reference state, no interesting physics)
-        if subspace_index > 0:
+        #if use_gpu is True, the projected hamiltonian & eigenvalue solver are computed on the GPU
+        matrix_rows, matrix_cols, matrix_elements = vectorized_projected_hamiltonian(basis_states, pauli_words, hamiltonian_coefficients_numpy, use_gpu)
+        projected_hamiltonian = csr_matrix((matrix_elements, (matrix_rows, matrix_cols)), shape=(subspace_dimension, subspace_dimension))
+        eigenvalue = eigsh(projected_hamiltonian, return_eigenvectors=False, **eigenvalue_solver_options)
 
-            print(f"   • Krylov dimension {subspace_index + 1}")
-
-            # Project Hamiltonian onto this subspace and find lowest eigenvalues
-            eigenvalues = diagonalize_subspace_hamiltonian(
-                computational_basis_states,
-                pauli_operator_strings,
-                hamiltonian_coefficients_numpy,
-                verbose=False,
-                **eigenvalue_solver_options)
-
-            # Extract ground state energy estimate (lowest eigenvalue)
-            ground_state_energy = np.min(eigenvalues)
-            estimated_ground_state_energies.append(ground_state_energy)
-
-    estimated_ground_state_energies = [
-        energy.get() if hasattr(energy, 'get') else energy
-        for energy in estimated_ground_state_energies
-    ]
-:::
-:::
-:::
-
-::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
-:::
-
-::: {.output_area .docutils .container}
-::: highlight
-    Performing classical diagonalization for each Krylov subspace...
-       • Krylov dimension 2
-       • Krylov dimension 3
-       • Krylov dimension 4
-       • Krylov dimension 5
+        energies.append(np.min(eigenvalue).item())
 :::
 :::
 :::
@@ -2183,29 +2158,19 @@ reference for comparison with SKQD results.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [6]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
     # Create visualization of SKQD convergence
-    plt.figure(figsize=(6, 5))
 
-    krylov_dims_used = range(2, krylov_subspace_dimension + 1)
-    all_dims = range(1, krylov_subspace_dimension + 1)
+    plt.figure(figsize=(5, 4))
+    all_dims = range(1, max_k)
 
-    plt.plot(krylov_dims_used,
-             estimated_ground_state_energies,
-             'o-',
-             linewidth=2,
-             markersize=8,
-             label='SKQD')
-
-    plt.plot(all_dims, [exact_ground_state_energy] * krylov_subspace_dimension,
-             'g',
-             linewidth=2,
-             label='Exact ground state')
+    plt.plot(all_dims, energies, 'o-', linewidth=2, markersize=8, label='SKQD')
+    plt.plot(all_dims, [exact_ground_state_energy] * (max_k-1), 'g', linewidth=2, label='Exact ground state')
 
     plt.xticks(all_dims)
     plt.xlabel("Krylov Subspace Dimension", fontsize=12)
@@ -2214,17 +2179,10 @@ reference for comparison with SKQD results.
     plt.legend(fontsize=11)
     plt.grid(True, alpha=0.3)
 
-    # Add convergence analysis text
-    final_error = abs(estimated_ground_state_energies[-1] -
-                      exact_ground_state_energy)
-    plt.text(
-        0.02,
-        0.98,
-        f'Final error: {final_error:.6f}\nExact energy: {exact_ground_state_energy:.6f}',
-        transform=plt.gca().transAxes,
-        verticalalignment='top',
-        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
-
+    final_error = abs(energies[-1] - exact_ground_state_energy)
+    plt.text(0.02, 0.98, f'Final error: {final_error:.6f}\nExact energy: {exact_ground_state_energy:.6f}',
+             transform=plt.gca().transAxes, verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
     plt.tight_layout()
 
     plt.show()
@@ -2238,6 +2196,104 @@ reference for comparison with SKQD results.
 
 ::: {.output_area .docutils .container}
 ![](../../_images/applications_python_skqd_12_0.png)
+:::
+:::
+:::
+:::
+
+::: {#GPU-Acceleration-for-Postprocessing .section}
+## GPU Acceleration for Postprocessing[¶](#GPU-Acceleration-for-Postprocessing "Permalink to this heading"){.headerlink}
+
+The critical postprocessing operations are:
+
+1.  Hamiltonian projection onto computational subspace
+
+[`matrix_rows,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`matrix_cols,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`matrix_elements`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`=`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`vectorized_projected_hamiltonian(basis_states,`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`pauli_words,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`hamiltonian_coefficients_numpy,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`use_gpu)`{.docutils .literal .notranslate}]{.pre}
+
+2.  Sparse matrix construction
+
+[`projected_hamiltonian`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`=`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`csr_matrix((matrix_elements,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`(matrix_rows,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`matrix_cols)),`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`shape=(subspace_dimension,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`subspace_dimension))`{.docutils .literal
+.notranslate}]{.pre}
+
+3.  Eigenvalue computation
+
+[`eigenvalue`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`=`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`eigsh(projected_hamiltonian,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`return_eigenvectors=False,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`**eigenvalue_solver_options)`{.docutils .literal
+.notranslate}]{.pre}
+
+This substantial acceleration comes from: - **Parallel Pauli string
+evaluation** across thousands of basis states simultaneously -
+**Vectorized matrix element computation** leveraging CUDA cores -
+**GPU-optimized sparse linear algebra** via cuSPARSE library for
+eigenvalue solving
+
+The speedup becomes increasingly critical as the Krylov dimension grows,
+since the computational subspace dimension (and thus the matrix size)
+scales exponentially with k. For higher k values, GPU acceleration
+transforms previously intractable postprocessing into feasible
+computation times.
+
+**Note**: Set [`use_gpu`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`=`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`True`{.docutils .literal .notranslate}]{.pre} at the
+beginning of the notebook to enable GPU acceleration for postprocessing.
+The quantum circuit simulation uses the NVIDIA target in CUDA-Q
+regardless of this flag.
+
+![3cb4ffa2a2e0412ba5f4f9607091f144](../../_images/speedup.png){.no-scaled-link
+style="width: 600px;"}
+
+::: {.nbinput .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [7]:
+:::
+:::
+
+::: {.input_area .highlight-ipython3 .notranslate}
+::: highlight
+    print("Using:", cudaq.__version__)
+:::
+:::
+:::
+
+::: {.nboutput .nblast .docutils .container}
+::: {.prompt .empty .docutils .container}
+:::
+
+::: {.output_area .docutils .container}
+::: highlight
+    Using: CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 37053302ceb3d83684186b2a99aac500df7b847e)
 :::
 :::
 :::

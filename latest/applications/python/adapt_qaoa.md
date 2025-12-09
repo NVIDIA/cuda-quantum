@@ -821,8 +821,6 @@ latest
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](skqd.html){.reference .internal}
         -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
-        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -832,6 +830,9 @@ latest
             -   [The SKQD
                 Algorithm](skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -852,6 +853,9 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1822,7 +1826,7 @@ explained above.
 
 <div>
 
-![340a1da4a507473caf4213a6e8d3af33](../../_images/adapt-qaoa.png){.no-scaled-link
+![d8d2e76ce6c4434b8127f1c24a066fc1](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

@@ -853,9 +853,6 @@ latest
         -   [Why
             SKQD?](../../applications/python/skqd.html#Why-SKQD?){.reference
             .internal}
-        -   [Setup and
-            Imports](../../applications/python/skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -865,6 +862,9 @@ latest
             -   [The SKQD
                 Algorithm](../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -886,6 +886,9 @@ latest
             -   [What to
                 Expect:](../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1800,14 +1803,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![99b1e6a99bcb4c338cd8a15d605360a0](../../_images/gate-fuse.png)
+![90469e0556164061b30bcd422f361256](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![1397e332e208413d9ca14934ffed9d05](../../_images/gatefusion.png)
+![303d29053e874e09b2f6138f0531e5c4](../../_images/gatefusion.png)
 :::
 :::
 :::

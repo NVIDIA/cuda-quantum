@@ -857,9 +857,6 @@ latest
         -   [Why
             SKQD?](applications/python/skqd.html#Why-SKQD?){.reference
             .internal}
-        -   [Setup and
-            Imports](applications/python/skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -869,6 +866,9 @@ latest
             -   [The SKQD
                 Algorithm](applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -890,6 +890,9 @@ latest
             -   [What to
                 Expect:](applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1769,6 +1772,35 @@ about installing the nightly builds can be found
 -   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples){.reference
     .external}
 
+**0.13.0**
+
+This release adds support for CUDA 13 and Python 3.13 and removes
+support for CUDA 11 and Python 3.10. It adds support for using the
+CUDA-Q QEC libraries for real-time decoding on Quantinuum backends, and
+adds support for submission to QCI backends. Check out the release notes
+below to learn about additional new content.
+
+-   [Docker
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
+    .external}
+
+-   [Python wheel](https://pypi.org/project/cudaq/0.13.0){.reference
+    .external}
+
+-   [C++
+    installer](https://github.com/NVIDIA/cuda-quantum/releases/0.13.0){.reference
+    .external}
+
+-   [Documentation](https://nvidia.github.io/cuda-quantum/0.13.0){.reference
+    .external}
+
+-   [Examples](https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.13.0/docs/sphinx/examples){.reference
+    .external}
+
+The full change log can be found
+[here](https://github.com/NVIDIA/cuda-quantum/releases/0.13.0){.reference
+.external}.
+
 **0.12.0**
 
 This release contains a range of new features and performance
@@ -1782,7 +1814,7 @@ we now include support for Python 3.13.
 *Note*: Support for Python 3.10 will be removed in future releases.
 
 -   [Docker
-    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum){.reference
+    image](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags){.reference
     .external}
 
 -   [Python wheel](https://pypi.org/project/cudaq/0.12.0){.reference

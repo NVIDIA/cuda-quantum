@@ -857,9 +857,6 @@ latest
         -   [Why
             SKQD?](applications/python/skqd.html#Why-SKQD?){.reference
             .internal}
-        -   [Setup and
-            Imports](applications/python/skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -869,6 +866,9 @@ latest
             -   [The SKQD
                 Algorithm](applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -890,6 +890,9 @@ latest
             -   [What to
                 Expect:](applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -5193,41 +5196,45 @@ latest
 |         property)](api/langua     |         method)](api/languages/p  |
 | ges/python_api.html#cudaq.operato | ython_api.html#cudaq.operators.sp |
 | rs.spin.SpinOperatorTerm.term_id) | in.SpinOperatorElement.to_string) |
-| -   [to_json()                    |     -   [(cuda                    |
-|     (                             | q.operators.spin.SpinOperatorTerm |
-| cudaq.gradients.CentralDifference |         method)](api/language     |
-|     method)](api/la               | s/python_api.html#cudaq.operators |
-| nguages/python_api.html#cudaq.gra | .spin.SpinOperatorTerm.to_string) |
-| dients.CentralDifference.to_json) | -   [translate() (in module       |
-|     -   [(                        |     cudaq)](api/languages         |
-| cudaq.gradients.ForwardDifference | /python_api.html#cudaq.translate) |
-|         method)](api/la           | -   [trim()                       |
-| nguages/python_api.html#cudaq.gra |     (cu                           |
-| dients.ForwardDifference.to_json) | daq.operators.boson.BosonOperator |
-|     -                             |     method)](api/l                |
-|  [(cudaq.gradients.ParameterShift | anguages/python_api.html#cudaq.op |
-|         method)](api              | erators.boson.BosonOperator.trim) |
-| /languages/python_api.html#cudaq. |     -   [(cudaq.                  |
-| gradients.ParameterShift.to_json) | operators.fermion.FermionOperator |
-|     -   [(                        |         method)](api/langu        |
-| cudaq.operators.spin.SpinOperator | ages/python_api.html#cudaq.operat |
-|         method)](api/la           | ors.fermion.FermionOperator.trim) |
-| nguages/python_api.html#cudaq.ope |     -                             |
-| rators.spin.SpinOperator.to_json) |  [(cudaq.operators.MatrixOperator |
-|     -   [(cuda                    |         method)](                 |
-| q.operators.spin.SpinOperatorTerm | api/languages/python_api.html#cud |
-|         method)](api/langua       | aq.operators.MatrixOperator.trim) |
-| ges/python_api.html#cudaq.operato |     -   [(                        |
-| rs.spin.SpinOperatorTerm.to_json) | cudaq.operators.spin.SpinOperator |
-|     -   [(cudaq.optimizers.COBYLA |         method)](api              |
-|         metho                     | /languages/python_api.html#cudaq. |
-| d)](api/languages/python_api.html | operators.spin.SpinOperator.trim) |
-| #cudaq.optimizers.COBYLA.to_json) | -   [type_to_str()                |
-|     -   [                         |     (cudaq.PyKernelDecorator      |
-| (cudaq.optimizers.GradientDescent |     static                        |
-|         method)](api/l            |     method)](                     |
-| anguages/python_api.html#cudaq.op | api/languages/python_api.html#cud |
-| timizers.GradientDescent.to_json) | aq.PyKernelDecorator.type_to_str) |
+| -   [to_dict() (cudaq.Resources   |     -   [(cuda                    |
+|                                   | q.operators.spin.SpinOperatorTerm |
+|    method)](api/languages/python_ |         method)](api/language     |
+| api.html#cudaq.Resources.to_dict) | s/python_api.html#cudaq.operators |
+| -   [to_json()                    | .spin.SpinOperatorTerm.to_string) |
+|     (                             | -   [translate() (in module       |
+| cudaq.gradients.CentralDifference |     cudaq)](api/languages         |
+|     method)](api/la               | /python_api.html#cudaq.translate) |
+| nguages/python_api.html#cudaq.gra | -   [trim()                       |
+| dients.CentralDifference.to_json) |     (cu                           |
+|     -   [(                        | daq.operators.boson.BosonOperator |
+| cudaq.gradients.ForwardDifference |     method)](api/l                |
+|         method)](api/la           | anguages/python_api.html#cudaq.op |
+| nguages/python_api.html#cudaq.gra | erators.boson.BosonOperator.trim) |
+| dients.ForwardDifference.to_json) |     -   [(cudaq.                  |
+|     -                             | operators.fermion.FermionOperator |
+|  [(cudaq.gradients.ParameterShift |         method)](api/langu        |
+|         method)](api              | ages/python_api.html#cudaq.operat |
+| /languages/python_api.html#cudaq. | ors.fermion.FermionOperator.trim) |
+| gradients.ParameterShift.to_json) |     -                             |
+|     -   [(                        |  [(cudaq.operators.MatrixOperator |
+| cudaq.operators.spin.SpinOperator |         method)](                 |
+|         method)](api/la           | api/languages/python_api.html#cud |
+| nguages/python_api.html#cudaq.ope | aq.operators.MatrixOperator.trim) |
+| rators.spin.SpinOperator.to_json) |     -   [(                        |
+|     -   [(cuda                    | cudaq.operators.spin.SpinOperator |
+| q.operators.spin.SpinOperatorTerm |         method)](api              |
+|         method)](api/langua       | /languages/python_api.html#cudaq. |
+| ges/python_api.html#cudaq.operato | operators.spin.SpinOperator.trim) |
+| rs.spin.SpinOperatorTerm.to_json) | -   [type_to_str()                |
+|     -   [(cudaq.optimizers.COBYLA |     (cudaq.PyKernelDecorator      |
+|         metho                     |     static                        |
+| d)](api/languages/python_api.html |     method)](                     |
+| #cudaq.optimizers.COBYLA.to_json) | api/languages/python_api.html#cud |
+|     -   [                         | aq.PyKernelDecorator.type_to_str) |
+| (cudaq.optimizers.GradientDescent |                                   |
+|         method)](api/l            |                                   |
+| anguages/python_api.html#cudaq.op |                                   |
+| timizers.GradientDescent.to_json) |                                   |
 |     -   [(cudaq.optimizers.LBFGS  |                                   |
 |         meth                      |                                   |
 | od)](api/languages/python_api.htm |                                   |

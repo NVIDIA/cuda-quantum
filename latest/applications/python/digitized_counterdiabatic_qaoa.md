@@ -820,8 +820,6 @@ latest
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](skqd.html){.reference .internal}
         -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
-        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -831,6 +829,9 @@ latest
             -   [The SKQD
                 Algorithm](skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -851,6 +852,9 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1857,7 +1861,7 @@ represented by the node.
     #non_edges=[[u,v] for u in nodes for v in nodes if u<v and [u,v] not in edges]
     #print('Edges: ', edges)
     #print('Non-edges: ', non_edges)
-    #weights=[0.6686,0.6686,0.6686,0.1091,0.0770,0.0770,0.0770,0.0770]
+    #weights=[0.6686,0.6686,0.6686,0.1091,0.0770,0.0770,0.0770,0.1943]
     #penalty=8.0
     #num_layers=8
 :::

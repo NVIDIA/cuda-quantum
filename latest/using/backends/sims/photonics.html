@@ -531,12 +531,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -550,6 +550,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1052,6 +1053,10 @@ To execute a program on the <code class="code docutils literal notranslate"><spa
 <h4>Quantum Photonic States<a class="headerlink" href="#quantum-photonic-states" title="Permalink to this heading">¶</a></h4>
 <p>We define a qumode (qudit) to have the states
 <span class="math notranslate nohighlight">\(\ket{0}\)</span>, <span class="math notranslate nohighlight">\(\ket{1}\)</span>, … <span class="math notranslate nohighlight">\(\ket{d}\)</span> in Dirac notation where:</p>
+<dl class="field-list simple">
+<dt class="field-odd">spellcheck-disable<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 <div class="math notranslate nohighlight">
 \[\ket{0} = \begin{bmatrix} 1 &amp; 0 &amp; 0 &amp; \dots &amp; 0 \end{bmatrix} ^ \top\]</div>
 <div class="math notranslate nohighlight">
@@ -1062,6 +1067,10 @@ To execute a program on the <code class="code docutils literal notranslate"><spa
 \[\vdots\]</div>
 <div class="math notranslate nohighlight">
 \[\ket{d} = \begin{bmatrix} 0 &amp; 0 &amp; 0 &amp; \dots &amp; 1 \end{bmatrix}^ \top\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">spellcheck-enable<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 <p>where the linear combinations of states or superpositions are:</p>
 <div class="math notranslate nohighlight">
 \[\ket{\psi} = \alpha_0\ket{0} + \alpha_1\ket{1} + \alpha_2\ket{2} + \dots + \alpha_d\ket{d}\]</div>
@@ -1088,6 +1097,10 @@ example, the create gate allows us to increase the number of photons in a
 qumode up to a maximum given by the qudit level <span class="math notranslate nohighlight">\(d\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[C \ket{0} = \ket{1}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">spellcheck-disable<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{bmatrix}
     0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 &amp; 0 &amp; 0 \\
@@ -1100,6 +1113,10 @@ qumode up to a maximum given by the qudit level <span class="math notranslate no
 \end{bmatrix}
 \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">spellcheck-enable<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>
@@ -1132,6 +1149,10 @@ it is applied to a qumode where the number of photons is already at the minimum
 value 0, the operation has no effect:</p>
 <div class="math notranslate nohighlight">
 \[A \ket{1} =  \ket{0}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">spellcheck-disable<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 <div class="math notranslate nohighlight">
 \[\begin{split}\begin{bmatrix}
     1 &amp; 1 &amp; 0 &amp; 0 &amp; \dots &amp; 0 &amp; 0 \\
@@ -1144,6 +1165,10 @@ value 0, the operation has no effect:</p>
 \end{bmatrix}
 \begin{bmatrix} 0 \\ 1 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix} =
 \begin{bmatrix} 1 \\ 0 \\ 0 \\ \vdots \\ 0 \\ 0 \\ 0 \end{bmatrix}\end{split}\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">spellcheck-enable<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;orca-photonics&quot;</span><span class="p">)</span>

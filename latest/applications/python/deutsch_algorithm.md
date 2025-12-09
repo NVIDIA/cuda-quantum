@@ -814,8 +814,6 @@ latest
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](skqd.html){.reference .internal}
         -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
-        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -825,6 +823,9 @@ latest
             -   [The SKQD
                 Algorithm](skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -845,6 +846,9 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1871,7 +1875,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![949ef328bf834d4e9c10fcee90db9381](../../_images/oracle.png){.no-scaled-link
+![240c3202d034423aa37c70f1c7049db2](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -1977,7 +1981,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![c175811b79df413a810f2930a7cdb49b](../../_images/deutsch.png){.no-scaled-link
+![1daa5c2d2d6c43f0858be444f5659cbe](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

@@ -820,8 +820,6 @@ latest
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](skqd.html){.reference .internal}
         -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
-        -   [Setup and Imports](skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -831,6 +829,9 @@ latest
             -   [The SKQD
                 Algorithm](skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -851,6 +852,9 @@ latest
             .internal}
             -   [What to Expect:](skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -2015,7 +2019,7 @@ can imagine them graphed as unit vectors in the positive [\\(y\\)]{.math
 [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![def9d036108047439a800c860069da70](../../_images/grovers-2D-plane.png)
+![de09d6c0949047b6845b8d14029e9ee0](../../_images/grovers-2D-plane.png)
 :::
 
 Given that the number of marked states [\\(t\\)]{.math .notranslate
@@ -2230,7 +2234,7 @@ which we will denote by [\\(\\mathcal{G}\\)]{.math .notranslate
 The circuit diagram below puts together steps 1 through 3:
 
 ::: {style="text-align: center;"}
-![653ec541c4e34533b83a8d931804b42a](../../_images/grovers-steps1-3.png)
+![68f391fb03fc455fa96e3ad008837034](../../_images/grovers-steps1-3.png)
 :::
 
 Running this circuit initializes [\\(\\ket{\\xi}\\)]{.math .notranslate
@@ -2242,7 +2246,7 @@ from [\\(\|B\\rangle\\)]{.math .notranslate .nohighlight} to
 [\\(\|G\\rangle\\)]{.math .notranslate .nohighlight}.
 
 ::: {style="text-align: center;"}
-![fa144139664c4b3287744628394d9b2d](../../_images/grovers-full-rotation.png)
+![f7b52e8d879d4ec6bfef337661d1bb03](../../_images/grovers-full-rotation.png)
 :::
 
 Let's verify that the state resulting from one iteration of Grover's

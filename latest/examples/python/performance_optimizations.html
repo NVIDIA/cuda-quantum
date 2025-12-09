@@ -531,12 +531,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -550,6 +550,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1020,9 +1021,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="99b1e6a99bcb4c338cd8a15d605360a0" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="90469e0556164061b30bcd422f361256" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="1397e332e208413d9ca14934ffed9d05" src="../../_images/gatefusion.png" /></p>
+<p><img alt="303d29053e874e09b2f6138f0531e5c4" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 

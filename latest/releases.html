@@ -527,12 +527,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -546,6 +546,7 @@
 <li class="toctree-l4"><a class="reference internal" href="applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="applications/python/skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1017,6 +1018,20 @@ and is also available as a Docker image. More information about installing the n
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest">Documentation</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples">Examples</a></p></li>
 </ul>
+<p><strong>0.13.0</strong></p>
+<p>This release adds support for CUDA 13 and Python 3.13 and removes support for
+CUDA 11 and Python 3.10. It adds support for using the CUDA-Q QEC libraries
+for real-time decoding on Quantinuum backends, and adds support for submission
+to QCI backends. Check out the release notes below to learn about additional
+new content.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.13.0">Python wheel</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.13.0">C++ installer</a></p></li>
+<li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.13.0">Documentation</a></p></li>
+<li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.13.0/docs/sphinx/examples">Examples</a></p></li>
+</ul>
+<p>The full change log can be found <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.13.0">here</a>.</p>
 <p><strong>0.12.0</strong></p>
 <p>This release contains a range of new features and performance improvements for
 the dynamics simulation and adds more tools for error correction applications.
@@ -1026,7 +1041,7 @@ contributions from unitaryHACK. With this release, we now include support for
 Python 3.13.</p>
 <p><em>Note</em>: Support for Python 3.10 will be removed in future releases.</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum">Docker image</a></p></li>
+<li><p><a class="reference external" href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags">Docker image</a></p></li>
 <li><p><a class="reference external" href="https://pypi.org/project/cudaq/0.12.0">Python wheel</a></p></li>
 <li><p><a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases/0.12.0">C++ installer</a></p></li>
 <li><p><a class="reference external" href="https://nvidia.github.io/cuda-quantum/0.12.0">Documentation</a></p></li>

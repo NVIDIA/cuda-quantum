@@ -532,12 +532,12 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="skqd.html#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#The-Sampling-Process">The Sampling Process</a></li>
@@ -551,6 +551,7 @@
 <li class="toctree-l4"><a class="reference internal" href="skqd.html#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skqd.html#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1072,7 +1073,7 @@
 <section id="Quantum-Probability-Image-Encoding-(QPIE):">
 <h2>Quantum Probability Image Encoding (QPIE):<a class="headerlink" href="#Quantum-Probability-Image-Encoding-(QPIE):" title="Permalink to this heading">¶</a></h2>
 <p>Lets take as an example a classical 2x2 image (4 pixels). We can label each pixel with its position</p>
-<div><p><img alt="b7e9bc4a38264a088677139875ca717f" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
+<div><p><img alt="50b65ef18b5a4ef5b79be79ac41938a0" class="no-scaled-link" src="../../_images/pixels-img.png" style="width: 200px;" /></p>
 </div><p>Each pixel will have its own color intensity represented along with its position label as an 8-bit black and white color. To convert the pixel intensity to probability amplitudes of a quantum state</p>
 <div class="math notranslate nohighlight">
 \[c_i = \frac{I_{yx}}{\sqrt(\sum I^2_{yx})}\]</div>

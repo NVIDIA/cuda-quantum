@@ -532,12 +532,12 @@
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Why-SKQD?">Why SKQD?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Setup-and-Imports">Setup and Imports</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#The-Sampling-Process">The Sampling Process</a></li>
@@ -551,6 +551,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#What-to-Expect:">What to Expect:</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#GPU-Acceleration-for-Postprocessing">GPU Acceleration for Postprocessing</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
@@ -1037,37 +1038,6 @@
 <li><p>✅ <strong>Hardware friendly</strong>: Time evolution circuits are more amenable to near-term quantum devices than deep variational ansätze</p></li>
 </ul>
 </section>
-<section id="Setup-and-Imports">
-<h2>Setup and Imports<a class="headerlink" href="#Setup-and-Imports" title="Permalink to this heading">¶</a></h2>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">skqd_src.pre_and_postprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
-
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
-<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">43</span><span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Using:&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum e1958798aad2b53eea1bb398be1187da31835020)
-</pre></div></div>
-</div>
-</section>
 <section id="Understanding-Krylov-Subspaces">
 <h2>Understanding Krylov Subspaces<a class="headerlink" href="#Understanding-Krylov-Subspaces" title="Permalink to this heading">¶</a></h2>
 <section id="What-is-a-Krylov-Subspace?">
@@ -1081,45 +1051,75 @@ Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum 
 <p>The key insight of SKQD is that we can: 1. <strong>Generate</strong> Krylov states <span class="math notranslate nohighlight">\(U^k|\psi\rangle\)</span> using quantum time evolution 2. <strong>Sample</strong> from these states to get computational basis measurements 3. <strong>Combine</strong> all samples to form a computational subspace 4. <strong>Diagonalize</strong> the Hamiltonian within this subspace classically</p>
 <p>This approach is much more efficient than computing matrix elements via quantum measurements!</p>
 <div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cupy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">skqd_src.pre_and_postprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">use_gpu</span> <span class="o">=</span> <span class="kc">True</span> <span class="c1">#this is for postprocessing, the quantum circuit simulation is done on GPU via the nvidia target using CUDA-Q</span>
+<span class="k">if</span> <span class="n">use_gpu</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cupyx.scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cupyx.scipy.sparse.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">eigsh</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">eigsh</span>
+
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">&#39;nvidia&#39;</span><span class="p">)</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">43</span><span class="p">)</span>
+<span class="n">cp</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">44</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Problem-Setup:-22-Qubit-Heisenberg-Model">
+<h2>Problem Setup: 22-Qubit Heisenberg Model<a class="headerlink" href="#Problem-Setup:-22-Qubit-Heisenberg-Model" title="Permalink to this heading">¶</a></h2>
+<p>We’ll demonstrate SKQD on a 1D Heisenberg spin chain with 22 qubits:</p>
+<div class="math notranslate nohighlight">
+\[H = \sum_{i} \left(J_x \sigma_i^x \sigma_{i+1}^x + J_y \sigma_i^y \sigma_{i+1}^y + J_z \sigma_i^z \sigma_{i+1}^z\right) + \sum_i \left(h_x \sigma_i^x + h_y \sigma_i^y + h_z \sigma_i^z\right)\]</div>
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_spins</span> <span class="o">=</span> <span class="mi">22</span>  <span class="c1"># Number of qubits/spins in our chain</span>
-<span class="n">measurement_shots</span> <span class="o">=</span> <span class="mi">100_000</span>  <span class="c1"># Number of measurements per Krylov state</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">num_spins</span> <span class="o">=</span> <span class="mi">22</span>
 
-<span class="c1"># Krylov subspace parameters</span>
-<span class="n">krylov_subspace_dimension</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># Size of Krylov subspace K^r</span>
-<span class="n">num_trotter_steps</span> <span class="o">=</span> <span class="mi">8</span>  <span class="c1"># Trotter decomposition steps for time evolution</span>
-<span class="n">total_evolution_time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>  <span class="c1"># Total evolution time per Krylov step</span>
-<span class="n">time_step</span> <span class="o">=</span> <span class="n">total_evolution_time</span> <span class="o">/</span> <span class="n">num_trotter_steps</span>  <span class="c1"># Individual Trotter time step</span>
+<span class="k">if</span> <span class="n">num_spins</span> <span class="o">&gt;=</span> <span class="mi">63</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Vectorized implementation of postprocessing supports max 62 qubits due to int64 packing. Requested: </span><span class="si">{</span><span class="n">num_spins</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-<span class="c1"># Classical eigenvalue solver configuration</span>
-<span class="n">eigenvalue_solver_options</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;k&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-    <span class="s2">&quot;which&quot;</span><span class="p">:</span> <span class="s2">&quot;SA&quot;</span>
-<span class="p">}</span>  <span class="c1"># Find 2 smallest eigenvalues</span>
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">100_000</span>
 
-<span class="n">Jx</span><span class="p">,</span> <span class="n">Jy</span><span class="p">,</span> <span class="n">Jz</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span>  <span class="c1"># Coupling coefficients for Heisenberg Hamiltonian</span>
+<span class="n">total_time_evolution</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+<span class="n">num_trotter_steps</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="n">total_time_evolution</span> <span class="o">/</span> <span class="n">num_trotter_steps</span>
+
+<span class="n">max_k</span> <span class="o">=</span> <span class="mi">12</span>  <span class="c1"># largest k for U^k</span>
+
+<span class="n">eigenvalue_solver_options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;k&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;which&quot;</span><span class="p">:</span> <span class="s2">&quot;SA&quot;</span><span class="p">}</span>  <span class="c1"># Find 2 smallest eigenvalues</span>
+
+
+
+<span class="n">Jx</span><span class="p">,</span> <span class="n">Jy</span><span class="p">,</span> <span class="n">Jz</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span>
 <span class="n">h_x</span><span class="p">,</span> <span class="n">h_y</span><span class="p">,</span> <span class="n">h_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_spins</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_spins</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">num_spins</span><span class="p">)</span>
-<span class="n">spin_hamiltonian</span> <span class="o">=</span> <span class="n">create_heisenberg_hamiltonian</span><span class="p">(</span><span class="n">num_spins</span><span class="p">,</span> <span class="n">Jx</span><span class="p">,</span> <span class="n">Jy</span><span class="p">,</span> <span class="n">Jz</span><span class="p">,</span> <span class="n">h_x</span><span class="p">,</span>
-                                                 <span class="n">h_y</span><span class="p">,</span> <span class="n">h_z</span><span class="p">)</span>
-<span class="n">exact_ground_state_energy</span> <span class="o">=</span> <span class="o">-</span><span class="mf">38.272304</span>  <span class="c1"># Exact ground state energy (computed via classical exact diagonalization)</span>
-
-<span class="c1"># Extract Hamiltonian components for CUDA-Q circuits and classical processing</span>
-<span class="n">hamiltonian_coefficients</span><span class="p">,</span> <span class="n">pauli_operator_words</span><span class="p">,</span> <span class="n">pauli_operator_strings</span> <span class="o">=</span> <span class="n">extract_hamiltonian_data</span><span class="p">(</span>
-    <span class="n">spin_hamiltonian</span><span class="p">)</span>
+<span class="n">H</span> <span class="o">=</span> <span class="n">create_heisenberg_hamiltonian</span><span class="p">(</span><span class="n">num_spins</span><span class="p">,</span> <span class="n">Jx</span><span class="p">,</span> <span class="n">Jy</span><span class="p">,</span> <span class="n">Jz</span><span class="p">,</span> <span class="n">h_x</span><span class="p">,</span> <span class="n">h_y</span><span class="p">,</span> <span class="n">h_z</span><span class="p">)</span>
+<span class="n">exact_ground_state_energy</span> <span class="o">=</span> <span class="o">-</span><span class="mf">38.272304</span> <span class="c1"># Computed via exact diagonalization</span>
+<span class="n">hamiltonian_coefficients</span><span class="p">,</span> <span class="n">pauli_words</span> <span class="o">=</span> <span class="n">extract_coeffs_and_paulis</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
 <span class="n">hamiltonian_coefficients_numpy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">hamiltonian_coefficients</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 </section>
-</section>
 <section id="Krylov-State-Generation-via-Repeated-Evolution">
 <h2>Krylov State Generation via Repeated Evolution<a class="headerlink" href="#Krylov-State-Generation-via-Repeated-Evolution" title="Permalink to this heading">¶</a></h2>
 <p>For SKQD, we generate the Krylov sequence:</p>
 <div class="math notranslate nohighlight">
-\[|\psi_0\rangle, U|\psi_0\rangle, U^2|\psi_0\rangle, \ldots, U^{r-1}|\psi_0\rangle\]</div>
-<p>where <span class="math notranslate nohighlight">\(U = e^{-iH\Delta t}\)</span> is approximated via Trotter decomposition.</p>
+\[|\psi_0\rangle,  U|\psi_0\rangle,  U^2|\psi_0\rangle, \ldots,  U^{k-1}|\psi_0\rangle\]</div>
+<p>where <span class="math notranslate nohighlight">\(U = e^{-iHT}\)</span> is approximated via Trotter decomposition.</p>
 <p><strong>Implementation Strategy</strong>: 1. Start with reference state <span class="math notranslate nohighlight">\(|\psi_0\rangle\)</span> 2. Apply Trotter-decomposed time evolution <span class="math notranslate nohighlight">\(k\)</span> times for <span class="math notranslate nohighlight">\(U^k|\psi_0\rangle\)</span> 3. Measure each Krylov state in computational basis 4. Accumulate measurement statistics across all Krylov powers</p>
 <div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
@@ -1127,43 +1127,44 @@ Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum 
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">quantum_krylov_evolution_circuit</span><span class="p">(</span>
-        <span class="n">num_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">krylov_power</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">trotter_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">time_step</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">pauli_operator_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span>
-        <span class="n">hamiltonian_coefficients</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    CUDA-Q kernel for generating Krylov states via quantum time evolution.</span>
+        <span class="n">num_qubits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">krylov_power</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">trotter_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dt</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">H_pauli_words</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">cudaq</span><span class="o">.</span><span class="n">pauli_word</span><span class="p">],</span>
+        <span class="n">H_coeffs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 
-<span class="sd">    This kernel implements the core quantum computation of SKQD:</span>
-<span class="sd">    1. Prepare Néel reference state |ψ⟩ = |010101...⟩</span>
-<span class="sd">    2. Apply time evolution U = e^{-iH*dt} using Trotter decomposition</span>
-<span class="sd">    3. Repeat k times to get U^k|ψ⟩</span>
-<span class="sd">    4. Measure in computational basis</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate Krylov states via repeated time evolution.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        num_qubits: Number of qubits in the system</span>
+<span class="sd">        krylov_power: Power k for computing U^k|ψ⟩</span>
+<span class="sd">        trotter_steps: Number of Trotter steps for each U application</span>
+<span class="sd">        dt: Time step for Trotter decomposition</span>
+<span class="sd">        H_pauli_words: Pauli decomposition of Hamiltonian</span>
+<span class="sd">        H_coeffs: Coefficients for each Pauli term</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Measurement results in computational basis</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># Allocate quantum register</span>
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">)</span>
 
-    <span class="c1"># Step 1: Prepare Néel state as reference |010101...⟩</span>
+    <span class="c1">#Prepare Néel state as reference |010101...⟩</span>
     <span class="k">for</span> <span class="n">qubit_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_qubits</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">qubit_index</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">qubit_index</span><span class="p">])</span>
 
-    <span class="c1"># Step 2: Apply time evolution U^k = (e^{-iH*dt})^k</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">krylov_power</span><span class="p">):</span>  <span class="c1"># Apply U exactly k times</span>
 
-        <span class="c1"># Each application of U uses Trotter decomposition: U ≈ ∏ᵢ e^{-ih_i*dt/n}</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">trotter_steps</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">krylov_power</span><span class="p">):</span>                                            <span class="c1">#applies U^k where U = exp(-iHT)</span>
 
-            <span class="c1"># Apply each Pauli term in the Hamiltonian</span>
-            <span class="c1"># exp_pauli(θ, qubits, P) implements e^{-iθP} for Pauli string P</span>
-            <span class="k">for</span> <span class="n">term_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hamiltonian_coefficients</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">trotter_steps</span><span class="p">):</span>                                       <span class="c1">#applies exp(-iHT)</span>
 
-                <span class="n">coefficient</span> <span class="o">=</span> <span class="n">hamiltonian_coefficients</span><span class="p">[</span><span class="n">term_index</span><span class="p">]</span>
-                <span class="n">pauli_term</span> <span class="o">=</span> <span class="n">pauli_operator_words</span><span class="p">[</span><span class="n">term_index</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">H_coeffs</span><span class="p">)):</span>                                   <span class="c1">#applies exp(-iHdt)</span>
+                <span class="n">exp_pauli</span><span class="p">(</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">H_coeffs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">dt</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">H_pauli_words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1">#applies exp(-ihdt)</span>
 
-                <span class="n">exp_pauli</span><span class="p">(</span><span class="n">coefficient</span> <span class="o">*</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">qubits</span><span class="p">,</span> <span class="n">pauli_term</span><span class="p">)</span>
 
-    <span class="c1"># Step 3: Measure all qubits in computational (Z) basis</span>
     <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1173,39 +1174,32 @@ Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum 
 <h2>Quantum Measurements and Sampling<a class="headerlink" href="#Quantum-Measurements-and-Sampling" title="Permalink to this heading">¶</a></h2>
 <section id="The-Sampling-Process">
 <h3>The Sampling Process<a class="headerlink" href="#The-Sampling-Process" title="Permalink to this heading">¶</a></h3>
-<p>For each <span class="math notranslate nohighlight">\(k = 0, 1, 2, \ldots, r-1\)</span>: 1. <strong>Prepare</strong> the state <span class="math notranslate nohighlight">\(U^k|\psi\rangle\)</span> using our quantum circuit 2. <strong>Measure</strong> in the computational basis many times 3. <strong>Collect</strong> the resulting bitstring counts</p>
+<p>For each krylov power $ = 0, 1, 2, <span class="math">\ldots</span>, k-1$: 1. <strong>Prepare</strong> the state <span class="math notranslate nohighlight">\(U^k|\psi\rangle\)</span> using our quantum circuit 2. <strong>Measure</strong> in the computational basis many times 3. <strong>Collect</strong> the resulting bitstring counts</p>
 <p>The key insight: these measurement outcomes give us a statistical representation of each Krylov state, which we can then use to construct our computational subspace classically.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Storage for measurement results from each Krylov state</span>
-<span class="n">measurement_results_all</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">all_measurement_results</span> <span class="o">=</span> <span class="p">[]</span>
 
-<span class="c1"># Execute quantum circuit for each Krylov power k = 0, 1, 2, ..., r-1</span>
-<span class="k">for</span> <span class="n">krylov_power</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">krylov_subspace_dimension</span><span class="p">):</span>
+<span class="k">for</span> <span class="n">krylov_power</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_k</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generating Krylov state U^</span><span class="si">{</span><span class="n">krylov_power</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   • Sampling U^</span><span class="si">{</span><span class="n">krylov_power</span><span class="si">}</span><span class="s2">|ψ⟩...&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Run the quantum circuit and collect measurement statistics</span>
     <span class="n">sampling_result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
         <span class="n">quantum_krylov_evolution_circuit</span><span class="p">,</span>
-        <span class="n">num_spins</span><span class="p">,</span>  <span class="c1"># Number of qubits</span>
-        <span class="n">krylov_power</span><span class="p">,</span>  <span class="c1"># How many times to apply U</span>
-        <span class="n">num_trotter_steps</span><span class="p">,</span>  <span class="c1"># Trotter decomposition steps</span>
-        <span class="n">time_step</span><span class="p">,</span>  <span class="c1"># Time step per evolution</span>
-        <span class="n">pauli_operator_words</span><span class="p">,</span>  <span class="c1"># Hamiltonian Pauli terms</span>
-        <span class="n">hamiltonian_coefficients</span><span class="p">,</span>  <span class="c1"># Hamiltonian coefficients</span>
-        <span class="n">shots_count</span><span class="o">=</span><span class="n">measurement_shots</span>  <span class="c1"># Number of measurements</span>
-    <span class="p">)</span>
+        <span class="n">num_spins</span><span class="p">,</span>
+        <span class="n">krylov_power</span><span class="p">,</span>
+        <span class="n">num_trotter_steps</span><span class="p">,</span>
+        <span class="n">dt</span><span class="p">,</span>
+        <span class="n">pauli_words</span><span class="p">,</span>
+        <span class="n">hamiltonian_coefficients</span><span class="p">,</span>
+        <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">)</span>
 
-    <span class="c1"># Convert CUDA-Q result to standard dictionary format</span>
-    <span class="n">measurement_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">sampling_result</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
-    <span class="n">measurement_results_all</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">measurement_dict</span><span class="p">)</span>
+    <span class="n">all_measurement_results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">sampling_result</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
 
-<span class="n">accumulated_measurement_data</span> <span class="o">=</span> <span class="n">accumulate_krylov_measurements</span><span class="p">(</span>
-    <span class="n">measurement_results_all</span><span class="p">,</span> <span class="n">krylov_subspace_dimension</span><span class="p">)</span>
-</pre></div>
+
+<span class="n">cumulative_results</span> <span class="o">=</span> <span class="n">calculate_cumulative_results</span><span class="p">(</span><span class="n">all_measurement_results</span><span class="p">)</span>
+<br/></pre></div>
 </div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -1213,11 +1207,18 @@ Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum 
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-   • Sampling U^0|ψ⟩...
-   • Sampling U^1|ψ⟩...
-   • Sampling U^2|ψ⟩...
-   • Sampling U^3|ψ⟩...
-   • Sampling U^4|ψ⟩...
+Generating Krylov state U^0...
+Generating Krylov state U^1...
+Generating Krylov state U^2...
+Generating Krylov state U^3...
+Generating Krylov state U^4...
+Generating Krylov state U^5...
+Generating Krylov state U^6...
+Generating Krylov state U^7...
+Generating Krylov state U^8...
+Generating Krylov state U^9...
+Generating Krylov state U^10...
+Generating Krylov state U^11...
 </pre></div></div>
 </div>
 </section>
@@ -1246,58 +1247,29 @@ Using: CUDA-Q Version amd64-cu12-latest (https://github.com/NVIDIA/cuda-quantum 
 \[H_{\text{eff}}[i,j] = \sum_k h_k \langle s_i | P_k | s_j \rangle\]</div>
 </li>
 </ol>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Storage for ground state energy estimates at each Krylov dimension</span>
-<span class="n">estimated_ground_state_energies</span> <span class="o">=</span> <span class="p">[]</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">energies</span> <span class="o">=</span> <span class="p">[]</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Performing classical diagonalization for each Krylov subspace...&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_k</span><span class="p">):</span>
 
-<span class="c1"># Process each accumulated subspace (k=1,2,3,... since k=0 is just the reference state)</span>
-<span class="k">for</span> <span class="n">subspace_index</span><span class="p">,</span> <span class="n">measurement_data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">accumulated_measurement_data</span><span class="p">):</span>
+    <span class="n">cumulative_subspace_results</span> <span class="o">=</span> <span class="n">cumulative_results</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+    <span class="n">basis_states</span> <span class="o">=</span> <span class="n">get_basis_states_as_array</span><span class="p">(</span><span class="n">cumulative_subspace_results</span><span class="p">,</span> <span class="n">num_spins</span><span class="p">)</span>
+    <span class="n">subspace_dimension</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cumulative_subspace_results</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cumulative_subspace_results</span><span class="p">)</span> <span class="o">==</span> <span class="n">basis_states</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="c1"># Extract unique computational basis states from measurement data</span>
-    <span class="n">computational_basis_states</span> <span class="o">=</span> <span class="n">extract_basis_states_from_measurements</span><span class="p">(</span>
-        <span class="n">measurement_data</span><span class="p">)</span>
-    <span class="n">subspace_dimension</span> <span class="o">=</span> <span class="n">computational_basis_states</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># matrix_rows, matrix_cols, matrix_elements = projected_hamiltonian(basis_states, pauli_words, hamiltonian_coefficients_numpy, verbose) #slower non-vectorized implementation</span>
 
-    <span class="c1"># Skip k=0 case (just reference state, no interesting physics)</span>
-    <span class="k">if</span> <span class="n">subspace_index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="c1">#if use_gpu is True, the projected hamiltonian &amp; eigenvalue solver are computed on the GPU</span>
+    <span class="n">matrix_rows</span><span class="p">,</span> <span class="n">matrix_cols</span><span class="p">,</span> <span class="n">matrix_elements</span> <span class="o">=</span> <span class="n">vectorized_projected_hamiltonian</span><span class="p">(</span><span class="n">basis_states</span><span class="p">,</span> <span class="n">pauli_words</span><span class="p">,</span> <span class="n">hamiltonian_coefficients_numpy</span><span class="p">,</span> <span class="n">use_gpu</span><span class="p">)</span>
+    <span class="n">projected_hamiltonian</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">matrix_elements</span><span class="p">,</span> <span class="p">(</span><span class="n">matrix_rows</span><span class="p">,</span> <span class="n">matrix_cols</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">subspace_dimension</span><span class="p">,</span> <span class="n">subspace_dimension</span><span class="p">))</span>
+    <span class="n">eigenvalue</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span><span class="n">projected_hamiltonian</span><span class="p">,</span> <span class="n">return_eigenvectors</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">eigenvalue_solver_options</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   • Krylov dimension </span><span class="si">{</span><span class="n">subspace_index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="c1"># Project Hamiltonian onto this subspace and find lowest eigenvalues</span>
-        <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">diagonalize_subspace_hamiltonian</span><span class="p">(</span>
-            <span class="n">computational_basis_states</span><span class="p">,</span>
-            <span class="n">pauli_operator_strings</span><span class="p">,</span>
-            <span class="n">hamiltonian_coefficients_numpy</span><span class="p">,</span>
-            <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">eigenvalue_solver_options</span><span class="p">)</span>
-
-        <span class="c1"># Extract ground state energy estimate (lowest eigenvalue)</span>
-        <span class="n">ground_state_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">)</span>
-        <span class="n">estimated_ground_state_energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ground_state_energy</span><span class="p">)</span>
-
-<span class="n">estimated_ground_state_energies</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">energy</span><span class="o">.</span><span class="n">get</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="s1">&#39;get&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">energy</span>
-    <span class="k">for</span> <span class="n">energy</span> <span class="ow">in</span> <span class="n">estimated_ground_state_energies</span>
-<span class="p">]</span>
-</pre></div>
+    <span class="n">energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">eigenvalue</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+<br/></pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Performing classical diagonalization for each Krylov subspace...
-   • Krylov dimension 2
-   • Krylov dimension 3
-   • Krylov dimension 4
-   • Krylov dimension 5
-</pre></div></div>
 </div>
 </section>
 </section>
@@ -1313,26 +1285,16 @@ Performing classical diagonalization for each Krylov subspace...
 </ul>
 <p>The exact ground state energy for our selected Hamiltonian was computed earlier via classical exact diagonalization and will be used as the reference for comparison with SKQD results.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create visualization of SKQD convergence</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
 
-<span class="n">krylov_dims_used</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">krylov_subspace_dimension</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-<span class="n">all_dims</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">krylov_subspace_dimension</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">all_dims</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_k</span><span class="p">)</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">krylov_dims_used</span><span class="p">,</span>
-         <span class="n">estimated_ground_state_energies</span><span class="p">,</span>
-         <span class="s1">&#39;o-&#39;</span><span class="p">,</span>
-         <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-         <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-         <span class="n">label</span><span class="o">=</span><span class="s1">&#39;SKQD&#39;</span><span class="p">)</span>
-
-<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">all_dims</span><span class="p">,</span> <span class="p">[</span><span class="n">exact_ground_state_energy</span><span class="p">]</span> <span class="o">*</span> <span class="n">krylov_subspace_dimension</span><span class="p">,</span>
-         <span class="s1">&#39;g&#39;</span><span class="p">,</span>
-         <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-         <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Exact ground state&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">all_dims</span><span class="p">,</span> <span class="n">energies</span><span class="p">,</span> <span class="s1">&#39;o-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;SKQD&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">all_dims</span><span class="p">,</span> <span class="p">[</span><span class="n">exact_ground_state_energy</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_k</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Exact ground state&#39;</span><span class="p">)</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">all_dims</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Krylov Subspace Dimension&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
@@ -1341,17 +1303,10 @@ Performing classical diagonalization for each Krylov subspace...
 <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
 
-<span class="c1"># Add convergence analysis text</span>
-<span class="n">final_error</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">estimated_ground_state_energies</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span>
-                  <span class="n">exact_ground_state_energy</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
-    <span class="mf">0.02</span><span class="p">,</span>
-    <span class="mf">0.98</span><span class="p">,</span>
-    <span class="sa">f</span><span class="s1">&#39;Final error: </span><span class="si">{</span><span class="n">final_error</span><span class="si">:</span><span class="s1">.6f</span><span class="si">}</span><span class="se">\n</span><span class="s1">Exact energy: </span><span class="si">{</span><span class="n">exact_ground_state_energy</span><span class="si">:</span><span class="s1">.6f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
-    <span class="n">transform</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
-    <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span>
-    <span class="n">bbox</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">boxstyle</span><span class="o">=</span><span class="s1">&#39;round&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;wheat&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">))</span>
-
+<span class="n">final_error</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">energies</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">exact_ground_state_energy</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">0.98</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Final error: </span><span class="si">{</span><span class="n">final_error</span><span class="si">:</span><span class="s1">.6f</span><span class="si">}</span><span class="se">\n</span><span class="s1">Exact energy: </span><span class="si">{</span><span class="n">exact_ground_state_energy</span><span class="si">:</span><span class="s1">.6f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+         <span class="n">transform</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="n">verticalalignment</span><span class="o">=</span><span class="s1">&#39;top&#39;</span><span class="p">,</span>
+         <span class="n">bbox</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">boxstyle</span><span class="o">=</span><span class="s1">&#39;round&#39;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;wheat&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
@@ -1366,6 +1321,42 @@ Performing classical diagonalization for each Krylov subspace...
 </div>
 </div>
 </section>
+</section>
+<section id="GPU-Acceleration-for-Postprocessing">
+<h2>GPU Acceleration for Postprocessing<a class="headerlink" href="#GPU-Acceleration-for-Postprocessing" title="Permalink to this heading">¶</a></h2>
+<p>The critical postprocessing operations are:</p>
+<ol class="arabic simple">
+<li><p>Hamiltonian projection onto computational subspace</p></li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">matrix_rows,</span> <span class="pre">matrix_cols,</span> <span class="pre">matrix_elements</span> <span class="pre">=</span> <span class="pre">vectorized_projected_hamiltonian(basis_states,</span> <span class="pre">pauli_words,</span> <span class="pre">hamiltonian_coefficients_numpy,</span> <span class="pre">use_gpu)</span></code></p>
+<ol class="arabic simple" start="2">
+<li><p>Sparse matrix construction</p></li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">projected_hamiltonian</span> <span class="pre">=</span> <span class="pre">csr_matrix((matrix_elements,</span> <span class="pre">(matrix_rows,</span> <span class="pre">matrix_cols)),</span> <span class="pre">shape=(subspace_dimension,</span> <span class="pre">subspace_dimension))</span></code></p>
+<ol class="arabic simple" start="3">
+<li><p>Eigenvalue computation</p></li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">eigenvalue</span> <span class="pre">=</span> <span class="pre">eigsh(projected_hamiltonian,</span> <span class="pre">return_eigenvectors=False,</span> <span class="pre">**eigenvalue_solver_options)</span></code></p>
+<p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
+<p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
+<p><strong>Note</strong>: Set <code class="docutils literal notranslate"><span class="pre">use_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> at the beginning of the notebook to enable GPU acceleration for postprocessing. The quantum circuit simulation uses the NVIDIA target in CUDA-Q regardless of this flag.</p>
+<p><img alt="3cb4ffa2a2e0412ba5f4f9607091f144" class="no-scaled-link" src="../../_images/speedup.png" style="width: 600px;" /></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Using:&quot;</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Using: CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum 37053302ceb3d83684186b2a99aac500df7b847e)
+</pre></div></div>
+</div>
 </section>
 </section>
 

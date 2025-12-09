@@ -863,9 +863,6 @@ latest
         -   [Why
             SKQD?](../../../applications/python/skqd.html#Why-SKQD?){.reference
             .internal}
-        -   [Setup and
-            Imports](../../../applications/python/skqd.html#Setup-and-Imports){.reference
-            .internal}
         -   [Understanding Krylov
             Subspaces](../../../applications/python/skqd.html#Understanding-Krylov-Subspaces){.reference
             .internal}
@@ -875,6 +872,9 @@ latest
             -   [The SKQD
                 Algorithm](../../../applications/python/skqd.html#The-SKQD-Algorithm){.reference
                 .internal}
+        -   [Problem Setup: 22-Qubit Heisenberg
+            Model](../../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model){.reference
+            .internal}
         -   [Krylov State Generation via Repeated
             Evolution](../../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution){.reference
             .internal}
@@ -896,6 +896,9 @@ latest
             -   [What to
                 Expect:](../../../applications/python/skqd.html#What-to-Expect:){.reference
                 .internal}
+        -   [GPU Acceleration for
+            Postprocessing](../../../applications/python/skqd.html#GPU-Acceleration-for-Postprocessing){.reference
+            .internal}
     -   [Entanglement Accelerates Quantum
         Simulation](../../../applications/python/entanglement_acc_hamiltonian_simulation.html){.reference
         .internal}
@@ -1821,6 +1824,10 @@ We define a qumode (qudit) to have the states [\\(\\ket{0}\\)]{.math
 .nohighlight}, ... [\\(\\ket{d}\\)]{.math .notranslate .nohighlight} in
 Dirac notation where:
 
+spellcheck-disable[:]{.colon}
+
+:   
+
 ::: {.math .notranslate .nohighlight}
 \\\[\\ket{0} = \\begin{bmatrix} 1 & 0 & 0 & \\dots & 0 \\end{bmatrix} \^
 \\top\\\]
@@ -1844,6 +1851,10 @@ Dirac notation where:
 \\\[\\ket{d} = \\begin{bmatrix} 0 & 0 & 0 & \\dots & 1 \\end{bmatrix}\^
 \\top\\\]
 :::
+
+spellcheck-enable[:]{.colon}
+
+:   
 
 where the linear combinations of states or superpositions are:
 
@@ -1892,6 +1903,10 @@ a qumode up to a maximum given by the qudit level [\\(d\\)]{.math
 \\\[C \\ket{0} = \\ket{1}\\\]
 :::
 
+spellcheck-disable[:]{.colon}
+
+:   
+
 ::: {.math .notranslate .nohighlight}
 \\\[\\begin{split}\\begin{bmatrix} 0 & 0 & \\dots & 0 & 0 & 0 & 0 \\\\ 1
 & 0 & \\dots & 0 & 0 & 0 & 0 \\\\ 0 & 1 & \\dots & 0 & 0 & 0 & 0 \\\\ &
@@ -1901,6 +1916,10 @@ a qumode up to a maximum given by the qudit level [\\(d\\)]{.math
 0 \\\\ 0 \\end{bmatrix} = \\begin{bmatrix} 0 \\\\ 1 \\\\ 0 \\\\ \\vdots
 \\\\ 0 \\\\ 0 \\\\ 0 \\end{bmatrix}\\end{split}\\\]
 :::
+
+spellcheck-enable[:]{.colon}
+
+:   
 
 ::: {.highlight-python .notranslate}
 ::: highlight
@@ -1943,6 +1962,10 @@ already at the minimum value 0, the operation has no effect:
 \\\[A \\ket{1} = \\ket{0}\\\]
 :::
 
+spellcheck-disable[:]{.colon}
+
+:   
+
 ::: {.math .notranslate .nohighlight}
 \\\[\\begin{split}\\begin{bmatrix} 1 & 1 & 0 & 0 & \\dots & 0 & 0 \\\\ 0
 & 0 & 1 & 0 & \\dots & 0 & 0 \\\\ 0 & 0 & 0 & 1 & \\dots & 0 & 0 \\\\ &
@@ -1952,6 +1975,10 @@ already at the minimum value 0, the operation has no effect:
 \\end{bmatrix} = \\begin{bmatrix} 1 \\\\ 0 \\\\ 0 \\\\ \\vdots \\\\ 0
 \\\\ 0 \\\\ 0 \\end{bmatrix}\\end{split}\\\]
 :::
+
+spellcheck-enable[:]{.colon}
+
+:   
 
 ::: {.highlight-python .notranslate}
 ::: highlight
