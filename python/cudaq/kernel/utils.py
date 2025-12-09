@@ -95,7 +95,7 @@ class Color:
 
 
 # Name of module attribute to recover the name of the entry-point for the python
-# kernel decorator.  The associated StringAttr is *without* the nvqppPrefix.
+# kernel decorator.  The associated StringAttr is *without* the `nvqppPrefix`.
 cudaq__unique_attr_name = "cc.python_uniqued"
 
 
@@ -105,6 +105,15 @@ def recover_func_op(module, name):
             if op.sym_name.value == name:
                 return op
     return None
+
+
+def recover_calling_module():
+    frame = inspect.currentframe().f_back
+    name = inspect.getmodule(frame).__name__
+    while (name.startswith("cudaq.kernel") or name.startswith("cudaq.runtime")):
+        frame = frame.f_back
+        name = inspect.getmodule(frame).__name__
+    return inspect.getmodule(frame)
 
 
 def resolve_qualified_symbol(y):
@@ -197,8 +206,8 @@ def is_recovered_value_ok(result):
         if result != None:
             return True
     except ValueError:
-        # nd.array values raise ValueError with the above `if result` but are
-        # otherwise legit here.
+        # `nd.array` values raise `ValueError` with the above `if result` but
+        # are otherwise legit here.
         return True
     return False
 
