@@ -107,6 +107,15 @@ def recover_func_op(module, name):
     return None
 
 
+def recover_calling_module():
+    frame = inspect.currentframe().f_back
+    name = inspect.getmodule(frame).__name__
+    while (name.startswith("cudaq.kernel") or name.startswith("cudaq.runtime")):
+        frame = frame.f_back
+        name = inspect.getmodule(frame).__name__
+    return inspect.getmodule(frame)
+
+
 def resolve_qualified_symbol(y):
     """
     If `y` is a qualified symbol (containing a '.' in the name), then resolve
