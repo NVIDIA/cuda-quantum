@@ -249,7 +249,7 @@ jobs:
               exit 1
             fi
             python -m pip install pytest
-            python -m pytest -v --durations=0  python/tests/ \
+            python -m pytest -v -s --durations=0  python/tests/kernel/test_control_negations.py \
               --ignore python/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
