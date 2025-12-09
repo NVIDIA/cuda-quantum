@@ -16,10 +16,11 @@ from typing import get_origin
 
 import numpy as np
 from cudaq.mlir.ir import (BoolAttr, Block, Context, Module, TypeAttr, UnitAttr,
-                           DictAttr, F32Type, F64Type, NoneType, ArrayAttr,
-                           Location, FloatAttr, StringAttr, IntegerAttr,
-                           IntegerType, ComplexType, InsertionPoint,
-                           SymbolTable, DenseI32ArrayAttr, FlatSymbolRefAttr)
+                           FunctionType, DictAttr, F32Type, F64Type, NoneType,
+                           ArrayAttr, Location, FloatAttr, StringAttr,
+                           IntegerAttr, IntegerType, ComplexType,
+                           InsertionPoint, SymbolTable, DenseI32ArrayAttr,
+                           FlatSymbolRefAttr)
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
                                  func, math)
@@ -33,7 +34,8 @@ from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    globalRegisteredOperations)
+                    recover_value_of, globalRegisteredOperations,
+                    recover_calling_module)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -611,29 +613,27 @@ class PyKernel(object):
 
     def __cloneOrGetFunction(self, astName, currentModule, target):
         """
-        Get a the function with the given name. First look in the current
-        `ModuleOp` for this `kernel_builder`, if found return it as is. If not
-        found, find it in the other `kernel_builder` `ModuleOp` and return a
-        clone of it. Throw an exception if no kernel with the given name is
-        found.
+        Get a the function with the given name.
+        If the function is already present in `currentModule`, just return it.
+        Otherwise, determine if `target` is a builder or a decorator and merge
+        its module into `currentModule`. Once merged, return the function (from
+        the current module!) and the current module.
         """
         thisSymbolTable = SymbolTable(currentModule.operation)
         if astName in thisSymbolTable:
-            mod = (target.qkeModule
-                   if isa_kernel_decorator(target) else target.module)
-            return thisSymbolTable[astName], mod
+            return thisSymbolTable[astName], currentModule
         if isa_kernel_decorator(target):
             otherModule = target.qkeModule
             fulluniq = nvqppPrefix + target.uniqName
             cudaq_runtime.updateModule(fulluniq, currentModule, otherModule)
             fn = recover_func_op(currentModule, fulluniq)
             assert fn and "function may not disappear from module"
-            return fn, otherModule
+            return fn, currentModule
         otherModule = target.module
         cudaq_runtime.updateModule(target.funcName, currentModule, otherModule)
         fn = recover_func_op(currentModule, target.funcName)
         assert fn and "function may not disappear from module"
-        return fn, otherModule
+        return fn, currentModule
 
     def __addAllCalledFunctionsRecursively(self, otherFunc, currentModule,
                                            otherModule):
@@ -688,26 +688,34 @@ class PyKernel(object):
     def __applyControlOrAdjoint(self, target, isAdjoint, controls, *args):
         """
         Utility method for adding a Quake `ApplyOp` in the case of
-        cudaq.control or cudaq.adjoint. This function will search recursively
-        for all required function operations and add them tot he module.
+        `cudaq.control` or `cudaq.adjoint`. This function will search
+        recursively for all required function operations and add them to the
+        module.
         """
         if hasattr(self, 'qkeModule'):
             del self.qkeModule
         with self.insertPoint, self.loc:
-            otherFuncCloned, otherModule = self.__cloneOrGetFunction(
-                target.name, self.module, target)
-            assert isinstance(otherFuncCloned, func.FuncOp)
-            self.__addAllCalledFunctionsRecursively(otherFuncCloned,
-                                                    self.module, otherModule)
-            otherFTy = otherFuncCloned.body.blocks[0].arguments
+            if isinstance(target, cc.CreateLambdaOp):
+                otherFuncCloned = target
+                otherModule = self.module
+                otherFTy = FunctionType(
+                    TypeAttr(target.attributes['function_type']).value).inputs
+            else:
+                otherFuncCloned, otherModule = self.__cloneOrGetFunction(
+                    target.name, self.module, target)
+                assert isinstance(otherFuncCloned, func.FuncOp)
+                self.__addAllCalledFunctionsRecursively(otherFuncCloned,
+                                                        self.module,
+                                                        otherModule)
+                otherFTy = []
+                for a in otherFuncCloned.body.blocks[0].arguments:
+                    otherFTy.append(a.type)
             mlirValues = []
             for i, v in enumerate(args):
-                argTy = otherFTy[i].type
+                argTy = otherFTy[i]
                 if not isinstance(v, QuakeValue):
-                    # here we have to map constant Python data
-                    # to an MLIR Value
+                    # here we have to map constant Python data to an MLIR Value
                     value = self.__getMLIRValueFromPythonArg(v, argTy)
-
                 else:
                     value = v.mlirValue
                 inTy = value.type
@@ -726,6 +734,8 @@ class PyKernel(object):
                               callee=FlatSymbolRefAttr.get(
                                   otherFuncCloned.name.value),
                               is_adj=isAdjoint)
+            elif isinstance(otherFuncCloned, cc.CreateLambdaOp):
+                cc.CallCallableOp([], otherFuncCloned, mlirValues)
             else:
                 func.CallOp(otherFuncCloned, mlirValues)
 
@@ -837,8 +847,9 @@ class PyKernel(object):
                     raise RuntimeError(
                         "invalid input state for qalloc (not normalized)")
 
-                # Read the values from the np.array and copy them in a constant
-                # array. The builder object resolves all symbols immediately.
+                # Read the values from the `np.array` and copy them in a
+                # constant array. The builder object resolves all symbols
+                # immediately.
                 arrTy = cc.ArrayType.get(eleTy, size)
                 arrVals = []
                 for i in range(size):
@@ -1360,8 +1371,58 @@ class PyKernel(object):
         ```
         """
         if isa_kernel_decorator(target):
-            target.compile()
+            target = self.resolve_callable_arg(self.insertPoint, target)
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
+
+    def resolve_callable_arg(self, insPt, target):
+        """
+        `target` must be a callable. For a simple callable (a `func.FuncOp`),
+        resolution is trivial. If the callable is a decorator with lambda lifted
+        arguments, then all the lifted arguments must be resolved into a
+        closure here.
+        Returns a `CreateLambdaOp` closure.
+        """
+        cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
+        # build the closure to capture the lifted `args`
+        thisPyMod = recover_calling_module()
+        if target.defModule != thisPyMod:
+            m = target.defModule
+        else:
+            m = None
+        fulluniq = nvqppPrefix + target.uniqName
+        fn = recover_func_op(self.module, fulluniq)
+        funcTy = fn.type
+        if target.firstLiftedPos:
+            moduloInTys = funcTy.inputs[:target.firstLiftedPos]
+        else:
+            moduloInTys = funcTy.inputs
+        callableTy = cc.CallableType.get(self.ctx, moduloInTys, funcTy.results)
+        with insPt, self.loc:
+            lamb = cc.CreateLambdaOp(callableTy, loc=self.loc)
+            lamb.attributes.__setitem__('function_type', TypeAttr.get(funcTy))
+            initRegion = lamb.initRegion
+            initBlock = Block.create_at_start(initRegion, moduloInTys)
+            inner = InsertionPoint(initBlock)
+            with inner:
+                vs = []
+                for ba in initBlock.arguments:
+                    vs.append(ba)
+                for i, a in enumerate(target.liftedArgs):
+                    v = recover_value_of(a, m)
+                    if isa_kernel_decorator(v):
+                        # The recursive step
+                        v = self.resolve_callable_arg(inner, v)
+                    else:
+                        argTy = funcTy.inputs[target.firstLiftedPos + i]
+                        v = self.__getMLIRValueFromPythonArg(v, argTy)
+                    vs.append(v)
+                if funcTy.results:
+                    call = func.CallOp(fn, vs).result
+                    cc.ReturnOp(call.results)
+                else:
+                    func.CallOp(fn, vs)
+                    cc.ReturnOp([])
+                return lamb
 
     def c_if(self, measurement, function):
         """
@@ -1601,8 +1662,8 @@ class PyKernel(object):
 
     def compile(self):
         """
-        A PyKernel can be dynamically extended up until it is reified to be used
-        in a launch scenario. We reify the kernel as-is here.
+        A `PyKernel` can be dynamically extended up until it is reified to be
+        used in a launch scenario. We reify the kernel as-is here.
         """
         if not hasattr(self, 'qkeModule'):
             self.qkeModule = cudaq_runtime.cloneModule(self.module)

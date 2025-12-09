@@ -25,7 +25,7 @@ from .captured_data import CapturedDataStorage
 from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
-                    recover_value_of)
+                    recover_value_of, recover_calling_module)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -568,16 +568,6 @@ class PyKernelDecorator(object):
         """
         # Process all the normal arguments
         processedArgs = []
-
-        def recover_calling_module():
-            frame = inspect.currentframe().f_back
-            name = inspect.getmodule(frame).__name__
-            while (name.startswith("cudaq.kernel") or
-                   name.startswith("cudaq.runtime")):
-                frame = frame.f_back
-                name = inspect.getmodule(frame).__name__
-            return inspect.getmodule(frame)
-
         callingModule = recover_calling_module()
         self.process_arguments_to_call(processedArgs, callingModule, args)
 
