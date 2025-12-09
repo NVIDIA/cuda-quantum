@@ -543,8 +543,6 @@ public:
         pm.addPass(cudaq::opt::createApplySpecialization(
             {.constantPropagation = true}));
         cudaq::opt::addAggressiveInlining(pm);
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         CUDAQ_INFO("Run Quake Synth.\n");

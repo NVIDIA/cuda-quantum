@@ -185,8 +185,6 @@ public:
         passName = "argument";
         pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
         pm.addPass(mlir::createCanonicalizerPass());
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createReplaceStateWithKernel());
         pm.addPass(
             cudaq::opt::createLambdaLifting({.constantPropagation = true}));
         // We must inline these lambda calls before apply specialization as it

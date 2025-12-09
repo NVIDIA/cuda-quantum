@@ -963,7 +963,6 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   PassManager pm(context);
   pm.addPass(cudaq::opt::createArgumentSynthesisPass(kernelRefs, substRefs));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createReplaceStateWithKernel());
   pm.addPass(createSymbolDCEPass());
 
   // Run state preparation for quantum devices (or their emulation) only.
