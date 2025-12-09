@@ -95,7 +95,7 @@ class Color:
 
 
 # Name of module attribute to recover the name of the entry-point for the python
-# kernel decorator.  The associated StringAttr is *without* the nvqppPrefix.
+# kernel decorator.  The associated StringAttr is *without* the `nvqppPrefix`.
 cudaq__unique_attr_name = "cc.python_uniqued"
 
 
@@ -206,8 +206,8 @@ def is_recovered_value_ok(result):
         if result != None:
             return True
     except ValueError:
-        # nd.array values raise ValueError with the above `if result` but are
-        # otherwise legit here.
+        # `nd.array` values raise `ValueError` with the above `if result` but
+        # are otherwise legit here.
         return True
     return False
 

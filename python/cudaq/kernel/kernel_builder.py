@@ -847,8 +847,9 @@ class PyKernel(object):
                     raise RuntimeError(
                         "invalid input state for qalloc (not normalized)")
 
-                # Read the values from the np.array and copy them in a constant
-                # array. The builder object resolves all symbols immediately.
+                # Read the values from the `np.array` and copy them in a
+                # constant array. The builder object resolves all symbols
+                # immediately.
                 arrTy = cc.ArrayType.get(eleTy, size)
                 arrVals = []
                 for i in range(size):
@@ -1382,7 +1383,7 @@ class PyKernel(object):
         Returns a `CreateLambdaOp` closure.
         """
         cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
-        # build the closure to capture the lifted args
+        # build the closure to capture the lifted `args`
         thisPyMod = recover_calling_module()
         if target.defModule != thisPyMod:
             m = target.defModule
@@ -1661,8 +1662,8 @@ class PyKernel(object):
 
     def compile(self):
         """
-        A PyKernel can be dynamically extended up until it is reified to be used
-        in a launch scenario. We reify the kernel as-is here.
+        A `PyKernel` can be dynamically extended up until it is reified to be
+        used in a launch scenario. We reify the kernel as-is here.
         """
         if not hasattr(self, 'qkeModule'):
             self.qkeModule = cudaq_runtime.cloneModule(self.module)
