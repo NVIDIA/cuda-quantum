@@ -9,13 +9,12 @@
 import ast
 import importlib
 import inspect
-import graphlib
 import textwrap
 import numpy as np
 import os
 import sys
+import types
 from collections import deque
-from types import FunctionType
 
 from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime, load_intrinsic,
                                                   gen_vector_of_complex_constant
@@ -61,44 +60,45 @@ ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
 class PyScopedSymbolTable(object):
 
     def __init__(self):
-        self.symbolTable = {}
+        self.symbolTable = deque()
 
     def pushScope(self):
-        pass
+        self.symbolTable.append({})
 
     def popScope(self):
-        pass
+        self.symbolTable.pop()
 
     def numLevels(self):
-        return 1
+        return len(self.symbolTable)
 
-    def add(self, symbol, value, unused=None):
+    def add(self, symbol, value, level=-1):
         """
         Add a symbol to the scoped symbol table at any scope level.
         """
-        self.symbolTable[symbol] = value
+        self.symbolTable[level][symbol] = value
 
     def __contains__(self, symbol):
-        return symbol in self.symbolTable
+        for st in reversed(self.symbolTable):
+            if symbol in st:
+                return True
+
+        return False
 
     def __setitem__(self, symbol, value):
         # default to nearest surrounding scope
         self.add(symbol, value)
 
     def __getitem__(self, symbol):
-        if symbol in self.symbolTable:
-            return self.symbolTable[symbol]
+        for st in reversed(self.symbolTable):
+            if symbol in st:
+                return st[symbol]
+
         raise RuntimeError(
             f"{symbol} is not a valid variable name in this scope.")
 
     def clear(self):
-        self.symbolTable.clear()
-
-    def __str__(self):
-        s = ""
-        for sym in self.symbolTable:
-            s += str(sym) + ": " + str(self.symbolTable[sym]) + "\n"
-        return s
+        while len(self.symbolTable):
+            self.symbolTable.pop()
 
 
 class CompilerError(RuntimeError):
@@ -1800,7 +1800,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid target for assignment", node)
             target_root_defined_in_parent_scope = (
                 target_root.id in self.symbolTable and
-                False) # FIXME: was: target_root.id not in self.symbolTable.symbolTable[-1])
+                target_root.id not in self.symbolTable.symbolTable[-1])
             value_root = self.__get_root_value(value)
 
             def update_in_parent_scope(destination, value):
@@ -2871,7 +2871,7 @@ class PyASTBridge(ast.NodeVisitor):
                         k: v
                         for k, v in cls.__dict__.items()
                         if not (k.startswith('__') and k.endswith('__')) and
-                        isinstance(v, FunctionType)
+                        isinstance(v, types.FunctionType)
                 }) != 0:
                     self.emitFatalError(
                         'struct types with user specified methods are not allowed.',

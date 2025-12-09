@@ -357,7 +357,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 localEmitFatalError(
                     "passing kernels as arguments that return a value is not currently supported"
                 )
-            return cc.CallableType.get(argTypes)
+            return cc.CallableType.get(ctx, argTypes, [])
 
         if isinstance(annotation,
                       ast.Subscript) and (annotation.value.id == 'list' or
