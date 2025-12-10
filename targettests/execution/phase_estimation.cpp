@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && cat %basename_t.ir | FileCheck %s && rm -f %basename_t.ir
-// clang-format on
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && \
+// RUN: CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && \
+// RUN: FileCheck %s < %basename_t.ir
+// RUN: rm -f %basename_t.ir
 
 #include <cudaq.h>
 #include <iostream>
@@ -36,14 +37,14 @@ __qpu__ void iqft(cudaq::qview<> q) {
   h(q[N - 1]);
 }
 
-// CUDA-Q kernel call operators can be templated on input CUDA-Q
-// kernel expressions. Here we define a general Phase Estimation algorithm that
-// is generic on the eigenstate preparation and unitary evolution steps.
+// CUDA-Q kernel call operators can be templated on input CUDA-Q kernel
+// expressions. Here we define a general Phase Estimation algorithm that is
+// generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {
 
-  // Define the CUDA-Q call expression to take user-specified eigenstate
-  // and unitary evolution kernels, as well as the number of qubits in the
-  // counting register and in the eigenstate register.
+  // Define the CUDA-Q call expression to take user-specified eigenstate and
+  // unitary evolution kernels, as well as the number of qubits in the counting
+  // register and in the eigenstate register.
   template <typename StatePrep, typename Unitary>
   void operator()(const int nCountingQubits, StatePrep &&state_prep,
                   Unitary &&oracle) __qpu__ {
