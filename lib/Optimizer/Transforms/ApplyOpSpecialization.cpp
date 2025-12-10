@@ -191,7 +191,7 @@ private:
     auto callee = apply.getCallee();
     if (callee)
       return module.lookupSymbol<func::FuncOp>(*callee);
-    return nullptr;
+    return {};
   }
 
   ModuleOp module;
