@@ -1538,9 +1538,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("Invalid target for assignment", node)
 
         if len(node.targets) > 1:
-            # I am not entirely sure what kinds of Python language constructs would
-            # result in having more than 1 target here, hence giving an error on it for now.
-            # (It would be easy to process this as target tuple, but it may not be correct to do so.)
+            # I am not entirely sure what kinds of Python language constructs
+            # would result in having more than 1 target here, hence giving an
+            # error on it for now.  (It would be easy to process this as target
+            # tuple, but it may not be correct to do so.)
             self.emitFatalError(
                 "CUDA-Q does not allow multiple targets in assignment", node)
         self.__deconstructAssignment(node.targets[0],
@@ -2007,6 +2008,7 @@ class PyASTBridge(ast.NodeVisitor):
                     break
 
             if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
+                # FIXME: the above allows random permutations of these words
                 # Handle a debug print statement
                 [self.visit(arg) for arg in node.args]
                 if len(self.valueStack) != 1:
@@ -2020,33 +2022,29 @@ class PyASTBridge(ast.NodeVisitor):
             # If we did have module names, then this is what we are looking for
             if len(moduleNames):
                 name = node.func.attr
-                if not name in globalKernelRegistry:
-                    moduleNames.reverse()
-                    self.emitFatalError(
-                        "{}.{} is not a valid quantum kernel to call.".format(
-                            '.'.join(moduleNames), node.func.attr), node)
-
-                # If it is in `globalKernelRegistry`, it has to be in this Module
-                decorator = recover_kernel_decorator(name)
-                if decorator:
-                    callee, fType = processDecoratorCall(decorator, name)
-                    if len(fType.inputs) != len(node.args):
-                        funcName = node.func.id if hasattr(
-                            node.func, 'id') else node.func.attr
-                        self.emitFatalError(
-                            f"invalid number of arguments passed to callable "
-                            f"{funcName} ({len(node.args)} vs required "
-                            f"{len(fType.inputs)})", node)
-                    [self.visit(arg) for arg in node.args]
-                    values = [self.popValue() for _ in node.args]
-                    values.reverse()
-                    values = [self.ifPointerThenLoad(v) for v in values]
-                    call = cc.CallCallableOp(fType.results, callee, values)
-                    sa = StringAttr.get(name)
-                    call.attributes.__setitem__('symbol', sa)
-                    for r in call.results:
-                        self.pushValue(r)
-                    return
+                moduleNames.reverse()
+                if self.symbolTable[moduleNames[0]] is None:
+                    decorator = recover_kernel_decorator(name)
+                    if decorator:
+                        callee, fType = processDecoratorCall(decorator, name)
+                        if len(fType.inputs) != len(node.args):
+                            funcName = node.func.id if hasattr(
+                                node.func, 'id') else node.func.attr
+                            self.emitFatalError(
+                                f"invalid number of arguments passed to "
+                                f"callable {funcName} ({len(node.args)} vs "
+                                f"required {len(fType.inputs)})", node)
+                            [self.visit(arg) for arg in node.args]
+                            values = [self.popValue() for _ in node.args]
+                            values.reverse()
+                            values = [self.ifPointerThenLoad(v) for v in values]
+                            call = cc.CallCallableOp(fType.results, callee,
+                                                     values)
+                            sa = StringAttr.get(name)
+                            call.attributes.__setitem__('symbol', sa)
+                            for r in call.results:
+                                self.pushValue(r)
+                            return
 
         # FIXME: This whole thing is widely inconsistent;
         # For example; we pop all values on the value stack for a simple gate
