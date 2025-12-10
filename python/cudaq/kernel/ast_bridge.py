@@ -3372,17 +3372,17 @@ class PyASTBridge(ast.NodeVisitor):
                             channel_class = getattr(cudaq_module,
                                                     node.args[0].attr)
                             numParams = channel_class.num_parameters
-                            key = self.getConstantInt(hash(channel_class))
-                        elif (isinstance(node.args[0], ast.Name) and
-                              node.args[0].id in self.capturedVars):
-                            arg = self.capturedVars[node.args[0].id]
-                            try:
-                                # We should have a custom Kraus channel.
-                                if issubclass(arg, cudaq_runtime.KrausChannel):
-                                    numParams = arg.num_parameters
-                                    key = self.getConstantInt(hash(arg))
-                            except:
-                                pass
+                            key = self.getConstantInt(hash(channel_class))                        
+                        elif isinstance(node.args[0], ast.Name):
+                            arg = recover_value_of_or_none(node.args[0].id, None)
+                            if (arg and isinstance(arg, type) 
+                                and issubclass(arg, cudaq_runtime.KrausChannel)):
+                                if not hasattr(arg, 'num_parameters'):
+                                    self.emitFatalError(
+                                        'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
+                                    )
+                                numParams = arg.num_parameters
+                                key = self.getConstantInt(hash(arg))
                         if key is None:
                             self.emitFatalError(
                                 "unsupported argument for Kraus channel in apply_noise",

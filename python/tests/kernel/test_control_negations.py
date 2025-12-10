@@ -29,6 +29,15 @@ def test_builtin_controlled_gates():
     assert counts["01"] == 1000
 
     @cudaq.kernel
+    def multi_control_simple_gate():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cx(c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_simple_gate)
+    assert counts["10011"] == 1000
+
+    @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         cry(np.pi, ~c, q)
@@ -37,9 +46,19 @@ def test_builtin_controlled_gates():
     counts = cudaq.sample(control_rotation_gate)
     assert counts["01"] == 1000
 
+    @cudaq.kernel
+    def multi_control_rotation_gate():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cry(np.pi, c[0], ~c[1], ~c[2], c[3], q)
 
-# Note: u3, swap, and exp_pauli do not have a built-in c<gatename> version at
-# the time of writing this.
+    counts = cudaq.sample(multi_control_rotation_gate)
+    assert counts["10011"] == 1000
+
+    # Note: u3, swap, and exp_pauli do not have a built-in
+    # c<gatename> version at the time of writing this.
+
+
 def test_ctrl_attribute():
 
     @cudaq.kernel
@@ -61,16 +80,6 @@ def test_ctrl_attribute():
     assert counts["10011"] == 1000
 
     @cudaq.kernel
-    def multi_control_simple_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        x.ctrl(c1, ~c2, ~c3, c4, q)
-
-    counts = cudaq.sample(multi_control_simple_gate2)
-    assert counts["10011"] == 1000
-
-    @cudaq.kernel
     def control_rotation_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         ry.ctrl(np.pi, ~c, q)
@@ -86,16 +95,6 @@ def test_ctrl_attribute():
         ry.ctrl(np.pi, c[0], ~c[1], ~c[2], c[3], q)
 
     counts = cudaq.sample(multi_control_rotation_gate)
-    assert counts["10011"] == 1000
-
-    @cudaq.kernel
-    def multi_control_rotation_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        ry.ctrl(np.pi, c1, ~c2, ~c3, c4, q)
-
-    counts = cudaq.sample(multi_control_rotation_gate2)
     assert counts["10011"] == 1000
 
     @cudaq.kernel
@@ -119,17 +118,6 @@ def test_ctrl_attribute():
     assert counts["100101"] == 1000
 
     @cudaq.kernel
-    def multi_control_swap_gate2():
-        c, q1, q2 = cudaq.qvector(4), cudaq.qubit(), cudaq.qubit()
-        x(q1)
-        x(c[0], c[3])
-        c1, c2, c3, c4 = c
-        swap.ctrl(c1, ~c2, ~c3, c4, q1, q2)
-
-    counts = cudaq.sample(multi_control_swap_gate2)
-    assert counts["100101"] == 1000
-
-    @cudaq.kernel
     def control_u3_gate():
         c, q = cudaq.qubit(), cudaq.qubit()
         t, p, l = np.pi, 0., 0.
@@ -147,17 +135,6 @@ def test_ctrl_attribute():
         u3.ctrl(t, p, l, c[0], ~c[1], c[2], ~c[3], q)
 
     counts = cudaq.sample(multi_control_u3_gate)
-    assert counts["10101"] == 1000
-
-    @cudaq.kernel
-    def multi_control_u3_gate2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[2])
-        c1, c2, c3, c4 = c
-        t, p, l = np.pi, 0., 0.
-        u3.ctrl(t, p, l, c1, ~c2, c3, ~c4, q)
-
-    counts = cudaq.sample(multi_control_u3_gate2)
     assert counts["10101"] == 1000
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
@@ -180,16 +157,6 @@ def test_ctrl_attribute():
     counts = cudaq.sample(multi_control_registered_operation)
     assert counts["10101"] == 1000
 
-    @cudaq.kernel
-    def multi_control_registered_operation2():
-        c, q = cudaq.qvector(4), cudaq.qubit()
-        x(c[0], c[2])
-        c1, c2, c3, c4 = c
-        custom_x.ctrl(c1, ~c2, c3, ~c4, q)
-
-    counts = cudaq.sample(multi_control_registered_operation2)
-    assert counts["10101"] == 1000
-
 
 def test_cudaq_control():
 
@@ -204,11 +171,19 @@ def test_cudaq_control():
         cudaq.control(custom_x, c, q)
 
     counts = cudaq.sample(control_kernel)
-    print(counts)
     assert counts["01"] == 1000
 
-    # Note: calling cudaq.control on a registered operation or on a built-in gate is
-    # not supported at the time of writing this
+    @cudaq.kernel
+    def multi_control_kernel():
+        c, q = cudaq.qvector(4), cudaq.qubit()
+        x(c[0], c[3])
+        cudaq.control(custom_x, c[0], ~c[1], ~c[2], c[3], q)
+
+    counts = cudaq.sample(multi_control_kernel)
+    assert counts["10011"] == 1000
+
+    # Note: calling cudaq.control on a registered operation
+    # or on a built-in gate is not supported at the time of writing this
 
 
 def test_unsupported_calls():
@@ -217,7 +192,6 @@ def test_unsupported_calls():
     # tests above and remove the notes.
 
     with pytest.raises(RuntimeError) as e:
-
         @cudaq.kernel
         def cu3_gate():
             c, q = cudaq.qubit(), cudaq.qubit()
@@ -229,7 +203,6 @@ def test_unsupported_calls():
     assert "unhandled function call - cu3" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
-
         @cudaq.kernel
         def cswap_gate():
             c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
@@ -243,7 +216,6 @@ def test_unsupported_calls():
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     with pytest.raises(RuntimeError) as e:
-
         @cudaq.kernel
         def control_registered_operation():
             c, q = cudaq.qubit(), cudaq.qubit()
@@ -251,10 +223,10 @@ def test_unsupported_calls():
             cudaq.control(custom_x, c, q)
 
         cudaq.sample(control_registered_operation)
-    assert "unprocessed kernel reference not yet supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported" in str(
+        e.value)
 
     with pytest.raises(RuntimeError) as e:
-
         @cudaq.kernel
         def control_rotation_gate():
             c, q = cudaq.qubit(), cudaq.qubit()
@@ -262,10 +234,10 @@ def test_unsupported_calls():
             cudaq.control(ry, c, np.pi, q)
 
         cudaq.sample(control_rotation_gate)
-    assert "unprocessed kernel reference not yet supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a built-in gate is not supported" in str(
+        e.value)
 
     with pytest.raises(RuntimeError) as e:
-
         @cudaq.kernel
         def control_simple_gate():
             c, q = cudaq.qvector(3), cudaq.qubit()
@@ -274,8 +246,8 @@ def test_unsupported_calls():
             cx(c, q)
 
         cudaq.sample(control_simple_gate)
-    assert ("unary operator ~ is only supported for values of type qubit"
-            in str(e.value))
+    assert "unary operator ~ is only supported for values of type qubit" in str(
+        e.value)
 
 
 # leave for gdb debugging
