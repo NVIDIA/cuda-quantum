@@ -607,6 +607,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
 
 Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
                   ModuleOp substMod, llvm::DataLayout &layout) {
+  if (!p)
+    return {};
   auto loc = builder.getUnknownLoc();
   auto *closure =
       reinterpret_cast<cudaq::runtime::CallableClosureArgument *>(p);

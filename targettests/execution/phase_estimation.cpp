@@ -20,9 +20,8 @@
 __qpu__ void iqft(cudaq::qview<> q) {
   int N = q.size();
   // Swap qubits
-  for (int i = 0; i < N / 2; ++i) {
+  for (int i = 0; i < N / 2; ++i)
     swap(q[i], q[N - i - 1]);
-  }
 
   for (int i = 0; i < N - 1; ++i) {
     h(q[i]);
@@ -63,19 +62,15 @@ struct qpe {
     h(counting_qubits);
 
     // Perform `ctrl-U^j`
-    for (int i = 0; i < nCountingQubits; ++i) {
-      for (int j = 0; j < (1 << i); ++j) {
+    for (int i = 0; i < nCountingQubits; ++i)
+      for (int j = 0; j < (1 << i); ++j)
         cudaq::control(oracle, counting_qubits[i], state_register);
-      }
-    }
 
     // Apply inverse quantum Fourier transform
     iqft(counting_qubits);
 
     // Measure to gather sampling statistics
     mz(counting_qubits);
-
-    return;
   }
 };
 
@@ -87,6 +82,7 @@ int main() {
   int nQubits = 2;
   auto counts = cudaq::sample(
       qpe{}, nQubits, [](cudaq::qubit &q) __qpu__ { x(q); }, r1PiGate{});
+  return 0; // don't leave pass/fail status up to the phase of the moon
 }
 
 // CHECK-NOT: __quantum__qis__r1__body
