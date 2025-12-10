@@ -5109,17 +5109,15 @@ class PyASTBridge(ast.NodeVisitor):
             mlirVal = cudaq_runtime.appendKernelArgument(self.kernelFuncOp, argTy)
             self.argTypes.append(argTy)
 
-            # Save the lifted argument as a local variable.
-            with InsertionPoint.at_block_begin(self.entry):
-                # FIXME: NEEDS TO BE REVISED TO BEHAVE LIKE OTHER ASSIGNMENTS
-                stackSlot = cc.AllocaOp(cc.PointerType.get(mlirVal.type),
-                                        TypeAttr.get(mlirVal.type)).result
-                cc.StoreOp(mlirVal, stackSlot)
-                self.symbolTable.add(node.id, stackSlot, 0)
-                # FIXME: NEED SAME LOGIC AS FOR OTHER THINGS IN THE SYMBOL TABLE
-                self.pushValue(mlirVal) # NEW IMPLEMENTATION HAS PUSH STACKSLOT
-            return
+            assignNode = ast.Assign()
+            assignNode.targets = [node]
+            assignNode.value = mlirVal
+            assignNode.lineno = node.lineno
+            self.visit_Assign(assignNode)
 
+            self.visit(node)
+            self.pushValue(self.popValue()) # propagating the pushed value through
+            return
 
         if (node.id in globalKernelRegistry or
                 node.id in globalRegisteredOperations):

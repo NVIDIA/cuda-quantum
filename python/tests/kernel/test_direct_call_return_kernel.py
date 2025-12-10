@@ -584,7 +584,7 @@ def test_return_dataclass_list_int_bool():
     @cudaq.kernel
     def test_return_dataclass(n: int, t: MyClass) -> MyClass:
         qubits = cudaq.qvector(n)
-        return t
+        return t.copy(deep=True)
 
     # TODO: Support recursive aggregate types in kernels.
     # result = test_return_dataclass(2, MyClass([0,1], 18))
