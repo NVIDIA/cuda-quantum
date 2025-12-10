@@ -9,7 +9,6 @@
 #include <pybind11/stl.h>
 
 #include "common/JsonConvert.h"
-#include "common/SerializedCodeExecutionContext.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
