@@ -19,6 +19,7 @@
 #include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/SamplingMode.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -711,7 +712,7 @@ public:
     }
 
     if (executionContext) {
-      if (executionContext->name == "sample") {
+      if (cudaq::details::isSamplingContext(executionContext)) {
         executionContext->reorderIdx = mapping_reorder_idx;
         // No need to add measurements only to remove them eventually
         if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
