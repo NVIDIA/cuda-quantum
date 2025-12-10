@@ -6,8 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
-// RUN: cudaq-opt --lambda-lifting --canonicalize %s | \
+// RUN: cudaq-opt -lambda-lifting=constant-prop=1 -canonicalize %s | \
+// RUN:   FileCheck %s
+// RUN: cudaq-opt -lambda-lifting=constant-prop=1 -canonicalize %s | \
 // RUN:   cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel_a = "_ZN8kernel_aclEv", __nvqpp__mlirgen__kernel_b = "_ZN8kernel_bclEOSt8functionIFvvEE"}} {

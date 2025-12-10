@@ -535,6 +535,9 @@ public:
               loc, cudaq::cc::PointerType::get(blkArg2.getType()), cast2,
               ArrayRef<cudaq::cc::ComputePtrArg>{1});
           builder.create<cudaq::cc::StoreOp>(loc, blkArg2, part2);
+        } else if (isa<cudaq::cc::CallableType>(blkArg.getType())) {
+          // In C++, callables are already resolved. There is nothing to pass.
+          temp = builder.create<arith::ConstantIntOp>(loc, 0, 64);
         } else {
           temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
           builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);

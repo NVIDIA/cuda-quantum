@@ -493,9 +493,11 @@ public:
 
     auto epFunc =
         moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
+    const bool isPython = moduleOp->hasAttr(runtime::pythonUniqueAttrName);
     if (!rawArgs.empty() || updatedArgs) {
       mlir::PassManager pm(contextPtr);
-      detail::mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
+      if (isPython)
+        detail::mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
 
       // Mark all newly merged kernels private, and leave the entry point alone.
       for (auto &op : moduleOp)
@@ -541,8 +543,6 @@ public:
         pm.addPass(cudaq::opt::createApplySpecialization(
             {.constantPropagation = true}));
         cudaq::opt::addAggressiveInlining(pm);
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createReplaceStateWithKernel());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (updatedArgs) {
         CUDAQ_INFO("Run Quake Synth.\n");

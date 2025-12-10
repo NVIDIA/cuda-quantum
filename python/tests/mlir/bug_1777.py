@@ -31,14 +31,15 @@ def test_bug_1777():
     print(result)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant false
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant true
-# CHECK:           %[[VAL_4:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[VAL_6:.*]] = cc.alloca i1
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
+# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant false
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant true
+# CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i64
+# CHECK-DAG:       %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
+# CHECK-DAG:       %[[VAL_6:.*]] = cc.alloca i1
 # CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<i1>
 # CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_2]]) -> (i64)) {
 # CHECK:             %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_4]] : i64
