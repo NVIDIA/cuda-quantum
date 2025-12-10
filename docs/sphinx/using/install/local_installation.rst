@@ -876,8 +876,8 @@ The following table summarizes the required components.
 
     * - CPU architectures
       - x86_64, ARM64
-    * - Operating System
-      - Linux
+    * - Operating systems
+      - Linux, Windows via Windows Subsystem for Linux 2 (WSL2)
     * - Tested Distributions
       - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
     * - Python versions
