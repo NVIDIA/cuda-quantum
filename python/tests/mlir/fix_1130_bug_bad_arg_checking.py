@@ -32,7 +32,7 @@ def test_bad_arg_checking_fix_1130():
 # CHECK:           return
 # CHECK:         }
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME:    (%[[arg0:.*]]: !quake.ref, %[[arg1:.*]]: !quake.ref, %[[arg2:.*]]: f64)
 # CHECK:     %cst = arith.constant 2.000000e+00 : f64
 # CHECK:     quake.x [%[[arg0]]] %[[arg1]] : (!quake.ref, !quake.ref) -> ()
