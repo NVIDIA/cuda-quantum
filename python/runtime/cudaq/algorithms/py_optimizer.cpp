@@ -20,44 +20,6 @@
 
 namespace cudaq {
 
-/// Form the SerializedCodeExecutionContext
-// static SerializedCodeExecutionContext
-// get_serialized_code(std::string &source_code) {
-//   SerializedCodeExecutionContext ctx;
-//   try {
-//     py::object json = py::module_::import("json");
-//     auto var_dict = get_serializable_var_dict();
-//     ctx.scoped_var_dict = py::str(json.attr("dumps")(var_dict));
-//     ctx.source_code = source_code;
-//   } catch (py::error_already_set &e) {
-//     throw std::runtime_error("Failed to serialized data: " +
-//                              std::string(e.what()));
-//   }
-//   return ctx;
-// }
-
-// static std::string
-// get_required_raw_source_code(const int dim, const py::function &func,
-//                              const std::string &optimizer_var_name) {
-//   // Get source code and remove the leading whitespace
-//   std::string source_code = get_source_code(func);
-
-//   // Form the Python call to optimizer.optimize
-//   std::ostringstream os;
-//   auto obj_func_name = func.attr("__name__").cast<std::string>();
-//   os << "energy, params_at_energy = " << optimizer_var_name << ".optimize("
-//      << dim << ", " << obj_func_name << ")\n";
-//   // The _json_request_result dictionary is a special dictionary where
-//   outputs
-//   // are saved. Must be serializable to JSON using the JSON structures.
-//   os << "_json_request_result['executionContext']['optResult'] = [energy, "
-//         "params_at_energy]\n";
-//   auto function_call = os.str();
-
-//   // Return the combined code
-//   return source_code + "\n" + function_call;
-// }
-
 /// @brief Bind the `cudaq::optimization_result` typedef.
 void bindOptimizationResult(py::module &mod) {
   py::class_<optimization_result>(mod, "OptimizationResult");

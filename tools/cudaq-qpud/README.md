@@ -2,7 +2,7 @@
 # `remote-mqpu` Debugging Tips
 
 This file contains tips and tricks for when you are performing manual testing/
-debugging for `remote-mqpu` targets. This file is primarily intended
+debugging for `remote-mqpu` target. This file is primarily intended
 for **CUDA-Q developers, not end users**. See the user-facing docs here:
 
 - [`remote-mqpu`](https://nvidia.github.io/cuda-quantum/latest/using/backends/platform.html#remote-mqpu-platform)
