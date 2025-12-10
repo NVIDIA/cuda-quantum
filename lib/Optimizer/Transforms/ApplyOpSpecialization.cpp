@@ -189,7 +189,9 @@ private:
 
   func::FuncOp lookupCallee(quake::ApplyOp apply) {
     auto callee = apply.getCallee();
-    return module.lookupSymbol<func::FuncOp>(*callee);
+    if (callee)
+      return module.lookupSymbol<func::FuncOp>(*callee);
+    return nullptr;
   }
 
   ModuleOp module;
