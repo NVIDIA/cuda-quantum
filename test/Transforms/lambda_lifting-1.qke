@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --lambda-lifting --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --lambda-lifting=constant-prop=1 --canonicalize %s | FileCheck %s
 
 func.func private @__nvqpp__mlirgen__foo..0x7abaa13ce580(%arg0: i64)
 

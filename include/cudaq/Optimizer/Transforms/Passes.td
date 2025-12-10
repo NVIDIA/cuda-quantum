@@ -628,11 +628,13 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
     3. Convert all uses to CallOps as needed.
 
     The `constantPropagation` option can be used to eliminate constants being
-    passed in closures.
+    passed in closures. This option defaults to off to avoid phase ordering
+    issues with memtoreg altering the structure of cc.loop too aggressively
+    before the loop is analyzed.
   }];
 
   let options = [
-    Option<"constantPropagation", "constant-prop", "bool", /*default=*/"true",
+    Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
       "Enable specialization and constant propagation into lifted lambdas.">
   ];
 }
