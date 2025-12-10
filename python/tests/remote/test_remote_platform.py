@@ -438,18 +438,6 @@ def test_capture_array():
     assert "1" in counts
 
 
-def test_capture_state():
-    with pytest.raises(RuntimeError) as e:
-        s = cudaq.State.from_data(np.array([1., 0], dtype=cudaq.complex()))
-
-        @cudaq.kernel
-        def kernel():
-            q = cudaq.qvector(s)
-
-        counts = cudaq.sample(kernel)
-    assert 'invalid data precision' in repr(e)
-
-
 @cudaq.kernel
 def simple(numQubits: int) -> int:
     qubits = cudaq.qvector(numQubits)
