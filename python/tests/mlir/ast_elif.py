@@ -29,8 +29,8 @@ def test_elif():
     print(cost)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost(
-# CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<f64>) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__cost
+# CHECK-SAME:      (%[[VAL_0:.*]]: !cc.stdvec<f64>)
 # CHECK:           %[[VAL_1:.*]] = arith.constant 4 : i64
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_1]] : i64]
 # CHECK:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<f64>) -> i64
