@@ -21,10 +21,11 @@ def __broadcastSample(kernel,
     N = len(argSet)
     results = []
     for i, a in enumerate(argSet):
-        ctx = cudaq_runtime.ExecutionContext('sample', shots_count)
+        ctx = cudaq_runtime.ExecutionContext(
+            "sample_explicit" if explicit_measurements else "sample",
+            shots_count)
         ctx.totalIterations = N
         ctx.batchIteration = i
-        ctx.explicitMeasurements = explicit_measurements
         cudaq_runtime.setExecutionContext(ctx)
         kernel(*a)
         res = ctx.result
@@ -111,9 +112,9 @@ Returns:
         cudaq_runtime.unset_noise()
         return res
 
-    ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
+    ctx = cudaq_runtime.ExecutionContext(
+        "sample_explicit" if explicit_measurements else "sample", shots_count)
     ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
-    ctx.explicitMeasurements = explicit_measurements
     cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()

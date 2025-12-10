@@ -124,10 +124,6 @@ public:
   /// calculation on simulation backends that support trajectory simulation.
   std::optional<std::size_t> numberTrajectories = std::nullopt;
 
-  /// @brief Whether or not to simply concatenate measurements in execution
-  /// order.
-  bool explicitMeasurements = false;
-
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;

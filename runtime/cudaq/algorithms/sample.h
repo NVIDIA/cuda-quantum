@@ -54,12 +54,12 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
           "kernel with conditional logic on a measurement result.");
   }
   // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("sample", shots);
+  auto ctx = std::make_unique<ExecutionContext>(
+      explicitMeasurements ? "sample_explicit" : "sample", shots);
   ctx->kernelName = kernelName;
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
   ctx->hasConditionalsOnMeasureResults = hasConditionalFeebdback;
-  ctx->explicitMeasurements = explicitMeasurements;
 
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we

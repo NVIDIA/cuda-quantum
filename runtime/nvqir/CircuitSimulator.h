@@ -16,6 +16,7 @@
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
+#include "common/SamplingMode.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
 #include <cstdarg>
@@ -100,6 +101,10 @@ protected:
   /// capable of buffering sample results across multiple invocations of the
   /// sample() function.
   bool supportsBufferedSample = false;
+
+  /// @brief The current sampling mode, derived from execution context
+  cudaq::details::SamplingMode currentSamplingMode =
+      cudaq::details::SamplingMode::Default;
 
 public:
   /// @brief The constructor
@@ -500,7 +505,8 @@ protected:
       return 1;
     if (executionContext->hasConditionalsOnMeasureResults)
       return 1;
-    if (executionContext->explicitMeasurements && !supportsBufferedSample)
+    if (cudaq::details::isExplicitSamplingMode(executionContext) &&
+        !supportsBufferedSample)
       return 1;
     return static_cast<int>(executionContext->shots);
   }
@@ -542,48 +548,58 @@ protected:
         "Simulation data not available for this simulator backend.");
   }
 
-  /// @brief Handle basic sampling tasks by storing the qubit index for
-  /// processing in resetExecutionContext. Return true to indicate this is
-  /// sampling and to exit early. False otherwise.
+  /// @brief Handle measurement recording for default sampling mode. Builds
+  /// register mappings, allows only unique measurements per qubit.
+  bool handleBasicSampling_Default(const std::size_t qubitIdx,
+                                   const std::string &regName) {
+    // Add the qubit to the sampling list
+    sampleQubits.push_back(qubitIdx);
+    auto processForRegName = [&](const std::string &regStr) {
+      // Insert the sample qubit into the register name map
+      auto iter = registerNameToMeasuredQubit.find(regStr);
+      if (iter == registerNameToMeasuredQubit.end())
+        registerNameToMeasuredQubit.emplace(regStr,
+                                            std::vector<std::size_t>{qubitIdx});
+      else if (std::find(iter->second.begin(), iter->second.end(), qubitIdx) ==
+               iter->second.end())
+        iter->second.push_back(qubitIdx);
+    };
+    // Insert into global register and named register (if it exists)
+    processForRegName(cudaq::GlobalRegisterName);
+    if (!regName.empty())
+      processForRegName(regName);
+    return true;
+  }
+
+  /// @brief Handle measurement recording for explicit sampling mode. Preserves
+  /// execution order, allows duplicate measurements per qubit.
+  bool handleBasicSampling_Explicit(const std::size_t qubitIdx,
+                                    const std::string &regName) {
+    // Handle duplicate measurements in explicit measurements mode
+    auto iter = std::find(sampleQubits.begin(), sampleQubits.end(), qubitIdx);
+    if (iter != sampleQubits.end())
+      flushAnySamplingTasks(/*force this*/ true);
+    // Add the qubit to the sampling list
+    sampleQubits.push_back(qubitIdx);
+    return true;
+  }
+
+  /// @brief Handle basic sampling tasks by dispatching to the sampling
+  /// mode-specific implementation. Return true to indicate this is sampling and
+  /// to exit early. False otherwise.
   bool handleBasicSampling(const std::size_t qubitIdx,
                            const std::string &regName) {
-    if (executionContext && executionContext->name == "sample" &&
+    if (executionContext &&
+        cudaq::details::isSamplingContext(executionContext) &&
         !executionContext->hasConditionalsOnMeasureResults) {
-
-      // Handle duplicate measurements in explicit measurements mode
-      if (executionContext->explicitMeasurements) {
-        auto iter =
-            std::find(sampleQubits.begin(), sampleQubits.end(), qubitIdx);
-        if (iter != sampleQubits.end())
-          flushAnySamplingTasks(/*force this*/ true);
+      switch (currentSamplingMode) {
+      case cudaq::details::SamplingMode::Explicit:
+        return handleBasicSampling_Explicit(qubitIdx, regName);
+      case cudaq::details::SamplingMode::Default:
+      default:
+        return handleBasicSampling_Default(qubitIdx, regName);
       }
-      // Add the qubit to the sampling list
-      sampleQubits.push_back(qubitIdx);
-
-      // If we're using explicit measurements (an optimized sampling mode), then
-      // don't populate registerNameToMeasuredQubit.
-      if (executionContext->explicitMeasurements)
-        return true;
-
-      auto processForRegName = [&](const std::string &regStr) {
-        // Insert the sample qubit into the register name map
-        auto iter = registerNameToMeasuredQubit.find(regStr);
-        if (iter == registerNameToMeasuredQubit.end())
-          registerNameToMeasuredQubit.emplace(
-              regStr, std::vector<std::size_t>{qubitIdx});
-        else if (std::find(iter->second.begin(), iter->second.end(),
-                           qubitIdx) == iter->second.end())
-          iter->second.push_back(qubitIdx);
-      };
-
-      // Insert into global register and named register (if it exists)
-      processForRegName(cudaq::GlobalRegisterName);
-      if (!regName.empty())
-        processForRegName(regName);
-
-      return true;
     }
-
     return false;
   }
 
@@ -596,7 +612,8 @@ protected:
                                       const std::string &registerName) {
     // We still care about what qubit we are measuring if in the
     // sample-conditional context
-    if (executionContext && executionContext->name == "sample" &&
+    if (executionContext &&
+        cudaq::details::isSamplingContext(executionContext) &&
         executionContext->hasConditionalsOnMeasureResults) {
       std::string mutableRegisterName = registerName;
 
@@ -710,10 +727,56 @@ protected:
                              "subclasses, override addQubitsToState.");
   }
 
-  /// @brief Execute a sampling task with the current set of sample qubits.
-  void flushAnySamplingTasks(bool force = false) {
-    if (force && supportsBufferedSample &&
-        executionContext->explicitMeasurements) {
+  /// @brief Execute a sampling task with the current set of sample qubits in
+  /// default sampling mode.
+  void flushAnySamplingTasks_Default(bool force) {
+    if (sampleQubits.empty())
+      return;
+    if (executionContext->hasConditionalsOnMeasureResults && !force)
+      return;
+    // Sort and deduplicate
+    std::sort(sampleQubits.begin(), sampleQubits.end());
+    auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+    sampleQubits.erase(last, sampleQubits.end());
+    CUDAQ_INFO("Sampling the current state, with measure qubits = {}",
+               sampleQubits);
+    // Ask the subtype to sample the current state
+    auto execResult = sample(sampleQubits, getNumShotsToExec());
+    if (registerNameToMeasuredQubit.empty()) {
+      executionContext->result.append(execResult, /*explicitMode=*/false);
+    } else {
+      for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
+        // Measurements are sorted according to qubit allocation order
+        std::sort(qubits.begin(), qubits.end());
+        auto last = std::unique(qubits.begin(), qubits.end());
+        qubits.erase(last, qubits.end());
+        // Find the position of the qubits we have in the result bit string
+        // Create a map of qubit to bit string location
+        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
+        for (std::size_t i = 0; i < qubits.size(); i++) {
+          auto iter =
+              std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
+          auto idx = std::distance(sampleQubits.begin(), iter);
+          qubitLocMap.insert({qubits[i], idx});
+        }
+        cudaq::ExecutionResult tmp(regName);
+        for (auto &[bits, count] : execResult.counts) {
+          std::string b = "";
+          b.reserve(qubits.size());
+          for (auto &qb : qubits)
+            b += bits[qubitLocMap[qb]];
+          tmp.appendResult(b, count);
+        }
+        executionContext->result.append(tmp);
+      }
+    }
+    sampleQubits.clear();
+    registerNameToMeasuredQubit.clear();
+  }
+
+  /// @brief Execute sampling task with explicit measurements sampling mode
+  void flushAnySamplingTasks_Explicit(bool force) {
+    if (force && supportsBufferedSample) {
       int nShots = getNumShotsToExec();
       if (!sampleQubits.empty()) {
         // We have a few more qubits to be sampled. Call sample on the subclass,
@@ -727,63 +790,27 @@ protected:
       executionContext->result.append(execResult);
       return;
     }
-
     if (sampleQubits.empty())
       return;
-
-    if (executionContext->hasConditionalsOnMeasureResults && !force)
-      return;
-
-    // Sort the qubit indices (unless we're in the optimized sampling mode that
-    // simply concatenates sequential measurements)
-    if (!executionContext->explicitMeasurements) {
-      std::sort(sampleQubits.begin(), sampleQubits.end());
-      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-      sampleQubits.erase(last, sampleQubits.end());
-    }
-
     CUDAQ_INFO("Sampling the current state, with measure qubits = {}",
                sampleQubits);
-
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
-
-    if (registerNameToMeasuredQubit.empty()) {
-      executionContext->result.append(execResult,
-                                      executionContext->explicitMeasurements);
-    } else {
-
-      for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        // Measurements are sorted according to qubit allocation order
-        std::sort(qubits.begin(), qubits.end());
-        auto last = std::unique(qubits.begin(), qubits.end());
-        qubits.erase(last, qubits.end());
-
-        // Find the position of the qubits we have in the result bit string
-        // Create a map of qubit to bit string location
-        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
-        for (std::size_t i = 0; i < qubits.size(); i++) {
-          auto iter =
-              std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
-          auto idx = std::distance(sampleQubits.begin(), iter);
-          qubitLocMap.insert({qubits[i], idx});
-        }
-
-        cudaq::ExecutionResult tmp(regName);
-        for (auto &[bits, count] : execResult.counts) {
-          std::string b = "";
-          b.reserve(qubits.size());
-          for (auto &qb : qubits)
-            b += bits[qubitLocMap[qb]];
-          tmp.appendResult(b, count);
-        }
-
-        executionContext->result.append(tmp);
-      }
-    }
-
+    executionContext->result.append(execResult, /*explicitMode=*/true);
     sampleQubits.clear();
-    registerNameToMeasuredQubit.clear();
+  }
+
+  /// @brief Execute a sampling task with the current set of sample qubits.
+  void flushAnySamplingTasks(bool force = false) {
+    switch (currentSamplingMode) {
+    case cudaq::details::SamplingMode::Explicit:
+      flushAnySamplingTasks_Explicit(force);
+      return;
+    case cudaq::details::SamplingMode::Default:
+    default:
+      flushAnySamplingTasks_Default(force);
+      return;
+    }
   }
 
   /// @brief Add a new gate application task to the queue
@@ -1129,13 +1156,11 @@ public:
     if (!executionContext)
       return;
 
-    // Get the ExecutionContext name
-    auto execContextName = executionContext->name;
-
     // If we are sampling...
-    if (execContextName.find("sample") != std::string::npos) {
+    if (cudaq::details::isSamplingContext(executionContext)) {
       // Sample the state over the specified number of shots
-      if (sampleQubits.empty() && !executionContext->explicitMeasurements) {
+      if (sampleQubits.empty() &&
+          !cudaq::details::isExplicitSamplingMode(executionContext)) {
         if (isInBatchMode())
           sampleQubits.resize(batchModeCurrentNumQubits);
         else
@@ -1216,6 +1241,7 @@ public:
 
     bool shouldSetToZero = isInBatchMode() && !isLastBatch();
     executionContext = nullptr;
+    currentSamplingMode = cudaq::details::SamplingMode::Default;
 
     // Reset the state if we've deallocated all qubits.
     if (tracker.allDeallocated()) {
@@ -1237,6 +1263,8 @@ public:
   /// @brief Set the execution context
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     executionContext = context;
+    if (cudaq::details::isSamplingContext(executionContext))
+      currentSamplingMode = cudaq::details::getSamplingMode(context->name);
     executionContext->canHandleObserve = canHandleObserve();
     currentCircuitName = context->kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
