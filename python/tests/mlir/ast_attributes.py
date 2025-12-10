@@ -64,41 +64,43 @@ def test_attribute_access():
 
 
 def test_attribute_failures():
-
-    @cudaq.kernel
-    def kernel1() -> int:
-        l = [1, 2, 3]
-        l[0] = 4
-        l.size = 4
-        return len(l)
-
     try:
+
+        @cudaq.kernel
+        def kernel1() -> int:
+            l = [1, 2, 3]
+            l[0] = 4
+            l.size = 4
+            return len(l)
+
         print(kernel1)
     except Exception as e:
         print("Failure kernel1:")
         print(e)
 
-    @cudaq.kernel
-    def kernel2():
-        qs = cudaq.qvector(2)
-        qs.append(cudaq.qubit())
-        x(qs)
-
     try:
+
+        @cudaq.kernel
+        def kernel2():
+            qs = cudaq.qvector(2)
+            qs.append(cudaq.qubit())
+            x(qs)
+
         print(kernel2)
     except Exception as e:
         print("Failure kernel2:")
         print(e)
 
-    @cudaq.kernel
-    def kernel3():
-        angles = [0.5, 1.]
-        angles.append(1.5)
-        q = cudaq.qubit()
-        for a in angles:
-            rz(a, q)
-
     try:
+
+        @cudaq.kernel
+        def kernel3():
+            angles = [0.5, 1.]
+            angles.append(1.5)
+            q = cudaq.qubit()
+            for a in angles:
+                rz(a, q)
+
         print(kernel3)
     except Exception as e:
         print("Failure kernel3:")
