@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc g++ gfortran python3 python3-pip \
         libcurl4-openssl-dev libssl-dev liblapack-dev libpython3-dev \
         bzip2 make sudo vim curl git wget \
-    && pip install --no-cache-dir numpy --break-system-packages \
+    && pip install --no-cache-dir numpy \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # 2 - Install SLURM PMI2 version 21.08.8
