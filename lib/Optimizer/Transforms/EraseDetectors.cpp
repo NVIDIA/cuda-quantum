@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -66,20 +64,30 @@ public:
         worklist.push_back(alloca);
         toErase.push_back(alloca);
         llvm::SmallSet<Operation *, 16> visited;
+        bool contains_loads = false;
         while (!worklist.empty()) {
           auto value = worklist.pop_back_val();
-          if (visited.contains(value.getDefiningOp()))
-            continue;
           visited.insert(value.getDefiningOp());
+          if (isa<cudaq::cc::LoadOp>(value.getDefiningOp())) {
+            contains_loads = true;
+            break;
+          }
           for (auto user : value.getUsers()) {
             toErase.push_back(user);
             for (Value result : user->getResults())
-              worklist.push_back(result);
+              if (!visited.contains(result.getDefiningOp()))
+                worklist.push_back(result);
           }
         }
-        // Process toErase in reverse order.
-        for (auto op : llvm::reverse(toErase))
-          rewriter.eraseOp(op);
+        if (contains_loads) {
+          // Just erase the detector operation, leaving other operations that
+          // are still used.
+          rewriter.eraseOp(detector);
+        } else {
+          // Process toErase in reverse order.
+          for (auto op : llvm::reverse(toErase))
+            rewriter.eraseOp(op);
+        }
       }
     } else {
       rewriter.eraseOp(detector);
