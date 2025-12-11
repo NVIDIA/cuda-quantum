@@ -285,6 +285,76 @@ struct AllocaOpToIntRewrite : public OpConversionPattern<quake::AllocaOp> {
   }
 };
 
+struct DetectorOpRewrite : public OpConversionPattern<quake::DetectorOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(quake::DetectorOp detector, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = detector.getLoc();
+    auto measures = adaptor.getMeasures();
+    auto numMeasures = measures.size();
+    auto i64Ty = rewriter.getI64Type();
+
+    if (numMeasures == 0)
+      return detector.emitOpError("must have at least one measure");
+
+    // The number of measures is either a std::vector<int64_t> size (runtime) or
+    // an integer (compile time known based on the number of arguments).
+    Value numMeasuresVal;
+    if (isa<cudaq::cc::StdvecType>(measures[0].getType())) {
+      numMeasuresVal = rewriter.create<cudaq::cc::StdvecSizeOp>(
+          loc, rewriter.getI64Type(), measures[0]);
+    } else {
+      numMeasuresVal =
+          rewriter.create<arith::ConstantIntOp>(loc, numMeasures, 64);
+    }
+
+    Value bufferPtr;
+    if (auto stdVecTy =
+            dyn_cast<cudaq::cc::StdvecType>(measures[0].getType())) {
+      // Get the element type of the std::vector.
+      auto elementTy = stdVecTy.getElementType();
+      if (elementTy != i64Ty) {
+        return detector.emitOpError(
+            "std::vector<int64_t> argument must be i64");
+      }
+
+      bufferPtr = rewriter.create<cudaq::cc::StdvecDataOp>(
+          loc, cudaq::cc::PointerType::get(i64Ty), measures[0]);
+    } else {
+      // Allocate array of i64
+      Value buffer =
+          rewriter.create<cudaq::cc::AllocaOp>(loc, i64Ty, numMeasuresVal);
+      auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
+      bufferPtr = rewriter.create<cudaq::cc::CastOp>(loc, ptrI64Ty, buffer);
+
+      for (auto iter : llvm::enumerate(measures)) {
+        std::int32_t i = iter.index();
+        Value m = iter.value();
+
+        // Cast to i64 if needed
+        auto width = m.getType().getIntOrFloatBitWidth();
+        if (width < 64)
+          m = rewriter.create<cudaq::cc::CastOp>(
+              loc, i64Ty, m, cudaq::cc::CastOpMode::Unsigned);
+        else if (width > 64)
+          return detector.emitOpError(
+              "measure integer width must be less <= 64 bits");
+
+        auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
+            loc, ptrI64Ty, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
+        rewriter.create<cudaq::cc::StoreOp>(loc, m, ptr);
+      }
+    }
+
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        detector, TypeRange{}, cudaq::opt::QISDetector,
+        ValueRange{bufferPtr, numMeasuresVal});
+    return success();
+  }
+};
+
 template <typename M>
 struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1792,7 +1862,7 @@ struct FullQIR {
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
         MeasurementOpPattern<Self>, ResetOpPattern<Self>,
-        ApplyNoiseOpRewrite<Self>,
+        ApplyNoiseOpRewrite<Self>, DetectorOpRewrite,
 
         /* Regular quantum operators. */
         QuantumGatePattern<Self, quake::HOp>,

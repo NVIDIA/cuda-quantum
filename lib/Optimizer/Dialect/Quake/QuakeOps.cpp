@@ -351,6 +351,26 @@ ParseResult quake::ApplyNoiseOp::parse(OpAsmParser &parser,
   return success();
 }
 
+LogicalResult quake::DetectorOp::verify() {
+  auto measures = getMeasures();
+  if (measures.empty())
+    return emitOpError("must have at least one measure");
+  int numVectorsFound = 0;
+  int numIntegersFound = 0;
+  for (auto measure : measures) {
+    if (isa<cudaq::cc::StdvecType>(measure.getType()))
+      numVectorsFound++;
+    else if (isa<IntegerType>(measure.getType()))
+      numIntegersFound++;
+  }
+  if (numVectorsFound > 1)
+    return emitOpError("can only have one std::vector<int64_t> argument");
+  if (numIntegersFound > 0 && numVectorsFound > 0)
+    return emitOpError("can only have one std::vector<int64_t> argument or one "
+                       "integer argument");
+  return success();
+}
+
 LogicalResult quake::ApplyNoiseOp::verify() {
   // Must have either a noise_func or a key and not both.
   if (!getNoiseFuncAttr()) {

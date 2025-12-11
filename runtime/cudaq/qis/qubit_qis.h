@@ -1386,6 +1386,16 @@ void apply_noise(Args &&...args) {
       details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 }
 
+template <typename... Indices>
+inline void detector(Indices... indices) {
+  std::vector<std::int64_t> indices_vector({indices...});
+  getExecutionManager()->detector(indices_vector.data(), indices_vector.size());
+}
+
+inline void detector(const std::vector<std::int64_t> &indices) {
+  getExecutionManager()->detector(indices.data(), indices.size());
+}
+
 } // namespace cudaq
 
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))

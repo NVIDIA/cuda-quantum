@@ -450,6 +450,14 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 }
 
+def EraseDetectors : Pass<"erase-detectors"> {
+  let summary = "Erase the detector operations.";
+  let description = [{
+    The detector operations are not needed and must be removed if the code is to
+    run on quantum hardware, for example. This may change in the future.
+  }];
+}
+
 def EraseNoise : Pass<"erase-noise"> {
   let summary = "Erase the injection of noise via Kraus channels.";
   let description = [{
