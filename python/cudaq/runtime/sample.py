@@ -12,8 +12,8 @@ from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
 
-# Maintain a dictionary of queued async sample kernels.This dictionary is used
-# to keep the mlir::ModuleOp alive so the interpreter doesn't garbage collect
+# Maintain a dictionary of queued `async` sample kernels.This dictionary is used
+# to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
 # them before they can be launched properly.
 cudaq_async_sample_module_cache = {}
 cudaq_async_sample_cache_counter = 0
@@ -48,11 +48,11 @@ class AsyncSampleResult:
 
     def __del__(self):
         # FIXME : This potentially leaks memory intentionally. It is possible
-        # that the AsyncSampleResult object gets deleted *before *the async
-        # sample call occurs or finishes.In that case, we leave the module in
-        # the dictionary to prevent the interpreter from crashing.We ought to
+        # that the `AsyncSampleResult` object gets deleted *before* the `async`
+        # sample call occurs or finishes. In that case, we leave the module in
+        # the dictionary to prevent the interpreter from crashing. We ought to
         # have a way to inform the C++ code that the result is no longer being
-        # sought and the module and py::handle should be freed.
+        # sought and the module and `py::handle` should be freed.
         if self.getCalled and self.counter is not None:
             del (cudaq_async_sample_module_cache[self.counter])
 

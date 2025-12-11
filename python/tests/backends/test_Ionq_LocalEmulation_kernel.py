@@ -93,7 +93,6 @@ def test_Ionq_observe():
 #     assert '10000001' in counts
 #     assert '11000000' in counts
 
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
