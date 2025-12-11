@@ -17,8 +17,6 @@ struct single_adjoint_test {
 
     x(q);
     x<cudaq::adj>(q);
-
-    mz(q);
   }
 };
 
@@ -28,8 +26,6 @@ struct qvector_adjoint_test {
 
     x(q);
     x<cudaq::adj>(q);
-
-    mz(q);
   }
 };
 
@@ -45,7 +41,6 @@ struct rotation_adjoint_test {
 
     rz(1.1, q[0]);
     rz<cudaq::adj>(1.1, q[0]);
-    mz(q);
   }
 };
 
@@ -67,8 +62,6 @@ struct twoqbit_adjoint_test {
 
     x<cudaq::ctrl>(q[0], q[1]);
     cnot(q[0], q[1]);
-
-    mz(q);
   }
 };
 
@@ -87,7 +80,6 @@ struct test_cudaq_adjoint {
     x(q[2]);
     test_adjoint{}(q);
     cudaq::adjoint(test_adjoint{}, q);
-    mz(q);
   }
 };
 CUDAQ_TEST(AdjointTester, checkSimple) {
@@ -176,7 +168,6 @@ CUDAQ_TEST(AdjointTester, checkNestedAdjoint) {
         cudaq::compute_action([&]() { cudaq::adjoint(A{}, q); },
                               [&]() { S_0{}(q); });
       }
-      mz(q);
     }
   };
 

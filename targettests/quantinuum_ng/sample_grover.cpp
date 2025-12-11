@@ -42,7 +42,6 @@ __qpu__ void grover() {
   oracle(qubits, ancilla);
   reflect_uniform(qubits);
 
-  mz(qubits);
 };
 
 int main() {

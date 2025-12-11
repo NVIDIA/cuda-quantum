@@ -120,7 +120,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             "qubits will be automatically measured at the end when sampling a "
             "kernel.\n"
             "Alternatively, use `cudaq::run` which preserves individual "
-            "measurement results.");
+            "measurement results.\n");
       }
     }
   }

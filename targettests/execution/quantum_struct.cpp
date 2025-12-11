@@ -41,8 +41,6 @@ struct Thurisaz {
     cudaq::qvector v2(3);
     PureQuantumStruct pqs{v1, v2};
     Uruz{}(pqs);
-    mz(v1);
-    mz(v2);
   }
 };
 

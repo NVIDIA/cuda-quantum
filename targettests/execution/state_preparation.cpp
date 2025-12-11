@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,7 +26,6 @@
 struct kernel {
   __qpu__ void operator()(std::vector<cudaq::complex> vec) {
     cudaq::qvector qubits = vec;
-    mz(qubits);
   }
 };
 

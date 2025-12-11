@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -21,7 +21,6 @@
 __qpu__ void qir_test() {
   cudaq::qubit q;
   x(q);
-  auto measureResult = mz(q);
 };
 
 int main() {

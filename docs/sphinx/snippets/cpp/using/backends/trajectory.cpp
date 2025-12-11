@@ -13,7 +13,6 @@ struct xOp {
   void operator()(int qubit_count) __qpu__ {
     cudaq::qvector q(qubit_count);
     x(q);
-    mz(q);
   }
 };
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,8 +26,6 @@ int main() {
     cudaq::qvector q(2);
     x(q[0]);
     swap(q[0], q[1]);
-
-    mz(q);
   };
 
   auto counts = cudaq::sample(swapKernel);

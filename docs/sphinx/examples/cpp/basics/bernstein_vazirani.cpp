@@ -1,5 +1,6 @@
 #include <cudaq.h>
 #include <iostream>
+#include <numeric>
 
 // If you have a NVIDIA GPU you can use this example to see
 // that the GPU-accelerated backends can easily handle a
@@ -53,10 +54,6 @@ __qpu__ void bernstein_vazirani(std::vector<int> &hidden_bitstring) {
 
   // Apply another set of Hadamards to the qubits.
   h(qvector);
-
-  // Apply measurement gates to just the `qubits`
-  // (excludes the auxillary qubit).
-  mz(qvector);
 }
 
 int main() {
@@ -69,11 +66,17 @@ int main() {
   auto result = cudaq::sample(bernstein_vazirani, hidden_bitstring);
   result.dump();
 
+  // Extract the sample counts for the qubits, excluding the auxiliary qubit.
+  std::vector<std::size_t> indices(qubit_count);
+  std::iota(indices.begin(), indices.end(), 0);
+  auto counts = result.get_marginal(indices);
+  counts.dump();
+
   std::cout << "Encoded bitstring = ";
   for (auto bit : hidden_bitstring)
     std::cout << bit;
   std::cout << "\n";
-  std::cout << "Measured bitstring = " << result.most_probable() << "\n";
+  std::cout << "Measured bitstring = " << counts.most_probable() << "\n";
 
   return 0;
 }

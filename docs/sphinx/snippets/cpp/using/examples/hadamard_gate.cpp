@@ -15,8 +15,6 @@ __qpu__ void hadamard_gate() {
   cudaq::qubit q;
   // Apply a hadamard gate to the qubit.
   h(q);
-  // Measure the qubit.
-  mz(q);
 }
 
 int main() {

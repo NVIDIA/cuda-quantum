@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,7 +33,6 @@ struct foo {
   __qpu__ void operator()(CallableKernel &&func, int size) {
     cudaq::qvector q(size);
     func(q[0]);
-    auto result = mz(q[0]);
   }
 };
 

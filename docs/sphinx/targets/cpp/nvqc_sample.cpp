@@ -20,7 +20,6 @@ struct ghz {
     for (int i = 0; i < NUM_QUBITS - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    auto result = mz(q);
   }
 };
 

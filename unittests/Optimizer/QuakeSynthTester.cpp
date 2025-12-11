@@ -121,7 +121,6 @@ TEST(QuakeSynthTests, checkSimpleIntegerInput) {
   auto [kernel, nQubits] = cudaq::make_kernel<int>();
   auto qubits = kernel.qalloc(nQubits);
   kernel.h(qubits);
-  kernel.mz(qubits);
   std::cout << kernel.to_quake() << '\n';
 
   // Set the proper name for the kernel
@@ -294,7 +293,6 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
     kernel.c_if(hiddenBits[i], [&]() { kernel.x<cudaq::ctrl>(aq, q[i]); });
   }
   kernel.h(q);
-  kernel.mz(q);
 
   // Dump the kernel to stdout.
   std::cout << kernel.to_quake() << '\n';
@@ -378,7 +376,6 @@ TEST(QuakeSynthTests, checkVectorOfComplex) {
       cudaq::make_kernel<std::vector<std::complex<double>>>();
   auto qubits = colonel.qalloc(stateVec);
   colonel.h(qubits);
-  colonel.mz(qubits);
   std::cout << colonel.to_quake() << '\n';
 
   // Generate name of the kernel
@@ -408,7 +405,6 @@ TEST(QuakeSynthTests, checkVectorOfPauliWord) {
   colonel.h(qubit);
   colonel.y(qubit);
   colonel.z(qubit);
-  colonel.mz(qubit);
   std::cout << colonel.to_quake() << '\n';
 
   // Generate name of the kernel

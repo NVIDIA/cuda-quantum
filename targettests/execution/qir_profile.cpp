@@ -20,7 +20,6 @@ __qpu__ void foo() {
   cudaq::qubit q0, q1;
   x(q0);
   x(q1);
-  mz(q0);
 }
 
 int main() {

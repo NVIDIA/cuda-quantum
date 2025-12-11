@@ -120,7 +120,7 @@ Returns:
                 "Please remove all measurements from the kernel, qubits will be "
                 "automatically measured at the end when sampling a kernel.\n"
                 "Alternatively, use `cudaq.run` API which preserves individual "
-                "measurement results.")
+                "measurement results.\n")
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)

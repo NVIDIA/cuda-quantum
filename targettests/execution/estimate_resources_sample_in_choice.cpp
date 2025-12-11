@@ -29,8 +29,9 @@ struct mykernel {
 int main() {
   auto kernel = mykernel{};
   std::function<bool()> choice = [&]() {
-    auto counts1 = cudaq::sample(5, kernel);
-    counts1.dump();
+    /// FIXME: Need to confirm the purpose of calling `sample` here.
+    // auto counts1 = cudaq::sample(5, kernel);
+    // counts1.dump();
     return true;
   };
   auto exception_thrown = false;

@@ -34,7 +34,6 @@ int main() {
   auto kernel = []() __qpu__ {
     cudaq::qubit q;
     h(q);
-    mz(q);
   };
 
   // Now let's set the noise and we're ready to run the simulation!

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -30,7 +30,6 @@ struct simple_x {
   void operator()() __qpu__ {
     cudaq::qubit q;
     x(q);
-    mz(q);
   }
 };
 

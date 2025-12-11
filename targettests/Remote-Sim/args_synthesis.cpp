@@ -134,7 +134,6 @@ static std::vector<std::function<void()>> ALL_TEST_FUNCTORS;
   void func_(END(PARAMS_LOOP_0 __VA_ARGS__)) __qpu__ {                         \
     cudaq::qubit q;                                                            \
     END(VAR_LOOP_0 __VA_ARGS__)                                                \
-    mz(q);                                                                     \
   }                                                                            \
   const bool MACRO_CONCAT(added_, func_) = []() {                              \
     ALL_TEST_FUNCTORS.emplace_back([]() {                                      \

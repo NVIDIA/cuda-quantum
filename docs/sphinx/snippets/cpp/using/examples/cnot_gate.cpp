@@ -16,8 +16,6 @@ __qpu__ void kernel() {
   x(qubits[0]);
   // Controlled-not gate operation.
   cx(qubits[0], qubits[1]);
-  mz(qubits[0]);
-  mz(qubits[1]);
 }
 
 int main() {

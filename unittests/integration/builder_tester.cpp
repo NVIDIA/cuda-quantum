@@ -119,7 +119,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     for (int i = 0; i < n_qubits - 1; i++) {
       ghz_builder.x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    ghz_builder.mz(q);
 
     auto counts = cudaq::sample(ghz_builder);
     counts.dump();
@@ -137,7 +136,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     ccnot_builder.x(q);
     ccnot_builder.x(q[1]);
     ccnot_builder.x<cudaq::ctrl>(q[0], q[1], q[2]);
-    ccnot_builder.mz(q);
 
     auto counts = cudaq::sample(ccnot_builder);
     counts.dump();
@@ -151,7 +149,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     cnot_builder.x(q);
     // Rx(pi) == X
     cnot_builder.rx<cudaq::ctrl>(M_PI, q[0], q[1]);
-    cnot_builder.mz(q);
 
     auto counts = cudaq::sample(cnot_builder);
     counts.dump();
@@ -166,7 +163,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     cnot_builder.x(q);
     // controlled-Rx(theta)
     cnot_builder.rx<cudaq::ctrl>(theta, q[0], q[1]);
-    cnot_builder.mz(q);
     // assign theta = pi; controlled-Rx(pi) == CNOT
     auto counts = cudaq::sample(cnot_builder, M_PI);
     counts.dump();
@@ -181,7 +177,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     // Rx(pi) == X
     rx_builder.rx<cudaq::adj>(-M_PI_2, q);
     rx_builder.rx(M_PI_2, q);
-    rx_builder.mz(q);
 
     auto counts = cudaq::sample(rx_builder);
     counts.dump();
@@ -201,7 +196,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     const long double pi_4_ld = M_PI / 4.0;
     rx_builder.rx<cudaq::adj>(-pi_4_ld, q);
     rx_builder.rx(pi_4_ld, q);
-    rx_builder.mz(q);
     // Rx(pi) == X (four pi/4 rotations)
     auto counts = cudaq::sample(rx_builder);
     counts.dump();
@@ -215,7 +209,6 @@ CUDAQ_TEST(BuilderTester, checkSimple) {
     auto q = rx_builder.qalloc();
     rx_builder.rx<cudaq::adj>(-angle, q);
     rx_builder.rx(angle, q);
-    rx_builder.mz(q);
     // angle = pi/2 => equivalent to Rx(pi) == X
     auto counts = cudaq::sample(rx_builder, M_PI_2);
     counts.dump();
@@ -710,7 +703,6 @@ CUDAQ_TEST(BuilderTester, checkQubitArg) {
   auto entryPoint = cudaq::make_kernel();
   auto qubit = entryPoint.qalloc();
   entryPoint.call(kernel, qubit);
-  entryPoint.mz(qubit);
 
   printf("%s", entryPoint.to_quake().c_str());
 
@@ -728,7 +720,6 @@ CUDAQ_TEST(BuilderTester, checkQvecArg) {
   auto entryPoint = cudaq::make_kernel();
   auto qubits = entryPoint.qalloc(5);
   entryPoint.call(kernel, qubits);
-  entryPoint.mz(qubits);
 
   printf("%s", entryPoint.to_quake().c_str());
 
@@ -747,7 +738,6 @@ CUDAQ_TEST(BuilderTester, checkSlice) {
   kernel.rx(sliced[0], qSliced[0]);
   kernel.ry(sliced[1], qSliced[0]);
   kernel.x<cudaq::ctrl>(qSliced[0], qSliced[1]);
-  kernel.mz(qSliced);
 
   std::cout << kernel.to_quake() << "\n";
 
@@ -771,7 +761,6 @@ CUDAQ_TEST(BuilderTester, checkStdVecValidate) {
   kernel.rx(thetas[0], q[0]);
   kernel.ry(thetas[1], q[0]);
   kernel.x<cudaq::ctrl>(q[0], q[1]);
-  kernel.mz(q);
 
   // This is ok
   kernel(std::vector<double>{M_PI, M_PI_2});
@@ -808,13 +797,13 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   hadamardTest.h(ancilla);
   hadamardTest.control(xPrep, ancilla, q);
   hadamardTest.h(ancilla);
-  hadamardTest.mz(ancilla);
 
   printf("%s\n", hadamardTest.to_quake().c_str());
   auto counts = cudaq::sample(10000, hadamardTest);
   counts.dump();
-  printf("< 1 | X | 1 > = %lf\n", counts.expectation());
-  EXPECT_NEAR(counts.expectation(), 0.0, 1e-1);
+  auto ancilla_counts = counts.get_marginal({1});
+  printf("< 1 | X | 1 > = %lf\n", ancilla_counts.expectation());
+  EXPECT_NEAR(ancilla_counts.expectation(), 0.0, 1e-1);
 
   // Compute <1|H|1> = 1.
   auto hadamardTest2 = cudaq::make_kernel();
@@ -824,12 +813,12 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   hadamardTest2.h(ancilla2);
   hadamardTest2.control(hPrep, ancilla2, q2);
   hadamardTest2.h(ancilla2);
-  hadamardTest2.mz(ancilla2);
 
   printf("%s\n", hadamardTest2.to_quake().c_str());
   counts = cudaq::sample(10000, hadamardTest2);
-  printf("< 1 | H | 1 > = %lf\n", counts.expectation());
-  EXPECT_NEAR(counts.expectation(), -1.0 / std::sqrt(2.0), 1e-1);
+  auto ancilla2_counts = counts.get_marginal({1});
+  printf("< 1 | H | 1 > = %lf\n", ancilla2_counts.expectation());
+  EXPECT_NEAR(ancilla2_counts.expectation(), -1.0 / std::sqrt(2.0), 1e-1);
 
   // Demonstrate can control on qvector
   auto kernel = cudaq::make_kernel();
@@ -839,8 +828,6 @@ CUDAQ_TEST(BuilderTester, checkKernelControl) {
   kernel.x(ctrls[0]);
   kernel.x(tgt);
   kernel.control(xPrep, ctrls, tgt);
-  kernel.mz(ctrls);
-  kernel.mz(tgt);
   printf("%s\n", kernel.to_quake().c_str());
   counts = cudaq::sample(kernel);
   counts.dump();
@@ -862,8 +849,6 @@ CUDAQ_TEST(BuilderTester, checkKernelControlOnMultipleQubits) {
   kernel.x(controls);
 
   kernel.control(x_kernel, controls, target);
-  kernel.mz(controls);
-  kernel.mz(target);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -879,7 +864,6 @@ CUDAQ_TEST(BuilderTester, checkAdjointOp) {
   auto q = kernel.qalloc();
   kernel.t<cudaq::adj>(q);
   kernel.t(q);
-  kernel.mz(q);
   printf("%s\n", kernel.to_quake().c_str());
   cudaq::sample(kernel).dump();
 }
@@ -894,12 +878,12 @@ CUDAQ_TEST(BuilderTester, checkAdjointOpRvalQuakeValue) {
   kernel.t<cudaq::adj>(qubits[0]);
   kernel.t(qubits[0]);
   kernel.h(qubits[0]);
-  kernel.mz(qubits[0]);
   printf("%s\n", kernel.to_quake().c_str());
   auto counts = cudaq::sample(kernel);
   counts.dump();
-  EXPECT_EQ(1, counts.size());
-  EXPECT_TRUE(counts.begin()->first == "0");
+  auto qubit0_counts = counts.get_marginal({0});
+  EXPECT_EQ(1, qubit0_counts.size());
+  EXPECT_TRUE(qubit0_counts.begin()->first == "0");
 }
 
 CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
@@ -914,7 +898,6 @@ CUDAQ_TEST(BuilderTester, checkKernelAdjoint) {
   entryPoint.x(q);
   entryPoint.call(kernel, q);
   entryPoint.adjoint(kernel, q);
-  entryPoint.mz(q);
   printf("%s\n", entryPoint.to_quake().c_str());
 
   auto counts = cudaq::sample(entryPoint);
@@ -933,7 +916,6 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     auto q = entryPoint.qalloc();
     entryPoint.x(q);
     entryPoint.reset(q);
-    entryPoint.mz(q);
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
     EXPECT_EQ(counts.size(), 1);
@@ -945,7 +927,6 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     entryPoint.x(q);
     // For now, don't allow reset on veq.
     entryPoint.reset(q);
-    entryPoint.mz(q);
     printf("%s\n", entryPoint.to_quake().c_str());
 
     auto counts = cudaq::sample(entryPoint);
@@ -958,7 +939,6 @@ CUDAQ_TEST(BuilderTester, checkReset) {
     auto q = entryPoint.qalloc(2);
     entryPoint.x(q);
     entryPoint.reset(q[0]);
-    entryPoint.mz(q);
     auto counts = cudaq::sample(entryPoint);
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.begin()->first, "01");

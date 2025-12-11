@@ -20,9 +20,6 @@ __qpu__ void sample_app(int num_qubits) {
 
   // Call kernel
   entangle_all(qubits);
-
-  // Measure all qubits
-  mz(qubits);
 }
 
 __qpu__ int run_app(int a, int b) { return run_ghz(a) + run_ghz(b); }

@@ -73,6 +73,7 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
+    cudaq-mlir-runtime
     gtest_main)
   set(TEST_LABELS "")
   if (${NVQIR_BACKEND} STREQUAL "qpp")

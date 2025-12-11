@@ -20,7 +20,7 @@ __qpu__ void foo() {
   x(q[1]);
   cx(q[0], q[1]);
   cx(q[0], q[2]); // requires a swap(q0,q1)
-  auto result = mz(q);
+
 }
 
 int main() {

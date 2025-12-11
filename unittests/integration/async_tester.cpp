@@ -56,7 +56,6 @@ CUDAQ_TEST(AsyncTester, checkSampleAsync) {
       for (int i = 0; i < NQubits - 1; i++) {
         x<cudaq::ctrl>(q[i], q[i + 1]);
       }
-      mz(q);
     }
   };
 

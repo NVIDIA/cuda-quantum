@@ -22,7 +22,6 @@ void ghz(std::size_t N) __qpu__ {
   for (int i = 0; i < N - 1; i++) {
     cx(q[i], q[i + 1]);
   }
-  mz(q);
 }
 
 void ansatz(double theta) __qpu__ {

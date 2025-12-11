@@ -37,20 +37,21 @@ __qpu__ void grover() {
   reflect_uniform(qubits);
   oracle(qubits, ancilla);
   reflect_uniform(qubits);
-
-  mz(qubits);
 };
 
 int main() {
   // Note: use a small number of shots.
   auto result = cudaq::sample(20, grover);
   result.dump();
+  /// FIXME: The order of qubits should be consistent with allocation order.
+  auto target_counts = result.get_marginal({2, 3, 4, 5});
+  target_counts.dump();
   std::vector<std::string> strings;
-  for (auto &&[bits, count] : result) {
+  for (auto &&[bits, count] : target_counts) {
     strings.push_back(bits);
   }
   std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
-    return result.count(a) > result.count(b);
+    return target_counts.count(a) > target_counts.count(b);
   });
   std::cout << strings[0] << '\n';
   std::cout << strings[1] << '\n';

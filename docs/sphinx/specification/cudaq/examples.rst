@@ -66,11 +66,9 @@ GHZ State Preparation and Sampling
       __qpu__ ghz(const int n_qubits) {
         cudaq::qvector q(n_qubits);
         h(q[0]);
-        for (int i = 0; i < n_qubits - 1; ++i) 
+        for (int i = 0; i < n_qubits - 1; ++i)
           // note use of ctrl modifier
-          x<cudaq::ctrl>(q[i], q[i+1]); 
-        
-        mz(q);
+          x<cudaq::ctrl>(q[i], q[i+1]);
       }
 
       int main() {
@@ -156,7 +154,6 @@ Quantum Phase Estimation
             for j in range(2**i):
                 cudaq.control(oracle, [countingQubits[i]], stateRegister)
         iqft(countingQubits)
-        mz(countingQubits)
 
     # Sample the state to get the phase. 
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
@@ -253,7 +250,6 @@ Grover's Algorithm
         for i in range(M):
             oracle(q)
             reflect(q)
-        mz(q)
 
     counts = cudaq.sample(grover, 3, 1, oracle)
     assert len(counts) == 2

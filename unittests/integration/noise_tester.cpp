@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
+#include <map>
 #include <set>
 #include <stdio.h>
 
@@ -72,6 +73,22 @@ struct bell_depolarization2_vec {
     h(q[0]);
     x<cudaq::ctrl>(q[0], q[1]);
     cudaq::apply_noise<cudaq::depolarization2>(prob, q);
+  }
+};
+
+struct measurement_noise_kernel1 {
+  auto operator()() __qpu__ {
+    cudaq::qubit q;
+    x(q);
+    return mz(q);
+  }
+};
+
+struct measurement_noise_kernel2 {
+  auto operator()() __qpu__ {
+    cudaq::qvector q(2);
+    x(q);
+    return mz(q);
   }
 };
 
@@ -484,7 +501,6 @@ CUDAQ_TEST(NoiseTest, checkPhaseDampType) {
       h(q);
       cudaq::apply_noise<cudaq::phase_damping>(prob, q);
       h(q);
-      mz(q);
     }
   };
 
@@ -584,7 +600,6 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
     h(q);
     z(q);
     h(q);
-    mz(q);
   };
 
   cudaq::phase_flip_channel pf(1.);
@@ -609,8 +624,6 @@ CUDAQ_TEST(NoiseTest, checkPauli1) {
     cudaq::qubit q, r;
     cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, q);
     cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, r);
-    mz(q);
-    mz(r);
   };
 
   auto counts = cudaq::sample(cudaq::sample_options{}, kernel);
@@ -628,8 +641,6 @@ CUDAQ_TEST(NoiseTest, checkPauli2) {
   auto kernel = [](std::vector<double> parms) __qpu__ {
     cudaq::qubit q, r;
     cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
-    mz(q);
-    mz(r);
   };
 
   std::vector<double> probs(15, 0.9375 / 15);
@@ -966,30 +977,42 @@ CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
   noise.add_channel("mz", {0}, bf);
   cudaq::set_noise(noise);
   {
-    auto kernel = []() {
-      cudaq::qubit q;
-      x(q);
-      mz(q);
-    };
-    auto counts = cudaq::sample(1000, kernel);
-    counts.dump();
+    auto results = cudaq::run(1000, measurement_noise_kernel1{});
+    // Count occurrences of each bitstring
+    std::map<std::string, std::size_t> bitstring_counts;
+    for (const auto &result : results) {
+      std::string bits = std::to_string(result);
+      bitstring_counts[bits]++;
+    }
+    printf("Bitstring counts:\n{\n");
+    for (const auto &[bits, count] : bitstring_counts) {
+      printf("  %s: %zu\n", bits.c_str(), count);
+    }
+    printf("}\n");
+
     // Due to measurement errors, we have both 0/1 results.
-    EXPECT_EQ(2, counts.size());
-    EXPECT_NEAR(counts.probability("0"), bitFlipRate, 0.1);
-    EXPECT_NEAR(counts.probability("1"), 1.0 - bitFlipRate, 0.1);
+    EXPECT_EQ(2, bitstring_counts.size());
+    EXPECT_NEAR(bitstring_counts["0"], bitFlipRate, 0.1);
+    EXPECT_NEAR(bitstring_counts["1"], 1.0 - bitFlipRate, 0.1);
   }
   {
-    auto kernel = []() {
-      cudaq::qvector q(2);
-      x(q);
-      mz(q);
-    };
-    auto counts = cudaq::sample(1000, kernel);
-    counts.dump();
+    auto results = cudaq::run(1000, measurement_noise_kernel2{});
+    // Count occurrences of each bitstring
+    std::map<std::string, std::size_t> bitstring_counts;
+    for (const auto &result : results) {
+      std::string bits = std::to_string(result[0]) + std::to_string(result[1]);
+      bitstring_counts[bits]++;
+    }
+    printf("Bitstring counts:\n{\n");
+    for (const auto &[bits, count] : bitstring_counts) {
+      printf("  %s: %zu\n", bits.c_str(), count);
+    }
+    printf("}\n");
+
     // We only have measurement noise on the first qubit.
-    EXPECT_EQ(2, counts.size());
-    EXPECT_NEAR(counts.probability("01"), bitFlipRate, 0.1);
-    EXPECT_NEAR(counts.probability("11"), 1.0 - bitFlipRate, 0.1);
+    EXPECT_EQ(2, bitstring_counts.size());
+    EXPECT_NEAR(bitstring_counts["01"], bitFlipRate, 0.1);
+    EXPECT_NEAR(bitstring_counts["11"], 1.0 - bitFlipRate, 0.1);
   }
   cudaq::unset_noise(); // clear for subsequent tests
 }

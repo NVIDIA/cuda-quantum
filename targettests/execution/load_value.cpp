@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,8 +28,6 @@ __qpu__ void load_value(unsigned value) {
     if (value & (1 << i))
       x(qubits[3 - i]);
   }
-
-  mz(qubits);
 }
 
 int main() {

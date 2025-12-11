@@ -32,7 +32,6 @@ CUDAQ_TEST(IonQTester, checkSampleSync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
@@ -49,7 +48,6 @@ CUDAQ_TEST(IonQTester, checkSampleAsync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
@@ -66,7 +64,6 @@ CUDAQ_TEST(IonQTester, checkSampleAsyncLoadFromFile) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
 
   // Can sample asynchronously and get a future
   auto future = cudaq::sample_async(kernel);

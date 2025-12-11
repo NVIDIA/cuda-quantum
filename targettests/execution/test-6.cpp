@@ -41,8 +41,6 @@ __qpu__ void cccx_measure_cleanup() {
   bool result = mx(ancilla);
   if (result)
     z<cudaq::ctrl>(qubits[0], qubits[1]);
-
-  mz(qubits);
 }
 
 int main() {

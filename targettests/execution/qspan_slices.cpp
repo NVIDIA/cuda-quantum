@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,8 +33,6 @@ __qpu__ void foo() {
   cudaq::qvector qubits(4);
   x(qubits);
   bar(qubits);
-
-  auto result = mz(qubits);
 }
 
 int main() {

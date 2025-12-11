@@ -22,7 +22,6 @@ struct mykernel {
 
     x(q);
 
-    auto m1 = mz(q);
   }
 };
 
@@ -34,12 +33,12 @@ int main() {
 
   
   counts1.dump();
-  // CHECK: m1 : { 1:5 }
+  // CHECK: { 1:5 }
   gateCounts.dump();
   // CHECK: Total # of gates: 1, total # of qubits: 1
   // CHECK: x :  1
   counts2.dump();
-  // CHECK: m1 : { 1:10 }
+  // CHECK: { 1:10 }
 
   return 0;
 }

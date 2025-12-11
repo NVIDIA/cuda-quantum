@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -30,7 +30,6 @@ __qpu__ void kernel() {
   custom_s<cudaq::adj>(q);
   custom_s_adj(q);
   h(q);
-  mz(q);
 }
 
 int main() {

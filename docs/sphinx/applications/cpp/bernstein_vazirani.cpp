@@ -12,6 +12,7 @@
 
 #include <cudaq.h>
 #include <iostream>
+#include <numeric>
 #include <random>
 #include <vector>
 
@@ -57,7 +58,6 @@ struct bernstein_vazirani {
 
     oracle<nrOfBits>{}(bitvector, qs, aux);
     h(qs);
-    mz(qs);
   }
 };
 
@@ -80,12 +80,15 @@ int main(int argc, char *argv[]) {
   auto bitvector = random_bits<nr_qubits>(seed);
   auto kernel = bernstein_vazirani<nr_qubits>{};
   auto counts = cudaq::sample(nr_shots, kernel, bitvector);
+  std::vector<std::size_t> indices(nr_qubits);
+  std::iota(indices.begin(), indices.end(), 0);
+  auto qs_counts = counts.get_marginal(indices);
 
   if (!cudaq::mpi::is_initialized() || cudaq::mpi::rank() == 0) {
     printf("Encoded bitstring:  %s\n", asString(bitvector).c_str());
-    printf("Measured bitstring: %s\n\n", counts.most_probable().c_str());
+    printf("Measured bitstring: %s\n\n", qs_counts.most_probable().c_str());
 
-    for (auto &[bits, count] : counts) {
+    for (auto &[bits, count] : qs_counts) {
       printf("observed %s with %.0f%% probability\n", bits.data(),
              100.0 * count / nr_shots);
     }

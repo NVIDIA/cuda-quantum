@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -49,10 +49,6 @@ __qpu__ void grover() {
   oracle(qubits, ancilla);
   reflect_uniform(qubits);
 
-  auto groverQubits0 = mz(qubits[0]);
-  auto groverQubits1 = mz(qubits[1]);
-  auto groverQubits2 = mz(qubits[2]);
-  auto groverQubits3 = mz(qubits[3]);
 };
 
 bool validateMarginals(const cudaq::sample_result &result) {

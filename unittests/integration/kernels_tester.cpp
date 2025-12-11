@@ -193,7 +193,6 @@ CUDAQ_TEST(KernelsTester, checkSampleBug2937) {
     }
   }
 
-  kernel.mz(qubits);
   auto counts = cudaq::sample(kernel);
   counts.dump();
   // Expect 16 unique bitstrings

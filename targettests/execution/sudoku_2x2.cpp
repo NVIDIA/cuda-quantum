@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -48,8 +48,6 @@ __qpu__ void grover() {
   reflect_uniform(qubits);
   oracle(qubits, ancilla);
   reflect_uniform(qubits);
-
-  mz(qubits);
 };
 
 int main() {

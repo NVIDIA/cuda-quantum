@@ -24,7 +24,6 @@ struct ghz {
     for (int i = 0; i < N - 1; i++) {
       cx(q[i], q[i + 1]);
     }
-    mz(q);
   }
 };
 
@@ -43,7 +42,6 @@ int main() {
       for (int i = 0; i < N - 1; i++) {
         cx(q[i], q[i + 1]);
       }
-      mz(q);
     };
     auto counts = cudaq::sample(ghz, 3);
     counts.dump();
