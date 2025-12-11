@@ -41,13 +41,6 @@ void bindPyToStim(py::module &mod, LinkedLibraryHolder &holder) {
 
         auto ctx = std::make_unique<ExecutionContext>("to_stim", 1);
         ctx->kernelName = kernelName;
-        if (noise_model.has_value()) {
-          if (platform.is_remote())
-            throw std::runtime_error(
-                "Noise model is not supported on remote platforms.");
-          platform.set_noise(&noise_model.value());
-        }
-
         platform.set_exec_ctx(ctx.get());
         pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
         platform.reset_exec_ctx();

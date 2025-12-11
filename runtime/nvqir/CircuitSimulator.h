@@ -1521,10 +1521,7 @@ public:
     flushGateQueue();
     flushAnySamplingTasks();
     if (isInTracerMode()) {
-      std::vector<double> params(num_indices);
-      for (std::size_t i = 0; i < num_indices; i++) {
-        params[i] = indices[i];
-      }
+      std::vector<double> params(indices, indices + num_indices);
       cudaq::QuditInfo dummyTarget(2, 0);
       executionContext->kernelTrace.appendInstruction("detector", params, {},
                                                       {dummyTarget});

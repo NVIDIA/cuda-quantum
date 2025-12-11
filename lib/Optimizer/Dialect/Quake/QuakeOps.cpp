@@ -366,8 +366,8 @@ LogicalResult quake::DetectorOp::verify() {
   if (numVectorsFound > 1)
     return emitOpError("can only have one std::vector<int64_t> argument");
   if (numIntegersFound > 0 && numVectorsFound > 0)
-    return emitOpError("can only have one std::vector<int64_t> argument or one "
-                       "integer argument");
+    return emitOpError("can only have one std::vector<int64_t> argument or "
+                       "integer arguments");
   return success();
 }
 
