@@ -128,7 +128,7 @@ def resolve_qualified_symbol(y):
     decorator name.
     """
     parts = y.split('.')
-    for i in range(len(parts), 0): # FIXME: was: -1
+    for i in range(len(parts)):
         modName = ".".join(parts[:i])
         try:
             mod = importlib.import_module(modName)
