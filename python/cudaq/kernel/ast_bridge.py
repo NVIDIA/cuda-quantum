@@ -2011,9 +2011,10 @@ class PyASTBridge(ast.NodeVisitor):
             return target_root, None
 
         if len(node.targets) > 1:
-            # I am not entirely sure what kinds of Python language constructs would
-            # result in having more than 1 target here, hence giving an error on it for now.
-            # (It would be easy to process this as target tuple, but it may not be correct to do so.)
+            # I am not entirely sure what kinds of Python language constructs
+            # would result in having more than 1 target here, hence giving an
+            # error on it for now.  (It would be easy to process this as target
+            # tuple, but it may not be correct to do so.)
             self.emitFatalError(
                 "CUDA-Q does not allow multiple targets in assignment", node)
         self.__deconstructAssignment(node.targets[0],

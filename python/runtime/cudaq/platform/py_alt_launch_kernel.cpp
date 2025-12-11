@@ -973,7 +973,6 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
     pm.addPass(cudaq::opt::createGlobalizeArrayValues());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   }
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());

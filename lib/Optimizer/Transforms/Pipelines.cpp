@@ -64,7 +64,6 @@ static void createTargetPrepPipeline(OpPassManager &pm,
                                                   {options.allowEarlyExit});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplySpecialization(
