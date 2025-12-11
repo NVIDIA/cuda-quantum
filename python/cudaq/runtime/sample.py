@@ -21,14 +21,25 @@ cudaq_async_sample_cache_counter = 0
 
 class AsyncSampleResult:
 
-    def __init__(self, impl, mod):
-        global cudaq_async_sample_module_cache
-        global cudaq_async_sample_cache_counter
-        self.impl = impl
-        self.getCalled = False
-        self.counter = cudaq_async_sample_cache_counter
-        cudaq_async_sample_cache_counter = self.counter + 1
-        cudaq_async_sample_module_cache[self.counter] = mod
+    def __init__(self, *args, **kwargs):
+        if len(args) == 2 and isinstance(args[0],
+                                         cudaq_runtime.AsyncSampleResultImpl):
+            impl = args[0]
+            mod = args[1]
+            global cudaq_async_sample_module_cache
+            global cudaq_async_sample_cache_counter
+            self.impl = impl
+            self.getCalled = False
+            self.counter = cudaq_async_sample_cache_counter
+            cudaq_async_sample_cache_counter = self.counter + 1
+            cudaq_async_sample_module_cache[self.counter] = mod
+        elif len(args) == 1 and isinstance(args[0], str):
+            # String-based constructor from JSON
+            self.impl = cudaq_runtime.AsyncSampleResultImpl(args[0])
+            self.counter = None
+        else:
+            raise RuntimeError(
+                "Invalid arguments passed to AsyncSampleResult constructor.")
 
     def get(self):
         result = self.impl.get()
@@ -42,8 +53,12 @@ class AsyncSampleResult:
         # the dictionary to prevent the interpreter from crashing.We ought to
         # have a way to inform the C++ code that the result is no longer being
         # sought and the module and py::handle should be freed.
-        if self.getCalled:
+        if self.getCalled and self.counter is not None:
             del (cudaq_async_sample_module_cache[self.counter])
+
+    def __str__(self):
+        # Serialize to JSON string
+        return str(self.impl)
 
 
 def __broadcastSample(kernel,

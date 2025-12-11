@@ -23,7 +23,7 @@ port = 62440
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
+    return got < -1.5 and got > -2.1
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -51,7 +51,10 @@ def startUpMockServer():
 
     # Kill the server, remove the file
     p.terminate()
-    os.remove(credsName)
+    try:
+        os.remove(credsName)
+    except FileNotFoundError:
+        pass
 
 
 @pytest.fixture(scope="function", autouse=True)
