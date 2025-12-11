@@ -145,51 +145,51 @@ def test_comparison_operators_for_floats():
     # CHECK:    %true = arith.constant true
 
 
-# FIXME def test_comparison_operators_for_complex():
-# FIXME
-# FIXME     @cudaq.kernel
-# FIXME     def test_complex_equal_to(v1: complex, v2: complex) -> bool:
-# FIXME         return v1 == v2
-# FIXME
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
-# FIXME                          complex(1., 0.5)))
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_equal_to, complex(1., 2.),
-# FIXME                          complex(1., 2.5)))
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
-# FIXME                          complex(1., -0.5)))
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_equal_to, complex(-1., 0.5),
-# FIXME                          complex(1., 0.5)))
-# FIXME     # CHxCK-LABEL: test_complex_equal_to
-# FIXME     # CHxCK:    %true = arith.constant true
-# FIXME     # CHxCK:    %false = arith.constant false
-# FIXME     # CHxCK:    %false = arith.constant false
-# FIXME     # CHxCK:    %false = arith.constant false
-# FIXME
-# FIXME     @cudaq.kernel
-# FIXME     def test_complex_not_equal_to(v1: complex, v2: complex) -> bool:
-# FIXME         return v1 != v2
-# FIXME
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_not_equal_to, complex(1., 2.),
-# FIXME                          complex(1., 2.5)))
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
-# FIXME                          complex(1., 0.5)))
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_not_equal_to, complex(1., -0.5),
-# FIXME                          complex(1., 0.5)))
-# FIXME     print(
-# FIXME         cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
-# FIXME                          complex(-1., 0.5)))
-# FIXME     # CHxCK-LABEL: test_complex_not_equal_to
-# FIXME     # CHxCK:    %true = arith.constant true
-# FIXME     # CHxCK:    %false = arith.constant false
-# FIXME     # CHxCK:    %true = arith.constant true
-# FIXME     # CHxCK:    %true = arith.constant true
+def test_comparison_operators_for_complex():
+
+    @cudaq.kernel
+    def test_complex_equal_to(v1: complex, v2: complex) -> bool:
+        return v1 == v2
+
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
+                         complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(1., 2.),
+                         complex(1., 2.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
+                         complex(1., -0.5)))
+    print(
+        cudaq.synthesize(test_complex_equal_to, complex(-1., 0.5),
+                         complex(1., 0.5)))
+    # CHECK-LABEL: test_complex_equal_to
+    # CHECK:    %true = arith.constant true
+    # CHECK:    %false = arith.constant false
+    # CHECK:    %false = arith.constant false
+    # CHECK:    %false = arith.constant false
+
+    @cudaq.kernel
+    def test_complex_not_equal_to(v1: complex, v2: complex) -> bool:
+        return v1 != v2
+
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., 2.),
+                         complex(1., 2.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
+                         complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., -0.5),
+                         complex(1., 0.5)))
+    print(
+        cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
+                         complex(-1., 0.5)))
+    # CHECK-LABEL: test_complex_not_equal_to
+    # CHECK:    %true = arith.constant true
+    # CHECK:    %false = arith.constant false
+    # CHECK:    %true = arith.constant true
+    # CHECK:    %true = arith.constant true
 
 
 def test_comparison_operators_for_mixed_types():
