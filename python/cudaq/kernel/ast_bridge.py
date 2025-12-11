@@ -2023,7 +2023,7 @@ class PyASTBridge(ast.NodeVisitor):
             if len(moduleNames):
                 name = node.func.attr
                 moduleNames.reverse()
-                if moduleNames[0] in self.symbolTable:
+                if not moduleNames[0] in self.symbolTable:
                     decorator = recover_kernel_decorator(name)
                     if decorator:
                         callee, fType = processDecoratorCall(decorator, name)
