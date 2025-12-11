@@ -232,7 +232,7 @@ def sample_async(decorator,
       explicit_measurements (Optional[bool]): A flag to indicate whether or not
           to concatenate measurements in execution order for the returned
           sample result.
-      qpu_id (Optional[int]): The optional identification for which QPU
+      `qpu_id` (Optional[int]): The optional identification for which QPU
           on the platform to target. Defaults to zero. Key-word only.
 
     Returns:
