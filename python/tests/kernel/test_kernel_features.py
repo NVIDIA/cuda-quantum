@@ -2092,12 +2092,6 @@ def test_custom_classical_kernel_type():
     counts = cudaq.sample(test, instance)
     assert len(counts) == 2 and '00' in counts and '11' in counts
 
-    # FIXME:
-    # While this exact test worked, the handing in OpaqueArguments.h
-    # does not match the expected layout in the args creator.
-    # Correspondingly, both subsequent tests below failed with a crash
-    # as it was. I hence choose to give a proper error until this is
-    # fixed after general Python compiler revisions.
     @dataclass(slots=True)
     class CustomIntAndListFloat:
         integer: int
@@ -2316,13 +2310,22 @@ def test_disallow_struct_with_methods():
     assert ('struct types with user specified methods are not allowed'
             in repr(e))
 
+    @dataclass(slots=True)
+    class NoCanDo2:
+        a: list[float]
+
+        def bob(self):
+            pass
+
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.kernel
-        def k(arg: NoCanDo):
-            h(arg.a)
+        def k(arg: NoCanDo2):
+            q = cudaq.qvector(len(arg.a))
+            for idx, a in enumerate(arg.a):
+                ry(a, q[idx])
 
-        k()
+        k(NoCanDo2([1, 1]))
     assert ('struct types with user specified methods are not allowed'
             in repr(e))
 

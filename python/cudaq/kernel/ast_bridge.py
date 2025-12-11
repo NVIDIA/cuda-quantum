@@ -2376,7 +2376,7 @@ class PyASTBridge(ast.NodeVisitor):
                 callee = cudaq_runtime.appendKernelArgument(
                     self.kernelFuncOp, callableTy)
                 self.argTypes.append(callableTy)
-                self.symbolTable.add(name, callee)
+                self.symbolTable.add(name, callee, 0)
 
             return name if decorator else None
 
@@ -4429,14 +4429,6 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitFatalError("only single comparators are supported", node)
 
         iTy = self.getIntegerType()
-
-        if isinstance(node.left, ast.Name):
-            self.debug_msg(lambda: f'[(Inline) Visit Name]', node.left)
-            if node.left.id not in self.symbolTable:
-                self.emitFatalError(
-                    f"{node.left.id} was not initialized before use in compare expression",
-                    node)
-
         self.visit(node.left)
         left = self.popValue()
         self.visit(node.comparators[0])
@@ -5119,10 +5111,12 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(self.popValue()) # propagating the pushed value through
             return
 
+        '''
         if (node.id in globalKernelRegistry or
                 node.id in globalRegisteredOperations):
             # FIXME: newly changed to node.id in globalRegisteredOperations only??
             return
+        '''
         if node.id in globalRegisteredOperations:
             # FIXME: WAS
             # (node.id in globalKernelRegistry or node.id in globalRegisteredOperations):            
