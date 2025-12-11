@@ -591,7 +591,9 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         argTypeToCompareTo = (kwargs['argTypeToCompareTo']
                               if 'argTypeToCompareTo' in kwargs else None)
         if argTypeToCompareTo is None:
-            eleTypes = [mlirTypeFromPyType(type(ele), ctx) for ele in argInstance]
+            eleTypes = [
+                mlirTypeFromPyType(type(ele), ctx) for ele in argInstance
+            ]
             tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         else:
             tupleTy = argTypeToCompareTo

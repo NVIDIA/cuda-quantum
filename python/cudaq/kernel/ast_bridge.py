@@ -198,6 +198,7 @@ class PyStack(object):
             return len(self._frame.entries)
         return 0
 
+
 def recover_kernel_decorator(name):
     from .kernel_decorator import isa_kernel_decorator
     for frameinfo in inspect.stack():
@@ -2220,10 +2221,9 @@ class PyASTBridge(ast.NodeVisitor):
             if elemTy == self.getIntegerType(1):
                 elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
-            resBuf = cc.StdvecDataOp(cc.PointerType.get(elemTy),
-                                        value).result
+            resBuf = cc.StdvecDataOp(cc.PointerType.get(elemTy), value).result
             eleSize = cc.SizeOfOp(self.getIntegerType(),
-                                    TypeAttr.get(elemTy)).result
+                                  TypeAttr.get(elemTy)).result
             dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
             stackCopy = cc.AllocaOp(cc.PointerType.get(
                 cc.ArrayType.get(elemTy)),
@@ -2234,8 +2234,7 @@ class PyASTBridge(ast.NodeVisitor):
                 cc.CastOp(ptrTy, resBuf).result,
                 arith.MulIOp(dynSize, eleSize).result
             ])
-            return cc.StdvecInitOp(value.type, stackCopy,
-                                    length=dynSize).result
+            return cc.StdvecInitOp(value.type, stackCopy, length=dynSize).result
 
         def convertArguments(expectedArgTypes, values):
             assert len(expectedArgTypes) == len(values)
@@ -2356,7 +2355,7 @@ class PyASTBridge(ast.NodeVisitor):
             processQuantumOperation(opName, controls, targets, [], params,
                                     **kwargs)
 
-        def processDecorator(name, path = None):
+        def processDecorator(name, path=None):
             if path:
                 name = f"{path}.{name}"
                 decorator = resolve_qualified_symbol(name)
@@ -2369,9 +2368,9 @@ class PyASTBridge(ast.NodeVisitor):
                                              nvqppPrefix + decorator.uniqName)
                 funcTy = FunctionType(
                     TypeAttr(entryPoint.attributes['function_type']).value)
-                callableTy = cc.CallableType.get(self.ctx,
-                                                 funcTy.inputs[:decorator.firstLiftedPos],
-                                                 funcTy.results)
+                callableTy = cc.CallableType.get(
+                    self.ctx, funcTy.inputs[:decorator.firstLiftedPos],
+                    funcTy.results)
 
                 # callee will be a new BlockArgument
                 callee = cudaq_runtime.appendKernelArgument(
@@ -2390,7 +2389,8 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(
                     f"`{symName}` object is not callable, found symbol of type {kernel.type}",
                     node)
-            functionTy = FunctionType(cc.CallableType.getFunctionType(kernel.type))
+            functionTy = FunctionType(
+                cc.CallableType.getFunctionType(kernel.type))
             nrArgs = len(functionTy.inputs)
             values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
             values = convertArguments([t for t in functionTy.inputs], values)
@@ -2419,7 +2419,8 @@ class PyASTBridge(ast.NodeVisitor):
                     for idx, element in enumerate(call.results):
                         result = cc.InsertValueOp(
                             structTy, result, element,
-                            DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+                            DenseI64ArrayAttr.get([idx],
+                                                  context=self.ctx)).result
             # The logic for calls that return values must
             # match the logic in `visit_Return`; anything
             # copied to the heap during return must be copied
@@ -2459,7 +2460,7 @@ class PyASTBridge(ast.NodeVisitor):
                             devKey = f"{module_name}.{'.'.join(moduleNames[1:])}"
                         except AttributeError:
                             continue
- 
+
                 # Handle registered C++ kernels
                 if cudaq_runtime.isRegisteredDeviceModule(devKey):
                     maybeKernelName = cudaq_runtime.checkRegisteredCppDeviceKernel(
@@ -2488,8 +2489,8 @@ class PyASTBridge(ast.NodeVisitor):
                     node.func = ast.Name(symName)
 
         if isinstance(node.func, ast.Name):
-            symName = (node.func.id if node.func.id in self.symbolTable
-                        else processDecorator(node.func.id))
+            symName = (node.func.id if node.func.id in self.symbolTable else
+                       processDecorator(node.func.id))
             if symName:
                 result = processDecoratorCall(symName)
                 if result:
@@ -2808,7 +2809,6 @@ class PyASTBridge(ast.NodeVisitor):
                     targets=targets,
                     is_adj=False)
                 return
-
 
             elif node.func.id == 'int':
                 # cast operation
@@ -3373,11 +3373,12 @@ class PyASTBridge(ast.NodeVisitor):
                             channel_class = getattr(cudaq_module,
                                                     node.args[0].attr)
                             numParams = channel_class.num_parameters
-                            key = self.getConstantInt(hash(channel_class))                        
+                            key = self.getConstantInt(hash(channel_class))
                         elif isinstance(node.args[0], ast.Name):
-                            arg = recover_value_of_or_none(node.args[0].id, None)
-                            if (arg and isinstance(arg, type) 
-                                and issubclass(arg, cudaq_runtime.KrausChannel)):
+                            arg = recover_value_of_or_none(
+                                node.args[0].id, None)
+                            if (arg and isinstance(arg, type) and issubclass(
+                                    arg, cudaq_runtime.KrausChannel)):
                                 if not hasattr(arg, 'num_parameters'):
                                     self.emitFatalError(
                                         'apply_noise kraus channels must have `num_parameters` constant class attribute specified.'
@@ -5099,7 +5100,8 @@ class PyASTBridge(ast.NodeVisitor):
 
             # Append as a new argument
             argTy = mlirTypeFromPyType(type(value), self.ctx, argInstance=value)
-            mlirVal = cudaq_runtime.appendKernelArgument(self.kernelFuncOp, argTy)
+            mlirVal = cudaq_runtime.appendKernelArgument(
+                self.kernelFuncOp, argTy)
             self.argTypes.append(argTy)
 
             assignNode = ast.Assign()
@@ -5109,9 +5111,9 @@ class PyASTBridge(ast.NodeVisitor):
             self.visit_Assign(assignNode)
 
             self.visit(node)
-            self.pushValue(self.popValue()) # propagating the pushed value through
+            self.pushValue(
+                self.popValue())  # propagating the pushed value through
             return
-
         '''
         if (node.id in globalKernelRegistry or
                 node.id in globalRegisteredOperations):
@@ -5120,7 +5122,7 @@ class PyASTBridge(ast.NodeVisitor):
         '''
         if node.id in globalRegisteredOperations:
             # FIXME: WAS
-            # (node.id in globalKernelRegistry or node.id in globalRegisteredOperations):            
+            # (node.id in globalKernelRegistry or node.id in globalRegisteredOperations):
             return
 
         if (self.__isUnitaryGate(node.id) or self.__isMeasurementGate(node.id)):

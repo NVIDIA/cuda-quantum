@@ -373,6 +373,7 @@ def test_return_tuple_int_float():
     assert result == (-13, 42.3)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def simple_tuple_int_float_assign(
                 n: int, t: tuple[int, float]) -> tuple[int, float]:

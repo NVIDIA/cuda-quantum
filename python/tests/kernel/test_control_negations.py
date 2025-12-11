@@ -192,6 +192,7 @@ def test_unsupported_calls():
     # tests above and remove the notes.
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def cu3_gate():
             c, q = cudaq.qubit(), cudaq.qubit()
@@ -203,6 +204,7 @@ def test_unsupported_calls():
     assert "unhandled function call - cu3" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def cswap_gate():
             c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
@@ -216,6 +218,7 @@ def test_unsupported_calls():
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def control_registered_operation():
             c, q = cudaq.qubit(), cudaq.qubit()
@@ -227,6 +230,7 @@ def test_unsupported_calls():
         e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def control_rotation_gate():
             c, q = cudaq.qubit(), cudaq.qubit()
@@ -238,6 +242,7 @@ def test_unsupported_calls():
         e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def control_simple_gate():
             c, q = cudaq.qvector(3), cudaq.qubit()

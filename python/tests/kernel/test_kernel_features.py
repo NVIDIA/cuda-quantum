@@ -940,6 +940,7 @@ def test_list_boundaries():
     assert '10001' in counts
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel15():
             qubits = cudaq.qvector(5)
@@ -952,6 +953,7 @@ def test_list_boundaries():
     assert "offending source -> range(1, 4, 0)" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel16(v: int):
             qubits = cudaq.qvector(5)
@@ -2345,6 +2347,7 @@ def test_issue_9():
 def test_issue_1641():
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def less_arguments():
             q = cudaq.qubit()
@@ -2355,6 +2358,7 @@ def test_issue_1641():
     assert '(offending source -> rx(3.14))' in repr(error)
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def wrong_arguments():
             q = cudaq.qubit()
@@ -2365,6 +2369,7 @@ def test_issue_1641():
     assert "(offending source -> rx('random_argument', q))" in repr(error)
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def wrong_type():
             q = cudaq.qubit()
@@ -2374,6 +2379,7 @@ def test_issue_1641():
     assert 'invalid argument type for target operand' in repr(error)
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def invalid_ctrl():
             q = cudaq.qubit()
@@ -2618,6 +2624,7 @@ def test_mid_circuit_measurements():
 def test_error_on_non_callable_type():
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel(op: cudaq.pauli_word):
             q = cudaq.qvector(2)
