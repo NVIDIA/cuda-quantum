@@ -202,6 +202,8 @@ def test_list_update_failures():
         e.value)
 
     # FIXME: this should have a better error message. 
+    # Error message in main for both this case and the above case is:
+    # return values with dynamically sized element types are not yet supported
     with pytest.raises(RuntimeError) as e:
         cudaq.run(get_MyTuple, [0, 0])
     assert 'Unsupported element type in struct type' in str(
