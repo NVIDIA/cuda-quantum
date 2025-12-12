@@ -13,8 +13,7 @@
 // clang-format on
 
 // This is a comprehensive set of tests for kernel argument synthesis for remote
-// platforms. Note: we use the remote-mqpu platform in MLIR mode as a mock
-// environment for NVQC.
+// platforms.
 #include <cudaq.h>
 #include <iostream>
 
