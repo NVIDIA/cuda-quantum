@@ -38,7 +38,7 @@ from .utils import (Color, globalAstRegistry, globalRegisteredOperations,
 
 State = cudaq_runtime.State
 
-# NB: Obsolete! globalKernelRegistry should NEVER be used. Every live CUDA-Q
+# NB: Obsolete! `globalKernelRegistry` should NEVER be used. Every live CUDA-Q
 # kernel must be attached to a Python symbol. Every live Python symbol is
 # available in the interpreter's context and variable dictionary.
 globalKernelRegistry = {}
@@ -1455,34 +1455,35 @@ class PyASTBridge(ast.NodeVisitor):
 
         if cc.StructType.isinstance(mlirVal.type):
             structName = cc.StructType.getName(mlirVal.type)
-            # We need to give a proper error if we try to assign
-            # a mutable dataclass to an item in another container.
-            # Allowing this would lead to incorrect behavior (i.e.
-            # inconsistent with Python) unless we change the
-            # representation of structs to be like `StdvecType`
-            # where we have a container that is passed by value
-            # wrapping the actual pointer, thus ensuring that the
-            # reference behavior actually works across function
-            # boundaries.
+            # We need to give a proper error if we try to assign a mutable
+            # `dataclass` to an item in another container. Allowing this would
+            # lead to incorrect behavior (i.e. inconsistent with Python) unless
+            # we change the representation of structs to be like `StdvecType`
+            # where we have a container that is passed by value wrapping the
+            # actual pointer, thus ensuring that the reference behavior actually
+            # works across function boundaries.
             if structName != 'tuple' and rootVal:
-                msg = "only dataclass literals may be used as items in other container values"
+                msg = "only dataclass literals may be used as items in other "
+                "container values"
                 self.emitFatalError(
                     f"{msg} - use `.copy(deep)` to create a new {structName}",
                     self.currentNode)
 
         if (self.knownResultType and self.containsList(self.knownResultType) and
                 self.containsList(mlirVal.type)):
-            # For lists that were created inside a kernel, we have to
-            # copy the stack allocated array to the heap when we return such a list.
-            # In the case where the list was created by the caller, this copy leads
-            # to incorrect behavior (i.e. not matching Python behavior). We hence
-            # want to make sure that we can know when a host allocated list is returned.
-            # If we allow to assign lists passed as function arguments to inner items
-            # of other lists and dataclasses, we loose the information that this list
-            # was allocated by the parent. We hence forbid this. All of this applies
-            # regardless of how the list was passed (e.g. the list might be an inner
-            # item in a tuple or dataclass that was passed) or how it is assigned
-            # (e.g. the assigned value might be a tuple or dataclass that contains a list).
+            # For lists that were created inside a kernel, we have to copy the
+            # stack allocated array to the heap when we return such a list. In
+            # the case where the list was created by the caller, this copy leads
+            # to incorrect behavior (i.e. not matching Python behavior). We
+            # hence want to make sure that we can know when a host allocated
+            # list is returned. If we allow to assign lists passed as function
+            # arguments to inner items of other lists and `dataclasses`, we
+            # loose the information that this list was allocated by the parent.
+            # We hence forbid this. All of this applies regardless of how the
+            # list was passed (e.g. the list might be an inner item in a tuple
+            # or `dataclass` that was passed) or how it is assigned (e.g. the
+            # assigned value might be a tuple or `dataclass` that contains a
+            # list).
             if rootVal and self.isFunctionArgument(rootVal):
                 msg = "lists passed as or contained in function arguments cannot be inner items in other container values when a list is returned"
                 self.emitFatalError(
@@ -1505,12 +1506,11 @@ class PyASTBridge(ast.NodeVisitor):
                     "processing error - unprocessed frame(s) in value stack",
                     node)
         elif self.valueStack.currentNumValues - numVals > 1:
-            # Do **NOT** change this to be more permissive and allow
-            # multiple values to be pushed without pushing proper
-            # frames for sub-nodes. If visiting a single node
-            # potentially produces more than one value, the bridge
-            # quickly will be a mess because we will easily end up
-            # with values in the wrong places.
+            # Do **NOT** change this to be more permissive and allow multiple
+            # values to be pushed without pushing proper frames for sub-nodes.
+            # If visiting a single node potentially produces more than one
+            # value, the bridge quickly will be a mess because we will easily
+            # end up with values in the wrong places.
             self.emitFatalError(
                 "must not generate more one value at a time in each frame",
                 node)
@@ -1546,8 +1546,8 @@ class PyASTBridge(ast.NodeVisitor):
             initRegion = createLambda.initRegion
             initBlock = Block.create_at_start(initRegion, [])
             # TODO: process all captured variables in the main function
-            # definition first to avoid reusing code not defined in the
-            # same or parent scope of the produced MLIR.
+            # definition first to avoid reusing code not defined in the same or
+            # parent scope of the produced MLIR.
             with InsertionPoint(initBlock):
                 [self.visit(n) for n in node.body]
                 cc.ReturnOp([])
@@ -1571,14 +1571,15 @@ class PyASTBridge(ast.NodeVisitor):
                                                  (node.returns.value is None)):
                 self.knownResultType = self.mlirTypeFromAnnotation(node.returns)
 
-            # Add uniqueness. In MLIR, we require unique symbols (bijective
+            # Add uniqueness. In MLIR, we require unique symbols (`bijective`
             # function between symbols and artifacts) even if Python allows
-            # hiding symbols and replacing symbols (dynamic injective function
+            # hiding symbols and replacing symbols (dynamic `injective` function
             # between scoped symbols and artifacts).
             self.name = node.name + ".." + hex(self.uniqueId)
             self.capturedDataStorage.name = self.name
 
-            # the full function name in MLIR is `__nvqpp__mlirgen__` + the function name
+            # the full function name in MLIR is `__nvqpp__mlirgen__` + the
+            # function name
             if self.disableNvqppPrefix:
                 fullName = self.name
             else:
@@ -1590,7 +1591,8 @@ class PyASTBridge(ast.NodeVisitor):
                             loc=self.loc)
             self.kernelFuncOp = f
 
-            # Set this kernel as an entry point if the argument types are classical only
+            # Set this kernel as an entry point if the argument types are
+            # classical only
             areQuantumTypes = [self.isQuantumType(ty) for ty in self.argTypes]
             f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if True not in areQuantumTypes and not self.disableEntryPointTag:
@@ -1780,9 +1782,9 @@ class PyASTBridge(ast.NodeVisitor):
                     # references. There are a bunch of issues that
                     # prevent us from properly dealing with any
                     # reference types stored as items in lists and
-                    # dataclasses. We hence currently prevent the
-                    # creation of such lists and dataclasses, and would
-                    # need to change the representation for dataclasses
+                    # `dataclasses`. We hence currently prevent the
+                    # creation of such lists and `dataclasses`, and would
+                    # need to change the representation for `dataclasses`
                     # to allow that.
                     self.visit(value)
                     value = self.popValue()
@@ -1817,7 +1819,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # location such that any changes to v1 after the assignment are reflected
                     # in v2 and vice versa (v2 could be changed in the child while v1 is still
                     # alive). Since we merely store the raw pointer in the symbol table for
-                    # dataclasses, we have no way of updating that pointer conditionally on
+                    # `dataclasses`, we have no way of updating that pointer conditionally on
                     # the child scope being executed.
                     # To determine whether the value we assign is an `rvalue`, it is
                     # sufficient to check whether its root is a value in the symbol table
@@ -1835,7 +1837,7 @@ class PyASTBridge(ast.NodeVisitor):
                     # If the value we are assigning is an `rvalue` then we can do an in-place
                     # update of the data in the parent; the restrictions for container items
                     # in `__validate_container_entry` ensure that the value we are assigning
-                    # does not contain any references to dataclass values, and any lists
+                    # does not contain any references to `dataclass` values, and any lists
                     # contained in the value behave like proper references since they contain
                     # a data pointer (i.e. in-place update only does a shallow copy).
                     # TODO: The only reason we cannot currently support this is because we
@@ -1914,34 +1916,39 @@ class PyASTBridge(ast.NodeVisitor):
                                 node)
                     if cc.StructType.isinstance(value.type):
                         structName = cc.StructType.getName(value.type)
-                        # For dataclasses, we have to do an additional check
+                        # For `dataclasses`, we have to do an additional check
                         # to ensure that their behavior (for cases that don't
                         # give an error) is consistent with Python;
                         # since we pass them by value across functions, we
                         # either have to force that an explicit copy is made
                         # when using them as call arguments, or we have to
-                        # force that an explicit copy is made when a dataclass
+                        # force that an explicit copy is made when a `dataclass`
                         # argument is assigned to a local variable (as long as
                         # it is not assigned, it will not be possible to make
                         # any modification to it since the argument itself is
                         # represented as an immutable value). The latter seems
                         # more comprehensive and also ensures that there is no
                         # unexpected behavior with regards to kernels not being
-                        # able to modify dataclass values in host code.
+                        # able to modify `dataclass` values in host code.
                         # NOTE: It is sufficient to check the value itself (not
                         # its root) is a function argument, (only!) since inner
-                        # items are never references to dataclasses (enforced
+                        # items are never references to `dataclasses` (enforced
                         # in `__validate_container_entry`).
                         if value_is_name and structName != 'tuple':
                             self.emitFatalError(
-                                f"cannot assign dataclass passed as function argument to a local variable - use `.copy(deep)` to create a new value that can be assigned",
-                                node)
+                                "cannot assign dataclass passed as function "
+                                "argument to a local variable - use "
+                                "`.copy(deep)` to create a new value that can "
+                                "be assigned", node)
                         elif (self.knownResultType and
                               self.containsList(self.knownResultType) and
                               self.containsList(value.type)):
                             self.emitFatalError(
-                                f"cannot assign tuple or dataclass passed as function argument to a local variable if it contains a list when a list is returned - use `.copy(deep)` to create a new value that can be assigned",
-                                node)
+                                "cannot assign tuple or dataclass passed as "
+                                "function argument to a local variable if it "
+                                "contains a list when a list is returned - use"
+                                " `.copy(deep)` to create a new value that can"
+                                " be assigned", node)
 
                 if target_root_defined_in_parent_scope:
                     if cc.PointerType.isinstance(value.type):
@@ -4089,9 +4096,8 @@ class PyASTBridge(ast.NodeVisitor):
             var = self.popValue()
             self.pushPointerValue = True
         else:
-            # `isSubscriptRoot` is only used/needed to enable
-            # modification of items in lists and dataclasses
-            # contained in a tuple
+            # `isSubscriptRoot` is only used/needed to enable modification of
+            # items in lists and `dataclasses` contained in a tuple
             subscriptRoot = self.isSubscriptRoot
             self.isSubscriptRoot = True
             self.visit(node.value)
@@ -5126,15 +5132,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(
                 self.popValue())  # propagating the pushed value through
             return
-        '''
-        if (node.id in globalKernelRegistry or
-                node.id in globalRegisteredOperations):
-            # FIXME: newly changed to node.id in globalRegisteredOperations only??
-            return
-        '''
+
         if node.id in globalRegisteredOperations:
-            # FIXME: WAS
-            # (node.id in globalKernelRegistry or node.id in globalRegisteredOperations):
             return
 
         if (self.__isUnitaryGate(node.id) or self.__isMeasurementGate(node.id)):
