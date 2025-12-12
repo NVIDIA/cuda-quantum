@@ -750,14 +750,14 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
 
           // Vector of booleans has a special layout.
           // Read the vector and create a list of booleans.
-          // FIXME: It seems like this is where the result buffer is
-          // unmarshalled to C++ types, so this looks like a BUG since a kernel
-          // will never return a std::vector<bool>. Is there some other layer?
+          // Note: in the `cudaq::run` context the `std::vector<bool>` is
+          // constructed in the host runtime by parsing the output log to
+          // `std::vector<bool>`.
           if (eleTy.getIntOrFloatBitWidth() == 1) {
-            auto v = reinterpret_cast<std::vector<char> *>(data);
+            auto v = reinterpret_cast<std::vector<bool> *>(data);
             py::list list;
             for (auto const bit : *v)
-              list.append(static_cast<char>(py::bool_(bit)));
+              list.append(py::bool_(bit));
             return list;
           }
 
