@@ -67,10 +67,13 @@ def translate(kernel, *args, format="qir:0.1"):
         decorator = mk_decorator(kernel)
     if not decorator:
         raise RuntimeError("kernel is invalid type")
-    if decorator.formal_arity() != len(args):
+    if (decorator.formal_arity() != len(args)) and ("openqasm" not in format):
         raise RuntimeError("Invalid number of arguments passed to translate. " +
                            str(len(args)) + " given and " +
                            str(decorator.formal_arity()) + " expected.")
+    if (len(args) != 0) and ("openqasm" in format):
+        raise RuntimeError("Use synthesize before translate to openqasm to "
+                           "specialize the kernel with the argument values")
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     retTy = (decorator.returnType
              if decorator.returnType else decorator.get_none_type())
