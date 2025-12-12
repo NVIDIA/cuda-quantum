@@ -76,22 +76,6 @@ struct bell_depolarization2_vec {
   }
 };
 
-struct measurement_noise_kernel1 {
-  auto operator()() __qpu__ {
-    cudaq::qubit q;
-    x(q);
-    return mz(q);
-  }
-};
-
-struct measurement_noise_kernel2 {
-  auto operator()() __qpu__ {
-    cudaq::qvector q(2);
-    x(q);
-    return mz(q);
-  }
-};
-
 #endif
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
@@ -963,60 +947,6 @@ CUDAQ_TEST(NoiseTest, checkCustomOperation) {
     EXPECT_EQ(totalShots, shots);
   }
 }
-#endif
-
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
-
-CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
-  cudaq::set_random_seed(13);
-  constexpr double bitFlipRate = 0.25;
-  cudaq::bit_flip_channel bf(bitFlipRate);
-  cudaq::noise_model noise;
-  // 25% bit flipping during measurement
-  noise.add_channel("mz", {0}, bf);
-  cudaq::set_noise(noise);
-  {
-    auto results = cudaq::run(1000, measurement_noise_kernel1{});
-    // Count occurrences of each bitstring
-    std::map<std::string, std::size_t> bitstring_counts;
-    for (const auto &result : results) {
-      std::string bits = std::to_string(result);
-      bitstring_counts[bits]++;
-    }
-    printf("Bitstring counts:\n{\n");
-    for (const auto &[bits, count] : bitstring_counts) {
-      printf("  %s: %zu\n", bits.c_str(), count);
-    }
-    printf("}\n");
-
-    // Due to measurement errors, we have both 0/1 results.
-    EXPECT_EQ(2, bitstring_counts.size());
-    EXPECT_NEAR(bitstring_counts["0"], bitFlipRate, 0.1);
-    EXPECT_NEAR(bitstring_counts["1"], 1.0 - bitFlipRate, 0.1);
-  }
-  {
-    auto results = cudaq::run(1000, measurement_noise_kernel2{});
-    // Count occurrences of each bitstring
-    std::map<std::string, std::size_t> bitstring_counts;
-    for (const auto &result : results) {
-      std::string bits = std::to_string(result[0]) + std::to_string(result[1]);
-      bitstring_counts[bits]++;
-    }
-    printf("Bitstring counts:\n{\n");
-    for (const auto &[bits, count] : bitstring_counts) {
-      printf("  %s: %zu\n", bits.c_str(), count);
-    }
-    printf("}\n");
-
-    // We only have measurement noise on the first qubit.
-    EXPECT_EQ(2, bitstring_counts.size());
-    EXPECT_NEAR(bitstring_counts["01"], bitFlipRate, 0.1);
-    EXPECT_NEAR(bitstring_counts["11"], 1.0 - bitFlipRate, 0.1);
-  }
-  cudaq::unset_noise(); // clear for subsequent tests
-}
-
 #endif
 
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)

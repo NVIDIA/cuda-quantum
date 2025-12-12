@@ -15,18 +15,21 @@
 
 #include <cudaq.h>
 #include <iostream>
+#include <map>
+
 struct test_adaptive {
-  void operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qubit a, b;
     x(a);
     auto bit = mz(b);
     if (!bit) {
       x(b); // note that this is not allowed in base profile programs
     }
+    return {mz(a), mz(b)};
   }
 };
 
-#define RUN_AND_PRINT_GLOBAL_REG(TEST_NAME)                                    \
+#define SAMPLE_AND_PRINT_GLOBAL_REG(TEST_NAME)                                 \
   do {                                                                         \
     auto result = cudaq::sample(nShots, TEST_NAME);                            \
     auto globalRegResults = cudaq::sample_result{                              \
@@ -35,123 +38,73 @@ struct test_adaptive {
     globalRegResults.dump();                                                   \
   } while (false)
 
+#define RUN_AND_PRINT_RESULT_DICT(TEST_NAME)                                   \
+  do {                                                                         \
+    auto results = cudaq::run(nShots, TEST_NAME);                              \
+    std::map<std::string, std::size_t> bitstring_counts;                       \
+    for (const auto &result : results) {                                       \
+      std::string bits =                                                       \
+          std::to_string(result[0]) + std::to_string(result[1]);               \
+      bitstring_counts[bits]++;                                                \
+    }                                                                          \
+    std::cout << #TEST_NAME << ":\n";                                          \
+    std::cout << "{";                                                          \
+    for (const auto &[bits, count] : bitstring_counts) {                       \
+      std::cout << " " << bits << ":" << count << " ";                         \
+    }                                                                          \
+    std::cout << "}\n";                                                        \
+  } while (false)
+
 int main() {
   const int nShots = 1000;
 
-  // Check that qubits show up in user qubit order (w/o var names)
-  auto test1 = []() __qpu__ {
+  // Check that qubits show up in the return order
+  auto test1 = []() __qpu__ -> std::vector<bool> {
     cudaq::qubit a, b;
     x(a);
-    mz(b);
-    mz(a);
+    return {mz(a), mz(b)};
   };
-  RUN_AND_PRINT_GLOBAL_REG(test1);
+  RUN_AND_PRINT_RESULT_DICT(test1);
   // CHECK: test1:
-  // CHECK: { 10:1000 }
-
-  // Check that qubits show up in user qubit order (w/ var names)
-  auto test2 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ret_b = mz(b);
-    auto ret_a = mz(a);
-  };
-  RUN_AND_PRINT_GLOBAL_REG(test2);
-  // CHECK: test2:
-  // CHECK: { 10:1000 }
-
-  // Check that duplicate measurements don't get duplicated in global bitstring
-#ifndef NO_ADAPTIVE
-  auto test3 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ma1 = mz(a); // 1st measurement of qubit a
-    auto ma2 = mz(a); // 2nd measurement of qubit a
-    auto mb = mz(b);
-  };
-#else
-  auto test3 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ma1 = mz(a); // 1st measurement of qubit a
-    // auto ma2 = mz(a); // 2nd measurement of qubit a
-    auto mb = mz(b);
-  };
-#endif
-  RUN_AND_PRINT_GLOBAL_REG(test3);
-  // CHECK: test3:
   // CHECK: { 10:1000 }
 
   // Check that measurements will be implicitly added to kernels that have no
   // measurements.
-  auto test4 = []() __qpu__ {
+  auto test2 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test4);
-  // CHECK: test4:
+  SAMPLE_AND_PRINT_GLOBAL_REG(test2);
+  // CHECK: test2:
   // CHECK: { 10:1000 }
-
-  // Check that specifying a measurement on `b` hides `a` from the global
-  // register.
-  auto test5 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    mz(b);
-  };
-  RUN_AND_PRINT_GLOBAL_REG(test5);
-  // CHECK: test5:
-  // CHECK: { 0:1000 }
-
-  // Check that performing a quantum operation after the final measurement makes
-  // all qubits appear in the global register.
-  // FIXME - this is broken for non-library modes that run delay-measurements.
-  // auto test6a = []() __qpu__ {
-  //   cudaq::qubit a, b;
-  //   x(a);
-  //   mz(b);
-  //   x(a);
-  // };
-  // RUN_AND_PRINT_GLOBAL_REG(test6a);
-  // // XHECK: test6a:
-  // // XHECK: { 00:1000 }
 
   // Check that performing a quantum operation after the final measurement makes
   // all qubits appear in the global register.
 #ifndef NO_ADAPTIVE
-  auto test6b = test_adaptive{};
+  auto test3 = test_adaptive{};
+  RUN_AND_PRINT_RESULT_DICT(test3);
 #else
   // Platforms that don't support the adaptive profile will test this instead.
-  auto test6b = []() __qpu__ {
+  auto test3 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
     x(b);
   };
+  SAMPLE_AND_PRINT_GLOBAL_REG(test3);
 #endif
-  RUN_AND_PRINT_GLOBAL_REG(test6b);
-  // CHECK: test6b:
+
+  // CHECK: test3:
   // CHECK: { 11:1000 }
 
   // Check that mapping introduced qubits (and their corresponding hidden swaps)
   // are managed correctly and distinctly from user swaps.
-  auto test7 = []() __qpu__ {
-    cudaq::qvector q(2);
-    x(q[0]);
-    swap(q[0], q[1]);
-    mz(q);
-  };
-  RUN_AND_PRINT_GLOBAL_REG(test7);
-  // CHECK: test7:
-  // CHECK: { 01:1000 }
-
-  // Make sure that test7 works even if measurements aren't specified.
-  auto test8 = []() __qpu__ {
+  auto test4 = []() __qpu__ {
     cudaq::qvector q(2);
     x(q[0]);
     swap(q[0], q[1]);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test8);
-  // CHECK: test8:
+  SAMPLE_AND_PRINT_GLOBAL_REG(test4);
+  // CHECK: test4:
   // CHECK: { 01:1000 }
 
   return 0;

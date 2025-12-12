@@ -27,7 +27,6 @@ def simple():
     qubits = cudaq.qvector(2)
     h(qubits[0])
     x.ctrl(qubits[0], qubits[1])
-    mz(qubits)
 
 
 try:
