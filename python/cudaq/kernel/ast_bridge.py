@@ -3591,21 +3591,23 @@ class PyASTBridge(ast.NodeVisitor):
                 node)
 
         def process_void_list():
-            # NOTE: This does not actually create a valid value, and will fail is something
-            # tries to use the value that this was supposed to create later on.
-            # Keeping this to keep existing functionality, but this is a bit questionable.
-            # Aside from no list being produced, this should work regardless of what we
-            # iterate over or what expression we evaluate.
+            # NOTE: This does not actually create a valid value, and will fail
+            # if something tries to use the value that this was supposed to
+            # create later on. Keeping this to keep existing functionality, but
+            # this is a bit questionable. Aside from no list being produced,
+            # this should work regardless of what we iterate over or what
+            # expression we evaluate.
             self.emitWarning(
-                "produced elements in list comprehension contain None - expression will be evaluated but no list is generated",
-                node)
+                "produced elements in list comprehension contain None - "
+                "expression will be evaluated but no list is generated", node)
             forNode = ast.For()
             forNode.iter = node.generators[0].iter
             forNode.target = node.generators[0].target
             forNode.body = [node.elt]
             forNode.orelse = []
             forNode.lineno = node.lineno
-            # this loop could be marked as invariant if we didn't use `visit_For`
+            # This loop could be marked as invariant if we didn't use
+            # `visit_For`, but that would be premature optimization.
             self.visit_For(forNode)
 
         target_types = {}
@@ -3635,10 +3637,10 @@ class PyASTBridge(ast.NodeVisitor):
         get_target_type(node.generators[0].target, iterTy)
 
         # We need to know the element type of the list we are creating.
-        # Unfortunately, dynamic typing makes this a bit painful.
-        # I didn't find a good way to fill in the type only once we
-        # have processed the expression as part of the loop body,
-        # but it would probably be nicer and cleaner to do that instead.
+        # Unfortunately, dynamic typing makes this a bit painful. I didn't find
+        # a good way to fill in the type only once we have processed the
+        # expression as part of the loop body, but it would probably be nicer
+        # and cleaner to do that instead.
         def get_item_type(pyval):
             if isinstance(pyval, ast.Name):
                 if pyval.id in target_types:
@@ -3654,8 +3656,9 @@ class PyASTBridge(ast.NodeVisitor):
                     return None
                 structTy = mlirTryCreateStructType(elts, context=self.ctx)
                 if not structTy:
-                    # we return anything here since, or rather to make sure that,
-                    # a comprehensive error is generated when `elt` is walked below.
+                    # we return anything here since, or rather to make sure
+                    # that, a comprehensive error is generated when `elt` is
+                    # walked below.
                     return cc.StructType.getNamed("tuple", elts)
                 return structTy
             elif (isinstance(pyval, ast.Subscript) and
@@ -3684,8 +3687,8 @@ class PyASTBridge(ast.NodeVisitor):
                         base_elTy = self.__get_superior_type(base_elTy, t)
                         if base_elTy is None:
                             self.emitFatalError(
-                                "non-homogenous list not allowed - must all be same type: {}"
-                                .format(elts), node)
+                                f"non-homogenous list not allowed - must all be "
+                                f"same type: {elts}", node)
                 return cc.StdvecType.get(base_elTy)
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
@@ -3694,12 +3697,14 @@ class PyASTBridge(ast.NodeVisitor):
                             pyval.func.id) or pyval.func.id == 'reset':
                         process_void_list()
                         return None
-                    elif self.__isMeasurementGate(pyval.func.id):
-                        # It's tricky to know if we are calling a measurement on a single qubit,
-                        # or on a vector of qubits, e.g. consider the case `[mz(qs[i:]) for i in range(n)]`,
-                        # or `[mz(qs) for _ in range(n)], or [mz(qs) for _ in qs]`.
-                        # We hence limit support to iterating over a vector of qubits, and check that the
-                        # iteration variable is passed directly to the measurement.
+                    if self.__isMeasurementGate(pyval.func.id):
+                        # It's tricky to know if we are calling a measurement on
+                        # a single qubit, or on a vector of qubits, e.g.
+                        # consider the case `[mz(qs[i:]) for i in range(n)]`, or
+                        # `[mz(qs) for _ in range(n)], or [mz(qs) for _ in qs]`.
+                        # We hence limit support to iterating over a vector of
+                        # qubits, and check that the iteration variable is
+                        # passed directly to the measurement.
                         iterSymName = None
                         if isinstance(node.generators[0].iter, ast.Name):
                             iterSymName = node.generators[0].iter.id
@@ -3716,8 +3721,9 @@ class PyASTBridge(ast.NodeVisitor):
                                 self.symbolTable[iterSymName].type))
                         if not isIterOverVeq:
                             self.emitFatalError(
-                                "performing measurements in list comprehension expressions is only supported when iterating over a vector of qubits",
-                                node)
+                                "performing measurements in list comprehension "
+                                "expressions is only supported when iterating "
+                                "over a vector of qubits", node)
                         iterVarPassedAsArg = (
                             len(pyval.args) == 1 and
                             isinstance(pyval.args[0], ast.Name) and
@@ -3725,22 +3731,18 @@ class PyASTBridge(ast.NodeVisitor):
                             pyval.args[0].id == node.generators[0].target.id)
                         if not iterVarPassedAsArg:
                             self.emitFatalError(
-                                "unsupported argument to measurement in list comprehension",
-                                node)
+                                "unsupported argument to measurement in list "
+                                "comprehension", node)
                         return IntegerType.get_signless(1)
-                    elif pyval.func.id in globalKernelRegistry:
+                    decorator = recover_kernel_decorator(pyval.func.id)
+                    if decorator:
                         # Not necessarily unitary
-                        resTypes = globalKernelRegistry[
-                            pyval.func.id].type.results
-                        if len(resTypes) == 0:
+                        resTy = decorator.returnType
+                        if resTy == decorator.get_none_type():
                             process_void_list()
                             return None
-                        if len(resTypes) != 1:
-                            self.emitFatalError(
-                                "unsupported function call in list comprehension - function must return a single value",
-                                node)
-                        return resTypes[0]
-                    elif pyval.func.id in globalRegisteredTypes.classes:
+                        return resTy
+                    if pyval.func.id in globalRegisteredTypes.classes:
                         _, annotations = globalRegisteredTypes.getClassAttributes(
                             pyval.func.id)
                         elts = [
@@ -3751,8 +3753,9 @@ class PyASTBridge(ast.NodeVisitor):
                                                            pyval.func.id,
                                                            context=self.ctx)
                         if not structTy:
-                            # we return anything here since, or rather to make sure that,
-                            # a comprehensive error is generated when `elt` is walked below.
+                            # we return anything here since, or rather to make
+                            # sure that, a comprehensive error is generated
+                            # when `elt` is walked below.
                             return cc.StructType.getNamed(pyval.func.id, elts)
                         return structTy
                     elif pyval.func.id == 'len' or pyval.func.id == 'int':
@@ -3779,22 +3782,24 @@ class PyASTBridge(ast.NodeVisitor):
                 # division and power are special, everything else
                 # strictly creates a value of superior type
                 if isinstance(pyval.op, ast.Pow):
-                    # determining the correct type is messy, left as TODO for now...
+                    # determining the correct type is messy, left as TODO for
+                    # now...
                     self.emitFatalError(
-                        "BinOp.Pow is not currently supported in list comprehension expressions",
-                        node)
+                        "BinOp.Pow is not currently supported in list "
+                        "comprehension expressions", node)
                 leftTy = get_item_type(pyval.left)
                 rightTy = get_item_type(pyval.right)
                 superiorTy = self.__get_superior_type(leftTy, rightTy)
-                # division converts integer type to `FP64` and preserves the superior type otherwise
+                # division converts integer type to `FP64` and preserves the
+                # superior type otherwise
                 if isinstance(pyval.op,
                               ast.Div) and IntegerType.isinstance(superiorTy):
                     return F64Type.get()
                 return superiorTy
             else:
                 self.emitFatalError(
-                    "Only variables, constants, and some calls can be used to populate values in list comprehension expressions",
-                    node)
+                    "Only variables, constants, and some calls can be used to "
+                    "populate values in list comprehension expressions", node)
 
         listElemTy = get_item_type(node.elt)
         if listElemTy is None:
@@ -3833,7 +3838,8 @@ class PyASTBridge(ast.NodeVisitor):
             self.__deconstructAssignment(node.generators[0].target, iterVal)
             self.visit(node.elt)
             element = self.popValue()
-            # We do need to be careful, however, about validating the list elements.
+            # We do need to be careful, however, about validating the list
+            # elements.
             self.__validate_container_entry(element, node.elt)
 
             listValueAddr = cc.ComputePtrOp(
@@ -3858,9 +3864,12 @@ class PyASTBridge(ast.NodeVisitor):
         single `veq` instances. 
         """
 
-        # Prevent the creation of empty lists, since we don't support
-        # inferring their type. To do so, we would need to look forward to
-        # first use and determine the type based on that.
+        # Prevent the creation of empty lists, since we don't support inferring
+        # their types. To do so, we would need to look forward to the first use
+        # and determine the type based on that.
+        # FIXME: Lower a list to a `!cc.stdvec<T>` or a
+        # `!cc.struct<{!cc.ptr<T>, i64}>` value and store it in a variable
+        # (stack slot) created with an cc.alloca in the entry block.
         if len(node.elts) == 0:
             self.emitFatalError(
                 "creating empty lists is not supported in CUDA-Q", node)
