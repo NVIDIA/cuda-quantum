@@ -198,16 +198,14 @@ def test_list_update_failures():
 
     with pytest.raises(RuntimeError) as e:
         get_MyTuple([0, 0])
-    assert 'Unsupported element type in struct type' in str(
-        e.value)
+    assert 'Unsupported element type in struct type' in str(e.value)
 
-    # FIXME: this should have a better error message. 
+    # FIXME: this should have a better error message.
     # Error message in main for both this case and the above case is:
     # return values with dynamically sized element types are not yet supported
     with pytest.raises(RuntimeError) as e:
         cudaq.run(get_MyTuple, [0, 0])
-    assert 'Unsupported element type in struct type' in str(
-        e.value)
+    assert 'Unsupported element type in struct type' in str(e.value)
 
     @cudaq.kernel
     def sum(l: list[int]) -> int:
@@ -566,7 +564,7 @@ def test_list_of_tuple_update_failures():
 
         @cudaq.kernel
         def get_list_of_int_tuple(t: tuple[int, int],
-                                size: int) -> list[tuple[int, int]]:
+                                  size: int) -> list[tuple[int, int]]:
             l = [t for _ in range(size + 1)]
             l[0] = (3, 3)
             return l
@@ -594,7 +592,8 @@ def test_list_of_tuple_update_failures():
 
         @cudaq.kernel
         def assign_and_return_list_tuple(
-                value: tuple[list[int], list[int]]) -> tuple[list[int], list[int]]:
+                value: tuple[list[int],
+                             list[int]]) -> tuple[list[int], list[int]]:
             local = ([1], [1])
             local = value
             return local
@@ -615,7 +614,7 @@ def test_list_of_tuple_update_failures():
 
         @cudaq.kernel
         def get_item(ls: list[tuple[list[int], list[int]]],
-                    idx: int) -> tuple[list[int], list[int]]:
+                     idx: int) -> tuple[list[int], list[int]]:
             return ls[idx]
 
         @cudaq.kernel
@@ -834,7 +833,6 @@ def test_list_of_dataclass_updates():
         return flatten([default, vals, tlist[0].l1, tlist[0].l2])
 
     assert test10() == [0, 3, 1, 1, 1, 3, 1]
-
     '''
     # FIXME: not correctly handled
     # (main gives a comprehensive error for this right now, new implementation did not fix this)
@@ -933,8 +931,7 @@ def test_list_of_dataclass_update_failures():
             return l[0]
 
         test2()
-    assert 'Unsupported element type in struct type' in str(
-        e.value)
+    assert 'Unsupported element type in struct type' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 
@@ -1234,7 +1231,8 @@ def test_function_arguments():
 
         @cudaq.kernel
         def test1c(
-                value: tuple[list[int], list[int]]) -> tuple[list[int], list[int]]:
+                value: tuple[list[int],
+                             list[int]]) -> tuple[list[int], list[int]]:
             local = ([1], [1])
             local = value
             return local
@@ -1291,8 +1289,8 @@ def test_function_arguments():
 
         @cudaq.kernel
         def test2c(
-            value: list[tuple[list[int],
-                            list[int]]]) -> tuple[list[int], list[int]]:
+            value: list[tuple[list[int], list[int]]]
+        ) -> tuple[list[int], list[int]]:
             local = ([1.], [1.])
             local = value[0]
             return local
@@ -1349,8 +1347,9 @@ def test_function_arguments():
 
         @cudaq.kernel
         def test1c(
-                cond: bool, value: tuple[list[int],
-                                        list[int]]) -> tuple[list[int], list[int]]:
+                cond: bool,
+                value: tuple[list[int],
+                             list[int]]) -> tuple[list[int], list[int]]:
             local = ([1], [1])
             if cond:
                 local = value
@@ -1414,9 +1413,8 @@ def test_function_arguments():
 
         @cudaq.kernel
         def test2c(
-            cond: bool,
-            value: list[tuple[list[int],
-                            list[int]]]) -> tuple[list[int], list[int]]:
+            cond: bool, value: list[tuple[list[int], list[int]]]
+        ) -> tuple[list[int], list[int]]:
             local = ([1.], [1.])
             if cond:
                 local = value[0]
@@ -1478,8 +1476,8 @@ def test_function_arguments():
 
         @cudaq.kernel
         def test1c(
-            value: tuple[list[int],
-                        list[int]]) -> list[tuple[list[int], list[int]]]:
+            value: tuple[list[int], list[int]]
+        ) -> list[tuple[list[int], list[int]]]:
             local = [([1], [1])]
             local[0] = value
             return local
@@ -1598,9 +1596,8 @@ def test_function_arguments():
 
         @cudaq.kernel
         def test1c(
-            cond: bool,
-            value: tuple[list[int],
-                        list[int]]) -> list[tuple[list[int], list[int]]]:
+            cond: bool, value: tuple[list[int], list[int]]
+        ) -> list[tuple[list[int], list[int]]]:
             local = [([1], [1])]
             if cond:
                 local[0] = value
