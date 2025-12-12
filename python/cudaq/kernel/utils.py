@@ -129,8 +129,8 @@ def resolve_qualified_symbol(y):
     """
     parts = y.split('.')
     # Walk the path right to left to resolve the longest path name as soon as
-    # possible.
-    for i in range(len(parts), 1, -1):
+    # possible. (See the python documentation on importlib. This is the algo.)
+    for i in range(len(parts), 0, -1):
         modName = ".".join(parts[:i])
         try:
             mod = importlib.import_module(modName)
