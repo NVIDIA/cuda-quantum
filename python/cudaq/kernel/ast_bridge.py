@@ -2221,10 +2221,12 @@ class PyASTBridge(ast.NodeVisitor):
             if elemTy == self.getIntegerType(1):
                 elemTy = self.getIntegerType(8)
             ptrTy = cc.PointerType.get(self.getIntegerType(8))
-            resBuf = cc.StdvecDataOp(cc.PointerType.get(elemTy), value).result
+            ptrArrTy = cc.PointerType.get(cc.ArrayType.get(elemTy))
+            resBuf = cc.StdvecDataOp(ptrArrTy, value).result
             eleSize = cc.SizeOfOp(self.getIntegerType(),
                                   TypeAttr.get(elemTy)).result
             dynSize = cc.StdvecSizeOp(self.getIntegerType(), value).result
+            resBuf = cc.CastOp(cc.PointerType.get(elemTy), resBuf)
             stackCopy = cc.AllocaOp(cc.PointerType.get(
                 cc.ArrayType.get(elemTy)),
                                     TypeAttr.get(elemTy),
