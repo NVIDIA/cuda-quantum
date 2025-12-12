@@ -59,22 +59,25 @@ public:
     auto newStackSlot = casted.getValue().getDefiningOp<cudaq::cc::AllocaOp>();
     if (!newStackSlot)
       return failure();
-    auto source = 
+    auto source =
         analysis.copyFrom.getOperand(1).getDefiningOp<cudaq::cc::CastOp>();
     if (!source)
       return failure();
-    auto globalConst = 
+    auto globalConst =
         source.getValue().getDefiningOp<cudaq::cc::AddressOfOp>();
     if (globalConst) {
       auto ip = rewriter.saveInsertionPoint();
       rewriter.setInsertionPointAfter(analysis.copyFrom);
-      auto loaded = rewriter.create<cudaq::cc::LoadOp>(analysis.copyFrom.getLoc(), globalConst);
+      auto loaded = rewriter.create<cudaq::cc::LoadOp>(
+          analysis.copyFrom.getLoc(), globalConst);
       rewriter.setInsertionPointAfter(analysis.copyTo);
-      rewriter.create<cudaq::cc::StoreOp>(analysis.copyTo.getLoc(), loaded, newStackSlot);
+      rewriter.create<cudaq::cc::StoreOp>(analysis.copyTo.getLoc(), loaded,
+                                          newStackSlot);
       rewriter.restoreInsertionPoint(ip);
     } else {
       rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
-          newStackSlot, newStackSlot.getType(), analysis.copyFrom.getOperand(1));
+          newStackSlot, newStackSlot.getType(),
+          analysis.copyFrom.getOperand(1));
     }
     rewriter.eraseOp(analysis.copyFrom);
     rewriter.eraseOp(analysis.copyTo);
