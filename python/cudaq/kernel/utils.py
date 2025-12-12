@@ -120,7 +120,7 @@ def resolve_qualified_symbol(y):
     """
     If `y` is a qualified symbol (containing a '.' in the name), then resolve
     the symbol to the kernel decorator object. Returns `None` if the qualified
-    name cannot be resolved.
+    name cannot be resolved to a kernel decorator object.
 
     For legacy reasons, this supports improper use of qualified names. For
     example, in the module `cudaq.kernels.uccsd` there is a kernel named
@@ -128,7 +128,7 @@ def resolve_qualified_symbol(y):
     decorator name.
     """
     parts = y.split('.')
-    for i in range(len(parts)):
+    for i in range(1, len(parts)):
         modName = ".".join(parts[:i])
         try:
             mod = importlib.import_module(modName)
@@ -148,7 +148,7 @@ def resolve_qualified_symbol(y):
                 obj = getattr(obj, parts[-1])
             except AttributeError:
                 pass
-        return obj
+        return obj if isa_kernel_decorator(obj) else None
     return None
 
 

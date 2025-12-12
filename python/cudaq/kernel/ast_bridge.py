@@ -2457,7 +2457,8 @@ class PyASTBridge(ast.NodeVisitor):
                             obj = module
                             for part in moduleNames[1:]:
                                 obj = getattr(obj, part)
-                            devKey = f"{module_name}.{'.'.join(moduleNames[1:])}"
+                            devKey = f"{module_name}.{'.'.join(moduleNames[1:])}" if len(
+                                moduleNames) > 1 else module_name
                         except AttributeError:
                             continue
 
