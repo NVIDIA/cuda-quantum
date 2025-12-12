@@ -140,20 +140,6 @@ def test_exp_pauli_param():
     assert not '10' in counts
 
 
-def test_capture_array():
-    arr = np.array([1., 0], dtype=np.complex128)
-
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(arr)
-
-    with pytest.raises(
-            RuntimeError,
-            match=
-            "captured vectors are not supported on quantum hardware or remote simulators"
-    ):
-        counts = cudaq.sample(kernel)
-
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

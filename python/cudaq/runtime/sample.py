@@ -12,8 +12,8 @@ from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
 
-# Maintain a dictionary of queued async sample kernels.This dictionary is used
-# to keep the mlir::ModuleOp alive so the interpreter doesn't garbage collect
+# Maintain a dictionary of queued `async` sample kernels.This dictionary is used
+# to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
 # them before they can be launched properly.
 cudaq_async_sample_module_cache = {}
 cudaq_async_sample_cache_counter = 0
@@ -21,14 +21,25 @@ cudaq_async_sample_cache_counter = 0
 
 class AsyncSampleResult:
 
-    def __init__(self, impl, mod):
-        global cudaq_async_sample_module_cache
-        global cudaq_async_sample_cache_counter
-        self.impl = impl
-        self.getCalled = False
-        self.counter = cudaq_async_sample_cache_counter
-        cudaq_async_sample_cache_counter = self.counter + 1
-        cudaq_async_sample_module_cache[self.counter] = mod
+    def __init__(self, *args, **kwargs):
+        if len(args) == 2 and isinstance(args[0],
+                                         cudaq_runtime.AsyncSampleResultImpl):
+            impl = args[0]
+            mod = args[1]
+            global cudaq_async_sample_module_cache
+            global cudaq_async_sample_cache_counter
+            self.impl = impl
+            self.getCalled = False
+            self.counter = cudaq_async_sample_cache_counter
+            cudaq_async_sample_cache_counter = self.counter + 1
+            cudaq_async_sample_module_cache[self.counter] = mod
+        elif len(args) == 1 and isinstance(args[0], str):
+            # String-based constructor from JSON
+            self.impl = cudaq_runtime.AsyncSampleResultImpl(args[0])
+            self.counter = None
+        else:
+            raise RuntimeError(
+                "Invalid arguments passed to AsyncSampleResult constructor.")
 
     def get(self):
         result = self.impl.get()
@@ -37,13 +48,17 @@ class AsyncSampleResult:
 
     def __del__(self):
         # FIXME : This potentially leaks memory intentionally. It is possible
-        # that the AsyncSampleResult object gets deleted *before *the async
-        # sample call occurs or finishes.In that case, we leave the module in
-        # the dictionary to prevent the interpreter from crashing.We ought to
+        # that the `AsyncSampleResult` object gets deleted *before* the `async`
+        # sample call occurs or finishes. In that case, we leave the module in
+        # the dictionary to prevent the interpreter from crashing. We ought to
         # have a way to inform the C++ code that the result is no longer being
-        # sought and the module and py::handle should be freed.
-        if self.getCalled:
+        # sought and the module and `py::handle` should be freed.
+        if self.getCalled and self.counter is not None:
             del (cudaq_async_sample_module_cache[self.counter])
+
+    def __str__(self):
+        # Serialize to JSON string
+        return str(self.impl)
 
 
 def __broadcastSample(kernel,
@@ -217,7 +232,7 @@ def sample_async(decorator,
       explicit_measurements (Optional[bool]): A flag to indicate whether or not
           to concatenate measurements in execution order for the returned
           sample result.
-      qpu_id (Optional[int]): The optional identification for which QPU
+      `qpu_id` (Optional[int]): The optional identification for which QPU
           on the platform to target. Defaults to zero. Key-word only.
 
     Returns:

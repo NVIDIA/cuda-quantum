@@ -136,7 +136,7 @@ from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import (make_kernel, QuakeValue, PyKernel)
 from .kernel.ast_bridge import (globalAstRegistry, globalRegisteredOperations)
 from .runtime.sample import sample
-from .runtime.sample import sample_async
+from .runtime.sample import sample_async, AsyncSampleResult
 from .runtime.observe import observe
 from .runtime.observe import observe_async
 from .runtime.run import run
@@ -240,6 +240,7 @@ Depolarization2 = cudaq_runtime.Depolarization2
 # Functions
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
+AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 EvolveResult = cudaq_runtime.EvolveResult
 AsyncEvolveResult = cudaq_runtime.AsyncEvolveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult

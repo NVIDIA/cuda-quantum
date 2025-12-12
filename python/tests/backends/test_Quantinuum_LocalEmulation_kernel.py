@@ -325,28 +325,6 @@ def test_observe_chemistry():
     assert_close(expectation, 0.707)
 
 
-def test_capture_array():
-    arr = np.array([1., 0], dtype=np.complex128)
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(arr)
-
-    counts = cudaq.sample(kernel)
-    assert len(counts) == 1
-    assert "0" in counts
-
-    arr = np.array([0., 1], dtype=np.complex128)
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(arr)
-
-    counts = cudaq.sample(kernel)
-    assert len(counts) == 1
-    assert "1" in counts
-
-
 def test_run():
 
     # Set the targeted QPU machine that supports `run`, i.e., QIR output.

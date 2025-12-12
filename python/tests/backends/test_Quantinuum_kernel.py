@@ -51,7 +51,10 @@ def startUpMockServer():
 
     # Kill the server, remove the file
     p.terminate()
-    os.remove(credsName)
+    try:
+        os.remove(credsName)
+    except FileNotFoundError:
+        pass
 
 
 @pytest.fixture(scope="function", autouse=True)
