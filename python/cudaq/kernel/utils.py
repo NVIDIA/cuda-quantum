@@ -128,7 +128,9 @@ def resolve_qualified_symbol(y):
     decorator name.
     """
     parts = y.split('.')
-    for i in range(1, len(parts)):
+    # Walk the path right to left to resolve the longest path name as soon as
+    # possible.
+    for i in range(len(parts), 1, -1):
         modName = ".".join(parts[:i])
         try:
             mod = importlib.import_module(modName)
