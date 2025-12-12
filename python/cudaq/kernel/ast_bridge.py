@@ -1447,8 +1447,8 @@ class PyASTBridge(ast.NodeVisitor):
             assert cc.StateType.isinstance(valTy)
             if cc.StateType.isinstance(valTy):
                 self.emitFatalError(
-                    "cannot use `cudaq.State` as element in lists, tuples, or dataclasses",
-                    self.currentNode)
+                    "cannot use `cudaq.State` as element in lists, tuples, "
+                    "or dataclasses", self.currentNode)
             self.emitFatalError(
                 "lists, tuples, and dataclasses must not contain modifiable values",
                 self.currentNode)
@@ -1463,8 +1463,8 @@ class PyASTBridge(ast.NodeVisitor):
             # actual pointer, thus ensuring that the reference behavior actually
             # works across function boundaries.
             if structName != 'tuple' and rootVal:
-                msg = "only dataclass literals may be used as items in other "
-                "container values"
+                msg = ("only dataclass literals may be used as items in other "
+                       "container values")
                 self.emitFatalError(
                     f"{msg} - use `.copy(deep)` to create a new {structName}",
                     self.currentNode)
@@ -1485,7 +1485,9 @@ class PyASTBridge(ast.NodeVisitor):
             # assigned value might be a tuple or `dataclass` that contains a
             # list).
             if rootVal and self.isFunctionArgument(rootVal):
-                msg = "lists passed as or contained in function arguments cannot be inner items in other container values when a list is returned"
+                msg = ("lists passed as or contained in function arguments "
+                       "cannot be inner items in other container values when a "
+                       "list is returned")
                 self.emitFatalError(
                     f"{msg} - use `.copy(deep)` to create a new list",
                     self.currentNode)
@@ -4711,14 +4713,13 @@ class PyASTBridge(ast.NodeVisitor):
             # every returned list to the heap, followed by a copy to the stack
             # in the caller. Subsequent optimization passes should largely
             # eliminate unnecessary copies.
-            if (self.containsList(result.type)):
+            if self.containsList(result.type):
                 self.emitFatalError(
-                    "return value must not contain a list that is a function argument or an item in a function argument"
-                    +
-                    " - for device kernels, lists passed as arguments will be modified in place; "
-                    +
-                    "remove the return value or use .copy(deep) to create a copy",
-                    node)
+                    "return value must not contain a list that is a function "
+                    "argument or an item in a function argument - for device "
+                    "kernels, lists passed as arguments will be modified in "
+                    "place; remove the return value or use .copy(deep) to "
+                    "create a copy", node)
         else:
             result = self.__migrateLists(result, copy_list_to_heap)
 

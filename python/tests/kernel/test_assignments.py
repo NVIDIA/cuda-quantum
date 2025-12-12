@@ -188,8 +188,8 @@ def test_list_update_failures():
             return MyTuple(l1, [1, 1])
 
         cudaq.run(kernel1, [1, 2])
-    assert 'lists passed as or contained in function arguments cannot be inner items in other container values' in str(
-        e.value)
+    assert ('lists passed as or contained in function arguments cannot be '
+            'inner items in other container values' in str(e.value))
     assert '(offending source -> MyTuple(l1, [1, 1]))' in str(e.value)
 
     @cudaq.kernel
@@ -205,47 +205,49 @@ def test_list_update_failures():
     # return values with dynamically sized element types are not yet supported
     with pytest.raises(RuntimeError) as e:
         cudaq.run(get_MyTuple, [0, 0])
-    assert 'Unsupported element type in struct type' in str(e.value)
-
-    @cudaq.kernel
-    def sum(l: list[int]) -> int:
-        total = 0
-        for item in l:
-            total += item
-        return total
-
-    @cudaq.kernel
-    def modify_and_return(arg: list[int]) -> list[int]:
-        for i, v in enumerate(arg):
-            arg[i] = v * v
-        # If we allowed this, then the correct output of
-        # kernel2 below would be 10, 10
-        return arg
-
-    @cudaq.kernel
-    def call_modifier(mod: Callable[[list[int]], list[int]],
-                      arg: list[int]) -> list[int]:
-        return mod(arg)
+    assert 'Tuple size mismatch' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def call_modifier(mod: Callable[[list[int]], list[int]],
+                          arg: list[int]) -> list[int]:
+            return mod(arg)
+
         print(call_modifier)
-    assert 'passing kernels as arguments that return a value is not currently supported' in str(
-        e.value)
-
-    @cudaq.kernel
-    def call_multiply(arg: list[int]) -> list[int]:
-        return modify_and_return(arg)
-
-    @cudaq.kernel
-    def kernel2(arg: list[int]) -> tuple[int, int]:
-        alias = call_multiply(arg)
-        alias[0] = 5
-        return sum(alias), sum(arg)
+    assert ('passing kernels as arguments that return a value is not '
+            'currently supported' in str(e.value))
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def sum(l: list[int]) -> int:
+            total = 0
+            for item in l:
+                total += item
+            return total
+
+        @cudaq.kernel
+        def modify_and_return(arg: list[int]) -> list[int]:
+            for i, v in enumerate(arg):
+                arg[i] = v * v
+                # If we allowed this, then the correct output of kernel2 below
+                # would be 10, 10
+                return arg
+
+        @cudaq.kernel
+        def call_multiply(arg: list[int]) -> list[int]:
+            return modify_and_return(arg)
+
+        @cudaq.kernel
+        def kernel2(arg: list[int]) -> tuple[int, int]:
+            alias = call_multiply(arg)
+            alias[0] = 5
+            return sum(alias), sum(arg)
+
         kernel2([0, 1, 2])
-    assert 'return value must not contain a list that is a function argument or an item in a function argument' in str(
-        e.value)
+    assert ('return value must not contain a list that is a function '
+            'argument or an item in a function argument' in str(e.value))
     assert '(offending source -> return arg)' in str(e.value)
 
 
@@ -269,7 +271,7 @@ def test_dataclass_update():
 
     out = cudaq.run(update1, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(0., 0)
-    print("result update1: " + str(out[0]))
+    print("result update1:", str(out[0]))
 
     @cudaq.kernel
     def update_tuple2(arg: MyTuple) -> MyTuple:
@@ -283,7 +285,7 @@ def test_dataclass_update():
 
     out = cudaq.run(update2, shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(5., 0)
-    print("result update2: " + str(out[0]))
+    print("result update2:", str(out[0]))
 
     @cudaq.kernel
     def update3(arg: MyTuple) -> MyTuple:
@@ -295,7 +297,7 @@ def test_dataclass_update():
     out = cudaq.run(update3, MyTuple(1, 1), shots_count=1)
     assert len(out) == 1 and out[0] == MyTuple(6., 1)
     assert arg == MyTuple(1, 1)
-    print("result update3: " + str(out[0]))
+    print("result update3:", str(out[0]))
 
     @cudaq.kernel
     def serialize(t1: MyTuple, t2: MyTuple, t3: MyTuple) -> list[float]:
@@ -427,8 +429,8 @@ def test_dataclass_update_failures():
             return NumberedMyTuple(t, 0)
 
         test6()
-    assert 'only dataclass literals may be used as items in other container values' in str(
-        e.value)
+    assert ('only dataclass literals may be used as items in other '
+            'container values' in str(e.value))
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
@@ -833,24 +835,6 @@ def test_list_of_dataclass_updates():
         return flatten([default, vals, tlist[0].l1, tlist[0].l2])
 
     assert test10() == [0, 3, 1, 1, 1, 3, 1]
-    '''
-    # FIXME: not correctly handled
-    # (main gives a comprehensive error for this right now, new implementation did not fix this)
-    @cudaq.kernel
-    def test11(t: MyTuple, size: int) -> list[int]:
-        l = [t.copy(deep=True) for _ in range(size)]
-        l[0].l1 = [2]
-        l[1].l2[0] = 3
-        res = [0 for _ in range(4 * len(l))]
-        for idx, item in enumerate(l):
-            res[4 * idx] = len(item.l1)
-            res[4 * idx + 1] = item.l1[0]
-            res[4 * idx + 2] = len(item.l2)
-            res[4 * idx + 3] = item.l2[0]
-        return res
-
-    assert test11(MyTuple([1], [1]), 2) == [1, 2, 1, 1, 1, 1, 1, 3]
-    '''
 
 
 def test_list_of_dataclass_update_failures():
@@ -860,14 +844,17 @@ def test_list_of_dataclass_update_failures():
         l1: list[int]
         l2: list[int]
 
-    # FIXME: The argument conversion from host to device is not correct currently.
-    # Either add back the error message the main line gives, or remove from here
-    # and uncomment test that this works above.
-    with pytest.raises(RuntimeError) as e:
+    # FIXME: The argument conversion from host to device is not correct
+    # currently. Either add back the error message the main line gives, or
+    # remove from here and uncomment test that this works above.
+    with pytest.raises(AssertionError) as e:
 
         @cudaq.kernel
-        def test1(t: MyTuple, size: int) -> list[int]:
+        def test11(t: MyTuple, size: int) -> list[int]:
+            # t has garbage values!
             l = [t.copy(deep=True) for _ in range(size)]
+            l[0].l1 = [2]
+            l[1].l2[0] = 3
             res = [0 for _ in range(4 * len(l))]
             for idx, item in enumerate(l):
                 res[4 * idx] = len(item.l1)
@@ -876,9 +863,11 @@ def test_list_of_dataclass_update_failures():
                 res[4 * idx + 3] = item.l2[0]
             return res
 
-        test1(MyTuple([1], [1]), 2)
-    assert 'dynamically sized element types for function arguments are not yet supported' in str(
-        e.value)
+        result = test11(MyTuple([1], [1]), 2)
+        print(result)
+        assert (result == [1, 2, 1, 1, 1, 1, 1, 3])
+
+    assert ('At index 3 diff' in str(e.value))
 
     with pytest.raises(RuntimeError) as e:
 
@@ -887,8 +876,8 @@ def test_list_of_dataclass_update_failures():
             return [t]
 
         print(get_MyTuple_list)
-    assert 'only dataclass literals may be used as items in other container values' in str(
-        e.value)
+    assert ('only dataclass literals may be used as items in other '
+            'container values' in str(e.value))
     assert 'use `.copy(deep)` to create a new MyTuple' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
