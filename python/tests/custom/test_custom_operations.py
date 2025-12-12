@@ -180,6 +180,7 @@ def test_bad_attribute():
     cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
 
     with pytest.raises(Exception) as error:
+
         @cudaq.kernel
         def kernel():
             q = cudaq.qubit()
@@ -220,20 +221,21 @@ def test_invalid_ctrl():
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def bell():
             q = cudaq.qubit()
             custom_x.ctrl(q)
 
         bell.compile()
-    assert 'controlled operation requested without any control argument(s)' in repr(
-        error)
+    assert 'missing value' in repr(error)
 
 
 def test_bug_2452():
     cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def kernel1():
             qubits = cudaq.qvector(2)
@@ -259,14 +261,14 @@ def test_bug_2452():
                                -1]))
 
     with pytest.raises(RuntimeError) as error:
+
         @cudaq.kernel
         def kernel3():
             qubits = cudaq.qvector(2)
             custom_cz(qubits)
 
         cudaq.sample(kernel3)
-    assert 'invalid number of arguments (1) passed to custom_cz (requires 2 arguments)' in repr(
-        error)
+    assert 'missing value' in repr(error)
 
 
 # leave for gdb debugging

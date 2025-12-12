@@ -982,6 +982,17 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
+
+  std::string error_msg;
+  mlir::DiagnosticEngine &engine = context->getDiagEngine();
+  auto handlerId = engine.registerHandler(
+      [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+        if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+          error_msg += diag.str();
+          return mlir::failure(false);
+        }
+        return mlir::failure();
+      });
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
@@ -990,30 +1001,47 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  if (failed(pm.run(cloned)))
+  if (failed(pm.run(cloned))) {
+    engine.eraseHandler(handlerId);
     throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+        "failed to JIT compile the Quake representation\n" + error_msg);
+  }
   timingScope.stop();
+  engine.eraseHandler(handlerId);
   return wrap(cloned);
 }
 
 static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   auto enablePrintMLIREachPass =
       cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-
+  auto context = mod.getContext();
   if (enablePrintMLIREachPass) {
-    mod.getContext()->disableMultithreading();
+    context->disableMultithreading();
     pm.enableIRPrinting();
   }
 
+  std::string error_msg;
+  mlir::DiagnosticEngine &engine = context->getDiagEngine();
+  auto handlerId = engine.registerHandler(
+      [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+        if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+          error_msg += diag.str();
+          return mlir::failure(false);
+        }
+        return mlir::failure();
+      });
   DefaultTimingManager tm;
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  if (failed(pm.run(mod)))
+
+  if (failed(pm.run(mod))) {
+    engine.eraseHandler(handlerId);
     throw std::runtime_error(
-        "cudaq::builder failed to JIT compile the Quake representation.");
+        "failed to JIT compile the Quake representation\n" + error_msg);
+  }
   timingScope.stop();
+  engine.eraseHandler(handlerId);
 }
 
 static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
