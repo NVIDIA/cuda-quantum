@@ -159,7 +159,7 @@ def test_comparison_operators_for_complex():
                          complex(1., 2.5)))
     print(
         cudaq.synthesize(test_complex_equal_to, complex(1., 0.5),
-                         complex(1., -0.5)))
+                         complex(4., -0.5)))
     print(
         cudaq.synthesize(test_complex_equal_to, complex(-1., 0.5),
                          complex(1., 0.5)))
@@ -181,7 +181,7 @@ def test_comparison_operators_for_complex():
                          complex(1., 0.5)))
     print(
         cudaq.synthesize(test_complex_not_equal_to, complex(1., -0.5),
-                         complex(1., 0.5)))
+                         complex(4., 0.5)))
     print(
         cudaq.synthesize(test_complex_not_equal_to, complex(1., 0.5),
                          complex(-1., 0.5)))

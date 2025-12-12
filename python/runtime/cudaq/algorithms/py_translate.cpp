@@ -27,9 +27,8 @@ static std::string translate_impl(const std::string &shortName,
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);
   if (!mod->hasAttr(cudaq::runtime::pythonUniqueAttrName))
-    throw std::runtime_error(
-        "Module is malformed for python. Requires unique entry "
-        "point attribute.");
+    throw std::runtime_error("Module is malformed for python. Requires unique "
+                             "entry point attribute.");
   auto shortNameAttr = cast<mlir::StringAttr>(
       mod->getAttr(cudaq::runtime::pythonUniqueAttrName));
   std::string shortName_ = shortNameAttr.getValue().str();
@@ -50,11 +49,13 @@ static std::string translate_impl(const std::string &shortName,
              })
       .Case("openqasm2",
             [&]() {
-              // FIXME: This test seems to be too early. We haven't synthesized
-              // the arguments, `opaques`, yet.
-              if (!fn.getFunctionType().getInputs().empty())
+              // For translate to openqasm2, the user is required to (1)
+              // synthesize the arguments \e before calling translate and (2)
+              // provide no arguments in the translate call itself. Check the
+              // latter condition now.
+              if (!opaques.empty())
                 throw std::runtime_error("Translation to OpenQASM 2.0 requires "
-                                         "entry point to have 0 arguments.");
+                                         "kernel to have 0 arguments.");
               return cudaq::detail::lower_to_openqasm(shortName, mod, opaques);
             })
       .Default([&]() {

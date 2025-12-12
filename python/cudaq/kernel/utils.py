@@ -35,10 +35,9 @@ nvqppPrefix = '__nvqpp__mlirgen__'
 
 ahkPrefix = '__analog_hamiltonian_kernel__'
 
-# Keep a global registry of all kernel Python AST modules
-# keyed on their name (without `__nvqpp__mlirgen__` prefix).
-# The values in this dictionary are a tuple of the AST module
-# and the source code location for the kernel.
+# Keep a global registry of all kernel Python AST modules keyed on their name
+# (without `__nvqpp__mlirgen__` prefix). The values in this dictionary are a
+# tuple of the AST module and the source code location for the kernel.
 globalAstRegistry = {}
 
 # Keep a global registry of all registered custom operations.
@@ -229,20 +228,18 @@ def emitFatalError(msg):
     """
     print(Color.BOLD, end='')
     try:
-        # Raise the exception so we can get the
-        # stack trace to inspect
+        # Raise the exception so we can get the stack trace to inspect
         raise RuntimeError(msg)
     except RuntimeError:
-        # Immediately grab the exception and
-        # analyze the stack trace, get the source location
-        # and construct a new error diagnostic
+        # Immediately grab the exception and analyze the stack trace, getting
+        # the source location and construct a new error diagnostic.
         cached = sys.tracebacklimit
         sys.tracebacklimit = None
         offendingSrc = traceback.format_stack()
         sys.tracebacklimit = cached
         if len(offendingSrc):
-            msg = Color.RED + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
-                0]
+            msg = (Color.RED + "error: " + Color.END + Color.BOLD + msg +
+                   Color.END + '\n\nOffending code:\n' + offendingSrc[0])
     raise RuntimeError(msg)
 
 
@@ -253,20 +250,18 @@ def emitWarning(msg):
     """
     print(Color.BOLD, end='')
     try:
-        # Raise the exception so we can get the
-        # stack trace to inspect
+        # Raise the exception so we can get the stack trace to inspect
         raise RuntimeError(msg)
     except RuntimeError:
-        # Immediately grab the exception and
-        # analyze the stack trace, get the source location
-        # and construct a new error diagnostic
+        # Immediately grab the exception and analyze the stack trace, getting
+        # the source location and construct a new error diagnostic
         cached = sys.tracebacklimit
         sys.tracebacklimit = None
         offendingSrc = traceback.format_stack()
         sys.tracebacklimit = cached
         if len(offendingSrc):
-            msg = Color.YELLOW + "error: " + Color.END + Color.BOLD + msg + Color.END + '\n\nOffending code:\n' + offendingSrc[
-                0]
+            msg = (Color.YELLOW + "error: " + Color.END + Color.BOLD + msg +
+                   Color.END + '\n\nOffending code:\n' + offendingSrc[0])
 
 
 def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
@@ -294,8 +289,9 @@ def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
 
 def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     """
-    Return the MLIR Type corresponding to the given kernel function argument type annotation.
-    Throws an exception if the programmer did not annotate function argument types. 
+    Return the MLIR Type corresponding to the given kernel function argument
+    type annotation.  Throws an exception if the programmer did not annotate
+    function argument types.
     """
 
     localEmitFatalError = emitFatalError
@@ -347,7 +343,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                       ast.Subscript) and annotation.value.id == 'Callable':
             if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
-                    f"Callable type must have signature specified ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"Callable type must have signature specified ("
+                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
             if hasattr(annotation.slice, 'elts') and len(
@@ -361,13 +358,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 ret = annotation.slice.value.elts[1]
             else:
                 localEmitFatalError(
-                    f"Unable to get list elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"Unable to get list elements when inferring type from annotation ("
+                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
             argTypes = [mlirTypeFromAnnotation(a, ctx) for a in args.elts]
             if not isinstance(ret, ast.Constant) or ret.value:
-                localEmitFatalError(
-                    "passing kernels as arguments that return a value is not currently supported"
-                )
+                localEmitFatalError("passing kernels as arguments that return"
+                                    " a value is not currently supported")
             return cc.CallableType.get(ctx, argTypes, [])
 
         if isinstance(annotation,
@@ -375,7 +372,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                                           annotation.value.id == 'List'):
             if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
-                    f"list subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"list subscript missing slice node ("
+                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
             eleTypeNode = annotation.slice
@@ -389,7 +387,8 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
             if not hasattr(annotation, 'slice'):
                 localEmitFatalError(
-                    f"tuple subscript missing slice node ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"tuple subscript missing slice node ("
+                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
             # slice is an `ast.Tuple` of type annotations
@@ -398,15 +397,15 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 elements = annotation.slice.elts
             else:
                 localEmitFatalError(
-                    f"Unable to get tuple elements when inferring type from annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"Unable to get tuple elements when inferring type from "
+                    f"annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
             eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
             tupleTy = mlirTryCreateStructType(eleTypes)
             if tupleTy is None:
-                localEmitFatalError(
-                    "Hybrid quantum-classical data types and nested quantum structs are not allowed."
-                )
+                localEmitFatalError("Hybrid quantum-classical data types and "
+                                    "nested quantum structs are not allowed.")
             return tupleTy
 
         if hasattr(annotation, 'id'):
@@ -419,12 +418,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
                 id = annotation.value.value.id
             else:
                 localEmitFatalError(
-                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not yet a supported type (could not infer type name)."
+                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation}"
+                    f" is not yet a supported type (could not infer type name)."
                 )
         else:
             localEmitFatalError(
-                f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type yet (could not infer type name)."
-            )
+                f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation}"
+                f" is not a supported type yet (could not infer type name).")
 
         if id == 'list' or id == 'List':
             localEmitFatalError(
@@ -457,8 +457,9 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
 
             if '__slots__' not in pyType.__dict__:
                 emitWarning(
-                    f"Adding new fields in data classes is not yet supported. The dataclass must be declared with @dataclass(slots=True) or @dataclasses.dataclass(slots=True)."
-                )
+                    "Adding new fields in data classes is not yet supported. "
+                    "The dataclass must be declared with @dataclass(slots=True)"
+                    " or @dataclasses.dataclass(slots=True).")
 
             if len({
                     k: v
@@ -472,13 +473,13 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
             tupleTy = mlirTryCreateStructType(structTys, name=id)
             if tupleTy is None:
                 localEmitFatalError(
-                    "Hybrid quantum-classical data types and nested quantum structs are not allowed."
-                )
+                    "Hybrid quantum-classical data types and nested "
+                    "quantum structs are not allowed.")
             return tupleTy
 
     localEmitFatalError(
-        f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation} is not a supported type."
-    )
+        f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation}"
+        f" is not a supported type.")
 
 
 def pyInstanceFromName(name: str):
@@ -581,9 +582,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
             eleTypes.append(mlirTypeFromPyType(pyEleTy, ctx))
         tupleTy = mlirTryCreateStructType(eleTypes, context=ctx)
         if tupleTy is None:
-            emitFatalError(
-                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
-            )
+            emitFatalError("Hybrid quantum-classical data types and nested "
+                           "quantum structs are not allowed.")
         return tupleTy
 
     if (argType == tuple):
@@ -600,9 +600,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         else:
             tupleTy = argTypeToCompareTo
         if tupleTy is None:
-            emitFatalError(
-                "Hybrid quantum-classical data types and nested quantum structs are not allowed."
-            )
+            emitFatalError("Hybrid quantum-classical data types and nested "
+                           "quantum structs are not allowed.")
         return tupleTy
 
     if argType == qvector or argType == qreg or argType == qview:
@@ -738,5 +737,5 @@ def emitErrorIfInvalidPauli(pauliArg):
     """
     if any(c not in 'XYZI' for c in pauliArg):
         emitFatalError(
-            f"Invalid pauli_word string provided as runtime argument ({pauliArg}) - can only contain X, Y, Z, or I."
-        )
+            f"Invalid pauli_word string provided as runtime argument ("
+            f"{pauliArg}) - can only contain X, Y, Z, or I.")
