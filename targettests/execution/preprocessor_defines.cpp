@@ -19,7 +19,6 @@ struct test {
     void operator()() __qpu__ {
         cudaq::qubit q;
         h(q);
-        mz(q);
     }
 };
 #else 

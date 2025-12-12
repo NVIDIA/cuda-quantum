@@ -23,7 +23,6 @@ __qpu__ void foo() {
   x(q1);
   x<cudaq::ctrl>(q0, q1);
   x<cudaq::ctrl>(q0, q2); // requires a swap(q0,q1)
-
 }
 
 int main() {
