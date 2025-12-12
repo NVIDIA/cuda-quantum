@@ -60,12 +60,24 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                std::size_t qpu_id, OpaqueArguments &opaques) {
   if (!name.ends_with(".run"))
     throw std::runtime_error("`cudaq.run` only supports runnable kernels.");
+  // Set the `run` attribute on the module to indicate this is a run context
+  // (for result handling).
+  mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
 
   auto returnTy = recoverReturnType(mod, name);
-  // Disallow returning list / vectors from entry-point kernels.
-  if (returnTy.isa<cc::StdvecType>())
-    throw std::runtime_error("`cudaq.run` does not yet support returning "
-                             "`list` from entry-point kernels.");
+  // Disallow returning nested vectors/vectors of structs from entry-point
+  // kernels.
+  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(returnTy)) {
+    auto elemTy = vecTy.getElementType();
+    if (elemTy.isa<cudaq::cc::StdvecType>())
+      throw std::runtime_error(
+          "`cudaq.run` does not yet support returning nested `list` from "
+          "entry-point kernels.");
+    if (elemTy.isa<cudaq::cc::StructType>())
+      throw std::runtime_error("`cudaq.run` does not yet support returning "
+                               "`list` of `dataclass`/`tuple` from "
+                               "entry-point kernels.");
+  }
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
@@ -143,6 +155,9 @@ static async_run_result run_async_impl(const std::string &shortName,
                              std::to_string(numQPUs) + ")");
 
   auto mod = unwrap(module);
+  // Set the `run` attribute on the module to indicate this is a run context
+  // (for result handling).
+  mod->setAttr(runtime::enableCudaqRun, mlir::UnitAttr::get(mod->getContext()));
   auto retTy = unwrap(returnTy);
   if (noise_model.has_value() && platform.is_remote())
     throw std::runtime_error(
