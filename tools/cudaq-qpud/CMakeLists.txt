@@ -33,5 +33,3 @@ export_executable_symbols_for_plugins(${TOOL_NAME})
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
 install(FILES ${TOOL_NAME}.py DESTINATION bin)
-install(FILES nvqc_proxy.py DESTINATION bin)
-install(FILES json_request_runner.py DESTINATION bin)
