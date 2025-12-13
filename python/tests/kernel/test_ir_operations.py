@@ -31,7 +31,7 @@ def test_synthesize():
 
     print(ghz)
     ghz_synth = cudaq.synthesize(ghz, 5)
-    assert len(ghz_synth.argTypes) == 0
+    assert ghz_synth.launch_args_required() == 0
 
     counts = cudaq.sample(ghz_synth)
     counts.dump()

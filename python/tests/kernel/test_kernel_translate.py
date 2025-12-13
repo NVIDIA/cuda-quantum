@@ -81,7 +81,7 @@ def test_translate_openqasm_vector():
 def test_translate_openqasm_with_args():
     with pytest.raises(RuntimeError) as e:
         print(cudaq.translate(kernel_loop_params, 5, format="openqasm2"))
-    assert 'requires entry point to have 0 arguments' in repr(e)
+    assert 'Use synthesize before translate' in repr(e)
 
 
 def test_translate_openqasm_synth():

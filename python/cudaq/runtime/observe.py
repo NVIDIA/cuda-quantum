@@ -127,11 +127,11 @@ def observe(kernel,
     else:
         raise RuntimeRrror(
             "unrecognized kernel - did you forget the @kernel attribute?")
-    if decorator.formal_arity() != len(args):
-        raise RuntimeError(
-            "Invalid number of arguments passed to observe_async. " +
-            str(len(args)) + " given and " + str(decorator.formal_arity()) +
-            " expected.")
+    if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
+                                                    != len(args)):
+        raise RuntimeError("Invalid number of arguments passed to observe. " +
+                           str(len(args)) + " given and " +
+                           str(decorator.formal_arity()) + " expected.")
     if __isBroadcast(kernel, *args):
         results = __broadcastObserve(kernel,
                                      localOp,
@@ -229,7 +229,8 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     else:
         raise RuntimeRrror(
             "unrecognized kernel - did you forget the @kernel attribute?")
-    if decorator.formal_arity() != len(args):
+    if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
+                                                    != len(args)):
         raise RuntimeError(
             "Invalid number of arguments passed to observe_async. " +
             str(len(args)) + " given and " + str(decorator.formal_arity()) +
@@ -289,7 +290,8 @@ def observe_parallel(kernel,
 
     if isa_kernel_decorator(kernel):
         decorator = kernel
-        if decorator.formal_arity() != len(args):
+        if (decorator.launch_args_required()
+                != 0) and (decorator.formal_arity() != len(args)):
             raise RuntimeError(
                 "Invalid number of arguments passed to observe_parallel. " +
                 str(len(args)) + " given and " + str(decorator.formal_arity()) +

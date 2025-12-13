@@ -1076,6 +1076,20 @@ static MlirModule lower_to_codegen(const std::string &kernelName,
   return wrap(cleanLowerToCodegenKernel(mod, args));
 }
 
+static std::size_t get_launch_args_required(MlirModule module,
+                                            const std::string &entryPointName) {
+  auto entryPointKernel = cudaq::getKernelFuncOp(module, entryPointName);
+  if (!entryPointKernel || entryPointKernel.empty())
+    throw std::runtime_error(entryPointName + " must be present in module");
+  Block &entry = entryPointKernel.front();
+  std::size_t result = 0;
+  // For each argument, count the ones that have uses.
+  for (auto blkArg : entry.getArguments())
+    if (!blkArg.getUses().empty())
+      ++result;
+  return result;
+}
+
 void cudaq::bindAltLaunchKernel(py::module &mod,
                                 std::function<std::string()> &&getTL) {
   jitCache = std::make_unique<JITExecutionCache>();
@@ -1198,6 +1212,14 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
       },
       "Synthesize away the callable block argument from the entrypoint in "
       "`modA` with the `FuncOp` of given name.");
+
+  mod.def(
+      "get_launch_args_required",
+      [](MlirModule mod, const std::string &shortName) {
+        return get_launch_args_required(mod, shortName);
+      },
+      "Determine the number of formal arguments to the entry-point kernel that"
+      "are used in the function.");
 
   mod.def(
       "is_current_target_full_qir",

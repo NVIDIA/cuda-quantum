@@ -592,6 +592,20 @@ class PyKernelDecorator(object):
             return self.get_none_type()
         return mlirTypeFromPyType(self.returnType, self.qkeModule.context)
 
+    def launch_args_required(self):
+        """
+        This is a deeper query on the quake module. The quake module may have
+        been specialized such that none of the arguments are, in fact, required
+        to be provided in order to run the kernel. (Argument synthesis.)
+        
+        This will analyze the designated entry-point kernel for the quake module
+        and determine if any arguments are used and return the number used.
+        """
+        if len(self.argTypes) == 0:
+            return 0
+        shortName = self.uniqName
+        return cudaq_runtime.get_launch_args_required(self.qkeModule, shortName)
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT Quake module
