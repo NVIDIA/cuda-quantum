@@ -17,19 +17,19 @@ __qpu__ void function_operation(cudaq::qubit &q) {
   x(q);   // base profile does not allow operations after measurements
 }
 
-__qpu__ void init_state() {
+__qpu__ bool init_state() {
   cudaq::qubit q;
   x(q);
   auto result = mz(q);
   function_operation(q);   // base profile does not allow operations after measurements
+  return mz(q);
 };
 
 int main() {
-  auto result = cudaq::sample(1000, init_state);
-  for (auto &&[bits, counts] : result) {
-    std::cout << bits << '\n';
-  }
+  auto result = cudaq::run(1000, init_state);
   return 0;
 }
 
-// CHECK: reversible function __quantum__qis__x__body came after irreversible function
+// Note: Need to support `run` with Base profile so as to enable this check
+// XCHECK: reversible function __quantum__qis__x__body came after irreversible function
+// CHECK: `run` is not yet supported on this target.
