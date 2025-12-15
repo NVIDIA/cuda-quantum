@@ -94,6 +94,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to " + format + " failed.");
   llvm::LLVMContext llvmContext;
+  llvmContext.setOpaquePointers(false);
   std::unique_ptr<llvm::Module> llvmModule =
       mlir::translateModuleToLLVMIR(module, llvmContext);
   if (!llvmModule)
