@@ -68,9 +68,8 @@ struct BasisTarget : public ConversionTarget {
     constexpr size_t unbounded = std::numeric_limits<size_t>::max();
 
     // Parse the list of target operations and build a set of legal operations
-    for (const std::string &targetInfo : targetBasis) {
+    for (const std::string &targetInfo : targetBasis) 
       legalOperatorSet.emplace_back(targetInfo);
-    }
 
     addLegalDialect<arith::ArithDialect, cf::ControlFlowDialect,
                     cudaq::cc::CCDialect, func::FuncDialect,
