@@ -30,66 +30,6 @@ namespace cudaq::opt {
 
 namespace {
 
-struct BasisTarget : public ConversionTarget {
-  struct OperatorInfo {
-    StringRef name;
-    size_t numControls;
-  };
-
-  BasisTarget(MLIRContext &context, ArrayRef<std::string> targetBasis)
-      : ConversionTarget(context) {
-    constexpr size_t unbounded = std::numeric_limits<size_t>::max();
-
-    // Parse the list of target operations and build a set of legal operations
-    for (const std::string &targetInfo : targetBasis) {
-      StringRef option = targetInfo;
-      auto nameEnd = option.find_first_of('(');
-      auto name = option.take_front(nameEnd);
-      if (nameEnd < option.size())
-        option = option.drop_front(nameEnd);
-
-      auto &info = legalOperatorSet.emplace_back(OperatorInfo{name, 0});
-      if (option.consume_front("(")) {
-        option = option.ltrim();
-        if (option.consume_front("n"))
-          info.numControls = unbounded;
-        else
-          option.consumeInteger(10, info.numControls);
-        assert(option.trim().consume_front(")"));
-      }
-    }
-
-    addLegalDialect<arith::ArithDialect, cf::ControlFlowDialect,
-                    cudaq::cc::CCDialect, func::FuncDialect,
-                    math::MathDialect>();
-    addDynamicallyLegalDialect<quake::QuakeDialect>([&](Operation *op) {
-      if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
-        auto name = optor->getName().stripDialect();
-        for (auto info : legalOperatorSet) {
-          if (info.name != name)
-            continue;
-          if (info.numControls == unbounded ||
-              optor.getControls().size() == info.numControls)
-            return info.numControls == optor.getControls().size();
-        }
-        return false;
-      }
-
-      // Handle quake.exp_pauli.
-      if (isa<quake::ExpPauliOp>(op)) {
-        // If the target defines it as a legal op, return true, else false.
-        return std::find_if(legalOperatorSet.begin(), legalOperatorSet.end(),
-                            [](auto &&el) { return el.name == "exp_pauli"; }) !=
-               legalOperatorSet.end();
-      }
-
-      return true;
-    });
-  }
-
-  SmallVector<OperatorInfo, 8> legalOperatorSet;
-};
-
 //===----------------------------------------------------------------------===//
 // Pass implementation
 //===----------------------------------------------------------------------===//
@@ -146,16 +86,23 @@ struct BasisConversion
       return;
 
     // Setup target and patterns
-    BasisTarget target(getContext(), basis);
+    auto target = cudaq::createBasisTarget(getContext(), basis);
     RewritePatternSet owningPatterns(&getContext());
-    cudaq::populateWithAllDecompositionPatterns(owningPatterns);
-    auto patterns = FrozenRewritePatternSet(std::move(owningPatterns),
-                                            disabledPatterns, enabledPatterns);
+    FrozenRewritePatternSet patterns;
+    if (enabledPatterns.empty()) {
+      cudaq::selectDecompositionPatterns(owningPatterns, basis,
+                                         disabledPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns));
+    } else {
+      cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns),
+                                         disabledPatterns, enabledPatterns);
+    }
 
     // Process kernels in parallel
     LogicalResult rewriteResult = failableParallelForEach(
         module.getContext(), kernels, [&target, &patterns](Operation *op) {
-          return applyFullConversion(op, target, patterns);
+          return applyFullConversion(op, *target, patterns);
         });
 
     if (failed(rewriteResult))

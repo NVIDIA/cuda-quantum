@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
@@ -40,9 +41,25 @@ struct Decomposition
   /// execution.
   LogicalResult initialize(MLIRContext *context) override {
     RewritePatternSet owningPatterns(context);
-    cudaq::populateWithAllDecompositionPatterns(owningPatterns);
-    patterns = FrozenRewritePatternSet(std::move(owningPatterns),
-                                       disabledPatterns, enabledPatterns);
+
+    if (!basis.empty() && !enabledPatterns.empty()) {
+      mlir::emitWarning(
+          mlir::UnknownLoc::get(context),
+          "DecompositionPass: basis is ignored when enabledPatterns is "
+          "specified");
+    }
+
+    if (!basis.empty() && enabledPatterns.empty()) {
+      // Restrict to patterns useful for the target basis
+      cudaq::selectDecompositionPatterns(owningPatterns, basis,
+                                         disabledPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns));
+    } else {
+      cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns),
+                                         disabledPatterns, enabledPatterns);
+    }
+
     return success();
   }
 

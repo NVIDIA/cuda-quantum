@@ -336,7 +336,8 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 
 // TODO: The decomposition patterns "SToR1", "TToR1", "R1ToU3", "U3ToRotations"
 // can handle arbitrary number of controls, but currently metadata cannot
-// capture this. The pattern types therefore only advertise them for 0 controls.
+// capture this. The pattern types therefore only advertise them for a fixed
+// number of controls (1 for "SToR1" and "TToR1", 0 for the rest).
 
 //===----------------------------------------------------------------------===//
 // HOp decompositions
@@ -794,7 +795,7 @@ struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToR1, "s", "r1");
+REGISTER_DECOMPOSITION_PATTERN(SToR1, "s(1)", "r1(1)");
 
 //===----------------------------------------------------------------------===//
 // TOp decompositions
@@ -875,7 +876,7 @@ struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToR1, "t", "r1");
+REGISTER_DECOMPOSITION_PATTERN(TToR1, "t(1)", "r1(1)");
 
 //===----------------------------------------------------------------------===//
 // XOp decompositions
