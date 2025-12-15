@@ -15,8 +15,8 @@ try:
 except:
     NUM_GPUS = 0
 
-os.environ[
-    "CUDAQ_DEFAULT_SIMULATOR"] = "nvidia" if NUM_GPUS > 0 else "density-matrix-cpu"
+os.environ["CUDAQ_DEFAULT_SIMULATOR"] = ("nvidia" if NUM_GPUS > 0 else
+                                         "density-matrix-cpu")
 
 import pytest
 
