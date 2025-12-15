@@ -169,68 +169,11 @@ public:
           std::string mutableReq;
           for (const auto &[k, v] : headers)
             CUDAQ_INFO("Request Header: {} : {}", k, v);
-          // Checking if this request has its body sent on as NVCF assets.
-          const auto dirIter = headers.find("NVCF-ASSET-DIR");
-          const auto assetIdIter = headers.find("NVCF-FUNCTION-ASSET-IDS");
-          if (dirIter != headers.end() && assetIdIter != headers.end()) {
-            const std::string dir = dirIter->second;
-            const auto ids = cudaq::split(assetIdIter->second, ',');
-            if (ids.size() != 1) {
-              json js;
-              js["status"] =
-                  fmt::format("Invalid asset Id data: {}", assetIdIter->second);
-              return js;
-            }
-            // Load the asset file
-            std::filesystem::path assetFile =
-                std::filesystem::path(dir) / ids[0];
-            if (!std::filesystem::exists(assetFile)) {
-              json js;
-              js["status"] = fmt::format("Unable to find the asset file {}",
-                                         assetFile.string());
-              return js;
-            }
-            std::ifstream t(assetFile);
-            std::string requestFromFile((std::istreambuf_iterator<char>(t)),
-                                        std::istreambuf_iterator<char>());
-            mutableReq = requestFromFile;
-          } else {
-            mutableReq = reqBody;
-          }
+          mutableReq = reqBody;
 
           if (m_hasMpi)
             cudaq::mpi::broadcast(mutableReq, 0);
           auto resultJs = processRequest(mutableReq);
-          // Check whether we have a limit in terms of response size.
-          if (headers.contains("NVCF-MAX-RESPONSE-SIZE-BYTES")) {
-            const std::size_t maxResponseSizeBytes = std::stoll(
-                headers.find("NVCF-MAX-RESPONSE-SIZE-BYTES")->second);
-            if (resultJs.dump().size() > maxResponseSizeBytes) {
-              // If the response size is larger than the limit, write it to the
-              // large output directory rather than sending it back as an HTTP
-              // response.
-              const auto outputDirIter = headers.find("NVCF-LARGE-OUTPUT-DIR");
-              const auto reqIdIter = headers.find("NVCF-REQID");
-              if (outputDirIter == headers.end() ||
-                  reqIdIter == headers.end()) {
-                json js;
-                js["status"] =
-                    "Failed to locate output file location for large response.";
-                return js;
-              }
-
-              const std::string outputDir = outputDirIter->second;
-              const std::string fileName = reqIdIter->second + "_result.json";
-              const std::filesystem::path outputFile =
-                  std::filesystem::path(outputDir) / fileName;
-              std::ofstream file(outputFile.string());
-              file << resultJs.dump();
-              file.flush();
-              json js;
-              js["resultFile"] = fileName;
-              return js;
-            }
-          }
 
           return resultJs;
         });
@@ -835,64 +778,6 @@ protected:
   }
 };
 
-// Runtime server for NVCF
-class NvcfRuntimeServer : public RemoteRestRuntimeServer {
-public:
-  NvcfRuntimeServer() : RemoteRestRuntimeServer() { exitAfterJob = true; }
-
-protected:
-  virtual bool filterRequest(const cudaq::RestRequest &in_request,
-                             std::string &outValidationMessage) const override {
-    // We only support MLIR payload on the NVCF server.
-    if (in_request.format != cudaq::CodeFormat::MLIR) {
-      outValidationMessage =
-          "Unsupported input format: only CUDA-Q MLIR data is allowed.";
-      return false;
-    }
-
-    if (!in_request.passes.empty()) {
-      outValidationMessage =
-          "Unsupported passes: server-side compilation passes are not allowed.";
-      return false;
-    }
-
-    return true;
-  }
-
-protected:
-  virtual json processRequest(const std::string &reqBody,
-                              bool forceLog = false) override {
-    // When calling RemoteRestRuntimeServer::processRequest, set forceLog=true
-    // so that incoming requests are always logged, regardless of what log level
-    // we're running the server at.
-    auto executionResult =
-        RemoteRestRuntimeServer::processRequest(reqBody, /*forceLog=*/true);
-    // Amend execution information
-    executionResult["executionInfo"] = constructExecutionInfo();
-    return executionResult;
-  }
-
-private:
-  cudaq::NvcfExecutionInfo constructExecutionInfo() {
-    cudaq::NvcfExecutionInfo info;
-    const auto optionalTimePointToInt =
-        [](const auto &optionalTimePoint) -> std::size_t {
-      return optionalTimePoint.has_value()
-                 ? std::chrono::duration_cast<std::chrono::milliseconds>(
-                       optionalTimePoint.value().time_since_epoch())
-                       .count()
-                 : 0;
-    };
-    info.requestStart = optionalTimePointToInt(requestStart);
-    info.simulationStart = optionalTimePointToInt(simulationStart);
-    info.simulationEnd = optionalTimePointToInt(simulationEnd);
-    const auto deviceProps = cudaq::getCudaProperties();
-    if (deviceProps.has_value())
-      info.deviceProps = deviceProps.value();
-    return info;
-  }
-};
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, NvcfRuntimeServer, nvcf)

@@ -783,8 +783,7 @@ index pair.
   mod.def(
       "get_state",
       [&](py::object kernel, py::args args) {
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "nvqc")
+        if (holder.getTarget().name == "remote-mqpu")
           return pyGetStateRemote(kernel, args);
         if (holder.getTarget().name == "orca-photonics")
           return pyGetStateLibraryMode(kernel, args);

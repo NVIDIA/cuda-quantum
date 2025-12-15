@@ -45,4 +45,3 @@ endif()
   
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 add_target_config(remote-mqpu)
-add_target_config(nvqc)
