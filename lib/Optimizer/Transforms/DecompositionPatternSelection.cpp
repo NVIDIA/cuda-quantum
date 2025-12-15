@@ -20,7 +20,6 @@
 #include <llvm/ADT/SetVector.h>
 #include <llvm/ADT/StringMap.h>
 #include <llvm/ADT/StringRef.h>
-
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -38,7 +37,7 @@ namespace {
 
 struct OperatorInfo {
   StringRef name;
-  size_t numControls;
+  std::size_t numControls;
 
   OperatorInfo(StringRef infoStr) : name(), numControls(0) {
     auto nameEnd = infoStr.find_first_of('(');
@@ -49,7 +48,7 @@ struct OperatorInfo {
     if (infoStr.consume_front("(")) {
       infoStr = infoStr.ltrim();
       if (infoStr.consume_front("n"))
-        numControls = std::numeric_limits<size_t>::max();
+        numControls = std::numeric_limits<std::size_t>::max();
       else
         infoStr.consumeInteger(10, numControls);
       assert(infoStr.trim().consume_front(")"));
@@ -65,10 +64,10 @@ struct BasisTarget : public ConversionTarget {
 
   BasisTarget(MLIRContext &context, ArrayRef<std::string> targetBasis)
       : ConversionTarget(context) {
-    constexpr size_t unbounded = std::numeric_limits<size_t>::max();
+    constexpr std::size_t unbounded = std::numeric_limits<std::size_t>::max();
 
     // Parse the list of target operations and build a set of legal operations
-    for (const std::string &targetInfo : targetBasis) 
+    for (const std::string &targetInfo : targetBasis)
       legalOperatorSet.emplace_back(targetInfo);
 
     addLegalDialect<arith::ArithDialect, cf::ControlFlowDialect,
@@ -111,7 +110,7 @@ struct BasisTarget : public ConversionTarget {
 namespace std {
 template <>
 struct hash<OperatorInfo> {
-  size_t operator()(const OperatorInfo &info) const {
+  std::size_t operator()(const OperatorInfo &info) const {
     return llvm::hash_combine(info.name, info.numControls);
   }
 };
@@ -122,8 +121,8 @@ namespace {
 // Computes a hash of the given unordered set using the hashes of the elements
 // in the set.
 template <typename T>
-size_t computeSetHash(const std::unordered_set<T> &set) {
-  std::vector<size_t> hashes;
+std::size_t computeSetHash(const std::unordered_set<T> &set) {
+  std::vector<std::size_t> hashes;
   for (const auto &elem : set) {
     hashes.push_back(std::hash<T>()(elem));
   }
@@ -155,9 +154,8 @@ public:
     // Build the graph from pattern metadata
     for (const auto &pattern : patternTypes) {
       auto targetGates = pattern.getValue()->getTargetOps();
-      for (const auto &targetGate : targetGates) {
+      for (const auto &targetGate : targetGates)
         targetToPatterns[targetGate].push_back(pattern.getKey().str());
-      }
     }
   }
 
@@ -235,7 +233,7 @@ private:
     // smallest distance)
     struct GateDistancePair {
       OperatorInfo gate;
-      size_t distance;
+      std::size_t distance;
       std::optional<std::string> outgoingPattern;
 
       bool operator<(const GateDistancePair &other) const {
@@ -245,7 +243,7 @@ private:
     };
 
     // Map: visited gate -> distance from the basis gates
-    std::unordered_map<OperatorInfo, size_t> visitedGates;
+    std::unordered_map<OperatorInfo, std::size_t> visitedGates;
     // The set of selected patterns to return
     std::vector<std::string> selectedPatterns;
     // Priority queue of gates to visit, sorted by smallest distance from the
@@ -261,12 +259,12 @@ private:
     /// gates.
     auto getPatternDist = [&](const auto &pattern) {
       auto targetGates = pattern->getTargetOps();
-      std::vector<size_t> targetDistances;
+      std::vector<std::size_t> targetDistances;
       for (const auto &targetGate : targetGates) {
         if (visitedGates.count(targetGate)) {
           targetDistances.push_back(visitedGates.at(targetGate));
         } else {
-          targetDistances.push_back(std::numeric_limits<size_t>::max());
+          targetDistances.push_back(std::numeric_limits<std::size_t>::max());
         }
       }
       return *std::max_element(targetDistances.begin(), targetDistances.end());
@@ -292,8 +290,8 @@ private:
           continue;
         }
         const auto &pattern = getPatternType(patternName);
-        size_t dist = getPatternDist(pattern);
-        if (dist < std::numeric_limits<size_t>::max()) {
+        std::size_t dist = getPatternDist(pattern);
+        if (dist < std::numeric_limits<std::size_t>::max()) {
           gatesToVisit.push({pattern->getSourceOp(), dist + 1, patternName});
         }
       }
@@ -319,7 +317,8 @@ private:
 
   /// Cache for `selectPatterns`: hash of basis gates, disabled patterns,
   /// enabled patterns -> selected patterns
-  std::unordered_map<size_t, std::vector<std::string>> patternSelectionCache;
+  std::unordered_map<std::size_t, std::vector<std::string>>
+      patternSelectionCache;
 };
 
 } // namespace
