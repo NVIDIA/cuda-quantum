@@ -115,9 +115,17 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   // Translate module to OpenQASM2 transport layer.
   cudaq::detail::mergeAllCallableClosures(module, name, args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  PassManager pm(module.getContext());
+  auto *ctx = module.getContext();
+  PassManager pm(ctx);
   cudaq::opt::createTargetFinalizePipeline(pm);
+  cudaq::opt::createPipelineTransformsForPythonToOpenQASM(pm);
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
+  const bool enablePrintMLIRBeforeAndAfterEachPass =
+      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+  if (enablePrintMLIRBeforeAndAfterEachPass) {
+    ctx->disableMultithreading();
+    pm.enableIRPrinting();
+  }
   if (failed(pm.run(module)))
     throw std::runtime_error("Conversion to OpenQASM failed.");
   std::string result;

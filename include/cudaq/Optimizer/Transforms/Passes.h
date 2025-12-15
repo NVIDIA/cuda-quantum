@@ -30,6 +30,10 @@ void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
 
+/// This pipeline is run on every kernel decorator immediately after its
+/// definition has been processed by the Python bridge. It converts the
+/// `ModuleOp` to a target agnostic form which is amenable to further lowering,
+/// etc. by the Python interpreter.
 void createPythonAOTPipeline(mlir::OpPassManager &pm, bool autoGenRunStack);
 
 /// Create and append the common target finalization pipeline. This pipeline is

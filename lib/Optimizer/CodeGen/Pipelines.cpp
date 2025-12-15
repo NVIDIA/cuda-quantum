@@ -134,6 +134,39 @@ void cudaq::opt::addAOTPipelineConvertToQIR(PassManager &pm,
   ::createTargetCodegenPipeline</*JIT=*/false>(pm, convertTo);
 }
 
+void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
+    OpPassManager &pm) {
+  pm.addPass(createLambdaLifting());
+  // Run most of the passes from hardware pipelines.
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createLoopNormalize());
+  pm.addNestedPass<func::FuncOp>(createLoopUnroll());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createLiftArrayAlloc());
+  pm.addPass(createGlobalizeArrayValues());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createGetConcreteMatrix());
+  pm.addPass(createUnitarySynthesis());
+  pm.addPass(createApplySpecialization());
+  addAggressiveInlining(pm);
+  pm.addPass(createSymbolDCEPass());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createMultiControlDecompositionPass());
+  pm.addPass(createDecompositionPass(
+      {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
+                           "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
+                           "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
+                           "RzAdjToRz"}}));
+  pm.addPass(createQuakeToCCPrep());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
+  pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addPass(createSymbolDCEPass());
+}
+
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
   createCommonTargetCodegenPipeline</*isJIT=*/true>(pm, {});
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
@@ -150,7 +183,7 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   addLowerToCFG(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
+  pm.addNestedPass<func::FuncOp>(createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(createSymbolDCEPass());
