@@ -13,14 +13,13 @@
 using namespace mlir;
 
 // This is a helper function to help reduce duplicated code across
-// PyRemoteSimulatorQPU and PyNvcfSimulatorQPU.
-static void
-launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
-              std::unique_ptr<cudaq::RemoteRuntimeClient> &remote_client,
-              const std::string &sim_name, const std::string &name,
-              const void *kernelArgs, cudaq::gradient *gradient,
-              const cudaq::spin_op &H, cudaq::optimizer &optimizer,
-              const int n_params, const std::size_t shots) {
+// PyRemoteSimulatorQPU.
+static void launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
+                          std::unique_ptr<cudaq::RemoteRuntimeClient> &m_client,
+                          const std::string &m_simName, const std::string &name,
+                          const void *kernelArgs, cudaq::gradient *gradient,
+                          const cudaq::spin_op &H, cudaq::optimizer &optimizer,
+                          const int n_params, const std::size_t shots) {
   auto *wrapper = reinterpret_cast<const cudaq::ArgWrapper *>(kernelArgs);
   auto module = wrapper->mod;
   auto *mlirContext = module->getContext();
@@ -35,16 +34,16 @@ launchVqeImpl(cudaq::ExecutionContext *executionContextPtr,
     ctx->shots = shots;
 
   std::string errorMsg;
-  const bool requestOkay = remote_client->sendRequest(
-      *mlirContext, *executionContextPtr, /*serializedCodeContext=*/nullptr,
-      gradient, &optimizer, n_params, sim_name, name, /*kernelFunc=*/nullptr,
-      wrapper->rawArgs, /*argSize=*/0, &errorMsg);
+  const bool requestOkay = m_client->sendRequest(
+      *mlirContext, *executionContextPtr, gradient, &optimizer, n_params,
+      m_simName, name, /*kernelFunc=*/nullptr, wrapper->rawArgs, /*argSize=*/0,
+      &errorMsg);
   if (!requestOkay)
     throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
 }
 
 // This is a helper function to help reduce duplicated code across
-// PyRemoteSimulatorQPU and PyNvcfSimulatorQPU.
+// PyRemoteSimulatorQPU.
 static void
 launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
                  std::unique_ptr<cudaq::RemoteRuntimeClient> &remote_client,
@@ -67,7 +66,7 @@ launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
       executionContextPtr ? *executionContextPtr : defaultContext;
   std::string errorMsg;
   const bool requestOkay = remote_client->sendRequest(
-      *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+      *mlirContext, executionContext,
       /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
       sim_name, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
   if (!requestOkay)
@@ -101,7 +100,7 @@ static void launchKernelStreamlineImpl(
   actualArgs.erase(actualArgs.begin());
 
   const bool requestOkay = remote_client->sendRequest(
-      *mlirContext, executionContext, /*serializedCodeContext=*/nullptr,
+      *mlirContext, executionContext,
       /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
       sim_name, name, nullptr, nullptr, 0, &errorMsg, &actualArgs);
   if (!requestOkay)
@@ -170,19 +169,6 @@ public:
   static constexpr const char class_name[] = "PyRemoteSimulatorQPU";
 };
 
-/// Implementation of QPU subtype that submits simulation request to NVCF.
-class PyNvcfSimulatorQPU
-    : public PyRemoteSimulatorCommonBase<PyNvcfSimulatorQPU,
-                                         cudaq::BaseNvcfSimulatorQPU> {
-public:
-  using Base = PyRemoteSimulatorCommonBase<PyNvcfSimulatorQPU,
-                                           cudaq::BaseNvcfSimulatorQPU>;
-  using Base::Base;
-  virtual ~PyNvcfSimulatorQPU() = default;
-  static constexpr const char class_name[] = "PyNvcfSimulatorQPU";
-};
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::QPU, PyRemoteSimulatorQPU, RemoteSimulatorQPU)
-CUDAQ_REGISTER_TYPE(cudaq::QPU, PyNvcfSimulatorQPU, NvcfSimulatorQPU)
