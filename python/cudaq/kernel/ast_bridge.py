@@ -93,12 +93,13 @@ class PyScopedSymbolTable(object):
         # are defined within the same scope. We hence make sure to insert all
         # `alloca` instructions to store variables in the main block of the
         # function (otherwise MLIR will fail with "operand does not dominate
-        # this use"). However, some variables are stored as values in the 
+        # this use"). However, some variables are stored as values in the
         # symbol table, meaning they are only defined if they are defined in
         # the current scope or in a parent scope (i.e. `sid` is not None).
         value, sid = self.symbolTable[symbol]
-        return (sid in self.scopes or (isinstance(value.owner.opview, cc.AllocaOp) and
-                isinstance(value.owner.parent.opview, func.FuncOp)))
+        return (sid in self.scopes or
+                (isinstance(value.owner.opview, cc.AllocaOp) and
+                 isinstance(value.owner.parent.opview, func.FuncOp)))
 
     def __setitem__(self, symbol, value):
         assert len(self.scopes) > 0
@@ -108,20 +109,20 @@ class PyScopedSymbolTable(object):
         if symbol in self:
             return self.symbolTable[symbol][0]
         if symbol in self.symbolTable:
-            # We have a variable that is defined in an inner scope, 
+            # We have a variable that is defined in an inner scope,
             # but not allocated in the main function body.
             # This case deviates from Python behavior, and we give
             # a hopefully comprehensive enough error.
-            raise RuntimeError(f"variable of type {self.symbolTable[symbol][0].type} " +
-                                "is defined in a prior block and cannot be " +
-                                "accessed or changed outside that block" + os.linesep +
-                                f"(offending source -> {symbol})")
+            raise RuntimeError(
+                f"variable of type {self.symbolTable[symbol][0].type} " +
+                "is defined in a prior block and cannot be " +
+                "accessed or changed outside that block" + os.linesep +
+                f"(offending source -> {symbol})")
         raise RuntimeError(
             f"{symbol} is not a valid variable name in this scope.")
 
     def isInCurrentScope(self, symbol):
-        return (symbol in self.symbolTable and 
-                len(self.scopes) > 0 and 
+        return (symbol in self.symbolTable and len(self.scopes) > 0 and
                 self.symbolTable[symbol][1] == self.scopes[-1])
 
     def clear(self):
@@ -2001,7 +2002,7 @@ class PyASTBridge(ast.NodeVisitor):
 
                 with InsertionPoint.at_block_begin(self.entry):
                     address = cc.AllocaOp(cc.PointerType.get(value.type),
-                                        TypeAttr.get(value.type)).result
+                                          TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
                 return target, address
 
@@ -4407,8 +4408,8 @@ class PyASTBridge(ast.NodeVisitor):
             [self.visit(b) for b in node.body]
             self.symbolTable.popScope()
 
-        self.createForLoop([], blockBuilder, [],
-                           evalCond, lambda _: [], None if not node.orelse else
+        self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
+                           None if not node.orelse else
                            lambda _: [self.visit(stmt) for stmt in node.orelse])
 
     def visit_BoolOp(self, node):

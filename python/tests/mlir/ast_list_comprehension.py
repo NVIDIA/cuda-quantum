@@ -120,6 +120,7 @@ def test_list_comprehension_variable():
     # keep after assert, such that we have no output if assert fails
     print(kernel3)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1..
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK:            %[[VAL_0:.*]] = arith.constant 1 : i8
@@ -977,7 +978,7 @@ def test_list_comprehension_expressions():
 # CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel7
-# CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<i1>, %[[VAL_1:.*]]: 
+# CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<i1>, %[[VAL_1:.*]]:
 # CHECK-SAME: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()> {quake.pylifted})
 # CHECK-SAME: attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
