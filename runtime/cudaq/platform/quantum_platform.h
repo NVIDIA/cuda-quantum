@@ -15,7 +15,7 @@
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "version2/cudaq/qpus/any_qpu.h"
+#include "cudaq/version2/cudaq/qpus/any_qpu.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>

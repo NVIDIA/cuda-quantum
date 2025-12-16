@@ -11,7 +11,7 @@
 #include "cudaq/operators.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/remote_capabilities.h"
-#include "version2/cudaq/utils/type_erased_registry.h"
+#include "cudaq/version2/cudaq/utils/type_erased_registry.h"
 #include <cassert>
 #include <functional>
 #include <memory>
