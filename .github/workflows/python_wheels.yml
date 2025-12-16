@@ -323,7 +323,7 @@ jobs:
           docker run --rm -dit --name wheel-validation-snippets wheel_validation:local
           status_sum=0
 
-          for ex in `find docs/sphinx/snippets/python -name '*.py' -not -path '*/platform/*' -not -path '*/nvqc/*' -not -path '*/backends/*'`; do
+          for ex in `find docs/sphinx/snippets/python -name '*.py' -not -path '*/platform/*' -not -path '*/backends/*'`; do
             file="${ex#docs/sphinx/snippets/python/}"
             echo "__Snippet ${file}:__" >> /tmp/validation.out
             (docker exec wheel-validation-snippets bash -c "python${{ inputs.python_version }} /tmp/snippets/$file" >> /tmp/validation.out) && success=true || success=false

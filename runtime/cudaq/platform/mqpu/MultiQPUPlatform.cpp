@@ -154,53 +154,7 @@ public:
             fmt::format("Unable to retrieve {} QPU implementation. Please "
                         "check your installation.",
                         qpuSubType));
-      if (qpuSubType == "NvcfSimulatorQPU") {
-        platformQPUs.clear();
-        threadToQpuId.clear();
-        platformCurrentQPU = 0;
-        auto simName = getOpt(description, "backend");
-        if (simName.empty())
-          simName = "custatevec-fp32";
-        std::string configStr =
-            fmt::format("target;nvqc;simulator;{}", simName);
-        auto getOptAndSetConfig = [&](const std::string &key) {
-          auto val = getOpt(description, key);
-          if (!val.empty())
-            configStr += fmt::format(";{};{}", key, val);
-        };
-        getOptAndSetConfig("api_key");
-        getOptAndSetConfig("function_id");
-        getOptAndSetConfig("version_id");
-
-        auto numQpusStr = getOpt(description, "nqpus");
-        int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
-
-        if (simName.find("nvidia-mqpu") != std::string::npos && numQpus > 1) {
-          // If the backend simulator is an MQPU simulator (like nvidia-mqpu),
-          // then use "nqpus" to determine the number of GPUs to request for the
-          // backend. This allows us to seamlessly translate requests for MQPU
-          // requests to the NVQC platform.
-          configStr += fmt::format(";{};{}", "ngpus", numQpus);
-          // Now change numQpus to 1 for the downstream code, which will make a
-          // single NVQC QPU.
-          numQpus = 1;
-        } else {
-          getOptAndSetConfig("ngpus");
-        }
-
-        if (numQpus < 1)
-          throw std::invalid_argument("Number of QPUs must be greater than 0.");
-        for (int qpuId = 0; qpuId < numQpus; ++qpuId) {
-          // Populate the information and add the QPUs
-          auto qpu = cudaq::registry::get<cudaq::QPU>("NvcfSimulatorQPU");
-          qpu->setId(qpuId);
-          qpu->setTargetBackend(configStr);
-          threadToQpuId[std::hash<std::thread::id>{}(
-              qpu->getExecutionThreadId())] = qpuId;
-          platformQPUs.emplace_back(std::move(qpu));
-        }
-        platformNumQPUs = platformQPUs.size();
-      } else if (qpuSubType == "orca") {
+      if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         platformQPUs.clear();
         threadToQpuId.clear();

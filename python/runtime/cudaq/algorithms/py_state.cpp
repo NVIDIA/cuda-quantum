@@ -826,7 +826,6 @@ index pair.
           py::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "nvqc" ||
             holder.getTarget().name == "orca-photonics" ||
             is_remote_platform() || is_emulated_platform())
           throw std::runtime_error(
