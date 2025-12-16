@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/platform/fermioniq/FermioniqBaseQPU.h"
 
+#include "version2/cudaq/qpus/any_qpu.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
 using namespace mlir;
@@ -110,4 +111,4 @@ protected:
 };
 } // namespace cudaq
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::PyFermioniqRESTQPU, fermioniq)
+CUDAQ_REGISTER_QPU_TYPE(cudaq::PyFermioniqRESTQPU, fermioniq)

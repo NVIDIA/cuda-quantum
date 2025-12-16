@@ -47,11 +47,15 @@ protected:
 
 public:
   /// @brief The constructor
-  RemoteRESTQPU() : BaseRemoteRESTQPU() {}
+  RemoteRESTQPU() : BaseRemoteRESTQPU() {
+    CUDAQ_INFO("Constructing a new RemoteRESTQPU");
+
+  }
+  RemoteRESTQPU(const RemoteRESTQPU &) = delete; 
 
   RemoteRESTQPU(RemoteRESTQPU &&) = delete;
   virtual ~RemoteRESTQPU() = default;
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteRESTQPU, remote_rest)
+CUDAQ_REGISTER_QPU_TYPE(RemoteRESTQPU, remote_rest)

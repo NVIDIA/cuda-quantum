@@ -47,6 +47,13 @@ public:
     return kernelFunc(args, /*differentMemorySpace=*/false);
   }
 
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
+                             "remote kernel on local "
+                             "simulated QPU. This is not supported.");
+  }
+
   /// Overrides setExecutionContext to forward it to the ExecutionManager
   void setExecutionContext(cudaq::ExecutionContext *context) override {
     cudaSetDevice(qpu_id);
@@ -74,4 +81,4 @@ public:
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, GPUEmulatedQPU, GPUEmulatedQPU)
+CUDAQ_REGISTER_QPU_TYPE(GPUEmulatedQPU, GPUEmulatedQPU)

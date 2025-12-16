@@ -14,6 +14,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "utils/cudaq_utils.h"
+#include "version2/cudaq/qpus/any_qpu.h"
 #include <filesystem>
 #include <fstream>
 
@@ -38,6 +39,13 @@ public:
                const std::vector<void *> &rawArgs) override {
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
     return kernelFunc(args, /*isRemote=*/false);
+  }
+
+  void launchKernel(const std::string &name,
+                    const std::vector<void *> &rawArgs) override {
+    throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
+                             "remote kernel on local "
+                             "simulated QPU. This is not supported.");
   }
 
   /// Overrides setExecutionContext to forward it to the ExecutionManager
@@ -70,7 +78,9 @@ class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
-    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
+    CUDAQ_REGISTER_QPU_TYPE(DefaultQPU, default);
+    platformQPUs.emplace_back(cudaq::registry::getQPU("default"));
+    platformNumQPUs = platformQPUs.size();
   }
 
   /// @brief Set the target backend. Here we have an opportunity
@@ -81,7 +91,8 @@ public:
   void setTargetBackend(const std::string &backend) override {
     executionContext.set(nullptr);
     platformQPUs.clear();
-    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
+    threadToQpuId.clear();
+    platformQPUs.emplace_back(cudaq::registry::getQPU("default"));
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -125,7 +136,8 @@ public:
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
-      platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
+      threadToQpuId.clear();
+      platformQPUs.emplace_back(cudaq::registry::getQPU(qpuName));
       if (platformQPUs.front() == nullptr)
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");

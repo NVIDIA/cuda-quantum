@@ -17,8 +17,6 @@
 #include <thread>
 #include <unordered_map>
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
-
 namespace cudaq {
 
 // These functions are defined elsewhere, but

@@ -15,6 +15,7 @@
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "version2/cudaq/qpus/any_qpu.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>
@@ -30,10 +31,6 @@ class QPU;
 class gradient;
 class optimizer;
 struct RuntimeTarget;
-
-/// Typedefs for defining the connectivity structure of a QPU
-using QubitEdge = std::pair<std::size_t, std::size_t>;
-using QubitConnectivity = std::vector<QubitEdge>;
 
 /// A sampling tasks takes no input arguments and returns
 /// a sample_result instance.
@@ -191,7 +188,7 @@ protected:
   std::optional<CodeGenConfig> codeGenConfig;
 
   /// The Platform QPUs, populated by concrete subtypes
-  std::vector<std::unique_ptr<QPU>> platformQPUs;
+  std::vector<std::unique_ptr<any_qpu>> platformQPUs;
 
   /// Name of the platform.
   std::string platformName;
