@@ -45,11 +45,13 @@ struct teleportation {
       x(qubits[2]);
     }
 
-    mz(qubits);
+    return mz(qubits);
   }
 };
 
 int main() {
-  auto result = cudaq::sample(teleportation{});
-  result.dump();
+  /// FIXME: Fails with: QIR verification error - invalid instruction found: %2
+  /// = alloca [3 x i8], align 1 (adaptive profile)
+  auto results = cudaq::run(10, teleportation{});
+  return 0;
 }

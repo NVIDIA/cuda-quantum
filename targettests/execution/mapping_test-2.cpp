@@ -33,20 +33,17 @@ int main() {
   return 0;
 }
 
-// CHECK:         tail call void @__quantum__qis__x__body(%Qubit* null)
-// CHECK:         tail call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// CHECK:         tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// CHECK:         tail call void @__quantum__qis__swap__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-// CHECK:         tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
-// CHECK:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* writeonly null)
-// CHECK:         tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* nonnull writeonly inttoptr (i64 1 to %Result*))
-// CHECK:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull writeonly inttoptr (i64 2 to %Result*))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.726573756C74253000, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.726573756C74253100, i64 0, i64 0))
-// CHECK:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull getelementptr inbounds ([9 x i8], [9 x i8]* @cstr.726573756C74253200, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__qis__x__body(%[[VAL_0:.*]]* null)
+// CHECK:         tail call void @__quantum__qis__x__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
+// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
+// CHECK:         tail call void @__quantum__qis__swap__body(%[[VAL_0]]* null, %[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*))
+// CHECK:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*))
+// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 1 to %[[VAL_0]]*), %[[VAL_1:.*]]* writeonly null)
+// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* null, %[[VAL_1]]* nonnull writeonly inttoptr (i64 1 to %[[VAL_1]]*))
+// CHECK:         tail call void @__quantum__qis__mz__body(%[[VAL_0]]* nonnull inttoptr (i64 2 to %[[VAL_0]]*), %[[VAL_1]]* nonnull writeonly inttoptr (i64 2 to %[[VAL_1]]*))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303000, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 1 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303100, i64 0, i64 0))
+// CHECK:         tail call void @__quantum__rt__result_record_output(%[[VAL_1]]* nonnull inttoptr (i64 2 to %[[VAL_1]]*), i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.72303030303200, i64 0, i64 0))
 // CHECK:         ret void
-// STDOUT-DAG: __global__ : { 101:1000 }
-// STDOUT-DAG: result%0 : { 1:1000 }
-// STDOUT-DAG: result%1 : { 0:1000 }
-// STDOUT-DAG: result%2 : { 1:1000 }
+// STDOUT-DAG: { 101:1000 }
 // STDOUT-DAG: most_probable "101"

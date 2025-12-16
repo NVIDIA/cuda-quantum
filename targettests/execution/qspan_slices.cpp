@@ -36,7 +36,16 @@ __qpu__ void foo() {
 }
 
 int main() {
-  auto result = cudaq::sample(1000, foo);
+  auto counts = cudaq::sample(1000, foo);
+  auto counts_map = counts.to_map();
+  std::size_t total_qubits = counts_map.begin()->first.size();
+  // We need to drop the compiler generated qubits, if any, which are the
+  // beginning, and capture the last 4 qubits used in the grover search
+  std::vector<std::size_t> indices;
+  for (std::size_t i = total_qubits - 4; i < total_qubits; i++)
+    indices.push_back(i);
+  auto result = counts.get_marginal(indices);
+  result.dump();
 
 #ifndef SYNTAX_CHECK
   std::cout << result.most_probable() << '\n';

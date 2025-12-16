@@ -25,6 +25,7 @@ struct kernel_with_z {
 int main() {
   auto kernel = kernel_with_z<2>{};
   auto counts = cudaq::sample(kernel);
-  counts.dump();
+  auto counts_q0 = counts.get_marginal({0});
+  counts_q0.dump();
   return 0;
 }

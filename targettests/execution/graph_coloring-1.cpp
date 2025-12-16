@@ -11,7 +11,7 @@
 // RUN: nvq++ %s -o %t --target infleqtion --emulate && %t | FileCheck %s
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -93,7 +93,16 @@ __qpu__ void grover(double theta) {
 
 int main() {
   double theta = 2. * std::acos(1. / std::sqrt(3));
-  auto result = cudaq::sample(1000, grover, theta);
+  auto counts = cudaq::sample(1000, grover, theta);
+
+  auto counts_map = counts.to_map();
+  std::size_t total_qubits = counts_map.begin()->first.size();
+  // We need to drop the compiler generated qubits, if any, which are the
+  // beginning, and also drop the ancilla qubit which is the last one
+  std::vector<std::size_t> indices;
+  for (std::size_t i = total_qubits - 9; i < total_qubits - 1; i++)
+    indices.push_back(i);
+  auto result = counts.get_marginal(indices);
 
 #ifndef SYNTAX_CHECK
   std::vector<std::string> strings;

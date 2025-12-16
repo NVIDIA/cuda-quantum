@@ -49,11 +49,20 @@ __qpu__ void grover() {
     oracle(qubits, ancilla);
     reflect_uniform(qubits);
   }
-
 };
 
 int main() {
-  auto result = cudaq::sample(1000, grover);
+  auto all_counts = cudaq::sample(1000, grover);
+
+  auto counts_map = all_counts.to_map();
+  std::size_t total_qubits = counts_map.begin()->first.size();
+  // We need to drop the compiler generated qubits, if any, which are the
+  // beginning, and also drop the ancilla qubit which is the last one
+  std::vector<std::size_t> indices;
+  for (std::size_t i = total_qubits - 5; i < total_qubits - 1; i++)
+    indices.push_back(i);
+  auto result = all_counts.get_marginal(indices);
+  result.dump();
 
 #ifndef SYNTAX_CHECK
   std::vector<std::string> strings;

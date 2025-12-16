@@ -17,8 +17,8 @@
 // RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
-#include <cudaq.h>
 #include <algorithm>
+#include <cudaq.h>
 #include <iostream>
 #include <unordered_set>
 
@@ -51,14 +51,24 @@ __qpu__ void grover() {
 };
 
 int main() {
-  auto result = cudaq::sample(1000, grover);
+  auto all_counts = cudaq::sample(1000, grover);
+
+  auto counts_map = all_counts.to_map();
+  std::size_t total_qubits = counts_map.begin()->first.size();
+  // We need to drop the compiler generated qubits, if any, which are the
+  // beginning, and also drop the ancilla qubit which is the last one
+  std::vector<std::size_t> indices;
+  for (std::size_t i = total_qubits - 5; i < total_qubits - 1; i++)
+    indices.push_back(i);
+  auto result = all_counts.get_marginal(indices);
+  result.dump();
 
 #ifndef SYNTAX_CHECK
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
   std::cout << strings[0] << '\n';

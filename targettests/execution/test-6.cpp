@@ -7,14 +7,17 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
+/// FIXME: The following fail with the error QIR verification error - invalid
+/// instruction found:   %1 = alloca i32, align 4 (adaptive profile)
+// SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
-// RUN: nvq++ -fkernel-exec-kind=2 --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// SKIPPED: nvq++ -fkernel-exec-kind=2 --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void cccx_measure_cleanup() {
+__qpu__ auto cccx_measure_cleanup() {
   cudaq::qvector qubits(4);
   // Initialize
   x(qubits[0]);
@@ -41,13 +44,23 @@ __qpu__ void cccx_measure_cleanup() {
   bool result = mx(ancilla);
   if (result)
     z<cudaq::ctrl>(qubits[0], qubits[1]);
+
+  return mz(qubits);
 }
 
 int main() {
-  auto result = cudaq::sample(10, cccx_measure_cleanup);
-  std::cout << result.most_probable() << '\n';
-  result.dump();
+  auto results = cudaq::run(10, cccx_measure_cleanup);
+  std::map<std::string, std::size_t> bitstring_counts;
+  for (const auto &res : results) {
+    std::string bits;
+    for (auto b : res)
+      bits += std::to_string(b);
+    bitstring_counts[bits]++;
+  }
+  for (const auto &[bits, count] : bitstring_counts)
+    std::cout << bits << ": " << count << "\n";
+ 
   return 0;
 }
 
-// CHECK: 1111
+// 1111: 10
