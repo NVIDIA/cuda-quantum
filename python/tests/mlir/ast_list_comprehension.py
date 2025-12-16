@@ -68,17 +68,18 @@ def test_list_comprehension_constant():
 # CHECK:             %[[VAL_23:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i8 x 5>>, i64) -> !cc.ptr<i8>
 # CHECK:             cc.store %{{.*}}, %[[VAL_23]] : !cc.ptr<i8>
 # CHECK:           } step {
-# CHECK:           %[[VAL_26:.*]]:2 = cc.loop while ((%[[VAL_27:.*]] = %{{.*}}, %[[VAL_28:.*]] = %{{.*}}) -> (i64, i1)) {
+# CHECK:           %[[VAL_26:.*]]:3 = cc.loop while ((%[[VAL_27:.*]] =
+# CHECK-SAME: ) -> (i64, i1, i1)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_32:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i8 x 5>>, i64) -> !cc.ptr<i8>
 # CHECK:             %[[VAL_33:.*]] = cc.load %[[VAL_32]] : !cc.ptr<i8>
 # CHECK:             %[[VAL_35:.*]] = cc.if(%[[VAL_31:.*]]) -> i1 {
-# CHECK:               cc.continue %[[VAL_31]] : i1
+# CHECK:               cc.continue %{{.*}} : i1
 # CHECK:             } else {
 # CHECK:               cc.continue %{{.*}} : i1
 # CHECK:             cc.continue %{{.*}}, %[[VAL_36:.*]] : i64, i1
 # CHECK:           } step {
-# CHECK:           return %[[VAL_40:.*]]#1 : i1
+# CHECK:           return %{{.*}} : i1
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1..
 # CHECK-SAME: .run() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i1]} {
@@ -86,21 +87,25 @@ def test_list_comprehension_constant():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2..
 # CHECK-SAME () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<i64 x 5>
-# CHECK:           %[[VAL_6:.*]]:2 = cc.loop while ((%[[VAL_7:.*]] = %{{.*}}, %[[VAL_8:.*]] = %{{.*}}) -> (i64, i64)) {
+# CHECK:           %[[VAL_6:.*]]:2 = cc.loop while ((%[[VAL_7:.*]] =
+# CHECK-SAME: ) -> (i64, i64)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_12:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<i64 x 5>>, i64) -> !cc.ptr<i64>
 # CHECK:           } step {
 # CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<f64 x 5>
-# CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %{{.*}}) -> (i64)) {
+# CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %
+# CHECK-SAME: ) -> (i64)) {
 # CHECK:           } do {
 # CHECK:             %[[VAL_22:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<f64 x 5>>, i64) -> !cc.ptr<f64>
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %{{.*}}, %[[VAL_27:.*]] = %{{.*}}) -> (i64, f64)) {
+# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] =
+# CHECK-SAME: ) -> (i64, f64, f64)) {
 # CHECK:           } do {
-# CHECK:             %[[VAL_31:.*]] = cc.compute_ptr %{{.*}} : (!cc.ptr<!cc.array<f64 x 5>>, i64) -> !cc.ptr<f64>
+# CHECK:             %[[VAL_31:.*]] = cc.compute_ptr %
+# CHECK-SAME: : (!cc.ptr<!cc.array<f64 x 5>>, i64) -> !cc.ptr<f64>
 # CHECK:           } step {
 # CHECK:           }
-# CHECK:           return %[[VAL_37:.*]]#1 : f64
+# CHECK:           return %{{.*}} : f64
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3..
 # CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -114,12 +119,12 @@ def test_list_comprehension_constant():
 # CHECK-SAME: ) -> (i64)) {
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %
-# CHECK-SAME: ) -> (i64, complex<f64>)) {
+# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] = %
+# CHECK-SAME: ) -> (i64, complex<f64>, complex<f64>)) {
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
-# CHECK:           return %[[VAL_37:.*]] : f64
+# CHECK:           return %{{.*}} : f64
 # CHECK:         }
 
 
@@ -179,14 +184,14 @@ def test_list_comprehension_variable():
 # CHECK:           %[[VAL_19:.*]] = cc.loop while ((%[[VAL_20:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_26:.*]]:2 = cc.loop while ((%[[VAL_27:.*]] = %
+# CHECK:           %[[VAL_26:.*]]:3 = cc.loop while ((%[[VAL_27:.*]] = %
 # CHECK:           } do {
 # CHECK:             %[[VAL_35:.*]] = cc.if(%{{.*}}) -> i1 {
 # CHECK:             } else {
 # CHECK:             }
 # CHECK:           } step {
 # CHECK:           }
-# CHECK:           return %[[VAL_40:.*]]#1 : i1
+# CHECK:           return %{{.*}} : i1
 # CHECK:         }
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2..
@@ -200,7 +205,7 @@ def test_list_comprehension_variable():
 # CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %
+# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
@@ -221,11 +226,11 @@ def test_list_comprehension_variable():
 # CHECK:           %[[VAL_18:.*]] = cc.loop while ((%[[VAL_19:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
-# CHECK:           %[[VAL_25:.*]]:2 = cc.loop while ((%[[VAL_26:.*]] = %
+# CHECK:           %[[VAL_25:.*]]:3 = cc.loop while ((%[[VAL_26:.*]] = %
 # CHECK:           } do {
 # CHECK:           } step {
 # CHECK:           }
-# CHECK:           %[[VAL_37:.*]] = complex.im %[[VAL_38:.*]]#1 : complex<f64>
+# CHECK:           %[[VAL_37:.*]] = complex.im %[[VAL_38:.*]]#{{[0-9]}} : complex<f64>
 # CHECK:           return %[[VAL_37]] : f64
 # CHECK:         }
 
@@ -691,7 +696,7 @@ def test_list_comprehension_tuple():
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3
-# CHECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: ) -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
@@ -726,7 +731,7 @@ def test_list_comprehension_indirect_tuple():
 
 # CHECK-LABEL: test_list_comprehension_indirect_tuple:
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3d
-# CHECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: ) -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 
 
@@ -834,7 +839,7 @@ def test_list_comprehension_call():
 # CHECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
-# CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: ) -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
@@ -880,7 +885,7 @@ def test_list_comprehension_void():
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2
-# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: ) attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 
 
