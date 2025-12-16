@@ -50,8 +50,9 @@ struct teleportation {
 };
 
 int main() {
-  /// FIXME: Fails with: QIR verification error - invalid instruction found: %2
-  /// = alloca [3 x i8], align 1 (adaptive profile)
+  /// FIXME: The following fails with QIR verification error -
+  ///        invalid instruction found: %2 = alloca [3 x i8], align 1 (adaptive
+  ///        profile)
   auto results = cudaq::run(10, teleportation{});
   return 0;
 }

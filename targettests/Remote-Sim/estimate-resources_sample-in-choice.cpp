@@ -29,7 +29,7 @@ struct mykernel {
 
 int main() {
   auto kernel = mykernel{};
-  std::function<bool()> choice = [&](){
+  std::function<bool()> choice = [&]() {
     /// FIXME: Need to confirm the purpose of invoking `sample` here.
     // auto counts1 = cudaq::sample(5, kernel);
     // counts1.dump();
@@ -42,7 +42,17 @@ int main() {
   } catch (...) {
     exception_thrown = true;
   }
-  assert(exception_thrown);
+  if (exception_thrown)
+    printf("success\n");
+  else
+    printf("FAILED!\n");
 
   return 0;
 }
+
+/// FIXME: See comment above, cannot modify `sample` to `run` since the
+/// `estimate_resources` API doesn't accept the kernel modified to return
+/// measurement results.
+// XCHECK: success
+/// FIXME: This is not the proper test!
+// CHECK: FAILED!

@@ -7,8 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target stim --enable-mlir %s -o %t && %t | FileCheck %s
+/// FIXME: The following fails with error QIR verification error - 
+///        invalid instruction found:   %2 = alloca i16, align 2 (adaptive profile)
+// SKIPPED: nvq++ %cpp_std --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

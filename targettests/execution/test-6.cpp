@@ -8,8 +8,8 @@
 
 // REQUIRES: c++20
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-/// FIXME: The following fail with the error QIR verification error - invalid
-/// instruction found:   %1 = alloca i32, align 4 (adaptive profile)
+/// FIXME: The following fail with the error QIR verification error -
+///        invalid instruction found:   %1 = alloca i32, align 4 (adaptive profile)
 // SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
 // SKIPPED: nvq++ -fkernel-exec-kind=2 --target quantinuum --emulate %s -o %t && %t | FileCheck %s
@@ -63,4 +63,4 @@ int main() {
   return 0;
 }
 
-// 1111: 10
+// CHECK: 1111: 10

@@ -24,4 +24,4 @@ int main() {
   return 0;
 }
 
-// CHECK: Provided index [99] >= array size [5]
+// CHECK: error: 'quake.extract_ref' op invalid index [99] because >= size [5]

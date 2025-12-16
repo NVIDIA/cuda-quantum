@@ -8,8 +8,8 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-/// FIXME: The following fail with the error QIR verification error - invalid
-///        instruction found:   %3 = alloca i16, align 2 (adaptive profile)
+/// FIXME: The following fails with QIR verification error -
+///        invalid instruction found:   %3 = alloca i16, align 2 (adaptive profile)
 // SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
