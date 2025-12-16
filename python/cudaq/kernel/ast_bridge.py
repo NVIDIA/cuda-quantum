@@ -1786,6 +1786,8 @@ class PyASTBridge(ast.NodeVisitor):
             containerFuncArg = (not self.buildingEntryPoint and
                                 (cc.StructType.isinstance(varTy) or
                                  cc.StdvecType.isinstance(varTy)))
+            # FIXME: Consider storing vectors and callables as pointers like
+            # other variables.
             storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
                           cc.CallableType.isinstance(varTy) or
                           cc.StdvecType.isinstance(varTy) or
@@ -3908,9 +3910,6 @@ class PyASTBridge(ast.NodeVisitor):
         # Prevent the creation of empty lists, since we don't support inferring
         # their types. To do so, we would need to look forward to the first use
         # and determine the type based on that.
-        # FIXME: Lower a list to a `!cc.stdvec<T>` or a
-        # `!cc.struct<{!cc.ptr<T>, i64}>` value and store it in a variable
-        # (stack slot) created with an cc.alloca in the entry block.
         if len(node.elts) == 0:
             self.emitFatalError(
                 "creating empty lists is not supported in CUDA-Q", node)
