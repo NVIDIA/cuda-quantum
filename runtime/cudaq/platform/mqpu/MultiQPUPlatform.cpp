@@ -61,8 +61,7 @@ public:
 
         // Add a QPU for each GPU.
         for (int i = 0; i < nDevices; i++) {
-          platformQPUs.emplace_back(
-              cudaq::registry::getQPU("GPUEmulatedQPU"));
+          platformQPUs.emplace_back(cudaq::registry::getQPU("GPUEmulatedQPU"));
           platformQPUs.back()->setId(i);
         }
 
