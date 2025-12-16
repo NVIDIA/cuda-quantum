@@ -59,7 +59,7 @@ ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
 
 class PyScopedSymbolTable(object):
 
-    # FIXME: make this similar to pystack to account for local functions
+    # FIXME: make this similar to `pystack` to account for local functions
     def __init__(self):
         self.symbolTable = {}
         self.scopes = deque()
@@ -1461,11 +1461,11 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __validate_container_entry(self, mlirVal, pyVal):
         '''
-        Helper function that should be invoked for any elements that are stored in
-        tuple, dataclass, or list. Note that the `pyVal` argument is only used to
-        determine the root of `mlirVal` and as such could be either the Python
-        AST node matching the container item (`mlirVal`) or the AST node for the 
-        container itself.
+        Helper function that should be invoked for any elements that are stored
+        in tuple, `dataclass`, or list. Note that the `pyVal` argument is only
+        used to determine the root of `mlirVal` and as such could be either the
+        Python AST node matching the container item (`mlirVal`) or the AST node
+        for the container itself.
         '''
 
         rootVal = self.__get_root_value(pyVal)
@@ -1480,8 +1480,8 @@ class PyASTBridge(ast.NodeVisitor):
                     "cannot use `cudaq.State` as element in lists, tuples, "
                     "or dataclasses", self.currentNode)
             self.emitFatalError(
-                "lists, tuples, and dataclasses must not contain modifiable values",
-                self.currentNode)
+                "lists, tuples, and dataclasses must not "
+                "contain modifiable values", self.currentNode)
 
         if cc.StructType.isinstance(mlirVal.type):
             structName = cc.StructType.getName(mlirVal.type)
@@ -2416,7 +2416,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.ctx, funcTy.inputs[:decorator.firstLiftedPos],
                     funcTy.results)
 
-                # callee will be a new BlockArgument
+                # `callee` will be a new `BlockArgument`
                 callee = cudaq_runtime.appendKernelArgument(
                     self.kernelFuncOp, callableTy)
                 self.argTypes.append(callableTy)
@@ -2424,7 +2424,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             return name if decorator else None
 
-        # FIXME: unify with processFunctionCall?
+        # FIXME: unify with `processFunctionCall`?
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
             self.visit(ast.Name(symName))
@@ -5121,20 +5121,20 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(loaded)
             return
 
-        # Check if a nonlocal symbol, and process it.
+        # Check if a non-local symbol, and process it.
         value = recover_value_of_or_none(node.id, None)
         if is_recovered_value_ok(value):
             from .kernel_decorator import isa_kernel_decorator
             from .kernel_builder import isa_dynamic_kernel
             if isa_kernel_decorator(value) or isa_dynamic_kernel(value):
-                # Not a data variable. Symbol bound to kernel object. This case is
-                # handled elsewhere.
+                # Not a data variable. Symbol bound to kernel object. This case
+                # is handled elsewhere.
                 return
 
-            # node.id is a nonlocal symbol. Lift it to a formal argument.
+            # node.id is a non-local symbol. Lift it to a formal argument.
             self.dependentCaptureVars[node.id] = value
-            # If `node.id` is in liftedArgs, it should already
-            # be in the symbol table and processed.
+            # If `node.id` is in `liftedArgs`, it should already be in the
+            # symbol table and processed.
             assert not node.id in self.liftedArgs
             self.appendToLiftedArgs(node.id)
 
@@ -5177,15 +5177,14 @@ class PyASTBridge(ast.NodeVisitor):
 def compile_to_mlir(uniqueId, astModule,
                     capturedDataStorage: CapturedDataStorage, **kwargs):
     """
-    Compile the given Python AST Module for the CUDA-Q 
-    kernel FunctionDef to an MLIR `ModuleOp`. 
-    Return both the `ModuleOp` and the list of function 
+    Compile the given Python AST Module for the CUDA-Q kernel FunctionDef to an
+    MLIR `ModuleOp`. Return both the `ModuleOp` and the list of function
     argument types as MLIR Types. 
 
-    This function will first check to see if there are any dependent 
-    kernels that are required by this function. If so, those kernels 
-    will also be compiled into the `ModuleOp`. The AST will be stored 
-    later for future potential dependent kernel lookups. 
+    This function will first check to see if there are any dependent kernels
+    that are required by this function. If so, those kernels will also be
+    compiled into the `ModuleOp`. The AST will be stored later for future
+    potential dependent kernel lookups.
     """
 
     global globalAstRegistry
