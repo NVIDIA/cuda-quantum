@@ -10,7 +10,7 @@
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/platform/fermioniq/FermioniqBaseQPU.h"
 
-#include "version2/cudaq/qpus/any_qpu.h"
+#include "cudaq/version2/cudaq/qpus/any_qpu.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 
 using namespace mlir;
