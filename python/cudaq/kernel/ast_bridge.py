@@ -112,9 +112,9 @@ class PyScopedSymbolTable(object):
             # but not allocated in the main function body.
             # This case deviates from Python behavior, and we give
             # a hopefully comprehensive enough error.
-            raise RuntimeError(f"a variable of type {self.symbolTable[symbol][0].type} " +
-                                "defined in a prior block cannot be " +
-                                "accessed outside that block" + os.linesep +
+            raise RuntimeError(f"variable of type {self.symbolTable[symbol][0].type} " +
+                                "is defined in a prior block and cannot be " +
+                                "accessed or changed outside that block" + os.linesep +
                                 f"(offending source -> {symbol})")
         raise RuntimeError(
             f"{symbol} is not a valid variable name in this scope.")
@@ -3736,6 +3736,14 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
                     # supported for calls but not here: 'range', 'enumerate'
+                    decorator = recover_kernel_decorator(pyval.func.id)
+                    if decorator:
+                        # Not necessarily unitary
+                        resTy = decorator.handle_call_results()
+                        if resTy == decorator.get_none_type():
+                            process_void_list()
+                            return None
+                        return resTy
                     if self.__isUnitaryGate(
                             pyval.func.id) or pyval.func.id == 'reset':
                         process_void_list()
@@ -3777,14 +3785,6 @@ class PyASTBridge(ast.NodeVisitor):
                                 "unsupported argument to measurement in list "
                                 "comprehension", node)
                         return IntegerType.get_signless(1)
-                    decorator = recover_kernel_decorator(pyval.func.id)
-                    if decorator:
-                        # Not necessarily unitary
-                        resTy = decorator.returnType
-                        if resTy == decorator.get_none_type():
-                            process_void_list()
-                            return None
-                        return resTy
                     if pyval.func.id in globalRegisteredTypes.classes:
                         _, annotations = globalRegisteredTypes.getClassAttributes(
                             pyval.func.id)
