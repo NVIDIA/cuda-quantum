@@ -643,31 +643,27 @@ def test_list_comprehension_tuple():
     # keep after assert, such that we have no output if assert fails
     print(kernel2)
 
-    try:
+    @cudaq.kernel
+    def get_MyTuple() -> MyTuple:
+        return MyTuple(0., 1.)
 
-        @cudaq.kernel
-        def get_MyTuple() -> MyTuple:
-            return MyTuple(0., 1.)
+    @cudaq.kernel
+    def kernel3() -> MyTuple:
+        combined = [get_MyTuple() for _ in range(5)]
+        res = MyTuple(0., 0.)
+        for v in combined:
+            res = MyTuple(res.first + v.first, res.second + v.second)
+        return res
 
-        @cudaq.kernel
-        def kernel3() -> MyTuple:
-            combined = [get_MyTuple() for _ in range(5)]
-            res = MyTuple(0., 0.)
-            for v in combined:
-                res = MyTuple(res.first + v.first, res.second + v.second)
-            return res
-
-        # For reasons that are entirely unclear to me, using cudaq.run here
-        # leads to an error in RecordLogParser.cpp: "Tuple size mismatch in
-        # kernel and label." This only occurs when run with pytest, and the same
-        # exact case in a separate tests below works just fine. No idea what's
-        # going on.
-        out = kernel3()
-        assert (out == MyTuple(0., 5.))
-        # keep after assert, such that we have no output if assert fails
-        print(kernel3)
-    except Exception as e:
-        print("FIXME: kernel3 failed!", str(e))
+    # For reasons that are entirely unclear to me, using cudaq.run here
+    # leads to an error in RecordLogParser.cpp: "Tuple size mismatch in
+    # kernel and label." This only occurs when run with pytest, and the same
+    # exact case in a separate tests below works just fine. No idea what's
+    # going on.
+    out = kernel3()
+    assert (out == MyTuple(0., 5.))
+    # keep after assert, such that we have no output if assert fails
+    print(kernel3)
 
     @cudaq.kernel
     def kernel4() -> bool:
@@ -694,9 +690,9 @@ def test_list_comprehension_tuple():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
-# CZECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3
-# CZECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CZECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3
+# CHECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
@@ -710,32 +706,28 @@ def test_list_comprehension_indirect_tuple():
         first: float
         second: float
 
-    try:
+    @cudaq.kernel
+    def get_MyTuple() -> MyTuple:
+        return MyTuple(0., 1.)
 
-        @cudaq.kernel
-        def get_MyTuple() -> MyTuple:
-            return MyTuple(0., 1.)
+    @cudaq.kernel
+    def kernel3d() -> MyTuple:
+        combined = [get_MyTuple() for _ in range(5)]
+        res = MyTuple(0., 0.)
+        for v in combined:
+            res = MyTuple(res.first + v.first, res.second + v.second)
+        return res
 
-        @cudaq.kernel
-        def kernel3d() -> MyTuple:
-            combined = [get_MyTuple() for _ in range(5)]
-            res = MyTuple(0., 0.)
-            for v in combined:
-                res = MyTuple(res.first + v.first, res.second + v.second)
-            return res
-
-        out = cudaq.run(kernel3d, shots_count=1)
-        assert (len(out) == 1 and out[0] == MyTuple(0., 5.))
-        # keep after assert, such that we have no output if assert fails
-        print(kernel3d)
-    except Exception as e:
-        print("FIXME: kernel3d failed!", str(e))
+    out = cudaq.run(kernel3d, shots_count=1)
+    assert (len(out) == 1 and out[0] == MyTuple(0., 5.))
+    # keep after assert, such that we have no output if assert fails
+    print(kernel3d)
 
 
 # CHECK-LABEL: test_list_comprehension_indirect_tuple:
-# CZECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3d
-# CZECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CZECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3d
+# CHECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK: return
 
 
 def test_list_comprehension_call():
@@ -786,26 +778,22 @@ def test_list_comprehension_call():
     # keep after assert, such that we have no output if assert fails
     print(kernel3)
 
-    try:
+    @cudaq.kernel
+    def get_float() -> float:
+        return 1.
 
-        @cudaq.kernel
-        def get_float() -> float:
-            return 1.
+    @cudaq.kernel
+    def kernel4() -> float:
+        combined = [get_float() for _ in range(5)]
+        res = 0.
+        for v in combined:
+            res += v
+        return res
 
-        @cudaq.kernel
-        def kernel4() -> float:
-            combined = [get_float() for _ in range(5)]
-            res = 0.
-            for v in combined:
-                res += v
-            return res
-
-        out = cudaq.run(kernel4, shots_count=1)
-        assert (len(out) == 1 and out[0] == 5.)
-        # keep after assert, such that we have no output if assert fails
-        print(kernel4)
-    except Exception as e:
-        print("FIXME: kernel4 failed!", str(e))
+    out = cudaq.run(kernel4, shots_count=1)
+    assert (len(out) == 1 and out[0] == 5.)
+    # keep after assert, such that we have no output if assert fails
+    print(kernel4)
 
     @cudaq.kernel
     def kernel5() -> bool:
@@ -845,9 +833,9 @@ def test_list_comprehension_call():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel3
 # CHECK-SAME: () -> !cc.struct<"MyTuple" {f64, f64}> attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
-# CZECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
-# CZECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CZECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
+# CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
@@ -858,49 +846,42 @@ def test_list_comprehension_call():
 
 def test_list_comprehension_void():
     print("test_list_comprehension_void:")
-    try:
 
-        @cudaq.kernel
-        def kernel1():
-            q = cudaq.qvector(6)
-            [h(r) for r in q]
-            x(q[0])
-            x.ctrl(q[1], q[2])
+    @cudaq.kernel
+    def kernel1():
+        q = cudaq.qvector(6)
+        [h(r) for r in q]
+        x(q[0])
+        x.ctrl(q[1], q[2])
 
-        print(kernel1)
-    except Exception as e:
-        print("FIXME: kernel1 failed!", str(e))
+    print(kernel1)
 
-    try:
+    @cudaq.kernel
+    def apply_x(q: cudaq.qubit) -> None:
+        return x(q)
 
-        @cudaq.kernel
-        def apply_x(q: cudaq.qubit) -> None:
-            return x(q)
+    @cudaq.kernel
+    def kernel2():
+        q1 = cudaq.qvector(3)
+        q2 = cudaq.qvector(3)
+        [apply_x(r) for r in q1]
+        for i in range(3):
+            x.ctrl(q1[i], q2[i])
 
-        @cudaq.kernel
-        def kernel2():
-            q1 = cudaq.qvector(3)
-            q2 = cudaq.qvector(3)
-            [apply_x(r) for r in q1]
-            for i in range(3):
-                x.ctrl(q1[i], q2[i])
-
-        out = cudaq.sample(kernel2)
-        print("out is", out)
-        assert (len(out) == 1 and '111111' in out)
-        # keep after assert, such that we have no output if assert fails
-        print(kernel2)
-    except Exception as e:
-        print("FIXME: kernel2 failed!", str(e))
+    out = cudaq.sample(kernel2)
+    print("out is", out)
+    assert (len(out) == 1 and '111111' in out)
+    # keep after assert, such that we have no output if assert fails
+    print(kernel2)
 
 
 # CHECK-LABEL: test_list_comprehension_void:
-# CZECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1
-# CZECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-# CZECK: return
-# CZECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2
-# CZECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CZECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel1
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel2
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK: return
 
 
 def test_list_comprehension_expressions():
@@ -997,28 +978,24 @@ def test_list_comprehension_expressions():
     assert (len(out) == 1 and out[0] == 2.)
     # keep after assert, such that we have no output if assert fails
     print(kernel6)
-    '''
-    # FIXME: This is exactly an example where the non-hierarchical nature of the value
-    # stack leads to an incorrect error...
-    # This test will be enabled as part of the PR to revise the ast bridge value stack.
 
     @cudaq.kernel
-    def foo3(func: Callable[[cudaq.qvector, float, list[bool]], None], adj: list[bool], decompose_adj: bool):
-        targets = cudaq.qvector(len(adj))
-        if decompose_adj:
-            func(targets, 1, [not b for b in adj])
-        else:
-            cudaq.adjoint(func, targets, 1, adj)
-        mz(targets)
-
-    @cudaq.kernel
-    def baz(qs: cudaq.qvector, angle: float, adj: list[bool]):
+    def apply_rotations(qs: cudaq.qvector, angle: float, adj: list[bool]):
         for idx, is_adj in enumerate(adj):
-            if is_adj: ry(-angle, qs[idx])
-            else: ry(angle, qs[idx])
+            if is_adj:
+                ry(-angle, qs[idx])
+            else:
+                ry(angle, qs[idx])
 
-    out = cudaq.sample(foo5, baz, [True, False, True], False)    
-    '''
+    @cudaq.kernel
+    def kernel7(adj: list[bool]):
+        targets = cudaq.qvector(len(adj))
+        apply_rotations(targets, 1, [not b for b in adj])
+
+    out = cudaq.sample(kernel7, [True, False, True])
+    assert len(out) == 8
+    # keep after assert, such that we have no output if assert fails
+    print(kernel7)
 
 
 # CHECK-LABEL: test_list_comprehension_expressions:
@@ -1039,6 +1016,9 @@ def test_list_comprehension_expressions():
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel6
 # CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK: return
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel7
+# CHECK-SAME: (%[[VAL_0:.*]]: !cc.stdvec<i1>, %[[VAL_1:.*]]: !cc.callable<(!quake.veq<?>, f64, !cc.stdvec<i1>) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"
 # CHECK: return
 
 

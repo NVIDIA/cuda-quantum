@@ -59,46 +59,77 @@ ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
 
 class PyScopedSymbolTable(object):
 
+    # FIXME: make this similar to `pystack` to account for local functions
     def __init__(self):
-        self.symbolTable = deque()
+        self.symbolTable = {}
+        self.scopes = deque()
+        self.scopeID = 0
 
     def pushScope(self):
-        self.symbolTable.append({})
+        self.scopes.append(self.scopeID)
+        self.scopeID += 1
 
     def popScope(self):
-        self.symbolTable.pop()
+        self.scopes.pop()
 
-    def numLevels(self):
-        return len(self.symbolTable)
+    @property
+    def depth(self):
+        return len(self.scopes)
 
-    def add(self, symbol, value, level=-1):
+    def isDefined(self, symbol):
+        return symbol in self.symbolTable
+
+    def add(self, symbol, value, level=0):
         """
         Add a symbol to the scoped symbol table at any scope level.
         """
-        self.symbolTable[level][symbol] = value
+        self.symbolTable[symbol] = (value, level)
 
     def __contains__(self, symbol):
-        for st in reversed(self.symbolTable):
-            if symbol in st:
-                return True
+        if not symbol in self.symbolTable:
+            return False
 
-        return False
+        # According to Python scoping rules, all variables within a function
+        # are defined within the same scope. We hence make sure to insert all
+        # `alloca` instructions to store variables in the main block of the
+        # function (otherwise MLIR will fail with "operand does not dominate
+        # this use"). However, some variables are stored as values in the
+        # symbol table, meaning they are only defined if they are defined in
+        # the current scope or in a parent scope (i.e. `sid` is not None).
+        value, sid = self.symbolTable[symbol]
+        return (sid in self.scopes or
+                (isinstance(value.owner.opview, cc.AllocaOp) and
+                 isinstance(value.owner.parent.opview, func.FuncOp)))
 
     def __setitem__(self, symbol, value):
-        # default to nearest surrounding scope
-        self.add(symbol, value)
+        assert len(self.scopes) > 0
+        self.add(symbol, value, self.scopes[-1])
 
     def __getitem__(self, symbol):
-        for st in reversed(self.symbolTable):
-            if symbol in st:
-                return st[symbol]
-
+        if symbol in self:
+            return self.symbolTable[symbol][0]
+        if symbol in self.symbolTable:
+            # We have a variable that is defined in an inner scope,
+            # but not allocated in the main function body.
+            # This case deviates from Python behavior, and we give
+            # a hopefully comprehensive enough error.
+            raise RuntimeError(
+                f"variable of type {self.symbolTable[symbol][0].type} " +
+                "is defined in a prior block and cannot be " +
+                "accessed or changed outside that block" + os.linesep +
+                f"(offending source -> {symbol})")
         raise RuntimeError(
             f"{symbol} is not a valid variable name in this scope.")
 
+    def isInCurrentScope(self, symbol):
+        return (symbol in self.symbolTable and len(self.scopes) > 0 and
+                self.symbolTable[symbol][1] == self.scopes[-1])
+
     def clear(self):
-        while len(self.symbolTable):
-            self.symbolTable.pop()
+        assert len(self.scopes) == 0
+        self.symbolTable = {}
+        self.scopes = {}
+        self.scopeID = 0
 
 
 class CompilerError(RuntimeError):
@@ -282,13 +313,11 @@ class PyASTBridge(ast.NodeVisitor):
         self.disableNvqppPrefix = kwargs[
             'disableNvqppPrefix'] if 'disableNvqppPrefix' in kwargs else False
         self.symbolTable = PyScopedSymbolTable()
-        # FIXME: NEEDS TO BE RESET ON FUNCTION DEF (LOCAL FUNC)
-        self.controlHeight = 0
         self.indent_level = 0
         self.indent = 4 * " "
         self.buildingEntryPoint = False
         self.inForBodyStack = deque()
-        self.inIfStmtBlockStack = deque()
+        self.inIfStmtBlockStack = 0
         self.currentAssignVariableName = None
         self.walkingReturnNode = False
         self.controlNegations = []
@@ -689,13 +718,14 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Indicate that we are entering an if statement then or else block.
         """
-        self.inIfStmtBlockStack.append(0)
+        self.inIfStmtBlockStack += 1
 
     def popIfStmtBlockStack(self):
         """
         Indicate that we have just left an if statement then or else block.
         """
-        self.inIfStmtBlockStack.pop()
+        assert self.inIfStmtBlockStack > 0
+        self.inIfStmtBlockStack -= 1
 
     def isInForBody(self):
         """
@@ -708,7 +738,7 @@ class PyASTBridge(ast.NodeVisitor):
         Return True if the current insertion point is within an if statement
         then or else block.
         """
-        return len(self.inIfStmtBlockStack) > 0
+        return self.inIfStmtBlockStack > 0
 
     def hasTerminator(self, block):
         """
@@ -1431,11 +1461,11 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __validate_container_entry(self, mlirVal, pyVal):
         '''
-        Helper function that should be invoked for any elements that are stored in
-        tuple, dataclass, or list. Note that the `pyVal` argument is only used to
-        determine the root of `mlirVal` and as such could be either the Python
-        AST node matching the container item (`mlirVal`) or the AST node for the 
-        container itself.
+        Helper function that should be invoked for any elements that are stored
+        in tuple, `dataclass`, or list. Note that the `pyVal` argument is only
+        used to determine the root of `mlirVal` and as such could be either the
+        Python AST node matching the container item (`mlirVal`) or the AST node
+        for the container itself.
         '''
 
         rootVal = self.__get_root_value(pyVal)
@@ -1450,8 +1480,8 @@ class PyASTBridge(ast.NodeVisitor):
                     "cannot use `cudaq.State` as element in lists, tuples, "
                     "or dataclasses", self.currentNode)
             self.emitFatalError(
-                "lists, tuples, and dataclasses must not contain modifiable values",
-                self.currentNode)
+                "lists, tuples, and dataclasses must not "
+                "contain modifiable values", self.currentNode)
 
         if cc.StructType.isinstance(mlirVal.type):
             structName = cc.StructType.getName(mlirVal.type)
@@ -1757,6 +1787,8 @@ class PyASTBridge(ast.NodeVisitor):
             containerFuncArg = (not self.buildingEntryPoint and
                                 (cc.StructType.isinstance(varTy) or
                                  cc.StdvecType.isinstance(varTy)))
+            # FIXME: Consider storing vectors and callables as pointers like
+            # other variables.
             storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
                           cc.CallableType.isinstance(varTy) or
                           cc.StdvecType.isinstance(varTy) or
@@ -1805,7 +1837,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid target for assignment", node)
             target_root_defined_in_parent_scope = (
                 target_root.id in self.symbolTable and
-                target_root.id not in self.symbolTable.symbolTable[-1])
+                not self.symbolTable.isInCurrentScope(target_root.id))
             value_root = self.__get_root_value(value)
 
             def update_in_parent_scope(destination, value):
@@ -1968,8 +2000,9 @@ class PyASTBridge(ast.NodeVisitor):
                 if storeAsVal or cc.PointerType.isinstance(value.type):
                     return target, value
 
-                address = cc.AllocaOp(cc.PointerType.get(value.type),
-                                      TypeAttr.get(value.type)).result
+                with InsertionPoint.at_block_begin(self.entry):
+                    address = cc.AllocaOp(cc.PointerType.get(value.type),
+                                          TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
                 return target, address
 
@@ -2383,7 +2416,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.ctx, funcTy.inputs[:decorator.firstLiftedPos],
                     funcTy.results)
 
-                # callee will be a new BlockArgument
+                # `callee` will be a new `BlockArgument`
                 callee = cudaq_runtime.appendKernelArgument(
                     self.kernelFuncOp, callableTy)
                 self.argTypes.append(callableTy)
@@ -2391,7 +2424,7 @@ class PyASTBridge(ast.NodeVisitor):
 
             return name if decorator else None
 
-        # FIXME: unify with processFunctionCall?
+        # FIXME: unify with `processFunctionCall`?
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
             self.visit(ast.Name(symName))
@@ -3704,6 +3737,14 @@ class PyASTBridge(ast.NodeVisitor):
             elif isinstance(pyval, ast.Call):
                 if isinstance(pyval.func, ast.Name):
                     # supported for calls but not here: 'range', 'enumerate'
+                    decorator = recover_kernel_decorator(pyval.func.id)
+                    if decorator:
+                        # Not necessarily unitary
+                        resTy = decorator.handle_call_results()
+                        if resTy == decorator.get_none_type():
+                            process_void_list()
+                            return None
+                        return resTy
                     if self.__isUnitaryGate(
                             pyval.func.id) or pyval.func.id == 'reset':
                         process_void_list()
@@ -3745,14 +3786,6 @@ class PyASTBridge(ast.NodeVisitor):
                                 "unsupported argument to measurement in list "
                                 "comprehension", node)
                         return IntegerType.get_signless(1)
-                    decorator = recover_kernel_decorator(pyval.func.id)
-                    if decorator:
-                        # Not necessarily unitary
-                        resTy = decorator.returnType
-                        if resTy == decorator.get_none_type():
-                            process_void_list()
-                            return None
-                        return resTy
                     if pyval.func.id in globalRegisteredTypes.classes:
                         _, annotations = globalRegisteredTypes.getClassAttributes(
                             pyval.func.id)
@@ -3878,9 +3911,6 @@ class PyASTBridge(ast.NodeVisitor):
         # Prevent the creation of empty lists, since we don't support inferring
         # their types. To do so, we would need to look forward to the first use
         # and determine the type based on that.
-        # FIXME: Lower a list to a `!cc.stdvec<T>` or a
-        # `!cc.struct<{!cc.ptr<T>, i64}>` value and store it in a variable
-        # (stack slot) created with an cc.alloca in the entry block.
         if len(node.elts) == 0:
             self.emitFatalError(
                 "creating empty lists is not supported in CUDA-Q", node)
@@ -4247,11 +4277,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.emitFatalError("unhandled subscript", node)
 
     def visit_For(self, node):
-        self.controlHeight = self.controlHeight + 1
-        self.actually_visit_For(node)
-        self.controlHeight = self.controlHeight - 1
-
-    def actually_visit_For(self, node):
         """
         Visit the For node. This node represents the typical Python for
         statement, `for VAR in ITERABLE`. Currently supported ITERABLEs are the
@@ -4364,11 +4389,6 @@ class PyASTBridge(ast.NodeVisitor):
             lambda iterVar: blockBuilder(iterVar, node.orelse))
 
     def visit_While(self, node):
-        self.controlHeight = self.controlHeight + 1
-        self.actually_visit_While(node)
-        self.controlHeight = self.controlHeight - 1
-
-    def actually_visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
@@ -4383,8 +4403,13 @@ class PyASTBridge(ast.NodeVisitor):
             self.verbose = v
             return condition
 
-        self.createForLoop([], lambda _: [self.visit(b) for b in node.body], [],
-                           evalCond, lambda _: [], None if not node.orelse else
+        def blockBuilder(iterVar):
+            self.symbolTable.pushScope()
+            [self.visit(b) for b in node.body]
+            self.symbolTable.popScope()
+
+        self.createForLoop([], blockBuilder, [], evalCond, lambda _: [],
+                           None if not node.orelse else
                            lambda _: [self.visit(stmt) for stmt in node.orelse])
 
     def visit_BoolOp(self, node):
@@ -4605,11 +4630,6 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
     def visit_If(self, node):
-        self.controlHeight = self.controlHeight + 1
-        self.actually_visit_If(node)
-        self.controlHeight = self.controlHeight - 1
-
-    def actually_visit_If(self, node):
         """
         Map a Python `ast.If` node to an if statement operation in the CC
         dialect.
@@ -4723,7 +4743,7 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             result = self.__migrateLists(result, copy_list_to_heap)
 
-        if self.controlHeight > 0:
+        if self.symbolTable.depth > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
@@ -5081,8 +5101,9 @@ class PyASTBridge(ast.NodeVisitor):
         table.
         """
 
-        if node.id in self.symbolTable:
+        if self.symbolTable.isDefined(node.id):
             value = self.symbolTable[node.id]
+
             if (self.pushPointerValue or
                     not cc.PointerType.isinstance(value.type)):
                 self.pushValue(value)
@@ -5100,20 +5121,20 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(loaded)
             return
 
-        # Check if a nonlocal symbol, and process it.
+        # Check if a non-local symbol, and process it.
         value = recover_value_of_or_none(node.id, None)
         if is_recovered_value_ok(value):
             from .kernel_decorator import isa_kernel_decorator
             from .kernel_builder import isa_dynamic_kernel
             if isa_kernel_decorator(value) or isa_dynamic_kernel(value):
-                # Not a data variable. Symbol bound to kernel object. This case is
-                # handled elsewhere.
+                # Not a data variable. Symbol bound to kernel object. This case
+                # is handled elsewhere.
                 return
 
-            # node.id is a nonlocal symbol. Lift it to a formal argument.
+            # node.id is a non-local symbol. Lift it to a formal argument.
             self.dependentCaptureVars[node.id] = value
-            # If `node.id` is in liftedArgs, it should already
-            # be in the symbol table and processed.
+            # If `node.id` is in `liftedArgs`, it should already be in the
+            # symbol table and processed.
             assert not node.id in self.liftedArgs
             self.appendToLiftedArgs(node.id)
 
@@ -5156,15 +5177,14 @@ class PyASTBridge(ast.NodeVisitor):
 def compile_to_mlir(uniqueId, astModule,
                     capturedDataStorage: CapturedDataStorage, **kwargs):
     """
-    Compile the given Python AST Module for the CUDA-Q 
-    kernel FunctionDef to an MLIR `ModuleOp`. 
-    Return both the `ModuleOp` and the list of function 
+    Compile the given Python AST Module for the CUDA-Q kernel FunctionDef to an
+    MLIR `ModuleOp`. Return both the `ModuleOp` and the list of function
     argument types as MLIR Types. 
 
-    This function will first check to see if there are any dependent 
-    kernels that are required by this function. If so, those kernels 
-    will also be compiled into the `ModuleOp`. The AST will be stored 
-    later for future potential dependent kernel lookups. 
+    This function will first check to see if there are any dependent kernels
+    that are required by this function. If so, those kernels will also be
+    compiled into the `ModuleOp`. The AST will be stored later for future
+    potential dependent kernel lookups.
     """
 
     global globalAstRegistry
