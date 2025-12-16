@@ -169,7 +169,7 @@ jobs:
    
       - name: Build Open MPI
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/devdeps.ext.Dockerfile
@@ -331,7 +331,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -553,7 +553,7 @@ jobs:
       - name: Build cuda-quantum-dev image (release)
         id: release_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -608,7 +608,7 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/release/cudaq.Dockerfile

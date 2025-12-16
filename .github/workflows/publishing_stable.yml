@@ -132,7 +132,7 @@ jobs:
 
       - name: Copy cuda-quantum NGC image
         id: copy_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ngc.Dockerfile
