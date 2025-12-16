@@ -59,46 +59,76 @@ ALLOWED_TYPES_IN_A_DATACLASS = [int, float, bool, cudaq_runtime.qview]
 
 class PyScopedSymbolTable(object):
 
+    # FIXME: make this similar to pystack to account for local functions
     def __init__(self):
-        self.symbolTable = deque()
+        self.symbolTable = {}
+        self.scopes = deque()
+        self.scopeID = 0
 
     def pushScope(self):
-        self.symbolTable.append({})
+        self.scopes.append(self.scopeID)
+        self.scopeID += 1
 
     def popScope(self):
-        self.symbolTable.pop()
+        self.scopes.pop()
 
-    def numLevels(self):
-        return len(self.symbolTable)
+    @property
+    def depth(self):
+        return len(self.scopes)
 
-    def add(self, symbol, value, level=-1):
+    def isDefined(self, symbol):
+        return symbol in self.symbolTable
+
+    def add(self, symbol, value, level=0):
         """
         Add a symbol to the scoped symbol table at any scope level.
         """
-        self.symbolTable[level][symbol] = value
+        self.symbolTable[symbol] = (value, level)
 
     def __contains__(self, symbol):
-        for st in reversed(self.symbolTable):
-            if symbol in st:
-                return True
+        if not symbol in self.symbolTable:
+            return False
 
-        return False
+        # According to Python scoping rules, all variables within a function
+        # are defined within the same scope. We hence make sure to insert all
+        # `alloca` instructions to store variables in the main block of the
+        # function (otherwise MLIR will fail with "operand does not dominate
+        # this use"). However, some variables are stored as values in the 
+        # symbol table, meaning they are only defined if they are defined in
+        # the current scope or in a parent scope (i.e. `sid` is not None).
+        value, sid = self.symbolTable[symbol]
+        return (sid in self.scopes or (isinstance(value.owner.opview, cc.AllocaOp) and
+                isinstance(value.owner.parent.opview, func.FuncOp)))
 
     def __setitem__(self, symbol, value):
-        # default to nearest surrounding scope
-        self.add(symbol, value)
+        assert len(self.scopes) > 0
+        self.add(symbol, value, self.scopes[-1])
 
     def __getitem__(self, symbol):
-        for st in reversed(self.symbolTable):
-            if symbol in st:
-                return st[symbol]
-
+        if symbol in self:
+            return self.symbolTable[symbol][0]
+        if symbol in self.symbolTable:
+            # We have a variable that is defined in an inner scope, 
+            # but not allocated in the main function body.
+            # This case deviates from Python behavior, and we give
+            # a hopefully comprehensive enough error.
+            raise RuntimeError(f"a variable of type {self.symbolTable[symbol][0].type} " +
+                                "defined in a prior block cannot be " +
+                                "accessed outside that block" + os.linesep +
+                                f"(offending source -> {symbol})")
         raise RuntimeError(
             f"{symbol} is not a valid variable name in this scope.")
 
+    def isInCurrentScope(self, symbol):
+        return (symbol in self.symbolTable and 
+                len(self.scopes) > 0 and 
+                self.symbolTable[symbol][1] == self.scopes[-1])
+
     def clear(self):
-        while len(self.symbolTable):
-            self.symbolTable.pop()
+        assert len(self.scopes) == 0
+        self.symbolTable = {}
+        self.scopes = {}
+        self.scopeID = 0
 
 
 class CompilerError(RuntimeError):
@@ -282,13 +312,11 @@ class PyASTBridge(ast.NodeVisitor):
         self.disableNvqppPrefix = kwargs[
             'disableNvqppPrefix'] if 'disableNvqppPrefix' in kwargs else False
         self.symbolTable = PyScopedSymbolTable()
-        # FIXME: NEEDS TO BE RESET ON FUNCTION DEF (LOCAL FUNC)
-        self.controlHeight = 0
         self.indent_level = 0
         self.indent = 4 * " "
         self.buildingEntryPoint = False
         self.inForBodyStack = deque()
-        self.inIfStmtBlockStack = deque()
+        self.inIfStmtBlockStack = 0
         self.currentAssignVariableName = None
         self.walkingReturnNode = False
         self.controlNegations = []
@@ -689,13 +717,14 @@ class PyASTBridge(ast.NodeVisitor):
         """
         Indicate that we are entering an if statement then or else block.
         """
-        self.inIfStmtBlockStack.append(0)
+        self.inIfStmtBlockStack += 1
 
     def popIfStmtBlockStack(self):
         """
         Indicate that we have just left an if statement then or else block.
         """
-        self.inIfStmtBlockStack.pop()
+        assert self.inIfStmtBlockStack > 0
+        self.inIfStmtBlockStack -= 1
 
     def isInForBody(self):
         """
@@ -708,7 +737,7 @@ class PyASTBridge(ast.NodeVisitor):
         Return True if the current insertion point is within an if statement
         then or else block.
         """
-        return len(self.inIfStmtBlockStack) > 0
+        return self.inIfStmtBlockStack > 0
 
     def hasTerminator(self, block):
         """
@@ -1805,7 +1834,7 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("invalid target for assignment", node)
             target_root_defined_in_parent_scope = (
                 target_root.id in self.symbolTable and
-                target_root.id not in self.symbolTable.symbolTable[-1])
+                not self.symbolTable.isInCurrentScope(target_root.id))
             value_root = self.__get_root_value(value)
 
             def update_in_parent_scope(destination, value):
@@ -1968,8 +1997,9 @@ class PyASTBridge(ast.NodeVisitor):
                 if storeAsVal or cc.PointerType.isinstance(value.type):
                     return target, value
 
-                address = cc.AllocaOp(cc.PointerType.get(value.type),
-                                      TypeAttr.get(value.type)).result
+                with InsertionPoint.at_block_begin(self.entry):
+                    address = cc.AllocaOp(cc.PointerType.get(value.type),
+                                        TypeAttr.get(value.type)).result
                 cc.StoreOp(value, address)
                 return target, address
 
@@ -4247,11 +4277,6 @@ class PyASTBridge(ast.NodeVisitor):
         self.emitFatalError("unhandled subscript", node)
 
     def visit_For(self, node):
-        self.controlHeight = self.controlHeight + 1
-        self.actually_visit_For(node)
-        self.controlHeight = self.controlHeight - 1
-
-    def actually_visit_For(self, node):
         """
         Visit the For node. This node represents the typical Python for
         statement, `for VAR in ITERABLE`. Currently supported ITERABLEs are the
@@ -4364,11 +4389,6 @@ class PyASTBridge(ast.NodeVisitor):
             lambda iterVar: blockBuilder(iterVar, node.orelse))
 
     def visit_While(self, node):
-        self.controlHeight = self.controlHeight + 1
-        self.actually_visit_While(node)
-        self.controlHeight = self.controlHeight - 1
-
-    def actually_visit_While(self, node):
         """
         Convert Python while statements into the equivalent CC `LoopOp`. 
         """
@@ -4383,7 +4403,12 @@ class PyASTBridge(ast.NodeVisitor):
             self.verbose = v
             return condition
 
-        self.createForLoop([], lambda _: [self.visit(b) for b in node.body], [],
+        def blockBuilder(iterVar):
+            self.symbolTable.pushScope()
+            [self.visit(b) for b in node.body]
+            self.symbolTable.popScope()
+
+        self.createForLoop([], blockBuilder, [],
                            evalCond, lambda _: [], None if not node.orelse else
                            lambda _: [self.visit(stmt) for stmt in node.orelse])
 
@@ -4605,11 +4630,6 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
     def visit_If(self, node):
-        self.controlHeight = self.controlHeight + 1
-        self.actually_visit_If(node)
-        self.controlHeight = self.controlHeight - 1
-
-    def actually_visit_If(self, node):
         """
         Map a Python `ast.If` node to an if statement operation in the CC
         dialect.
@@ -4723,7 +4743,7 @@ class PyASTBridge(ast.NodeVisitor):
         else:
             result = self.__migrateLists(result, copy_list_to_heap)
 
-        if self.controlHeight > 0:
+        if self.symbolTable.depth > 1:
             # We are in an inner scope, release all scopes before returning
             cc.UnwindReturnOp([result])
             return
@@ -5081,8 +5101,9 @@ class PyASTBridge(ast.NodeVisitor):
         table.
         """
 
-        if node.id in self.symbolTable:
+        if self.symbolTable.isDefined(node.id):
             value = self.symbolTable[node.id]
+
             if (self.pushPointerValue or
                     not cc.PointerType.isinstance(value.type)):
                 self.pushValue(value)

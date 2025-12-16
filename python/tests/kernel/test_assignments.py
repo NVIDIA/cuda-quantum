@@ -732,12 +732,12 @@ def test_list_of_dataclass_updates():
     @cudaq.kernel
     def flatten(ls: list[list[int]]) -> list[int]:
         size = 0
-        for l in ls:
-            size += len(l)
+        for l1 in ls:
+            size += len(l1)
         res = [0 for _ in range(size)]
         idx = 0
-        for l in ls:
-            for i in l:
+        for l2 in ls:
+            for i in l2:
                 res[idx] = i
                 idx += 1
         return res
@@ -1031,12 +1031,12 @@ def test_list_of_list_updates():
     @cudaq.kernel
     def flatten(ls: list[list[int]]) -> list[int]:
         size = 0
-        for l in ls:
-            size += len(l)
+        for l1 in ls:
+            size += len(l1)
         res = [0 for _ in range(size)]
         idx = 0
-        for l in ls:
-            for i in l:
+        for l2 in ls:
+            for i in l2:
                 res[idx] = i
                 idx += 1
         return res
@@ -1108,12 +1108,12 @@ def test_list_of_list_update_failures():
     @cudaq.kernel
     def flatten(ls: list[list[int]]) -> list[int]:
         size = 0
-        for l in ls:
-            size += len(l)
+        for l1 in ls:
+            size += len(l1)
         res = [0 for _ in range(size)]
         idx = 0
-        for l in ls:
-            for i in l:
+        for l2 in ls:
+            for i in l2:
                 res[idx] = i
                 idx += 1
         return res
@@ -1172,6 +1172,52 @@ def test_disallow_value_updates():
         test2()
     assert 'variable defined in parent scope cannot be modified' in str(e.value)
     assert '(offending source -> res = mz(qs[1]))' in str(e.value)
+
+
+def test_var_scopes():
+
+    @cudaq.kernel
+    def test1(cond: bool) -> int:
+        if cond:
+            val = 3
+        else:
+            val = 4
+        return val
+
+    assert test1(True) == 3
+    assert test1(False) == 4
+
+    @cudaq.kernel
+    def test2(cond: bool) -> int:
+        if cond:
+            val = 3
+        return val
+
+    assert test2(True) == 3
+    # NOTE: test2(False) does not fail but will return an
+    # uninitialized value (i.e. garbage).
+
+    @cudaq.kernel
+    def test3(val: int) -> int:
+        qs = cudaq.qvector(val)
+        for idx in range(val):
+            x(qs[idx])
+        return idx
+
+    assert test3(3) == 2
+    assert test3(5) == 4
+
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def test4(cond: bool) -> list[int]:
+            if cond:
+                ls = [1, 2, 3]
+            return ls
+        test4()
+
+    assert "variable of type !cc.stdvec<i64> defined in a prior block cannot be accessed" in str(e.value) 
+    assert "(offending source -> ls)" in str(e.value)
 
 
 def test_function_arguments():
