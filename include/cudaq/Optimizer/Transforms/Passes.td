@@ -136,6 +136,15 @@ def BasisConversionPass : Pass<"basis-conversion", "mlir::ModuleOp"> {
     - `x(1)` means targeting pauli-x operations with one control (aka, `cx`)
     - `x(n)` means targeting pauli-x operation with unbounded number of controls
     - `x,x(1)` means targeting both `not` and `cx` operations
+
+    The pass automatically selects the set of rewrite patterns, ensuring every
+    gate is decomposed to the specified basis in a unique way. Option
+    `disable-patterns` can be used to filter the selected rewrite patterns.
+    Option `enable-patterns` can be used to override the automatic pattern
+    selection.
+
+    If no `basis` is specified or the pass cannot decompose all operations to
+    the specified basis, the pass application will fail.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
@@ -309,17 +318,38 @@ def DeadStoreRemoval : Pass<"dead-store-removal"> {
 def DecompositionPass: Pass<"decomposition", "mlir::ModuleOp"> {
   let summary = "Break down quantum operations.";
   let description = [{
-    This pass performs decomposition over a set of operations by iteratively
-    applying decomposition patterns until either a fixpoint is reached or the
-    maximum number of iterations/rewrites is exhausted. Decomposition is
-    best-effort and does not guarantee that the entire IR is decomposed after
-    running this pass.
+    This pass decomposes quantum operations by iteratively applying rewrite
+    patterns until all quantum operations are in basis, a fixpoint is reached or
+    the maximum number of iterations is exhausted.
+
+    When `basis` is specified, the pass automatically selects the set of rewrite
+    patterns, ensuring every gate is decomposed to the specified basis in a
+    unique way.
+    
+    ## Options
+
+    The following options are available and are all optional:
+
+    - `disable-patterns`: used to filter out specific rewrite patterns from the
+       selection.
+    - `enable-patterns`: when set, overrides the automatic pattern selection.
+    - `basis`: takes a comma-separated list of quantum operations with the
+      format: `<op-name>([<number-of-controls> | n])?`
+
+    If no `basis` is specified, as many patterns as possible are applied.
+
+    Examples of valid `basis` values:
+    - `x` — Pauli-X without controls (aka `not`)
+    - `x(1)` — Pauli-X with one control (aka `cx`)
+    - `x(n)` — Pauli-X with unbounded controls
+    - `x,x(1)` — Both `not` and `cx`
 
     NOTE: The current implementation is conservative w.r.t global phase, which
     means no decomposition will take place under the presence of controlled
     `quake.apply` operations in the module.
   }];
   let options = [
+    ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
                "Labels of decomposition patterns that should be filtered out">,
     ListOption<"enabledPatterns", "enable-patterns", "std::string",
