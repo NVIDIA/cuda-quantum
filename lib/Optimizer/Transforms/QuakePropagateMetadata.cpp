@@ -37,8 +37,6 @@ public:
   /// positives. expand-measurements and loop-unrolling may further reduce
   /// false positives.
   void runOnOperation() override {
-    static const std::vector<StringRef> attributesToPropagate = {
-        "qubitMeasurementFeedback", "hasMeasurements"};
     ModuleOp moduleOp = getOperation();
     /// NOTE: If the module has an occurrence of `quake.apply` then the step to
     /// build call graph fails. Hence, we skip the pass in such cases.
@@ -92,15 +90,15 @@ public:
       LLVM_DEBUG(llvm::dbgs()
                  << "Visiting callee: " << callee.getName() << "\n\n");
       for (auto caller : callers) {
+
         LLVM_DEBUG(llvm::dbgs() << "  Caller: " << caller.getName() << "\n\n");
-        for (auto attribute : attributesToPropagate) {
-          if (auto boolAttr = callee->getAttr(attribute)
-                                  .dyn_cast_or_null<mlir::BoolAttr>()) {
-            if (boolAttr.getValue()) {
-              LLVM_DEBUG(llvm::dbgs() << "  Propagating " << attribute
-                                      << " attr: " << boolAttr << "\n");
-              caller->setAttr(attribute, boolAttr);
-            }
+        if (auto boolAttr = callee->getAttr("qubitMeasurementFeedback")
+                                .dyn_cast_or_null<mlir::BoolAttr>()) {
+          if (boolAttr.getValue()) {
+            LLVM_DEBUG(llvm::dbgs()
+                       << "  Propagating qubitMeasurementFeedback attr: "
+                       << boolAttr << "\n");
+            caller->setAttr("qubitMeasurementFeedback", boolAttr);
           }
         }
       }

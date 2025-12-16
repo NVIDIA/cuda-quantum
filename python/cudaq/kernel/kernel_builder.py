@@ -273,7 +273,6 @@ class PyKernel(object):
         cc.register_dialect(context=self.ctx)
         cudaq_runtime.registerLLVMDialectTranslation(self.ctx)
 
-        self.hasMeasurements = False
         self.conditionalOnMeasure = False
         self.regCounter = 0
         self.loc = Location.unknown(context=self.ctx)
@@ -1136,7 +1135,6 @@ class PyKernel(object):
             kernel.mz(target=qubit))
         ```
         """
-        self.hasMeasurements = True
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
             qubitTy = target.mlirValue.type
@@ -1184,7 +1182,6 @@ class PyKernel(object):
             kernel.mx(qubit))
         ```
         """
-        self.hasMeasurements = True
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
             qubitTy = target.mlirValue.type
@@ -1233,7 +1230,6 @@ class PyKernel(object):
             kernel.my(qubit))
         ```
         """
-        self.hasMeasurements = True
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
             qubitTy = target.mlirValue.type

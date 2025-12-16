@@ -216,8 +216,6 @@ KernelArgsCreator getArgsCreator(const std::string &kernelName);
 
 bool kernelHasConditionalFeedback(const std::string &kernelName);
 
-bool kernelHasMeasurements(const std::string &kernelName);
-
 /// @brief Provide a hook to set the target backend.
 void set_target_backend(const char *backend);
 

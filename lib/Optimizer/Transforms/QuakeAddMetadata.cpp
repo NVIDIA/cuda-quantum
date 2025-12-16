@@ -27,7 +27,6 @@ namespace {
 
 /// Define a type to contain the Quake Function Metadata
 struct QuakeMetadata {
-  bool hasMeasurements = false;
   bool hasConditionalsOnMeasure = false;
 
   // If the following flag is set, it means we've detected quantum to classical
@@ -100,13 +99,6 @@ private:
     LLVM_DEBUG(llvm::dbgs()
                << "Function to analyze: " << funcOp.getName() << '\n');
     QuakeMetadata data;
-
-    // Check for any measurements
-    funcOp->walk([&](quake::MeasurementInterface meas) {
-      data.hasMeasurements = true;
-      return WalkResult::interrupt();
-    });
-
     SmallPtrSet<Operation *, 8> dirtySet;
     funcOp->walk([&](quake::DiscriminateOp disc) {
       dirtySet.insert(disc.getOperation());
@@ -216,11 +208,6 @@ public:
     auto iter = funcAnalysisInfo.find(funcOp);
     assert(iter != funcAnalysisInfo.end());
     const auto &info = iter->second;
-
-    if (info.hasMeasurements) {
-      auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
-      funcOp->setAttr("hasMeasurements", builder.getBoolAttr(true));
-    }
 
     // Did this function have conditionals on measures?
     if (info.hasConditionalsOnMeasure) {
