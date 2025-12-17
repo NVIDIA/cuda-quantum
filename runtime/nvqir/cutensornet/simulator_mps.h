@@ -147,7 +147,7 @@ public:
                              const std::vector<std::size_t> &controls,
                              const std::vector<std::size_t> &qubitIds,
                              const cudaq::spin_op_term &op) override {
-    if (this->isInTracerMode()) {
+    if (cudaq::isInTracerMode()) {
       nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op);
       return;
     }
@@ -237,8 +237,9 @@ public:
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
                                 const int shots) override {
-    const bool hasNoise =
-        this->executionContext && this->executionContext->noiseModel;
+    auto executionContext = cudaq::getExecutionContext();
+
+    const bool hasNoise = executionContext && executionContext->noiseModel;
     if (!hasNoise || shots < 1)
       return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
 
@@ -307,17 +308,18 @@ public:
 
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
     assert(cudaq::spin_op::canonicalize(ham) == ham);
+    auto executionContext = cudaq::getExecutionContext();
+
     LOG_API_TIME();
-    const bool hasNoise =
-        this->executionContext && this->executionContext->noiseModel;
+    const bool hasNoise = executionContext && executionContext->noiseModel;
     // If no noise, just use base class implementation.
     if (!hasNoise)
       return SimulatorTensorNetBase<ScalarType>::observe(ham);
 
     setUpFactorizeForTrajectoryRuns();
     const std::size_t numObserveTrajectories =
-        this->executionContext->numberTrajectories.has_value()
-            ? this->executionContext->numberTrajectories.value()
+        executionContext->numberTrajectories.has_value()
+            ? executionContext->numberTrajectories.value()
             : TensorNetState<ScalarType>::g_numberTrajectoriesForObserve;
 
     auto [termStrs, terms] = prepareSpinOpTermData(ham);

@@ -11,7 +11,7 @@
 
 bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();
-  auto *ctx = platform.get_exec_ctx();
+  auto *ctx = getExecutionContext();
   if (ctx && ctx->name == "tracer")
     ctx->registerNames.push_back("");
   return result == 1;

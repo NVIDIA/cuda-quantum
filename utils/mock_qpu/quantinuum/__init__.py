@@ -13,6 +13,7 @@ from typing import Union
 import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -226,12 +227,8 @@ async def create_job(job: dict):
         qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
         for i in range(shots):
-            cudaq.testing.toggleDynamicQubitManagement()
-            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1,
-                                                       "run")
-            kernel()
-            _ = cudaq.testing.finalize(qubits, context)
-
+            with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
+                kernel()
             shot_log = cudaq.testing.getAndClearOutputLog()
             if i > 0:
                 qir_log += "START\n"
@@ -240,12 +237,10 @@ async def create_job(job: dict):
 
         createdJobs[job_id] = (job_name, qir_log)
     else:
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
-        kernel()
-        results = cudaq.testing.finalize(qubits, context)
+        with PreallocatedQubitsContext(numQubitsRequired, shots) as context:
+            kernel()
+        results = context.result
         results.dump()
-
         createdJobs[job_id] = (job_name, results)
 
     engine.remove_module(m)

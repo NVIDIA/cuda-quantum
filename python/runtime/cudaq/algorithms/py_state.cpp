@@ -98,17 +98,14 @@ public:
       // Create an execution context, indicate this is for
       // extracting the state representation
       ExecutionContext context("extract-state");
-      // Perform the usual pattern set the context,
-      // execute and then reset
-      platform.set_exec_ctx(&context);
       // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
       // ModuleOp pointer as the first element in the args array in StreamLined
       // mode.
       auto args = argsData->getArgs();
       args.insert(args.begin(),
                   const_cast<void *>(static_cast<const void *>(&kernelMod)));
-      platform.launchKernel(kernelName, args);
-      platform.reset_exec_ctx();
+      platform.with_execution_context(
+          context, [&]() { platform.launchKernel(kernelName, args); });
       state = std::move(context.simulationState);
     }
   }
@@ -121,12 +118,12 @@ public:
     context.overlapComputeStates =
         std::make_pair(static_cast<const SimulationState *>(this),
                        static_cast<const SimulationState *>(&otherState));
-    platform.set_exec_ctx(&context);
     auto args = argsData->getArgs();
     args.insert(args.begin(),
                 const_cast<void *>(static_cast<const void *>(&kernelMod)));
-    platform.launchKernel(kernelName, args);
-    platform.reset_exec_ctx();
+
+    platform.with_execution_context(
+        context, [&]() { platform.launchKernel(kernelName, args); });
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
   }
