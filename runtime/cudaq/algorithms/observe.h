@@ -77,50 +77,43 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
                details::future *futureResult = nullptr,
                std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
                std::optional<std::size_t> numTrajectories = {}) {
-  auto ctx = std::make_unique<ExecutionContext>("observe", shots, qpu_id);
-  ctx->kernelName = kernelName;
-  ctx->spin = cudaq::spin_op::canonicalize(H);
+  ExecutionContext ctx("observe", shots, qpu_id);
+  ctx.kernelName = kernelName;
+  ctx.spin = cudaq::spin_op::canonicalize(H);
   if (shots > 0)
-    ctx->shots = shots;
+    ctx.shots = shots;
 
   if (numTrajectories.has_value())
-    ctx->numberTrajectories = *numTrajectories;
+    ctx.numberTrajectories = *numTrajectories;
 
-  ctx->batchIteration = batchIteration;
-  ctx->totalIterations = totalBatchIters;
+  ctx.batchIteration = batchIteration;
+  ctx.totalIterations = totalBatchIters;
 
   // Indicate that this is an asynchronous execution
-  ctx->asyncExec = futureResult != nullptr;
+  ctx.asyncExec = futureResult != nullptr;
 
-  platform.set_exec_ctx(ctx.get());
-  try {
-    k();
-  } catch (...) {
-    platform.reset_exec_ctx();
-    throw;
-  }
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx, std::forward<KernelFunctor>(k));
 
   // If this is an asynchronous execution, we need
   // to store the `cudaq::details::future`
   if (futureResult) {
-    *futureResult = ctx->futureResult;
+    *futureResult = ctx.futureResult;
     return std::nullopt;
   }
 
   // Extract the results
   sample_result data;
   double expectationValue;
-  data = ctx->result;
+  data = ctx.result;
 
   // It is possible for the expectation value to be
   // precomputed, if so grab it and set it so the client gets it
-  if (ctx->expectationValue.has_value())
-    expectationValue = ctx->expectationValue.value_or(0.0);
+  if (ctx.expectationValue.has_value())
+    expectationValue = ctx.expectationValue.value_or(0.0);
   else {
     // If not, we have everything we need to compute it.
     double sum = 0.0;
-    for (const auto &term : ctx->spin.value()) {
+    for (const auto &term : ctx.spin.value()) {
       if (term.is_identity())
         sum += term.evaluate_coefficient().real();
       else
@@ -130,7 +123,7 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
     expectationValue = sum;
   }
 
-  return observe_result(expectationValue, ctx->spin.value(), data);
+  return observe_result(expectationValue, ctx.spin.value(), data);
 }
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime

@@ -57,6 +57,9 @@ __attribute__((constructor)) void initializeLogger() {
     auto fileLogger = spdlog::basic_logger_mt("cudaqFileLogger", envVal);
     spdlog::set_default_logger(fileLogger);
     spdlog::flush_on(spdlog::get_level());
+  } else {
+    // make sure warnings always show before crashes
+    spdlog::flush_on(spdlog::level::warn);
   }
 
   // Parse comma separated integers into g_timingList. Process integer values
