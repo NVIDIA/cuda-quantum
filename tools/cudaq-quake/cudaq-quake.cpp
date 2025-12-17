@@ -107,8 +107,7 @@ static cl::list<std::string>
     extraClangArgs("Xcudaq", cl::desc("Extra options to pass to clang++"));
 
 static cl::opt<std::string>
-    stdCpp("std",
-           cl::desc("Specify the C++ standard (c++20). The default is c++20."),
+    stdCpp("std", cl::desc("Specify the C++ standard. The default is c++20."),
            cl::init("c++20"));
 
 inline bool isStdinInput(StringRef str) { return str == "-"; }
