@@ -55,7 +55,7 @@ public:
     requires(N == dyn)
       : qudits(size) {}
 
-  /// Nullary constructor. Can only be used for `qreg`<N> q;
+  /// Nullary constructor. Can only be used for `qreg<N> q`;
   qreg()
     requires(N != dyn)
   {}

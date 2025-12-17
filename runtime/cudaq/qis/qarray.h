@@ -14,7 +14,7 @@
 namespace cudaq {
 
 namespace details {
-/// `qarray`<N> for N < 1 should be a compile error
+/// `qarray<N>` for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQArraySize = N > 0;
 } // namespace details
