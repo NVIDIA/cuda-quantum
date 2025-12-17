@@ -294,6 +294,7 @@ parameterization
 performant
 photonic
 photonics
+polymorphism
 precompute
 precomputed
 prepend
