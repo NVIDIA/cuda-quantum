@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,7 +16,7 @@
 // RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %quantum_machines_avail; then nvq++ %cpp_std --target quantum_machines --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
 // clang-format on
 
 #include <cudaq.h>

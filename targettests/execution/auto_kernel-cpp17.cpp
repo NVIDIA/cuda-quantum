@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++17
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+// REQUIRES: c++20
+// RUN: nvq++ -std=c++20 --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 

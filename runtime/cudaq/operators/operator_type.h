@@ -11,7 +11,6 @@
 #include <type_traits>
 
 namespace cudaq {
-#if CUDAQ_USE_STD20
 // Primary trait: defaults to false.
 template <typename T>
 struct is_operator_type : std::false_type {};
@@ -27,5 +26,4 @@ struct is_operator_type<sum_op<HandlerTy>> : std::true_type {};
 // Satisfied if T (after decay) is one of operator types.
 template <typename T>
 concept operator_type = is_operator_type<std::decay_t<T>>::value;
-#endif
 } // namespace cudaq

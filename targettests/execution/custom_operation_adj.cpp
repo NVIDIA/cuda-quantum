@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -std=c++20 --enable-mlir %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target anyon      --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target infleqtion --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %cpp_std --target ionq       --emulate %s -o %t && %t | FileCheck %s

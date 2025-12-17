@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++17
+// REQUIRES: c++20
 // clang-format off
 // RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s --check-prefix=STDOUT && FileCheck %s < %t.txt
 // clang-format on

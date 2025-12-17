@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-// REQUIRES: c++17
+// REQUIRES: c++20
 
 // clang-format off
 // RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 3 %s -o %t && %t

@@ -48,7 +48,7 @@ fi
 
 echo "Using $CXX to build the MPI plugin for MPI installation in $MPI_PATH."
 lib_mpi_plugin="$this_file_dir/libcudaq_distributed_interface_mpi.so"
-$CXX -shared -std=c++17 -fPIC \
+$CXX -shared -std=c++20 -fPIC \
     -I"${MPI_PATH}/include" \
     -I"$this_file_dir" \
     "$this_file_dir/mpi_comm_impl.cpp" \

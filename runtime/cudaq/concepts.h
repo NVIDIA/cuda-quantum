@@ -11,7 +11,6 @@
 #include "cudaq/host_config.h"
 #include <type_traits>
 
-#if CUDAQ_USE_STD20
 namespace cudaq {
 
 /// @brief Sample or observe calls need to have valid trailing runtime arguments
@@ -25,4 +24,3 @@ template <typename ReturnType>
 concept HasVoidReturnType = std::is_void_v<ReturnType>;
 
 } // namespace cudaq
-#endif

@@ -48,7 +48,7 @@ for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
 
 # Allow to filter tests based on environment variables
-cpp_stds = ['c++17', 'c++20', 'c++23']
+cpp_stds = ['c++20', 'c++23']
 std_up_to = os.environ.get('CUDAQ_CPP_STD', 'c++23').lower()
 for std in cpp_stds[:bisect.bisect(cpp_stds, std_up_to)]:
     config.available_features.add(std)

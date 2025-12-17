@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++17
+// REQUIRES: c++20
 // RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.txt
 // backward compatible way to define the QPU architecture already at compile time
 // RUN: nvq++ %cpp_std %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
