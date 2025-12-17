@@ -70,6 +70,9 @@ public:
         platformNumQPUs = platformQPUs.size();
         platformCurrentQPU = 0;
       }
+    } else {
+      CUDAQ_WARN(
+          "MultiQPUQuantumPlatform: GPUEmulatedQPU type not registered.");
     }
   }
 

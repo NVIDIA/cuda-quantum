@@ -101,6 +101,4 @@ public:
   REGISTRY &REGISTRY::get() {                                                  \
     static REGISTRY instance;                                                  \
     return instance;                                                           \
-  }                                                                            \
-  
-  
+  }
