@@ -19,8 +19,8 @@
 #include <vector>
 
 namespace cudaq {
-class ExecutionContext;
 class SimulationState;
+class ExecutionContext;
 using SpinMeasureResult = std::pair<double, sample_result>;
 
 /// A QuditInfo is a type encoding the number of \a levels and the \a id of the
@@ -110,11 +110,17 @@ public:
   /// Checker for qudits that were not deallocated
   bool memoryLeaked() { return !tracker.allDeallocated(); }
 
-  /// Provide an ExecutionContext for the current cudaq kernel
-  virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;
+  /// Configure the execution context before an execution.
+  virtual void configureExecutionContext(ExecutionContext &ctx) {}
 
-  /// Reset the execution context
-  virtual void resetExecutionContext() = 0;
+  /// Finalize the execution context after an execution.
+  virtual void finalizeExecutionContext(ExecutionContext &ctx) {}
+
+  /// Set up the execution manager for a new execution.
+  virtual void beginExecution() {}
+
+  /// Clean up the execution manager after an execution.
+  virtual void endExecution() {}
 
   /// @brief Initialize the state of the given qudits to the provided
   /// state vector.
@@ -199,13 +205,29 @@ ExecutionManager *getRegisteredExecutionManager();
 // Function declaration, implemented elsewhere
 ExecutionManager *getExecutionManagerInternal();
 
-// Get the execution manager instance.
-inline ExecutionManager *getExecutionManager() {
+// Get an instance of the default execution manager.
+inline ExecutionManager *getDefaultExecutionManager() {
   ExecutionManager *em = getExecutionManagerInternal();
   if (em) {
     return em;
   }
   return getRegisteredExecutionManager();
+}
+
+namespace detail {
+ExecutionManager *getExecutionManagerFromContext();
+}
+
+/// Get the current execution manager.
+///
+/// This may only be called within a CUDA-Q kernel execution.
+inline ExecutionManager *getExecutionManager() {
+  ExecutionManager *em = detail::getExecutionManagerFromContext();
+  if (em) {
+    return em;
+  }
+  // if not execution context is set, use the default execution manager
+  return getDefaultExecutionManager();
 }
 
 } // namespace cudaq

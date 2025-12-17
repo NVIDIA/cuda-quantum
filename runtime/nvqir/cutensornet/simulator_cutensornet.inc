@@ -30,18 +30,19 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
   m_reuseContractionPathObserve =
       cudaq::getEnvBool("CUDAQ_TENSORNET_OBSERVE_CONTRACT_PATH_REUSE", false);
 
-  bool limit_pathfinding = cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_LIMIT", true);
+  bool limit_pathfinding =
+      cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_LIMIT", true);
   if (!limit_pathfinding) {
     CUDAQ_INFO("Disabling cutensornet smart opt");
-    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SMART_OPTION","0",1);
+    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SMART_OPTION", "0", 1);
   }
 
-  bool deterministic = cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_DETERMINISTIC",
-                                         false);
+  bool deterministic =
+      cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_DETERMINISTIC", false);
   if (deterministic) {
     CUDAQ_INFO("Enabling deterministic tensornet with 1 pathfinding thread");
-    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS",
-           "1",1);
+    setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS", "1",
+           1);
   }
 
   if (auto *finder_threads = std::getenv("CUDAQ_TENSORNET_FIND_THREADS")) {
@@ -58,10 +59,12 @@ SimulatorTensorNetBase<ScalarType>::SimulatorTensorNetBase()
       throw std::runtime_error("Invalid CUDAQ_TENSORNET_FIND_THREADS setting" +
                                nthreads_str);
     if (deterministic && nthreads > 1)
-      CUDAQ_WARN("Ignoring CUDAQ_TENSORNET_FIND_THREADS due to CUDAQ_TENSORNET_FIND_DETERMINISTIC");
+      CUDAQ_WARN("Ignoring CUDAQ_TENSORNET_FIND_THREADS due to "
+                 "CUDAQ_TENSORNET_FIND_DETERMINISTIC");
     else {
       CUDAQ_INFO("Setting the # of pathfinding threads to {}", finder_threads);
-      setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS", finder_threads, 1);
+      setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_HYPER_NUM_THREADS",
+             finder_threads, 1);
     }
   }
 }
@@ -273,9 +276,8 @@ void SimulatorTensorNetBase<ScalarType>::applyNoise(
 
   // Apply all prior gates before applying noise.
   std::vector<int32_t> qubits{targets.begin(), targets.end()};
-  CUDAQ_INFO(
-      "[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
-      cudaq::get_noise_model_type_name(channel.noise_type), qubits);
+  CUDAQ_INFO("[SimulatorTensorNetBase] Applying kraus channel {} on qubits: {}",
+             cudaq::get_noise_model_type_name(channel.noise_type), qubits);
 
   this->flushGateQueue();
   applyKrausChannel(qubits, channel);
@@ -286,13 +288,16 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
     const std::string_view gateName, const std::vector<std::size_t> &controls,
     const std::vector<std::size_t> &targets,
     const std::vector<double> &params) {
+  // TODO: remove execution context from CircuitSimulator
+  auto executionContext = cudaq::getExecutionContext();
+
   LOG_API_TIME();
   // Do nothing if no execution context
-  if (!this->executionContext)
+  if (!executionContext)
     return;
 
   // Do nothing if no noise model
-  if (!this->executionContext->noiseModel)
+  if (!executionContext->noiseModel)
     return;
 
   // Get the name as a string
@@ -301,7 +306,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
-  auto krausChannels = this->executionContext->noiseModel->get_channels(
+  auto krausChannels = executionContext->noiseModel->get_channels(
       gName, targets, controls, params);
 
   // If none, do nothing
@@ -456,17 +461,20 @@ cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
 
 template <typename ScalarType>
 bool SimulatorTensorNetBase<ScalarType>::canHandleObserve() {
+  // TODO: remove execution context from CircuitSimulator
+  auto executionContext = cudaq::getExecutionContext();
+
   // Do not compute <H> from matrix if shots based sampling requested
   // i.e., a valid shots count value was set.
   // Note: -1 is also used to denote non-sampling execution. Hence, we need to
   // check for this particular -1 value as being casted to an unsigned type.
-  if (this->executionContext && this->executionContext->shots > 0 &&
-      this->executionContext->shots != ~0ull) {
+  if (executionContext && executionContext->shots > 0 &&
+      executionContext->shots != ~0ull) {
     // This 'shots' mode is very slow for tensor network.
     // However, we need to respect the shots option.
     CUDAQ_INFO("[SimulatorTensorNetBase] Shots mode expectation calculation "
-                "is requested with {} shots.",
-                this->executionContext->shots);
+               "is requested with {} shots.",
+               executionContext->shots);
 
     return false;
   }
@@ -478,6 +486,9 @@ bool SimulatorTensorNetBase<ScalarType>::canHandleObserve() {
 template <typename ScalarType>
 cudaq::observe_result
 SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
+  // TODO: remove execution context from CircuitSimulator
+  auto executionContext = cudaq::getExecutionContext();
+
   assert(cudaq::spin_op::canonicalize(ham) == ham);
   LOG_API_TIME();
   prepareQubitTensorState();
@@ -485,9 +496,8 @@ SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
     // If contraction path reuse is disabled, convert spin_op to
     // cutensornetNetworkOperator_t and compute the expectation value.
     TensorNetworkSpinOp<ScalarType> spinOp(ham, m_cutnHandle);
-    std::complex<ScalarType> expVal =
-        m_state->computeExpVal(spinOp.getNetworkOperator(),
-                               this->executionContext->numberTrajectories);
+    std::complex<ScalarType> expVal = m_state->computeExpVal(
+        spinOp.getNetworkOperator(), executionContext->numberTrajectories);
     expVal += spinOp.getIdentityTermOffset();
     return cudaq::observe_result(expVal.real(), ham,
                                  cudaq::sample_result(cudaq::ExecutionResult(
@@ -504,8 +514,8 @@ SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
   }
 
   // Compute the expectation value for all terms
-  const auto termExpVals = m_state->computeExpVals(
-      prods, this->executionContext->numberTrajectories);
+  const auto termExpVals =
+      m_state->computeExpVals(prods, executionContext->numberTrajectories);
   std::complex<double> expVal = 0.0;
   // Construct per-term data in the final observe_result
   std::vector<cudaq::ExecutionResult> results;
@@ -590,9 +600,10 @@ void SimulatorTensorNetBase<ScalarType>::setRandomSeed(std::size_t randomSeed) {
   // requires the environment variable to be positive
   int32_t rndSeed = m_randomEngine();
   rndSeed = std::abs(rndSeed);
-  if (rndSeed == 0) rndSeed++;
+  if (rndSeed == 0)
+    rndSeed++;
   setenv("CUTENSORNET_CONTRACTION_OPTIMIZER_CONFIG_SEED",
-         std::to_string(rndSeed).c_str(),0);
+         std::to_string(rndSeed).c_str(), 0);
 }
 
 template <typename ScalarType>

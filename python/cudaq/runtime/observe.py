@@ -18,18 +18,8 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.setSpinOperator(spin_operator)
-        cudaq_runtime.setExecutionContext(ctx)
-        try:
+        with ctx:
             kernel(*a)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         res = ctx.result
         results.append(
             cudaq_runtime.ObserveResult(ctx.getExpectationValue(),
@@ -136,11 +126,8 @@ Returns:
                 raise RuntimeError(
                     "num_trajectories is provided without a noise_model.")
             ctx.numberTrajectories = num_trajectories
-        cudaq_runtime.setExecutionContext(ctx)
-        try:
+        with ctx:
             kernel(*args)
-        finally:
-            cudaq_runtime.resetExecutionContext()
         res = ctx.result
 
         expVal = ctx.getExpectationValue()

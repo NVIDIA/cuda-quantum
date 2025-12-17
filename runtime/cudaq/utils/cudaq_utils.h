@@ -9,8 +9,10 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <string>
@@ -119,6 +121,49 @@ constexpr std::size_t variant_index() {
     return variant_index<VariantType, T, index + 1>();
   }
 }
+
+/// @brief Invoke a function and silence any exceptions
+template <typename F>
+void invoke_no_throw(F &&f) {
+  try {
+    (void)std::invoke(std::forward<F>(f));
+  } catch (std::exception &e) {
+  }
+}
+
+/// @brief Invoke `g` after `f`, returning what `f` returns (if any).
+///
+/// If `f` throws an exception, `g` is called before the exception is re-thrown.
+/// More specifically:
+///  - if `f` does not throw an exception, `auto val = try_finally(f, g);` is
+///  equivalent to `auto val = f(); g();`
+///  - if `f` throws an exception, it will be re-thrown after `g` is called. Any
+///  further exceptions are ignored.
+template <typename F, typename G>
+auto try_finally(F &&f, G &&g) -> decltype(std::invoke(std::forward<F>(f))) {
+  using Ret = decltype(std::invoke(std::forward<F>(f)));
+  // handle void-returning callables separately
+  if constexpr (std::is_void_v<Ret>) {
+    try {
+      std::invoke(std::forward<F>(f));
+    } catch (...) {
+      invoke_no_throw(std::forward<G>(g));
+      throw;
+    }
+    (void)std::invoke(std::forward<G>(g));
+  } else {
+    std::optional<Ret> result;
+    try {
+      result.emplace(std::invoke(std::forward<F>(f)));
+    } catch (...) {
+      invoke_no_throw(std::forward<G>(g));
+      throw;
+    }
+    (void)std::invoke(std::forward<G>(g));
+    return std::move(result).value();
+  }
+}
+
 } // namespace detail
 
 template <std::size_t I1, std::size_t I2, class Cont>

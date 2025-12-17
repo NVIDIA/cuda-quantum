@@ -303,6 +303,9 @@ public:
   }
 
   bool canHandleObserve() override {
+    // TODO: remove execution context from CircuitSimulator
+    auto executionContext = cudaq::getExecutionContext();
+
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&
         executionContext->shots != static_cast<std::size_t>(-1)) {

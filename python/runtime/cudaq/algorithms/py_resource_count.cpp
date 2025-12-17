@@ -35,10 +35,10 @@ void bindCountResources(py::module &mod) {
         std::unique_ptr<OpaqueArguments> argData(
             toOpaqueArgs(args, kernelMod, kernelName));
 
-        auto ctx = std::make_unique<ExecutionContext>("resource-count", 1);
-        ctx->kernelName = kernelName;
+        ExecutionContext ctx("resource-count", 1);
+        ctx.kernelName = kernelName;
         // Indicate that this is not an async exec
-        ctx->asyncExec = false;
+        ctx.asyncExec = false;
 
         // Use the resource counter simulator
         python::detail::switchToResourceCounterSimulator();
@@ -56,11 +56,9 @@ void bindCountResources(py::module &mod) {
         python::detail::setChoiceFunction(*choice);
 
         // Set the platform
-        platform.set_exec_ctx(ctx.get());
-
-        pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
-
-        platform.reset_exec_ctx();
+        platform.with_execution_context(ctx, [&]() {
+          pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+        });
 
         // Save and clone counts data
         Resources counts = *python::detail::getResourceCounts();

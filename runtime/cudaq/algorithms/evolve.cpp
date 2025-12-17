@@ -76,22 +76,19 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   }();
 
   auto programJson = nlohmann::json(program);
-
-  auto &platform = cudaq::get_platform();
-  auto ctx =
-      std::make_unique<ExecutionContext>("sample", shots_count.value_or(100));
-  ctx->asyncExec = false;
-  platform.set_exec_ctx(ctx.get());
-
   auto programString = programJson.dump();
   CUDAQ_DBG("Program JSON: {}", programString);
 
-  auto dynamicResult = cudaq::altLaunchKernel(
-      programName.str().c_str(), KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programString.c_str())), 0, 0);
+  auto &platform = cudaq::get_platform();
+  ExecutionContext ctx("sample", shots_count.value_or(100));
+  ctx.asyncExec = false;
 
-  auto sampleResults = ctx->result;
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx, [&]() {
+    auto dynamicResult = cudaq::altLaunchKernel(
+        programName.str().c_str(), KernelThunkType(nullptr),
+        (void *)(const_cast<char *>(programString.c_str())), 0, 0);
+  });
+  auto sampleResults = ctx.result;
 
   return evolve_result(sampleResults);
 }

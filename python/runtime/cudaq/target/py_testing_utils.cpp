@@ -52,7 +52,9 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
           cudaq::set_random_seed(13);
         }
         auto simName = holder.getTarget().simulatorName;
-        holder.getSimulator(simName)->setExecutionContext(context);
+        if (context)
+          holder.getSimulator(simName)->configureExecutionContext(*context);
+        cudaq::detail::setExecutionContext(context);
         return std::make_tuple(
             holder.getSimulator(simName)->allocateQubits(numQubits), context);
       },
@@ -63,7 +65,9 @@ void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
                                        cudaq::ExecutionContext *context) {
     auto simName = holder.getTarget().simulatorName;
     holder.getSimulator(simName)->deallocateQubits(qubits);
-    holder.getSimulator(simName)->resetExecutionContext();
+    if (context)
+      holder.getSimulator(simName)->finalizeExecutionContext(*context);
+    cudaq::detail::resetExecutionContext();
     nvqir::toggleDynamicQubitManagement();
     // Pybind will delete the context bc its been wrapped in a unique_ptr
     return context->result;

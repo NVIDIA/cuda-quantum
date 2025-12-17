@@ -27,15 +27,15 @@ remote_vqe(cudaq::quantum_platform &platform, QuantumKernel &&kernel,
            const cudaq::spin_op &H, cudaq::optimizer &optimizer,
            cudaq::gradient *gradient, const int n_params,
            const std::size_t shots, Args &&...args) {
-  auto ctx = std::make_unique<ExecutionContext>("observe", shots);
-  ctx->kernelName = cudaq::getKernelName(kernel);
-  ctx->spin = cudaq::spin_op::canonicalize(H);
-  platform.set_exec_ctx(ctx.get());
+  ExecutionContext ctx("observe", shots);
+  ctx.kernelName = cudaq::getKernelName(kernel);
+  ctx.spin = cudaq::spin_op::canonicalize(H);
   auto serializedArgsBuffer = serializeArgs(args...);
-  platform.launchVQE(ctx->kernelName, serializedArgsBuffer.data(), gradient, H,
-                     optimizer, n_params, shots);
-  platform.reset_exec_ctx();
-  return ctx->optResult.value_or(optimization_result{});
+  platform.with_execution_context(ctx, [&]() {
+    platform.launchVQE(ctx.kernelName, serializedArgsBuffer.data(), gradient, H,
+                       optimizer, n_params, shots);
+  });
+  return ctx.optResult.value_or(optimization_result{});
 }
 
 static inline void print_arg_mapper_warning() {

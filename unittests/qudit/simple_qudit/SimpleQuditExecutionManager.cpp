@@ -56,17 +56,16 @@ protected:
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
-  void handleExecutionContextChanged() override {}
+  void finalizeExecutionContext(ExecutionContext &ctx) override {
+    BasicExecutionManager::finalizeExecutionContext(ctx);
 
-  void handleExecutionContextEnded() override {
-    if (executionContext && executionContext->name == "sample") {
+    if (ctx.name == "sample") {
       std::vector<std::size_t> ids;
       for (auto &s : sampleQudits) {
         ids.push_back(s.id);
       }
-      sampleQudits.clear();
-      auto sampleResult = qpp::sample(executionContext->shots, state, ids,
-                                      sampleQudits.begin()->levels);
+      auto sampleResult =
+          qpp::sample(ctx.shots, state, ids, sampleQudits.begin()->levels);
 
       ExecutionResult execResult;
       for (auto [result, count] : sampleResult) {
@@ -79,8 +78,13 @@ protected:
           resultStr += std::to_string(x);
         execResult.counts[resultStr] = count;
       }
-      executionContext->result.append(execResult);
+      ctx.result.append(execResult);
     }
+  }
+
+  void endExecution() override {
+    sampleQudits.clear();
+    BasicExecutionManager::endExecution();
   }
 
   void executeInstruction(const Instruction &instruction) override {
@@ -90,6 +94,7 @@ protected:
 
   int measureQudit(const cudaq::QuditInfo &q,
                    const std::string &regName) override {
+    ExecutionContext *executionContext = cudaq::getExecutionContext();
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;

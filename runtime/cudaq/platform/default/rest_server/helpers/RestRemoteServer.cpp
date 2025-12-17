@@ -314,10 +314,10 @@ public:
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
-        platform.set_exec_ctx(&context);
-        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                             kernelArgs, argsSize);
-        platform.reset_exec_ctx();
+        llvmJit = platform.with_execution_context(context, [&]() {
+          return cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                            kernelArgs, argsSize);
+        });
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
         // we'll have collected registerNames
@@ -329,67 +329,62 @@ public:
           io_context.hasConditionalsOnMeasureResults = true;
           // Need to run simulation shot-by-shot
           cudaq::sample_result counts;
-          platform.set_exec_ctx(&io_context);
           // Since registered operations may contain pointers to classes defined
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          llvmJit = cudaq::invokeWrappedKernel(
-              ir, std::string(kernelName), kernelArgs, argsSize,
-              io_context.shots, [&](std::size_t i) {
-                // Reset the context and get the single
-                // measure result, add it to the
-                // sample_result and clear the context
-                // result
-                platform.reset_exec_ctx();
-                counts += io_context.result;
-                io_context.result.clear();
-                if (i != (io_context.shots - 1))
-                  platform.set_exec_ctx(&io_context);
-              });
+          llvmJit = platform.with_execution_context(io_context, [&]() {
+            return cudaq::invokeWrappedKernel(
+                ir, std::string(kernelName), kernelArgs, argsSize,
+                io_context.shots, [&](std::size_t i) {
+                  // Reset the context and get the single
+                  // measure result, add it to the
+                  // sample_result and clear the context
+                  // result
+                  counts += io_context.result;
+                  io_context.result.clear();
+                });
+          });
           io_context.result = counts;
         } else {
           // If no conditionals, nothing special to do for library mode
-          platform.set_exec_ctx(&io_context);
           // Since registered operations may contain pointers to classes defined
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
-          llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                               kernelArgs, argsSize);
-          platform.reset_exec_ctx();
+          llvmJit = platform.with_execution_context(io_context, [&]() {
+            return cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                              kernelArgs, argsSize);
+          });
         }
       } else {
-        platform.set_exec_ctx(&io_context);
-        llvmJit = cudaq::invokeWrappedKernel(ir, std::string(kernelName),
-                                             kernelArgs, argsSize);
-        platform.reset_exec_ctx();
+        llvmJit = platform.with_execution_context(io_context, [&]() {
+          return cudaq::invokeWrappedKernel(ir, std::string(kernelName),
+                                            kernelArgs, argsSize);
+        });
       }
     } else {
-      platform.set_exec_ctx(&io_context);
       if (io_context.name == "sample" &&
           io_context.hasConditionalsOnMeasureResults) {
         // Need to run simulation shot-by-shot
         cudaq::sample_result counts;
-        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
-                         std::string(kernelName), io_context.shots,
-                         [&](std::size_t i) {
-                           // Reset the context and get the single
-                           // measure result, add it to the
-                           // sample_result and clear the context
-                           // result
-                           platform.reset_exec_ctx();
-                           counts += io_context.result;
-                           io_context.result.clear();
-                           if (i != (io_context.shots - 1))
-                             platform.set_exec_ctx(&io_context);
-                         });
+        platform.with_execution_context(io_context, [&]() {
+          invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
+                           std::string(kernelName), io_context.shots,
+                           [&](std::size_t i) {
+                             // Reset the context and get the single
+                             // measure result, add it to the
+                             // sample_result and clear the context
+                             // result
+                             counts += io_context.result;
+                             io_context.result.clear();
+                           });
+        });
         io_context.result = counts;
       } else if (io_context.name == "run") {
         // Handle cudaq::run: it should be executed in a context-free manner;
         // the output log is accumulated in the simulator output log.
-        platform.reset_exec_ctx();
         //  Clear the outputLog.
         auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
         circuitSimulator->outputLog.clear();
@@ -404,9 +399,10 @@ public:
                 circuitSimulator->outputLog.size());
         circuitSimulator->outputLog.clear();
       } else {
-        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
-                         std::string(kernelName));
-        platform.reset_exec_ctx();
+        platform.with_execution_context(io_context, [&]() {
+          invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
+                           std::string(kernelName));
+        });
       }
     }
     // Clear the registered operations before the `llvmJit` goes out of scope
