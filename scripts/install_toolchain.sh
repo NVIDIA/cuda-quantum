@@ -44,6 +44,8 @@ if [ "$(type -t temp_install_if_command_unknown)" != "function" ]; then
                 apt-get install -y --no-install-recommends $2
             elif [ -x "$(command -v dnf)" ]; then
                 dnf install -y --nobest --setopt=install_weak_deps=False $2
+            elif [ -x "$(command -v brew)" ]; then
+                HOMEBREW_NO_AUTO_UPDATE=1 brew install $2
             else
                 echo "No package manager was found to install $2." >&2
             fi
@@ -79,6 +81,12 @@ if [ "${toolchain#gcc}" != "$toolchain" ]; then
         CXX="$(find_executable g++ "$gcc_root")"
         FC="$(find_executable gfortran "$gcc_root")"
 
+    elif [ -x "$(command -v brew)" ]; then
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install gcc@$gcc_version
+        # For a specific version (e.g., gcc@13)
+        CC=$(brew --prefix gcc@$gcc_version)/bin/gcc-$gcc_version
+        CXX=$(brew --prefix gcc@$gcc_version)/bin/g++-$gcc_version
+        FC=$(brew --prefix gcc@$gcc_version)/bin/gfortran-$gcc_version
     else
       echo "No supported package manager detected." >&2
     fi
@@ -93,15 +101,25 @@ elif [ "$toolchain" = "clang16" ]; then
         wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
         add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
         apt-get update && apt-get install -y --no-install-recommends clang-16
+
+        CC="$(find_executable clang-16)" 
+        CXX="$(find_executable clang++-16)" 
+        FC="$(find_executable flang-new-16)"
+
     elif [ -x "$(command -v dnf)" ]; then
         dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6
+
+        CC="$(find_executable clang-16)" 
+        CXX="$(find_executable clang++-16)" 
+        FC="$(find_executable flang-new-16)"
+    elif [ -x "$(command -v brew)" ]; then
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install llvm@16
+        CC="$(brew --prefix llvm@16)/bin/clang"
+        CXX="$(brew --prefix llvm@16)/bin/clang++"
+        FC="$(brew --prefix llvm@16)/bin/flang-new"
     else
         echo "No supported package manager detected." >&2
     fi
-
-    CC="$(find_executable clang-16)" 
-    CXX="$(find_executable clang++-16)" 
-    FC="$(find_executable flang-new-16)"
 
 elif [ "$toolchain" = "llvm" ]; then
 
@@ -159,6 +177,8 @@ if [ -n "$PKG_UNINSTALL" ]; then
     elif [ -x "$(command -v dnf)" ]; then
         dnf remove -y $PKG_UNINSTALL
         dnf clean all
+    elif [ -x "$(command -v brew)" ]; then
+        brew uninstall --force $PKG_UNINSTALL 
     else
         echo "No package manager configured for clean up." >&2
     fi
