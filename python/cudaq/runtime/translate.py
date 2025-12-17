@@ -68,14 +68,16 @@ def translate(kernel, *args, format="qir:0.1"):
     if not decorator:
         raise RuntimeError("kernel is invalid type")
     launchArgsReq = decorator.launch_args_required()
-    if launchArgsReq != len(args):
-        raise RuntimeError("Invalid number of arguments passed to translate. " +
-                           str(len(args)) + " given and " +
-                           str(decorator.formal_arity()) + " expected.")
     if launchArgsReq != 0 and "openqasm" in format:
         raise RuntimeError("Use synthesize before translate to openqasm to "
                            "specialize the kernel with the argument values")
     specMod, processedArgs = decorator.handle_call_arguments(*args)
+    if launchArgsReq != len(processedArgs):
+        suppliedArgs = len(args)
+        deducedArgs = len(processedArgs) - suppliedArgs
+        raise RuntimeError(f"Invalid number of arguments passed to translate. "
+                           f"{suppliedArgs} given, {deducedArgs} deduced, "
+                           f"and {launchArgsReq} required.")
     retTy = (decorator.returnType
              if decorator.returnType else decorator.get_none_type())
     # Arguments are resolved. Specialize this kernel and translate to the

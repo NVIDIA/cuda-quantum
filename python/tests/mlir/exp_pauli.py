@@ -79,48 +79,55 @@ def test_exp_pauli():
     print(cudaq.translate(kernel_ancilla_exp_pauli, angles, format='qir'))
 
 
-# CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_ancilla_exp_pauli
-# CHECK-SAME: ({ ptr, i64 } %[[VAL_0:.*]], { ptr, ptr }
-# CHECK-SAME:                  %[[VAL_1:.*]]) {
-# CHECK:         %[[VAL_2:.*]] = alloca [1 x { ptr, i64 }], align 8
+# CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_ancilla_exp_pauli..
+# CHECK-SAME: ({ double*, i64 }
+# CHECK-SAME: %[[VAL_0:.*]], { i8*, i8* }
+# CHECK-SAME: %[[VAL_1:.*]]) {
+# CHECK:         %[[VAL_2:.*]] = alloca [1 x { i8*, i64 }], align 8
 # CHECK:         %[[VAL_3:.*]] = alloca [3 x double], align 8
-# CHECK:         store double 3.400000e-01, ptr %[[VAL_3]], align 8
-# CHECK:         %[[VAL_4:.*]] = getelementptr [3 x double], ptr %[[VAL_3]], i32 0, i32 1
-# CHECK:         store double 1.200000e+00, ptr %[[VAL_4]], align 8
-# CHECK:         %[[VAL_5:.*]] = getelementptr [3 x double], ptr %[[VAL_3]], i32 0, i32 2
-# CHECK:         store double 1.600000e+00, ptr %[[VAL_5]], align 8
-# CHECK:         %[[VAL_6:.*]] = call ptr @__quantum__rt__qubit_allocate()
-# CHECK:         %[[VAL_7:.*]] = call ptr @__quantum__rt__qubit_allocate_array(i64 3)
-# CHECK:         br label %[[VAL_8:.*]]
-# CHECK:         %[[VAL_9:.*]] = phi i64 [ %[[VAL_10:.*]], %[[VAL_11:.*]] ], [ 0, %[[VAL_12:.*]] ]
-# CHECK:         %[[VAL_13:.*]] = icmp slt i64 %[[VAL_9]], 3
-# CHECK:         br i1 %[[VAL_13]], label %[[VAL_11]], label %[[VAL_14:.*]]
-# CHECK:         %[[VAL_15:.*]] = phi i64 [ %[[VAL_9]], %[[VAL_8]] ]
-# CHECK:         %[[VAL_16:.*]] = getelementptr [3 x double], ptr %[[VAL_3]], i32 0, i64 %[[VAL_15]]
-# CHECK:         %[[VAL_17:.*]] = load double, ptr %[[VAL_16]], align 8
-# CHECK:         %[[VAL_18:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_7]], i64 %[[VAL_15]])
-# CHECK:         %[[VAL_19:.*]] = load ptr, ptr %[[VAL_18]], align 8
-# CHECK:         call void @__quantum__qis__rx(double %[[VAL_17]], ptr %[[VAL_19]])
-# CHECK:         %[[VAL_10]] = add i64 %[[VAL_15]], 1
-# CHECK:         br label %[[VAL_8]]
-# CHECK:         call void @__quantum__qis__h(ptr %[[VAL_6]])
-# CHECK:         %[[VAL_20:.*]] = call ptr @__quantum__rt__array_create_1d(i32 8, i64 1)
-# CHECK:         %[[VAL_21:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_20]], i64 0)
-# CHECK:         store ptr %[[VAL_6]], ptr %[[VAL_21]], align 8
-# CHECK:         store ptr @cstr.58495900, ptr %[[VAL_2]], align 8
-# CHECK:         %[[VAL_22:.*]] = getelementptr [1 x { ptr, i64 }], ptr %[[VAL_2]], i32 0, i32 0, i32 1
-# CHECK:         store i64 3, ptr %[[VAL_22]], align 8
-# CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, ptr %[[VAL_20]], ptr %[[VAL_7]], ptr %[[VAL_2]])
-# CHECK:         call void @__quantum__rt__qubit_release(ptr %[[VAL_6]])
+# CHECK:         %[[VAL_4:.*]] = bitcast [3 x double]* %[[VAL_3]] to double*
+# CHECK:         store double 3.400000e-01, double* %[[VAL_4]], align 8
+# CHECK:         %[[VAL_5:.*]] = getelementptr [3 x double], [3 x double]* %[[VAL_3]], i32 0, i32 1
+# CHECK:         store double 1.200000e+00, double* %[[VAL_5]], align 8
+# CHECK:         %[[VAL_6:.*]] = getelementptr [3 x double], [3 x double]* %[[VAL_3]], i32 0, i32 2
+# CHECK:         store double 1.600000e+00, double* %[[VAL_6]], align 8
+# CHECK:         %[[VAL_7:.*]] = call %[[VAL_8:.*]]* @__quantum__rt__qubit_allocate()
+# CHECK:         %[[VAL_9:.*]] = call %[[VAL_10:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
+# CHECK:         br label %[[VAL_11:.*]]
+# CHECK:         %[[VAL_12:.*]] = phi i64 [ %[[VAL_13:.*]], %[[VAL_14:.*]] ], [ 0, %[[VAL_15:.*]] ]
+# CHECK:         %[[VAL_16:.*]] = icmp slt i64 %[[VAL_12]], 3
+# CHECK:         br i1 %[[VAL_16]], label %[[VAL_14]], label %[[VAL_17:.*]]
+# CHECK:         %[[VAL_18:.*]] = phi i64 [ %[[VAL_12]], %[[VAL_11]] ]
+# CHECK:         %[[VAL_19:.*]] = getelementptr [3 x double], [3 x double]* %[[VAL_3]], i32 0, i64 %[[VAL_18]]
+# CHECK:         %[[VAL_20:.*]] = load double, double* %[[VAL_19]], align 8
+# CHECK:         %[[VAL_21:.*]] = call %[[VAL_8]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_9]], i64 %[[VAL_18]])
+# CHECK:         %[[VAL_22:.*]] = load %[[VAL_8]]*, %[[VAL_8]]** %[[VAL_21]], align 8
+# CHECK:         call void @__quantum__qis__rx(double %[[VAL_20]], %[[VAL_8]]* %[[VAL_22]])
+# CHECK:         %[[VAL_13]] = add i64 %[[VAL_18]], 1
+# CHECK:         br label %[[VAL_11]]
+# CHECK:         call void @__quantum__qis__h(%[[VAL_8]]* %[[VAL_7]])
+# CHECK:         %[[VAL_23:.*]] = call %[[VAL_10]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+# CHECK:         %[[VAL_24:.*]] = call %[[VAL_8]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_10]]* %[[VAL_23]], i64 0)
+# CHECK:         store %[[VAL_8]]* %[[VAL_7]], %[[VAL_8]]** %[[VAL_24]], align 8
+# CHECK:         %[[VAL_25:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_2]] to i8**
+# CHECK:         store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @cstr.58495900, i32 0, i32 0), i8** %[[VAL_25]], align 8
+# CHECK:         %[[VAL_26:.*]] = getelementptr [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_2]], i32 0, i32 0, i32 1
+# CHECK:         store i64 3, i64* %[[VAL_26]], align 8
+# CHECK:         %[[VAL_27:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_2]] to i8*
+# CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, %[[VAL_10]]* %[[VAL_23]], %[[VAL_10]]* %[[VAL_9]], i8* %[[VAL_27]])
+# CHECK:         call void @__quantum__rt__qubit_release(%[[VAL_8]]* %[[VAL_7]])
+# CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_10]]* %[[VAL_9]])
 # CHECK:         ret void
 # CHECK:       }
 
-# CHECK-LABEL: define void @__nvqpp__mlirgen__U_exp_pauli
-# CHECK-SAME:           %[[VAL_0:.*]]) {
-# CHECK:         %[[VAL_1:.*]] = alloca [1 x { ptr, i64 }], align 8
-# CHECK:         store ptr @cstr.58495900, ptr %[[VAL_1]], align 8
-# CHECK:         %[[VAL_2:.*]] = getelementptr [1 x { ptr, i64 }], ptr %[[VAL_1]], i32 0, i32 0, i32 1
-# CHECK:         store i64 3, ptr %[[VAL_2]], align 8
-# CHECK:         call void @__quantum__qis__exp_pauli(double 2.310000e+01, ptr %[[VAL_0]], ptr %[[VAL_1]])
+# CHECK-LABEL: define void @__nvqpp__mlirgen__U_exp_pauli..
+# CHECK-SAME:    %[[VAL_0:.*]]* %[[VAL_1:.*]]) {
+# CHECK:         %[[VAL_2:.*]] = alloca [1 x { i8*, i64 }], align 8
+# CHECK:         %[[VAL_3:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_2]] to i8**
+# CHECK:         store i8* getelementptr inbounds ([4 x i8], [4 x i8]* @cstr.58495900, i32 0, i32 0), i8** %[[VAL_3]], align 8
+# CHECK:         %[[VAL_4:.*]] = getelementptr [1 x { i8*, i64 }], [1 x { i8*, i64 }]* %[[VAL_2]], i32 0, i32 0, i32 1
+# CHECK:         store i64 3, i64* %[[VAL_4]], align 8
+# CHECK:         %[[VAL_5:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_2]] to i8*
+# CHECK:         call void @__quantum__qis__exp_pauli(double 2.310000e+01, %[[VAL_0]]* %[[VAL_1]], i8* %[[VAL_5]])
 # CHECK:         ret void
 # CHECK:       }
