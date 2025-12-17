@@ -84,11 +84,11 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         ExecutionContext context("extract-state");
         // Indicate that this is an async exec
         context.asyncExec = true;
+        context.qpuId = qpu_id;
         // Set the platform and the qpu id.
-        platform.set_exec_ctx(&context, qpu_id);
-        platform.set_current_qpu(qpu_id);
+        platform.set_exec_ctx(&context);
         func();
-        platform.reset_exec_ctx(qpu_id);
+        platform.reset_exec_ctx();
         // Extract state data
         p.set_value(state(context.simulationState.release()));
       });

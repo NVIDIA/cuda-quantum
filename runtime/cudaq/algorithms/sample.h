@@ -54,7 +54,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
           "kernel with conditional logic on a measurement result.");
   }
   // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("sample", shots);
+  auto ctx = std::make_unique<ExecutionContext>("sample", shots, qpu_id);
   ctx->kernelName = kernelName;
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
@@ -71,10 +71,11 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   if (!isRegistered && !ctx->hasConditionalsOnMeasureResults) {
     // Trace the kernel function
     ExecutionContext context("tracer");
+    context.qpuId = qpu_id;
     auto &platform = get_platform();
-    platform.set_exec_ctx(&context, qpu_id);
+    platform.set_exec_ctx(&context);
     wrappedKernel();
-    platform.reset_exec_ctx(qpu_id);
+    platform.reset_exec_ctx();
     // In trace mode, if we have a measure result
     // that is passed to an if statement, then
     // we'll have collected registernames
@@ -92,8 +93,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   ctx->asyncExec = futureResult != nullptr;
 
   // Set the platform and the qpu id.
-  platform.set_exec_ctx(ctx.get(), qpu_id);
-  platform.set_current_qpu(qpu_id);
+  platform.set_exec_ctx(ctx.get());
 
   auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   auto isQuantumDevice =
@@ -107,7 +107,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       *futureResult = ctx->futureResult;
       return std::nullopt;
     }
-    platform.reset_exec_ctx(qpu_id);
+    platform.reset_exec_ctx();
 
     // If target is hardware backend, need to launch only once, hence exit early
     if (isQuantumDevice)
@@ -132,7 +132,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     // Reset the context for the next round,
     // don't need to reset on the last exec
     if (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
-      platform.set_exec_ctx(ctx.get(), qpu_id);
+      platform.set_exec_ctx(ctx.get());
     }
   }
   return counts;
