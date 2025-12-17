@@ -22,6 +22,8 @@
 #include <string>
 #include <thread>
 
+CUDAQ_INSTANTIATE_TYPE_ERASED_REGISTRY(cudaq::registry::QPURegistry)
+
 namespace cudaq {
 
 // These functions are defined elsewhere, but

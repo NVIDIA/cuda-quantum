@@ -226,17 +226,11 @@ namespace registry {
 using QPURegistry =
     TypeErasedRegistry<any_qpu, cudaq::details::qpu_dispatch_table>;
 
-inline std::unique_ptr<any_qpu> getQPU(const std::string &name) {
-  return QPURegistry::get().instantiate(name);
-}
-
-inline bool isQPURegistered(const std::string &name) {
-  return QPURegistry::get().is_registered(name);
-}
-
 } // namespace registry
 } // namespace cudaq
 
 #define CUDAQ_REGISTER_QPU_TYPE(TYPE, NAME)                                    \
-  static TypeErasedRegistrar<cudaq::registry::QPURegistry, TYPE> CONCAT(       \
+  static cudaq::registry::TypeErasedRegistrar<cudaq::registry::QPURegistry, TYPE> CONCAT(       \
       registrar, NAME)(#NAME);
+
+
