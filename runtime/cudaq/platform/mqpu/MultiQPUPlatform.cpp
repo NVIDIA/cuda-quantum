@@ -65,6 +65,9 @@ public:
           platformQPUs.back()->setId(i);
         }
       }
+    } else {
+      CUDAQ_WARN(
+          "MultiQPUQuantumPlatform: GPUEmulatedQPU type not registered.");
     }
   }
 

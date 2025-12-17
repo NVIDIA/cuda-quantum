@@ -230,7 +230,7 @@ using QPURegistry =
 } // namespace cudaq
 
 #define CUDAQ_REGISTER_QPU_TYPE(TYPE, NAME)                                    \
-  static cudaq::registry::TypeErasedRegistrar<cudaq::registry::QPURegistry, TYPE> CONCAT(       \
-      registrar, NAME)(#NAME);
-
+  static cudaq::registry::TypeErasedRegistrar<cudaq::registry::QPURegistry,    \
+                                              TYPE>                            \
+      CONCAT(registrar, NAME)(#NAME);                                          
 
