@@ -100,7 +100,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::size_t shots, std::size_t qpu_id) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *circuitSimulator = nvqir::createSimulator();
   circuitSimulator->outputLog.clear();
 
   std::call_once(initializeContextOnce, []() { initializeScratchContext(); });

@@ -15,10 +15,6 @@
 #include "llvm/ADT/StringSwitch.h"
 #include <span>
 
-namespace nvqir {
-CircuitSimulator *getCircuitSimulatorInternal();
-}
-
 namespace cudaq {
 
 /// The DefaultExecutionManager will implement allocation, deallocation, and
@@ -26,8 +22,10 @@ namespace cudaq {
 class DefaultExecutionManager : public cudaq::BasicExecutionManager {
 
 private:
-  nvqir::CircuitSimulator *simulator() {
-    return nvqir::getCircuitSimulatorInternal();
+  nvqir::CircuitSimulator &simulator() {
+    assert(executionContext->simulationContext.has_value() &&
+           "DefaultExecutionManager: no simulation context found");
+    return executionContext->simulationContext->getSimulator();
   }
   /// @brief To improve `qudit` allocation, we defer
   /// single `qudit` allocation requests until the first
@@ -49,7 +47,7 @@ protected:
   }
 
   void allocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
-    simulator()->allocateQubits(qudits.size());
+    simulator().allocateQubits(qudits.size());
   }
 
   void initializeState(const std::vector<cudaq::QuditInfo> &targets,
@@ -84,12 +82,11 @@ protected:
       }
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
-      simulator()->allocateQubits(numDefaultAllocs);
+      simulator().allocateQubits(numDefaultAllocs);
       // The targets will be allocated in a specific state.
-      simulator()->allocateQubits(targets.size(), state, precision);
+      simulator().allocateQubits(targets.size(), state, precision);
     } else {
-      simulator()->allocateQubits(requestedAllocations.size(), state,
-                                  precision);
+      simulator().allocateQubits(requestedAllocations.size(), state, precision);
     }
     requestedAllocations.clear();
   }
@@ -104,11 +101,11 @@ protected:
       assert(targets.size() < requestedAllocations.size());
       const auto numDefaultAllocs =
           requestedAllocations.size() - targets.size();
-      simulator()->allocateQubits(numDefaultAllocs);
+      simulator().allocateQubits(numDefaultAllocs);
       // The targets will be allocated in a specific state.
-      simulator()->allocateQubits(targets.size(), state);
+      simulator().allocateQubits(targets.size(), state);
     } else {
-      simulator()->allocateQubits(requestedAllocations.size(), state);
+      simulator().allocateQubits(requestedAllocations.size(), state);
     }
     requestedAllocations.clear();
   }
@@ -124,7 +121,7 @@ protected:
       return;
     }
 
-    simulator()->deallocate(q.id);
+    simulator().deallocate(q.id);
   }
 
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
@@ -139,13 +136,13 @@ protected:
       }
     }
 
-    simulator()->deallocateQubits(local);
+    simulator().deallocateQubits(local);
   }
 
   void handleExecutionContextChanged() override {
     requestedAllocations.clear();
     if (executionContext)
-      simulator()->configureExecutionContext(*executionContext);
+      simulator().configureExecutionContext(*executionContext);
   }
 
   void handleExecutionContextEnded() override {
@@ -156,11 +153,11 @@ protected:
       // If there are pending allocations, flush them to the simulator.
       // Making sure the simulator's state is consistent with the number of
       // allocations even though the circuit might be empty.
-      simulator()->allocateQubits(requestedAllocations.size());
+      simulator().allocateQubits(requestedAllocations.size());
       requestedAllocations.clear();
     }
     if (executionContext)
-      simulator()->processExecutionResults(*executionContext);
+      simulator().processExecutionResults(*executionContext);
   }
 
   void executeInstruction(const Instruction &instruction) override {
@@ -179,34 +176,28 @@ protected:
 
     // Apply the gate
     llvm::StringSwitch<std::function<void()>>(gateName)
-        .Case("h", [&]() { simulator()->h(localC, localT[0]); })
-        .Case("x", [&]() { simulator()->x(localC, localT[0]); })
-        .Case("y", [&]() { simulator()->y(localC, localT[0]); })
-        .Case("z", [&]() { simulator()->z(localC, localT[0]); })
-        .Case("rx",
-              [&]() { simulator()->rx(parameters[0], localC, localT[0]); })
-        .Case("ry",
-              [&]() { simulator()->ry(parameters[0], localC, localT[0]); })
-        .Case("rz",
-              [&]() { simulator()->rz(parameters[0], localC, localT[0]); })
-        .Case("s", [&]() { simulator()->s(localC, localT[0]); })
-        .Case("t", [&]() { simulator()->t(localC, localT[0]); })
-        .Case("sdg", [&]() { simulator()->sdg(localC, localT[0]); })
-        .Case("tdg", [&]() { simulator()->tdg(localC, localT[0]); })
-        .Case("r1",
-              [&]() { simulator()->r1(parameters[0], localC, localT[0]); })
-        .Case("u1",
-              [&]() { simulator()->u1(parameters[0], localC, localT[0]); })
+        .Case("h", [&]() { simulator().h(localC, localT[0]); })
+        .Case("x", [&]() { simulator().x(localC, localT[0]); })
+        .Case("y", [&]() { simulator().y(localC, localT[0]); })
+        .Case("z", [&]() { simulator().z(localC, localT[0]); })
+        .Case("rx", [&]() { simulator().rx(parameters[0], localC, localT[0]); })
+        .Case("ry", [&]() { simulator().ry(parameters[0], localC, localT[0]); })
+        .Case("rz", [&]() { simulator().rz(parameters[0], localC, localT[0]); })
+        .Case("s", [&]() { simulator().s(localC, localT[0]); })
+        .Case("t", [&]() { simulator().t(localC, localT[0]); })
+        .Case("sdg", [&]() { simulator().sdg(localC, localT[0]); })
+        .Case("tdg", [&]() { simulator().tdg(localC, localT[0]); })
+        .Case("r1", [&]() { simulator().r1(parameters[0], localC, localT[0]); })
+        .Case("u1", [&]() { simulator().u1(parameters[0], localC, localT[0]); })
         .Case("u3",
               [&]() {
-                simulator()->u3(parameters[0], parameters[1], parameters[2],
-                                localC, localT[0]);
+                simulator().u3(parameters[0], parameters[1], parameters[2],
+                               localC, localT[0]);
               })
-        .Case("swap",
-              [&]() { simulator()->swap(localC, localT[0], localT[1]); })
+        .Case("swap", [&]() { simulator().swap(localC, localT[0], localT[1]); })
         .Case("exp_pauli",
               [&]() {
-                simulator()->applyExpPauli(parameters[0], localC, localT, op);
+                simulator().applyExpPauli(parameters[0], localC, localT, op);
               })
         .Default([&]() {
           if (cudaq::customOpRegistry::getInstance().isOperationRegistered(
@@ -214,7 +205,7 @@ protected:
             const auto &op =
                 cudaq::customOpRegistry::getInstance().getOperation(gateName);
             auto data = op.unitary(parameters);
-            simulator()->applyCustomOperation(data, localC, localT, gateName);
+            simulator().applyCustomOperation(data, localC, localT, gateName);
             return;
           }
           throw std::runtime_error("[DefaultExecutionManager] invalid gate "
@@ -231,7 +222,7 @@ protected:
     flushGateQueue();
 
     if (channel.empty())
-      if (!simulator()->isValidNoiseChannel(channel.noise_type))
+      if (!simulator().isValidNoiseChannel(channel.noise_type))
         throw std::runtime_error("this is not a valid kraus channel name (" +
                                  channel.get_type_name() +
                                  "), no "
@@ -243,36 +234,36 @@ protected:
     CUDAQ_INFO(
         "[DefaultExecutionManager] Applying fine-grain kraus channel {}.",
         channel.get_type_name());
-    simulator()->applyNoise(channel, localT);
+    simulator().applyNoise(channel, localT);
   }
 
   int measureQudit(const cudaq::QuditInfo &q,
                    const std::string &registerName) override {
     flushRequestedAllocations();
-    return simulator()->mz(q.id, registerName);
+    return simulator().mz(q.id, registerName);
   }
 
   void flushGateQueue() override {
     synchronize();
     flushRequestedAllocations();
-    simulator()->flushGateQueue();
+    simulator().flushGateQueue();
   }
 
   void measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
-    simulator()->measureSpinOp(op);
+    simulator().measureSpinOp(op);
   }
 
 public:
   DefaultExecutionManager() {
     CUDAQ_INFO("[DefaultExecutionManager] Creating the {} backend.",
-               simulator()->name());
+               simulator().name());
   }
   virtual ~DefaultExecutionManager() = default;
 
   void resetQudit(const cudaq::QuditInfo &q) override {
     flushRequestedAllocations();
-    simulator()->resetQubit(q.id);
+    simulator().resetQubit(q.id);
   }
 };
 

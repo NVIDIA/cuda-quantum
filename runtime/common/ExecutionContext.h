@@ -18,7 +18,29 @@
 #include <optional>
 #include <string_view>
 
+namespace nvqir {
+class CircuitSimulator;
+} // namespace nvqir
+
 namespace cudaq {
+
+class SimulationContext {
+private:
+  /// The simulator instance (owned by the QPU)
+  nvqir::CircuitSimulator &simulator;
+  /// The simulation state of the simulator
+  std::unique_ptr<SimulationState> simulationState;
+
+public:
+  SimulationContext(nvqir::CircuitSimulator &simulator)
+      : simulator(simulator) {}
+
+  SimulationState *releaseState() { return simulationState.release(); }
+
+  std::unique_ptr<SimulationState> &getState() { return simulationState; }
+
+  nvqir::CircuitSimulator &getSimulator() { return simulator; }
+};
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -80,7 +102,7 @@ public:
   async_result<sample_result> asyncResult;
 
   /// @brief Pointer to simulation-specific simulation data.
-  std::unique_ptr<SimulationState> simulationState;
+  std::optional<SimulationContext> simulationContext;
 
   /// @brief A map of basis-state amplitudes
   // The list of basis state is set before kernel launch and the map is filled

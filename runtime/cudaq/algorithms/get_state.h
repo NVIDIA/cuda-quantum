@@ -55,7 +55,10 @@ state extractState(KernelFunctor &&kernel) {
   // pointer to the state type. The state will retain
   // value semantics, due to its tracking of this simulation
   // data as a shared_ptr.
-  return state(context.simulationState.release());
+  auto &simulationContext = context.simulationContext;
+  assert(simulationContext.has_value() &&
+         "extract-state context must have a simulation context");
+  return state(simulationContext->releaseState());
 }
 
 template <typename KernelFunctor>
@@ -85,7 +88,10 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         platform.with_execution_context(context,
                                         std::forward<KernelFunctor>(func));
         // Extract state data
-        p.set_value(state(context.simulationState.release()));
+        auto &simulationContext = context.simulationContext;
+        assert(simulationContext.has_value() &&
+               "extract-state context must have a simulation context");
+        p.set_value(state(simulationContext->releaseState()));
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);

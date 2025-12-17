@@ -386,7 +386,7 @@ public:
         // Handle cudaq::run: it should be executed in a context-free manner;
         // the output log is accumulated in the simulator output log.
         //  Clear the outputLog.
-        auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+        auto *circuitSimulator = nvqir::createSimulator();
         circuitSimulator->outputLog.clear();
         // Invoke the kernel multiple times.
         invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
@@ -706,15 +706,21 @@ protected:
         handleRequest(reqId, stateContext1, request.simulator, codeStr1,
                       request.entryPoint, request.args.data(),
                       request.args.size(), request.seed);
+        auto &simulationContext1 = stateContext1.simulationContext;
+        assert(simulationContext1.has_value() &&
+               "extract-state context must have a simulation context");
         std::string_view codeStr2(decodedCodeIr2.data(), decodedCodeIr2.size());
         cudaq::ExecutionContext stateContext2("extract-state");
         handleRequest(reqId, stateContext2, request.simulator, codeStr2,
                       request.overlapKernel->entryPoint,
                       request.overlapKernel->args.data(),
                       request.overlapKernel->args.size(), request.seed);
+        auto &simulationContext2 = stateContext2.simulationContext;
+        assert(simulationContext2.has_value() &&
+               "extract-state context must have a simulation context");
         request.executionContext.overlapResult =
-            stateContext1.simulationState->overlap(
-                *stateContext2.simulationState);
+            simulationContext1->getState()->overlap(
+                *simulationContext2->getState());
         resultJson["executionContext"] = request.executionContext;
       } else {
         if (request.overlapKernel.has_value())
@@ -737,9 +743,11 @@ protected:
         // `RemoteSimulationState::maxQubitCountForFullStateTransfer`).
         if (request.executionContext.name == "extract-state" &&
             request.executionContext.amplitudeMaps.has_value()) {
+          auto &simulationContext = request.executionContext.simulationContext;
+          assert(simulationContext.has_value() &&
+                 "extract-state context must have a simulation context");
           // Acquire the state, no need to send the full state back
-          auto serverState =
-              std::move(request.executionContext.simulationState);
+          auto &serverState = simulationContext->getState();
           for (auto &[key, val] :
                request.executionContext.amplitudeMaps.value()) {
             val = serverState->getAmplitude(key);
