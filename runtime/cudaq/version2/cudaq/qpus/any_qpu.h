@@ -25,11 +25,8 @@ namespace cudaq {
 class noise_model;
 class ExecutionContext;
 struct RemoteCapabilities;
-struct observe_result;
 class gradient;
 class optimizer;
-class SerializedCodeExecutionContext;
-class QPU;
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
