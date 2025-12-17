@@ -181,12 +181,13 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   // Map the qubits to their unique ids and pack them into a std::array
   constexpr std::size_t nArgs = sizeof...(QubitArgs);
   std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
+  std::vector<double> parameters{static_cast<double>(angle)};
 
   // If there are more than one qubits and mod == base, then
   // we just want to apply the same gate to all qubits provided
   if constexpr (nArgs > 1 && std::is_same_v<mod, base>) {
     for (auto &targetId : targets)
-      getExecutionManager()->apply(gateName, {angle}, {}, {targetId});
+      getExecutionManager()->apply(gateName, parameters, {}, {targetId});
 
     // Nothing left to do, return
     return;
@@ -197,7 +198,7 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   std::vector<QuditInfo> controls(targets.begin(), targets.begin() + nArgs - 1);
 
   // Apply the gate
-  getExecutionManager()->apply(gateName, {angle}, controls, {targets.back()},
+  getExecutionManager()->apply(gateName, parameters, controls, {targets.back()},
                                std::is_same_v<mod, adj>);
 }
 
@@ -215,8 +216,9 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
                  [](const auto &q) { return qubitToQuditInfo(q); });
 
   // Apply the gate
-  getExecutionManager()->apply(gateName, {angle}, controls,
-                               {qubitToQuditInfo(target)});
+  getExecutionManager()->apply(gateName,
+                               std::vector<double>{static_cast<double>(angle)},
+                               controls, {qubitToQuditInfo(target)});
 }
 
 #define CUDAQ_QIS_PARAM_ONE_TARGET_(NAME)                                      \
