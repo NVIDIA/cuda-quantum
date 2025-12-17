@@ -77,7 +77,7 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
                details::future *futureResult = nullptr,
                std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
                std::optional<std::size_t> numTrajectories = {}) {
-  auto ctx = std::make_unique<ExecutionContext>("observe", shots);
+  auto ctx = std::make_unique<ExecutionContext>("observe", shots, qpu_id);
   ctx->kernelName = kernelName;
   ctx->spin = cudaq::spin_op::canonicalize(H);
   if (shots > 0)
@@ -92,8 +92,7 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
   // Indicate that this is an asynchronous execution
   ctx->asyncExec = futureResult != nullptr;
 
-  platform.set_current_qpu(qpu_id);
-  platform.set_exec_ctx(ctx.get(), qpu_id);
+  platform.set_exec_ctx(ctx.get());
 
   k();
 
@@ -104,7 +103,7 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
     return std::nullopt;
   }
 
-  platform.reset_exec_ctx(qpu_id);
+  platform.reset_exec_ctx();
 
   // Extract the results
   sample_result data;

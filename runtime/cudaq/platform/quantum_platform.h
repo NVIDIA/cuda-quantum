@@ -43,6 +43,9 @@ using KernelExecutionTask = std::function<sample_result()>;
 /// a double expectation value.
 using ObserveTask = std::function<observe_result()>;
 
+/// An ID for a QPU on this platform, defaulting to this thread's current QPU.
+using QpuId = std::optional<std::size_t>;
+
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
 /// query specific information about the targeted QPU(s) (e.g. number
@@ -57,15 +60,12 @@ public:
   /// Fetch the connectivity info
   std::optional<QubitConnectivity> connectivity();
 
-  /// Get the number of qubits for the current QPU
-  std::size_t get_num_qubits();
+  /// Get the number of qubits for the QPU with ID qpu_id.
+  std::size_t get_num_qubits(QpuId qpu_id = std::nullopt) const;
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
   virtual bool supports_task_distribution() const { return false; }
-
-  /// Get the number of qubits for the QPU with ID qpu_id
-  std::size_t get_num_qubits(std::size_t qpu_id);
 
   /// Getter for the shots. This will be deprecated once `set_shots` and
   /// `clear_shots` are removed.
@@ -86,50 +86,62 @@ public:
   }
 
   /// Specify the execution context for this platform.
-  void set_exec_ctx(cudaq::ExecutionContext *ctx, std::size_t qpu_id = 0);
+  void set_exec_ctx(ExecutionContext *ctx);
 
   /// Return the current execution context
   ExecutionContext *get_exec_ctx() const { return executionContext; }
 
   /// Reset the execution context for this platform.
-  void reset_exec_ctx(std::size_t qpu_id = 0);
+  void reset_exec_ctx();
 
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformNumQPUs; }
 
   /// Return whether this platform is simulating the architecture.
-  bool is_simulator(const std::size_t qpu_id = 0) const;
+  bool is_simulator(QpuId qpu_id = std::nullopt) const;
 
   /// @brief Return whether the QPU has conditional feedback support
-  bool supports_conditional_feedback(const std::size_t qpu_id = 0) const;
+  bool supports_conditional_feedback(QpuId qpu_id = std::nullopt) const;
 
   /// @brief Return whether the QPU supports explicit measurements.
-  bool supports_explicit_measurements(const std::size_t qpu_id = 0) const;
+  bool supports_explicit_measurements(QpuId qpu_id = std::nullopt) const;
 
   /// The name of the platform, which also corresponds to the name of the
   /// platform file.
   std::string name() const { return platformName; }
 
-  /// Get the ID of the current QPU.
-  std::size_t get_current_qpu();
-
-  /// Set the current QPU via its device ID.
-  void set_current_qpu(const std::size_t device_id);
+  /// Get the ID of the QPU in the current execution context.
+  std::size_t get_current_qpu() const;
 
   /// @brief Return true if the QPU is remote.
-  bool is_remote(const std::size_t qpuId = 0);
+  ///
+  /// If @p qpu_id is not specified, the QPU in the current execution context is
+  /// used.
+  bool is_remote(QpuId qpu_id = std::nullopt) const;
 
   /// @brief Return true if QPU is locally emulating a remote QPU
-  bool is_emulated(const std::size_t qpuId = 0) const;
+  ///
+  /// If @p qpu_id is not specified, the QPU in the current execution context is
+  /// used.
+  bool is_emulated(QpuId qpu_id = std::nullopt) const;
 
-  /// @brief Set the noise model for future invocations of quantum kernels.
-  void set_noise(const noise_model *model);
+  /// @brief Set the noise model for @p qpu_id on this platform.
+  ///
+  /// If @p qpu_id is not specified, the QPU in the current execution context is
+  /// used.
+  void set_noise(const noise_model *model, QpuId qpu_id = std::nullopt);
 
-  /// @brief Return the current noise model or `nullptr` if none set.
-  const noise_model *get_noise();
+  /// @brief Return the noise model for @p qpu_id on this platform.
+  ///
+  /// If @p qpu_id is not specified, the QPU in the current execution context is
+  /// used.
+  const noise_model *get_noise(QpuId qpu_id = std::nullopt);
 
   /// @brief Get the remote capabilities (only applicable for remote platforms)
-  RemoteCapabilities get_remote_capabilities(const std::size_t qpuId = 0) const;
+  ///
+  /// If @p qpu_id is not specified, the QPU in the current execution context is
+  /// used.
+  RemoteCapabilities get_remote_capabilities(QpuId qpuId = std::nullopt) const;
 
   /// Get code generation configuration values
   CodeGenConfig get_codegen_config();
@@ -141,7 +153,10 @@ public:
   const RuntimeTarget *get_runtime_target() const;
 
   /// @brief Turn off any noise models.
-  void reset_noise();
+  ///
+  /// If @p qpu_id is not specified, the QPU in the current execution context is
+  /// used.
+  void reset_noise(QpuId qpu_id = std::nullopt);
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
@@ -154,14 +169,16 @@ public:
   void launchVQE(const std::string kernelName, const void *kernelArgs,
                  cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
-                 const std::size_t shots);
+                 const std::size_t shots, QpuId qpu_id = std::nullopt);
 
   // This method is the hook for the kernel rewrites to invoke quantum kernels.
   [[nodiscard]] KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
                void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset, const std::vector<void *> &rawArgs);
-  void launchKernel(const std::string &kernelName, const std::vector<void *> &);
+               std::uint64_t resultOffset, const std::vector<void *> &rawArgs,
+               QpuId qpu_id = std::nullopt);
+  void launchKernel(const std::string &kernelName, const std::vector<void *> &,
+                    QpuId qpu_id = std::nullopt);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -207,16 +224,6 @@ protected:
   /// Number of QPUs in the platform.
   std::size_t platformNumQPUs;
 
-  /// The current QPU.
-  std::size_t platformCurrentQPU = 0;
-
-  /// @brief Store the mapping of thread ids to the QPU id
-  /// that it is running in a multi-QPU context.
-  std::unordered_map<std::size_t, std::size_t> threadToQpuId;
-
-  /// @brief Mutex to protect access to the thread-QPU map.
-  std::shared_mutex threadToQpuIdMutex;
-
   /// Optional number of shots.
   std::optional<int> platformNumShots;
 
@@ -230,6 +237,17 @@ protected:
 private:
   // Helper to validate QPU Id
   void validateQpuId(int qpuId) const;
+
+  /// Resolve @p qpu_id to a QPU ID for this platform.
+  ///
+  /// 1. If @p qpu_id is specified, return it.
+  /// 2. If no @p qpu_id is specified but @p ctx is provided, return the QPU ID
+  /// of @p ctx.
+  /// 3. If no @p qpu_id is specified and no @p ctx is provided, return the
+  ///    QPU ID of the current execution context.
+  ///
+  /// This always returns a valid QPU ID.
+  std::size_t resolveQpuId(QpuId qpu_id, ExecutionContext *ctx = nullptr) const;
 };
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
@@ -253,7 +271,8 @@ streamlinedLaunchKernel(const char *kernelName,
 [[nodiscard]] KernelThunkResultType
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
-                   const std::vector<void *> &rawArgs);
+                   const std::vector<void *> &rawArgs,
+                   QpuId qpu_id = std::nullopt);
 } // extern "C"
 } // namespace cudaq
 
