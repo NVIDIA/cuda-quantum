@@ -40,26 +40,24 @@ public:
     return kernelFunc(args, /*isRemote=*/false);
   }
 
-  /// Overrides setExecutionContext to forward it to the ExecutionManager
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    ScopedTraceWithContext("DefaultPlatform::setExecutionContext",
-                           context->name);
-    executionContext = context;
+  void configureExecutionContext(cudaq::ExecutionContext &context) override {
+    ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
+                           context.name);
     if (noiseModel)
-      executionContext->noiseModel = noiseModel;
+      context.noiseModel = noiseModel;
 
-    cudaq::getExecutionManager()->setExecutionContext(executionContext);
+    // TODO: remove execution context from ExecutionManager
+    cudaq::getExecutionManager()->setExecutionContext(&context);
   }
 
-  /// Overrides resetExecutionContext to forward to
-  /// the ExecutionManager. Also handles observe post-processing
-  void resetExecutionContext() override {
+  void processExecutionResults(cudaq::ExecutionContext &context) override {
     ScopedTraceWithContext(
-        executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
-        "DefaultPlatform::resetExecutionContext", executionContext->name);
-    handleObservation(executionContext);
+        context.name == "observe" ? cudaq::TIMING_OBSERVE : 0,
+        "DefaultPlatform::processExecutionContext", context.name);
+    handleObservation(context);
+
+    // TODO: remove execution context from ExecutionManager
     cudaq::getExecutionManager()->resetExecutionContext();
-    executionContext = nullptr;
   }
 };
 
@@ -80,7 +78,6 @@ public:
   /// variable, and if found, will change from the DefaultQPU to the QPU subtype
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
-    executionContext.set(nullptr);
     platformQPUs.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 

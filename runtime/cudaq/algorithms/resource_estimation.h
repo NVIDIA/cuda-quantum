@@ -31,23 +31,19 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
                                  const std::string &kernelName,
                                  std::function<bool()> choice) {
   // Create the execution context.
-  auto ctx = std::make_unique<ExecutionContext>("resource-count", 1);
-  ctx->kernelName = kernelName;
+  ExecutionContext ctx("resource-count", 1);
+  ctx.kernelName = kernelName;
 
   // Indicate that this is not an async exec
-  ctx->asyncExec = false;
+  ctx.asyncExec = false;
 
   // Use the resource counter simulator
   nvqir::switchToResourceCounterSimulator();
   // Set the choice function for the simulator
   nvqir::setChoiceFunction(choice);
 
-  // Set the platform
-  platform.set_exec_ctx(ctx.get());
-
-  wrappedKernel();
-
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx,
+                                  std::forward<KernelFunctor>(wrappedKernel));
 
   // Save and clone counts data
   auto counts = Resources(*nvqir::getResourceCounts());

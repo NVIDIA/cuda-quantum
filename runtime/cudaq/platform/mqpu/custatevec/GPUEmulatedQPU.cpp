@@ -24,9 +24,6 @@ namespace {
 /// execution tasks and sets the CUDA GPU device that it
 /// represents. There is a GPUEmulatedQPU per available GPU.
 class GPUEmulatedQPU : public cudaq::QPU {
-protected:
-  std::map<std::size_t, cudaq::ExecutionContext *> contexts;
-
 public:
   GPUEmulatedQPU() : QPU(){};
   GPUEmulatedQPU(std::size_t id) : QPU(id) {}
@@ -47,29 +44,22 @@ public:
     return kernelFunc(args, /*differentMemorySpace=*/false);
   }
 
-  /// Overrides setExecutionContext to forward it to the ExecutionManager
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
+  void configureExecutionContext(cudaq::ExecutionContext &context) override {
     cudaSetDevice(qpu_id);
 
-    CUDAQ_INFO("MultiQPUPlatform::setExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    contexts.emplace(tid, context);
+    CUDAQ_INFO("MultiQPUPlatform::prepareExecutionContext QPU {}", qpu_id);
     if (noiseModel)
-      contexts[tid]->noiseModel = noiseModel;
+      context.noiseModel = noiseModel;
 
-    cudaq::getExecutionManager()->setExecutionContext(contexts[tid]);
+    // TODO: remove execution context from ExecutionManager
+    cudaq::getExecutionManager()->setExecutionContext(&context);
   }
 
-  /// Overrides resetExecutionContext to forward to
-  /// the ExecutionManager. Also handles observe post-processing
-  void resetExecutionContext() override {
-    CUDAQ_INFO("MultiQPUPlatform::resetExecutionContext QPU {}", qpu_id);
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    auto ctx = contexts[tid];
-    handleObservation(ctx);
+  void processExecutionResults(cudaq::ExecutionContext &context) override {
+    CUDAQ_INFO("MultiQPUPlatform::processExecutionResults QPU {}", qpu_id);
+
+    handleObservation(context);
     cudaq::getExecutionManager()->resetExecutionContext();
-    contexts[tid] = nullptr;
-    contexts.erase(tid);
   }
 };
 } // namespace

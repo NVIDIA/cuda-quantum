@@ -46,20 +46,6 @@ using ObserveTask = std::function<observe_result()>;
 /// An ID for a QPU on this platform, defaulting to this thread's current QPU.
 using QpuId = std::optional<std::size_t>;
 
-namespace detail {
-/// Temporary per-thread execution context storage.
-/// Will be removed when executionContext is eliminated.
-struct PerThreadExecCtx {
-  PerThreadExecCtx();
-  ~PerThreadExecCtx();
-  ExecutionContext *get() const;
-  void set(ExecutionContext *ctx);
-
-  struct Impl;
-  std::unique_ptr<Impl> impl;
-};
-} // namespace detail
-
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
 /// query specific information about the targeted QPU(s) (e.g. number
@@ -100,13 +86,31 @@ public:
   }
 
   /// Specify the execution context for this platform.
-  void set_exec_ctx(ExecutionContext *ctx);
+  void config_exec_ctx(ExecutionContext &ctx);
 
-  /// Return the current execution context
-  ExecutionContext *get_exec_ctx() const { return executionContext.get(); }
+  /// @brief Post-process the results stored in @p ctx after execution on this
+  /// platform.
+  void process_exec_results(cudaq::ExecutionContext &ctx);
 
-  /// Reset the execution context for this platform.
-  void reset_exec_ctx();
+  /// @brief Execute the given function within the given execution context.
+  template <typename Callable, typename... Args>
+  auto with_execution_context(ExecutionContext &ctx, Callable &&f,
+                              Args &&...args) {
+    config_exec_ctx(ctx);
+    setExecutionContext(&ctx);
+
+    // handle void-returning callables separately
+    if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+      f(std::forward<Args>(args)...);
+      resetExecutionContext();
+      process_exec_results(ctx);
+    } else {
+      auto result = f(std::forward<Args>(args)...);
+      resetExecutionContext();
+      process_exec_results(ctx);
+      return result;
+    }
+  }
 
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformNumQPUs; }
@@ -123,9 +127,6 @@ public:
   /// The name of the platform, which also corresponds to the name of the
   /// platform file.
   std::string name() const { return platformName; }
-
-  /// Get the ID of the QPU in the current execution context.
-  std::size_t get_current_qpu() const;
 
   /// @brief Return true if the QPU is remote.
   ///
@@ -240,10 +241,6 @@ protected:
 
   /// Optional number of shots.
   std::optional<int> platformNumShots;
-
-  /// Keep a per-thread pointer to the current execution context.
-  // TODO: Remove this
-  detail::PerThreadExecCtx executionContext;
 
   /// Optional logging stream for platform output.
   // If set, the platform and its QPUs will print info log to this stream.

@@ -148,4 +148,32 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 };
+
+//===----------------------------------------------------------------------===//
+// Access to a thread-local ExecutionContext
+//===----------------------------------------------------------------------===//
+
+void setExecutionContext(ExecutionContext *ctx);
+void resetExecutionContext();
+
+/// @brief Get the current execution context.
+///
+/// This is used by the NVQIR bridge to forward calls from QPU kernels to the
+/// appropriate QPU backend. It is also currently used in QPUs and simulators
+/// to adjust behavior based on the execution context.
+ExecutionContext *getExecutionContext();
+
+/// @brief Return true if the simulator is in the tracer mode.
+bool isInTracerMode();
+
+/// @brief Return true if the current execution is in batch mode.
+bool isInBatchMode();
+
+/// @brief Return true if the current execution is the last execution of batch
+/// mode.
+bool isLastBatch();
+
+/// @brief Get the ID of the current QPU.
+std::size_t getCurrentQpuId();
+
 } // namespace cudaq

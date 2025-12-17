@@ -48,11 +48,7 @@ state extractState(KernelFunctor &&kernel) {
   // extracting the state representation
   ExecutionContext context("extract-state");
 
-  // Perform the usual pattern set the context,
-  // execute and then reset
-  platform.set_exec_ctx(&context);
-  kernel();
-  platform.reset_exec_ctx();
+  platform.with_execution_context(context, std::forward<KernelFunctor>(kernel));
 
   // Return the state data. Since the ExecutionContext
   // is done being used, we'll move the simulation state
@@ -86,9 +82,8 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         context.asyncExec = true;
         context.qpuId = qpu_id;
         // Set the platform and the qpu id.
-        platform.set_exec_ctx(&context);
-        func();
-        platform.reset_exec_ctx();
+        platform.with_execution_context(context,
+                                        std::forward<KernelFunctor>(func));
         // Extract state data
         p.set_value(state(context.simulationState.release()));
       });

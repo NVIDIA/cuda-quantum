@@ -9,8 +9,10 @@
 #include "CircuitSimulator.h"
 #include "NVQIRUtil.h"
 #include "QIRTypes.h"
+#include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
+#include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 // TODO: do we want to avoid including this here?
@@ -293,7 +295,9 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
     CUDAQ_INFO("Setting execution context: {}{}", ctx ? ctx->name : "basic",
                ctx->hasConditionalsOnMeasureResults ? " with conditionals"
                                                     : "");
-    nvqir::getCircuitSimulatorInternal()->setExecutionContext(ctx);
+    auto &platform = cudaq::get_platform();
+    cudaq::setExecutionContext(ctx);
+    platform.config_exec_ctx(*ctx);
   }
 }
 
@@ -301,7 +305,11 @@ void __quantum__rt__setExecutionContext(cudaq::ExecutionContext *ctx) {
 void __quantum__rt__resetExecutionContext() {
   ScopedTraceWithContext("NVQIR::resetExecutionContext");
   CUDAQ_INFO("Resetting execution context.");
-  nvqir::getCircuitSimulatorInternal()->resetExecutionContext();
+
+  auto &platform = cudaq::get_platform();
+  if (auto *ctx = cudaq::getExecutionContext())
+    platform.process_exec_results(*ctx);
+  cudaq::resetExecutionContext();
 }
 
 /// @brief QIR function for allocated a qubit array
@@ -689,7 +697,7 @@ void __quantum__qis__exp_pauli__body(double theta, Array *qubits,
 }
 
 void __quantum__rt__result_record_output(Result *r, int8_t *name) {
-  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  auto *ctx = cudaq::getExecutionContext();
   if (ctx && ctx->name == "run") {
 
     std::string regName(reinterpret_cast<const char *>(name));
@@ -727,7 +735,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
                                                 std::size_t numParams,
                                                 Array *qubits) {
 
-  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  auto *ctx = cudaq::getExecutionContext();
   if (!ctx)
     return;
 
@@ -748,7 +756,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
                                           float *params, std::size_t numParams,
                                           Array *qubits) {
 
-  auto *ctx = nvqir::getCircuitSimulatorInternal()->getExecutionContext();
+  auto *ctx = cudaq::getExecutionContext();
   if (!ctx)
     return;
 
@@ -934,7 +942,7 @@ Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
   ScopedTraceWithContext("NVQIR::observe_measure_body");
 
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = circuitSimulator->getExecutionContext();
+  auto *currentContext = cudaq::getExecutionContext();
 
   // Some backends may better handle the observe task.
   // Let's give them that opportunity.

@@ -32,21 +32,9 @@ namespace cudaq {
 class BaseRemoteSimulatorQPU : public cudaq::QPU {
 protected:
   std::string m_simName;
-  std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
-  std::mutex m_contextMutex;
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
   bool in_resource_estimation = false;
-
-  /// @brief Return a pointer to the execution context for this thread. It will
-  /// return `nullptr` if it was not found in `m_contexts`.
-  cudaq::ExecutionContext *getExecutionContextForMyThread() {
-    std::scoped_lock<std::mutex> lock(m_contextMutex);
-    const auto iter = m_contexts.find(std::this_thread::get_id());
-    if (iter == m_contexts.end())
-      return nullptr;
-    return iter->second;
-  }
 
 public:
   BaseRemoteSimulatorQPU()
@@ -90,8 +78,7 @@ public:
                  cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
+    cudaq::ExecutionContext *executionContextPtr = getExecutionContext();
 
     if (executionContextPtr && executionContextPtr->name == "tracer")
       return;
@@ -140,8 +127,7 @@ public:
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
+    cudaq::ExecutionContext *executionContextPtr = getExecutionContext();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return {};
@@ -219,18 +205,6 @@ public:
 
     // Assumes kernel has no dynamic results. (Static result handled above.)
     return {};
-  }
-
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    CUDAQ_INFO("BaseRemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
-    std::scoped_lock<std::mutex> lock(m_contextMutex);
-    m_contexts[std::this_thread::get_id()] = context;
-  }
-
-  void resetExecutionContext() override {
-    CUDAQ_INFO("BaseRemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
-    std::scoped_lock<std::mutex> lock(m_contextMutex);
-    m_contexts.erase(std::this_thread::get_id());
   }
 
   void onRandomSeedSet(std::size_t seed) override {

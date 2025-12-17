@@ -132,10 +132,9 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
                  cudaq::gradient *gradient, py::function *argumentMapper,
                  const int n_params, const int shots) {
   auto [kernelName, kernelMod] = getKernelNameAndModule(kernel);
-  auto ctx = std::make_unique<ExecutionContext>("observe", /*shots=*/0);
-  ctx->kernelName = kernelName;
-  ctx->spin = cudaq::spin_op::canonicalize(hamiltonian);
-  platform.set_exec_ctx(ctx.get());
+  ExecutionContext ctx("observe", /*shots=*/0);
+  ctx.kernelName = kernelName;
+  ctx.spin = cudaq::spin_op::canonicalize(hamiltonian);
 
   constexpr std::size_t startingArgIdx = 1;
   cudaq::OpaqueArguments args;
@@ -161,13 +160,14 @@ pyVQE_remote_cpp(cudaq::quantum_platform &platform, py::object &kernel,
   std::vector<std::string> names;
   auto *wrapper = new cudaq::ArgWrapper{unwrap(kernelMod), names, kernelArgs};
 
-  platform.launchVQE(kernelName, wrapper, gradient, ctx->spin.value(),
-                     optimizer, n_params, shots);
-  platform.reset_exec_ctx();
+  platform.with_execution_context(ctx, [&]() {
+    platform.launchVQE(kernelName, wrapper, gradient, ctx.spin.value(),
+                       optimizer, n_params, shots);
+  });
   delete wrapper;
   if (kernelArgs)
     std::free(kernelArgs);
-  return ctx->optResult.value_or(optimization_result{});
+  return ctx.optResult.value_or(optimization_result{});
 }
 
 /// @brief Throw an exception instructing the user how to achieve optimal

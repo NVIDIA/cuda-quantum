@@ -114,10 +114,10 @@ Returns:
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
     ctx.explicitMeasurements = explicit_measurements
-    cudaq_runtime.setExecutionContext(ctx)
 
-    counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
+        cudaq_runtime.setExecutionContext(ctx)
+        counts = cudaq_runtime.SampleResult()
         kernel(*args)
         cudaq_runtime.resetExecutionContext()
         # If the platform is a hardware QPU, launch only once
@@ -138,7 +138,5 @@ Returns:
                   "infinite loop.")
             break
         ctx.result.clear()
-        if counts.get_total_shots() < shots_count:
-            cudaq_runtime.setExecutionContext(ctx)
     cudaq_runtime.unset_noise()
     return counts

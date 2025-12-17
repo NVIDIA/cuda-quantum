@@ -126,7 +126,7 @@ public:
         "PyRemoteSimulatorQPU: Launch VQE kernel named '{}' remote QPU {} "
         "(simulator = {})",
         name, qpu_id, m_simName);
-    ::launchVqeImpl(getExecutionContextForMyThread(), m_client, m_simName, name,
+    ::launchVqeImpl(cudaq::getExecutionContext(), m_client, m_simName, name,
                     kernelArgs, gradient, H, optimizer, n_params, shots);
   }
 
@@ -138,8 +138,8 @@ public:
     CUDAQ_INFO("PyRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                "(simulator = {})",
                name, qpu_id, m_simName);
-    ::launchKernelImpl(getExecutionContextForMyThread(), m_client, m_simName,
-                       name, make_degenerate_kernel_type(kernelFunc), args,
+    ::launchKernelImpl(cudaq::getExecutionContext(), m_client, m_simName, name,
+                       make_degenerate_kernel_type(kernelFunc), args,
                        voidStarSize, resultOffset, rawArgs);
     // TODO: Python should probably support return values too.
     return {};
@@ -151,7 +151,7 @@ public:
                "remote QPU {} "
                "(simulator = {})",
                name, qpu_id, m_simName);
-    ::launchKernelStreamlineImpl(getExecutionContextForMyThread(), m_client,
+    ::launchKernelStreamlineImpl(cudaq::getExecutionContext(), m_client,
                                  m_simName, name, rawArgs);
   }
 

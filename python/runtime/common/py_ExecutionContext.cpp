@@ -25,7 +25,8 @@ namespace cudaq {
 void bindExecutionContext(py::module &mod) {
   py::class_<cudaq::ExecutionContext>(mod, "ExecutionContext")
       .def(py::init<std::string>())
-      .def(py::init<std::string, int>())
+      .def(py::init<std::string, int, std::size_t>(), py::arg("name"),
+           py::arg("shots"), py::arg("qpu_id") = 0)
       .def_readonly("result", &cudaq::ExecutionContext::result)
       .def_readwrite("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_readonly("asyncResult", &cudaq::ExecutionContext::asyncResult)
@@ -46,19 +47,33 @@ void bindExecutionContext(py::module &mod) {
              assert(cudaq::spin_op::canonicalize(spin) == spin);
            })
       .def("getExpectationValue",
-           [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; });
+           [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; })
+      .def("__enter__",
+           [](cudaq::ExecutionContext &ctx) {
+             cudaq::get_platform().config_exec_ctx(ctx);
+             cudaq::setExecutionContext(&ctx);
+             return ctx;
+           })
+      .def("__exit__", [](cudaq::ExecutionContext &ctx, py::object type,
+                          py::object value, py::object traceback) {
+        cudaq::resetExecutionContext();
+        cudaq::get_platform().process_exec_results(ctx);
+        return false;
+      });
   mod.def(
       "setExecutionContext",
       [](cudaq::ExecutionContext &ctx) {
-        auto &self = cudaq::get_platform();
-        self.set_exec_ctx(&ctx);
+        cudaq::get_platform().config_exec_ctx(ctx);
+        cudaq::setExecutionContext(&ctx);
       },
       "");
   mod.def(
       "resetExecutionContext",
       []() {
-        auto &self = cudaq::get_platform();
-        self.reset_exec_ctx();
+        auto *ctx = cudaq::getExecutionContext();
+        if (ctx)
+          cudaq::get_platform().process_exec_results(*ctx);
+        cudaq::resetExecutionContext();
       },
       "");
   mod.def("supportsConditionalFeedback", []() {
@@ -69,10 +84,8 @@ void bindExecutionContext(py::module &mod) {
     auto &platform = cudaq::get_platform();
     return platform.supports_explicit_measurements();
   });
-  mod.def("getExecutionContextName", []() {
-    auto &self = cudaq::get_platform();
-    return self.get_exec_ctx()->name;
-  });
+  mod.def("getExecutionContextName",
+          []() { return cudaq::getExecutionContext()->name; });
   mod.def(
       "isQuantumDevice",
       [](std::size_t qpuId = 0) {

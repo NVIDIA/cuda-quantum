@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/platform/quantum_platform.h"
+#include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
@@ -51,8 +52,9 @@ void quantum_platform::set_noise(const noise_model *model, QpuId qpu_id) {
 }
 
 const noise_model *quantum_platform::get_noise(QpuId qpu_id) {
-  if (auto *ctx = executionContext.get())
-    return ctx->noiseModel;
+  ExecutionContext *executionContext;
+  if ((executionContext = getExecutionContext()) != nullptr)
+    return executionContext->noiseModel;
 
   std::size_t qid = resolveQpuId(qpu_id);
   auto &platformQPU = platformQPUs[qid];
@@ -91,36 +93,27 @@ void quantum_platform::validateQpuId(int qpuId) const {
   }
 }
 
-std::size_t quantum_platform::get_current_qpu() const {
-  if (auto *ctx = executionContext.get())
-    return ctx->qpuId;
-  return 0;
-}
-
 std::size_t quantum_platform::resolveQpuId(QpuId qpu_id,
                                            ExecutionContext *ctx) const {
-  std::size_t qid = qpu_id.value_or(ctx ? ctx->qpuId : get_current_qpu());
+  std::size_t qid = qpu_id.value_or(ctx ? ctx->qpuId : getCurrentQpuId());
   validateQpuId(qid);
   return qid;
 }
 
 // Specify the execution context for this platform.
 // This delegates to the targeted QPU
-void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
-  executionContext.set(ctx);
-  std::size_t qid = resolveQpuId(std::nullopt, ctx);
-
+void quantum_platform::config_exec_ctx(ExecutionContext &ctx) {
+  std::size_t qid = resolveQpuId(std::nullopt, &ctx);
   auto &platformQPU = platformQPUs[qid];
-  platformQPU->setExecutionContext(ctx);
+  platformQPU->configureExecutionContext(ctx);
 }
 
 /// Reset the execution context for this platform.
-void quantum_platform::reset_exec_ctx() {
-  std::size_t qid = resolveQpuId(std::nullopt, executionContext.get());
+void quantum_platform::process_exec_results(ExecutionContext &ctx) {
+  std::size_t qid = resolveQpuId(std::nullopt, &ctx);
 
   auto &platformQPU = platformQPUs[qid];
-  platformQPU->resetExecutionContext();
-  executionContext.set(nullptr);
+  platformQPU->processExecutionResults(ctx);
 }
 
 std::optional<QubitConnectivity> quantum_platform::connectivity() {
@@ -273,33 +266,6 @@ KernelThunkResultType hybridLaunchKernel(const char *kernelName,
   }
   return platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,
                                rawArgs);
-}
-
-// Per-thread execution context storage implementation.
-// Temporary - will be removed when executionContext is eliminated.
-struct detail::PerThreadExecCtx::Impl {
-  mutable std::shared_mutex mutex;
-  std::unordered_map<std::size_t, ExecutionContext *> contexts;
-};
-
-detail::PerThreadExecCtx::PerThreadExecCtx() : impl(std::make_unique<Impl>()) {}
-
-detail::PerThreadExecCtx::~PerThreadExecCtx() = default;
-
-ExecutionContext *detail::PerThreadExecCtx::get() const {
-  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  std::shared_lock<std::shared_mutex> lock(impl->mutex);
-  auto it = impl->contexts.find(tid);
-  return it != impl->contexts.end() ? it->second : nullptr;
-}
-
-void detail::PerThreadExecCtx::set(ExecutionContext *ctx) {
-  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  std::unique_lock<std::shared_mutex> lock(impl->mutex);
-  if (ctx)
-    impl->contexts[tid] = ctx;
-  else
-    impl->contexts.erase(tid);
 }
 
 } // namespace cudaq

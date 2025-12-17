@@ -199,10 +199,7 @@ public:
   }
 
   /// Store the execution context for launchKernel
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (!context)
-      return;
-
+  void configureExecutionContext(cudaq::ExecutionContext &context) override {
     // This check ensures that a kernel is not called whilst actively being
     // used for resource counting (implying that the kernel was somehow
     // invoked from inside the choice function). This check may want to
@@ -210,22 +207,13 @@ public:
     // always fully reset, implying the end of the invocation, being being
     // set again, signaling a new invocation.
     if (nvqir::isUsingResourceCounterSimulator() &&
-        context->name != "resource-count")
+        context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    CUDAQ_INFO("Remote Rest QPU setting execution context to {}",
-               context->name);
-
-    // Execution context is valid
-    executionContext = context;
-  }
-
-  /// Reset the execution context
-  void resetExecutionContext() override {
-    // do nothing here
-    executionContext = nullptr;
+    CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
+               context.name);
   }
 
   /// @brief This setTargetBackend override is in charge of reading the
@@ -465,6 +453,8 @@ public:
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs) {
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
 
     auto [m_module, contextPtr, updatedArgs] =
         extractQuakeCodeAndContext(kernelName, kernelArgs);
@@ -820,6 +810,9 @@ public:
                     const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
+
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -842,6 +835,9 @@ public:
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
+
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -862,6 +858,8 @@ public:
 
   void completeLaunchKernel(const std::string &kernelName,
                             std::vector<cudaq::KernelExecution> &&codes) {
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
 
     // After performing lowerQuakeCode, check to see if we are simply drawing
     // the circuit. If so, perform the trace here and then return.

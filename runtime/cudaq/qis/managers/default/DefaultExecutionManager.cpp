@@ -144,7 +144,8 @@ protected:
 
   void handleExecutionContextChanged() override {
     requestedAllocations.clear();
-    simulator()->setExecutionContext(executionContext);
+    if (executionContext)
+      simulator()->configureExecutionContext(*executionContext);
   }
 
   void handleExecutionContextEnded() override {
@@ -158,7 +159,8 @@ protected:
       simulator()->allocateQubits(requestedAllocations.size());
       requestedAllocations.clear();
     }
-    simulator()->resetExecutionContext();
+    if (executionContext)
+      simulator()->processExecutionResults(*executionContext);
   }
 
   void executeInstruction(const Instruction &instruction) override {
