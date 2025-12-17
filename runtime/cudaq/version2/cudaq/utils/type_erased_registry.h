@@ -10,6 +10,8 @@
 
 #pragma once
 
+namespace cudaq {
+namespace registry {
 /// The Registry Singleton
 ///
 /// This class maintains a global registry of available implementations
@@ -44,10 +46,7 @@
 template <typename any_type, typename dispatch_table>
 class TypeErasedRegistry {
 public:
-  static TypeErasedRegistry &get() {
-    static TypeErasedRegistry i;
-    return i;
-  }
+  static TypeErasedRegistry &get();
 
   template <typename T>
   void register_type(const std::string &name) {
@@ -91,5 +90,17 @@ public:
   }
 };
 
+} // namespace registry
+} // namespace cudaq
+
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
+
+#define CUDAQ_INSTANTIATE_TYPE_ERASED_REGISTRY(REGISTRY)                       \
+  template <>                                                                  \
+  REGISTRY &REGISTRY::get() {                                                  \
+    static REGISTRY instance;                                                  \
+    return instance;                                                           \
+  }                                                                            \
+  
+  

@@ -79,7 +79,7 @@ public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
     CUDAQ_REGISTER_QPU_TYPE(DefaultQPU, default);
-    platformQPUs.emplace_back(cudaq::registry::getQPU("default"));
+    platformQPUs.emplace_back(cudaq::registry::QPURegistry::get().instantiate("default"));
     platformNumQPUs = platformQPUs.size();
   }
 
@@ -92,7 +92,7 @@ public:
     executionContext.set(nullptr);
     platformQPUs.clear();
     threadToQpuId.clear();
-    platformQPUs.emplace_back(cudaq::registry::getQPU("default"));
+    platformQPUs.emplace_back(cudaq::registry::QPURegistry::get().instantiate("default"));
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -137,7 +137,7 @@ public:
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
       threadToQpuId.clear();
-      platformQPUs.emplace_back(cudaq::registry::getQPU(qpuName));
+      platformQPUs.emplace_back(cudaq::registry::QPURegistry::get().instantiate(qpuName));
       if (platformQPUs.front() == nullptr)
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");
@@ -150,3 +150,4 @@ public:
 } // namespace
 
 CUDAQ_REGISTER_PLATFORM(DefaultQuantumPlatform, default)
+CUDAQ_REGISTER_QPU_TYPE(DefaultQPU, default);

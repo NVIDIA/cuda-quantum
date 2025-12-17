@@ -17,6 +17,8 @@
 #include <thread>
 #include <unordered_map>
 
+CUDAQ_INSTANTIATE_TYPE_ERASED_REGISTRY(cudaq::registry::QPURegistry)
+
 namespace cudaq {
 
 // These functions are defined elsewhere, but
