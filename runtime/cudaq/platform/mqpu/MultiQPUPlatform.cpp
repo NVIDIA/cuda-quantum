@@ -20,8 +20,6 @@
 #include <filesystem>
 #include <fstream>
 
-CUDAQ_INSTANTIATE_TYPE_ERASED_REGISTRY(cudaq::registry::QPURegistry)
-
 namespace {
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<std::unique_ptr<cudaq::AutoLaunchRestServerProcess>>
@@ -61,7 +59,9 @@ public:
 
         // Add a QPU for each GPU.
         for (int i = 0; i < nDevices; i++) {
-          platformQPUs.emplace_back(cudaq::registry::QPURegistry::get().instantiate("GPUEmulatedQPU"));
+          platformQPUs.emplace_back(
+              cudaq::registry::QPURegistry::get().instantiate(
+                  "GPUEmulatedQPU"));
           platformQPUs.back()->setId(i);
         }
       }
@@ -158,7 +158,8 @@ public:
         platformQPUs.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
-          platformQPUs.emplace_back(cudaq::registry::QPURegistry::get().instantiate("orca"));
+          platformQPUs.emplace_back(
+              cudaq::registry::QPURegistry::get().instantiate("orca"));
           platformQPUs.back()->setId(qId);
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
@@ -201,7 +202,8 @@ public:
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
           // Populate the information and add the QPUs
-          auto qpu = cudaq::registry::QPURegistry::get().instantiate("RemoteSimulatorQPU");
+          auto qpu = cudaq::registry::QPURegistry::get().instantiate(
+              "RemoteSimulatorQPU");
           qpu->setId(qId);
           const std::string configStr =
               fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);

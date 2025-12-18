@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "logger_lite.h"
 #include <chrono>
 
 // Be careful about fmt getting into public headers
@@ -21,14 +22,6 @@ bool isTimingTagEnabled(int tag);
 
 // Keep all spdlog headers hidden in the implementation file
 namespace details {
-// This enum must match spdlog::level enums. This is checked via static_assert
-// in Logger.cpp.
-enum class LogLevel { trace, debug, info, warn };
-bool should_log(const LogLevel logLevel);
-void trace(const std::string_view msg);
-void info(const std::string_view msg);
-void debug(const std::string_view msg);
-void warn(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
 } // namespace details
 
