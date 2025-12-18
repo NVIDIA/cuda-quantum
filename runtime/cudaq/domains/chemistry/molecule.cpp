@@ -10,7 +10,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 #include <xtensor/xadapt.hpp>
-#include <xtensor/xio.hpp>
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::MoleculePackageDriver::RegistryType)
 
@@ -38,9 +37,18 @@ std::complex<double> &one_body_integrals::operator()(std::size_t p,
 }
 
 void one_body_integrals::dump() {
-  std::cerr << xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(),
-                         shape)
-            << '\n';
+  // Manual print to avoid xio.hpp which triggers clang 17-18 template
+  // ambiguity with svector's rebind_container (LLVM #91504).
+  auto arr = xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(),
+                       shape);
+  std::cerr << "{";
+  for (std::size_t i = 0; i < shape[0]; ++i) {
+    std::cerr << (i > 0 ? " {" : "{");
+    for (std::size_t j = 0; j < shape[1]; ++j)
+      std::cerr << (j > 0 ? ", " : "") << arr(i, j);
+    std::cerr << "}" << (i + 1 < shape[0] ? ",\n" : "");
+  }
+  std::cerr << "}\n";
 }
 
 two_body_integals::two_body_integals(const std::vector<std::size_t> &shape)
@@ -59,9 +67,26 @@ std::complex<double> &two_body_integals::operator()(std::size_t p,
 }
 
 void two_body_integals::dump() {
-  std::cerr << xt::adapt(data.get(), shape[0] * shape[1] * shape[2] * shape[3],
-                         xt::no_ownership(), shape)
-            << '\n';
+  // Manual print to avoid xio.hpp which triggers clang 17-18 template
+  // ambiguity with svector's rebind_container (LLVM #91504).
+  std::size_t total = shape[0] * shape[1] * shape[2] * shape[3];
+  auto arr = xt::adapt(data.get(), total, xt::no_ownership(), shape);
+  std::cerr << "{";
+  for (std::size_t i = 0; i < shape[0]; ++i) {
+    std::cerr << (i > 0 ? " {" : "{");
+    for (std::size_t j = 0; j < shape[1]; ++j) {
+      std::cerr << (j > 0 ? " {" : "{");
+      for (std::size_t k = 0; k < shape[2]; ++k) {
+        std::cerr << (k > 0 ? " {" : "{");
+        for (std::size_t l = 0; l < shape[3]; ++l)
+          std::cerr << (l > 0 ? ", " : "") << arr(i, j, k, l);
+        std::cerr << "}" << (k + 1 < shape[2] ? "," : "");
+      }
+      std::cerr << "}" << (j + 1 < shape[1] ? "," : "");
+    }
+    std::cerr << "}" << (i + 1 < shape[0] ? ",\n" : "");
+  }
+  std::cerr << "}\n";
 }
 
 molecular_hamiltonian create_molecule(const molecular_geometry &geometry,
