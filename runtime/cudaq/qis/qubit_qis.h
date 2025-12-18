@@ -216,9 +216,8 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
                  [](const auto &q) { return qubitToQuditInfo(q); });
 
   // Apply the gate
-  getExecutionManager()->apply(gateName,
-                               std::vector<double>{static_cast<double>(angle)},
-                               controls, {qubitToQuditInfo(target)});
+  getExecutionManager()->apply(gateName, {angle}, controls,
+                               {qubitToQuditInfo(target)});
 }
 
 #define CUDAQ_QIS_PARAM_ONE_TARGET_(NAME)                                      \
