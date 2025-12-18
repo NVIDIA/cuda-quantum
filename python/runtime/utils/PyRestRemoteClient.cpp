@@ -17,15 +17,6 @@ public:
   PyRestRemoteClient() : BaseRemoteRestRuntimeClient() {}
 };
 
-/// Implementation of QPU subtype that submits simulation request to NVCF.
-/// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
-class PyNvcfRuntimeClient : public cudaq::BaseNvcfRuntimeClient {
-public:
-  /// @brief The constructor
-  PyNvcfRuntimeClient() : BaseNvcfRuntimeClient() {}
-};
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, PyRestRemoteClient, rest)
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, PyNvcfRuntimeClient, NVCF)

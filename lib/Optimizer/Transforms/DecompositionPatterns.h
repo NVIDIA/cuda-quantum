@@ -11,6 +11,8 @@
 #include "common/Registry.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/DialectConversion.h"
+#include <string>
 
 namespace mlir {
 class RewritePatternSet;
@@ -65,6 +67,41 @@ public:
   void initialize() { this->setDebugName(PatternType().getPatternName()); }
 };
 
+/// Select subset of patterns relevant to decomposing to the given target basis.
+///
+/// The result of the pattern selection are cached, so that successive calls
+/// with the same arguments will be O(1).
+///
+/// @param patterns The pattern set to add the selected patterns to
+/// @param basisGates The basis gates to decompose to
+/// @param disabledPatterns The patterns to disable
+///
+/// A subset of the decomposition patterns is selected such that:
+/// - for every gate that can be decomposed to the target basis, the sequence of
+///   decomposition to the target basis is unique.
+/// - when more than one decomposition would exist, the one that requires the
+///   fewest applications of patterns is chosen.
+/// - `disabledPatterns` are never selected
+void selectDecompositionPatterns(mlir::RewritePatternSet &patterns,
+                                 llvm::ArrayRef<std::string> targetBasis,
+                                 llvm::ArrayRef<std::string> disabledPatterns);
+
 void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
+
+/// Create a conversion target parsed from a target basis string.
+///
+/// The `targetBasis` should be made of strings of the form:
+///
+/// ```
+/// <op-name>(`(` [<number-of-controls> | `n`] `)` )?
+/// ```
+///
+/// The returned conversion target will accept operations in the MLIR dialects
+/// arith::ArithDialect, cf::ControlFlowDialect, cudaq::cc::CCDialect,
+/// func::FuncDialect, and math::MathDialect, as well as operations in the
+/// quake::QuakeDialect that appear in `targetBasis`.
+std::unique_ptr<mlir::ConversionTarget>
+createBasisTarget(mlir::MLIRContext &context,
+                  mlir::ArrayRef<std::string> targetBasis);
 
 } // namespace cudaq

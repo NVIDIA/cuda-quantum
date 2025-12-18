@@ -39,7 +39,7 @@ public:
     /// @brief The number of controls
     std::size_t nControls;
 
-    Instruction(const std::string &n) : name(n) {}
+    Instruction(const std::string &n) : name(n), nControls(0) {}
 
     /// @brief The constructor
     Instruction(const std::string &n, const size_t c) : name(n), nControls(c) {}
@@ -81,6 +81,9 @@ public:
 
   /// @brief Register the usage of an additional qubit
   void addQubit();
+
+  /// @brief Returns a dictionary mapping gate names to counts
+  std::unordered_map<std::string, std::size_t> gateCounts() const;
 
 private:
   /// @brief Map of Instructions in the current kernel to the
