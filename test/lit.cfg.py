@@ -47,13 +47,6 @@ config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
 
-# Allow to filter tests based on environment variables
-std_default = os.environ.get('CUDAQ_CPP_STD')
-if std_default is None:
-    config.substitutions.append(('%cpp_std', ''))
-else:
-    config.substitutions.append(('%cpp_std', '-std=' + std_default.lower()))
-
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
 local_excludes = ['Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt']

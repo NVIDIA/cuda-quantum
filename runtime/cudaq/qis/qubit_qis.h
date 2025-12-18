@@ -628,17 +628,10 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 
 } // namespace cudaq
 
-/// For C++20 we can't adhere to the language specification for
-/// the operation modifier type. For this case, we drop the modifier
-/// template parameter and users have access to a `cNAME` operation for
-/// single controlled operations.
 #define CUDAQ_MOD_TEMPLATE template <typename mod = base, typename... Args>
 
 namespace cudaq::details {
 
-// --------------------------
-// Useful C++20 compliant concept checks (note we re-implement
-// std::remove_cvref since its a C++20 thing)
 template <typename T>
 using remove_cvref = std::remove_cv_t<std::remove_reference_t<T>>;
 
@@ -925,7 +918,6 @@ class kraus_channel;
 
 template <unsigned len, typename A, typename... As>
 constexpr unsigned count_leading_floats() {
-  // Note: don't use remove_cvref to keep this C++20 clean.
   if constexpr (std::is_floating_point_v<
                     std::remove_cv_t<std::remove_reference_t<A>>>) {
     return count_leading_floats<len + 1, As...>();

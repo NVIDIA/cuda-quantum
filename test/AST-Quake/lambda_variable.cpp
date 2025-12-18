@@ -6,9 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// The source code in this test uses concepts, a C++20 language feature, and 
-// hence is not expected to compile as C++20. The REQUIRES line below reflects this.
-
 // RUN: cudaq-quake %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to user-defined
