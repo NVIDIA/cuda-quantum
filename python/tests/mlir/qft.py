@@ -98,4 +98,3 @@ def test_qft():
 # CHECK:           quake.h %[[VAL_60]] : (!quake.ref) -> ()
 # CHECK:           return
 # CHECK:         }
-
