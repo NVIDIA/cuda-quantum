@@ -8,7 +8,6 @@
 
 // RUN: nvq++ %cpp_std -v %s -o %t --target quantinuum --emulate && %t | FileCheck %s
 // RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
-// XFAIL: *
 
 #include <cudaq.h>
 #include <iostream>
