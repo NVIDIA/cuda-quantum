@@ -97,7 +97,6 @@ def test_conditional_on_vars():
 
     print(test6)
 
-
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test6
     # CHECK-SAME: qubitMeasurementFeedback = true
 

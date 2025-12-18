@@ -26,7 +26,7 @@ def translate(kernel, *args, format="qir:0.1"):
     Note: Translating functions with arguments to OpenQASM 2.0 is not supported.
 
     Returns:
-      The UTF-8 encoded string of the circuit, without measurement operations.
+      The `UTF-8` encoded string of the circuit, without measurement operations.
 
     .. code-block:: python
 
@@ -41,8 +41,8 @@ def translate(kernel, *args, format="qir:0.1"):
       print(cudaq.translate(bell_pair, `format="qir"`))
     
       # Output
-      ; ModuleID = 'LLVMDialectModule'
-      source_filename = 'LLVMDialectModule'
+      `; ModuleID = 'LLVMDialectModule'`
+      `source_filename = 'LLVMDialectModule'`
     
       %Array = type opaque
       %Result = type opaque

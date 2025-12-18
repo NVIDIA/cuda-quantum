@@ -26,6 +26,7 @@ def test_bell_pair():
 
     print(bell)
 
+
 def test_custom_adjoint():
 
     cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))

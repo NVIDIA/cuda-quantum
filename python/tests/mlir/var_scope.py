@@ -42,6 +42,7 @@ def test_variable_name():
 
     print(slice)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice
 # CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64

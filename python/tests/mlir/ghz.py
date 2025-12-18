@@ -31,7 +31,7 @@ def test_ghz():
 
     print(simple)
 
-    
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghz..
 # CHECK-SAME:      %[[VAL_0:.*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64

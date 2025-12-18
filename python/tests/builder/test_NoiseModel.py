@@ -622,12 +622,14 @@ def test_apply_noise_custom():
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def testbad():
             q = cudaq.qubit()
             x(q)
             # can pass as standard arguments
             cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
+
         cudaq.sample(testbad)
 
     @cudaq.kernel

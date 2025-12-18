@@ -5024,6 +5024,7 @@ class PyASTBridge(ast.NodeVisitor):
 
         # FIXME: Refactor. The following error messages are all the same with
 
+
 # minor variation.
         if issubclass(nodeType, ast.LShift):
             if IntegerType.isinstance(left.type):

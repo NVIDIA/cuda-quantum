@@ -26,6 +26,7 @@ def test_control_kernel():
 
     print(reflect)
 
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__reflect
 # CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
 # CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
@@ -143,4 +144,3 @@ def test_control_kernel():
 # CHECK:           } {invariant}
 # CHECK:           return
 # CHECK:         }
-

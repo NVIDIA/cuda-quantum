@@ -434,6 +434,7 @@ def test_kernel_error_invalid_array_size():
     cudaq.reset_target()
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel():
             qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
@@ -447,6 +448,7 @@ def test_kernel_error_invalid_list_size():
     cudaq.reset_target()
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel():
             qubits = cudaq.qvector([1., 0., 0.])

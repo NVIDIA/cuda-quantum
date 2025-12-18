@@ -92,6 +92,7 @@ def test_run_with_integer_left_shift_operator():
 def test_run_with_non_integer_left_shift_operator():
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel(n: int) -> int:
             q = cudaq.qvector(n)

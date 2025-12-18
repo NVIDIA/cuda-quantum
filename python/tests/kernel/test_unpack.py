@@ -86,6 +86,7 @@ def test_qubit_list():
 def test_list_creation_failures():
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel1():
             q = cudaq.qubit()
@@ -96,6 +97,7 @@ def test_list_creation_failures():
     assert "non-homogenous list not allowed" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel2():
             cs, q = cudaq.qvector(2), cudaq.qubit()
@@ -107,6 +109,7 @@ def test_list_creation_failures():
     assert "offending source -> [cs, q]" in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel3():
             t = cudaq.qvector(2), cudaq.qubit()
@@ -120,6 +123,7 @@ def test_list_creation_failures():
     # Unpack is currently only supported for qvectors:
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel4() -> int:
             l1, l2 = [1, 2], [3, 4]
