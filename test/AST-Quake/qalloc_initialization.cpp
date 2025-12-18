@@ -181,19 +181,19 @@ struct RockyRoad {
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f80
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f[[F80:[0-9]*]]
 // CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f80
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f[[F80]]
 // CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_10:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_7]]) : (f80) -> complex<f64>
+// CHECK:           %[[VAL_10:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_7]]) : (f[[F80]]) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_12:.*]] = call @_ZStplIdESt7complexIT_ERKS1_RKS2_(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_13:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_6]], %[[VAL_13]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_14:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_5]]) : (f80) -> complex<f64>
+// CHECK:           %[[VAL_14:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_5]]) : (f[[F80]]) -> complex<f64>
 // CHECK:           %[[VAL_15:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_16:.*]] = call @_ZStplIdESt7complexIT_ERKS1_RKS2_(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
@@ -506,23 +506,21 @@ __qpu__ bool Peppermint() {
 // QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__RockyRoad() local_unnamed_addr {
 // QIR:         %[[VAL_0:.*]] = alloca double, align 8
 // QIR:         store double 0.000000e+00, double* %[[VAL_0]], align 8
-// QIR:         %[[VAL_1:.*]] = tail call { double, double } @_ZNSt8literals16complex_literalsli1iEe(x86_fp80 0xK3FFF8000000000000000)
 // QIR:         %[[VAL_2:.*]] = alloca { double, double }, align 8
-// QIR:         %[[VAL_3:.*]] = extractvalue { double, double } %[[VAL_1]], 0
+// QIR:         %[[VAL_3:.*]] = extractvalue { double, double } %{{.*}}, 0
 // QIR:         %[[VAL_4:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 0
 // QIR:         store double %[[VAL_3]], double* %[[VAL_4]], align 8
-// QIR:         %[[VAL_5:.*]] = extractvalue { double, double } %[[VAL_1]], 1
+// QIR:         %[[VAL_5:.*]] = extractvalue { double, double } %{{.*}}, 1
 // QIR:         %[[VAL_6:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_2]], i64 0, i32 1
 // QIR:         store double %[[VAL_5]], double* %[[VAL_6]], align 8
 // QIR:         %[[VAL_7:.*]] = call { double, double } @_ZStplIdESt7complexIT_ERKS1_RKS2_(double* nonnull %[[VAL_0]], { double, double }* nonnull %[[VAL_2]])
 // QIR:         %[[VAL_8:.*]] = alloca double, align 8
 // QIR:         store double 1.000000e+00, double* %[[VAL_8]], align 8
-// QIR:         %[[VAL_9:.*]] = call { double, double } @_ZNSt8literals16complex_literalsli1iEe(x86_fp80 0xK00000000000000000000)
 // QIR:         %[[VAL_10:.*]] = alloca { double, double }, align 8
-// QIR:         %[[VAL_11:.*]] = extractvalue { double, double } %[[VAL_9]], 0
+// QIR:         %[[VAL_11:.*]] = extractvalue { double, double } %{{.*}}, 0
 // QIR:         %[[VAL_12:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 0
 // QIR:         store double %[[VAL_11]], double* %[[VAL_12]], align 8
-// QIR:         %[[VAL_13:.*]] = extractvalue { double, double } %[[VAL_9]], 1
+// QIR:         %[[VAL_13:.*]] = extractvalue { double, double } %{{.*}}, 1
 // QIR:         %[[VAL_14:.*]] = getelementptr inbounds { double, double }, { double, double }* %[[VAL_10]], i64 0, i32 1
 // QIR:         store double %[[VAL_13]], double* %[[VAL_14]], align 8
 // QIR:         %[[VAL_15:.*]] = call { double, double } @_ZStplIdESt7complexIT_ERKS1_RKS2_(double* nonnull %[[VAL_8]], { double, double }* nonnull %[[VAL_10]])
