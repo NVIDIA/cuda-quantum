@@ -24,7 +24,7 @@
 namespace mlir {
 class MLIRContext;
 class Operation;
-}
+} // namespace mlir
 
 namespace cudaq {
 class ExecutionContext;
@@ -113,7 +113,7 @@ public:
               const void *kernelArgs, std::uint64_t argsSize,
               std::string *optionalErrorMsg = nullptr,
               const std::vector<void *> *rawArgs = nullptr,
-              mlir::Operation* prefabMod = nullptr) = 0;
+              mlir::Operation *prefabMod = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;
 };

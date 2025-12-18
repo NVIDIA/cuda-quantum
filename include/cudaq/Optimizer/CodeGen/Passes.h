@@ -112,7 +112,7 @@ void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
 /// Python kernel decorators to `Open QASM` format. While this pipeline is
 /// almost exclusively Quake transformations, there is one pass
 /// (`createQaukeToCCPrep`) that uses patterns from here in `codegen`. Therefore
-/// this pipeline is defined in codegen to avoid circular dependences. (Note:
+/// this pipeline is defined in `codegen` to avoid circular dependences. (Note:
 /// this pipeline is not registered.)
 void createPipelineTransformsForPythonToOpenQASM(mlir::OpPassManager &pm);
 
