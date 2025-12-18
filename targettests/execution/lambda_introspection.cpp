@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ -std=c++20 --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// RUN: if [ $(echo | cut -c4- ) -ge 20 ]; then \
 // RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
 // RUN: fi
 

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
 // clang-format on
 
 #include <algorithm>

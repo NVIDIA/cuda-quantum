@@ -9,7 +9,7 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ %cpp_std --target stim -c %t/gke-1.cpp \
+// RUN: nvq++ --target stim -c %t/gke-1.cpp \
 // RUN:   %t/gke-2.cpp -o %t/gke.out && %t/gke.out ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on

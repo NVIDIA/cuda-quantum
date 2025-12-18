@@ -8,7 +8,7 @@
 
 // Test for std::vector support
 
-// RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cstdio>
 #include <cudaq.h>

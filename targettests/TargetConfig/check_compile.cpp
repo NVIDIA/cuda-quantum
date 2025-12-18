@@ -9,8 +9,8 @@
 // REQUIRES: c++20
 // Check that we can compile all the targets
 // i.e., all the config files are valid.
-// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ %cpp_std --library-mode --target ${target} %s; done
-// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ %cpp_std --enable-mlir --target ${target} %s; done
+// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ --library-mode --target ${target} %s; done
+// RUN: for target in $(nvq++ --list-targets); do echo "Testing target: ${target}"; nvq++ --enable-mlir --target ${target} %s; done
 
 #include "cudaq.h"
 

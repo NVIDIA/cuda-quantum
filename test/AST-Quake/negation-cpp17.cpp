@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
 

@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
 // clang-format on
 

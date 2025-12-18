@@ -10,7 +10,7 @@
 // hence is not expected to compile as C++20. The REQUIRES line below reflects this.
 
 // REQUIRES: c++20
-// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to user-defined
 // kernels as an argument. Since the lambda is an argument, it is not possible

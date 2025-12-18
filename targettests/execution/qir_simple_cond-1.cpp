@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target stim --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target stim --enable-mlir %s -o %t && %t | FileCheck %s
 // RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
 // clang-format on
 

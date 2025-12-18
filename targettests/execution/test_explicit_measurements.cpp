@@ -13,7 +13,7 @@
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL ; fi
 // RUN: nvq++ --target infleqtion --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target ionq       --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
-// RUN: nvq++ %cpp_std --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: nvq++ --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target oqc        --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 // clang-format on

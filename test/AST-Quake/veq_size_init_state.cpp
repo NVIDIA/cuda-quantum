@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --canonicalize --cc-loop-normalize --cc-loop-unroll | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --canonicalize --cc-loop-normalize --cc-loop-unroll | FileCheck %s
 
 #include <cudaq.h>
 

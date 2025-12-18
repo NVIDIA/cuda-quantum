@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --target anyon --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s
 
 #include "mid_circuit_measurement.inc"
 

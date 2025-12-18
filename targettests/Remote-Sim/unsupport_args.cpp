@@ -9,7 +9,7 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target remote-mqpu %s |& FileCheck %s
+// RUN: nvq++ --target remote-mqpu %s |& FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

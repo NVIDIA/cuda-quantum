@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
+// RUN: nvq++ --enable-mlir %s -o %t && %t
 
 // The test here is the assert statement.
 

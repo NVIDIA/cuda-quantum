@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | grep lookhere | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t && %t | grep lookhere | FileCheck %s
 
 #include <iostream>
 #include <cudaq.h>

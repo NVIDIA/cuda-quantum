@@ -7,15 +7,15 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.txt
+// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s && FileCheck --check-prefix=QUAKE %s < %t.txt
 // backward compatible way to define the QPU architecture already at compile time
-// RUN: nvq++ %cpp_std %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
+// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
 // selecting the QPU architecture at runtime allows using the same binary for all architectures
-// RUN: nvq++ %cpp_std %s -o %t --target iqm --emulate
+// RUN: nvq++ %s -o %t --target iqm --emulate
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t | FileCheck %s
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t
+// RUN: nvq++ --enable-mlir %s -o %t
 // RUN: rm -f %t.txt
 
 #include <cudaq.h>

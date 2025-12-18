@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify %s -o /dev/null
+// RUN: cudaq-quake -verify %s -o /dev/null
 
 #include <cudaq.h>
 #include <set>

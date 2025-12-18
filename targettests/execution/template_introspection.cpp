@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 

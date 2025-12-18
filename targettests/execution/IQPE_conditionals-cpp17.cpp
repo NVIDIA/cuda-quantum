@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // REQUIRES: c++20
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 

@@ -8,8 +8,8 @@
 
 // REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t --target ionq --emulate && %t | FileCheck --check-prefix=IONQ %s
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && %t | FileCheck --check-prefix=OQC %s
+// RUN: nvq++ %s -o %t --target ionq --emulate && %t | FileCheck --check-prefix=IONQ %s
+// RUN: nvq++ %s -o %t --target oqc --emulate && %t | FileCheck --check-prefix=OQC %s
 // clang-format on
 
 #include <cudaq.h>
