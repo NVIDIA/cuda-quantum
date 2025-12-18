@@ -54,6 +54,6 @@ target_link_libraries(test_quake_synth
   cudaq-em-default
   gtest_main)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quake_synth PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_quake_synth PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 gtest_discover_tests(test_quake_synth)

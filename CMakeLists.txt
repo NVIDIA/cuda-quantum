@@ -218,6 +218,14 @@ if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
   SET(OPENSSL_USE_STATIC_LIBS TRUE)
 endif()
 
+# Platform-specific linker flags
+# --no-as-needed forces linking of all specified libraries (GNU ld only, not available on Apple)
+if(NOT APPLE)
+  set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
+else()
+  set(CUDAQ_FORCE_LINK_FLAG "")
+endif()
+
 if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
   SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
 endif()

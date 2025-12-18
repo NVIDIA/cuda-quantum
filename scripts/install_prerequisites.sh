@@ -188,23 +188,31 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     echo "Installing libz and minizip..."
 
     if [ "$(uname)" = "Darwin" ]; then
-      # On macOS, use Homebrew (building from source has SDK header conflicts)
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib minizip
+      # On macOS:
+      # - zlib from Homebrew: building from source fails due to SDK header conflicts
+      #   (fdopen macro in zutil.h conflicts with system stdio.h declarations)
+      # - minizip from source: Homebrew's archive contains nested libz.a which linker rejects
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib automake libtool
       zlib_prefix="$(brew --prefix zlib)"
-      minizip_prefix="$(brew --prefix minizip)"
       mkdir -p "$ZLIB_INSTALL_PREFIX/lib" "$ZLIB_INSTALL_PREFIX/include"
       cp "$zlib_prefix/lib/libz.a" "$ZLIB_INSTALL_PREFIX/lib/"
       cp "$zlib_prefix/include/"*.h "$ZLIB_INSTALL_PREFIX/include/"
-      cp "$minizip_prefix/lib/libminizip.a" "$ZLIB_INSTALL_PREFIX/lib/"
-      cp -r "$minizip_prefix/include/minizip" "$ZLIB_INSTALL_PREFIX/include/"
+      # Build minizip from zlib source
+      curl -L -o zlib-1.3.tar.gz https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
+      tar -xzf zlib-1.3.tar.gz && cd zlib-1.3/contrib/minizip
+      autoreconf --install
+      CC="$CC" CFLAGS="-fPIC -I$ZLIB_INSTALL_PREFIX/include" LDFLAGS="-L$ZLIB_INSTALL_PREFIX/lib" \
+      ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
+      make CC="$CC" && make install
+      cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
     else
       temp_install_if_command_unknown wget wget
       temp_install_if_command_unknown make make
       temp_install_if_command_unknown automake automake
       temp_install_if_command_unknown libtool libtool
 
-      wget https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
-      tar -xzvf zlib-1.3.tar.gz && cd zlib-1.3
+      curl -L -o zlib-1.3.tar.gz https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
+      tar -xzf zlib-1.3.tar.gz && cd zlib-1.3
       CC="$CC" CFLAGS="-fPIC" \
       ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
       make CC="$CC" && make install
