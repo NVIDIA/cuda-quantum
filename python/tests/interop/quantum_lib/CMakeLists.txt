@@ -24,5 +24,5 @@ target_include_directories(quantum_lib
 )
 
 add_dependencies(quantum_lib
-  nvq++ cudaq-opt cudaq-quake cudaq-translate
+  nvq++ cudaq-opt cudaq-quake cudaq-translate cudaq-target-conf fixup-linkage
 )
