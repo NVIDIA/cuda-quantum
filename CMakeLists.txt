@@ -226,6 +226,16 @@ else()
   set(CUDAQ_FORCE_LINK_FLAG "")
 endif()
 
+# On macOS, detect the SDK path (used later for C++ stdlib headers if needed)
+if(APPLE)
+  execute_process(
+    COMMAND xcrun --show-sdk-path
+    OUTPUT_VARIABLE CUDAQ_MACOS_SDK_PATH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+endif()
+
 if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
   SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
 endif()
@@ -361,6 +371,22 @@ endif()
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+
+# Detect C++ standard library headers for cudaq-quake
+# Check if LLVM was built with libc++ headers
+set(CUDAQ_LIBCXX_PATH "${LLVM_BINARY_DIR}/include/c++/v1")
+if(EXISTS "${CUDAQ_LIBCXX_PATH}")
+  message(STATUS "Using LLVM libc++ headers: ${CUDAQ_LIBCXX_PATH}")
+  set(CUDAQ_LIBCXX_TARGET_PATH "${LLVM_BINARY_DIR}/include/${LLVM_DEFAULT_TARGET_TRIPLE}/c++/v1")
+elseif(APPLE AND CUDAQ_MACOS_SDK_PATH)
+  # On macOS without LLVM libc++, use the SDK sysroot
+  message(STATUS "Using macOS SDK for C++ headers: ${CUDAQ_MACOS_SDK_PATH}")
+  set(CUDAQ_SYSROOT_PATH "${CUDAQ_MACOS_SDK_PATH}")
+  unset(CUDAQ_LIBCXX_PATH)
+else()
+  # On Linux, system headers are found automatically
+  unset(CUDAQ_LIBCXX_PATH)
+endif()
 
 set(LLVM_RUNTIME_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/bin)
 set(LLVM_LIBRARY_OUTPUT_INTDIR ${CMAKE_BINARY_DIR}/lib)
