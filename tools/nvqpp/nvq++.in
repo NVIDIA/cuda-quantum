@@ -835,7 +835,8 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
+	# Use -nostdlib++ since libc++ runtime is not available on macOS when LLVM is built without runtimes
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -nostdlib++ -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
