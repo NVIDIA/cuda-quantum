@@ -27,7 +27,7 @@ namespace registry {
 ///   std::function<std::shared_ptr<void>()> create;
 ///   std::function<void(void *, std::size_t)> setId;
 ///
-///   template <typename T>
+///   template <`typename` T>
 ///   void build() {
 ///     create = []() { return std::make_shared<T>(); };
 ///     setId = [](void *i, std::size_t id) { static_cast<T *>(i)->setId(id); };
@@ -36,12 +36,12 @@ namespace registry {
 ///
 /// class any_qpu {
 ///   std::shared_ptr<void> m_instance;
-///   qpu_dispatch_table const *const m_vtable;
+///   qpu_dispatch_table `const` *`const` m_vtable;
 ///
 /// public:
 ///   any_qpu(std::shared_ptr<void> instance,
-///           const details::qpu_dispatch_table *vtable)
-///       : m_instance(instance), m_vtable(vtable) {}
+///           `const` details::qpu_dispatch_table *`vtable`)
+///       : m_instance(instance), m_vtable(`vtable`) {}
 ///   void setId(std::size_t id) { m_vtable->setId(m_instance.get(), id); }
 /// };
 ///
