@@ -21,7 +21,7 @@ dependencies = [
   'custatevec-cu12 ~= 1.10',
   'cutensornet-cu12 ~= 2.9',
   'cudensitymat-cu12 ~= 0.3',
-  'numpy >= 1.24',
+  'numpy < 2.0',
   'scipy >= 1.10.1',
   'requests >= 2.31',
   'nvidia-cublas-cu12 ~= 12.0',
