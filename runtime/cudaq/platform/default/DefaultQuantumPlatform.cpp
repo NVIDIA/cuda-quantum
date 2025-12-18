@@ -80,6 +80,7 @@ public:
   /// variable, and if found, will change from the DefaultQPU to the QPU subtype
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
+    executionContext.set(nullptr);
     platformQPUs.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 

@@ -241,8 +241,9 @@ KernelThunkResultType altLaunchKernel(const char *kernelName,
   ScopedTraceWithContext("altLaunchKernel", kernelName, argsSize);
   auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
+  std::size_t qpu_id = platform.get_current_qpu();
   return platform.launchKernel(kernName, kernelFunc, kernelArgs, argsSize,
-                               resultOffset, {});
+                               resultOffset, {}, qpu_id);
 }
 
 KernelThunkResultType
@@ -252,7 +253,8 @@ streamlinedLaunchKernel(const char *kernelName,
   ScopedTraceWithContext("streamlinedLaunchKernel", kernelName, argsSize);
   auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
-  platform.launchKernel(kernName, rawArgs);
+  std::size_t qpu_id = platform.get_current_qpu();
+  platform.launchKernel(kernName, rawArgs, qpu_id);
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
@@ -266,13 +268,14 @@ KernelThunkResultType hybridLaunchKernel(const char *kernelName,
   ScopedTraceWithContext("hybridLaunchKernel", kernelName);
   auto &platform = *getQuantumPlatformInternal();
   const std::string kernName = kernelName;
+  std::size_t qpu_id = platform.get_current_qpu();
   if (platform.is_remote()) {
     // This path should never call a kernel that returns results.
-    platform.launchKernel(kernName, rawArgs);
+    platform.launchKernel(kernName, rawArgs, qpu_id);
     return {};
   }
   return platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,
-                               rawArgs);
+                               rawArgs, qpu_id);
 }
 
 // Per-thread execution context storage implementation.
