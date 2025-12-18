@@ -149,7 +149,8 @@ else
 fi
 
 # Determine linker and linker flags
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+# On macOS, always use the system linker (Apple's ld) as -fuse-ld=lld doesn't work with Apple clang
+if [ "$(uname)" != "Darwin" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
   LINKER_TO_USE="lld"
@@ -159,7 +160,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
-  echo "No lld linker detected. Using the system linker."
+  echo "Using the system linker."
   LINKER_FLAG_LIST=""
 fi
 

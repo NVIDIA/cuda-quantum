@@ -352,7 +352,8 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
       --enable-shared=no --enable-static=yes \
       --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
       --without-ca-bundle --without-ca-path \
-      --without-zstd --without-brotli \
+      --without-zstd --without-brotli --without-nghttp2 --without-libidn2 \
+      --without-libpsl --without-libssh2 --without-librtmp --disable-ares \
       --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
       --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
       --disable-pop3 --disable-imap --disable-file  --disable-dict \
