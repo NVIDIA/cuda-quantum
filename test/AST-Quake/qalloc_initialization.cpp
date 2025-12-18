@@ -25,12 +25,12 @@ struct Vanilla {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Vanilla() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<f64>
@@ -60,12 +60,12 @@ struct VanillaBean {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__VanillaBean() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = cc.alloca !cc.array<f64 x 4>
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<f64 x 4>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_2]], %[[VAL_7]] : !cc.ptr<f64>
@@ -97,14 +97,14 @@ struct Cherry {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Cherry() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_2:.*]] = complex.constant [6.000000e-01, 4.000000e-01] : complex<f64>
-// CHECK:           %[[VAL_3:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_4:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_5:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_6:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.array<complex<f64> x 4>
+// CHECK-DAG:       %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = complex.constant [6.000000e-01, 4.000000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_3:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_7:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_9]] : !cc.ptr<complex<f64>>
@@ -137,14 +137,14 @@ struct MooseTracks {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__MooseTracks() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_2:.*]] = complex.constant [7.500000e-01, 2.500000e-01] : complex<f64>
-// CHECK:           %[[VAL_3:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_4:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_5:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_6:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_7:.*]] = cc.alloca !cc.array<complex<f64> x 4>
+// CHECK-DAG:       %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [1.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = complex.constant [7.500000e-01, 2.500000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_3:.*]] = complex.constant [0.000000e+00, 1.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_7:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_9]] : !cc.ptr<complex<f64>>
@@ -176,16 +176,16 @@ struct RockyRoad {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__RockyRoad() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
-// CHECK:           %[[VAL_1:.*]] = complex.constant [8.000000e-01, 2.000000e-01] : complex<f64>
-// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f80
-// CHECK:           %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f80
-// CHECK:           %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_9:.*]] = cc.alloca f64
+// CHECK-DAG:       %[[VAL_0:.*]] = complex.constant [0.000000e+00, 0.000000e+00] : complex<f64>
+// CHECK-DAG:       %[[VAL_1:.*]] = complex.constant [8.000000e-01, 2.000000e-01] : complex<f64>
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f80
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f80
+// CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_10:.*]] = call @_ZNSt8literals16complex_literalsli1iEe(%[[VAL_7]]) : (f80) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
@@ -229,9 +229,9 @@ struct Pistachio {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Pistachio() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 8 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = call @_Z15getTwoTimesRankv() : () -> !cc.stdvec<f64>
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<f64>) -> i64
@@ -261,9 +261,9 @@ struct ChocolateMint {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ChocolateMint() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 8 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 8 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = call @_Z15getTwoTimesRankv() : () -> !cc.stdvec<f64>
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<f64>) -> i64
@@ -295,9 +295,9 @@ struct Neapolitan {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Neapolitan() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 16 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = call @_Z14getComplexInitv() : () -> !cc.stdvec<complex<f64>>
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> i64
@@ -327,9 +327,9 @@ struct ButterPecan {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ButterPecan() -> !cc.stdvec<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 16 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 16 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_3:.*]] = call @_Z14getComplexInitv() : () -> !cc.stdvec<complex<f64>>
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<complex<f64>>) -> i64
@@ -356,9 +356,9 @@ __qpu__ auto Strawberry() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Strawberry._Z10Strawberryv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0.000000e+00 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_3:.*]] = cc.alloca !cc.array<f64 x 2>
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
@@ -391,9 +391,9 @@ __qpu__ bool Peppermint() {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_Peppermint._Z10Peppermintv() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0.70710678118654757 : f64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_2:.*]] = cc.alloca !cc.array<f64 x 2>
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0.70710678118654757 : f64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = cc.alloca !cc.array<f64 x 2>
 // CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<!cc.array<f64 x ?>>
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<!cc.array<f64 x 2>>) -> !cc.ptr<f64>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_4]] : !cc.ptr<f64>
