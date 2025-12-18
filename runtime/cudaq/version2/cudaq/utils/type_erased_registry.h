@@ -5,6 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+#include "common/logger_lite.h"
+#include "iostream"
 #include <memory>
 #include <unordered_map>
 
@@ -64,6 +66,9 @@ public:
   }
 
   bool is_registered(const std::string &name) {
+    CUDAQ_DBG_LITE(std::cout << "Queried about type " << name
+                             << " with registry at address " << std::hex
+                             << &get() << std::endl;);
     return m_dispatch_tables.find(name) != m_dispatch_tables.end();
   }
 
@@ -87,6 +92,9 @@ class TypeErasedRegistrar {
 public:
   TypeErasedRegistrar(const std::string &name) {
     Registry::get().template register_type<actual_type>(name);
+    CUDAQ_DBG_LITE(std::cout << "Registered type " << name
+                             << " with registry at address " << std::hex
+                             << &Registry::get() << std::endl;);
   }
 };
 
