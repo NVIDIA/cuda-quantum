@@ -10,7 +10,7 @@
 // RUN: nvq++ -v %s -o %t --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s
 // RUN: nvq++ -v %s -o %t --target ionq --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,IONQ %s
 // RUN: if %qci_avail; then nvq++ -v %s -o %t --target qci --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s; fi
-// RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
+// RUN: nvq++ --enable-mlir %s -o %t
 // clang-format on
 
 // Note: iqm (and others) that don't use QIR should not be included in this test.

@@ -9,7 +9,7 @@
 // Note: change |& to 2>&1| if running in bash
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t |& FileCheck %s
 // RUN: nvq++ %s -o %t --target oqc --emulate && %t |& FileCheck %s
-// RUN: nvq++ -std=c++20 --enable-mlir %s -o %t
+// RUN: nvq++ --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>

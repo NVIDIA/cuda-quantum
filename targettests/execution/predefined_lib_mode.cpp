@@ -7,7 +7,7 @@
  ******************************************************************************/
 // clang-format off
 // RUN: nvq++ -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -std=c++20 --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t
+// RUN: nvq++ --enable-mlir -DTEST_DEF -DMY_VAR=\"CUDAQ\" %s -o %t
 // clang-format on
 
 #include <iostream>
