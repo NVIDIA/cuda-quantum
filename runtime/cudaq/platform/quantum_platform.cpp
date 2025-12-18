@@ -12,7 +12,10 @@
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
 #include <iostream>
+#include <shared_mutex>
 #include <string>
+#include <thread>
+#include <unordered_map>
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
@@ -48,8 +51,8 @@ void quantum_platform::set_noise(const noise_model *model, QpuId qpu_id) {
 }
 
 const noise_model *quantum_platform::get_noise(QpuId qpu_id) {
-  if (executionContext)
-    return executionContext->noiseModel;
+  if (auto *ctx = executionContext.get())
+    return ctx->noiseModel;
 
   std::size_t qid = resolveQpuId(qpu_id);
   auto &platformQPU = platformQPUs[qid];
@@ -89,8 +92,8 @@ void quantum_platform::validateQpuId(int qpuId) const {
 }
 
 std::size_t quantum_platform::get_current_qpu() const {
-  if (executionContext)
-    return executionContext->qpuId;
+  if (auto *ctx = executionContext.get())
+    return ctx->qpuId;
   return 0;
 }
 
@@ -104,8 +107,8 @@ std::size_t quantum_platform::resolveQpuId(QpuId qpu_id,
 // Specify the execution context for this platform.
 // This delegates to the targeted QPU
 void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
-  executionContext = ctx;
-  std::size_t qid = resolveQpuId(std::nullopt, executionContext);
+  executionContext.set(ctx);
+  std::size_t qid = resolveQpuId(std::nullopt, ctx);
 
   auto &platformQPU = platformQPUs[qid];
   platformQPU->setExecutionContext(ctx);
@@ -113,11 +116,11 @@ void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
 
 /// Reset the execution context for this platform.
 void quantum_platform::reset_exec_ctx() {
-  std::size_t qid = resolveQpuId(std::nullopt, executionContext);
+  std::size_t qid = resolveQpuId(std::nullopt, executionContext.get());
 
   auto &platformQPU = platformQPUs[qid];
   platformQPU->resetExecutionContext();
-  executionContext = nullptr;
+  executionContext.set(nullptr);
 }
 
 std::optional<QubitConnectivity> quantum_platform::connectivity() {
@@ -255,20 +258,48 @@ streamlinedLaunchKernel(const char *kernelName,
   return {};
 }
 
-KernelThunkResultType
-hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
-                   std::uint64_t argsSize, std::uint64_t resultOffset,
-                   const std::vector<void *> &rawArgs, QpuId qpu_id) {
+KernelThunkResultType hybridLaunchKernel(const char *kernelName,
+                                         KernelThunkType kernel, void *args,
+                                         std::uint64_t argsSize,
+                                         std::uint64_t resultOffset,
+                                         const std::vector<void *> &rawArgs) {
   ScopedTraceWithContext("hybridLaunchKernel", kernelName);
   auto &platform = *getQuantumPlatformInternal();
   const std::string kernName = kernelName;
-  if (platform.is_remote(qpu_id)) {
+  if (platform.is_remote()) {
     // This path should never call a kernel that returns results.
     platform.launchKernel(kernName, rawArgs);
     return {};
   }
   return platform.launchKernel(kernName, kernel, args, argsSize, resultOffset,
                                rawArgs);
+}
+
+// Per-thread execution context storage implementation.
+// Temporary - will be removed when executionContext is eliminated.
+struct detail::PerThreadExecCtx::Impl {
+  mutable std::shared_mutex mutex;
+  std::unordered_map<std::size_t, ExecutionContext *> contexts;
+};
+
+detail::PerThreadExecCtx::PerThreadExecCtx() : impl(std::make_unique<Impl>()) {}
+
+detail::PerThreadExecCtx::~PerThreadExecCtx() = default;
+
+ExecutionContext *detail::PerThreadExecCtx::get() const {
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  std::shared_lock<std::shared_mutex> lock(impl->mutex);
+  auto it = impl->contexts.find(tid);
+  return it != impl->contexts.end() ? it->second : nullptr;
+}
+
+void detail::PerThreadExecCtx::set(ExecutionContext *ctx) {
+  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
+  std::unique_lock<std::shared_mutex> lock(impl->mutex);
+  if (ctx)
+    impl->contexts[tid] = ctx;
+  else
+    impl->contexts.erase(tid);
 }
 
 } // namespace cudaq
