@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-// REQUIRES: c++20
 
 // clang-format off
 // TODO-FIX-KERNEL-EXEC

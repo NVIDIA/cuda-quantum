@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
