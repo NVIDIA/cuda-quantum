@@ -24,11 +24,11 @@ def get_state(kernel, *args):
     .. code-block:: python
 
       # Example:
-      import numpy as np
+      `import numpy as np`
 
       # Define a kernel that will produced the all |11...1> state.
       kernel = cudaq.make_kernel()
-      qubits = kernel.qalloc(3)
+      `qubits = kernel.qalloc(3)`
       # Prepare qubits in the 1-state.
       kernel.x(qubits)
 
@@ -64,7 +64,7 @@ def get_state_async(kernel, *args, qpu_id=0):
       kernel (:class:`Kernel`): The :class:`Kernel` to execute on the QPU.
       *arguments (Optional[Any]): The concrete values to evaluate the kernel 
           function at. Leave empty if the kernel doesn't accept any arguments.
-      qpu_id (Optional[int]): The optional identification for which QPU 
+      `qpu_id` (Optional[int]): The optional identification for which QPU 
           on the platform to target. Defaults to zero. Key-word only.
 
     Returns:

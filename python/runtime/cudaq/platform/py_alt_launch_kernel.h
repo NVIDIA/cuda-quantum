@@ -42,7 +42,7 @@ void bindAltLaunchKernel(py::module &mod, std::function<std::string()> &&);
 
 /// Launch the kernel \p kernelName from module \p module. \p runtimeArgs are
 /// the python arguments to the kernel. Pre-condition: all arguments must be
-/// resolved at this callsite \e prior to launching this module. In particular
+/// resolved at this `callsite` \e prior to launching this module. In particular
 /// this means \p module is ready for beta reduction of callables. If the kernel
 /// has a result, it has type \p returnType. \p module must be modifiable.
 py::object marshal_and_launch_module(const std::string &kernelName,

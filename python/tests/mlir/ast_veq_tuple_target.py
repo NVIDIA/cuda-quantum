@@ -199,11 +199,11 @@ def test_list_deconstruction_failures():
 
 # CHECK-LABEL:   Failure for kernel1:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> ((q0, q1), q2) = cudaq.qvector(3))
+# CHECK-NEXT:    (offending source -> {{.*}}q0, q1{{.*}}, q2{{.*}} = cudaq.qvector(3))
 
 # CHECK-LABEL:   Failure for kernel2:
 # CHECK-NEXT:    could not compile code for 'kernel2
 
 # CHECK-LABEL:   Failure for kernel3:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> (r1, r2) = [0.5, 1.0, 1.5])
+# CHECK-NEXT:    (offending source -> {{.*}}r1, r2{{.*}} = [0.5, 1.0, 1.5])

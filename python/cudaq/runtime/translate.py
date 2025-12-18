@@ -12,11 +12,11 @@ from cudaq.kernel.kernel_decorator import isa_kernel_decorator
 
 def translate(kernel, *args, format="qir:0.1"):
     """
-    Return a UTF-8 encoded string representing drawing of the execution path,
+    Return a `UTF-8` encoded string representing drawing of the execution path,
     i.e., the trace, of the provided `kernel`.
 
     Args:
-      format (str): format to translate to, <name[:version]>.
+      format (`str`): format to translate to, <name[:version]>.
           Available format names: `qir`, `qir-full`, `qir-base`, `qir-adaptive`,
           `openqasm2`. QIR versions: `0.1` and `1.0`.
       kernel (:class:`Kernel`): The :class:`Kernel` to translate.
@@ -34,11 +34,11 @@ def translate(kernel, *args, format="qir:0.1"):
       import cudaq
       @cudaq.kernel
       def bell_pair():
-        q = cudaq.qvector(2)
+        `q = cudaq.qvector(2)`
         h(q[0])
-        cx(q[0], q[1])
-        mz(q)
-      print(cudaq.translate(bell_pair, format="qir"))
+        `cx(q[0], q[1])`
+        `mz(q)`
+      print(cudaq.translate(bell_pair, `format="qir"`))
     
       # Output
       ; ModuleID = 'LLVMDialectModule'
@@ -51,13 +51,13 @@ def translate(kernel, *args, format="qir:0.1"):
     ...
     ...
 
-    define void @__nvqpp__mlirgen__function_variable_qreg._Z13variable_qregv() local_unnamed_addr {
+    define void `@__nvqpp__mlirgen__function_variable_qreg._Z13variable_qregv`() `local_unnamed_addr` {
       %1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
       ...
-      %8 = tail call %Result* @__quantum__qis__mz(%Qubit* %4)
-      %9 = tail call %Result* @__quantum__qis__mz(%Qubit* %7)
-      tail call void @__quantum__rt__qubit_release_array(%Array* %1)
-      ret void
+      %8 = tail call %Result* @`__quantum__qis__mz`(%Qubit* %4)
+      %9 = tail call %Result* @`__quantum__qis__mz`(%Qubit* %7)
+      tail call void @`__quantum__rt__qubit_release_array`(%Array* %1)
+      `ret void`
     }
     """
     decorator = None

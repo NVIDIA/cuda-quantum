@@ -19,16 +19,16 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
                         existing_sphere=None,
                         **kwargs) -> Bloch:
     """ 
-    Creates a Bloch sphere representation of the given single-qubit state. If
-    an (optional) existing Bloch sphere object is supplied, then adds the state
-    to the existing Bloch sphere and returns it. The Bloch sphere is created
-    with QuTiP, and any other keyword arguments provided are passed directly to
-    the `qutip.Bloch()` function.  
+    Creates a `Bloch` sphere representation of the given single-qubit state. If
+    an (optional) existing `Bloch` sphere object is supplied, then adds the
+    state to the existing `Bloch` sphere and returns it. The `Bloch` sphere is
+    created with QuTiP, and any other keyword arguments provided are passed
+    directly to the `qutip.Bloch()` function.  
 
     Signature:
     ----------
-        `add_to_bloch_sphere( psi: cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State, existing_sphere [Optional]:
-               None or qutip.Bloch ,**kwargs) -> qutip.Bloch.`
+        `add_to_bloch_sphere( psi: cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State, existing_sphere [Optional]`:
+               `None or qutip.Bloch ,**kwargs) -> qutip.Bloch.`
         
     Arguments:
     ----------
@@ -39,12 +39,12 @@ def add_to_bloch_sphere(psi: cudaq_runtime.State,
                `qutip.Bloch` object is not supplied, then creates a new sphere
                with the vector representing the supplied state.
         `kwargs` [Optional]: Optional keyword arguments to be passed to QuTiP
-               during Bloch sphere initialization. 
+               during `Bloch` sphere initialization. 
         Returns:
         --------
-            Bloch sphere object. In case existing_sphere is supplied, returns a
-            Bloch sphere with a copy of its existing data, with added data of
-            psi.  
+            `Bloch` sphere object. In case existing_sphere is supplied, returns
+            a `Bloch` sphere with a copy of its existing data, with added data
+            of psi.  
     """
 
     if not isinstance(psi, cudaq_runtime.State):

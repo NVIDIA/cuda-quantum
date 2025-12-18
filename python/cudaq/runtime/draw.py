@@ -17,7 +17,7 @@ def _detail_draw(format, decorator, *args):
         raise RuntimeError("Invalid number of arguments passed to run. " +
                            str(len(args)) + " given and " +
                            str(decorator.formal_arity()) + " expected.")
-    # Must handle arguments exactly like this is a callsite to the decorator.
+    # Must handle arguments exactly like this is a `callsite` to the decorator.
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     retTy = decorator.returnType
     if not retTy:
@@ -43,7 +43,7 @@ def draw(decoratorOrFormat, *args):
         assert (len(args) == 1) and "must have a kernel"
         vargs = args[1:]
         return _detail_draw(decoratorOrFormat, args[0], *vargs)
-    # Default to the UTF-8 code points (confusingly named "ascii").
+    # Default to the UTF-8 code points (confusingly named `"ascii"`).
     return _detail_draw("ascii", decoratorOrFormat, *args)
 
 

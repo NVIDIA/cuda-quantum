@@ -4137,8 +4137,8 @@ class PyASTBridge(ast.NodeVisitor):
                 nElementsVal = arith.SubIOp(upperVal, lowerVal).result
 
                 # need to compute the distance between `upperVal` and `lowerVal`
-                # then slice is `stdvecdataOp + computeptr[lower] +
-                # stdvecinit[ptr,distance]`
+                # then slice is `stdvecdataOp + computeptr[lower] +`
+                # `stdvecinit[ptr,distance]`
 
                 vecPtr = cc.StdvecDataOp(ptrArrTy, var).result
                 ptr = cc.ComputePtrOp(
@@ -5258,6 +5258,7 @@ def compile_to_mlir(uniqueId, astModule,
 
     # Build the AOT Quake Module for this kernel.
     bridge.visit(astModule)
+    print(bridge.module)
     # Precompile (simplify) the Module.
     pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                            context=bridge.ctx)

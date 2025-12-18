@@ -73,9 +73,9 @@ def observe(kernel,
       noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to
         add noise to the kernel execution on the simulator. Defaults to an empty
         noise model.
-      num_trajectories (Optional[int]): The optional number of trajectories for
-        noisy simulation. Only valid if a noise model is provided. Key-word
-        only.
+      `num_trajectories` (Optional[int]): The optional number of trajectories
+        for noisy simulation. Only valid if a noise model is provided.
+        `Keyword` only.
 
     Returns:
       :class:`ObserveResult`: A data-type containing the expectation value of
@@ -208,7 +208,7 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
           the expectation of.
       *arguments (Optional[Any]): The concrete values to evaluate the kernel
           function at. Leave empty if the kernel doesn't accept any arguments.
-      qpu_id (Optional[int]): The optional identification for which QPU on the
+      `qpu_id` (Optional[int]): The optional identification for which QPU on the
           platform to target. Defaults to zero. Key-word only.
       shots_count (Optional[int]): The number of shots to use for QPU execution.
           Defaults to -1 implying no shots-based sampling. Key-word only.
@@ -256,7 +256,7 @@ def observe_parallel(kernel,
     compute the expected value of every operator in the list and return a list
     of results. If the kernel accepts arguments, it will be evaluated with
     respect to `kernel(*arguments)`. Each argument in `arguments` provided can
-    be a list or ndarray of arguments of the specified kernel argument type, and
+    be a list or `ndarray` of arguments of the specified kernel argument type, &
     in this case, the `observe` functionality will be broadcasted over all
     argument sets and a list of `observe_result` instances will be returned. If
     both the input `spin_operator` and `arguments` are broadcast lists, a nested

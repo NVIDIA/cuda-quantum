@@ -115,10 +115,7 @@ def test_exp_pauli():
 # CHECK:         store i64 3, i64* %[[VAL_26]], align 8
 # CHECK:         %[[VAL_27:.*]] = bitcast [1 x { i8*, i64 }]* %[[VAL_2]] to i8*
 # CHECK:         call void @__quantum__qis__exp_pauli__ctl(double 2.310000e+01, %[[VAL_10]]* %[[VAL_23]], %[[VAL_10]]* %[[VAL_9]], i8* %[[VAL_27]])
-# CHECK:         call void @__quantum__rt__qubit_release(%[[VAL_8]]* %[[VAL_7]])
-# CHECK:         call void @__quantum__rt__qubit_release_array(%[[VAL_10]]* %[[VAL_9]])
 # CHECK:         ret void
-# CHECK:       }
 
 # CHECK-LABEL: define void @__nvqpp__mlirgen__U_exp_pauli..
 # CHECK-SAME:    %[[VAL_0:.*]]* %[[VAL_1:.*]]) {

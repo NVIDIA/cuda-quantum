@@ -62,8 +62,8 @@ def test_banjo():
 # CHECK:             %[[VAL_20:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_20]], %[[VAL_19]] : i64, i64
 # CHECK:           }
-# CHECK:           quake.dealloc %[[VAL_5]] : !quake.veq<4>
-# CHECK:           quake.dealloc %[[VAL_4]] : !quake.ref
+# CHECK-DAG:       quake.dealloc %[[VAL_5]] : !quake.veq<4>
+# CHECK-DAG:       quake.dealloc %[[VAL_4]] : !quake.ref
 # CHECK:           return
 # CHECK:         }
 

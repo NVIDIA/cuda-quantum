@@ -19,16 +19,16 @@ def get_unitary(kernel, *args):
       *arguments (Optional[Any]): The concrete values to evaluate the kernel at.
 
     Returns:
-      numpy.ndarray: The unitary matrix as a complex-valued NumPy array.
+      `numpy.ndarray`: The unitary matrix as a complex-valued NumPy array.
 
     .. code-block:: python
 
       import cudaq
       @cudaq.kernel
       def bell():
-        q = cudaq.qvector(2)
+        `q = cudaq.qvector(2)`
         h(q[0])
-        cx(q[0], q[1])
+        `cx(q[0], q[1])`
       U = cudaq.get_unitary(bell)
      print(U)
     """

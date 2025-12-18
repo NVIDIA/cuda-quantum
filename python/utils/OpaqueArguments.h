@@ -126,7 +126,7 @@ void *handleVectorElements(mlir::Type eleTy, py::list list);
 
 /// Take a list of python objects (the arguments) and convert them to C++
 /// objects on the heap. The results are returned in \p argData and include
-/// special deletors so that the argument data is cleaned up correctly.
+/// special `deletors` so that the argument data is cleaned up correctly.
 void packArgs(OpaqueArguments &argData, py::list args,
               mlir::ArrayRef<mlir::Type> mlirTys,
               const std::function<bool(OpaqueArguments &, py::object &,
