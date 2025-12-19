@@ -918,8 +918,7 @@ class kraus_channel;
 
 template <unsigned len, typename A, typename... As>
 constexpr unsigned count_leading_floats() {
-  if constexpr (std::is_floating_point_v<
-                    std::remove_cvref_t<A>>) {
+  if constexpr (std::is_floating_point_v<std::remove_cvref_t<A>>) {
     return count_leading_floats<len + 1, As...>();
   } else {
     return len;
