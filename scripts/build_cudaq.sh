@@ -98,14 +98,28 @@ if $clean_build; then
 fi
 mkdir -p logs && rm -rf logs/*
 
-if [ -n "$install_toolchain" ]; then
+# On macOS, auto-install prerequisites if LLVM is not found
+install_prereqs=false
+if [ "$(uname)" = "Darwin" ] && [ -z "$install_toolchain" ]; then
+  LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
+  if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
+    echo "LLVM not found at $LLVM_INSTALL_PREFIX, installing prerequisites..."
+    install_prereqs=true
+  fi
+fi
+
+if [ -n "$install_toolchain" ] || $install_prereqs; then
   echo "Installing pre-requisites..."
+  prereq_args=""
+  if [ -n "$install_toolchain" ]; then
+    prereq_args="-t $install_toolchain"
+  fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain"
+    source "$this_file_dir/install_prerequisites.sh" $prereq_args
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain" \
+    source "$this_file_dir/install_prerequisites.sh" $prereq_args \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi

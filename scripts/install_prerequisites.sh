@@ -182,22 +182,26 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-# Also builds minizip from contrib (needed by rest_server)
+# [Minizip] Needed by rest_server for archive handling
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-    echo "Installing libz and minizip..."
+  if [ "$(uname)" = "Darwin" ]; then
+    # macOS: use Homebrew zlib (building from source fails due to SDK header conflicts)
+    # and build minizip from source (Homebrew's archive contains nested libz.a which linker rejects)
+    mkdir -p "$ZLIB_INSTALL_PREFIX/lib" "$ZLIB_INSTALL_PREFIX/include"
 
-    if [ "$(uname)" = "Darwin" ]; then
-      # On macOS:
-      # - zlib from Homebrew: building from source fails due to SDK header conflicts
-      #   (fdopen macro in zutil.h conflicts with system stdio.h declarations)
-      # - minizip from source: Homebrew's archive contains nested libz.a which linker rejects
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib automake libtool
+    if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+      echo "Installing libz..."
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib
       zlib_prefix="$(brew --prefix zlib)"
-      mkdir -p "$ZLIB_INSTALL_PREFIX/lib" "$ZLIB_INSTALL_PREFIX/include"
       cp "$zlib_prefix/lib/libz.a" "$ZLIB_INSTALL_PREFIX/lib/"
       cp "$zlib_prefix/include/"*.h "$ZLIB_INSTALL_PREFIX/include/"
-      # Build minizip from zlib source
+    else
+      echo "libz already installed in $ZLIB_INSTALL_PREFIX."
+    fi
+
+    if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
+      echo "Installing minizip..."
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool
       curl -L -o zlib-1.3.tar.gz https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
       tar -xzf zlib-1.3.tar.gz && cd zlib-1.3/contrib/minizip
       autoreconf --install
@@ -206,6 +210,13 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
       make CC="$CC" && make install
       cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
     else
+      echo "minizip already installed in $ZLIB_INSTALL_PREFIX."
+    fi
+
+  else
+    # Linux: build both zlib and minizip from source
+    if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
+      echo "Installing libz and minizip..."
       temp_install_if_command_unknown wget wget
       temp_install_if_command_unknown make make
       temp_install_if_command_unknown automake automake
@@ -223,9 +234,9 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
       make CC="$CC" && make install
       cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
       remove_temp_installs
+    else
+      echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
     fi
-  else
-    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 

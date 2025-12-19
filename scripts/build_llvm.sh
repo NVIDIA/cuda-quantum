@@ -230,6 +230,14 @@ cmake_args=" \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='-w'"
 
+# On macOS, build LLVM as a shared library to avoid duplicate symbol issues
+# when multiple libraries statically link LLVM
+if [ "$(uname)" = "Darwin" ]; then
+  cmake_args="$cmake_args \
+    -DLLVM_BUILD_LLVM_DYLIB=ON \
+    -DLLVM_LINK_LLVM_DYLIB=ON"
+fi
+
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
 fi

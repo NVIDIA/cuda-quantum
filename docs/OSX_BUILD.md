@@ -28,36 +28,33 @@ pip install numpy llvmlite==0.44.0 scipy==1.11.4 pytest==8.2.0 lit==18.1.4 \
   openfermionpyscf==0.5 h5py==3.12.1
 ```
 
-**Note:** Always activate the venv before running build scripts:
+## Build CUDA-Q
+
+On macOS, `build_cudaq.sh` automatically installs prerequisites (LLVM, zlib, openssl, curl, blas, pybind11, AWS SDK) if LLVM is not found.
+
 ```bash
 source ~/.venv/cudaq/bin/activate
+./scripts/build_cudaq.sh -v
 ```
 
-## Install Dependencies
+The first build will take a while as it builds LLVM/MLIR from source. Subsequent builds are faster.
 
-Run the prerequisites script (pointing to venv Python):
+Use `-i` for incremental builds:
 ```bash
-Python3_EXECUTABLE=$(which python3) \
-ZLIB_INSTALL_PREFIX=$HOME/.local/zlib \
-./scripts/install_prerequisites.sh
+./scripts/build_cudaq.sh -v -i
 ```
 
-This will install (using Apple's system Clang):
-- CMake and Ninja
-- Zlib, OpenSSL, Curl, BLAS (from source)
-- LLVM/MLIR with Python bindings
-- pybind11
-- AWS SDK
+## Installation Locations
 
 Default install locations on macOS:
 - LLVM: `$HOME/.llvm`
+- CUDA-Q: `$HOME/.cudaq`
 - Other libraries: `$HOME/.local/`
 
 ## Environment Setup
 
 After installation, add to your `.zshrc` or `.bashrc`:
 ```bash
-# CUDA-Q build paths
 export LLVM_INSTALL_PREFIX=$HOME/.llvm
 export ZLIB_INSTALL_PREFIX=$HOME/.local/zlib
 export OPENSSL_INSTALL_PREFIX=$HOME/.local/ssl
@@ -67,11 +64,22 @@ export PYBIND11_INSTALL_PREFIX=$HOME/.local/pybind11
 export AWS_INSTALL_PREFIX=$HOME/.local/aws
 ```
 
-## Build CUDA-Q
+## Using CUDA-Q
 
+After building:
 ```bash
-source ~/.venv/cudaq/bin/activate
-./scripts/build_cudaq.sh -v
+source $HOME/.cudaq/set_env.sh
 ```
 
-CUDA-Q will be installed to `$HOME/.cudaq` by default (CPU-only build, no CUDA on macOS).
+For Python:
+```bash
+source ~/.venv/cudaq/bin/activate
+export PYTHONPATH=$HOME/.cudaq/lib/python:$PYTHONPATH
+python3 -c "import cudaq; print(cudaq.__version__)"
+```
+
+## Notes
+
+- CPU-only build (no CUDA support on macOS)
+- Uses Apple's system Clang compiler
+- LLVM is built as a shared library to avoid symbol conflicts
