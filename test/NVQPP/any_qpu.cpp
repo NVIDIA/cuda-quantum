@@ -26,8 +26,8 @@
 // FULL: Constructed qpu1
 // FULL: Deleted old_qpu
 // FULL: Deleted qpu1
-// FULL: Deleted qpu1
-// FULL: Deleted qpu2
+// FULL-DAG: Deleted qpu1
+// FULL-DAG: Deleted qpu2
 
 // MISSING: Constructed old_qpu
 // MISSING: Constructed qpu1
