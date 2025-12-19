@@ -41,9 +41,6 @@ __qpu__ void sample_ghz(int num_qubits) {
 
   // Call kernel
   entangle_all(qubits);
-
-  // Measure all qubits
-  mz(qubits);
 }
 
 int main() {

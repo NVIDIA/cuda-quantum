@@ -18,7 +18,6 @@ void kernel() __qpu__ {
   cudaq::qarray<2> q;
   h(q[0]);
   x<cudaq::ctrl>(q[0], q[1]);
-  mz(q);
 }
 
 int main() {

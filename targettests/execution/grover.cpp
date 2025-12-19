@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,7 @@
 
 // REQUIRES: c++20
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 
 #include "cudaq.h"
 #include <cmath>
@@ -41,7 +41,6 @@ struct run_grover {
       oracle(target_state, qs);
       reflect_about_uniform(qs);
     }
-    mz(qs);
   }
 };
 
@@ -64,7 +63,8 @@ struct oracle {
 
 int main(int argc, char *argv[]) {
   auto secret = 1 < argc ? strtol(argv[1], NULL, 2) : 0b1011;
-  auto counts = cudaq::sample(run_grover{}, 4, secret, oracle{});
+  auto all_counts = cudaq::sample(run_grover{}, 4, secret, oracle{});
+  auto counts = all_counts.get_marginal({1, 2, 3, 4}); // drop ancilla
   printf("Found string %s\n", counts.most_probable().c_str());
   return 0;
 }

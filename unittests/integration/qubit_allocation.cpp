@@ -36,7 +36,6 @@ std::vector<cudaq::complex> randomState(int numQubits) {
 struct test_state_vector_init {
   void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
     cudaq::qvector q(stateVec);
-    mz(q);
   }
 };
 
@@ -69,7 +68,6 @@ struct test_state_vector_init_gate {
     // Identity
     cudaq::exp_pauli(1.0, q, "XXXXX");
     cudaq::exp_pauli(-1.0, q, "XXXXX");
-    mz(q);
   }
 };
 
@@ -103,8 +101,6 @@ struct test_allocation {
     cudaq::qubit r;
 
     cnot(q, r);
-    mz(q);
-    mz(r);
   }
 };
 
@@ -127,7 +123,6 @@ struct test_bell_init {
   void operator()() __qpu__ {
     // Start with an initial allocation of 2 qubits in a specific state.
     cudaq::qvector q({M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
-    mz(q);
   }
 };
 
@@ -137,8 +132,6 @@ struct test_state_expand_init {
     x(q);
     // Add 2 more qubits in Bell state
     cudaq::qvector q1({M_SQRT1_2, 0.0, 0.0, M_SQRT1_2});
-    mz(q);
-    mz(q1);
   }
 };
 
@@ -198,10 +191,7 @@ CUDAQ_TEST(AllocationTester, checkDensityOrderingBug) {
 #endif
 
 struct test_allocation_from_state {
-  void operator()(cudaq::state state) __qpu__ {
-    cudaq::qvector q(state);
-    mz(q);
-  }
+  void operator()(cudaq::state state) __qpu__ { cudaq::qvector q(state); }
 };
 
 CUDAQ_TEST(AllocationTester, checkAllocationFromRetrievedState) {

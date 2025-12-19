@@ -37,7 +37,6 @@ int main() {
     z(q);
     // Apply another Hadamard.
     h(q);
-    mz(q);
   };
 
   // Now let's set the noise and we're ready to run the simulation!

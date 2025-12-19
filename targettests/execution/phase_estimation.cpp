@@ -71,9 +71,6 @@ struct qpe {
     // Apply inverse quantum Fourier transform
     iqft(counting_qubits);
 
-    // Measure to gather sampling statistics
-    mz(counting_qubits);
-
     return;
   }
 };

@@ -15,8 +15,6 @@ __qpu__ void pauli_x_gate() {
   cudaq::qubit q;
   // Apply a Pauli-X gate to the qubit.
   x(q);
-  // Measure the qubit.
-  mz(q);
 }
 
 int main() {

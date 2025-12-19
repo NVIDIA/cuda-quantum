@@ -131,7 +131,6 @@ CUDAQ_TEST(QubitQISTester, checkCommonKernel) {
     for (int i = 0; i < N - 1; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    mz(q);
   };
   auto counts = cudaq::sample(ghz);
   counts.dump();
@@ -169,8 +168,6 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
     x(q[1]);
 
     x<cudaq::ctrl>(q[0], q[1], q[2]);
-
-    mz(q);
   };
 
   struct ccnot_test {
@@ -187,8 +184,6 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
 
       auto controls = q.front(2);
       cudaq::control(test_inner_adjoint, controls, q[2]);
-
-      mz(q);
     }
   };
 
@@ -212,8 +207,6 @@ CUDAQ_TEST(QubitQISTester, checkCtrlRegion) {
             cudaq::control([&](cudaq::qubit &r) { apply_x(r); }, q[1], r);
           },
           q[0], q[2]);
-
-      mz(q);
     }
   };
 
@@ -240,8 +233,6 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
       x(q);
       x<cudaq::adj>(q);
-
-      mz(q);
     }
   };
 
@@ -251,8 +242,6 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
       x(q);
       x<cudaq::adj>(q);
-
-      mz(q);
     }
   };
 
@@ -268,7 +257,6 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
       rz(1.1, q[0]);
       rz<cudaq::adj>(1.1, q[0]);
-      mz(q);
     }
   };
 
@@ -290,8 +278,6 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
 
       x<cudaq::adj>(q[0], q[1]);
       cx(q[0], q[1]);
-
-      mz(q);
     }
   };
 
@@ -310,7 +296,6 @@ CUDAQ_TEST(QubitQISTester, checkAdjointRegions) {
       x(q[2]);
       test_adjoint{}(q);
       cudaq::adjoint(test_adjoint{}, q);
-      mz(q);
     }
   };
 
@@ -345,10 +330,9 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
   {
     struct init_measure {
       auto operator()() __qpu__ {
-        // Allocate then measure, no gates.
+        // Allocate then automatic measure, no gates.
         // Check that allocation requests are flushed.
         cudaq::qvector q(2);
-        mz(q);
       }
     };
     auto kernel = init_measure{};
@@ -362,7 +346,6 @@ CUDAQ_TEST(QubitQISTester, checkMeasureResetFence) {
         cudaq::qvector q(2);
         x(q);
         reset(q[0]);
-        mz(q);
       }
     };
     auto kernel = reset_circ{};

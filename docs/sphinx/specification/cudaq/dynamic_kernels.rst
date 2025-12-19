@@ -30,9 +30,6 @@ The :code:`kernel_builder` takes the following structure
 
           void h(Value& qubit);
           //... all other quantum operations ... 
-
-          // if (mz(q)) thenFunctor()
-          void c_if(Value& result, std::function<void()>&& thenFunctor);
           
           // Invoke a predefined kernel
           template<typename OtherKernelBuilder, typename... Values>
@@ -106,7 +103,6 @@ Here is a simple example how one might build a CUDA-Q kernel dynamically.
     auto qubits = kernel.qalloc(2);
     kernel.h(qubits[0]);
     kernel.x<cudaq::ctrl>(qubits[0], qubits[1]);
-    kernel.mz(qubits);
     
     // See algorithmic primitives section for more on sample
     auto counts = cudaq::sample(kernel);
@@ -119,7 +115,6 @@ Here is a simple example how one might build a CUDA-Q kernel dynamically.
     qubits = kernel.qalloc(2)
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
-    kernel.mz(qubits)
 
 Here is an example demonstrating how one may build a dynamic set of 
 CUDA-Q kernels for executing the standard Hadamard test. 
@@ -139,7 +134,6 @@ CUDA-Q kernels for executing the standard Hadamard test.
       hadamardTest.h(ancilla);
       hadamardTest.control(xPrep, ancilla, q);
       hadamardTest.h(ancilla);
-      hadamardTest.mz(ancilla);
 
       // See algorithmic primitives section for more on sample
       auto counts = cudaq::sample(hadamardTest);
@@ -157,7 +151,6 @@ CUDA-Q kernels for executing the standard Hadamard test.
     hadamardTest.h(ancilla)
     hadamardTest.control(xPrep, ancilla, q)
     hadamardTest.h(ancilla)
-    hadamardTest.mz(ancilla)
 
     # See algorithmic primitives section for more on sample
     counts = cudaq.sample(hadamardTest)

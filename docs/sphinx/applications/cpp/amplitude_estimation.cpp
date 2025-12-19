@@ -107,8 +107,6 @@ struct run_circuit {
       S_0{}(q);
       statePrep_A{}(q, bmax);
     }
-    // Measure the last auxiliary qubit
-    mz(last_qubit);
   }
 };
 
@@ -124,7 +122,8 @@ int main() {
 
   for (size_t i = 0; i < schedule.size(); i++) {
     auto counts = cudaq::sample(run_circuit{}, n, schedule[i], bmax);
-    hits[i] = counts.count("1");
+    auto last_qubit_counts = counts.get_marginal({n});
+    hits[i] = last_qubit_counts.count("1");
   }
 
   // Print the number of hits for the good state for each circuit

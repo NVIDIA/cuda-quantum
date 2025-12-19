@@ -20,7 +20,6 @@ TEST(TensornetMPITester, checkSimple) {
     h(q[0]);
     for (int i = 0; i < numQubits - 1; i++)
       x<cudaq::ctrl>(q[i], q[i + 1]);
-    mz(q);
   };
 
   auto counts = cudaq::sample(100, kernel);

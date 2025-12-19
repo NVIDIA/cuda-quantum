@@ -33,10 +33,10 @@ CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
   kernel.y(qubit[0]);
   kernel.z(qubit[0]);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
 
   auto counts = cudaq::sample(kernel);
-  EXPECT_EQ(counts.size(), 2);
+  auto qubit0_counts = counts.get_marginal({0});
+  EXPECT_EQ(qubit0_counts.size(), 2);
 }
 
 CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
@@ -46,8 +46,6 @@ CUDAQ_TEST(IQMTester, executeSeveralMeasuredQubitProgram) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 2);
@@ -67,10 +65,9 @@ CUDAQ_TEST(IQMTester, executeLoopOverQubitsProgram) {
   kernel.for_loop(
       0, N - 1, [&](auto i) { kernel.x<cudaq::ctrl>(qubit[i], qubit[i + 1]); });
 
-  kernel.mz(qubit[0]);
   auto counts = cudaq::sample(kernel);
-
-  EXPECT_EQ(counts.size(), 2);
+  auto qubit0_counts = counts.get_marginal({0});
+  EXPECT_EQ(qubit0_counts.size(), 2);
 }
 
 CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
@@ -83,8 +80,6 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
   auto qubit = kernel.qalloc(N);
   kernel.h(qubit[0]);
   kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
-
-  kernel.mz(qubit);
 
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 2);
@@ -174,8 +169,6 @@ CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-  kernel.mz(qubit[1]);
 
   auto counts = cudaq::sample(kernel);
 
@@ -192,8 +185,6 @@ CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
   auto kernel2 = cudaq::make_kernel();
   auto qubit2 = kernel2.qalloc(2);
   kernel2.h(qubit2[0]);
-  kernel2.mz(qubit2[0]);
-  kernel2.mz(qubit2[1]);
 
   counts = cudaq::sample(kernel2);
 
@@ -209,8 +200,6 @@ CUDAQ_TEST(IQMTester, dynamicQuantumArchitectureFile) {
   auto kernel3 = cudaq::make_kernel();
   auto qubit3 = kernel3.qalloc(2);
   kernel3.h(qubit3[0]);
-  kernel3.mz(qubit3[0]);
-  kernel3.mz(qubit3[1]);
 
   counts = cudaq::sample(kernel3);
 

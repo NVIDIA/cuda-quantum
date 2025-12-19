@@ -34,8 +34,12 @@ private:
 
   std::vector<cudaq::QuditInfo> sampleQudits;
 
+  // Track all allocated qudits for automatic measurement
+  std::vector<cudaq::QuditInfo> allocatedQudits;
+
 protected:
   void allocateQudit(const cudaq::QuditInfo &q) override {
+    allocatedQudits.push_back(q);
     if (state.size() == 0) {
       // qubit will give [1,0], qutrit will give [1,0,0]
       state = qpp::ket::Zero(q.levels);
@@ -54,19 +58,33 @@ protected:
   }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
-  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
+  void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {
+    allocatedQudits.clear();
+  }
 
-  void handleExecutionContextChanged() override {}
+  void handleExecutionContextChanged() override {
+    state = qpp::ket();
+    allocatedQudits.clear();
+    sampleQudits.clear();
+  }
 
   void handleExecutionContextEnded() override {
     if (executionContext && executionContext->name == "sample") {
+      if (sampleQudits.empty())
+        sampleQudits = allocatedQudits;
+
+      if (sampleQudits.empty())
+        return;
+
       std::vector<std::size_t> ids;
       for (auto &s : sampleQudits) {
         ids.push_back(s.id);
       }
+      auto dims = sampleQudits[0].levels;
       sampleQudits.clear();
-      auto sampleResult = qpp::sample(executionContext->shots, state, ids,
-                                      sampleQudits.begin()->levels);
+      allocatedQudits.clear();
+      auto sampleResult =
+          qpp::sample(executionContext->shots, state, ids, dims);
 
       ExecutionResult execResult;
       for (auto [result, count] : sampleResult) {

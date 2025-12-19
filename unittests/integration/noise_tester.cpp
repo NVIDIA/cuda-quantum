@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include <cudaq/algorithm.h>
+#include <map>
 #include <set>
 #include <stdio.h>
 
@@ -484,7 +485,6 @@ CUDAQ_TEST(NoiseTest, checkPhaseDampType) {
       h(q);
       cudaq::apply_noise<cudaq::phase_damping>(prob, q);
       h(q);
-      mz(q);
     }
   };
 
@@ -584,7 +584,6 @@ CUDAQ_TEST(NoiseTest, checkPhaseFlipType) {
     h(q);
     z(q);
     h(q);
-    mz(q);
   };
 
   cudaq::phase_flip_channel pf(1.);
@@ -609,8 +608,6 @@ CUDAQ_TEST(NoiseTest, checkPauli1) {
     cudaq::qubit q, r;
     cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, q);
     cudaq::apply_noise<cudaq::pauli1>(0.1, 0.1, 0.1, r);
-    mz(q);
-    mz(r);
   };
 
   auto counts = cudaq::sample(cudaq::sample_options{}, kernel);
@@ -628,8 +625,6 @@ CUDAQ_TEST(NoiseTest, checkPauli2) {
   auto kernel = [](std::vector<double> parms) __qpu__ {
     cudaq::qubit q, r;
     cudaq::apply_noise<cudaq::pauli2>(parms, q, r);
-    mz(q);
-    mz(r);
   };
 
   std::vector<double> probs(15, 0.9375 / 15);
@@ -952,48 +947,6 @@ CUDAQ_TEST(NoiseTest, checkCustomOperation) {
     EXPECT_EQ(totalShots, shots);
   }
 }
-#endif
-
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_STIM) ||                \
-    defined(CUDAQ_BACKEND_TENSORNET)
-
-CUDAQ_TEST(NoiseTest, checkMeasurementNoise) {
-  cudaq::set_random_seed(13);
-  constexpr double bitFlipRate = 0.25;
-  cudaq::bit_flip_channel bf(bitFlipRate);
-  cudaq::noise_model noise;
-  // 25% bit flipping during measurement
-  noise.add_channel("mz", {0}, bf);
-  cudaq::set_noise(noise);
-  {
-    auto kernel = []() {
-      cudaq::qubit q;
-      x(q);
-      mz(q);
-    };
-    auto counts = cudaq::sample(1000, kernel);
-    counts.dump();
-    // Due to measurement errors, we have both 0/1 results.
-    EXPECT_EQ(2, counts.size());
-    EXPECT_NEAR(counts.probability("0"), bitFlipRate, 0.1);
-    EXPECT_NEAR(counts.probability("1"), 1.0 - bitFlipRate, 0.1);
-  }
-  {
-    auto kernel = []() {
-      cudaq::qvector q(2);
-      x(q);
-      mz(q);
-    };
-    auto counts = cudaq::sample(1000, kernel);
-    counts.dump();
-    // We only have measurement noise on the first qubit.
-    EXPECT_EQ(2, counts.size());
-    EXPECT_NEAR(counts.probability("01"), bitFlipRate, 0.1);
-    EXPECT_NEAR(counts.probability("11"), 1.0 - bitFlipRate, 0.1);
-  }
-  cudaq::unset_noise(); // clear for subsequent tests
-}
-
 #endif
 
 #if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET)

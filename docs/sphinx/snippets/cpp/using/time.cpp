@@ -22,8 +22,6 @@ __qpu__ void kernel(int qubit_count) {
   for (auto qubit : cudaq::range(qubit_count - 1)) {
     x<cudaq::ctrl>(qvector[qubit], qvector[qubit + 1]);
   }
-  // Measure the qubits.
-  mz(qvector);
 }
 
 // [Begin Time]

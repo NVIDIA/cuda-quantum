@@ -24,8 +24,6 @@ int main() {
   for (std::size_t tidx = 0; tidx < 2; ++tidx) {
     kernel.x<cudaq::ctrl>(controls, targets[tidx]);
   }
-  kernel.mz(controls);
-  kernel.mz(targets);
 
   // Query the number of QPUs in the system;
   // The number of QPUs is equal to the number of (auto-)launched server

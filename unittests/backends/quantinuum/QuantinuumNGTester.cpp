@@ -58,7 +58,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkSampleSync) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
 
   auto counts = cudaq::sample(100, kernel);
   counts.dump();
@@ -118,17 +117,17 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
-    kernel.mz(controls1);
-    kernel.mz(controls2);
-    kernel.mz(control3);
-    kernel.mz(target);
     std::cout << kernel.to_quake() << "\n";
 
     auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
 
     // Target qubit should've been rotated to |1>.
-    EXPECT_EQ(counts.count("111111"), numShots);
+    EXPECT_EQ(counts.count("0000111111"), numShots);
+    /// FIXME: The order of qubits should be consistent with allocation order.
+    auto target_counts = counts.get_marginal({4, 5, 6, 7, 8, 9});
+    target_counts.dump();
+    EXPECT_EQ(target_counts.count("111111"), numShots);
   }
 
   // rx: 0.0
@@ -145,15 +144,12 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.rx<cudaq::ctrl>(0.0, controls1, controls2, control3, target);
-    kernel.mz(controls1);
-    kernel.mz(controls2);
-    kernel.mz(control3);
-    kernel.mz(target);
+
     auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
 
     // Target qubit should've stayed in |0>
-    EXPECT_EQ(counts.count("111110"), numShots);
+    EXPECT_EQ(counts.count("0000111110"), numShots);
   }
 
   // ry: pi
@@ -170,15 +166,12 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.ry<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
-    kernel.mz(controls1);
-    kernel.mz(controls2);
-    kernel.mz(control3);
-    kernel.mz(target);
+
     auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
 
     // Target qubit should've been rotated to |1>
-    EXPECT_EQ(counts.count("111111"), numShots);
+    EXPECT_EQ(counts.count("0000111111"), numShots);
   }
 
   // ry: pi / 2
@@ -197,16 +190,13 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(control3);
 
     kernel.ry<cudaq::ctrl>(M_PI_2, controls1, controls2, control3, target);
-    kernel.mz(controls1);
-    kernel.mz(controls2);
-    kernel.mz(control3);
-    kernel.mz(target);
+
     auto counts = cudaq::sample(100, kernel);
     counts.dump();
 
     // Target qubit should have a 50/50 mix between |0> and |1>
-    EXPECT_TRUE(counts.count("111111") < 60);
-    EXPECT_TRUE(counts.count("111110") > 40);
+    EXPECT_TRUE(counts.count("0000111111") < 60);
+    EXPECT_TRUE(counts.count("0000111110") > 40);
   }
 
   {
@@ -223,13 +213,10 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     kernel.x(controls2);
     // Should rotate `target`.
     kernel.rx<cudaq::ctrl>(M_PI, controls1, controls2, control3, target);
-    kernel.mz(controls1);
-    kernel.mz(controls2);
-    kernel.mz(control3);
-    kernel.mz(target);
+
     auto counts = cudaq::sample(numShots, kernel);
     counts.dump();
-    EXPECT_EQ(counts.count("11111111"), numShots);
+    EXPECT_EQ(counts.count("00000011111111"), numShots);
   }
 }
 
@@ -248,7 +235,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkGpuDecoderConfig) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
 
   // This will throw because the decoder config is invalid YAML.
   EXPECT_ANY_THROW(cudaq::sample(100, kernel));
