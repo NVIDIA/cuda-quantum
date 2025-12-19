@@ -822,9 +822,12 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
   // setO0WantsFastISel() do not retain their values in our current version of
   // LLVM. This use of LLVM command line parameters could be changed if the LLVM
   // JIT ever supports the TargetMachine options in the future.
+  // Not available on macOS where LLVM is built as a shared library.
   ScopedTraceWithContext(cudaq::TIMING_JIT, "createQIRJITEngine");
+#if !defined(__APPLE__)
   const char *argv[] = {"", "-fast-isel=0", nullptr};
   llvm::cl::ParseCommandLineOptions(2, argv);
+#endif
 
   mlir::ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
