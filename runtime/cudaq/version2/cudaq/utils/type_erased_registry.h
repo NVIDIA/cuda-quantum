@@ -84,9 +84,11 @@ private:
 /// using QPURegistry =
 ///     TypeErasedRegistry<any_qpu, cudaq::details::qpu_dispatch_table>;
 ///
+#ifdef DOXYGEN_SHOULD_SKIP_THIS
 /// #define CUDAQ_REGISTER_QPU_TYPE(TYPE, NAME) \
 ///   static TypeErasedRegistrar<cudaq::registry::QPURegistry, TYPE> CONCAT( \
 ///       registrar, NAME)(#NAME);
+#endif
 template <typename Registry, typename actual_type>
 class TypeErasedRegistrar {
 public:
