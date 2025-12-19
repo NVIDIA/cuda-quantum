@@ -21,7 +21,7 @@ dependencies = [
   'custatevec-cu12 ~= 1.10',
   'cutensornet-cu12 ~= 2.9',
   'cudensitymat-cu12 ~= 0.3',
-  'numpy < 2.0',
+  'numpy == 1.26.4',
   'scipy >= 1.10.1',
   'requests >= 2.31',
   'nvidia-cublas-cu12 ~= 12.0',
@@ -61,7 +61,7 @@ visualization = [ "qutip<5" , "matplotlib>=3.5" ]
 integrators = [ "torchdiffeq" ]
 
 [build-system]
-requires = ["scikit-build-core==0.9.10", "cmake>=3.27,<3.29", "numpy<2.0", "pytest==8.3.0"]
+requires = ["scikit-build-core==0.9.10", "cmake>=3.27,<3.29", "numpy==1.26.4", "pytest==8.3.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
