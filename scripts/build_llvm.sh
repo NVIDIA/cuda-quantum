@@ -231,11 +231,13 @@ cmake_args=" \
   -DCMAKE_CXX_FLAGS='-w'"
 
 # On macOS, build LLVM as a shared library to avoid duplicate symbol issues
-# when multiple libraries statically link LLVM
+# when multiple libraries statically link LLVM, and disable LTO to avoid
+# pybind11 bug with -flto= empty argument (https://github.com/pybind/pybind11/issues/5098)
 if [ "$(uname)" = "Darwin" ]; then
   cmake_args="$cmake_args \
     -DLLVM_BUILD_LLVM_DYLIB=ON \
-    -DLLVM_LINK_LLVM_DYLIB=ON"
+    -DLLVM_LINK_LLVM_DYLIB=ON \
+    -DLLVM_ENABLE_LTO=OFF"
 fi
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 

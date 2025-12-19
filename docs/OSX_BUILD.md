@@ -34,14 +34,14 @@ On macOS, `build_cudaq.sh` automatically installs prerequisites (LLVM, zlib, ope
 
 ```bash
 source ~/.venv/cudaq/bin/activate
-./scripts/build_cudaq.sh -v
+./scripts/build_cudaq.sh
 ```
 
 The first build will take a while as it builds LLVM/MLIR from source. Subsequent builds are faster.
 
 Use `-i` for incremental builds:
 ```bash
-./scripts/build_cudaq.sh -v -i
+./scripts/build_cudaq.sh -i
 ```
 
 ## Installation Locations
