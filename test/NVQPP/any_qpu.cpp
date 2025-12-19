@@ -6,14 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.
  ******************************************************************************/
 
+// RUN: rm -rf %t && mkdir -p %t
 // RUN: python3 %S/../split-file.py %s %t
-// RUN: nvq++ -I%t -shared -fPIC %t/qpu1.cpp -o %t/libqpu1.so
-// RUN: nvq++ -I%t -shared -fPIC %t/qpu2.cpp -o %t/libqpu2.so
-// RUN: nvq++ -I%t -shared -fPIC %t/old_qpu.cpp -o %t/libold_qpu.so
-// RUN: nvq++ -I%t %t/proto.cpp %t/libqpu1.so %t/libqpu2.so %t/libold_qpu.so -o %t/proto
-// RUN: nvq++ -I%t %t/proto.cpp %t/libqpu1.so %t/libold_qpu.so -o %t/proto_missing
-// RUN: env LD_LIBRARY_PATH=%t %t/proto | FileCheck %s --check-prefix=FULL
-// RUN: env LD_LIBRARY_PATH=%t %t/proto_missing | FileCheck %s --check-prefix=MISSING
+// RUN: cd %t
+// RUN: nvq++ -shared -fPIC qpu1.cpp -o libqpu1.so
+// RUN: nvq++ -shared -fPIC qpu2.cpp -o libqpu2.so
+// RUN: nvq++ -shared -fPIC old_qpu.cpp -o libold_qpu.so
+// RUN: nvq++ proto.cpp libqpu1.so libqpu2.so libold_qpu.so -o proto
+// RUN: nvq++ proto.cpp libqpu1.so libold_qpu.so -o proto_missing
+// RUN: ./proto | FileCheck %s --check-prefix=FULL
+// RUN: ./proto_missing | FileCheck %s --check-prefix=MISSING
 
 // FULL: Constructed old_qpu
 // FULL: Constructed qpu1
