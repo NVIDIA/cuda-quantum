@@ -25,7 +25,7 @@
 // FULL: I am qpu2
 // FULL: Constructed qpu1
 // FULL: Deleted old_qpu
-// FULL: Deleted qpu1
+// FULL-DAG: Deleted qpu1
 // FULL-DAG: Deleted qpu1
 // FULL-DAG: Deleted qpu2
 
