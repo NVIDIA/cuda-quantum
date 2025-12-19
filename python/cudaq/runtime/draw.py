@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -32,9 +32,10 @@ def draw(decoratorOrFormat, *args):
     """
     The CUDA-Q specification overloads draw. To meet that, this function uses
     parameter type checking. The two overloads for `cudaq.draw` are:
-    ```python
-        cudaq.draw("<format>", kernel, opt_args...)
-        cudaq.draw(kernel, opt_args...)
+    ```
+    python
+    cudaq.draw("<format>", kernel, opt_args...)
+    cudaq.draw(kernel, opt_args...)
     ```
     The second overload is equivalent to using a format string of `"ascii"`.
     """
