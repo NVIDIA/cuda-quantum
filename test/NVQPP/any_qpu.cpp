@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.
+ * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.
  *
  * This source code and the accompanying materials are made available under
  * the terms of the Apache License 2.0 which accompanies this distribution.
  ******************************************************************************/
 
-// RUN: %python %S/../split-file.py %s %t
+// RUN: python3 %S/../split-file.py %s %t
 // RUN: nvq++ -I%t -shared -fPIC %t/qpu1.cpp -o %t/libqpu1.so
 // RUN: nvq++ -I%t -shared -fPIC %t/qpu2.cpp -o %t/libqpu2.so
 // RUN: nvq++ -I%t -shared -fPIC %t/old_qpu.cpp -o %t/libold_qpu.so
