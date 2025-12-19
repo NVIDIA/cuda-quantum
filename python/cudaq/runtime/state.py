@@ -21,22 +21,19 @@ def get_state(kernel, *args):
       *arguments (Optional[Any]): The concrete values to evaluate the kernel 
           function at. Leave empty if the kernel doesn't accept any arguments.
 
-    .. code-block:: python
+    # Example:
+    `import numpy as np`
 
-      # Example:
-      `import numpy as np`
+    # Define a kernel that will produced the all `|11...1>` state.
+    `qubits = kernel.qalloc(3)`
+    # Prepare qubits in the 1-state.
+    kernel.x(qubits)
 
-      # Define a kernel that will produced the all |11...1> state.
-      kernel = cudaq.make_kernel()
-      `qubits = kernel.qalloc(3)`
-      # Prepare qubits in the 1-state.
-      kernel.x(qubits)
-
-      # Get the state of the system. This will execute the provided kernel
-      # and, depending on the selected target, will return the state as a
-      # vector or matrix.
-      state = cudaq.get_state(kernel)
-      print(state)
+    Get the state of the system. This will execute the provided kernel
+    # and, depending on the selected target, will return the state as a
+    # vector or matrix.
+    state = cudaq.get_state(kernel)
+    print(state)
     """
     handler = get_target_handler()
     if handler.skip_compilation():
