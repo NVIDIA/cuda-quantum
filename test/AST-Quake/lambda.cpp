@@ -8,7 +8,7 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// RUN: cudaq-quake %cpp_std --emit-llvm-file %s | FileCheck %s
+// RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 // RUN: FileCheck --check-prefixes=CHECK-LLVM %s < lambda.ll
 
 // CHECK-LABEL: module attributes {

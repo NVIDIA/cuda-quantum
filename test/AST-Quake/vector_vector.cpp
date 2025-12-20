@@ -10,7 +10,7 @@
 // creating a ragged array of values. That is, for any given row, the number of
 // columns can be distinct from other rows.
 
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 

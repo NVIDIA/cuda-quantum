@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize --apply-op-specialization | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

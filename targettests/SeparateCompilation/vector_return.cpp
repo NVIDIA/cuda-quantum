@@ -9,9 +9,9 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/vector_return_lib.cpp -o %t/vector_return_lib.o && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/vector_return_main.cpp -o %t/vector_return_main.o && \
-// RUN: nvq++ %cpp_std --enable-mlir %t/vector_return_lib.o %t/vector_return_main.o -o %t/vector_return.a.out && \
+// RUN: nvq++ --enable-mlir -c %t/vector_return_lib.cpp -o %t/vector_return_lib.o && \
+// RUN: nvq++ --enable-mlir -c %t/vector_return_main.cpp -o %t/vector_return_main.o && \
+// RUN: nvq++ --enable-mlir %t/vector_return_lib.o %t/vector_return_main.o -o %t/vector_return.a.out && \
 // RUN: %t/vector_return.a.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on

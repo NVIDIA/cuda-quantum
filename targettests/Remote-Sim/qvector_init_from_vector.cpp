@@ -9,9 +9,9 @@
 // REQUIRES: remote-sim
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu %s -o %t  && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir --target remote-mqpu %s -o %t  && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
-// RUN: nvq++ %cpp_std --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir --target remote-mqpu -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

@@ -22,13 +22,8 @@ QuantumKernel createQKernel(QuantumKernel &&kernel) {
 }
 #else
 
-#if CUDAQ_USE_STD20
 template <typename T>
 using remove_cvref_t = typename std::remove_cvref_t<T>;
-#else
-template <typename T>
-using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
-#endif
 
 template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
           typename Operator = typename cudaq::qkernel_deduction_guide_helper<

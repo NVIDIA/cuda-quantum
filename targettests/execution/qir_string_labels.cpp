@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std -v %s -o %t --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s
-// RUN: nvq++ %cpp_std -v %s -o %t --target ionq --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,IONQ %s
-// RUN: if %qci_avail; then nvq++ %cpp_std -v %s -o %t --target qci --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s; fi
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ -v %s -o %t --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s
+// RUN: nvq++ -v %s -o %t --target ionq --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,IONQ %s
+// RUN: if %qci_avail; then nvq++ -v %s -o %t --target qci --emulate && CUDAQ_DUMP_JIT_IR=1 %t |& FileCheck --check-prefixes=CHECK,QIR_ADAPTIVE %s; fi
+// RUN: nvq++ --enable-mlir %s -o %t
 // clang-format on
 
 // Note: iqm (and others) that don't use QIR should not be included in this test.

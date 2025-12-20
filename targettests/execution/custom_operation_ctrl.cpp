@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target anyon      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc        --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target anyon      --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
