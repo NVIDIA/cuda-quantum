@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt -lambda-lifting=constant-prop=1 -apply-op-specialization | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt -lambda-lifting=constant-prop=1 -apply-op-specialization | FileCheck %s
 // clang-format on
 
 #include <cmath>
