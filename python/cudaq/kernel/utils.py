@@ -114,7 +114,7 @@ def recover_calling_module():
         mod = inspect.getmodule(fr)
         if mod is not None and getattr(mod, "__name__", None):
             return mod.__name__
-        # Fallback for notebooks to search module in globals
+        # Fallback for notebooks to search module in `globals`
         return fr.f_globals.get("__name__")
 
     frame = inspect.currentframe()
@@ -136,7 +136,7 @@ def recover_calling_module():
         if mod is not None:
             return mod
 
-        # Resolve by globals name
+        # Resolve by `globals` name
         return sys.modules.get(frame.f_globals.get("__name__"))
     finally:
         del frame

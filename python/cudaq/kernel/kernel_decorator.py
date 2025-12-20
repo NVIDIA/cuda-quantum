@@ -108,7 +108,7 @@ class PyKernelDecorator(object):
                 mod = inspect.getmodule(fr)
                 if mod is not None and getattr(mod, "__name__", None):
                     return mod.__name__
-                # Fallback to search module in globals
+                # Fallback to search module in `globals`
                 return fr.f_globals.get("__name__")
 
             frame = inspect.currentframe()
@@ -131,7 +131,7 @@ class PyKernelDecorator(object):
                 if mod is not None:
                     return mod
 
-                # Resolve by globals name
+                # Resolve by `globals` name
                 return sys.modules.get(frame.f_globals.get("__name__"))
             finally:
                 del frame
