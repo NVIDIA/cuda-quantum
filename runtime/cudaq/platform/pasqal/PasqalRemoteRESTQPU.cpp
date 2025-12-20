@@ -20,4 +20,4 @@ public:
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, PasqalRemoteRESTQPU, pasqal)
+CUDAQ_REGISTER_QPU_TYPE(PasqalRemoteRESTQPU, pasqal)
