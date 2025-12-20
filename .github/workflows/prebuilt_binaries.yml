@@ -376,7 +376,7 @@ jobs:
             fi
 
             ${PYTHON} -m pip install cuda_quantum*.whl
-            ${PYTHON} -m pip install pytest numpy psutil
+            ${PYTHON} -m pip install pytest==8.3.0 numpy psutil
             # FIXME: some tests fail when building against libc++
             # https://github.com/NVIDIA/cuda-quantum/issues/1712
             # /home/cudaq/python/kernel/test_kernel_parameters.py
