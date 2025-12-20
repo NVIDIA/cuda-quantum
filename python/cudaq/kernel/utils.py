@@ -107,12 +107,39 @@ def recover_func_op(module, name):
 
 
 def recover_calling_module():
-    frame = inspect.currentframe().f_back
-    name = inspect.getmodule(frame).__name__
-    while (name.startswith("cudaq.kernel") or name.startswith("cudaq.runtime")):
+
+    def frame_and_mod(fr):
+        if fr is None:
+            return None
+        mod = inspect.getmodule(fr)
+        if mod is not None and getattr(mod, "__name__", None):
+            return mod.__name__
+        # Fallback for notebooks to search module in globals
+        return fr.f_globals.get("__name__")
+
+    frame = inspect.currentframe()
+    try:
         frame = frame.f_back
-        name = inspect.getmodule(frame).__name__
-    return inspect.getmodule(frame)
+        name = frame_and_mod(frame)
+
+        while frame is not None and name is not None and (
+                name.startswith("cudaq.kernel") or
+                name.startswith("cudaq.runtime")):
+            frame = frame.f_back
+            name = frame_and_mod(frame)
+
+        if frame is None:
+            return None
+
+        # A real module object if available
+        mod = inspect.getmodule(frame)
+        if mod is not None:
+            return mod
+
+        # Resolve by globals name
+        return sys.modules.get(frame.f_globals.get("__name__"))
+    finally:
+        del frame
 
 
 def resolve_qualified_symbol(y):

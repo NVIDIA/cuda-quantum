@@ -11,6 +11,7 @@ import importlib
 import inspect
 import json
 import numpy as np
+import sys
 
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
@@ -100,12 +101,40 @@ class PyKernelDecorator(object):
             Strip all the frames from this module until we find the next
             enclosing frame.
             """
+
+            def frame_and_mod(fr):
+                if fr is None:
+                    return None
+                mod = inspect.getmodule(fr)
+                if mod is not None and getattr(mod, "__name__", None):
+                    return mod.__name__
+                # Fallback to search module in globals
+                return fr.f_globals.get("__name__")
+
             frame = inspect.currentframe()
-            while inspect.getmodule(frame).__name__ != name:
-                frame = frame.f_back
-            while inspect.getmodule(frame).__name__ == name:
-                frame = frame.f_back
-            return inspect.getmodule(frame)
+            try:
+                # Walk back until we enter the decorator module
+                while frame is not None and frame_and_mod(frame) != name:
+                    frame = frame.f_back
+
+                if frame is None:
+                    return None
+
+                # Walk back until we leave the decorator module
+                while frame is not None and frame_and_mod(frame) == name:
+                    frame = frame.f_back
+
+                if frame is None:
+                    return None
+
+                mod = inspect.getmodule(frame)
+                if mod is not None:
+                    return mod
+
+                # Resolve by globals name
+                return sys.modules.get(frame.f_globals.get("__name__"))
+            finally:
+                del frame
 
         self.defModule = recover_module('cudaq.kernel.kernel_decorator')
         self.verbose = verbose
