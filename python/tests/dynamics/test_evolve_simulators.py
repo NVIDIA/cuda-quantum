@@ -12,6 +12,7 @@ import cudaq
 from cudaq.operators import *
 from cudaq.dynamics import *
 import numpy as np
+import gc
 
 
 @pytest.fixture(autouse=True)
@@ -394,6 +395,9 @@ def test_evolve_no_intermediate_results():
     # inner list is observables. With NONE mode, there's only one time step (final).
     assert final_exp_decay[0][0].expectation() != final_exp[0][0].expectation()
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
+    del evolution_result
+    del evolution_result_decay
+    gc.collect()
 
 
 def test_evolve_async_no_intermediate_results():

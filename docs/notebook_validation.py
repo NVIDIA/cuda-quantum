@@ -144,7 +144,7 @@ if __name__ == "__main__":
         ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
         notebooks_skipped = [
             'quantum_transformer.ipynb', 'logical_aim_sqale.ipynb',
-            'hybrid_quantum_neural_networks'
+            'hybrid_quantum_neural_networks.ipynb'
         ]
 
         for notebook_filename in notebook_filenames:
