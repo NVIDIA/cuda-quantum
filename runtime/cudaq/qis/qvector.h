@@ -74,11 +74,7 @@ public:
 
   /// @brief Returns the `[0, count)` qudits as a non-owning `qview`.
   qview<Levels> front(std::size_t count) {
-#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(0, count);
-#else
-    return {qudits.begin(), count};
-#endif
   }
 
   /// @brief Returns the first qudit.
@@ -86,11 +82,7 @@ public:
 
   /// @brief Returns the `[count, size())` qudits as a non-owning `qview`
   qview<Levels> back(std::size_t count) {
-#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(size() - count, count);
-#else
-    return {qudits.end() - count, count};
-#endif
   }
 
   /// @brief Returns the last qudit.
@@ -98,11 +90,7 @@ public:
 
   /// @brief Returns the `[start, start+size)` qudits as a non-owning `qview`
   qview<Levels> slice(std::size_t start, std::size_t size) {
-#if CUDAQ_USE_STD20
     return std::span(qudits).subspan(start, size);
-#else
-    return {qudits.begin() + start, size};
-#endif
   }
 
   /// @brief Returns the number of contained qudits.

@@ -108,7 +108,7 @@ static cl::list<std::string>
 
 static cl::opt<std::string> stdCpp(
     "std",
-    cl::desc("Specify the C++ standard (c++17, c++20). The default is c++20."),
+    cl::desc("Specify the C++ standard (c++20, c++23). The default is c++20."),
     cl::init("c++20"));
 
 inline bool isStdinInput(StringRef str) { return str == "-"; }

@@ -6,7 +6,6 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// REQUIRES: c++20
 // RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin.so --cudaq-custom-pass  | FileCheck %s
 
 module {

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --emit-qir %s && cat qir_gen.qir.ll | \
+// RUN: nvq++ --emit-qir %s && cat qir_gen.qir.ll | \
 // RUN: FileCheck %s && rm qir_gen.qir.ll
 
 #include <cudaq.h>

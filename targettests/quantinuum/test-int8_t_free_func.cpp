@@ -6,5 +6,5 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && echo skipping
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && echo skipping
 #include "../execution/int8_t_free_func.cpp"
