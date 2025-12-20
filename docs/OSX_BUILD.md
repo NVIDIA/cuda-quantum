@@ -119,3 +119,24 @@ python3 -c "import cudaq; print(cudaq.__version__)"
 **Workaround:** LLVM is built with `-DLLVM_ENABLE_LTO=OFF` on macOS (see `scripts/build_llvm.sh`).
 
 **Proper fix:** Wait for pybind11 fix or patch the pybind11 cmake modules locally.
+
+### MLIR Threading Disabled on macOS
+
+**Problem:** When LLVM is built as a shared library, MLIR's multi-threaded pass execution can crash with segmentation faults in LLVM's ThreadPool during pattern rewriting.
+
+**Workaround:** MLIR threading is disabled by default on macOS by setting `CUDAQ_MLIR_DISABLE_THREADING=true` in:
+- `python/runtime/cudaq/platform/py_alt_launch_kernel.cpp`
+
+Users can override this by setting the environment variable `CUDAQ_MLIR_DISABLE_THREADING=false`, but this may cause crashes.
+
+**Proper fix:** Avoid building LLVM as a shared library, or investigate the root cause of the threading crashes.
+
+### CUDAQTargetConfigUtil Dylib Linking
+
+**Problem:** When `CUDAQTargetConfigUtil` is built with `DISABLE_LLVM_LINK_LLVM_DYLIB`, it statically links LLVM's `Support` component. This causes `libcudaq.dylib` (which links `CUDAQTargetConfigUtil`) to contain its own copy of LLVM symbols like `IEEEdouble()`. When MLIR code compares APFloat semantics pointers, they don't match because `libcudaq.dylib` and `libLLVM.dylib` have different copies.
+
+This manifests as assertion failures: `Unknown FP format` in `mlir::FloatAttr::get()`.
+
+**Workaround:** When `LLVM_LINK_LLVM_DYLIB` is enabled, `DISABLE_LLVM_LINK_LLVM_DYLIB` is not used for `CUDAQTargetConfigUtil`, ensuring all libraries use the same LLVM symbols from the shared library (see `lib/Support/Config/CMakeLists.txt`).
+
+**Proper fix:** Avoid building LLVM as a shared library, which would eliminate the need for this workaround.
