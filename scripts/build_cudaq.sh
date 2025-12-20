@@ -126,6 +126,26 @@ if [ -n "$install_toolchain" ] || $install_prereqs; then
   fi
 fi
 
+# On macOS, configure paths so CMake can find prerequisites.
+# Use Homebrew paths directly for packages it provides (zlib, openssl, blas),
+# and ~/.local for packages we build ourselves (LLVM, pybind11, minizip, curl, aws).
+# This is to avoid copying files and is more native to macOS package management.
+if [ "$(uname)" = "Darwin" ]; then
+  # Add Homebrew to CMAKE_PREFIX_PATH so CMake finds zlib, openssl, openblas automatically
+  export CMAKE_PREFIX_PATH="$(brew --prefix):${CMAKE_PREFIX_PATH:-}"
+
+  # Export paths for packages we build ourselves (not available via Homebrew)
+  export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
+  export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-$HOME/.local/zlib}  # for minizip
+  export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-$HOME/.local/curl}
+  export PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-$HOME/.local/pybind11}
+  export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-$HOME/.local/aws}
+
+  # Use Homebrew paths directly for these (CMake finds via CMAKE_PREFIX_PATH)
+  export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-$(brew --prefix openssl@3)}
+  export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-$(brew --prefix openblas)}
+fi
+
 # Check if a suitable CUDA version is installed
 cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`

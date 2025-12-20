@@ -53,19 +53,14 @@ Default install locations on macOS:
 
 ## Environment Setup
 
-After installation, add to your `.zshrc` or `.bashrc`:
+The build script automatically configures prerequisite paths:
+- **Homebrew packages** (zlib, openssl, openblas): Found via `CMAKE_PREFIX_PATH`
+- **Custom builds** (LLVM, pybind11, curl, aws): Installed to `~/.local/`
+
+Add to your `.zshrc` or `.bashrc`:
 ```bash
 # macOS SDK path (required for nvq++ to find system headers)
 export SDKROOT=$(xcrun --show-sdk-path)
-
-# CUDA-Q build paths
-export LLVM_INSTALL_PREFIX=$HOME/.llvm
-export ZLIB_INSTALL_PREFIX=$HOME/.local/zlib
-export OPENSSL_INSTALL_PREFIX=$HOME/.local/ssl
-export CURL_INSTALL_PREFIX=$HOME/.local/curl
-export BLAS_INSTALL_PREFIX=$HOME/.local/blas
-export PYBIND11_INSTALL_PREFIX=$HOME/.local/pybind11
-export AWS_INSTALL_PREFIX=$HOME/.local/aws
 ```
 
 ## Using CUDA-Q

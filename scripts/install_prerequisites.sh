@@ -185,27 +185,20 @@ fi
 # [Minizip] Needed by rest_server for archive handling
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
   if [ "$(uname)" = "Darwin" ]; then
-    # macOS: use Homebrew zlib (building from source fails due to SDK header conflicts)
-    # and build minizip from source (Homebrew's archive contains nested libz.a which linker rejects)
-    mkdir -p "$ZLIB_INSTALL_PREFIX/lib" "$ZLIB_INSTALL_PREFIX/include"
-
-    if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
-      echo "Installing libz..."
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib
-      zlib_prefix="$(brew --prefix zlib)"
-      cp "$zlib_prefix/lib/libz.a" "$ZLIB_INSTALL_PREFIX/lib/"
-      cp "$zlib_prefix/include/"*.h "$ZLIB_INSTALL_PREFIX/include/"
-    else
-      echo "libz already installed in $ZLIB_INSTALL_PREFIX."
-    fi
+    # macOS: Install zlib via Homebrew (CMake finds it via CMAKE_PREFIX_PATH).
+    # Build minizip from source since Homebrew's archive contains nested libz.a which linker rejects.
+    # Minizip is installed to ZLIB_INSTALL_PREFIX (~/.local/zlib).
+    HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib
+    zlib_prefix="$(brew --prefix zlib)"
 
     if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
       echo "Installing minizip..."
+      mkdir -p "$ZLIB_INSTALL_PREFIX/lib" "$ZLIB_INSTALL_PREFIX/include"
       HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool
       curl -L -o zlib-1.3.tar.gz https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
       tar -xzf zlib-1.3.tar.gz && cd zlib-1.3/contrib/minizip
       autoreconf --install
-      CC="$CC" CFLAGS="-fPIC -I$ZLIB_INSTALL_PREFIX/include" LDFLAGS="-L$ZLIB_INSTALL_PREFIX/lib" \
+      CC="$CC" CFLAGS="-fPIC -I$zlib_prefix/include" LDFLAGS="-L$zlib_prefix/lib" \
       ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
       make CC="$CC" && make install
       cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
