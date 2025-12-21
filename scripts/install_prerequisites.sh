@@ -183,53 +183,29 @@ fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
 # [Minizip] Needed by rest_server for archive handling
+# Build both from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ "$(uname)" = "Darwin" ]; then
-    # macOS: Install zlib via Homebrew (CMake finds it via CMAKE_PREFIX_PATH).
-    # Build minizip from source since Homebrew's archive contains nested libz.a which linker rejects.
-    # Minizip is installed to ZLIB_INSTALL_PREFIX (~/.local/zlib).
-    HOMEBREW_NO_AUTO_UPDATE=1 brew install zlib
-    zlib_prefix="$(brew --prefix zlib)"
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
+    echo "Installing libz and minizip..."
+    temp_install_if_command_unknown wget wget
+    temp_install_if_command_unknown make make
+    temp_install_if_command_unknown automake automake
+    temp_install_if_command_unknown libtool libtool
 
-    if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-      echo "Installing minizip..."
-      mkdir -p "$ZLIB_INSTALL_PREFIX/lib" "$ZLIB_INSTALL_PREFIX/include"
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install automake libtool
-      curl -L -o zlib-1.3.tar.gz https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
-      tar -xzf zlib-1.3.tar.gz && cd zlib-1.3/contrib/minizip
-      autoreconf --install
-      CC="$CC" CFLAGS="-fPIC -I$zlib_prefix/include" LDFLAGS="-L$zlib_prefix/lib" \
-      ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-      make CC="$CC" && make install
-      cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
-    else
-      echo "minizip already installed in $ZLIB_INSTALL_PREFIX."
-    fi
-
+    curl -L -o zlib-1.3.1.tar.gz https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
+    tar -xzf zlib-1.3.1.tar.gz && cd zlib-1.3.1
+    CC="$CC" CFLAGS="-fPIC" \
+    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
+    make CC="$CC" && make install
+    cd contrib/minizip
+    autoreconf --install
+    CC="$CC" CFLAGS="-fPIC" \
+    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
+    make CC="$CC" && make install
+    cd ../../.. && rm -rf zlib-1.3.1.tar.gz zlib-1.3.1
+    remove_temp_installs
   else
-    # Linux: build both zlib and minizip from source
-    if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-      echo "Installing libz and minizip..."
-      temp_install_if_command_unknown wget wget
-      temp_install_if_command_unknown make make
-      temp_install_if_command_unknown automake automake
-      temp_install_if_command_unknown libtool libtool
-
-      curl -L -o zlib-1.3.tar.gz https://github.com/madler/zlib/releases/download/v1.3/zlib-1.3.tar.gz
-      tar -xzf zlib-1.3.tar.gz && cd zlib-1.3
-      CC="$CC" CFLAGS="-fPIC" \
-      ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
-      make CC="$CC" && make install
-      cd contrib/minizip
-      autoreconf --install
-      CC="$CC" CFLAGS="-fPIC" \
-      ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-      make CC="$CC" && make install
-      cd ../../.. && rm -rf zlib-1.3.tar.gz zlib-1.3
-      remove_temp_installs
-    else
-      echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
-    fi
+    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 
@@ -283,13 +259,14 @@ fi
 
 # [OpenSSL] Needed for communication with external services
 if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)" ]; then
-  if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name libssl.a)" ]; then
+  if [ ! -d "$OPENSSL_INSTALL_PREFIX" ] || \
+     [ -z "$(find "$OPENSSL_INSTALL_PREFIX" -name 'libssl.a' 2>/dev/null)" ]; then
     echo "Installing OpenSSL..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
 
     # Not all perl installations include all necessary modules.
-    # To facilitate a consistent build across platforms and to minimize dependencies, 
+    # To facilitate a consistent build across platforms and to minimize dependencies,
     # we just use our own perl version for the OpenSSL build.
     wget https://www.cpan.org/src/5.0/perl-5.38.2.tar.gz
     tar -xzf perl-5.38.2.tar.gz && cd perl-5.38.2
@@ -310,7 +287,9 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     tar -xf openssl-3.5.1.tar.gz && cd openssl-3.5.1
     CC="$CC" CFLAGS="-fPIC" CXX="$CXX" CXXFLAGS="-fPIC" AR="${AR:-ar}" \
     "$HOME/.perl5/bin/perl" Configure no-shared \
-      --prefix="$OPENSSL_INSTALL_PREFIX" zlib --with-zlib-lib="$ZLIB_INSTALL_PREFIX"
+      --prefix="$OPENSSL_INSTALL_PREFIX" zlib \
+      --with-zlib-include="$ZLIB_INSTALL_PREFIX/include" \
+      --with-zlib-lib="$ZLIB_INSTALL_PREFIX/lib"
     make CC="$CC" CXX="$CXX" && make install
     cd .. && rm -rf openssl-3.5.1.tar.gz openssl-3.5.1 "$HOME/.perl5"
     remove_temp_installs
