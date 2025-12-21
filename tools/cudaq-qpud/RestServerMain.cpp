@@ -62,8 +62,6 @@ int main(int argc, char **argv) {
   // setO0WantsFastISel() do not retain their values in our current version of
   // LLVM. This use of LLVM command line parameters could be changed if the LLVM
   // JIT ever supports the TargetMachine options in the future.
-  // Not available on macOS where LLVM is built as a shared library.
-#if !defined(__APPLE__)
   std::vector<const char *> extraArgv(
       argc + 2); // +1 for new parameter, +1 for nullptr at end of list
   for (int i = 0; i < argc; i++)
@@ -71,9 +69,6 @@ int main(int argc, char **argv) {
   extraArgv[argc] = "-fast-isel=0";
   llvm::cl::ParseCommandLineOptions(argc + 1, extraArgv.data(),
                                     "CUDA-Q REST server\n");
-#else
-  llvm::cl::ParseCommandLineOptions(argc, argv, "CUDA-Q REST server\n");
-#endif
   if (printCudaProperties) {
     const auto deviceProps = cudaq::getCudaProperties();
     if (deviceProps.has_value()) {
