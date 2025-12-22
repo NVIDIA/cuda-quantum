@@ -311,13 +311,13 @@ CLANG_RESOURCE_DIR=""
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 
-# On macOS, add sysroot to compiler and linker flags for C++ stdlib headers/libs
-if ${CUDAQ_IS_APPLE}; then
-	CUDAQ_SYSROOT_PATH="@CUDAQ_SYSROOT_PATH@"
-	if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
-		COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
-		LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
-	fi
+# Set sysroot for finding system headers and libraries. This is critical on macOS
+# where a custom-built clang doesn't know the SDK location (unlike Linux where
+# system headers are in standard /usr/include paths).
+CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-@CUDAQ_SYSROOT_PATH@}"
+if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
+	COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
 fi
 
 LINKER_PATH=

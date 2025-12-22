@@ -226,11 +226,12 @@ else()
   set(CUDAQ_FORCE_LINK_FLAG "")
 endif()
 
-# On macOS, detect the SDK path (used later for C++ stdlib headers if needed)
-if(APPLE)
+# Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
+# clang doesn't know the SDK location (unlike Linux where headers are in /usr/include).
+if(NOT DEFINED CUDAQ_SYSROOT_PATH AND APPLE)
   execute_process(
     COMMAND xcrun --show-sdk-path
-    OUTPUT_VARIABLE CUDAQ_MACOS_SDK_PATH
+    OUTPUT_VARIABLE CUDAQ_SYSROOT_PATH
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET
   )
@@ -378,10 +379,9 @@ set(CUDAQ_LIBCXX_PATH "${LLVM_BINARY_DIR}/include/c++/v1")
 if(EXISTS "${CUDAQ_LIBCXX_PATH}")
   message(STATUS "Using LLVM libc++ headers: ${CUDAQ_LIBCXX_PATH}")
   set(CUDAQ_LIBCXX_TARGET_PATH "${LLVM_BINARY_DIR}/include/${LLVM_DEFAULT_TARGET_TRIPLE}/c++/v1")
-elseif(APPLE AND CUDAQ_MACOS_SDK_PATH)
-  # On macOS without LLVM libc++, use the SDK sysroot
-  message(STATUS "Using macOS SDK for C++ headers: ${CUDAQ_MACOS_SDK_PATH}")
-  set(CUDAQ_SYSROOT_PATH "${CUDAQ_MACOS_SDK_PATH}")
+elseif(CUDAQ_SYSROOT_PATH)
+  # Use sysroot (auto-detected on macOS, or user-provided)
+  message(STATUS "Using sysroot for C++ headers: ${CUDAQ_SYSROOT_PATH}")
   unset(CUDAQ_LIBCXX_PATH)
 else()
   # On Linux, system headers are found automatically
