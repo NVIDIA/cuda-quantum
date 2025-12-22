@@ -61,6 +61,9 @@ Add to your `.zshrc` or `.bashrc`:
 ```bash
 # macOS SDK path (required for nvq++ to find system headers)
 export SDKROOT=$(xcrun --show-sdk-path)
+
+# Required for incremental builds with ninja in the build directory
+export LLVM_INSTALL_PREFIX=$HOME/.llvm
 ```
 
 ## Using CUDA-Q

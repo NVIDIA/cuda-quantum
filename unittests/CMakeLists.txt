@@ -107,9 +107,9 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     set(TEST_LABELS "gpu_required")
   endif()
   if ("${TEST_LABELS}" STREQUAL "")
-    gtest_discover_tests(${TEST_EXE_NAME} DISCOVERY_TIMEOUT 30)
+    gtest_discover_tests(${TEST_EXE_NAME} DISCOVERY_TIMEOUT 120)
   else()
-    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" DISCOVERY_TIMEOUT 30)
+    gtest_discover_tests(${TEST_EXE_NAME} PROPERTIES LABELS "${TEST_LABELS}" DISCOVERY_TIMEOUT 120)
   endif()
 endmacro()
 
@@ -537,6 +537,7 @@ if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)
     message(FATAL_ERROR "find_package(Python) not run?")
   endif()
+
   execute_process(COMMAND ${Python_EXECUTABLE} -c "import openfermionpyscf"
     OUTPUT_VARIABLE PYSCF_output
     ERROR_VARIABLE  PYSCF_error
@@ -554,7 +555,9 @@ if (CUDAQ_ENABLE_PYTHON)
   endif()
   target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp -DCUDAQ_SIMULATION_SCALAR_FP64)
   target_include_directories(test_domains PRIVATE .)
-  set_property(TARGET test_domains PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
+  # Embedded Python links to system framework, not venv, so needs explicit sitelib.
+  set_property(TARGET test_domains PROPERTY ENVIRONMENT
+    "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}")
   target_link_libraries(test_domains
     PRIVATE
     cudaq
@@ -565,5 +568,5 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python" DISCOVERY_TIMEOUT 30)
+    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" DISCOVERY_TIMEOUT 30)
 endif()
