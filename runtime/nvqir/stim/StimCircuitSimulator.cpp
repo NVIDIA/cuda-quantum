@@ -155,7 +155,8 @@ protected:
     // Default to single shot
     std::size_t batch_size = 1;
     auto *executionContext = getExecutionContext();
-    if (executionContext && executionContext->name == "sample" &&
+    if (executionContext &&
+        cudaq::details::isSamplingContext(executionContext) &&
         !executionContext->hasConditionalsOnMeasureResults)
       batch_size = executionContext->shots;
     else if (executionContext && executionContext->name == "msm")
@@ -479,18 +480,18 @@ public:
   }
 
   /// @brief Sample the multi-qubit state. If \p qubits is empty and
-  /// explicitMeasurements is set, this returns all previously saved
-  /// measurements.
+  /// performing the explicit measurements sampling mode, this returns all
+  /// previously saved measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
                                 const int shots) override {
-    if (executionContext->explicitMeasurements && qubits.empty() &&
-        num_measurements == 0)
+    if (cudaq::details::isExplicitSamplingMode(executionContext) &&
+        qubits.empty() && num_measurements == 0)
       throw std::runtime_error(
           "The sampling option `explicit_measurements` is not supported on a "
           "kernel without any measurement operation.");
 
     bool populateResult = [&]() {
-      if (executionContext->explicitMeasurements)
+      if (cudaq::details::isExplicitSamplingMode(executionContext))
         return qubits.empty();
       return true;
     }();
@@ -527,9 +528,10 @@ public:
     // measurements were mid-circuit measurements that have been previously
     // accounted for and saved.
     assert(bits_per_sample >= qubits.size());
-    std::size_t first_bit_to_save = executionContext->explicitMeasurements
-                                        ? 0
-                                        : bits_per_sample - qubits.size();
+    std::size_t first_bit_to_save =
+        cudaq::details::isExplicitSamplingMode(executionContext)
+            ? 0
+            : bits_per_sample - qubits.size();
     CountsDictionary counts;
     sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
