@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -192,7 +192,7 @@ jobs:
           outputs: type=local,dest=/tmp/install
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/install
@@ -211,7 +211,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure build
         id: cache
@@ -273,7 +273,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: config
         run: |
@@ -301,7 +301,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -317,7 +317,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Load cuda-quantum installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.build_installer.outputs.artifact_name }}
           path: /tmp/install
@@ -509,7 +509,7 @@ jobs:
 
       - name: Upload job summary
         if: steps.job_summary.outputs.validation_summary != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
@@ -526,7 +526,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build info
         id: staging
@@ -549,7 +549,7 @@ jobs:
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}
@@ -565,7 +565,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -148,7 +148,7 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.prereqs.outputs.artifact_name }}
           path: /tmp/wheels
@@ -166,7 +166,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: config
         run: |
@@ -193,7 +193,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to GitHub CR
         if: inputs.environment == ''
@@ -204,7 +204,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Load cuda-quantum wheel
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
 
@@ -391,7 +391,7 @@ jobs:
 
       - name: Upload job summary
         if: steps.job_summary.outputs.validation_summary != '' && matrix.pip_install_flags == ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_py${{ inputs.python_version }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
@@ -408,7 +408,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build info
         id: staging
@@ -430,7 +430,7 @@ jobs:
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}

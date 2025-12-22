@@ -203,7 +203,7 @@ jobs:
 
     steps:
       - name: Get code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
