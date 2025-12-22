@@ -12,7 +12,6 @@ import cudaq
 from cudaq.operators import *
 from cudaq.dynamics import *
 import numpy as np
-import gc
 
 
 @pytest.fixture(scope="session", autouse=True)
