@@ -517,7 +517,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     kernel.rx(thetas[2], qreg[2])
     kernel.rx(thetas[3], qreg[3])
 
-    print(cudaq.get_state(kernel, angles))
+    cudaq.get_state(kernel, angles).dump()
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 
@@ -780,7 +780,10 @@ def test_batched_observe_results():
 
 
 def test_observe():
-    """ Check if the bug reported in  https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'"""
+    """
+    Check if the bug reported in
+    https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'
+    """
 
     def kernel_maker(n):
         kernel, theta = cudaq.make_kernel(float)

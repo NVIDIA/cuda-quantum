@@ -6,13 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 
 __qpu__ void test(std::vector<double> inState) {
-  cudaq::qvector q = inState;
+  cudaq::qvector q{cudaq::state(inState)};
 }
 
 // CHECK: size 2

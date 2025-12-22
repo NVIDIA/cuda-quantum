@@ -20,6 +20,7 @@ target_link_libraries(test_pasqal
     cudaq
     cudaq-common 
     gtest_main
+    cudaq-platform-default
 )
 
 gtest_discover_tests(test_pasqal)

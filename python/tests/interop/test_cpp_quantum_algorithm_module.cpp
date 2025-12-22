@@ -16,31 +16,6 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(cudaq_test_cpp_algo, m) {
-
-  m.def("test_cpp_qalgo", [](py::object statePrepIn) {
-    // Wrap the kernel and compile, will throw
-    // if not a valid kernel
-    cudaq::python::CppPyKernelDecorator statePrep(statePrepIn);
-    statePrep.compile();
-
-    // Our library exposes an "entryPoint" kernel, get its
-    // mangled name and MLIR code
-    auto [kernelName, cppMLIRCode] =
-        cudaq::python::getMLIRCodeAndName("entryPoint");
-
-    // Merge the entryPoint kernel into the input stateprep kernel
-    auto merged = statePrep.merge_kernel(cppMLIRCode);
-
-    // Synthesize away all callable block arguments
-    merged.synthesize_callable_arguments({statePrep.name()});
-
-    // Extract the function pointer.
-    auto entryPointPtr = merged.extract_c_function_pointer(kernelName);
-
-    // Run...
-    return cudaq::sample(entryPointPtr);
-  });
-
   // Example of how to expose C++ kernels.
   cudaq::python::addDeviceKernelInterop<cudaq::qview<>>(
       m, "qstd", "qft", "(Fake) Quantum Fourier Transform.");

@@ -13,11 +13,13 @@ func.func @canonicalize_scope(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
     cc.scope {
       quake.h %arg0 : (!quake.ref) -> ()
     }
+    cc.return
   } : !cc.callable<() -> ()>
   %1 = cc.create_lambda {
     cc.scope {
       quake.z %arg0 : (!quake.ref) -> ()
     }
+    cc.return
   } : !cc.callable<() -> ()>
   quake.compute_action %0, %1 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
   return

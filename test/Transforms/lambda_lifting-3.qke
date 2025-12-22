@@ -1,0 +1,71 @@
+// ========================================================================== //
+// Copyright (c) 2025 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --lambda-lifting %s | FileCheck %s
+
+func.func @__nvqpp__mlirgen__callMe..0x7df00dbdc820(%arg0: !cc.callable<(!quake.ref) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = cc.create_lambda {
+  ^bb0(%arg1: !quake.ref):
+    %2 = cc.create_lambda {
+    ^bb0(%arg2: !quake.ref):
+      %3 = cc.create_lambda {
+      ^bb0(%arg3: !quake.ref):
+        func.call @__nvqpp__mlirgen__func0..0x7df00edf9130(%arg3) : (!quake.ref) -> ()
+        cc.return
+      } : !cc.callable<(!quake.ref) -> ()>
+      func.call @__nvqpp__mlirgen__func1..0x7df00dc73390(%arg2, %3) : (!quake.ref, !cc.callable<(!quake.ref) -> ()>) -> ()
+      cc.return
+    } : !cc.callable<(!quake.ref) -> ()>
+    func.call @__nvqpp__mlirgen__func2..0x7df00dc72440(%arg1, %2) : (!quake.ref, !cc.callable<(!quake.ref) -> ()>) -> ()
+    cc.return
+  } : !cc.callable<(!quake.ref) -> ()>
+  %1 = quake.alloca !quake.ref
+  cc.call_callable %0, %1 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> () {symbol = "func3"}
+  return
+}
+
+func.func private @__nvqpp__mlirgen__func2..0x7df00dc72440(%arg0: !quake.ref, %arg1: !cc.callable<(!quake.ref) -> ()> {quake.pylifted}) attributes {"cudaq-kernel"} {
+  cc.call_callable %arg1, %arg0 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> () {symbol = "func1"}
+  return
+}
+
+func.func private @__nvqpp__mlirgen__func1..0x7df00dc73390(%arg0: !quake.ref, %arg1: !cc.callable<(!quake.ref) -> ()> {quake.pylifted}) attributes {"cudaq-kernel"} {
+  cc.call_callable %arg1, %arg0 : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> () {symbol = "func0"}
+  return
+}
+
+func.func private @__nvqpp__mlirgen__func0..0x7df00edf9130(%arg0: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.x %arg0 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__callMe..0x7df00dbdc820(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-NOT:       cc.create_lambda
+// CHECK:           call_indirect %[[VAL_1:.*]](%[[VAL_2:.*]], %[[VAL_3:.*]]) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func private @__nvqpp__mlirgen__func2..0x7df00dc72440(
+
+// CHECK-LABEL:   func.func private @__nvqpp__mlirgen__func1..0x7df00dc73390(
+
+// CHECK-LABEL:   func.func private @__nvqpp__mlirgen__func0..0x7df00edf9130(
+
+// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.2(
+
+// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.2(
+
+// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.1(
+
+// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.1(
+
+// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
+
+// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
+

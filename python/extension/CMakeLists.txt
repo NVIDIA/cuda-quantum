@@ -53,17 +53,16 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
+    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_resource_count.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
     ../runtime/cudaq/algorithms/py_state.cpp
-    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
-    ../runtime/cudaq/algorithms/py_vqe.cpp
     ../runtime/cudaq/platform/JITExecutionCache.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
@@ -97,6 +96,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
     ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/default/python/QPU.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -107,6 +107,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    MLIRPass
    CUDAQTargetConfigUtil
    cudaq-python-interop
+   cudaq-platform-default
 )
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 

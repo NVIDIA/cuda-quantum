@@ -17,6 +17,6 @@ target_link_libraries(test_quera PRIVATE
     cudaq
     cudaq-common 
     gtest_main
-)
+    cudaq-platform-default)
 
 gtest_discover_tests(test_quera)
