@@ -1634,6 +1634,35 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return false;
     }
 
+    if (funcName == "detector") {
+      SmallVector<Value> measures;
+      for (auto iter : llvm::enumerate(args)) {
+        auto a = iter.value();
+        Type aTy = a.getType();
+        if (isa<IntegerType>(aTy)) {
+          // If it is not i64, then convert it to i64 here.
+          if (aTy != builder.getI64Type()) {
+            a = builder.create<cudaq::cc::CastOp>(
+                loc, builder.getI64Type(), a, cudaq::cc::CastOpMode::Signed);
+          }
+          measures.push_back(a);
+          continue;
+        }
+
+        if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(aTy)) {
+          if (isa<IntegerType>(stdvecTy.getElementType())) {
+            measures.push_back(a);
+            continue;
+          }
+        }
+
+        reportClangError(x, mangler, "detector argument types not supported: ");
+        return false;
+      }
+      builder.create<quake::DetectorOp>(loc, measures);
+      return true;
+    }
+
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
       // Measurements always return a bool or a std::vector<bool>.
       bool useStdvec =

@@ -2703,6 +2703,41 @@ class PyASTBridge(ast.NodeVisitor):
                                         pauli=pauliWord)
                 return
 
+            if node.func.id == 'detector':
+                if len(node.args) == 1 and isinstance(node.args[0], ast.List):
+                    i64Ty = self.getIntegerType(64)
+                    listValues = []
+                    for a in node.args[0].elts:
+                        self.visit(a)
+                        val = self.popValue()
+                        listValues.append(self.changeOperandToType(i64Ty, val))
+
+                    arrTy = cc.ArrayType.get(i64Ty)
+                    sizeVal = arith.ConstantOp(i64Ty, len(listValues)).result
+                    buffer = cc.AllocaOp(cc.PointerType.get(arrTy),
+                                         TypeAttr.get(i64Ty),
+                                         seqSize=sizeVal).result
+                    for i, val in enumerate(listValues):
+                        idxVal = arith.ConstantOp(i64Ty, i).result
+                        eleAddr = cc.ComputePtrOp(
+                            cc.PointerType.get(i64Ty), buffer, [idxVal],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                  context=self.ctx)).result
+                        cc.StoreOp(val, eleAddr)
+
+                    stdvec = cc.StdvecInitOp(cc.StdvecType.get(i64Ty),
+                                             buffer,
+                                             length=sizeVal).result
+                    quake.DetectorOp([stdvec])
+                    return
+                args = self.__groupValues(node.args, [(1, -1)])
+                args = [
+                    self.changeOperandToType(self.getIntegerType(64), a)
+                    for a in args
+                ]
+                quake.DetectorOp(args)
+                return
+
             if node.func.id in globalRegisteredOperations:
                 unitary = globalRegisteredOperations[node.func.id]
                 numTargets = int(np.log2(np.sqrt(unitary.size)))

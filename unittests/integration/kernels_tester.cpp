@@ -494,4 +494,121 @@ CUDAQ_TEST(KernelsTester, msmTester_pauli2) {
   EXPECT_EQ(msm_prob_err_id[0], 0);
 }
 
+CUDAQ_TEST(KernelsTester, detectorTester) {
+  struct simple_test {
+    void operator()() __qpu__ {
+      cudaq::qvector q(2);
+      mz(q[0]);
+      mz(q[1]);
+      cudaq::detector(-2, -1); // (mz(q[0]), mz(q[1]))
+    }
+  };
+  cudaq::ExecutionContext ctx("tracer");
+  cudaq::get_platform().set_exec_ctx(&ctx);
+  simple_test{}();
+  cudaq::get_platform().reset_exec_ctx();
+  const auto &trace = ctx.kernelTrace;
+  for (std::size_t i = 0; const auto &instruction : trace) {
+    if (i == 0) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 0)});
+    } else if (i == 1) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 1)});
+    } else if (i == 2) {
+      EXPECT_EQ(instruction.name, "detector");
+      EXPECT_EQ(instruction.params, (std::vector<double>{-2.0, -1.0}));
+    } else {
+      FAIL() << "Unexpected instruction at index " << i;
+    }
+    i++;
+  }
+}
+
+CUDAQ_TEST(KernelsTester, detectorTester_stdvec) {
+  struct simple_test {
+    void operator()() __qpu__ {
+      cudaq::qvector q(2);
+      mz(q[0]);
+      mz(q[1]);
+      cudaq::detector(std::vector<int64_t>{-2, -1}); // (mz(q[0]), mz(q[1]))
+    }
+  };
+  cudaq::ExecutionContext ctx("tracer");
+  cudaq::get_platform().set_exec_ctx(&ctx);
+  simple_test{}();
+  cudaq::get_platform().reset_exec_ctx();
+  const auto &trace = ctx.kernelTrace;
+  for (std::size_t i = 0; const auto &instruction : trace) {
+    if (i == 0) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 0)});
+    } else if (i == 1) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 1)});
+    } else if (i == 2) {
+      EXPECT_EQ(instruction.name, "detector");
+      EXPECT_EQ(instruction.params, (std::vector<double>{-2.0, -1.0}));
+    } else {
+      FAIL() << "Unexpected instruction at index " << i;
+    }
+    i++;
+  }
+}
+
+CUDAQ_TEST(KernelsTester, detectorTester_loops) {
+  struct simple_test {
+    void operator()() __qpu__ {
+      cudaq::qvector q(2);
+      mz(q[0]);
+      mz(q[1]);
+      for (int i = 0; i < 10; i++) {
+        mz(q[0]);
+        mz(q[1]);
+        cudaq::detector(-4, -2); // q[0]
+        cudaq::detector(-3, -1); // q[1]
+      }
+    }
+  };
+  cudaq::ExecutionContext ctx("tracer");
+  cudaq::get_platform().set_exec_ctx(&ctx);
+  simple_test{}();
+  cudaq::get_platform().reset_exec_ctx();
+  for (const auto &instruction : ctx.kernelTrace) {
+    std::cout << instruction.name << std::endl;
+  }
+  const auto &trace = ctx.kernelTrace;
+  for (std::size_t i = 0; const auto &instruction : trace) {
+    if (i == 0) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 0)});
+    } else if (i == 1) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 1)});
+    } else if (i >= 2 && (i - 2) % 4 == 0) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 0)});
+    } else if (i >= 2 && (i - 2) % 4 == 1) {
+      EXPECT_EQ(instruction.name, "mz");
+      EXPECT_EQ(instruction.targets,
+                std::vector<cudaq::QuditInfo>{cudaq::QuditInfo(2, 1)});
+    } else if (i >= 2 && (i - 2) % 4 == 2) {
+      EXPECT_EQ(instruction.name, "detector");
+      EXPECT_EQ(instruction.params, (std::vector<double>{-4.0, -2.0}));
+    } else if (i >= 2 && (i - 2) % 4 == 3) {
+      EXPECT_EQ(instruction.name, "detector");
+      EXPECT_EQ(instruction.params, (std::vector<double>{-3.0, -1.0}));
+    } else {
+      FAIL() << "Unexpected instruction at index " << i;
+    }
+    i++;
+  }
+}
 #endif
