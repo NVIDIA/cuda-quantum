@@ -181,7 +181,7 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 // block contains irreversible operations (measurements), and the blocks may not
 // overlap.
 // Reference:
-// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
+// https://github.com/qir-alliance/qir-spec/blob/684b17b9367ec793efdfbb7d804bb78bea1c51ed/specification/profiles/Base_Profile.md#L196
 mlir::LogicalResult
 verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
@@ -195,7 +195,9 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
+          bool isOutputFunction =
+              (funcName == cudaq::opt::QIRRecordOutput ||
+               funcName == cudaq::opt::QIRArrayRecordOutput);
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";

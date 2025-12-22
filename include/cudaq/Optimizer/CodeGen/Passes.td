@@ -132,13 +132,11 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
 }
 
 def QirInsertArrayRecord : Pass<"qir-insert-array-record", "mlir::ModuleOp"> {
-  let summary = "Analyze instruction patterns and insert new instructions for QIR";
+  let summary = "Analyze result recording calls and insert new instructions for QIR";
   let description = [{
-    This pass performs analysis on the instruction patterns between QIR prep and 
-    conversion passes, then inserts array recording instruction based on the analysis.
+    This pass runs after QIR prep and conversion passes, then inserts array 
+    recording instruction based on the number of result recording calls.
   }];
-  let dependentDialects = ["quake::QuakeDialect", "cudaq::cc::CCDialect", 
-      "mlir::LLVM::LLVMDialect"];
 }
 
 def RemoveMeasurements : Pass<"remove-measurements"> {
