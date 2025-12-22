@@ -32,6 +32,8 @@ jobs:
         with:
           use-verbose-mode: "yes"
           config-file: ".github/workflows/config/md_link_check_config.json"        
+          github-action-markdown-link-check: "yes"
+          base-branch: "main"
 
   license_headers:
     name: Check license headers
