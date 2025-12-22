@@ -77,7 +77,7 @@ void Resources::dump(std::ostream &os) const {
   os << "\n  ";
   std::size_t counter = 0;
   for (auto &result : instructions) {
-    std::string gatestr("c", result.first.nControls);
+    std::string gatestr(result.first.nControls, 'c');
     gatestr += result.first.name;
     os << gatestr << " :  " << result.second;
     bool isLast = counter == instructions.size() - 1;
@@ -96,4 +96,14 @@ void Resources::clear() {
 }
 
 void Resources::addQubit() { numQubits++; }
+
+std::unordered_map<std::string, std::size_t> Resources::gateCounts() const {
+  std::unordered_map<std::string, std::size_t> gateCounts;
+  for (auto &result : instructions) {
+    std::string gatestr(result.first.nControls, 'c');
+    gatestr += result.first.name;
+    gateCounts[gatestr] = result.second;
+  }
+  return gateCounts;
+}
 } // namespace cudaq

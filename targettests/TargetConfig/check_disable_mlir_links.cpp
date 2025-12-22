@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // RUN: nvq++ --disable-mlir-links %s -o %s.x && ! ldd %s.x | grep -q libcudaq-mlir-runtime.so 
 
 #include "cudaq.h"

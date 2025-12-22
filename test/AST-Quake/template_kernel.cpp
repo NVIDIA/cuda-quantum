@@ -8,7 +8,6 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// REQUIRES: c++20
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
 // We should only have 2 kernels created even though we instantiate ghz<5> twice. 

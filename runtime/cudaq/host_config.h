@@ -10,7 +10,6 @@
 
 #include <complex>
 
-#define CUDAQ_USE_STD20 (__cplusplus >= 202002L)
 #define CUDAQ_APPLE_CLANG (defined(__apple_build_version__))
 
 namespace cudaq {

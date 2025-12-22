@@ -8,7 +8,6 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// REQUIRES: c++20
 // RUN: cudaq-quake --emit-llvm-file %s | cudaq-opt | FileCheck %s && FileCheck --check-prefix=LLVM %s < simple.ll
 
 #include <cudaq.h>

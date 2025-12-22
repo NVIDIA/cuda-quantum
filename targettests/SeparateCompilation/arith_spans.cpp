@@ -9,9 +9,9 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/span_dumps.cpp -o %t/span_dumps.o && \
-// RUN: nvq++ %cpp_std --enable-mlir -c %t/span_exercise.cpp -o %t/span_exercise.o && \
-// RUN: nvq++ %cpp_std --enable-mlir %t/span_dumps.o %t/span_exercise.o -o %t/spanaroo.out && \
+// RUN: nvq++ --enable-mlir -c %t/span_dumps.cpp -o %t/span_dumps.o && \
+// RUN: nvq++ --enable-mlir -c %t/span_exercise.cpp -o %t/span_exercise.o && \
+// RUN: nvq++ --enable-mlir %t/span_dumps.o %t/span_exercise.o -o %t/spanaroo.out && \
 // RUN: %t/spanaroo.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on

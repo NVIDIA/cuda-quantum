@@ -374,7 +374,7 @@ And add the following to your ``targettests`` ``.cpp`` file:
 
 .. code-block:: cpp
 
-    // RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi
+    // RUN: if %provider_avail; then nvq++ --target provider %s -o %t.x; fi
 
 Mock Server
 -----------

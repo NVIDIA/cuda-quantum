@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
 
 #include <cudaq.h>
 

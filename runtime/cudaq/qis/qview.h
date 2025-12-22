@@ -10,10 +10,8 @@
 
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qudit.h"
-#if CUDAQ_USE_STD20
 #include <ranges>
 #include <span>
-#endif
 
 namespace cudaq {
 
@@ -25,7 +23,6 @@ public:
   /// contains.
   using value_type = qudit<Levels>;
 
-#if CUDAQ_USE_STD20
 private:
   /// @brief Reference to the non-owning span of qudits
   std::span<value_type> qudits;
@@ -68,39 +65,5 @@ public:
 
   /// @brief Returns the number of contained qudits.
   std::size_t size() const { return qudits.size(); }
-
-#else
-  // C++11 reimplementation of qview.
-
-private:
-  value_type *qudits = nullptr;
-  std::size_t qusize = 0;
-
-public:
-  qview(value_type *otherQudits, std::size_t otherQusize)
-      : qudits(otherQudits), qusize(otherQusize) {}
-  template <typename Iterator>
-  qview(Iterator &&otherQudits, std::size_t otherQusize)
-      : qudits(&*otherQudits), qusize(otherQusize) {}
-  template <typename R>
-  qview(R &&other)
-      : qudits(&*other.begin()),
-        qusize(std::distance(other.begin(), other.end())) {}
-  qview(qview const &other) : qudits(other.qudits), qusize(other.qusize) {}
-
-  value_type *begin() { return qudits; }
-  value_type *end() { return qudits + qusize; }
-  value_type &operator[](const std::size_t idx) { return qudits[idx]; }
-  qview<Levels> front(std::size_t count) { return {qudits, count}; }
-  value_type &front() { return *qudits; }
-  qview<Levels> back(std::size_t count) {
-    return {qudits + qusize - count, count};
-  }
-  value_type &back() { return *(qudits + qusize - 1); }
-  qview<Levels> slice(std::size_t start, std::size_t count) {
-    return {qudits + start, count};
-  }
-  std::size_t size() const { return qusize; }
-#endif
 };
 } // namespace cudaq

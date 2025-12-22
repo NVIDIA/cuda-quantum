@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 // Simple tests of vector front/back on different std::vector<> types.
 

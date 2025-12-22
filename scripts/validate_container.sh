@@ -81,7 +81,7 @@ available_backends=`\
         qpu=${platform##* }
         requirements=$(cat $file | grep "gpu-requirements:")
         gpus=${requirements##* }
-        if [ "${qpu}" != "remote_rest" ] && [ "${qpu}" != "NvcfSimulatorQPU" ] \
+        if [ "${qpu}" != "remote_rest" ] \
         && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
         && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
         && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
@@ -217,11 +217,6 @@ do
                 echo "Skipping $t target due to incomplete MPI installation.";
                 echo ":white_flag: $filename: Incomplete MPI installation. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
                 continue
-
-            else
-                # TODO: remove this once the nvqc backend is part of the validation
-                # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1283
-                target_flag+=" --enable-mlir"
             fi
         fi
 
@@ -409,8 +404,8 @@ fi
 # Python snippet validation 
 if [ -d "snippets/" ];
 then
-    # Skip NVQC and multi-GPU snippets.
-    for ex in `find snippets/ -name '*.py' -not -path '*/nvqc/*' -not -path '*/multi_gpu_workflows/*' | sort`;
+    # Skip multi-GPU snippets.
+    for ex in `find snippets/ -name '*.py' -not -path '*/multi_gpu_workflows/*' | sort`;
     do 
         filename=$(basename -- "$ex")
         filename="${filename%.*}"

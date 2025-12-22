@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 // This is an end-to-end test, so we probably want to put it in a different
