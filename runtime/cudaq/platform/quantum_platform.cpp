@@ -44,22 +44,25 @@ quantum_platform *getQuantumPlatformInternal() {
   return platform;
 }
 
-void quantum_platform::set_noise(const noise_model *model, QpuId qpu_id) {
-  std::size_t qid = resolveQpuId(qpu_id);
-  auto &platformQPU = platformQPUs[qid];
+void quantum_platform::set_noise(const noise_model *model, std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &platformQPU = platformQPUs[qpu_id];
   platformQPU->setNoiseModel(model);
 }
 
-const noise_model *quantum_platform::get_noise(QpuId qpu_id) {
+const noise_model *quantum_platform::get_noise(std::size_t qpu_id) {
   if (auto *ctx = executionContext.get())
     return ctx->noiseModel;
 
-  std::size_t qid = resolveQpuId(qpu_id);
-  auto &platformQPU = platformQPUs[qid];
+  validateQpuId(qpu_id);
+  auto &platformQPU = platformQPUs[qpu_id];
   return platformQPU->getNoiseModel();
 }
 
-void quantum_platform::reset_noise(QpuId qpu_id) { set_noise(nullptr, qpu_id); }
+void quantum_platform::reset_noise(std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  set_noise(nullptr, qpu_id);
+}
 
 std::future<sample_result>
 quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
@@ -81,10 +84,10 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
   platformQPUs[qpu_id]->enqueue(f);
 }
 
-void quantum_platform::validateQpuId(int qpuId) const {
+void quantum_platform::validateQpuId(std::size_t qpuId) const {
   if (platformQPUs.empty())
     throw std::runtime_error("No QPUs are available for this target.");
-  if (qpuId < 0 || qpuId >= platformNumQPUs) {
+  if (qpuId >= platformNumQPUs) {
     throw std::invalid_argument(
         "Invalid QPU ID: " + std::to_string(qpuId) +
         ". Number of QPUs: " + std::to_string(platformNumQPUs));
@@ -97,18 +100,12 @@ std::size_t quantum_platform::get_current_qpu() const {
   return 0;
 }
 
-std::size_t quantum_platform::resolveQpuId(QpuId qpu_id,
-                                           ExecutionContext *ctx) const {
-  std::size_t qid = qpu_id.value_or(ctx ? ctx->qpuId : get_current_qpu());
-  validateQpuId(qid);
-  return qid;
-}
-
 // Specify the execution context for this platform.
 // This delegates to the targeted QPU
 void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
   executionContext.set(ctx);
-  std::size_t qid = resolveQpuId(std::nullopt, ctx);
+  std::size_t qid = ctx->qpuId;
+  validateQpuId(qid);
 
   auto &platformQPU = platformQPUs[qid];
   platformQPU->setExecutionContext(ctx);
@@ -116,7 +113,7 @@ void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
 
 /// Reset the execution context for this platform.
 void quantum_platform::reset_exec_ctx() {
-  std::size_t qid = resolveQpuId(std::nullopt, executionContext.get());
+  std::size_t qid = executionContext.get()->qpuId;
 
   auto &platformQPU = platformQPUs[qid];
   platformQPU->resetExecutionContext();
@@ -127,65 +124,69 @@ std::optional<QubitConnectivity> quantum_platform::connectivity() {
   return platformQPUs.front()->getConnectivity();
 }
 
-bool quantum_platform::is_simulator(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->isSimulator();
+bool quantum_platform::is_simulator(std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->isSimulator();
 }
 
-bool quantum_platform::is_remote(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->isRemote();
+bool quantum_platform::is_remote(std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->isRemote();
 }
 
-bool quantum_platform::is_emulated(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->isEmulated();
+bool quantum_platform::is_emulated(std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->isEmulated();
 }
 
-std::size_t quantum_platform::get_num_qubits(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->getNumQubits();
+std::size_t quantum_platform::get_num_qubits(std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->getNumQubits();
 }
 
-bool quantum_platform::supports_conditional_feedback(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->supportsConditionalFeedback();
+bool quantum_platform::supports_conditional_feedback(std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->supportsConditionalFeedback();
 }
 
-bool quantum_platform::supports_explicit_measurements(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->supportsExplicitMeasurements();
+bool quantum_platform::supports_explicit_measurements(
+    std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->supportsExplicitMeasurements();
 }
 
 void quantum_platform::launchVQE(const std::string kernelName,
                                  const void *kernelArgs, gradient *gradient,
                                  const spin_op &H, optimizer &optimizer,
                                  const int n_params, const std::size_t shots,
-                                 QpuId qpu_id) {
-  auto &qpu = platformQPUs[resolveQpuId(qpu_id)];
+                                 std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
   qpu->launchVQE(kernelName, kernelArgs, gradient, H, optimizer, n_params,
                  shots);
 }
 
 RemoteCapabilities
-quantum_platform::get_remote_capabilities(QpuId qpu_id) const {
-  std::size_t qid = resolveQpuId(qpu_id);
-  return platformQPUs[qid]->getRemoteCapabilities();
+quantum_platform::get_remote_capabilities(std::size_t qpu_id) const {
+  validateQpuId(qpu_id);
+  return platformQPUs[qpu_id]->getRemoteCapabilities();
 }
 
 KernelThunkResultType quantum_platform::launchKernel(
     const std::string &kernelName, KernelThunkType kernelFunc, void *args,
     std::uint64_t voidStarSize, std::uint64_t resultOffset,
-    const std::vector<void *> &rawArgs, QpuId qpu_id) {
-  auto &qpu = platformQPUs[resolveQpuId(qpu_id)];
+    const std::vector<void *> &rawArgs, std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
   return qpu->launchKernel(kernelName, kernelFunc, args, voidStarSize,
                            resultOffset, rawArgs);
 }
 
 void quantum_platform::launchKernel(const std::string &kernelName,
                                     const std::vector<void *> &rawArgs,
-                                    QpuId qpu_id) {
-  auto &qpu = platformQPUs[resolveQpuId(qpu_id)];
+                                    std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
   qpu->launchKernel(kernelName, rawArgs);
 }
 
