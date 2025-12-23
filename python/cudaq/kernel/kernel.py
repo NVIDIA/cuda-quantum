@@ -363,7 +363,7 @@ class PyKernel(object):
                 pyType = allowedTypeMap[eleTyName]
                 if eleTyName != None and eleTyName in allowedTypeMap:
                     return list, [pyType()]
-                emitFatalError(f'Invalid type for kernel builder {ty}')
+                emitFatalError(f'Invalid type for kernel {ty}')
         return ty, None
 
     def getIntegerAttr(self, type, value):
@@ -580,7 +580,7 @@ class PyKernel(object):
                         element, eleTy)
                 else:
                     emitFatalError(
-                        f"CUDA-Q kernel builder could not process runtime list-like element type ({pyType})."
+                        f"CUDA-Q kernel could not process runtime list-like element type ({pyType})."
                     )
 
                 cc.StoreOp(elementVal, eleAddr)
@@ -594,7 +594,7 @@ class PyKernel(object):
                                    length=size).result
 
         emitFatalError(
-            f"CUDA-Q kernel builder could not translate runtime argument of type {pyType} to internal IR value."
+            f"CUDA-Q kernel could not translate runtime argument of type {pyType} to internal IR value."
         )
 
     def createInvariantForLoop(self,
@@ -967,7 +967,7 @@ class PyKernel(object):
     def fermionic_swap(self, angle, qubitA, qubitB):
         """
         Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
-        kernel builder object.
+        kernel object.
         """
         fermionic_swap_builder(self, angle, qubitA, qubitB)
 

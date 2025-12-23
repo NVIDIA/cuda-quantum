@@ -115,7 +115,7 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 /// `unique_ptr`.
 auto from_state(const std::span<std::complex<double>> data) {
   auto numQubits = std::log2(data.size());
-  std::vector<details::KernelBuilderType> empty;
+  std::vector<details::KernelType> empty;
   auto kernel = std::make_unique<cudaq::kernel<>>(empty);
   auto qubits = kernel->qalloc(numQubits);
   from_state(*kernel.get(), qubits, data);

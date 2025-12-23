@@ -45,87 +45,80 @@ namespace cudaq::details {
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
 
-KernelBuilderType convertArgumentTypeToMLIR(double &e) {
-  return KernelBuilderType(
-      [](MLIRContext *ctx) { return Float64Type::get(ctx); });
+KernelType convertArgumentTypeToMLIR(double &e) {
+  return KernelType([](MLIRContext *ctx) { return Float64Type::get(ctx); });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(float &e) {
-  return KernelBuilderType(
-      [](MLIRContext *ctx) { return Float32Type::get(ctx); });
+KernelType convertArgumentTypeToMLIR(float &e) {
+  return KernelType([](MLIRContext *ctx) { return Float32Type::get(ctx); });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(int &e) {
-  return KernelBuilderType(
-      [](MLIRContext *ctx) { return IntegerType::get(ctx, 32); });
+KernelType convertArgumentTypeToMLIR(int &e) {
+  return KernelType([](MLIRContext *ctx) { return IntegerType::get(ctx, 32); });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+KernelType convertArgumentTypeToMLIR(std::vector<double> &e) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float64Type::get(ctx));
   });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e) {
-  return KernelBuilderType(
-      [](MLIRContext *ctx) { return IntegerType::get(ctx, 64); });
+KernelType convertArgumentTypeToMLIR(std::size_t &e) {
+  return KernelType([](MLIRContext *ctx) { return IntegerType::get(ctx, 64); });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+KernelType convertArgumentTypeToMLIR(std::vector<int> &e) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 32));
   });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+KernelType convertArgumentTypeToMLIR(std::vector<std::size_t> &e) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, mlir::IntegerType::get(ctx, 64));
   });
 }
 
-/// Map a std::vector<float> to a KernelBuilderType
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+/// Map a std::vector<float> to a KernelType
+KernelType convertArgumentTypeToMLIR(std::vector<float> &e) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx, Float32Type::get(ctx));
   });
 }
 
-/// Map a std::vector<complex<double>> to a KernelBuilderType
-KernelBuilderType
-convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+/// Map a std::vector<complex<double>> to a KernelType
+KernelType convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx,
                                       ComplexType::get(Float64Type::get(ctx)));
   });
 }
 
-/// Map a std::vector<complex<float>> to a KernelBuilderType
-KernelBuilderType
-convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+/// Map a std::vector<complex<float>> to a KernelType
+KernelType convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(ctx,
                                       ComplexType::get(Float32Type::get(ctx)));
   });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e) {
-  return KernelBuilderType(
-      [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
+KernelType convertArgumentTypeToMLIR(cudaq::qubit &e) {
+  return KernelType([](MLIRContext *ctx) { return quake::RefType::get(ctx); });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
-  return KernelBuilderType(
+KernelType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
+  return KernelType(
       [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+KernelType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::StdvecType::get(cudaq::cc::CharspanType::get(ctx));
   });
 }
 
-KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
-  return KernelBuilderType([](MLIRContext *ctx) {
+KernelType convertArgumentTypeToMLIR(cudaq::state *&) {
+  return KernelType([](MLIRContext *ctx) {
     return cudaq::cc::PointerType::get(quake::StateType::get(ctx));
   });
 }
@@ -137,10 +130,10 @@ MLIRContext *initializeContext() {
 void deleteContext(MLIRContext *context) { delete context; }
 void deleteJitEngine(ExecutionEngine *jit) { delete jit; }
 
-ImplicitLocOpBuilder *
-initializeBuilder(MLIRContext *context,
-                  std::vector<KernelBuilderType> &inputTypes,
-                  std::vector<QuakeValue> &arguments, std::string &kernelName) {
+ImplicitLocOpBuilder *initializeBuilder(MLIRContext *context,
+                                        std::vector<KernelType> &inputTypes,
+                                        std::vector<QuakeValue> &arguments,
+                                        std::string &kernelName) {
   CUDAQ_INFO("Creating the MLIR ImplicitOpBuilder.");
 
   auto location = FileLineColLoc::get(context, "<builder>", 1, 1);
@@ -473,11 +466,10 @@ void forLoop(ImplicitLocOpBuilder &builder, QuakeValue &start, std::size_t end,
   forLoop(builder, s, e, body);
 }
 
-KernelBuilderType::KernelBuilderType(
-    std::function<mlir::Type(MLIRContext *ctx)> &&f)
+KernelType::KernelType(std::function<mlir::Type(MLIRContext *ctx)> &&f)
     : creator(f) {}
 
-Type KernelBuilderType::create(MLIRContext *ctx) { return creator(ctx); }
+Type KernelType::create(MLIRContext *ctx) { return creator(ctx); }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder) {
   CUDAQ_INFO("kernel allocating a single qubit");

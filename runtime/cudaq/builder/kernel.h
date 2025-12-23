@@ -59,14 +59,13 @@ concept IntegralType = requires(T param) { std::is_integral_v<T>; };
 
 // Helper template type to check if type is in a variadic pack
 template <typename T, typename... Ts>
-concept KernelBuilderArgTypeIsValid =
-    std::disjunction_v<std::is_same<T, Ts>...>;
+concept KernelArgTypeIsValid = std::disjunction_v<std::is_same<T, Ts>...>;
 
 // If you want to add to the list of valid kernel argument types first add it
 // here, then add `details::convertArgumentTypeToMLIR()` function
 #define CUDAQ_VALID_BUILDER_ARGS_FOLD()                                        \
   requires(                                                                    \
-      KernelBuilderArgTypeIsValid<                                             \
+      KernelArgTypeIsValid<                                                    \
           Args, float, double, std::size_t, int, std::vector<int>,             \
           std::vector<float>, std::vector<std::size_t>, std::vector<double>,   \
           std::vector<std::complex<float>>, std::vector<std::complex<double>>, \
@@ -92,59 +91,57 @@ using StateVectorStorage = std::vector<StateVectorVariant>;
 /// representing the quake function argument types in a way that does not expose
 /// MLIR Type to the CUDA-Q code. This type keeps track of a functor that
 /// generates the MLIR Type in implementation code when create() is invoked.
-class KernelBuilderType {
+class KernelType {
 protected:
   /// @brief For this type instance, create an MLIR Type
   std::function<mlir::Type(mlir::MLIRContext *)> creator;
 
 public:
   /// @brief The constructor, take the Type generation functor
-  KernelBuilderType(std::function<mlir::Type(mlir::MLIRContext *ctx)> &&f);
+  KernelType(std::function<mlir::Type(mlir::MLIRContext *ctx)> &&f);
 
   /// Create the MLIR Type
   mlir::Type create(mlir::MLIRContext *ctx);
 };
 
-/// Map a `double` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(double &e);
+/// Map a `double` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(double &e);
 
-/// Map a `float` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(float &e);
+/// Map a `float` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(float &e);
 
-/// Map a `int` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(int &e);
+/// Map a `int` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(int &e);
 
-/// Map a `size_t` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(std::size_t &e);
+/// Map a `size_t` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::size_t &e);
 
-/// Map a `std::vector<int>` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<int> &e);
+/// Map a `std::vector<int>` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::vector<int> &e);
 
-/// Map a `std::vector<std::size_t>` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<std::size_t> &e);
+/// Map a `std::vector<std::size_t>` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::vector<std::size_t> &e);
 
-/// Map a `std::vector<float>` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<float> &e);
+/// Map a `std::vector<float>` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::vector<float> &e);
 
-/// Map a `vector<double>` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<double> &e);
+/// Map a `vector<double>` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::vector<double> &e);
 
-/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
-KernelBuilderType
-convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e);
+/// Map a `vector<std::complex<double>>` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::vector<std::complex<double>> &e);
 
-/// Map a `vector<std::complex<double>>` to a `KernelBuilderType`
-KernelBuilderType
-convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e);
+/// Map a `vector<std::complex<double>>` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e);
 
-/// Map a `qubit` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e);
+/// Map a `qubit` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(cudaq::qubit &e);
 
-/// @brief  Map a `qvector` to a `KernelBuilderType`
-KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
+/// @brief  Map a `qvector` to a `KernelType`
+KernelType convertArgumentTypeToMLIR(cudaq::qvector<> &e);
 
-KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &e);
-KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&e);
+KernelType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &e);
+KernelType convertArgumentTypeToMLIR(cudaq::state *&e);
 
 /// @brief Initialize the `MLIRContext`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
@@ -157,7 +154,7 @@ void deleteContext(mlir::MLIRContext *);
 /// @brief Initialize the `OpBuilder`, return the raw pointer which we'll wrap
 /// in an `unique_ptr`.
 mlir::ImplicitLocOpBuilder *initializeBuilder(mlir::MLIRContext *,
-                                              std::vector<KernelBuilderType> &,
+                                              std::vector<KernelType> &,
                                               std::vector<QuakeValue> &,
                                               std::string &kernelName);
 
@@ -361,7 +358,7 @@ void *getArgPointer(T *arg) {
 }
 
 /// @brief The `kernel_base` provides a base type for the templated
-/// kernel builder so that we can get a single handle on an instance within the
+/// kernel so that we can get a single handle on an instance within the
 /// runtime.
 class kernel_base {
 public:
@@ -428,9 +425,9 @@ private:
   details::StateVectorStorage stateVectorStorage;
 
 public:
-  /// @brief The constructor, takes the input `KernelBuilderType`s which is
+  /// @brief The constructor, takes the input `KernelType`s which is
   /// used to create the MLIR function type
-  kernel(std::vector<details::KernelBuilderType> &types)
+  kernel(std::vector<details::KernelType> &types)
       : context(details::initializeContext(), details::deleteContext),
         opBuilder(nullptr, [](mlir::ImplicitLocOpBuilder *) {}),
         jitEngine(nullptr, [](mlir::ExecutionEngine *) {}) {
@@ -819,13 +816,12 @@ public:
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
   /// arguments.
-  template <typename OtherKernelBuilder>
-  void call(OtherKernelBuilder &kernel, std::vector<QuakeValue> &values) {
+  template <typename OtherKernel>
+  void call(OtherKernel &kernel, std::vector<QuakeValue> &values) {
     // This should work for regular c++ kernels too
     std::string name = "", quake = "";
-    if constexpr (std::is_base_of_v<
-                      details::kernel_base,
-                      std::remove_reference_t<OtherKernelBuilder>>) {
+    if constexpr (std::is_base_of_v<details::kernel_base,
+                                    std::remove_reference_t<OtherKernel>>) {
       name = kernel.name();
       quake = kernel.to_quake();
     } else {
@@ -837,9 +833,9 @@ public:
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
   /// arguments.
-  template <typename OtherKernelBuilder, typename... QuakeValues>
+  template <typename OtherKernel, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-  void call(OtherKernelBuilder &&kernel, QuakeValues &...values) {
+  void call(OtherKernel &&kernel, QuakeValues &...values) {
     // static_assert(kernel)
     std::vector<QuakeValue> vecValues{values...};
     call(kernel, vecValues);
@@ -848,13 +844,12 @@ public:
   /// @brief Apply the given kernel controlled on the provided qubit value. This
   /// overload takes a vector of `QuakeValue`s and is primarily meant to be used
   /// internally.
-  template <typename OtherKernelBuilder>
-  void control(OtherKernelBuilder &kernel, QuakeValue &control,
+  template <typename OtherKernel>
+  void control(OtherKernel &kernel, QuakeValue &control,
                std::vector<QuakeValue> &args) {
     std::string name = "", quake = "";
-    if constexpr (std::is_base_of_v<
-                      details::kernel_base,
-                      std::remove_reference_t<OtherKernelBuilder>>) {
+    if constexpr (std::is_base_of_v<details::kernel_base,
+                                    std::remove_reference_t<OtherKernel>>) {
       name = kernel.name();
       quake = kernel.to_quake();
     } else {
@@ -866,22 +861,20 @@ public:
   }
 
   /// @brief Apply the given kernel controlled on the provided qubit value.
-  template <typename OtherKernelBuilder, typename... QuakeValues>
+  template <typename OtherKernel, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-  void control(OtherKernelBuilder &kernel, QuakeValue &ctrl,
-               QuakeValues &...values) {
+  void control(OtherKernel &kernel, QuakeValue &ctrl, QuakeValues &...values) {
     std::vector<QuakeValue> vecValues{values...};
     control(kernel, ctrl, vecValues);
   }
 
   /// @brief Apply the adjoint of the given kernel. This overload takes a vector
   /// of `QuakeValue`s and is primarily meant to be used internally.
-  template <typename OtherKernelBuilder>
-  void adjoint(OtherKernelBuilder &kernel, std::vector<QuakeValue> &args) {
+  template <typename OtherKernel>
+  void adjoint(OtherKernel &kernel, std::vector<QuakeValue> &args) {
     std::string name = "", quake = "";
-    if constexpr (std::is_base_of_v<
-                      details::kernel_base,
-                      std::remove_reference_t<OtherKernelBuilder>>) {
+    if constexpr (std::is_base_of_v<details::kernel_base,
+                                    std::remove_reference_t<OtherKernel>>) {
       name = kernel.name();
       quake = kernel.to_quake();
     } else {
@@ -893,9 +886,9 @@ public:
   }
 
   /// @brief Apply the adjoint of the given kernel.
-  template <typename OtherKernelBuilder, typename... QuakeValues>
+  template <typename OtherKernel, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-  void adjoint(OtherKernelBuilder &kernel, QuakeValues &...values) {
+  void adjoint(OtherKernel &kernel, QuakeValues &...values) {
     std::vector<QuakeValue> vecValues{values...};
     adjoint(kernel, vecValues);
   }
@@ -991,7 +984,7 @@ namespace cudaq {
 
 /// @brief Return a new kernel that takes no arguments
 inline auto make_kernel() {
-  std::vector<details::KernelBuilderType> empty;
+  std::vector<details::KernelType> empty;
   return kernel<>(empty);
 }
 
@@ -1003,7 +996,7 @@ inline auto make_kernel() {
 template <typename... Args>
 CUDAQ_VALID_BUILDER_ARGS_FOLD()
 auto make_kernel() {
-  std::vector<details::KernelBuilderType> types;
+  std::vector<details::KernelType> types;
   cudaq::tuple_for_each(std::tuple<Args...>(), [&](auto &&el) {
     types.push_back(details::convertArgumentTypeToMLIR(el));
   });

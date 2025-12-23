@@ -83,8 +83,8 @@ __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
 /// instance. It takes the qubits the state is on, the number of qubits and
 /// layers, the vector of variational parameters and the CNOT couplers as input
 /// as a QuakeValue.
-template <typename KernelBuilder>
-void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits,
+template <typename Kernel>
+void hwe(Kernel &kernel, QuakeValue &qubits, std::size_t numQubits,
          std::size_t numLayers, QuakeValue &parameters,
          const std::vector<cnot_coupling> &cnotCoupling) {
 
@@ -111,8 +111,8 @@ void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits,
 /// al [https://arxiv.org/abs/1704.05018] on an existing kernel
 /// instance. It takes the qubits the state is on, the number of layers, and the
 /// vector of variational parameters as input as a QuakeValue.
-template <typename KernelBuilder>
-void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits,
+template <typename Kernel>
+void hwe(Kernel &kernel, QuakeValue &qubits, std::size_t numQubits,
          std::size_t numLayers, QuakeValue &parameters) {
 
   // generate default cnotCoupling and forward the call

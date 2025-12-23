@@ -275,7 +275,7 @@ Noise Modeling
 
 .. doxygenenum:: cudaq::noise_model_type
 
-Kernel Builder
+Kernel
 ===============
 
 .. doxygenclass:: cudaq::kernel
@@ -287,7 +287,7 @@ Kernel Builder
 .. doxygenclass:: cudaq::details::kernel_base
     :members:
 
-.. doxygenclass:: cudaq::details::KernelBuilderType
+.. doxygenclass:: cudaq::details::KernelType
     :members:
 
 Algorithms

@@ -35,18 +35,18 @@ The :code:`kernel` takes the following structure
           void c_if(Value& result, std::function<void()>&& thenFunctor);
           
           // Invoke a predefined kernel
-          template<typename OtherKernelBuilder, typename... Values>
-          void call(OtherKernelBuilder&& kernelToCall, Values&... args);
+          template<typename OtherKernel, typename... Values>
+          void call(OtherKernel&& kernelToCall, Values&... args);
           
           // General multi-control on a predefined kernel
           // models cudaq::control(...)
-          template<typename OtherKernelBuilder, typename... Values>
-          void control(OtherKernelBuilder&& kernelToControl, Value& ctrl, Values&... values);
+          template<typename OtherKernel, typename... Values>
+          void control(OtherKernel&& kernelToControl, Value& ctrl, Values&... values);
           
           // General adjoint on a predefined kernel
           // models cudaq::adjoint(...)
-          template<typename OtherKernelBuilder, typename... Values>
-          void adjoint(OtherKernelBuilder&& kernelToAdjoint, Values&... values);
+          template<typename OtherKernel, typename... Values>
+          void adjoint(OtherKernel&& kernelToAdjoint, Values&... values);
        
           // The constructed kernel is callable
           void operator()(Args... args);
