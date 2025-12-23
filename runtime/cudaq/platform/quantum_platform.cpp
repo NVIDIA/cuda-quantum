@@ -87,10 +87,10 @@ void quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
 void quantum_platform::validateQpuId(std::size_t qpuId) const {
   if (platformQPUs.empty())
     throw std::runtime_error("No QPUs are available for this target.");
-  if (qpuId >= platformNumQPUs) {
+  if (qpuId >= platformQPUs.size()) {
     throw std::invalid_argument(
         "Invalid QPU ID: " + std::to_string(qpuId) +
-        ". Number of QPUs: " + std::to_string(platformNumQPUs));
+        ". Number of QPUs: " + std::to_string(platformQPUs.size()));
   }
 }
 

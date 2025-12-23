@@ -32,7 +32,6 @@ public:
     // Make sure that we clean up the client QPUs first before cleaning up the
     // remote servers.
     platformQPUs.clear();
-    platformNumQPUs = 0;
     m_remoteServers.clear();
   }
 
@@ -66,8 +65,6 @@ public:
               cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
           platformQPUs.back()->setId(i);
         }
-
-        platformNumQPUs = platformQPUs.size();
       }
     }
   }
@@ -165,7 +162,6 @@ public:
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
           platformQPUs.back()->setTargetBackend(configStr);
         }
-        platformNumQPUs = platformQPUs.size();
       } else {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
@@ -210,7 +206,6 @@ public:
           qpu->setTargetBackend(configStr);
           platformQPUs.emplace_back(std::move(qpu));
         }
-        platformNumQPUs = platformQPUs.size();
       }
     }
   }

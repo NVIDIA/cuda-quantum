@@ -106,7 +106,7 @@ public:
   void reset_exec_ctx();
 
   ///  Get the number of QPUs available with this platform.
-  std::size_t num_qpus() const { return platformNumQPUs; }
+  std::size_t num_qpus() const { return platformQPUs.size(); }
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
@@ -213,9 +213,6 @@ protected:
 
   /// Name of the platform.
   std::string platformName;
-
-  /// Number of QPUs in the platform.
-  std::size_t platformNumQPUs;
 
   /// Optional number of shots.
   std::optional<int> platformNumShots;

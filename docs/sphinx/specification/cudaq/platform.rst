@@ -14,8 +14,7 @@ quantum processing units (QPUs), with each QPU assigned a logical integer index 
 
 **[4]** The properties of the QPUs on the platform are exposed by a collection
 of functions such as :code:`get_num_qubits`, :code:`is_simulator`, :code:`is_remote`, :code:`is_emulated`, etc.
-They take an optional :code:`QpuId` argument to specify the QPU of interest, or
-default to the properties of the QPU in the current execution context.
+They take an optional :code:`qpu_id` argument (defaults to 0) to specify the QPU of interest.
 
 **[5]** The ID of the desired QPU can be specified as argument when invoking
 kernel functions such as :code:`cudaq::sample_async`, :code:`cudaq::run_async`, etc.
@@ -36,14 +35,13 @@ The :code:`cudaq::quantum_platform`  should take the following structure
 
       std::size_t num_qpus() const;
 
-      using QpuId = std::optional<std::size_t>;
-      std::size_t get_num_qubits(QpuId qpu_id = std::nullopt) const;
-      bool is_simulator(QpuId qpu_id = std::nullopt) const;
-      bool is_remote(QpuId qpu_id = std::nullopt) const;
-      bool is_emulated(QpuId qpu_id = std::nullopt) const;
-      bool supports_conditional_feedback(QpuId qpu_id = std::nullopt) const;
-      bool supports_explicit_measurements(QpuId qpu_id = std::nullopt) const;
-      RemoteCapabilities get_remote_capabilities(QpuId qpuId = std::nullopt) const;
+      std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
+      bool is_simulator(std::size_t qpu_id = 0) const;
+      bool is_remote(std::size_t qpu_id = 0) const;
+      bool is_emulated(std::size_t qpu_id = 0) const;
+      bool supports_conditional_feedback(std::size_t qpu_id = 0) const;
+      bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
+      RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
       std::string name() const;
 
     };

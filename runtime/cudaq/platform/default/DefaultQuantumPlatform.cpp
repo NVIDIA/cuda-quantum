@@ -71,7 +71,6 @@ public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
-    platformNumQPUs = platformQPUs.size();
   }
 
   /// @brief Set the target backend. Here we have an opportunity
