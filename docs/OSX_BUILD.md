@@ -139,6 +139,22 @@ This manifests as assertion failures: `Unknown FP format` in `mlir::FloatAttr::g
 
 **Proper fix:** Avoid building LLVM as a shared library, which would eliminate the need for this workaround.
 
+### xtensor xio.hpp Template Ambiguity
+
+**Problem:** Including `<xtensor/xio.hpp>` triggers a clang 17-18 template ambiguity with xtl's `svector` rebind_container (see LLVM issue #91504). This causes compilation failures on macOS when using Apple Clang.
+
+**Workaround:** Avoid using `xio.hpp` for printing xtensor arrays. Instead, manually implement printing logic in `runtime/cudaq/domains/chemistry/molecule.cpp` for the `dump()` methods.
+
+**Proper fix:** Wait for xtensor/xtl to fix the template ambiguity, or upgrade to a clang version where this is resolved.
+
+### pybind11 LTO Flag Bug
+
+**Problem:** pybind11 has a bug where it passes `-flto=` with an empty value (or `-flto==thin`) when LTO is enabled with Clang (see https://github.com/pybind/pybind11/issues/5098). This causes compilation failures.
+
+**Workaround:** A local patch `tpls/customizations/pybind11/pybind11Common.cmake.diff` fixes the LTO flag generation in pybind11's CMake. The patch is automatically applied during the build.
+
+**Proper fix:** Wait for the pybind11 fix to be merged upstream and update the submodule.
+
 ### flat_namespace and Idempotent OptionCategory Registration
 
 **Problem:** When building LLVM statically (to avoid dylib threading issues), each CUDA-Q dylib gets its own copy of LLVM global objects. This causes two issues:
