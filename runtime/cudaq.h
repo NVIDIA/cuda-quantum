@@ -205,22 +205,12 @@ bool kernelHasConditionalFeedback(const std::string &kernelName);
 /// @brief Provide a hook to set the target backend.
 void set_target_backend(const char *backend);
 
-/// @brief Utility function for setting the shots on the platform
-[[deprecated("Specify the number of shots in the using the overloaded sample() "
-             "and observe() functions")]] void
-set_shots(const std::size_t nShots);
-
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
 void set_noise(const cudaq::noise_model &model);
 
 /// @brief Remove an existing noise model from simulation.
 void unset_noise();
-
-/// @brief Utility function for clearing the shots
-[[deprecated("Specify the number of shots in the using the overloaded sample() "
-             "and observe() functions")]] void
-clear_shots(const std::size_t nShots);
 
 /// @brief Set a seed for any random number
 /// generators used in backend simulations.
