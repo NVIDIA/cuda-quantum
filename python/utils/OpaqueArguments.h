@@ -15,7 +15,7 @@
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernel.h"
 #include "cudaq/qis/pauli_word.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/CAPI/IR.h"
@@ -484,7 +484,7 @@ inline void packArgs(OpaqueArguments &argData, py::args args,
 /// broadcasting sample or observe over all argument sets. `args` types can be
 /// `int`, `float`, `list`, so  we should check if `args[i]` is a `list` or
 /// `ndarray`.
-inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
+inline bool isBroadcastRequest(kernel<> &builder, py::args &args) {
   if (args.empty())
     return false;
 

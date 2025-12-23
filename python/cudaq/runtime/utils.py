@@ -7,7 +7,7 @@
 # ============================================================================ #
 from __future__ import annotations
 
-from cudaq.kernel.kernel_builder import PyKernel
+from cudaq.kernel.kernel import PyKernel
 from cudaq.kernel.kernel_decorator import PyKernelDecorator
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc

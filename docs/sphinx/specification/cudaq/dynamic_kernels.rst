@@ -4,11 +4,11 @@ Just-in-Time Kernel Creation
 **[1]** CUDA-Q provides a set of programming abstractions for dynamically constructing
 quantum kernel code at runtime. 
 
-**[2]** The callable :code:`cudaq::kernel_builder` abstraction
+**[2]** The callable :code:`cudaq::kernel` abstraction
 facilitates the dynamic definition of quantum kernels that can optionally
 be parameterized by user-defined input arguments. 
 
-The :code:`kernel_builder` takes the following structure
+The :code:`kernel` takes the following structure
 
 .. code-block:: cpp 
 
@@ -16,7 +16,7 @@ The :code:`kernel_builder` takes the following structure
       // Type wrapping a value in the kernel IR
       struct Value;
       template <typename... Args>
-      class kernel_builder {
+      class kernel {
         private:
           std::vector<Value> arguments;
 
@@ -35,18 +35,18 @@ The :code:`kernel_builder` takes the following structure
           void c_if(Value& result, std::function<void()>&& thenFunctor);
           
           // Invoke a predefined kernel
-          template<typename OtherKernelBuilder, typename... Values>
-          void call(OtherKernelBuilder&& kernelToCall, Values&... args);
+          template<typename OtherKernel, typename... Values>
+          void call(OtherKernel&& kernelToCall, Values&... args);
           
           // General multi-control on a predefined kernel
           // models cudaq::control(...)
-          template<typename OtherKernelBuilder, typename... Values>
-          void control(OtherKernelBuilder&& kernelToControl, Value& ctrl, Values&... values);
+          template<typename OtherKernel, typename... Values>
+          void control(OtherKernel&& kernelToControl, Value& ctrl, Values&... values);
           
           // General adjoint on a predefined kernel
           // models cudaq::adjoint(...)
-          template<typename OtherKernelBuilder, typename... Values>
-          void adjoint(OtherKernelBuilder&& kernelToAdjoint, Values&... values);
+          template<typename OtherKernel, typename... Values>
+          void adjoint(OtherKernel&& kernelToAdjoint, Values&... values);
        
           // The constructed kernel is callable
           void operator()(Args... args);
@@ -63,24 +63,24 @@ The :code:`kernel_builder` takes the following structure
       };
     }
 
-    /// Enable structured bindings on the kernel_builder type.
+    /// Enable structured bindings on the kernel type.
     /// auto [kernel, theta, phi] = std::make_kernel<double,double>();
     namespace std {
       template <typename... Args> 
-      struct tuple_size<cudaq::kernel_builder<Args...>>
+      struct tuple_size<cudaq::kernel<Args...>>
         : std::integral_constant<std::size_t, sizeof...(Args) + 1> {};
 
       template <std::size_t N, typename... Args>
-      struct tuple_element<N, cudaq::kernel_builder<Args...>> {
-        using type = std::conditional_t<N == 0, cudaq::kernel_builder<Args...>,
+      struct tuple_element<N, cudaq::kernel<Args...>> {
+        using type = std::conditional_t<N == 0, cudaq::kernel<Args...>,
                                   cudaq::QuakeValue>;
       };
     } // namespace std
 
     namespace cudaq {
-      kernel_builder<> make_kernel();
+      kernel<> make_kernel();
       template<typename... Args>
-      kernel_builder<Args...> make_kernel();
+      kernel<Args...> make_kernel();
     }
 
 **[3]** The structure above allows one to leverage the provided factory functions (:code:`make_kernel`)

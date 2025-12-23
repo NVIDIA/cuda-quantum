@@ -55,7 +55,7 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
   }
 }
 
-CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
+CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernel) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Matrix
     //    [[1, 0, 0, 0],
@@ -176,7 +176,7 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
   }
 }
 
-CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
+CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernel) {
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     const double c = std::cos(angle / 2.0);
     const double s = std::sin(angle / 2.0);

@@ -62,7 +62,7 @@ public:
 
   /// @cond
   /// Nullary constructor
-  /// meant to be used with `kernel_builder<cudaq::qreg<>>`
+  /// meant to be used with `kernel<cudaq::qreg<>>`
   /// @endcond
   qreg()
     requires(N == dyn)

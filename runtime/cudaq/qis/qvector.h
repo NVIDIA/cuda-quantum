@@ -81,7 +81,7 @@ public:
 
   /// @cond
   /// Nullary constructor
-  /// meant to be used with `kernel_builder<cudaq::qvector<>>`
+  /// meant to be used with `kernel<cudaq::qvector<>>`
   qvector() : qudits(1) {}
   /// @endcond
 

@@ -28,28 +28,28 @@ __qpu__ void givens_rotation(double theta, cudaq::qubit &q0, cudaq::qubit &q1) {
 
 namespace builder {
 /// @brief Add Givens rotation kernel (theta angle as a QuakeValue) to the
-/// kernel builder object
-/// @tparam KernelBuilder
+/// kernel object
+/// @tparam Kernel
 /// @param kernel
 /// @param theta
 /// @param q0
 /// @param q1
-template <typename KernelBuilder>
-void givens_rotation(KernelBuilder &kernel, cudaq::QuakeValue theta,
+template <typename Kernel>
+void givens_rotation(Kernel &kernel, cudaq::QuakeValue theta,
                      cudaq::QuakeValue q0, cudaq::QuakeValue q1) {
   kernel.exp_pauli(-0.5 * theta, "YX", q0, q1);
   kernel.exp_pauli(0.5 * theta, "XY", q0, q1);
 }
 
-/// @brief Add Givens rotation kernel (fixed theta angle) to the kernel builder
+/// @brief Add Givens rotation kernel (fixed theta angle) to the kernel
 /// object
-/// @tparam KernelBuilder
+/// @tparam Kernel
 /// @param kernel
 /// @param theta
 /// @param q0
 /// @param q1
-template <typename KernelBuilder>
-void givens_rotation(KernelBuilder &kernel, double theta, cudaq::QuakeValue q0,
+template <typename Kernel>
+void givens_rotation(Kernel &kernel, double theta, cudaq::QuakeValue q0,
                      cudaq::QuakeValue q1) {
   givens_rotation(kernel, kernel.constantVal(theta), q0, q1);
 }

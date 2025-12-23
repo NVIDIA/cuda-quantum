@@ -92,7 +92,7 @@ TEST(MQPUTester, checkLarge) {
   printf("Time %lf s\n", ms_double.count() * 1e-3);
 }
 
-TEST(MQPUTester, checkAsyncWithKernelBuilder) {
+TEST(MQPUTester, checkAsyncWithKernel) {
   auto [kernel, numIters] = cudaq::make_kernel<int>();
   constexpr std::size_t numQubits = 1;
   auto qubits = kernel.qalloc(numQubits);

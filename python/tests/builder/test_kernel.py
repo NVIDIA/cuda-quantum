@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 # This file is responsible for testing the accuracy of gates within
-# the kernel builder.
+# the kernel.
 
 import pytest
 import random

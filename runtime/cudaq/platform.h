@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernel.h"
 #include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
