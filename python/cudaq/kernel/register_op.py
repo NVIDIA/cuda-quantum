@@ -12,7 +12,7 @@ from functools import partialmethod
 from typing import Callable, List
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .kernel_builder import PyKernel, __generalCustomOperation
+from .kernel import PyKernel, __generalCustomOperation
 from .utils import globalRegisteredOperations
 
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernel.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/utils/cudaq_utils.h"
 
@@ -79,7 +79,7 @@ __qpu__ void hwe(cudaq::qview<> qubits, std::size_t numLayers,
 }
 
 /// @brief This function creates the hardware-efficient ansatz from Kandala et.
-/// al [https://arxiv.org/abs/1704.05018] on an existing kernel_builder
+/// al [https://arxiv.org/abs/1704.05018] on an existing kernel
 /// instance. It takes the qubits the state is on, the number of qubits and
 /// layers, the vector of variational parameters and the CNOT couplers as input
 /// as a QuakeValue.
@@ -108,7 +108,7 @@ void hwe(KernelBuilder &kernel, QuakeValue &qubits, std::size_t numQubits,
 }
 
 /// @brief This function creates the hardware-efficient ansatz from Kandala et.
-/// al [https://arxiv.org/abs/1704.05018] on an existing kernel_builder
+/// al [https://arxiv.org/abs/1704.05018] on an existing kernel
 /// instance. It takes the qubits the state is on, the number of layers, and the
 /// vector of variational parameters as input as a QuakeValue.
 template <typename KernelBuilder>

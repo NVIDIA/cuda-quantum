@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernel.h"
 #include <cudaq.h>
 namespace cudaq {
 /// @brief Apply global phase (e^(i * theta)).

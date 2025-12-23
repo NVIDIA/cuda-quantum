@@ -131,7 +131,7 @@ TEST(QuakeSynthTests, checkSimpleIntegerInput) {
   auto counts = cudaq::sample(kernel, 5);
   EXPECT_EQ(counts.size(), 32);
 
-  // Map the kernel_builder to_quake output to MLIR
+  // Map the kernel to_quake output to MLIR
   auto context = cudaq::initializeMLIR();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
@@ -189,7 +189,7 @@ TEST(QuakeSynthTests, checkDoubleInput) {
   double energy = cudaq::observe(kernel, h3, .3591, .2569);
   EXPECT_NEAR(energy, -2.045375, 1e-3);
 
-  // Map the kernel_builder to_quake output  to MLIR
+  // Map the kernel to_quake output  to MLIR
   auto context = cudaq::initializeMLIR();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
@@ -248,7 +248,7 @@ TEST(QuakeSynthTests, checkVectorOfDouble) {
   double energy = cudaq::observe(kernel, h3, std::vector<double>{.3591, .2569});
   EXPECT_NEAR(energy, -2.045375, 1e-3);
 
-  // Map the kernel_builder to_quake output  to MLIR
+  // Map the kernel to_quake output  to MLIR
   auto context = cudaq::initializeMLIR();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
@@ -307,7 +307,7 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   auto counts = cudaq::sample(kernel, ghostBits);
   EXPECT_EQ(counts.size(), 1);
 
-  // Map the kernel_builder to_quake output to MLIR
+  // Map the kernel to_quake output to MLIR
   auto context = cudaq::initializeMLIR();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
@@ -355,7 +355,7 @@ TEST(QuakeSynthTests, checkCallable) {
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
   double energy = cudaq::observe(kernel, h, argsValue);
   std::cout << "Energy = " << energy << "\n";
-  // Map the kernel_builder to_quake output to MLIR
+  // Map the kernel to_quake output to MLIR
   auto context = cudaq::initializeMLIR();
   std::cout << "Quake Code:\n" << kernel.to_quake() << "\n";
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());

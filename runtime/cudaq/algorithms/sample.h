@@ -207,7 +207,7 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
   }
 
   // Run this SHOTS times
@@ -240,7 +240,7 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
   }
 
   // Run this SHOTS times
@@ -273,7 +273,7 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
   }
 
   auto &platform = cudaq::get_platform();
@@ -309,7 +309,7 @@ async_sample_result sample_async(const std::size_t qpu_id,
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
   }
 
   // Run this SHOTS times
@@ -346,7 +346,7 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
   }
 
   // Run this SHOTS times
@@ -383,7 +383,7 @@ async_sample_result sample_async(const sample_options &options,
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
   if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
   }
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);

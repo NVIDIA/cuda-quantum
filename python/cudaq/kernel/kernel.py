@@ -56,7 +56,7 @@ kDynamicPtrIndex: int = -2147483648
 
 qvector = cudaq_runtime.qvector
 
-# This file reproduces the cudaq::kernel_builder in Python
+# This file reproduces the cudaq::kernel in Python
 
 # We need static initializers to run in the CAPI `ExecutionEngine`,
 # so here we run a simple JIT compile at global scope
@@ -642,8 +642,8 @@ class PyKernel(object):
     def __cloneOrGetFunction(self, name, currentModule, otherModule):
         """
         Get a the function with the given name. First look in the current
-        `ModuleOp` for this `kernel_builder`, if found return it as is. If not
-        found, find it in the other `kernel_builder` `ModuleOp` and return a
+        `ModuleOp` for this `kernel`, if found return it as is. If not
+        found, find it in the other `kernel` `ModuleOp` and return a
         clone of it. Throw an exception if no kernel with the given name is
         found.
         """
@@ -666,7 +666,7 @@ class PyKernel(object):
         """
         Search the given `FuncOp` for all `CallOps` recursively.
         If found, see if the called function is in the current `ModuleOp`
-        for this `kernel_builder`, if so do nothing. If it is not found,
+        for this `kernel`, if so do nothing. If it is not found,
         then find it in the other `ModuleOp`, clone it, and add it to this
         `ModuleOp`.
         """

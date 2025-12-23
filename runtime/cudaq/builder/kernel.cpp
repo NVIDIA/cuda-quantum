@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "kernel_builder.h"
+#include "kernel.h"
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -163,7 +163,7 @@ initializeBuilder(MLIRContext *context,
   }
 
   kernelName += fmt::format("_{}", os.str());
-  CUDAQ_INFO("kernel_builder name set to {}", kernelName);
+  CUDAQ_INFO("kernel name set to {}", kernelName);
 
   FunctionType funcTy = opBuilder->getFunctionType(types, std::nullopt);
   auto kernel = opBuilder->create<func::FuncOp>(kernelName, funcTy);
@@ -172,7 +172,7 @@ initializeBuilder(MLIRContext *context,
   for (auto arg : entryBlock->getArguments())
     arguments.emplace_back(*opBuilder, arg);
 
-  CUDAQ_INFO("kernel_builder has {} arguments", arguments.size());
+  CUDAQ_INFO("kernel has {} arguments", arguments.size());
 
   // Every Kernel should have a ReturnOp terminator, then we'll set the
   // insertion point to right before it.
@@ -210,7 +210,7 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
   if (!thetaVal.getType().isIntOrFloat())
     throw std::runtime_error("exp_pauli must take a QuakeValue of float/int "
                              "type as first argument.");
-  CUDAQ_INFO("kernel_builder apply exp_pauli {}", pauliWord);
+  CUDAQ_INFO("kernel apply exp_pauli {}", pauliWord);
 
   builder.create<quake::ExpPauliOp>(ValueRange{thetaVal}, ValueRange{},
                                     ValueRange{qubitsVal}, pauliWord);
@@ -218,7 +218,7 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
 /// If found, see if the called function is in the current `ModuleOp` for this
-/// `kernel_builder`, if so do nothing. If it is not found, then find it in the
+/// `kernel`, if so do nothing. If it is not found, then find it in the
 /// other `ModuleOp`, clone it, and add it to this `ModuleOp`.
 void addAllCalledFunctionRecursively(
     func::FuncOp &function, ModuleOp &currentModule,
@@ -269,8 +269,8 @@ void addAllCalledFunctionRecursively(
 }
 
 /// @brief Get a the function with the given name. First look in the current
-/// `ModuleOp` for this `kernel_builder`, if found return it as is. If not
-/// found, find it in the other `kernel_builder` `ModuleOp` and return a clone
+/// `ModuleOp` for this `kernel`, if found return it as is. If not
+/// found, find it in the other `kernel` `ModuleOp` and return a clone
 /// of it. Throw an exception if no kernel with the given name is found
 func::FuncOp
 cloneOrGetFunction(StringRef name, ModuleOp &currentModule,
@@ -480,13 +480,13 @@ KernelBuilderType::KernelBuilderType(
 Type KernelBuilderType::create(MLIRContext *ctx) { return creator(ctx); }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder) {
-  CUDAQ_INFO("kernel_builder allocating a single qubit");
+  CUDAQ_INFO("kernel allocating a single qubit");
   Value qubit = builder.create<quake::AllocaOp>();
   return QuakeValue(builder, qubit);
 }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
-  CUDAQ_INFO("kernel_builder allocating {} qubits", nQubits);
+  CUDAQ_INFO("kernel allocating {} qubits", nQubits);
 
   auto context = builder.getContext();
   Value qubits =
@@ -496,7 +496,7 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
 }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
-  CUDAQ_INFO("kernel_builder allocating qubits from quake value");
+  CUDAQ_INFO("kernel allocating qubits from quake value");
   auto value = sizeOrVec.getValue();
   auto type = value.getType();
   auto context = builder.getContext();
@@ -678,7 +678,7 @@ QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
 template <typename QuakeOp>
 void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, auto param,
                              Value veq, bool adjoint = false) {
-  CUDAQ_INFO("kernel_builder handling operation broadcast on qvector.");
+  CUDAQ_INFO("kernel handling operation broadcast on qvector.");
 
   auto loc = builder.getLoc();
   Value rank = builder.create<quake::VeqSizeOp>(builder.getI64Type(), veq);
@@ -701,7 +701,7 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
 #define CUDAQ_ONE_QUBIT_IMPL(NAME, QUAKENAME)                                  \
   void NAME(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     \
             const QuakeValue &target, bool adjoint) {                          \
-    CUDAQ_INFO("kernel_builder apply {}", std::string(#NAME));                 \
+    CUDAQ_INFO("kernel apply {}", std::string(#NAME));                 \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
     if (isa<quake::VeqType>(type)) {                                           \
@@ -729,7 +729,7 @@ CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
 #define CUDAQ_ONE_QUBIT_PARAM_IMPL(NAME, QUAKENAME)                            \
   void NAME(ImplicitLocOpBuilder &builder, QuakeValue &parameter,              \
             std::vector<QuakeValue> &ctrls, QuakeValue &target) {              \
-    CUDAQ_INFO("kernel_builder apply {}", std::string(#NAME));                 \
+    CUDAQ_INFO("kernel apply {}", std::string(#NAME));                 \
     Value value = target.getValue();                                           \
     auto type = value.getType();                                               \
     if (isa<quake::VeqType>(type)) {                                           \
@@ -754,7 +754,7 @@ CUDAQ_ONE_QUBIT_PARAM_IMPL(r1, R1Op)
 
 void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
         std::vector<QuakeValue> &ctrls, QuakeValue &target, bool adjoint) {
-  CUDAQ_INFO("kernel_builder apply u3");
+  CUDAQ_INFO("kernel apply u3");
   std::vector<Value> parameterValues;
   std::transform(parameters.begin(), parameters.end(),
                  std::back_inserter(parameterValues),
@@ -774,7 +774,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   if (!isa<quake::RefType, quake::VeqType>(type))
     throw std::runtime_error("Invalid parameter passed to mz.");
 
-  CUDAQ_INFO("kernel_builder apply measurement");
+  CUDAQ_INFO("kernel apply measurement");
 
   // FIXME: regName cannot be empty, but the prototypes give an empty string as
   // the default. This is a workaround to clear out the empty string so we don't
@@ -823,7 +823,7 @@ void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
 
 void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
           const std::vector<QuakeValue> &qubits, bool adjoint) {
-  CUDAQ_INFO("kernel_builder apply swap");
+  CUDAQ_INFO("kernel apply swap");
   std::vector<Value> ctrlValues;
   std::vector<Value> qubitValues;
   std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues),
@@ -940,7 +940,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     }
   }
 
-  CUDAQ_INFO("kernel_builder running jitCode.");
+  CUDAQ_INFO("kernel running jitCode.");
 
   auto module = currentModule.clone();
   auto ctx = module.getContext();
@@ -1078,7 +1078,7 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
                 StateVectorStorage &storage) {
 
   assert(jit != nullptr && "JIT ExecutionEngine was null.");
-  CUDAQ_INFO("kernel_builder invoke kernel with args.");
+  CUDAQ_INFO("kernel invoke kernel with args.");
 
   // Kernel names are __nvqpp__mlirgen__BuilderKernelPTRSTR for the following we
   // want the proper name, BuilderKernelPTRST
@@ -1144,7 +1144,7 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
 }
 
 std::ostream &operator<<(std::ostream &stream,
-                         const kernel_builder_base &builder) {
+                         const kernel_base &builder) {
   return stream << builder.to_quake();
 }
 

@@ -88,7 +88,7 @@ using StateVectorStorage = std::vector<StateVectorVariant>;
 // Define a `mlir::Type` generator in the `cudaq` namespace, this helps us keep
 // MLIR out of this public header
 
-/// @brief The `kernel_builder::Type` allows us to track input C++ types
+/// @brief The `kernel::Type` allows us to track input C++ types
 /// representing the quake function argument types in a way that does not expose
 /// MLIR Type to the CUDA-Q code. This type keeps track of a functor that
 /// generates the MLIR Type in implementation code when create() is invoked.
@@ -241,7 +241,7 @@ void u3(mlir::ImplicitLocOpBuilder &builder,
         std::vector<QuakeValue> &parameters, std::vector<QuakeValue> &ctrls,
         QuakeValue &target, bool adjoint = false);
 
-/// @brief Return the name of this `kernel_builder`, it is also the name of the
+/// @brief Return the name of this `kernel`, it is also the name of the
 /// function
 std::string name(std::string_view kernelName);
 
@@ -310,7 +310,7 @@ void forLoop(mlir::ImplicitLocOpBuilder &builder, QuakeValue &start,
 /// @brief Return the quake representation as a string
 std::string to_quake(mlir::ImplicitLocOpBuilder &builder);
 
-/// @brief Returns `true` if the argument to the `kernel_builder` is a
+/// @brief Returns `true` if the argument to the `kernel` is a
 /// `cc::StdvecType`. Returns `false` otherwise.
 bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx);
 
@@ -334,7 +334,7 @@ struct ArgumentValidator<std::vector<T>> {
                        std::vector<T> &input) {
     if (argCounter >= args.size())
       throw std::runtime_error("Error validating stdvec input to "
-                               "kernel_builder. argCounter >= args.size()");
+                               "kernel. argCounter >= args.size()");
 
     // Get the argument, increment the counter
     auto &arg = args[argCounter];
@@ -360,19 +360,19 @@ void *getArgPointer(T *arg) {
   return arg;
 }
 
-/// @brief The `kernel_builder_base` provides a base type for the templated
+/// @brief The `kernel_base` provides a base type for the templated
 /// kernel builder so that we can get a single handle on an instance within the
 /// runtime.
-class kernel_builder_base {
+class kernel_base {
 public:
   virtual std::string to_quake() const = 0;
   virtual void jitCode(std::vector<std::string> extraLibPaths = {}) = 0;
-  virtual ~kernel_builder_base() = default;
+  virtual ~kernel_base() = default;
 
-  /// @brief Write the kernel_builder to the given output stream. This outputs
+  /// @brief Write the kernel to the given output stream. This outputs
   /// the Quake representation.
   friend std::ostream &operator<<(std::ostream &stream,
-                                  const kernel_builder_base &builder);
+                                  const kernel_base &builder);
 };
 
 } // namespace details
@@ -387,7 +387,7 @@ concept AllAreQuakeValues =
          QuakeValue>);
 
 template <typename... Args>
-class kernel_builder : public details::kernel_builder_base {
+class kernel : public details::kernel_base {
 private:
   /// @brief Handle to the MLIR Context, stored as a pointer here to keep
   /// implementation details out of CUDA-Q code
@@ -430,7 +430,7 @@ private:
 public:
   /// @brief The constructor, takes the input `KernelBuilderType`s which is
   /// used to create the MLIR function type
-  kernel_builder(std::vector<details::KernelBuilderType> &types)
+  kernel(std::vector<details::KernelBuilderType> &types)
       : context(details::initializeContext(), details::deleteContext),
         opBuilder(nullptr, [](mlir::ImplicitLocOpBuilder *) {}),
         jitEngine(nullptr, [](mlir::ExecutionEngine *) {}) {
@@ -505,7 +505,7 @@ public:
     return details::constantVal(*opBuilder.get(), val);
   }
 
-  // In the following macros + instantiations, we define the kernel_builder
+  // In the following macros + instantiations, we define the kernel
   // methods that create Quake Quantum Ops + Measures
 
 #define CUDAQ_BUILDER_ADD_ONE_QUBIT_OP(NAME)                                   \
@@ -824,7 +824,7 @@ public:
     // This should work for regular c++ kernels too
     std::string name = "", quake = "";
     if constexpr (std::is_base_of_v<
-                      details::kernel_builder_base,
+                      details::kernel_base,
                       std::remove_reference_t<OtherKernelBuilder>>) {
       name = kernel.name();
       quake = kernel.to_quake();
@@ -853,7 +853,7 @@ public:
                std::vector<QuakeValue> &args) {
     std::string name = "", quake = "";
     if constexpr (std::is_base_of_v<
-                      details::kernel_builder_base,
+                      details::kernel_base,
                       std::remove_reference_t<OtherKernelBuilder>>) {
       name = kernel.name();
       quake = kernel.to_quake();
@@ -880,7 +880,7 @@ public:
   void adjoint(OtherKernelBuilder &kernel, std::vector<QuakeValue> &args) {
     std::string name = "", quake = "";
     if constexpr (std::is_base_of_v<
-                      details::kernel_builder_base,
+                      details::kernel_base,
                       std::remove_reference_t<OtherKernelBuilder>>) {
       name = kernel.name();
       quake = kernel.to_quake();
@@ -936,7 +936,7 @@ public:
     {
       std::scoped_lock<std::mutex> lock(jitMutex);
       // Scoped locking since jitCode is not thread-safe while this jitAndInvoke
-      // can be invoked by kernel_builder::operator()(Args... args) in a
+      // can be invoked by kernel::operator()(Args... args) in a
       // multi-threaded context.
       jitCode(extraLibPaths);
     }
@@ -944,7 +944,7 @@ public:
                         extraLibPaths, stateVectorStorage);
   }
 
-  /// @brief The call operator for the kernel_builder, takes as input the
+  /// @brief The call operator for the kernel, takes as input the
   /// constructed function arguments.
   void operator()(Args... args) {
     [[maybe_unused]] std::size_t argCounter = 0;
@@ -971,17 +971,17 @@ public:
 } // namespace cudaq
 
 /// The following std functions are necessary to enable structured bindings on
-/// the `kernel_builder` type.
+/// the `kernel` type.
 /// e.g. `auto [kernel, theta, phi] = std::make_kernel<double,double>();`
 namespace std {
 
 template <typename... Args>
-struct tuple_size<cudaq::kernel_builder<Args...>>
+struct tuple_size<cudaq::kernel<Args...>>
     : std::integral_constant<std::size_t, sizeof...(Args) + 1> {};
 
 template <std::size_t N, typename... Args>
-struct tuple_element<N, cudaq::kernel_builder<Args...>> {
-  using type = std::conditional_t<N == 0, cudaq::kernel_builder<Args...>,
+struct tuple_element<N, cudaq::kernel<Args...>> {
+  using type = std::conditional_t<N == 0, cudaq::kernel<Args...>,
                                   cudaq::QuakeValue>;
 };
 
@@ -989,13 +989,13 @@ struct tuple_element<N, cudaq::kernel_builder<Args...>> {
 
 namespace cudaq {
 
-/// @brief Return a new kernel_builder that takes no arguments
+/// @brief Return a new kernel that takes no arguments
 inline auto make_kernel() {
   std::vector<details::KernelBuilderType> empty;
-  return kernel_builder<>(empty);
+  return kernel<>(empty);
 }
 
-/// Factory function for creating a new `kernel_builder` with specified argument
+/// Factory function for creating a new `kernel` with specified argument
 /// types. This requires programmers specify the concrete argument types of the
 /// kernel being built. The return type is meant to be acquired via C++20
 /// structured binding with the first element representing the builder, and the
@@ -1007,7 +1007,7 @@ auto make_kernel() {
   cudaq::tuple_for_each(std::tuple<Args...>(), [&](auto &&el) {
     types.push_back(details::convertArgumentTypeToMLIR(el));
   });
-  return kernel_builder<Args...>(types);
+  return kernel<Args...>(types);
 }
 
 } // namespace cudaq
