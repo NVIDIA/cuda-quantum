@@ -981,8 +981,8 @@ struct tuple_size<cudaq::kernel<Args...>>
 
 template <std::size_t N, typename... Args>
 struct tuple_element<N, cudaq::kernel<Args...>> {
-  using type = std::conditional_t<N == 0, cudaq::kernel<Args...>,
-                                  cudaq::QuakeValue>;
+  using type =
+      std::conditional_t<N == 0, cudaq::kernel<Args...>, cudaq::QuakeValue>;
 };
 
 } // namespace std

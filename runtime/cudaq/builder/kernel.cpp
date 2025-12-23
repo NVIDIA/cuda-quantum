@@ -701,7 +701,7 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
 #define CUDAQ_ONE_QUBIT_IMPL(NAME, QUAKENAME)                                  \
   void NAME(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &ctrls,     \
             const QuakeValue &target, bool adjoint) {                          \
-    CUDAQ_INFO("kernel apply {}", std::string(#NAME));                 \
+    CUDAQ_INFO("kernel apply {}", std::string(#NAME));                         \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
     if (isa<quake::VeqType>(type)) {                                           \
@@ -729,7 +729,7 @@ CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
 #define CUDAQ_ONE_QUBIT_PARAM_IMPL(NAME, QUAKENAME)                            \
   void NAME(ImplicitLocOpBuilder &builder, QuakeValue &parameter,              \
             std::vector<QuakeValue> &ctrls, QuakeValue &target) {              \
-    CUDAQ_INFO("kernel apply {}", std::string(#NAME));                 \
+    CUDAQ_INFO("kernel apply {}", std::string(#NAME));                         \
     Value value = target.getValue();                                           \
     auto type = value.getType();                                               \
     if (isa<quake::VeqType>(type)) {                                           \
@@ -1143,8 +1143,7 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
   return printOut;
 }
 
-std::ostream &operator<<(std::ostream &stream,
-                         const kernel_base &builder) {
+std::ostream &operator<<(std::ostream &stream, const kernel_base &builder) {
   return stream << builder.to_quake();
 }
 
