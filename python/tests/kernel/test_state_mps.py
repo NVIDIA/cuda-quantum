@@ -24,6 +24,7 @@ skipIfNoGPU = pytest.mark.skipif(
 def do_something():
     yield
     cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
 
 
 @skipIfNoGPU

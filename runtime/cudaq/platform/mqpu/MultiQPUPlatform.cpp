@@ -32,8 +32,6 @@ public:
     // Make sure that we clean up the client QPUs first before cleaning up the
     // remote servers.
     platformQPUs.clear();
-    threadToQpuId.clear();
-    platformNumQPUs = 0;
     m_remoteServers.clear();
   }
 
@@ -67,9 +65,6 @@ public:
               cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
           platformQPUs.back()->setId(i);
         }
-
-        platformNumQPUs = platformQPUs.size();
-        platformCurrentQPU = 0;
       }
     }
   }
@@ -107,6 +102,8 @@ public:
   }
 
   void setTargetBackend(const std::string &description) override {
+    executionContext.set(nullptr);
+
     const auto getOpt = [](const std::string &str,
                            const std::string &prefix) -> std::string {
       // Return the first key-value configuration option found in the format:
@@ -157,8 +154,6 @@ public:
       if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         platformQPUs.clear();
-        threadToQpuId.clear();
-        platformCurrentQPU = 0;
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
           platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
@@ -166,10 +161,7 @@ public:
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
           platformQPUs.back()->setTargetBackend(configStr);
-          threadToQpuId[std::hash<std::thread::id>{}(
-              platformQPUs.back()->getExecutionThreadId())] = qId;
         }
-        platformNumQPUs = platformQPUs.size();
       } else {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
@@ -204,8 +196,6 @@ public:
               "receiving {}, expecting {}.",
               sims.size(), urls.size()));
         platformQPUs.clear();
-        threadToQpuId.clear();
-        platformCurrentQPU = 0;
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
           // Populate the information and add the QPUs
@@ -214,11 +204,8 @@ public:
           const std::string configStr =
               fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);
           qpu->setTargetBackend(configStr);
-          threadToQpuId[std::hash<std::thread::id>{}(
-              qpu->getExecutionThreadId())] = qId;
           platformQPUs.emplace_back(std::move(qpu));
         }
-        platformNumQPUs = platformQPUs.size();
       }
     }
   }

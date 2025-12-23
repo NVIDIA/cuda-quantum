@@ -55,6 +55,8 @@ def startUpMockServer():
     # Kill the server, remove the file
     p.terminate()
 
+    cudaq.reset_target()
+
 
 def test_OQC_sample():
     # Create the kernel we'd like to execute on OQC

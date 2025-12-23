@@ -31,8 +31,10 @@ public:
   /// @brief The constructor, takes the name and the number of shots.
   /// @param n The name of the context
   /// @param shots_ The number of shots
-  ExecutionContext(const std::string &n, std::size_t shots_)
-      : name(n), shots(shots_) {}
+  /// @param qpu_id The ID of the QPU that this execution context is running on.
+  ExecutionContext(const std::string &n, std::size_t shots_,
+                   std::size_t qpu_id = 0)
+      : name(n), shots(shots_), qpuId(qpu_id) {}
 
   ~ExecutionContext() = default;
 
@@ -114,6 +116,9 @@ public:
   /// @brief A vector containing information about how to reorder the global
   /// register after execution. Empty means no reordering.
   std::vector<std::size_t> reorderIdx;
+
+  /// @brief The ID of the QPU that this execution context is running on.
+  std::size_t qpuId = 0;
 
   /// @brief A buffer containing the return value of a kernel invocation.
   /// Note: this is only needed for invocation not able to return a

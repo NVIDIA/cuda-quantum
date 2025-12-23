@@ -458,6 +458,20 @@ target_link_libraries(test_utils
   gtest_main)
 gtest_discover_tests(test_utils)
 
+# Test for thread-local execution context storage
+add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_exec_ctx_thread PRIVATE -Wl,--no-as-needed)
+endif()
+target_include_directories(test_exec_ctx_thread PRIVATE .)
+target_link_libraries(test_exec_ctx_thread
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_exec_ctx_thread)
+
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)
 if (MPI_CXX_FOUND)
