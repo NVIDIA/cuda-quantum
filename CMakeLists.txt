@@ -224,6 +224,10 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
+  # On macOS, use flat_namespace to share LLVM symbols across dylibs.
+  # This prevents APFloat pointer comparison failures when multiple dylibs
+  # each statically link LLVM. Requires LLVM patch for idempotent category registration.
+  add_link_options("-Wl,-flat_namespace")
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built

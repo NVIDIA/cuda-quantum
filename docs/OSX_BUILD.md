@@ -138,3 +138,23 @@ This manifests as assertion failures: `Unknown FP format` in `mlir::FloatAttr::g
 **Workaround:** When `LLVM_LINK_LLVM_DYLIB` is enabled, `DISABLE_LLVM_LINK_LLVM_DYLIB` is not used for `CUDAQTargetConfigUtil`, ensuring all libraries use the same LLVM symbols from the shared library (see `lib/Support/Config/CMakeLists.txt`).
 
 **Proper fix:** Avoid building LLVM as a shared library, which would eliminate the need for this workaround.
+
+### flat_namespace and Idempotent OptionCategory Registration
+
+**Problem:** When building LLVM statically (to avoid dylib threading issues), each CUDA-Q dylib gets its own copy of LLVM global objects. This causes two issues:
+
+1. **APFloat pointer mismatches:** When MLIR code compares `&semantics == &APFloat::IEEEdouble()`, the comparison fails because each dylib has a different `IEEEdouble` address.
+
+2. **Duplicate OptionCategory registration:** With `flat_namespace` enabled to share symbols, each dylib's static initializers still run independently, causing LLVM's `registerCategory()` to assert "Duplicate option categories" when the same category is registered multiple times.
+
+**Workaround:** Two changes are required:
+
+1. **flat_namespace linker flag:** Added `-Wl,-flat_namespace` on macOS (see `CMakeLists.txt`). This makes all dylibs share the same symbol namespace, so the first dylib's LLVM symbols become canonical (similar to Linux ELF behavior).
+
+2. **LLVM patch:** The patch `tpls/customizations/llvm/idempotent_option_category.diff` modifies `registerCategory()` to skip registration if a category with the same name already exists, instead of asserting.
+
+**Why this differs from Linux:** On Linux, the ELF dynamic linker coalesces duplicate global data symbols at load time. On macOS, the two-level namespace keeps each dylib's symbols isolated. Even with `flat_namespace`, each dylib's data segment is separate, so static initializers run independently for each copy of LLVM globals.
+
+**Alternative approaches:**
+1. **LLVM dylib:** Build LLVM as a shared library (`LLVM_BUILD_LLVM_DYLIB=ON`). This avoids symbol duplication but causes threading crashes in MLIR's ThreadPool.
+2. **Library consolidation:** Refactor CUDA-Q to have a single "host" library that statically links all of LLVM, with other libraries depending on it dynamically. This is more invasive but would be a cleaner solution.
