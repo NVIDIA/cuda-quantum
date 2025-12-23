@@ -34,10 +34,8 @@ def is_close_array(actual, expected):
 
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.reset_target()
     yield
     cudaq.__clearKernelRegistries()
-    cudaq.reset_target()
 
 
 @cudaq.kernel

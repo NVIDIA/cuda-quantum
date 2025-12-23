@@ -17,10 +17,8 @@ import cudaq
 
 @pytest.fixture(autouse=True)
 def do_something():
-    cudaq.reset_target()
     yield
     cudaq.__clearKernelRegistries()
-    cudaq.reset_target()
 
 
 def test_simple_sampling_ghz():
