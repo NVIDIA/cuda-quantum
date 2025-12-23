@@ -143,6 +143,12 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
+# On macOS, force-load LLVMCodeGen to register -fast-isel option.
+if(APPLE)
+  target_link_options(CUDAQuantumPythonCAPI PRIVATE
+    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
+endif()
+
 ################################################################################
 # Instantiation of Python module
 ################################################################################

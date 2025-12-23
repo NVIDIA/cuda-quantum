@@ -21,6 +21,13 @@ target_link_libraries(cudaq-builder
     fmt::fmt-header-only
     nvqir
     cudaq-mlir-runtime
+    LLVMCodeGen
 )
+
+# On macOS, force-load LLVMCodeGen to register -fast-isel option.
+if(APPLE)
+  target_link_options(cudaq-builder PRIVATE
+    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
+endif()
 
 install(TARGETS cudaq-builder DESTINATION lib)
