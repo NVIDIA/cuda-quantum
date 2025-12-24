@@ -22,3 +22,18 @@ add_llvm_library(CUDAQTargetConfigUtil
   LINK_COMPONENTS
   Support
   )
+
+# On macOS, propagate unexport list to all shared library consumers.
+# This hides LLVM/MLIR symbols that come through CUDAQTargetConfigUtil (via LLVMSupport)
+# so they don't conflict with cudaq-mlir-runtime's LLVM symbols which centralizes LLVM symbols
+# for downstream consumers.
+# The generator expression ensures this only applies to SHARED_LIBRARY targets,
+# not executables (which need their own LLVM symbols for their GlobalParser).
+if(APPLE)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/llvm_unexport.txt
+"_ZN4llvm*
+_ZN4mlir*
+")
+  target_link_options(CUDAQTargetConfigUtil INTERFACE
+    "$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:-Wl,-unexported_symbols_list,${CMAKE_CURRENT_BINARY_DIR}/llvm_unexport.txt>")
+endif()
