@@ -1,0 +1,12 @@
+BasedOnStyle: LLVM
+AlwaysBreakTemplateDeclarations: Yes
+IncludeCategories:
+  - Regex:           '^<'
+    Priority:        4
+  - Regex:           '^"cudaq/'
+    Priority:        3
+  - Regex:           '^"(nvqlink|\.\.)/'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        1
+InsertNewlineAtEOF: Yes
