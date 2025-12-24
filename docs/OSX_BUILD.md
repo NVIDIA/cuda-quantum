@@ -155,58 +155,40 @@ This manifests as assertion failures: `Unknown FP format` in `mlir::FloatAttr::g
 
 **Proper fix:** Wait for the pybind11 fix to be merged upstream and update the submodule.
 
-### flat_namespace and Idempotent Option Registration
+### LLVM Symbol Consolidation
 
-**Problem:** When building LLVM statically (to avoid dylib threading issues), each CUDA-Q dylib gets its own copy of LLVM global objects. This causes several issues:
+**Problem:** When building LLVM statically, multiple CUDA-Q dylibs could each get their own copy of LLVM global objects. This causes:
 
 1. **APFloat pointer mismatches:** When MLIR code compares `&semantics == &APFloat::IEEEdouble()`, the comparison fails because each dylib has a different `IEEEdouble` address.
 
-2. **Duplicate option registration:** With `flat_namespace` enabled to share symbols, each dylib's static initializers still run independently, causing LLVM's command-line option registration to fail with "Option already exists" or "Duplicate option categories" assertions.
+2. **Duplicate option registration:** Each dylib's static initializers run independently, causing LLVM's command-line option registration to fail with "Option already exists" assertions.
 
-3. **Unregistered options on macOS:** The macOS linker only includes object files from static libraries if their symbols are referenced. This means LLVM options like `-fast-isel` (defined in `TargetPassConfig.cpp`) may not be registered if no code explicitly references symbols from that object file.
+3. **Unregistered options on macOS:** The macOS linker only includes object files from static libraries if their symbols are referenced. LLVM options like `-fast-isel` may not be registered.
 
-**Workaround:** Three changes are required:
+**Solution: Library Consolidation**
 
-1. **flat_namespace linker flag:** Added `-Wl,-flat_namespace` on macOS (see `CMakeLists.txt`). This makes all dylibs share the same symbol namespace, so the first dylib's LLVM symbols become canonical (similar to Linux ELF behavior).
+Only `cudaq-mlir-runtime` statically links LLVM. Other libraries resolve LLVM symbols from `cudaq-mlir-runtime.dylib` at runtime:
 
-2. **LLVM patch:** The patch `tpls/customizations/llvm/idempotent_option_registration.diff` modifies three functions to skip registration if an option/category already exists, instead of asserting:
-   - `registerCategory()` in `CommandLine.cpp`
-   - `addOption()` in `CommandLine.cpp`
-   - `addLiteralOption()` in `CommandLine.cpp` and `CommandLine.h`
+```
+cudaq-mlir-runtime.dylib ─── statically links LLVM ─── single GlobalParser
+                 ▲
+                 │ (dynamic link at runtime)
+cudaq-builder.dylib ──────── NO direct LLVM link ─── resolves from above ✓
+cudaq-qpud ───────────────── NO direct LLVM link ─── resolves from above ✓
+```
 
-3. **force_load for LLVMCodeGen:** Added `-Wl,-force_load` for `LLVMCodeGen` in libraries that parse LLVM options (see `runtime/common/CMakeLists.txt`, `runtime/cudaq/builder/CMakeLists.txt`, `tools/cudaq-qpud/CMakeLists.txt`, `python/extension/CMakeLists.txt`). This forces the linker to include all object files from LLVMCodeGen, ensuring static initializers run and options like `-fast-isel` are registered.
+**Implementation details:**
 
-**Why this differs from Linux:** On Linux, the ELF dynamic linker coalesces duplicate global data symbols at load time. On macOS, the two-level namespace keeps each dylib's symbols isolated. Even with `flat_namespace`, each dylib's data segment is separate, so static initializers run independently for each copy of LLVM globals.
+1. **cudaq-mlir-runtime** (see `runtime/common/CMakeLists.txt`):
+   - Links `LLVMCodeGen` and other LLVM/MLIR libraries
+   - Uses `-Wl,-force_load` for `LLVMCodeGen` to ensure static initializers run and options like `-fast-isel` are registered
 
-**Alternative approaches (not yet implemented):**
+2. **Other libraries** (cudaq-builder, cudaq-qpud, cudaq-rest-qpu):
+   - Link to `cudaq-mlir-runtime` (not directly to LLVM)
+   - Resolve LLVM symbols from `cudaq-mlir-runtime.dylib` at runtime
 
-1. **LLVM dylib:** Build LLVM as a shared library (`LLVM_BUILD_LLVM_DYLIB=ON`). This avoids symbol duplication but causes threading crashes in MLIR's ThreadPool.
+This approach requires **no LLVM patches** and works with macOS's default two-level namespace. Only one copy of LLVM exists, so there's only one GlobalParser and one option registry.
 
-2. **Library consolidation (preferred long-term solution, no LLVM patches required):**
+**Why this differs from Linux:** On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time. On macOS, two-level namespace keeps each dylib's symbols isolated, making consolidation essential.
 
-   The current workaround requires patching LLVM. A simpler approach: have `cudaq-mlir-runtime` be the sole owner of LLVM static libraries, with other libraries dynamically linking to it:
-
-   **Current (problematic):**
-   ```
-   cudaq-mlir-runtime.dylib ─── statically links LLVM ─── has its own GlobalParser
-   cudaq-builder.dylib ──────── statically links LLVM ─── has its own GlobalParser ✗
-   cudaq-qpud ───────────────── statically links LLVM ─── has its own GlobalParser ✗
-   ```
-
-   **Proposed (clean):**
-   ```
-   cudaq-mlir-runtime.dylib ─── statically links LLVM ─── single GlobalParser
-                    ▲
-                    │ (dynamic link at runtime)
-   cudaq-builder.dylib ──────── NO direct LLVM link ─── resolves from above ✓
-   cudaq-qpud ───────────────── NO direct LLVM link ─── resolves from above ✓
-   ```
-
-   Implementation:
-   - Keep `LLVMCodeGen` + `force_load` only in `cudaq-mlir-runtime`
-   - Remove direct `LLVMCodeGen` links from `cudaq-builder`, `cudaq-qpud`, Python extension
-   - Other libraries resolve LLVM symbols (like `cl::ParseCommandLineOptions`) from `cudaq-mlir-runtime.dylib` at runtime
-
-   This eliminates duplicate LLVM copies entirely, requiring **no LLVM patches**. The key insight is that when libraries use LLVM through dynamic linking to `cudaq-mlir-runtime`, they share its single GlobalParser and option registry. Only one static initialization runs, so no duplicate registration occurs.
-
-   See `~/llvm_symbol_report.md` Section 9 for detailed implementation steps.
+**Note:** Python bindings (`python/extension/CMakeLists.txt`) still use MLIR's Python infrastructure which embeds MLIR. This is acceptable since Python runs in a separate process.
