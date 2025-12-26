@@ -297,7 +297,7 @@ set(CUDAQ_SPIN_TEST_SOURCES
 )
 add_executable(test_spin main.cpp ${CUDAQ_SPIN_TEST_SOURCES})
 target_link_libraries(test_spin
-  PRIVATE 
+  PRIVATE
   cudaq
   cudaq-operator
   gtest_main
