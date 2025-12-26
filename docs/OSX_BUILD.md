@@ -84,44 +84,45 @@ python3 -c "import cudaq; print(cudaq.__version__)"
 
 - CPU-only build (no CUDA support on macOS)
 - Uses Apple's system Clang compiler
-- LLVM is built statically with Thin LTO and an idempotent registration patch
+- LLVM is built as a shared library (`libLLVM.dylib`) to avoid symbol duplication issues
 
-## Known Limitations and Workarounds
+## macOS LLVM Configuration
 
-### macOS Two-Level Namespace and LLVM Symbols
+CUDA-Q builds LLVM as a shared library (`libLLVM.dylib`) on macOS to ensure all components share a single LLVM instance. This approach:
 
-**Problem:** macOS uses a two-level namespace that causes issues when multiple libraries statically link LLVM:
+- Eliminates APFloat pointer mismatch issues (single `IEEEdouble()` address)
+- Ensures single `cl::opt` GlobalParser instance (no duplicate option registration)
+- Removes need for LTO or registration patches
 
-1. **Duplicate cl::opt registration:** Each dylib's static initializers run independently, causing LLVM's command-line option registration to fail with "Option already exists" or "Duplicate option categories" assertions.
+### Why This Differs from Linux
 
-2. **APFloat pointer mismatches:** Each dylib gets its own copy of LLVM static symbols like `IEEEdouble()`. When MLIR compares `&semantics == &APFloat::IEEEdouble()`, the comparison fails because pointers differ.
+On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time via symbol interposition. On macOS, two-level namespace keeps each dylib's symbols isolated. Using `libLLVM.dylib` avoids duplication entirely by providing a single LLVM instance that all CUDA-Q libraries link against.
 
-**Solution:** Two complementary fixes:
+### Performance Characteristics
 
-1. **Idempotent option registration patch** (`tpls/customizations/llvm/idempotent_option_registration.diff`): Modifies LLVM's CommandLine.cpp to silently skip duplicate option/category registrations instead of asserting. This handles the cl::opt issue.
+The dylib approach has the following performance trade-offs:
 
-2. **Thin LTO** (`-DLLVM_ENABLE_LTO=Thin` in `scripts/build_llvm.sh`): Enables link-time optimization which deduplicates identical symbols (like `IEEEdouble`) across compilation units. This handles the APFloat pointer mismatch issue.
+| Metric | Impact |
+|--------|--------|
+| Cold startup | +50-200ms (dylib loading overhead) |
+| JIT compilation | No change |
+| LLVM build time | Faster (no Thin LTO required) |
+| Binary size | Smaller per-tool (LLVM not embedded) |
+| Multi-process memory | Lower (shared dylib pages) |
+
+For typical usage, the startup overhead is acceptable and offset by faster build times during development.
 
 ### fast-isel Option Registration
 
-**Problem:** On macOS, the linker only includes object files from static libraries if their symbols are explicitly referenced. LLVM options like `-fast-isel` are registered via static initializers in LLVMCodeGen, which may not be included.
-
-**Solution:** Use `-Wl,-force_load` for LLVMCodeGen to ensure all static initializers run:
+On macOS, the linker only includes object files from static libraries if their symbols are explicitly referenced. LLVM options like `-fast-isel` are registered via static initializers in LLVMCodeGen. Even with the dylib approach, we use `-Wl,-force_load` for LLVMCodeGen to ensure these static initializers run:
 - `runtime/common/CMakeLists.txt` (cudaq-mlir-runtime)
-- `python/extension/CMakeLists.txt` (CUDAQuantumPythonCAPI)
+- `python/extension/CMakeLists.txt` (CUDAQuantumPythonCAPI and _quakeDialects.dso)
+- `tools/cudaq-qpud/CMakeLists.txt` (cudaq-qpud)
 
-### pybind11 LTO Flag Bug
-
-**Problem:** pybind11 has a bug where it passes `-flto=` with an empty value when LTO is enabled with Clang (see https://github.com/pybind/pybind11/issues/5098).
-
-**Solution:** A local patch `tpls/customizations/pybind11/pybind11Common.cmake.diff` fixes the LTO flag generation. The patch is automatically applied during the build.
+## Known Limitations
 
 ### xtensor xio.hpp Template Ambiguity
 
 **Problem:** Including `<xtensor/xio.hpp>` triggers a clang 17-18 template ambiguity with xtl's `svector` rebind_container (see LLVM issue #91504). This causes compilation failures on macOS when using Apple Clang.
 
 **Solution:** Avoid using `xio.hpp` for printing xtensor arrays. Instead, manually implement printing logic in `runtime/cudaq/domains/chemistry/molecule.cpp` for the `dump()` methods.
-
-### Why This Differs from Linux
-
-On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time. On macOS, two-level namespace keeps each dylib's symbols isolated, requiring the idempotent patch and LTO workarounds described above.

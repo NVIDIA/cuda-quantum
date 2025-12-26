@@ -143,7 +143,8 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
-# On macOS, force-load LLVMCodeGen to register -fast-isel option.
+# On macOS, force-load LLVMCodeGen to ensure static initializers run and register
+# LLVM command-line options (e.g., -fast-isel).
 if(APPLE)
   target_link_options(CUDAQuantumPythonCAPI PRIVATE
     "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
@@ -185,3 +186,10 @@ else()
 endif()
 
 
+
+# On macOS, force-load LLVMCodeGen for the Python extension module to ensure
+# static initializers run and register LLVM command-line options (e.g., -fast-isel).
+if(APPLE)
+  target_link_options(CUDAQuantumPythonModules.extension._quakeDialects.dso PRIVATE
+    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
+endif()

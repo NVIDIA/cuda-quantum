@@ -413,6 +413,16 @@ include_directories(SYSTEM
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
+# On macOS with LLVM dylib, install libLLVM.dylib alongside CUDA-Q libraries
+if(APPLE AND LLVM_LINK_LLVM_DYLIB)
+  # Find libLLVM.dylib in LLVM's library directory
+  find_library(LLVM_DYLIB_PATH NAMES LLVM PATHS ${LLVM_LIBRARY_DIR} NO_DEFAULT_PATH)
+  if(LLVM_DYLIB_PATH)
+    message(STATUS "Will install LLVM dylib: ${LLVM_DYLIB_PATH}")
+    install(FILES ${LLVM_DYLIB_PATH} DESTINATION lib)
+  endif()
+endif()
+
 # Define the default arguments to use with 'lit', and an option for the user to
 # override.
 set(LIT_ARGS_DEFAULT "-sv")

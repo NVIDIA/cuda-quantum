@@ -32,8 +32,7 @@ target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
 export_executable_symbols_for_plugins(${TOOL_NAME})
 
 # On macOS, force-load LLVMCodeGen to ensure static initializers run and register
-# LLVM command-line options (e.g., -fast-isel). Executables need their own copy
-# since they have a separate GlobalParser from shared libraries.
+# LLVM command-line options (e.g., -fast-isel).
 if(APPLE)
   target_link_options(${TOOL_NAME} PRIVATE
     "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
