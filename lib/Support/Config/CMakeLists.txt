@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-
 set(CUDAQ_TARGET_CONFIG_OPTIONS)
 # When LLVM is built as a shared library (dylib), we must NOT disable dylib
 # linking to avoid duplicate LLVM symbols (e.g., APFloat semantics like IEEEdouble).
@@ -23,19 +22,3 @@ add_llvm_library(CUDAQTargetConfigUtil
   LINK_COMPONENTS
   Support
   )
-
-# On macOS, propagate unexport list to all shared library consumers.
-# This hides LLVM/MLIR symbols that come through CUDAQTargetConfigUtil (via LLVMSupport)
-# so they don't conflict with cudaq-mlir-runtime's LLVM symbols which centralizes LLVM symbols
-# for downstream consumers.
-# The generator expression ensures this only applies to SHARED_LIBRARY targets,
-# not executables (which need their own LLVM symbols for their GlobalParser).
-if(APPLE)
-  # macOS adds an extra leading underscore to all symbols, so _ZN4llvm becomes __ZN4llvm
-  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/llvm_unexport.txt
-"__ZN4llvm*
-__ZN4mlir*
-")
-  target_link_options(CUDAQTargetConfigUtil INTERFACE
-    "$<$<STREQUAL:$<TARGET_PROPERTY:TYPE>,SHARED_LIBRARY>:-Wl,-unexported_symbols_list,${CMAKE_CURRENT_BINARY_DIR}/llvm_unexport.txt>")
-endif()

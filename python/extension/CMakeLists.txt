@@ -143,6 +143,12 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
+# On macOS, force-load LLVMCodeGen to register -fast-isel option.
+if(APPLE)
+  target_link_options(CUDAQuantumPythonCAPI PRIVATE
+    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
+endif()
+
 ################################################################################
 # Instantiation of Python module
 ################################################################################
@@ -170,11 +176,12 @@ endif()
 
 if (NOT SKBUILD)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../lib/plugins")
 else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
+
 

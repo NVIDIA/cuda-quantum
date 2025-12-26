@@ -84,111 +84,44 @@ python3 -c "import cudaq; print(cudaq.__version__)"
 
 - CPU-only build (no CUDA support on macOS)
 - Uses Apple's system Clang compiler
-- LLVM is built as a shared library to avoid symbol conflicts
+- LLVM is built statically with Thin LTO and an idempotent registration patch
 
 ## Known Limitations and Workarounds
 
-### LLVM Built as Shared Library (dylib)
+### macOS Two-Level Namespace and LLVM Symbols
 
-**Problem:** macOS uses a two-level namespace that causes duplicate symbol issues when multiple libraries statically link LLVM. This manifests as runtime errors from conflicting LLVM symbol definitions.
+**Problem:** macOS uses a two-level namespace that causes issues when multiple libraries statically link LLVM:
 
-**Workaround:** LLVM is built with `-DLLVM_BUILD_LLVM_DYLIB=ON -DLLVM_LINK_LLVM_DYLIB=ON` on macOS (see `scripts/build_llvm.sh`).
+1. **Duplicate cl::opt registration:** Each dylib's static initializers run independently, causing LLVM's command-line option registration to fail with "Option already exists" or "Duplicate option categories" assertions.
 
-**Proper fix:** Would require restructuring how CUDA-Q links against LLVM to avoid duplicate static linkage, or using symbol visibility controls.
+2. **APFloat pointer mismatches:** Each dylib gets its own copy of LLVM static symbols like `IEEEdouble()`. When MLIR compares `&semantics == &APFloat::IEEEdouble()`, the comparison fails because pointers differ.
 
-### fast-isel Disabled on macOS
+**Solution:** Two complementary fixes:
 
-**Problem:** The `-fast-isel=0` LLVM command line option is not registered when LLVM is built as a shared library. This causes "Unknown command line argument" errors at runtime.
+1. **Idempotent option registration patch** (`tpls/customizations/llvm/idempotent_option_registration.diff`): Modifies LLVM's CommandLine.cpp to silently skip duplicate option/category registrations instead of asserting. This handles the cl::opt issue.
 
-**Workaround:** The fast-isel option is conditionally disabled on macOS using `#if !defined(__APPLE__)` in:
-- `runtime/cudaq/builder/kernel_builder.cpp`
-- `runtime/common/RuntimeMLIRCommonImpl.h`
-- `python/runtime/cudaq/platform/py_alt_launch_kernel.cpp`
-- `tools/cudaq-qpud/RestServerMain.cpp`
+2. **Thin LTO** (`-DLLVM_ENABLE_LTO=Thin` in `scripts/build_llvm.sh`): Enables link-time optimization which deduplicates identical symbols (like `IEEEdouble`) across compilation units. This handles the APFloat pointer mismatch issue.
 
-**Proper fix:** Would require either:
-1. Fixing LLVM to register command line options when built as a shared library, or
-2. Finding an alternative API to disable fast instruction selection that doesn't rely on command line parsing
+### fast-isel Option Registration
 
-### LTO Disabled for LLVM Build
+**Problem:** On macOS, the linker only includes object files from static libraries if their symbols are explicitly referenced. LLVM options like `-fast-isel` are registered via static initializers in LLVMCodeGen, which may not be included.
 
-**Problem:** pybind11 has a bug where it passes `-flto=` with an empty value when LTO is enabled (see https://github.com/pybind/pybind11/issues/5098).
+**Solution:** Use `-Wl,-force_load` for LLVMCodeGen to ensure all static initializers run:
+- `runtime/common/CMakeLists.txt` (cudaq-mlir-runtime)
+- `python/extension/CMakeLists.txt` (CUDAQuantumPythonCAPI)
 
-**Workaround:** LLVM is built with `-DLLVM_ENABLE_LTO=OFF` on macOS (see `scripts/build_llvm.sh`).
+### pybind11 LTO Flag Bug
 
-**Proper fix:** Wait for pybind11 fix or patch the pybind11 cmake modules locally.
+**Problem:** pybind11 has a bug where it passes `-flto=` with an empty value when LTO is enabled with Clang (see https://github.com/pybind/pybind11/issues/5098).
 
-### MLIR Threading Disabled on macOS
-
-**Problem:** When LLVM is built as a shared library, MLIR's multi-threaded pass execution can crash with segmentation faults in LLVM's ThreadPool during pattern rewriting.
-
-**Workaround:** MLIR threading is disabled by default on macOS by setting `CUDAQ_MLIR_DISABLE_THREADING=true` in:
-- `python/runtime/cudaq/platform/py_alt_launch_kernel.cpp`
-
-Users can override this by setting the environment variable `CUDAQ_MLIR_DISABLE_THREADING=false`, but this may cause crashes.
-
-**Proper fix:** Avoid building LLVM as a shared library, or investigate the root cause of the threading crashes.
-
-### CUDAQTargetConfigUtil Dylib Linking
-
-**Problem:** When `CUDAQTargetConfigUtil` is built with `DISABLE_LLVM_LINK_LLVM_DYLIB`, it statically links LLVM's `Support` component. This causes `libcudaq.dylib` (which links `CUDAQTargetConfigUtil`) to contain its own copy of LLVM symbols like `IEEEdouble()`. When MLIR code compares APFloat semantics pointers, they don't match because `libcudaq.dylib` and `libLLVM.dylib` have different copies.
-
-This manifests as assertion failures: `Unknown FP format` in `mlir::FloatAttr::get()`.
-
-**Workaround:** When `LLVM_LINK_LLVM_DYLIB` is enabled, `DISABLE_LLVM_LINK_LLVM_DYLIB` is not used for `CUDAQTargetConfigUtil`, ensuring all libraries use the same LLVM symbols from the shared library (see `lib/Support/Config/CMakeLists.txt`).
-
-**Proper fix:** Avoid building LLVM as a shared library, which would eliminate the need for this workaround.
+**Solution:** A local patch `tpls/customizations/pybind11/pybind11Common.cmake.diff` fixes the LTO flag generation. The patch is automatically applied during the build.
 
 ### xtensor xio.hpp Template Ambiguity
 
 **Problem:** Including `<xtensor/xio.hpp>` triggers a clang 17-18 template ambiguity with xtl's `svector` rebind_container (see LLVM issue #91504). This causes compilation failures on macOS when using Apple Clang.
 
-**Workaround:** Avoid using `xio.hpp` for printing xtensor arrays. Instead, manually implement printing logic in `runtime/cudaq/domains/chemistry/molecule.cpp` for the `dump()` methods.
+**Solution:** Avoid using `xio.hpp` for printing xtensor arrays. Instead, manually implement printing logic in `runtime/cudaq/domains/chemistry/molecule.cpp` for the `dump()` methods.
 
-**Proper fix:** Wait for xtensor/xtl to fix the template ambiguity, or upgrade to a clang version where this is resolved.
+### Why This Differs from Linux
 
-### pybind11 LTO Flag Bug
-
-**Problem:** pybind11 has a bug where it passes `-flto=` with an empty value (or `-flto==thin`) when LTO is enabled with Clang (see https://github.com/pybind/pybind11/issues/5098). This causes compilation failures.
-
-**Workaround:** A local patch `tpls/customizations/pybind11/pybind11Common.cmake.diff` fixes the LTO flag generation in pybind11's CMake. The patch is automatically applied during the build.
-
-**Proper fix:** Wait for the pybind11 fix to be merged upstream and update the submodule.
-
-### LLVM Symbol Consolidation
-
-**Problem:** When building LLVM statically, multiple CUDA-Q dylibs could each get their own copy of LLVM global objects. This causes:
-
-1. **APFloat pointer mismatches:** When MLIR code compares `&semantics == &APFloat::IEEEdouble()`, the comparison fails because each dylib has a different `IEEEdouble` address.
-
-2. **Duplicate option registration:** Each dylib's static initializers run independently, causing LLVM's command-line option registration to fail with "Option already exists" assertions.
-
-3. **Unregistered options on macOS:** The macOS linker only includes object files from static libraries if their symbols are referenced. LLVM options like `-fast-isel` may not be registered.
-
-**Solution: Library Consolidation**
-
-Only `cudaq-mlir-runtime` statically links LLVM. Other libraries resolve LLVM symbols from `cudaq-mlir-runtime.dylib` at runtime:
-
-```
-cudaq-mlir-runtime.dylib ─── statically links LLVM ─── single GlobalParser
-                 ▲
-                 │ (dynamic link at runtime)
-cudaq-builder.dylib ──────── NO direct LLVM link ─── resolves from above ✓
-cudaq-qpud ───────────────── NO direct LLVM link ─── resolves from above ✓
-```
-
-**Implementation details:**
-
-1. **cudaq-mlir-runtime** (see `runtime/common/CMakeLists.txt`):
-   - Links `LLVMCodeGen` and other LLVM/MLIR libraries
-   - Uses `-Wl,-force_load` for `LLVMCodeGen` to ensure static initializers run and options like `-fast-isel` are registered
-
-2. **Other libraries** (cudaq-builder, cudaq-qpud, cudaq-rest-qpu):
-   - Link to `cudaq-mlir-runtime` (not directly to LLVM)
-   - Resolve LLVM symbols from `cudaq-mlir-runtime.dylib` at runtime
-
-This approach requires **no LLVM patches** and works with macOS's default two-level namespace. Only one copy of LLVM exists, so there's only one GlobalParser and one option registry.
-
-**Why this differs from Linux:** On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time. On macOS, two-level namespace keeps each dylib's symbols isolated, making consolidation essential.
-
-**Note:** Python bindings (`python/extension/CMakeLists.txt`) still use MLIR's Python infrastructure which embeds MLIR. This is acceptable since Python runs in a separate process.
+On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time. On macOS, two-level namespace keeps each dylib's symbols isolated, requiring the idempotent patch and LTO workarounds described above.
