@@ -98,6 +98,8 @@ CUDA-Q builds LLVM and MLIR as shared libraries on macOS to ensure all component
 
 On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time via symbol interposition. On macOS, two-level namespace keeps each dylib's symbols isolated. Using shared `libLLVM.dylib` and `libMLIR.dylib` avoids duplication entirely by providing single LLVM/MLIR instances that all CUDA-Q libraries link against.
 
+We use monolithic dylibs (`LLVM_BUILD_LLVM_DYLIB` + `MLIR_LINK_MLIR_DYLIB`) rather than `BUILD_SHARED_LIBS` for simpler deployment (2 dylibs vs 100+).
+
 ### Performance Characteristics
 
 The dylib approach has the following performance trade-offs:
@@ -120,6 +122,14 @@ On macOS, the linker only includes object files from static libraries if their s
 - `tools/cudaq-qpud/CMakeLists.txt` (cudaq-qpud)
 
 ## Known Limitations
+
+### Execution Manager Selection
+
+**Problem:** The `CUDAQ_REGISTER_EXECUTION_MANAGER` macro defines `getRegisteredExecutionManager()` in multiple libraries (default, qudit, photonics). On Linux, ELF symbol interposition selects one at runtime. On macOS with two-level namespace, each library binds to its own dependency's symbol, preventing override.
+
+Additionally, `execution_manager.cpp` must only be compiled into one library to ensure a single `static ExecutionManager*` instance. On macOS, duplicate static variables in different dylibs are separate instances. The `cudaq` library owns this file; `cudaq-em-default` links to `cudaq` rather than compiling its own copy.
+
+**Solution:** Use `setExecutionManagerInternal()` to explicitly set the execution manager before use.
 
 ### xtensor xio.hpp Template Ambiguity
 

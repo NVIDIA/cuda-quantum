@@ -10,8 +10,22 @@
 
 #include "cudaq.h"
 #include "cudaq/photonics.h"
+#include "cudaq/qis/execution_manager.h"
 
-TEST(PhotonicsTester, checkSimple) {
+extern "C" {
+cudaq::ExecutionManager *getRegisteredExecutionManager_photonics();
+}
+
+class PhotonicsTester : public ::testing::Test {
+protected:
+  void SetUp() override {
+    cudaq::setExecutionManagerInternal(
+        getRegisteredExecutionManager_photonics());
+  }
+  void TearDown() override { cudaq::resetExecutionManagerInternal(); }
+};
+
+TEST_F(PhotonicsTester, checkSimple) {
 
   struct test {
     auto operator()() __qpu__ {
@@ -43,7 +57,7 @@ TEST(PhotonicsTester, checkSimple) {
   }
 }
 
-TEST(PhotonicsTester, checkHOM) {
+TEST_F(PhotonicsTester, checkHOM) {
 
   struct HOM {
     // Hong–Ou–Mandel effect
@@ -85,7 +99,7 @@ TEST(PhotonicsTester, checkHOM) {
   EXPECT_EQ(counts3.size(), 3);
 }
 
-TEST(PhotonicsTester, checkMZI) {
+TEST_F(PhotonicsTester, checkMZI) {
 
   struct MZI {
     // Mach-Zendher Interferometer
