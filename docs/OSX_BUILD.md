@@ -84,11 +84,11 @@ python3 -c "import cudaq; print(cudaq.__version__)"
 
 - CPU-only build (no CUDA support on macOS)
 - Uses Apple's system Clang compiler
-- LLVM is built as a shared library (`libLLVM.dylib`) to avoid symbol duplication issues
+- LLVM and MLIR are built as shared libraries (`libLLVM.dylib`, `libMLIR.dylib`) to avoid symbol duplication issues
 
-## macOS LLVM Configuration
+## macOS LLVM/MLIR Configuration
 
-CUDA-Q builds LLVM as a shared library (`libLLVM.dylib`) on macOS to ensure all components share a single LLVM instance. This approach:
+CUDA-Q builds LLVM and MLIR as shared libraries on macOS to ensure all components share single instances. This approach:
 
 - Eliminates APFloat pointer mismatch issues (single `IEEEdouble()` address)
 - Ensures single `cl::opt` GlobalParser instance (no duplicate option registration)
@@ -96,7 +96,7 @@ CUDA-Q builds LLVM as a shared library (`libLLVM.dylib`) on macOS to ensure all 
 
 ### Why This Differs from Linux
 
-On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time via symbol interposition. On macOS, two-level namespace keeps each dylib's symbols isolated. Using `libLLVM.dylib` avoids duplication entirely by providing a single LLVM instance that all CUDA-Q libraries link against.
+On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time via symbol interposition. On macOS, two-level namespace keeps each dylib's symbols isolated. Using shared `libLLVM.dylib` and `libMLIR.dylib` avoids duplication entirely by providing single LLVM/MLIR instances that all CUDA-Q libraries link against.
 
 ### Performance Characteristics
 

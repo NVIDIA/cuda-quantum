@@ -413,13 +413,18 @@ include_directories(SYSTEM
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
 
-# On macOS with LLVM dylib, install libLLVM.dylib alongside CUDA-Q libraries
+# On macOS with LLVM/MLIR dylib, install shared libraries alongside CUDA-Q
 if(APPLE AND LLVM_LINK_LLVM_DYLIB)
-  # Find libLLVM.dylib in LLVM's library directory
   find_library(LLVM_DYLIB_PATH NAMES LLVM PATHS ${LLVM_LIBRARY_DIR} NO_DEFAULT_PATH)
   if(LLVM_DYLIB_PATH)
     message(STATUS "Will install LLVM dylib: ${LLVM_DYLIB_PATH}")
     install(FILES ${LLVM_DYLIB_PATH} DESTINATION lib)
+  endif()
+  # MLIR dylib is built when MLIR_LINK_MLIR_DYLIB=ON
+  find_library(MLIR_DYLIB_PATH NAMES MLIR PATHS ${LLVM_LIBRARY_DIR} NO_DEFAULT_PATH)
+  if(MLIR_DYLIB_PATH)
+    message(STATUS "Will install MLIR dylib: ${MLIR_DYLIB_PATH}")
+    install(FILES ${MLIR_DYLIB_PATH} DESTINATION lib)
   endif()
 endif()
 

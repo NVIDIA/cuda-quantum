@@ -230,12 +230,13 @@ cmake_args=" \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='-w'"
 
-# On macOS, build LLVM as a shared library (dylib) to avoid symbol duplication
-# issues caused by macOS two-level namespace.
+# On macOS, build LLVM and MLIR as shared libraries to avoid symbol
+# duplication issues caused by macOS two-level namespace.
 if [ "$(uname)" = "Darwin" ]; then
   cmake_args="$cmake_args \
     -DLLVM_BUILD_LLVM_DYLIB=ON \
-    -DLLVM_LINK_LLVM_DYLIB=ON"
+    -DLLVM_LINK_LLVM_DYLIB=ON \
+    -DMLIR_LINK_MLIR_DYLIB=ON"
 fi
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
