@@ -54,8 +54,34 @@ function(add_cudaq_dialect_doc dialect dialect_namespace)
   add_cudaq_doc(${dialect} Dialects/${dialect} -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
+# When libMLIR.dylib is available, replace individual MLIR static libraries
+# with the single MLIR dylib to avoid symbol duplication issues on macOS.
+# TODO: Replace with mlir_target_link_libraries() when upgrading to LLVM 17+.
+# See: https://github.com/llvm/llvm-project/blob/main/mlir/cmake/modules/AddMLIR.cmake
+function(cudaq_replace_mlir_dylib_in_args output_var)
+  set(result)
+  set(found_mlir_lib FALSE)
+  foreach(arg ${ARGN})
+    if(arg MATCHES "^MLIR" AND NOT arg STREQUAL "MLIR")
+      # This is an MLIR static library - replace with dylib
+      if(NOT found_mlir_lib)
+        list(APPEND result MLIR)
+        set(found_mlir_lib TRUE)
+      endif()
+    else()
+      list(APPEND result ${arg})
+    endif()
+  endforeach()
+  set(${output_var} ${result} PARENT_SCOPE)
+endfunction()
+
 function(add_cudaq_library name)
-  add_mlir_library(${ARGV} DISABLE_INSTALL)
+  if(TARGET MLIR)
+    cudaq_replace_mlir_dylib_in_args(new_args ${ARGN})
+    add_mlir_library(${name} ${new_args} DISABLE_INSTALL)
+  else()
+    add_mlir_library(${ARGV} DISABLE_INSTALL)
+  endif()
   add_cudaq_library_install(${name})
 endfunction()
 
