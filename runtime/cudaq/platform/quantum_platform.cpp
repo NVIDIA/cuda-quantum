@@ -113,6 +113,7 @@ void quantum_platform::set_exec_ctx(ExecutionContext *ctx) {
 
 /// Reset the execution context for this platform.
 void quantum_platform::reset_exec_ctx() {
+  assert(executionContext.get() != nullptr);
   std::size_t qid = executionContext.get()->qpuId;
 
   auto &platformQPU = platformQPUs[qid];
