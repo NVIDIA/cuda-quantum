@@ -125,18 +125,11 @@ target_include_directories(cudaq-mlir-runtime
     ${CMAKE_SOURCE_DIR}/tpls/fmt/include
     ${CMAKE_SOURCE_DIR}/runtime)
 
-target_link_libraries(cudaq-mlir-runtime
-  PUBLIC
-    nvqir
-    CCDialect
-    QuakeDialect
-    OptCodeGen
-    OptTransforms
+cudaq_get_mlir_libs(MLIR_RUNTIME_LIBS
     MLIRTranslateLib
     MLIRIR
     MLIRParser
     MLIRPass
-    MLIRTranslateLib
     MLIRSupport
     MLIROptLib
     MLIRExecutionEngine
@@ -144,14 +137,24 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
+)
+
+target_link_libraries(cudaq-mlir-runtime
+  PUBLIC
+    nvqir
+    CCDialect
+    QuakeDialect
+    OptCodeGen
+    OptTransforms
+    ${MLIR_RUNTIME_LIBS}
     LLVMCodeGen
   PRIVATE
     cudaq
     spdlog::spdlog
 )
 
-# On macOS, force-load LLVMCodeGen to ensure static initializers run and register
-# LLVM command-line options (e.g., -fast-isel).
+# On macOS, force-load LLVMCodeGen to ensure static initializers run
+# and register LLVM command-line options (e.g., -fast-isel).
 if(APPLE)
   target_link_options(cudaq-mlir-runtime PRIVATE
     "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")

@@ -136,3 +136,28 @@ Additionally, `execution_manager.cpp` must only be compiled into one library to 
 **Problem:** Including `<xtensor/xio.hpp>` triggers a clang 17-18 template ambiguity with xtl's `svector` rebind_container (see LLVM issue #91504). This causes compilation failures on macOS when using Apple Clang.
 
 **Solution:** Avoid using `xio.hpp` for printing xtensor arrays. Instead, manually implement printing logic in `runtime/cudaq/domains/chemistry/molecule.cpp` for the `dump()` methods.
+
+### MLIRExecutionEngine and Shared Library Linking
+
+**Problem:** `MLIRExecutionEngine` is excluded from `libMLIR.dylib` by design (it has `EXCLUDE_FROM_LIBMLIR` in upstream LLVM). When linking against `libMLIR.dylib`, the static `libMLIRExecutionEngine.a` gets pulled in, causing symbol conflicts due to macOS two-level namespace. This manifests as "storage uniquer isn't initialized" or "dialect already registered" errors.
+
+**Solution:** LLVM 19+ includes `MLIRExecutionEngineShared`, a shared library version that links against `libMLIR.dylib`. For LLVM 16, we backport this via `tpls/customizations/llvm/mlir_execution_engine_shared.diff`. The `cudaq_get_mlir_libs()` CMake function automatically substitutes `MLIRExecutionEngine` with `CUDAQMLIRExecutionEngine` (which wraps `MLIRExecutionEngineShared`) when the dylib is available.
+
+**Applying the patch:**
+```bash
+cd $LLVM_SOURCE_DIR
+patch -p1 < /path/to/cuda-quantum/tpls/customizations/llvm/mlir_execution_engine_shared.diff
+```
+
+### Python Bindings and MLIR CAPI Static Libraries
+
+**Problem:** The Python bindings use MLIR's Python infrastructure (`add_mlir_python_common_capi_library`, `declare_mlir_python_extension`) which link against MLIR CAPI static libraries (`MLIRCAPIExecutionEngine`, `MLIRPythonExtension.RegisterEverything`, etc.). These CAPI libraries are not part of `libMLIR.dylib` and don't support dylib linking in LLVM 16.
+
+LLVM 17+ added `mlir_target_link_libraries()` which properly handles dylib substitution, but this doesn't exist in LLVM 16. The CAPI libraries contain their own copies of MLIR static variables, leading to the same symbol conflict issues when mixed with `libMLIR.dylib`.
+
+**Current status:** This remains an open challenge. Potential solutions include:
+1. Upgrading to LLVM 17+ which has better dylib support
+2. Using fully static MLIR linking (no `MLIR_LINK_MLIR_DYLIB`)
+3. Using `-Wl,-flat_namespace` to force global symbol resolution (not fully tested)
+
+For now, if Python tests fail with "storage uniquer isn't initialized" errors, consider building LLVM without `MLIR_LINK_MLIR_DYLIB=ON`.

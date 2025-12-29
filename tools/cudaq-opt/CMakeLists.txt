@@ -12,17 +12,18 @@ add_llvm_executable(cudaq-opt cudaq-opt.cpp)
 
 llvm_update_compile_flags(cudaq-opt)
 
-# Prefer libMLIR.dylib when available (built with MLIR_LINK_MLIR_DYLIB=ON).
-# This avoids crashes from mixing static MLIR libraries with libLLVM.dylib.
-if(TARGET MLIR)
-  set(MLIR_LIBS MLIR)
-else()
-  set(MLIR_LIBS MLIRLLVMDialect MLIROptLib MLIRIR MLIRFuncDialect MLIRArithDialect)
-endif()
+cudaq_get_mlir_libs(MLIR_LIBS
+  MLIRLLVMDialect
+  MLIROptLib
+  MLIRIR
+  MLIRFuncDialect
+  MLIRArithDialect
+)
 
 target_link_libraries(cudaq-opt
   PUBLIC
   ${MLIR_LIBS}
+  # CUDAQ libraries
   CCDialect
   QuakeDialect
   OptCodeGen

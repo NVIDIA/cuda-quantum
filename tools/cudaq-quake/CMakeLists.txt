@@ -11,25 +11,30 @@ set(LLVM_LINK_COMPONENTS Support ${LLVM_TARGETS_TO_BUILD})
 add_llvm_executable(cudaq-quake cudaq-quake.cpp)
 
 llvm_update_compile_flags(cudaq-quake)
-target_link_libraries(cudaq-quake
-  PRIVATE
+
+cudaq_get_mlir_libs(MLIR_LIBS
   MLIRIR
   MLIRParser
   MLIRPass
   MLIRTranslateLib
   MLIRSupport
   MLIROptLib
-  MLIRExecutionEngine
   MLIRTransforms
   MLIRTargetLLVMIRExport
   MLIRLLVMCommonConversion
   MLIRLLVMToLLVMIRTranslation
+  MLIRExecutionEngine
+)
 
+target_link_libraries(cudaq-quake
+  PRIVATE
+  ${MLIR_LIBS}
+  # Clang libraries
   clangCodeGen
   clangFrontendTool
   clangFrontend
   fmt::fmt-header-only
-
+  # CUDAQ libraries
   CCDialect
   QuakeDialect
   cudaq-mlirgen
