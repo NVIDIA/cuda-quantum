@@ -40,7 +40,6 @@ class pauli_word;
 
 std::string get_quake_by_name(const std::string &);
 
-#if CUDAQ_USE_STD20
 /// @brief Define a floating point concept
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
@@ -74,11 +73,6 @@ concept KernelBuilderArgTypeIsValid =
           std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>,         \
           std::vector<cudaq::pauli_word>, cudaq::state *> &&                   \
       ...)
-#else
-// Not C++ 2020: stub these out.
-#define QuakeValueOrNumericType typename
-#define CUDAQ_VALID_BUILDER_ARGS_FOLD()
-#endif
 
 namespace details {
 /// Use parametric type: `initializations` must be vectors of complex float or
@@ -383,7 +377,6 @@ public:
 
 } // namespace details
 
-#if CUDAQ_USE_STD20
 template <class... Ts>
 concept AllAreQuakeValues =
     sizeof...(Ts) < 2 ||
@@ -392,7 +385,6 @@ concept AllAreQuakeValues =
      std::is_same_v<
          std::remove_reference_t<std::tuple_element<0, std::tuple<Ts...>>>,
          QuakeValue>);
-#endif
 
 template <typename... Args>
 class kernel_builder : public details::kernel_builder_base {
@@ -845,14 +837,8 @@ public:
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
   /// arguments.
-#if CUDAQ_USE_STD20
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-#else
-  template <typename OtherKernelBuilder, typename... QuakeValues,
-            typename = std::enable_if_t<std::conjunction_v<std::is_same<
-                std::remove_reference_t<QuakeValues>, cudaq::QuakeValue>...>>>
-#endif
   void call(OtherKernelBuilder &&kernel, QuakeValues &...values) {
     // static_assert(kernel)
     std::vector<QuakeValue> vecValues{values...};
@@ -880,14 +866,8 @@ public:
   }
 
   /// @brief Apply the given kernel controlled on the provided qubit value.
-#if CUDAQ_USE_STD20
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-#else
-  template <typename OtherKernelBuilder, typename... QuakeValues,
-            typename = std::enable_if_t<std::conjunction_v<std::is_same<
-                std::remove_reference_t<QuakeValues>, cudaq::QuakeValue>...>>>
-#endif
   void control(OtherKernelBuilder &kernel, QuakeValue &ctrl,
                QuakeValues &...values) {
     std::vector<QuakeValue> vecValues{values...};
@@ -913,14 +893,8 @@ public:
   }
 
   /// @brief Apply the adjoint of the given kernel.
-#if CUDAQ_USE_STD20
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-#else
-  template <typename OtherKernelBuilder, typename... QuakeValues,
-            typename = std::enable_if_t<std::conjunction_v<std::is_same<
-                std::remove_reference_t<QuakeValues>, cudaq::QuakeValue>...>>>
-#endif
   void adjoint(OtherKernelBuilder &kernel, QuakeValues &...values) {
     std::vector<QuakeValue> vecValues{values...};
     adjoint(kernel, vecValues);
@@ -1023,7 +997,7 @@ inline auto make_kernel() {
 
 /// Factory function for creating a new `kernel_builder` with specified argument
 /// types. This requires programmers specify the concrete argument types of the
-/// kernel being built. The return type is meant to be acquired via C++17
+/// kernel being built. The return type is meant to be acquired via C++20
 /// structured binding with the first element representing the builder, and the
 /// remaining bound variables representing the kernel argument handles.
 template <typename... Args>

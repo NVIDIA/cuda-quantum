@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --memtoreg=quantum=0 --cc-loop-peeling --canonicalize --cc-loop-normalize --cse --cc-loop-unroll | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --cc-loop-peeling --canonicalize --cc-loop-normalize --cse --cc-loop-unroll | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

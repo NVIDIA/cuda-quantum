@@ -10,10 +10,8 @@
 
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qudit.h"
-#if CUDAQ_USE_STD20
 #include <ranges>
 #include <span>
-#endif
 
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -25,11 +23,7 @@
 #endif
 
 namespace cudaq {
-#if CUDAQ_USE_STD20
 inline constexpr auto dyn = std::dynamic_extent;
-#else
-inline constexpr std::size_t dyn = ~0;
-#endif
 
 // The qspan represents a non-owning container of qudits. As such
 // it models both dynamically allocated qudit registers as well as
@@ -41,7 +35,6 @@ public:
   // that this span contains.
   using value_type = qudit<Levels>;
 
-#if CUDAQ_USE_STD20
 private:
   // Reference to the non-owning span of qudits.
   std::span<value_type, N> qudits;
@@ -86,40 +79,6 @@ public:
 
   // Returns the number of contained qudits.
   std::size_t size() const { return qudits.size(); }
-
-#else
-  // C++11 reimplementation of a std::span.
-
-private:
-  value_type *qudits = nullptr;
-  std::size_t qusize = 0;
-
-public:
-  qspan(value_type *otherQudits, std::size_t otherQusize)
-      : qudits(otherQudits), qusize(otherQusize) {}
-  template <typename Iterator>
-  qspan(Iterator &&otherQudits, std::size_t otherQusize)
-      : qudits(&*otherQudits), qusize(otherQusize) {}
-  template <typename R>
-  qspan(R &&other)
-      : qudits(&*other.begin()),
-        qusize(std::distance(other.begin(), other.end())) {}
-  qspan(qspan const &other) : qudits(other.qudits), qusize(other.qusize) {}
-
-  value_type *begin() { return qudits; }
-  value_type *end() { return qudits + qusize; }
-  value_type &operator[](const std::size_t idx) { return qudits[idx]; }
-  qspan<dyn, Levels> front(std::size_t count) { return {qudits, count}; }
-  value_type &front() { return *qudits; }
-  qspan<dyn, Levels> back(std::size_t count) {
-    return {qudits + qusize - count, count};
-  }
-  value_type &back() { return *(qudits + qusize - 1); }
-  qspan<dyn, Levels> slice(std::size_t start, std::size_t count) {
-    return {qudits + start, count};
-  }
-  std::size_t size() const { return qusize; }
-#endif
 };
 } // namespace cudaq
 

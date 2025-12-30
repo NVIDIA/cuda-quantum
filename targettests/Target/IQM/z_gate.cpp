@@ -8,8 +8,7 @@
 
 #include <cudaq.h>
 
-// REQUIRES: c++20
-// RUN: nvq++ %cpp_std --target iqm --emulate %s -o %t
+// RUN: nvq++ --target iqm --emulate %s -o %t
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
 
 // CHECK: { 0:1000 }

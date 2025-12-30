@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 /// FIXME: The following fail with the error QIR verification error - 

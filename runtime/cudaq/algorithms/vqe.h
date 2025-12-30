@@ -257,9 +257,6 @@ optimization_result vqe(QuantumKernel &&kernel, cudaq::gradient &gradient,
   auto requires_grad = optimizer.requiresGradients();
   // If there are additional arguments, we need to clone the gradient and
   // provide it the concrete arguments.
-  // Note: the strange initialization of newGrad is to avoid a C++17 compiler
-  // error that happens because the `swap` is ambiguous between the unique_ptr
-  // and the qubit swap.
   std::unique_ptr<cudaq::gradient> newGrad = [&]() {
     if (requires_grad) {
       auto newGrad_ = gradient.clone();

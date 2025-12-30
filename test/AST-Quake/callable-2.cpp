@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | FileCheck %s
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
+// RUN: cudaq-quake %s | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
 
 #include <cudaq.h>
 

@@ -7,7 +7,7 @@
  ******************************************************************************/
 // clang-format off
 // Use a subset of the nvq++ passes related to kernel execution.
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --kernel-execution=generate-run-stack=1 --indirect-to-direct-calls --inline  --return-to-output-log | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --kernel-execution=generate-run-stack=1 --indirect-to-direct-calls --inline  --return-to-output-log | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

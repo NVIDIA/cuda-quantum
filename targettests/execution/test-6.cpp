@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 /// FIXME: The following fail with the error QIR verification error -
 ///        invalid instruction found:   %1 = alloca i32, align 4 (adaptive profile)

@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && cat %basename_t.ir | FileCheck %s && rm -f %basename_t.ir
 // clang-format on
