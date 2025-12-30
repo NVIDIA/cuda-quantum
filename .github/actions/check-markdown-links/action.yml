@@ -38,7 +38,7 @@ runs:
         fi
 
     - name: Check links in Markdown files
-      uses: tcort/github-action-markdown-link-check@v1
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         use-verbose-mode: "yes"
         config-file: ${{ inputs.config-file }}
