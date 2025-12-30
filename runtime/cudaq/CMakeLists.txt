@@ -81,6 +81,15 @@ else()
   )
 endif()
 
+# On macOS with flat_namespace, the first loaded library's ParseCommandLineOptions
+# is used. Since libcudaq is loaded first, we need to ensure its GlobalParser has
+# LLVM options like -fast-isel registered via force_load of LLVMCodeGen.
+if(APPLE)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE LLVMCodeGen)
+  target_link_options(${LIBRARY_NAME} PRIVATE
+    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
+endif()
+
 add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
 add_subdirectory(platform)

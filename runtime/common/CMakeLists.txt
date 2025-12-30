@@ -149,11 +149,4 @@ target_link_libraries(cudaq-mlir-runtime
     spdlog::spdlog
 )
 
-# On macOS, force-load LLVMCodeGen to ensure static initializers run
-# and register LLVM command-line options (e.g., -fast-isel).
-if(APPLE)
-  target_link_options(cudaq-mlir-runtime PRIVATE
-    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
-endif()
-
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

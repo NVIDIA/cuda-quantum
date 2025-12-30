@@ -133,12 +133,16 @@ public:
           std::make_pair(idx, std::to_string(idx));
 
       auto resultType = cudaq::cc::StdvecType::get(measure.getType(0));
-      if (measure == analysis.lastMeasurement)
+      if (measure == analysis.lastMeasurement) {
         rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
                                                  ValueRange{veq},
                                                  measure.getRegisterNameAttr());
-      else if (measure.use_empty())
+        return success();
+      }
+      if (measure.use_empty()) {
         rewriter.eraseOp(measure);
+        return success();
+      }
     }
 
     return failure();

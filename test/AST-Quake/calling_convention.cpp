@@ -201,17 +201,17 @@ struct G9 {
 };
 
 // clang-format off
-// CHECK-LABEL:  func.func @_ZN2G0clESt4pairIddE(
+// CHECK-LABEL:  func.func @_ZN2G0clE{{(St4pairIddE|NSt3__14pairIddEE)}}(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: f64,
 // CHECK-SAME:     %[[VAL_2:.*]]: f64) -> i16
-// CHECK-LABEL:  func.func @_ZN2G1clESt4pairIffE(
+// CHECK-LABEL:  func.func @_ZN2G1clE{{(St4pairIffE|NSt3__14pairIffEE)}}(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: vector<2xf32>)
 // CHECK-SAME:     -> i16
-// CHECK-LABEL:  func.func @_ZN2G2clESt4pairIllES0_IidE(
+// CHECK-LABEL:  func.func @_ZN2G2clE{{(St4pairIllES0_IidE|NSt3__14pairIllEENS1_IidEE)}}(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_1:.*]]: i64, %[[VAL_2:.*]]: i64, %[[VAL_3:.*]]: i32,
 // CHECK-SAME:     %[[VAL_4:.*]]: f64) -> i24
-// CHECK-LABEL:  func.func @_ZN2G3clESt4pairIdbE(
+// CHECK-LABEL:  func.func @_ZN2G3clE{{(St4pairIdbE|NSt3__14pairIdbEE)}}(
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>, %[[VAL_2:.*]]: f64,
 // CHECK-SAME:     %[[VAL_3:.*]]: i8) -> i32
 // CHECK-LABEL:  func.func @_ZN2G4clE2BB(
@@ -268,16 +268,16 @@ struct V3 {
 // CHECK-LABEL:  func.func @_ZN2V0clEv(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>)
-// CHECK-LABEL:  func.func @_ZN2V1clESt6vectorIdSaIdEE(
+// CHECK-LABEL:  func.func @_ZN2V1clE{{(St6vectorIdSaIdEE|NSt3__16vectorIdNS0_9allocatorIdEEEE)}}(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>>)
-// CHECK-LABEL:  func.func @_ZN2V2clESt6vectorIfSaIfEES0_IsSaIsEE(
+// CHECK-LABEL:  func.func @_ZN2V2clE{{(St6vectorIfSaIfEES0_IsSaIsEE|NSt3__16vectorIfNS0_9allocatorIfEEEENS1_IsNS2_IsEEEE)}}(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i8, i32} [64,4]>>, !cc.ptr<!cc.struct<{i8, i32} [64,4]>>, !cc.ptr<!cc.struct<{i8, i32} [64,4]>>}>> {llvm.sret = !cc.struct<{!cc.ptr<!cc.struct<{i8, i32} [64,4]>>, !cc.ptr<!cc.struct<{i8, i32} [64,4]>>, !cc.ptr<!cc.struct<{i8, i32} [64,4]>>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<f32>, !cc.ptr<f32>, !cc.ptr<f32>}>>,
 // CHECK-SAME:     %[[VAL_3:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i16>, !cc.ptr<i16>, !cc.ptr<i16>}>>)
-// CHECK-LABEL:  func.func @_ZN2V3clESt6vectorIlSaIlEES0_IbSaIbEE(
+// CHECK-LABEL:  func.func @_ZN2V3clE{{(St6vectorIlSaIlEES0_IbSaIbEE|NSt3__16vectorIlNS0_9allocatorIlEEEENS1_IbNS2_IbEEEE)}}(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i64>, !cc.ptr<i64>, !cc.ptr<i64>}>>, %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>)
 // clang-format on
 
@@ -317,13 +317,13 @@ struct B3 {
 };
 
 // clang-format off
-// CHECK-LABEL:  func.func @_ZN2B0clESt5tupleIJdicfsEE(
-// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{i16, f32, i8, i32, f64}>>) {
+// CHECK-LABEL:  func.func @_ZN2B0clE{{(St5tupleIJdicfsEE|NSt3__15tupleIJdicfsEEE)}}(
+// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{{(\{i16, f32, i8, i32, f64\}|\{f64, i32, i8, f32, i16\} \[192,8\])}}>>{{( \{llvm.byval = !cc.struct<\{f64, i32, i8, f32, i16\} \[192,8\]>\})?}}) {
 // CHECK-LABEL:  func.func @_ZN2B1clEv(
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<"BG" {!cc.array<f32 x 4>, !cc.array<i32 x 5>} [288,4]>> {llvm.sret = !cc.struct<"BG" {!cc.array<f32 x 4>, !cc.array<i32 x 5>} [288,4]>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>)
 // CHECK-LABEL:  func.func @_ZN2B2clE2BG(
-// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{f64, f64, i16, f32, i8, i32}>> {llvm.sret = !cc.struct<{f64, f64, i16, f32, i8, i32}>},
+// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{{(\{f64, f64, i16, f32, i8, i32\}|\{i32, i8, f32, i16, f64, f64\} \[256,8\])}}>> {llvm.sret = !cc.struct<{{(\{f64, f64, i16, f32, i8, i32\}|\{i32, i8, f32, i16, f64, f64\} \[256,8\])}}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<"BG" {!cc.array<f32 x 4>, !cc.array<i32 x 5>} [288,4]>> {llvm.byval = !cc.struct<"BG" {!cc.array<f32 x 4>, !cc.array<i32 x 5>} [288,4]>})
 // CHECK-LABEL:  func.func @_ZN2B3clE2BA(
