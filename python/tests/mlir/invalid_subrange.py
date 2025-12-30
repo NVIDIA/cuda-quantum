@@ -46,15 +46,19 @@ def test_banjo():
 # CHECK:             cc.condition %[[VAL_9]](%[[VAL_8]] : i64)
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
-# CHECK:             %[[VAL_11:.*]] = arith.cmpi eq, %[[VAL_10]], %[[VAL_2]] : i64
+# CHECK:             %[[VAL_20:.*]] = cc.alloca i64
+# CHECK:             cc.store %[[VAL_10]], %[[VAL_20]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_21:.*]] = cc.load %[[VAL_20]] : !cc.ptr<i64>
+# CHECK:             %[[VAL_11:.*]] = arith.cmpi eq, %[[VAL_21]], %[[VAL_2]] : i64
 # CHECK:             cc.if(%[[VAL_11]]) {
 # CHECK:               %[[VAL_12:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<4>) -> !quake.ref
 # CHECK:               quake.x {{\[}}%[[VAL_3]]] %[[VAL_12]] : (!quake.ref, !quake.ref) -> ()
 # CHECK:             } else {
-# CHECK:               %[[VAL_13:.*]] = arith.subi %[[VAL_10]], %[[VAL_1]] : i64
+# CHECK:               %[[VAL_22:.*]] = cc.load %[[VAL_20]] : !cc.ptr<i64>
+# CHECK:               %[[VAL_13:.*]] = arith.subi %[[VAL_22]], %[[VAL_1]] : i64
 # CHECK:               %[[VAL_14:.*]] = quake.subveq %[[VAL_4]], 0, %[[VAL_13]] : (!quake.veq<4>, i64) -> !quake.veq<?>
 # CHECK:               %[[VAL_15:.*]] = quake.concat %[[VAL_3]], %[[VAL_14]] : (!quake.ref, !quake.veq<?>) -> !quake.veq<?>
-# CHECK:               %[[VAL_16:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_10]]] : (!quake.veq<4>, i64) -> !quake.ref
+# CHECK:               %[[VAL_16:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_22]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:               quake.x {{\[}}%[[VAL_15]]] %[[VAL_16]] : (!quake.veq<?>, !quake.ref) -> ()
 # CHECK:             }
 # CHECK:             cc.continue %[[VAL_10]] : i64
@@ -62,7 +66,7 @@ def test_banjo():
 # CHECK:           ^bb0(%[[VAL_17:.*]]: i64):
 # CHECK:             %[[VAL_18:.*]] = arith.addi %[[VAL_17]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_18]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }
 

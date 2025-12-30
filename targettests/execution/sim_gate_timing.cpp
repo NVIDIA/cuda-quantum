@@ -6,9 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std --target qpp-cpu --enable-mlir %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
+// RUN: nvq++ --target qpp-cpu --enable-mlir %s -o %t && CUDAQ_TIMING_TAGS=5 %t | FileCheck %s
 // clang-format on
 
 // This test performs per-gate timing measurements. The FileCheck criteria is

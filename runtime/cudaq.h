@@ -140,16 +140,9 @@ std::string get_kernel_template_function_name(const std::string &funcName) {
 
 /// These get_quake overloads can be used for introspection, to look up the
 /// Quake IR for a specific kernel by providing an instance of the kernel, etc.
-#if CUDAQ_USE_STD20
 template <typename MemberArg0, typename... MemberArgs, typename QuantumKernel,
           std::enable_if_t<std::is_class_v<std::remove_cvref_t<QuantumKernel>>,
                            bool> = true>
-#else
-template <typename MemberArg0, typename... MemberArgs, typename QuantumKernel,
-          std::enable_if_t<std::is_class_v<std::remove_cv_t<
-                               std::remove_reference_t<QuantumKernel>>>,
-                           bool> = true>
-#endif
 std::string get_quake(QuantumKernel &&kernel) {
   // See comment below.
   if (__internal__::globalFalse) {
@@ -164,16 +157,9 @@ std::string get_quake(QuantumKernel &&kernel) {
                                       MemberArgs...>());
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel,
           std::enable_if_t<std::is_class_v<std::remove_cvref_t<QuantumKernel>>,
                            bool> = true>
-#else
-template <typename QuantumKernel,
-          std::enable_if_t<std::is_class_v<std::remove_cv_t<
-                               std::remove_reference_t<QuantumKernel>>>,
-                           bool> = true>
-#endif
 std::string get_quake(QuantumKernel &&kernel) {
   if constexpr (hasToQuakeMethod<QuantumKernel>::value) {
     return kernel.to_quake();

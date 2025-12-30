@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --add-dealloc --lower-to-cfg | cudaq-translate --convert-to=qir-base -o - | FileCheck %s
 // clang-format on

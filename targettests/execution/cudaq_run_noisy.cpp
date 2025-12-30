@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target density-matrix-cpu  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %cpp_std --target density-matrix-cpu  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target density-matrix-cpu  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --library-mode --target density-matrix-cpu  %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

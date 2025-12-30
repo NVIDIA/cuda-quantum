@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std -verify -D CUDAQ_REMOTE_SIM=1 %s
+// RUN: cudaq-quake -verify -D CUDAQ_REMOTE_SIM=1 %s
 
 #include <cudaq.h>
 

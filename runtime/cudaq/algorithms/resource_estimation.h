@@ -66,14 +66,8 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
 /// `true` or `false` with 50% probability. To estimate resources for specific
 /// paths based on measurements, supply a choice function to the overloaded
 /// version of this function.
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 Resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
@@ -96,14 +90,8 @@ Resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
 ///               used to determine which path is taken when the kernel has
 ///               branches on mid-circuit measurement results. Invoking the
 ///               kernel from inside this function is forbidden.
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires std::invocable<QuantumKernel &, Args...>
-#else
-template <
-    typename QuantumKernel, typename... Args,
-    typename = std::enable_if_t<std::is_invocable_v<QuantumKernel, Args...>>>
-#endif
 Resources estimate_resources(std::function<bool()> choice,
                              QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();

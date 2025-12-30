@@ -8,15 +8,35 @@
 
 include(HandleLLVMOptions)
 
-add_executable(OptimizerUnitTests HermitianTrait.cpp FactoryMergeModuleTest.cpp)
+add_executable(OptimizerUnitTests
+  HermitianTrait.cpp
+  FactoryMergeModuleTest.cpp
+  DecompositionPatternsTest.cpp
+  DecompositionPatternSelectionTest.cpp
+)
 
 target_link_libraries(OptimizerUnitTests
   PRIVATE
+    MLIRArithDialect
+    MLIRFuncDialect
     MLIRParser
+    MLIRPass
+    MLIRTransforms
     QuakeDialect
+    CCDialect
+    OptTransforms
     gtest_main
     OptimBuilder
 )
+
+target_include_directories(OptimizerUnitTests
+  PRIVATE ${CMAKE_SOURCE_DIR}/runtime
+  PRIVATE ${CMAKE_SOURCE_DIR}/lib/Optimizer/Transforms
+)
+
+# MLIR/LLVM is built without RTTI, so we must disable it here too
+# to avoid linker errors (undefined typeinfo for base classes)
+target_compile_options(OptimizerUnitTests PRIVATE -fno-rtti)
 
 gtest_discover_tests(OptimizerUnitTests)
 

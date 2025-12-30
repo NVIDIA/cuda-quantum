@@ -93,8 +93,15 @@ public:
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
     auto extract = rewriter.create<LLVM::ExtractValueOp>(
         loc, structTy.getBody()[1], operands[0], one);
-    auto tupleVal = rewriter.create<LLVM::BitcastOp>(loc, tuplePtrTy, extract);
-    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleTy, tupleVal);
+    if (resTy.size() == 1 && resTy[0] != tupleTy) {
+      auto tupleVal = rewriter.create<LLVM::BitcastOp>(
+          loc, cudaq::opt::factory::getPointerType(resTy[0]), extract);
+      rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleVal);
+    } else {
+      auto tupleVal =
+          rewriter.create<LLVM::BitcastOp>(loc, tuplePtrTy, extract);
+      rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleTy, tupleVal);
+    }
     return success();
   }
 };
@@ -524,8 +531,8 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto inputTy = sizeOfOp.getInputType();
     auto resultTy = sizeOfOp.getType();
-    if (quake::isQuakeType(inputTy) || cudaq::cc::isDynamicType(inputTy)) {
-      // Types that cannot be reified produce the poison op.
+    if (quake::isQuakeType(inputTy) ||
+        cudaq::cc::isDynamicallySizedType(inputTy)) {
       rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(sizeOfOp, resultTy);
       return success();
     }

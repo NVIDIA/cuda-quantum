@@ -51,8 +51,6 @@ ConcreteQubitOp(h) ConcreteQubitOp(x) ConcreteQubitOp(y) ConcreteQubitOp(z)
 inline QuditInfo qubitToQuditInfo(qubit &q) { return {q.n_levels(), q.id()}; }
 inline bool qubitIsNegative(qubit &q) { return q.is_negative(); }
 
-#if CUDAQ_USE_STD20
-
 /// C++20 variant using templates.
 
 /// This function will apply the specified `QuantumOp`. It will check the
@@ -164,178 +162,6 @@ void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
     }                                                                          \
   }
 
-#else // not C++20
-
-/// C++17 variant does NOT use templates. The user must instead use the 'c'
-/// prefix form: `cx`, `cy`, `cz`, etc.
-
-template <typename QuantumOp, typename... QubitArgs>
-void oneQubitApply(QubitArgs &...args) {
-  // Get the name of this operation
-  auto gateName = QuantumOp::name();
-  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
-                "Cannot operate on a qudit with Levels != 2");
-
-  // Map the qubits to their unique ids and pack them into a std::array
-  std::vector<QuditInfo> quditInfos{qubitToQuditInfo(args)...};
-
-  // If there are more than one qubits, then we just want to apply the gate to
-  // all qubits provided
-  for (auto &qubit : quditInfos)
-    getExecutionManager()->apply(gateName, {}, {}, {qubit});
-}
-
-template <typename QuantumOp, typename... QubitArgs>
-void oneQubitWithControlsApply(QubitArgs &...args) {
-  // Get the name of this operation
-  auto gateName = QuantumOp::name();
-  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
-                "Cannot operate on a qudit with Levels != 2");
-
-  // Get the number of input qubits
-  constexpr std::size_t nArgs = sizeof...(QubitArgs);
-
-  // Map the qubits to their unique ids and pack them.
-  std::vector<QuditInfo> quditInfos{qubitToQuditInfo(args)...};
-  std::vector<bool> qubitIsNegated{qubitIsNegative(args)...};
-
-  // If we are here, then `mod` must be control or adjoint. Extract the controls
-  // and the target
-  std::vector<QuditInfo> controls(quditInfos.begin(),
-                                  quditInfos.begin() + nArgs - 1);
-
-  // If we have controls, check if any of them are negative controls, and if so
-  // apply an x.
-  if (!controls.empty())
-    for (std::size_t i = 0; i < controls.size(); i++)
-      if (qubitIsNegated[i])
-        getExecutionManager()->apply("x", {}, {}, {controls[i]});
-
-  // Apply the gate
-  getExecutionManager()->apply(gateName, {}, controls, {quditInfos.back()},
-                               /*adjoint=*/false);
-
-  // If we did apply any X ops for a negative control, we need to reverse it.
-  if (!controls.empty())
-    for (std::size_t i = 0; i < controls.size(); i++)
-      if (qubitIsNegated[i]) {
-        getExecutionManager()->apply("x", {}, {}, {controls[i]});
-        // fold expression which will reverse the negation
-        (
-            [&] {
-              if (args.is_negative())
-                args.negate();
-            }(),
-            ...);
-      }
-}
-
-template <typename QuantumOp, typename... QubitArgs>
-void oneQubitWithAdjointControlsApply(QubitArgs &...args) {
-  // Get the name of this operation
-  auto gateName = QuantumOp::name();
-  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
-                "Cannot operate on a qudit with Levels != 2");
-
-  // Get the number of input qubits
-  constexpr std::size_t nArgs = sizeof...(QubitArgs);
-
-  // Map the qubits to their unique ids and pack them.
-  std::vector<QuditInfo> quditInfos{qubitToQuditInfo(args)...};
-  std::vector<bool> qubitIsNegated{qubitIsNegative(args)...};
-
-  // If we are here, then `mod` must be control or adjoint. Extract the controls
-  // and the target
-  std::vector<QuditInfo> controls(quditInfos.begin(),
-                                  quditInfos.begin() + nArgs - 1);
-
-  // If we have controls, check if any of them are negative controls, and if so
-  // apply an x.
-  if (!controls.empty())
-    for (std::size_t i = 0; i < controls.size(); i++)
-      if (qubitIsNegated[i])
-        getExecutionManager()->apply("x", {}, {}, {controls[i]});
-
-  // Apply the gate
-  getExecutionManager()->apply(gateName, {}, controls, {quditInfos.back()},
-                               /*adjoint=*/true);
-
-  // If we did apply any X ops for a negative control, we need to reverse it.
-  if (!controls.empty())
-    for (std::size_t i = 0; i < controls.size(); i++)
-      if (qubitIsNegated[i]) {
-        getExecutionManager()->apply("x", {}, {}, {controls[i]});
-        // fold expression which will reverse the negation
-        (
-            [&] {
-              if (args.is_negative())
-                args.negate();
-            }(),
-            ...);
-      }
-}
-
-template <typename QuantumOp, typename QubitRange>
-void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
-  // Get the name of the operation
-  auto gateName = QuantumOp::name();
-
-  // Map the input control register to a vector of QuditInfo
-  std::vector<QuditInfo> controls;
-  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
-                 [](auto &q) { return cudaq::qubitToQuditInfo(q); });
-
-  // Apply the gate
-  getExecutionManager()->apply(gateName, {}, controls,
-                               {cudaq::qubitToQuditInfo(target)});
-}
-
-#define CUDAQ_QIS_ONE_TARGET_QUBIT_(NAME)                                      \
-  namespace types {                                                            \
-  struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
-  };                                                                           \
-  }                                                                            \
-  template <typename... QubitArgs>                                             \
-  void NAME(QubitArgs &...args) {                                              \
-    oneQubitApply<qubit_op::NAME##Op>(args...);                                \
-  }                                                                            \
-  void c##NAME(qubit &ctrl, qubit &target) {                                   \
-    oneQubitWithControlsApply<qubit_op::NAME##Op>(ctrl, target);               \
-  }                                                                            \
-  template <typename QubitRange,                                               \
-            typename = std::enable_if_t<!std::is_same_v<                       \
-                std::remove_reference_t<std::remove_cv_t<QubitRange>>,         \
-                cudaq::qubit>>>                                                \
-  void NAME(QubitRange &qr) {                                                  \
-    for (auto &q : qr) {                                                       \
-      NAME(q);                                                                 \
-    }                                                                          \
-  }                                                                            \
-  template <typename QubitRange,                                               \
-            typename = std::enable_if_t<!std::is_same_v<                       \
-                std::remove_reference_t<std::remove_cv_t<QubitRange>>,         \
-                cudaq::qubit>>>                                                \
-  void NAME(QubitRange &&qr) {                                                 \
-    for (auto &q : qr) {                                                       \
-      NAME(q);                                                                 \
-    }                                                                          \
-  }
-
-inline void ccx(qubit &q, qubit &r, qubit &s) {
-  oneQubitWithControlsApply<qubit_op::xOp>(q, r, s);
-}
-inline void sdg(qubit &q) {
-  // Note: no controls are present.
-  oneQubitWithAdjointControlsApply<qubit_op::sOp>(q);
-}
-inline void tdg(qubit &q) {
-  // Note: no controls are present.
-  oneQubitWithAdjointControlsApply<qubit_op::tOp>(q);
-}
-
-#endif // not C++20
-
 // Instantiate the above 3 functions for the default logical gate set
 CUDAQ_QIS_ONE_TARGET_QUBIT_(h)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(x)
@@ -343,8 +169,6 @@ CUDAQ_QIS_ONE_TARGET_QUBIT_(y)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(z)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(t)
 CUDAQ_QIS_ONE_TARGET_QUBIT_(s)
-
-#if CUDAQ_USE_STD20
 
 template <typename QuantumOp, typename mod = base, typename ScalarAngle,
           typename... QubitArgs>
@@ -357,12 +181,13 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   // Map the qubits to their unique ids and pack them into a std::array
   constexpr std::size_t nArgs = sizeof...(QubitArgs);
   std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
+  std::vector<double> parameters{static_cast<double>(angle)};
 
   // If there are more than one qubits and mod == base, then
   // we just want to apply the same gate to all qubits provided
   if constexpr (nArgs > 1 && std::is_same_v<mod, base>) {
     for (auto &targetId : targets)
-      getExecutionManager()->apply(gateName, {angle}, {}, {targetId});
+      getExecutionManager()->apply(gateName, parameters, {}, {targetId});
 
     // Nothing left to do, return
     return;
@@ -373,7 +198,7 @@ void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
   std::vector<QuditInfo> controls(targets.begin(), targets.begin() + nArgs - 1);
 
   // Apply the gate
-  getExecutionManager()->apply(gateName, {angle}, controls, {targets.back()},
+  getExecutionManager()->apply(gateName, parameters, controls, {targets.back()},
                                std::is_same_v<mod, adj>);
 }
 
@@ -412,81 +237,6 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
         angle, ctrls, target);                                                 \
   }
 
-#else // not C++20
-
-template <typename QuantumOp, typename ScalarAngle, typename... QubitArgs>
-void oneQubitSingleParameterApply(ScalarAngle angle, QubitArgs &...args) {
-  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
-                "Cannot operate on a qudit with Levels != 2");
-  // Get the name of the operation
-  auto gateName = QuantumOp::name();
-
-  // Map the qubits to their unique ids and pack them into a std::array
-  std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
-
-  // We just want to apply the same gate to all qubits provided
-  for (auto &targetId : targets)
-    getExecutionManager()->apply(gateName, std::vector<double>{angle}, {},
-                                 {targetId});
-}
-
-template <typename QuantumOp, typename ScalarAngle, typename... QubitArgs>
-void oneQubitWithControlsSingleParameterApply(ScalarAngle angle,
-                                              QubitArgs &...args) {
-  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
-                "Cannot operate on a qudit with Levels != 2");
-  // Get the name of the operation
-  auto gateName = QuantumOp::name();
-
-  // Map the qubits to their unique ids and pack them into a std::array
-  constexpr std::size_t nArgs = sizeof...(QubitArgs);
-  std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
-
-  // Extract the controls and the target
-  std::vector<QuditInfo> controls(targets.begin(), targets.begin() + nArgs - 1);
-
-  // Apply the gate
-  getExecutionManager()->apply(gateName, {angle}, controls, {targets.back()},
-                               /*adjoint=*/false);
-}
-
-template <
-    typename QuantumOp, typename ScalarAngle, typename QubitRange,
-    typename = std::enable_if_t<!std::is_same_v<
-        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
-void oneQubitSingleParameterControlledRange(ScalarAngle angle,
-                                            QubitRange &ctrls, qubit &target) {
-  // Get the name of the operation
-  auto gateName = QuantumOp::name();
-
-  // Map the input control register to a vector of QuditInfo
-  std::vector<QuditInfo> controls;
-  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
-                 [](const auto &q) { return qubitToQuditInfo(q); });
-
-  // Apply the gate
-  getExecutionManager()->apply(gateName, {angle}, controls,
-                               {qubitToQuditInfo(target)});
-}
-
-#define CUDAQ_QIS_PARAM_ONE_TARGET_(NAME)                                      \
-  namespace types {                                                            \
-  struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
-  };                                                                           \
-  }                                                                            \
-  template <typename ScalarAngle, typename... QubitArgs>                       \
-  void NAME(ScalarAngle angle, QubitArgs &...args) {                           \
-    oneQubitSingleParameterApply<qubit_op::NAME##Op>(angle, args...);          \
-  }                                                                            \
-  template <typename ScalarAngle>                                              \
-  void c##NAME(ScalarAngle angle, qubit &ctrl, qubit &target) {                \
-    oneQubitWithControlsSingleParameterApply<qubit_op::NAME##Op>(angle, ctrl,  \
-                                                                 target);      \
-  }
-
-#endif // not C++20
-
 // FIXME add One Qubit Single Parameter Broadcast over register with an angle
 // for each
 
@@ -501,7 +251,6 @@ struct u3 {
 };
 } // namespace types
 
-#if CUDAQ_USE_STD20
 template <typename mod = base, typename ScalarAngle, typename... QubitArgs>
 void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
         QubitArgs &...args) {
@@ -545,37 +294,6 @@ void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
                                {qubitToQuditInfo(target)});
 }
 
-#else // not C++20
-
-template <typename ScalarAngle, typename... QubitArgs>
-void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
-        QubitArgs &...args) {
-  static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
-                "Cannot operate on a qudit with Levels != 2");
-  std::vector<ScalarAngle> parameters{theta, phi, lambda};
-
-  // Map the qubits to their unique ids and pack them into a std::array
-  constexpr std::size_t nArgs = sizeof...(QubitArgs);
-  std::vector<QuditInfo> targets{qubitToQuditInfo(args)...};
-
-  // Extract the controls and the target
-  std::vector<QuditInfo> controls(targets.begin(), targets.begin() + nArgs - 1);
-
-  // Apply the gate
-  getExecutionManager()->apply("u3", parameters, controls, {targets.back()});
-}
-
-template <typename ScalarAngle>
-void cu3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda, qubit &ctrl,
-         qubit &target) {
-  std::vector<ScalarAngle> parameters{theta, phi, lambda};
-  std::vector<QuditInfo> controls{qubitToQuditInfo(ctrl)};
-  std::vector<QuditInfo> targets{qubitToQuditInfo(target)};
-  getExecutionManager()->apply("u3", parameters, controls, targets);
-}
-
-#endif // not C++20
-
 // Define the swap gate instruction and control versions of it
 namespace types {
 struct swap {
@@ -583,7 +301,6 @@ struct swap {
 };
 } // namespace types
 
-#if CUDAQ_USE_STD20
 template <typename mod = base, typename... QubitArgs>
 void swap(QubitArgs &...args) {
   static_assert(std::conjunction<std::is_same<qubit, QubitArgs>...>::value,
@@ -615,39 +332,6 @@ void swap(QuantumRegister &ctrls, qubit &src, qubit &target) {
       "swap", {}, controls, {qubitToQuditInfo(src), qubitToQuditInfo(target)});
 }
 
-#else // not C++20
-
-template <typename Qubit>
-void swap(Qubit &src, Qubit &target) {
-  static_assert(std::is_same<qubit, Qubit>::value,
-                "Cannot operate on a qudit with Levels != 2");
-  std::vector<QuditInfo> qubitIds{qubitToQuditInfo(src),
-                                  qubitToQuditInfo(target)};
-  getExecutionManager()->apply("swap", {}, {}, qubitIds);
-}
-
-void cswap(qubit &ctrl, qubit &src, qubit &target) {
-  std::vector<QuditInfo> controls{qubitToQuditInfo(ctrl)};
-  std::vector<QuditInfo> targets{qubitToQuditInfo(src),
-                                 qubitToQuditInfo(target)};
-  getExecutionManager()->apply("swap", {}, controls, targets);
-}
-
-template <typename QuantumRegister,
-          typename = std::enable_if_t<!std::is_same_v<
-              std::remove_reference_t<std::remove_cv_t<QuantumRegister>>,
-              cudaq::qubit>>>
-void swap(QuantumRegister &ctrls, qubit &src, qubit &target) {
-  std::vector<QuditInfo> controls;
-  std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(controls),
-                 [](const auto &q) { return qubitToQuditInfo(q); });
-  getExecutionManager()->apply(
-      "swap", {}, controls, {qubitToQuditInfo(src), qubitToQuditInfo(target)});
-}
-
-#endif // not C++20
-
-#if CUDAQ_USE_STD20
 // Define common 2 qubit operations.
 inline void cnot(qubit &q, qubit &r) { x<cudaq::ctrl>(q, r); }
 inline void cx(qubit &q, qubit &r) { x<cudaq::ctrl>(q, r); }
@@ -679,19 +363,11 @@ void cr1(T angle, qubit &q, qubit &r) {
 // Define common single qubit adjoint operations.
 inline void sdg(qubit &q) { s<cudaq::adj>(q); }
 inline void tdg(qubit &q) { t<cudaq::adj>(q); }
-#endif
 
 /// @brief Apply a general Pauli rotation, takes a qubit register and the size
 /// must be equal to the Pauli word length.
-#if CUDAQ_USE_STD20
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
-#else
-template <
-    typename QubitRange,
-    typename = std::enable_if_t<!std::is_same_v<
-        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
-#endif
 void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
   std::vector<QuditInfo> quditInfos;
   std::transform(qubits.begin(), qubits.end(), std::back_inserter(quditInfos),
@@ -703,15 +379,8 @@ void exp_pauli(double theta, QubitRange &&qubits, const char *pauliWord) {
 
 /// @brief Apply a general Pauli rotation, takes a qubit register and the size
 /// must be equal to the Pauli word length.
-#if CUDAQ_USE_STD20
 template <typename QubitRange>
   requires(std::ranges::range<QubitRange>)
-#else
-template <
-    typename QubitRange,
-    typename = std::enable_if_t<!std::is_same_v<
-        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
-#endif
 void exp_pauli(double theta, QubitRange &&qubits,
                const cudaq::pauli_word &pauliWord) {
   exp_pauli(theta, qubits, pauliWord.str().c_str());
@@ -734,16 +403,8 @@ void exp_pauli(double theta, const char *pauliWord, QubitArgs &...qubits) {
 
 /// @brief Apply a general Pauli rotation with control qubits and a variadic set
 /// of qubits. The number of qubits must be equal to the Pauli word length.
-#if CUDAQ_USE_STD20
 template <typename QuantumRegister, typename... QubitArgs>
   requires(std::ranges::range<QuantumRegister>)
-#else
-template <typename QuantumRegister, typename... QubitArgs,
-          typename = std::enable_if_t<
-              std::is_same_v<std::remove_reference_t<std::remove_cv_t<
-                                 decltype(*QuantumRegister().begin())>>,
-                             qubit>>>
-#endif
 void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                QubitArgs &...qubits) {
   std::vector<QuditInfo> controls;
@@ -782,15 +443,8 @@ inline void reset(qubit &q) {
 }
 
 // Measure all qubits in the range, return vector of 0,1
-#if CUDAQ_USE_STD20
 template <typename QubitRange>
   requires std::ranges::range<QubitRange>
-#else
-template <
-    typename QubitRange,
-    typename = std::enable_if_t<!std::is_same_v<
-        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
-#endif
 std::vector<measure_result> mz(QubitRange &q) {
   std::vector<measure_result> b;
   for (auto &qq : q) {
@@ -811,15 +465,8 @@ std::vector<measure_result> mz(const qview<Levels> &q) {
 template <typename... Qs>
 std::vector<measure_result> mz(qubit &q, Qs &&...qs);
 
-#if CUDAQ_USE_STD20
 template <typename QubitRange, typename... Qs>
   requires(std::ranges::range<QubitRange>)
-#else
-template <
-    typename QubitRange, typename... Qs,
-    typename = std::enable_if_t<!std::is_same_v<
-        std::remove_reference_t<std::remove_cv_t<QubitRange>>, cudaq::qubit>>>
-#endif
 std::vector<measure_result> mz(QubitRange &qr, Qs &&...qs) {
   std::vector<measure_result> result = mz(qr);
   auto rest = mz(std::forward<Qs>(qs)...);
@@ -877,7 +524,6 @@ inline std::int64_t to_integer(const std::string &arg) {
   return std::stoull(bitString, nullptr, 2);
 }
 
-#if CUDAQ_USE_STD20
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
 // `Args`, and returns `void`.
 template <typename Kernel, typename... Args>
@@ -893,17 +539,10 @@ concept takes_qubit = signature<T, void(qubit &)>;
 
 template <typename T>
 concept takes_qvector = signature<T, void(qvector<> &)>;
-#endif
 
 // Control the given cudaq kernel on the given control qubit
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires isCallableVoidKernel<QuantumKernel, Args...>
-#else
-template <typename QuantumKernel, typename... Args,
-          typename = std::enable_if_t<
-              std::is_invocable_r_v<void, QuantumKernel, Args...>>>
-#endif
 void control(QuantumKernel &&kernel, qubit &control, Args &&...args) {
   std::vector<std::size_t> ctrls{control.id()};
   getExecutionManager()->startCtrlRegion(ctrls);
@@ -912,18 +551,9 @@ void control(QuantumKernel &&kernel, qubit &control, Args &&...args) {
 }
 
 // Control the given cudaq kernel on the given register of control qubits
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename QuantumRegister, typename... Args>
   requires std::ranges::range<QuantumRegister> &&
            isCallableVoidKernel<QuantumKernel, Args...>
-#else
-template <typename QuantumKernel, typename QuantumRegister, typename... Args,
-          typename = std::enable_if_t<
-              !std::is_same_v<
-                  std::remove_reference_t<std::remove_cv_t<QuantumRegister>>,
-                  cudaq::qubit> &&
-              std::is_invocable_r_v<void, QuantumKernel, Args...>>>
-#endif
 void control(QuantumKernel &&kernel, QuantumRegister &&ctrl_qubits,
              Args &&...args) {
   std::vector<std::size_t> ctrls;
@@ -937,14 +567,8 @@ void control(QuantumKernel &&kernel, QuantumRegister &&ctrl_qubits,
 
 // Control the given cudaq kernel on the given list of references to control
 // qubits.
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires isCallableVoidKernel<QuantumKernel, Args...>
-#else
-template <typename QuantumKernel, typename... Args,
-          typename = std::enable_if_t<
-              std::is_invocable_r_v<void, QuantumKernel, Args...>>>
-#endif
 void control(QuantumKernel &&kernel,
              std::vector<std::reference_wrapper<qubit>> &&ctrl_qubits,
              Args &&...args) {
@@ -958,14 +582,8 @@ void control(QuantumKernel &&kernel,
 }
 
 // Apply the adjoint of the given cudaq kernel
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel, typename... Args>
   requires isCallableVoidKernel<QuantumKernel, Args...>
-#else
-template <typename QuantumKernel, typename... Args,
-          typename = std::enable_if_t<
-              std::is_invocable_r_v<void, QuantumKernel, Args...>>>
-#endif
 void adjoint(QuantumKernel &&kernel, Args &&...args) {
   // static_assert(true, "adj not implemented yet.");
   getExecutionManager()->startAdjointRegion();
@@ -976,16 +594,9 @@ void adjoint(QuantumKernel &&kernel, Args &&...args) {
 /// Instantiate this type to affect C A C^dag, where the user
 /// provides cudaq Kernels C and A (compute, action).
 // struct compute_action {
-#if CUDAQ_USE_STD20
 template <typename ComputeFunction, typename ActionFunction>
   requires isCallableVoidKernel<ComputeFunction> &&
            isCallableVoidKernel<ActionFunction>
-#else
-template <
-    typename ComputeFunction, typename ActionFunction,
-    typename = std::enable_if_t<std::is_invocable_r_v<void, ComputeFunction> &&
-                                std::is_invocable_r_v<void, ActionFunction>>>
-#endif
 void compute_action(ComputeFunction &&c, ActionFunction &&a) {
   c();
   a();
@@ -995,16 +606,9 @@ void compute_action(ComputeFunction &&c, ActionFunction &&a) {
 /// Instantiate this type to affect C^dag A C, where the user
 /// provides cudaq Kernels C and A (compute, action).
 // struct compute_dag_action {
-#if CUDAQ_USE_STD20
 template <typename ComputeFunction, typename ActionFunction>
   requires isCallableVoidKernel<ComputeFunction> &&
            isCallableVoidKernel<ActionFunction>
-#else
-template <
-    typename ComputeFunction, typename ActionFunction,
-    typename = std::enable_if_t<std::is_invocable_r_v<void, ComputeFunction> &&
-                                std::is_invocable_r_v<void, ActionFunction>>>
-#endif
 void compute_dag_action(ComputeFunction &&c, ActionFunction &&a) {
   adjoint(c);
   a();
@@ -1013,12 +617,8 @@ void compute_dag_action(ComputeFunction &&c, ActionFunction &&a) {
 
 /// Helper function to extract a slice of a `std::vector<T>` to be used within
 /// CUDA-Q kernels.
-#if CUDAQ_USE_STD20
 template <typename T>
   requires(std::is_arithmetic_v<T>)
-#else
-template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
-#endif
 std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
                             std::size_t count) {
   std::vector<double> ret(original.begin() + start,
@@ -1028,21 +628,10 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 
 } // namespace cudaq
 
-/// For C++17 we can't adhere to the language specification for
-/// the operation modifier type. For this case, we drop the modifier
-/// template parameter and users have access to a `cNAME` operation for
-/// single controlled operations.
-#ifdef CUDAQ_USE_STD20
 #define CUDAQ_MOD_TEMPLATE template <typename mod = base, typename... Args>
-#else
-#define CUDAQ_MOD_TEMPLATE template <typename... Args>
-#endif
 
 namespace cudaq::details {
 
-// --------------------------
-// Useful C++17 compliant concept checks (note we re-implement
-// std::remove_cvref since its a C++20 thing)
 template <typename T>
 using remove_cvref = std::remove_cv_t<std::remove_reference_t<T>>;
 
@@ -1287,34 +876,15 @@ template <typename... Args>
 constexpr bool any_float = std::disjunction_v<
     std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
-#if CUDAQ_USE_STD20
 #ifdef CUDAQ_REMOTE_SIM
 #define TARGET_OK_FOR_APPLY_NOISE false
 #else
 #define TARGET_OK_FOR_APPLY_NOISE true
 #endif
-#else
-#ifdef CUDAQ_REMOTE_SIM
-#define TARGET_OK_FOR_APPLY_NOISE                                              \
-  typename = std::enable_if_t<std::is_same_v<T, int>>
-#else
-#define TARGET_OK_FOR_APPLY_NOISE                                              \
-  typename = std::enable_if_t<std::is_same_v<T, T>>
-#endif
-#endif
 
-#if CUDAQ_USE_STD20
 template <typename T, typename... Q>
   requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&
            TARGET_OK_FOR_APPLY_NOISE)
-#else
-template <typename T, typename... Q, TARGET_OK_FOR_APPLY_NOISE,
-          typename = std::enable_if_t<
-              std::is_base_of_v<cudaq::kraus_channel, T> &&
-              std::is_convertible_v<const volatile T *,
-                                    const volatile cudaq::kraus_channel *> &&
-              !any_float<Q...>>>
-#endif
 void apply_noise(const std::vector<double> &params, Q &&...args) {
   auto &platform = get_platform();
   const auto *noiseModel = platform.get_noise();
@@ -1348,9 +918,7 @@ class kraus_channel;
 
 template <unsigned len, typename A, typename... As>
 constexpr unsigned count_leading_floats() {
-  // Note: don't use remove_cvref to keep this C++17 clean.
-  if constexpr (std::is_floating_point_v<
-                    std::remove_cv_t<std::remove_reference_t<A>>>) {
+  if constexpr (std::is_floating_point_v<std::remove_cvref_t<A>>) {
     return count_leading_floats<len + 1, As...>();
   } else {
     return len;
@@ -1365,18 +933,9 @@ template <typename... Args>
 constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
     std::vector<double>, std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
-#if CUDAQ_USE_STD20
 template <typename T, typename... Args>
   requires(std::derived_from<T, cudaq::kraus_channel> &&
            !any_vector_of_float<Args...> && TARGET_OK_FOR_APPLY_NOISE)
-#else
-template <typename T, typename... Args, TARGET_OK_FOR_APPLY_NOISE,
-          typename = std::enable_if_t<
-              std::is_base_of_v<cudaq::kraus_channel, T> &&
-              std::is_convertible_v<const volatile T *,
-                                    const volatile cudaq::kraus_channel *> &&
-              !any_vector_of_float<Args...>>>
-#endif
 void apply_noise(Args &&...args) {
   constexpr auto ctor_arity = count_leading_floats<0, Args...>();
   constexpr auto qubit_arity = sizeof...(args) - ctor_arity;

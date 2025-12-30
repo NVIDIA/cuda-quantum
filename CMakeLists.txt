@@ -70,7 +70,7 @@ endif()
 # Project globals
 # ==============================================================================
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED on)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 # Set warnings as errors by default. 
@@ -550,11 +550,11 @@ if(CMAKE_CUDA_COMPILER)
     endif()
   endif()
   CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options -fPIC")
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++20 ${CUDA_gencode_flags} --compiler-options -fPIC")
 
   enable_language(CUDA)
   set(CUDA_FOUND TRUE)
-  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_STANDARD 20)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
   message(STATUS "Cuda language found.")
 endif()
