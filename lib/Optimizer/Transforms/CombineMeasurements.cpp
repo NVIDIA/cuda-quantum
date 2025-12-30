@@ -140,7 +140,6 @@ public:
         return success();
       }
       if (measure.use_empty()) {
-        // Erasing an unused intermediate measurement is a valid rewrite action.
         rewriter.eraseOp(measure);
         return success();
       }
