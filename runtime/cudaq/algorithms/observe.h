@@ -93,8 +93,13 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
   ctx->asyncExec = futureResult != nullptr;
 
   platform.set_exec_ctx(ctx.get());
-
-  k();
+  try {
+    k();
+  } catch (...) {
+    platform.reset_exec_ctx();
+    throw;
+  }
+  platform.reset_exec_ctx();
 
   // If this is an asynchronous execution, we need
   // to store the `cudaq::details::future`
@@ -102,8 +107,6 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
     *futureResult = ctx->futureResult;
     return std::nullopt;
   }
-
-  platform.reset_exec_ctx();
 
   // Extract the results
   sample_result data;
