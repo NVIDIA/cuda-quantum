@@ -494,6 +494,9 @@ public:
         return qubits.empty();
       return true;
     }();
+    if (!sampleSim)
+      throw std::runtime_error("Stim simulator state is not initialized. "
+                               "Cannot sample from uninitialized state.");
     assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);

@@ -233,7 +233,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           platform.set_exec_ctx(ctx.get());
@@ -298,11 +298,10 @@ run_async(std::size_t qpu_id, std::size_t shots,
           p.set_value({});
           return;
         }
-        assert(platform.get_current_qpu() == qpu_id);
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
         std::vector<ResultTy> res;
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {

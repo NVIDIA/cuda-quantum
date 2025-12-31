@@ -11,6 +11,11 @@
 #include "common/RemoteKernelExecutor.h"
 #include "llvm/Support/CommandLine.h"
 
+#ifdef __linux__
+#include <signal.h>
+#include <sys/prctl.h>
+#endif
+
 // Declare CUDA-Q MPI API that we need since we cannot compile with cudaq.h
 // without RTTI (needed to link this tool against LLVMSupport).
 namespace cudaq {
@@ -43,6 +48,13 @@ static llvm::cl::opt<bool> printCudaProperties(
     llvm::cl::init(false));
 
 int main(int argc, char **argv) {
+#ifdef __linux__
+  // Request termination signal when parent process dies.
+  // This ensures cleanup when auto-launched by remote-mqpu tests,
+  // even if the parent is killed by SIGKILL (e.g., llvm-lit timeout).
+  prctl(PR_SET_PDEATHSIG, SIGTERM);
+#endif
+
   // The "fast" instruction selection compilation algorithm is actually very
   // slow for large quantum circuits. Disable that here. Revisit this
   // decision by testing large UCCSD circuits if jitCodeGenOptLevel is changed
