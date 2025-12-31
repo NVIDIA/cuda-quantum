@@ -21,8 +21,8 @@ namespace cudaq {
 /// to handle interactions with the Qibo server for submitting and
 /// retrieving quantum computation jobs.
 class QiboServerHelper : public ServerHelper {
-  static constexpr const char *DEFAULT_URL = "https://api.provider-name.com";
-  static constexpr const char *DEFAULT_VERSION = "v1.0";
+  static constexpr const char *DEFAULT_URL = "https://cloud.qibo.science";
+  static constexpr const char *DEFAULT_VERSION = "0.2.1";
 
 public:
   const std::string name() const override { return "qibo"; }
@@ -34,7 +34,8 @@ public:
 
     // Add authentication headers if needed
     if (backendConfig.count("api_key"))
-      headers["Authorization"] = "Bearer " + backendConfig["api_key"];
+      headers["x-api-token"] = backendConfig["api_key"];
+    headers["x-qibo-client-version"] = backendConfig["version"];
 
     return headers;
   }
@@ -48,6 +49,8 @@ public:
       backendConfig["url"] = DEFAULT_URL;
     if (!backendConfig.count("version"))
       backendConfig["version"] = DEFAULT_VERSION;
+    if (!backendConfig.count("verbatim"))
+      backendConfig["verbatim"] = "false";
 
     // Set shots if provided
     if (config.find("shots") != config.end())
@@ -57,11 +60,24 @@ public:
   /// @brief Example implementation of simple job creation.
   ServerJobPayload createJob(std::vector<KernelExecution> &circuitCodes) override {
     ServerMessage job;
-    job["content"] = circuitCodes[0].code;
-    job["shots"] = shots;
+    std::string lowercaseArgument = [](std::string value) {
+      std::transform(
+        value.begin(), value.end(), value.begin(), [](unsigned char c){return std::tolower(c);}
+      );
+      return value;
+    };
+    bool booleanArgument = [](const std::string& string_argument) {
+      return lowercaseArgument(string_argument) == "true";  // we should handle wrong string-boolean values
+    };
+
+    job["circuit"] = circuitCodes[0].code;
+    job["nshots"] = shots;
+    job["device"] = backendConfig["device"];
+    job["project"] = backendConfig["project"];
+    job["verbatim"] = booleanArgument(backendConfig["verbatim"]);
 
     RestHeaders headers = getHeaders();
-    std::string path = "/jobs";
+    std::string path = "/api/jobs";
 
     return std::make_tuple(backendConfig["url"] + path, headers,
                           std::vector<ServerMessage>{job});
@@ -69,10 +85,10 @@ public:
 
   /// @brief Example implementation of job ID tracking.
   std::string extractJobId(ServerMessage &postResponse) override {
-    if (!postResponse.contains("id"))
+    if (!postResponse.contains("pid"))
       return "";
 
-    return postResponse.at("id");
+    return postResponse.at("pid");
   }
 
   /// @brief Example implementation of job ID tracking.
@@ -82,7 +98,7 @@ public:
 
   /// @brief Example implementation of job ID tracking.
   std::string constructGetJobPath(std::string &jobId) override {
-    return backendConfig["url"] + "/jobs/" + jobId;
+    return backendConfig["url"] + "/api/jobs/" + jobId;
   }
 
   /// @brief Example implementation of job status checking.
@@ -91,7 +107,7 @@ public:
       return false;
 
     std::string status = getJobResponse["status"];
-    return status == "COMPLETED" || status == "FAILED";
+    return status == "success" || status == "error";
   }
 
   /// @brief Example implementation of result processing.
@@ -104,7 +120,7 @@ public:
     CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
 
     // Extract measurement results from the response
-    auto samplesJson = getJobResponse["results"]["counts"];
+    auto samplesJson = getJobResponse["frequencies"];
     cudaq::CountsDictionary counts;
 
     for (auto &item : samplesJson.items()) {

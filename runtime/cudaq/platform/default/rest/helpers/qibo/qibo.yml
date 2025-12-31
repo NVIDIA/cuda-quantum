@@ -38,3 +38,13 @@ target-arguments:
     type: string
     platform-arg: device
     help-string: "Specify the Qibo quantum device to use."
+  - key: project
+    required: false
+    type: string
+    platform-arg: project
+    help-string: "Specify the Qibo project to use."
+  - key: verbatim
+    required: false
+    type: string
+    platform-arg: verbatim
+    help-string: "Whether to let the client hang until server results are ready or not. Defaults to false."
