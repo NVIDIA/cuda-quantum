@@ -418,9 +418,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     // __nvqpp_vector_bool_to_initializer_list
+    // The array size must match factory::stdVecBoolPaddingSize (16 for libc++,
+    // 32 for libstdc++) to match the host std::vector<bool> layout.
+#ifdef _LIBCPP_VERSION
+    {cudaq::stdvecBoolUnpackToInitList, {}, R"#(
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 16>}>>, !cc.ptr<!cc.ptr<i8>>) -> ()
+)#"},
+#else
     {cudaq::stdvecBoolUnpackToInitList, {}, R"#(
   func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>) -> ()
 )#"},
+#endif
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(
   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
