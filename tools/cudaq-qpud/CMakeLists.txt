@@ -31,12 +31,7 @@ target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cud
 target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
 export_executable_symbols_for_plugins(${TOOL_NAME})
 
-# On macOS, force-load LLVMCodeGen to ensure static initializers run and register
-# LLVM command-line options (e.g., -fast-isel).
-if(APPLE)
-  target_link_options(${TOOL_NAME} PRIVATE
-    "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
-endif()
+add_lib_loading_macos_workaround(${TOOL_NAME} FALSE)
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
 install(FILES ${TOOL_NAME}.py DESTINATION bin)

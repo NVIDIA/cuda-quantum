@@ -49,6 +49,7 @@
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include "llvm/Support/TargetSelect.h"
 #include <pybind11/complex.h>
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
@@ -60,6 +61,13 @@ using namespace cudaq;
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
 PYBIND11_MODULE(_quakeDialects, m) {
+  // Initialize native LLVM target for JIT compilation.
+  // Required for MLIR ExecutionEngine and TargetRegistry lookups.
+  // On macOS with two-level namespace, this must be called within the
+  // library that uses these targets.
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);

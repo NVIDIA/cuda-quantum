@@ -34,7 +34,27 @@ function(add_openmp_interface_definitions TARGET_NAME)
     endif()
 endfunction()
 
-# Making a NVQIR backend lib or config file available inside wheel 
+# Force-load LLVM libraries on macOS to register static initializers in the target's singletons.
+function(add_lib_loading_macos_workaround TARGET_NAME NATIVE_TARGET_LIBS)
+    if(APPLE)
+        target_link_libraries(${TARGET_NAME} PRIVATE LLVMCodeGen)
+        target_link_options(${TARGET_NAME} PRIVATE
+            "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
+
+        if(NATIVE_TARGET_LIBS)
+            target_link_libraries(${TARGET_NAME} PRIVATE
+                LLVM${LLVM_NATIVE_ARCH}CodeGen
+                LLVM${LLVM_NATIVE_ARCH}Info
+                LLVM${LLVM_NATIVE_ARCH}Desc)
+            target_link_options(${TARGET_NAME} PRIVATE
+                "-Wl,-force_load,$<TARGET_FILE:LLVM${LLVM_NATIVE_ARCH}CodeGen>"
+                "-Wl,-force_load,$<TARGET_FILE:LLVM${LLVM_NATIVE_ARCH}Info>"
+                "-Wl,-force_load,$<TARGET_FILE:LLVM${LLVM_NATIVE_ARCH}Desc>")
+        endif()
+    endif()
+endfunction()
+
+# Making a NVQIR backend lib or config file available inside wheel
 function(add_target_libs_to_wheel nvqir_backend_lib_or_config)
     if (NOT EXISTS "${nvqir_backend_lib_or_config}")
         message(FATAL_ERROR "Invalid file path to NVQIR backend lib or config: ${nvqir_backend_lib_or_config}.")
