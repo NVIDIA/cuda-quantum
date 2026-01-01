@@ -228,9 +228,9 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # On macOS, use flat_namespace to share LLVM symbols across dylibs.
-  # This avoids ODR violations when multiple dylibs each statically link LLVM.
-  # Requires LLVM patch for idempotent category registration.
+  # NOTE: Targeted two-level namespace fixes (PRIVATE MLIR/LLVM linking +
+  # force_load workarounds) should handle symbol sharing. Testing removal of
+  # global flat_namespace - uncomment if issues arise.
   add_link_options("-Wl,-flat_namespace")
 endif()
 
