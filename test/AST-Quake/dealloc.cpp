@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std --no-simplify %s | cudaq-opt --add-dealloc | FileCheck %s
+// RUN: cudaq-quake --no-simplify %s | cudaq-opt --add-dealloc | FileCheck %s
 
 #include <cudaq.h>
 

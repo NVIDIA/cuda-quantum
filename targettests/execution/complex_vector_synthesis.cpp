@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t  && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t  && %t | FileCheck %s
 // TODO-FIX-KERNEL-EXEC
-// RUN: nvq++ %cpp_std --target quantinuum --emulate -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum --emulate                      %s -o %t  && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate -fkernel-exec-kind=2 %s -o %t  && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate                      %s -o %t  && %t | FileCheck %s
 // clang-format on
 
 #include <complex>

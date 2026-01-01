@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt -constant-propagation -lift-array-alloc -globalize-array-values -canonicalize -get-concrete-matrix | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt -constant-propagation -lift-array-alloc -globalize-array-values -canonicalize -get-concrete-matrix | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

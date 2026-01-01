@@ -48,17 +48,6 @@ config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
 
-# Allow to filter tests based on environment variables
-cpp_stds = ['c++17', 'c++20', 'c++23']
-std_up_to = os.environ.get('CUDAQ_CPP_STD', 'c++23').lower()
-for std in cpp_stds[:bisect.bisect(cpp_stds, std_up_to)]:
-    config.available_features.add(std)
-std_default = os.environ.get('CUDAQ_CPP_STD')
-if std_default is None:
-    config.substitutions.append(('%cpp_std', ''))
-else:
-    config.substitutions.append(('%cpp_std', '-std=' + std_default.lower()))
-
 # The root path where tests are located.
 config.test_source_root = os.path.dirname(__file__)
 

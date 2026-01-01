@@ -16,10 +16,9 @@ import numpy as np
 
 @pytest.fixture(scope="session", autouse=True)
 def setTarget():
-    old_target = cudaq.get_target()
     cudaq.set_target('stim')
     yield
-    cudaq.set_target(old_target)
+    cudaq.reset_target()
 
 
 def test_stim_non_clifford():

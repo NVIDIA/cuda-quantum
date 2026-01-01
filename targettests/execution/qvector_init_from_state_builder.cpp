@@ -8,8 +8,8 @@
 
 // clang-format off
 // Simulators
-// RUN: nvq++ %cpp_std --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
