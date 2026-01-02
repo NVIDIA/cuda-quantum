@@ -62,6 +62,8 @@ def startUpMockServer():
     p.terminate()
     os.remove(tmp_tokens_file.name)
 
+    cudaq.reset_target()
+
 
 def test_iqm_ghz():
     shots = 100000

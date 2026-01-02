@@ -25,7 +25,7 @@ namespace cudaq {
 void bindExecutionContext(py::module &mod) {
   py::class_<cudaq::ExecutionContext>(mod, "ExecutionContext")
       .def(py::init<std::string>())
-      .def(py::init<std::string, int>())
+      .def(py::init<std::string, std::size_t>())
       .def_readonly("result", &cudaq::ExecutionContext::result)
       .def_readwrite("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_readonly("asyncResult", &cudaq::ExecutionContext::asyncResult)

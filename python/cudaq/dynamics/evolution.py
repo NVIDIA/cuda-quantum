@@ -142,12 +142,19 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.asyncExec = is_async
     cudaq_runtime.setExecutionContext(ctx)
-    cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
-    if is_async:
-        return ctx.asyncResult
-    res = ctx.result
-    cudaq_runtime.resetExecutionContext()
-    return res
+    try:
+        cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
+    except BaseException:
+        # silence any further exceptions
+        try:
+            cudaq_runtime.resetExecutionContext()
+        except BaseException:
+            pass
+        raise
+    else:
+        cudaq_runtime.resetExecutionContext()
+
+    return ctx.asyncResult if is_async else ctx.result
 
 
 # FIXME: move to C++

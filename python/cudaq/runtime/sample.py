@@ -75,9 +75,18 @@ def __broadcastSample(kernel,
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
         cudaq_runtime.setExecutionContext(ctx)
-        kernel(*a)
+        try:
+            kernel(*a)
+        except BaseException:
+            # silence any further exceptions
+            try:
+                cudaq_runtime.resetExecutionContext()
+            except BaseException:
+                pass
+            raise
+        else:
+            cudaq_runtime.resetExecutionContext()
         res = ctx.result
-        cudaq_runtime.resetExecutionContext()
         results.append(res)
 
     return results
@@ -177,11 +186,17 @@ def sample(kernel,
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
-        # Launch the kernel.
-        kernel(*args)
-
-        # Check the shots totals.
-        cudaq_runtime.resetExecutionContext()
+        try:
+            kernel(*args)
+        except BaseException:
+            # silence any further exceptions
+            try:
+                cudaq_runtime.resetExecutionContext()
+            except BaseException:
+                pass
+            raise
+        else:
+            cudaq_runtime.resetExecutionContext()
         # If the platform is a hardware QPU, launch only once
         countsTotalIsZero = counts.get_total_shots() == 0
         resultTotalWasReached = ctx.result.get_total_shots() == shots_count
