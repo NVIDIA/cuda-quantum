@@ -676,8 +676,11 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 		fi
 		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-		OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-		run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
+		# macOS mktemp requires X's at the end of template
+		TMPBASE=$(mktemp nvqppGenTargetBackend.XXXXXX)
+		OUTFILENAME="${TMPBASE}.o"
+		mv "${TMPBASE}" "${OUTFILENAME}"
+		run ${CXX} ${COMPILER_FLAGS} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 		OBJS_TO_MERGE="${OUTFILENAME}"
 		TMPFILES="${TMPFILES} ${OUTFILENAME}"
 	fi
