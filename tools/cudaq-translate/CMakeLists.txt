@@ -12,25 +12,20 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 add_llvm_executable(cudaq-translate cudaq-translate.cpp)
 
 llvm_update_compile_flags(cudaq-translate)
-
-cudaq_get_mlir_libs(MLIR_LIBS
+target_link_libraries(cudaq-translate
+  PRIVATE
   MLIRIR
   MLIRParser
   MLIRPass
   MLIRTranslateLib
   MLIRSupport
   MLIROptLib
+  MLIRExecutionEngine
   MLIRTransforms
   MLIRTargetLLVMIRExport
   MLIRLLVMCommonConversion
   MLIRLLVMToLLVMIRTranslation
-  MLIRExecutionEngine
-)
 
-target_link_libraries(cudaq-translate
-  PRIVATE
-  ${MLIR_LIBS}
-  # CUDAQ libraries
   CCDialect
   OptCodeGen
   OptTransforms

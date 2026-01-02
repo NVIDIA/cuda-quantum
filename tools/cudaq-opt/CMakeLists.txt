@@ -11,19 +11,14 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-type-limits")
 add_llvm_executable(cudaq-opt cudaq-opt.cpp)
 
 llvm_update_compile_flags(cudaq-opt)
-
-cudaq_get_mlir_libs(MLIR_LIBS
+target_link_libraries(cudaq-opt
+  PUBLIC
   MLIRLLVMDialect
   MLIROptLib
   MLIRIR
   MLIRFuncDialect
   MLIRArithDialect
-)
 
-target_link_libraries(cudaq-opt
-  PUBLIC
-  ${MLIR_LIBS}
-  # CUDAQ libraries
   CCDialect
   QuakeDialect
   OptCodeGen

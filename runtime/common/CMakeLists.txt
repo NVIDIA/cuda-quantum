@@ -125,7 +125,13 @@ target_include_directories(cudaq-mlir-runtime
     ${CMAKE_SOURCE_DIR}/tpls/fmt/include
     ${CMAKE_SOURCE_DIR}/runtime)
 
-cudaq_get_mlir_libs(MLIR_RUNTIME_LIBS
+target_link_libraries(cudaq-mlir-runtime
+  PUBLIC
+    nvqir
+    CCDialect
+    QuakeDialect
+    OptCodeGen
+    OptTransforms
     MLIRTranslateLib
     MLIRIR
     MLIRParser
@@ -137,16 +143,6 @@ cudaq_get_mlir_libs(MLIR_RUNTIME_LIBS
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-)
-
-target_link_libraries(cudaq-mlir-runtime
-  PUBLIC
-    nvqir
-    CCDialect
-    QuakeDialect
-    OptCodeGen
-    OptTransforms
-    ${MLIR_RUNTIME_LIBS}
     LLVMCodeGen
   PRIVATE
     cudaq

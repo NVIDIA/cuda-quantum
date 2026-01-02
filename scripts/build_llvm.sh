@@ -230,13 +230,15 @@ cmake_args=" \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='-w'"
 
-# On macOS, build LLVM and MLIR as shared libraries to avoid symbol
-# duplication issues caused by macOS two-level namespace.
+# On macOS, enable Thin LTO for static linking to deduplicate LLVM symbols at link time.
+# This avoids the duplicate symbol issues from macOS two-level namespace without
+# needing to build LLVM as a shared library (dylib).
+# Using Thin LTO (not Full) to reduce build resource requirements.
 if [ "$(uname)" = "Darwin" ]; then
   cmake_args="$cmake_args \
-    -DLLVM_BUILD_LLVM_DYLIB=ON \
-    -DLLVM_LINK_LLVM_DYLIB=ON \
-    -DMLIR_LINK_MLIR_DYLIB=ON"
+    -DLLVM_BUILD_LLVM_DYLIB=OFF \
+    -DLLVM_LINK_LLVM_DYLIB=OFF \
+    -DLLVM_ENABLE_LTO=Thin"
 fi
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 

@@ -54,55 +54,8 @@ function(add_cudaq_dialect_doc dialect dialect_namespace)
   add_cudaq_doc(${dialect} Dialects/${dialect} -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
-# Set up MLIRExecutionEngine for use with libMLIR.dylib.
-# Uses MLIRExecutionEngineShared (backported from LLVM 19 for LLVM 16).
-# TODO: Remove this function when upgrading to LLVM 19+.
-function(cudaq_setup_mlir_execution_engine_dylib)
-  if(TARGET MLIRExecutionEngineShared AND NOT TARGET CUDAQMLIRExecutionEngine)
-    add_library(CUDAQMLIRExecutionEngine INTERFACE)
-    target_link_libraries(CUDAQMLIRExecutionEngine INTERFACE MLIRExecutionEngineShared)
-  endif()
-endfunction()
-
-# Get libraries with MLIR dylib substitution when available.
-# When libMLIR.dylib exists (built with MLIR_LINK_MLIR_DYLIB=ON), replaces all
-# MLIR* libraries with just "MLIR". Non-MLIR libraries pass through unchanged.
-# MLIRExecutionEngine is special-cased to use CUDAQMLIRExecutionEngine wrapper.
-# TODO: Replace with mlir_target_link_libraries() when upgrading to LLVM 17+.
-# See: https://github.com/llvm/llvm-project/blob/main/mlir/cmake/modules/AddMLIR.cmake
-function(cudaq_get_mlir_libs output_var)
-  if(TARGET MLIR)
-    # Ensure ExecutionEngine wrapper exists
-    cudaq_setup_mlir_execution_engine_dylib()
-    set(result)
-    set(added_mlir FALSE)
-    set(added_exec_engine FALSE)
-    foreach(lib ${ARGN})
-      if(lib STREQUAL "MLIRExecutionEngine" OR lib STREQUAL "MLIRExecutionEngineUtils")
-        # Use our wrapper that redirects MLIR deps to dylib
-        if(NOT added_exec_engine)
-          list(APPEND result CUDAQMLIRExecutionEngine)
-          set(added_exec_engine TRUE)
-        endif()
-      elseif(lib MATCHES "^MLIR" AND NOT lib STREQUAL "MLIR")
-        # Replace MLIR static libs with the dylib (add once)
-        if(NOT added_mlir)
-          list(APPEND result MLIR)
-          set(added_mlir TRUE)
-        endif()
-      else()
-        list(APPEND result ${lib})
-      endif()
-    endforeach()
-    set(${output_var} ${result} PARENT_SCOPE)
-  else()
-    set(${output_var} ${ARGN} PARENT_SCOPE)
-  endif()
-endfunction()
-
 function(add_cudaq_library name)
-  cudaq_get_mlir_libs(new_args ${ARGN})
-  add_mlir_library(${name} ${new_args} DISABLE_INSTALL)
+  add_mlir_library(${ARGV} DISABLE_INSTALL)
   add_cudaq_library_install(${name})
 endfunction()
 

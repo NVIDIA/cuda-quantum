@@ -39,16 +39,6 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
-# Get MLIR libraries with dylib substitution for the Python extension.
-cudaq_get_mlir_libs(PYTHON_MLIR_LIBS
-  OptCodeGen
-  OptTransforms
-  MLIRPass
-  CUDAQTargetConfigUtil
-  cudaq-python-interop
-  LLVMCodeGen
-)
-
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
   ADD_TO_PARENT CUDAQuantumPythonSources

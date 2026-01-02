@@ -16,8 +16,9 @@ set(LLVM_LINK_COMPONENTS
   AsmParser
 )
 
-cudaq_get_mlir_libs(MLIR_LIBS
+set(LIBS
   ${mlir_dialect_libs}
+  ${cudaq_dialect_libs}
   ${conversion_libs}
   ${test_libs}
   MLIRAnalysis
@@ -29,12 +30,6 @@ cudaq_get_mlir_libs(MLIR_LIBS
   MLIRTransformUtils
   MLIRSupport
   MLIRIR
-)
-
-set(LIBS
-  ${MLIR_LIBS}
-  # CUDAQ dialect libraries
-  ${cudaq_dialect_libs}
 )
 
 add_llvm_executable(cudaq-lsp-server

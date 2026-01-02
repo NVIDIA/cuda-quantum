@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_cudaq_library(CUDAQSupport
+add_mlir_library(CUDAQSupport
   Plugin.cpp
 
   ADDITIONAL_HEADER_DIRS

@@ -84,39 +84,26 @@ python3 -c "import cudaq; print(cudaq.__version__)"
 
 - CPU-only build (no CUDA support on macOS)
 - Uses Apple's system Clang compiler
-- LLVM and MLIR are built as shared libraries (`libLLVM.dylib`, `libMLIR.dylib`) to avoid symbol duplication issues
+- LLVM is built with Thin LTO and static linking
+- Uses `-Wl,-flat_namespace` to share LLVM symbols across dylibs
 
 ## macOS LLVM/MLIR Configuration
 
-CUDA-Q builds LLVM and MLIR as shared libraries on macOS to ensure all components share single instances. This approach:
+CUDA-Q uses static LLVM/MLIR linking with flat_namespace on macOS. This approach:
 
-- Eliminates APFloat pointer mismatch issues (single `IEEEdouble()` address)
-- Ensures single `cl::opt` GlobalParser instance (no duplicate option registration)
-- Removes need for LTO or registration patches
+- Uses `-Wl,-flat_namespace` to share symbols globally (like Linux ELF)
+- Applies Thin LTO during LLVM build to reduce binary size
+- Requires LLVM patch for idempotent option category registration (see `tpls/customizations/llvm/idempotent_option_category.diff`)
 
 ### Why This Differs from Linux
 
-On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time via symbol interposition. On macOS, two-level namespace keeps each dylib's symbols isolated. Using shared `libLLVM.dylib` and `libMLIR.dylib` avoids duplication entirely by providing single LLVM/MLIR instances that all CUDA-Q libraries link against.
+On Linux, the ELF dynamic linker coalesces duplicate global symbols at load time via symbol interposition. On macOS, the default two-level namespace keeps each dylib's symbols isolated, causing ODR violations when multiple dylibs statically link LLVM.
 
-We use monolithic dylibs (`LLVM_BUILD_LLVM_DYLIB` + `MLIR_LINK_MLIR_DYLIB`) rather than `BUILD_SHARED_LIBS` for simpler deployment (2 dylibs vs 100+).
-
-### Performance Characteristics
-
-The dylib approach has the following performance trade-offs:
-
-| Metric | Impact |
-|--------|--------|
-| Cold startup | +50-200ms (dylib loading overhead) |
-| JIT compilation | No change |
-| LLVM build time | Faster (no Thin LTO required) |
-| Binary size | Smaller per-tool (LLVM not embedded) |
-| Multi-process memory | Lower (shared dylib pages) |
-
-For typical usage, the startup overhead is acceptable and offset by faster build times during development.
+The `-Wl,-flat_namespace` linker flag makes macOS use a single global symbol namespace similar to Linux, allowing the first loaded definition to be used everywhere.
 
 ### fast-isel Option Registration
 
-On macOS, the linker only includes object files from static libraries if their symbols are explicitly referenced. LLVM options like `-fast-isel` are registered via static initializers in LLVMCodeGen. Even with the dylib approach, we use `-Wl,-force_load` for LLVMCodeGen to ensure these static initializers run:
+On macOS, the linker only includes object files from static libraries if their symbols are explicitly referenced. LLVM options like `-fast-isel` are registered via static initializers in LLVMCodeGen. We use `-Wl,-force_load` for LLVMCodeGen to ensure these static initializers run:
 - `runtime/common/CMakeLists.txt` (cudaq-mlir-runtime)
 - `python/extension/CMakeLists.txt` (CUDAQuantumPythonCAPI and _quakeDialects.dso)
 - `tools/cudaq-qpud/CMakeLists.txt` (cudaq-qpud)
@@ -137,27 +124,3 @@ Additionally, `execution_manager.cpp` must only be compiled into one library to 
 
 **Solution:** Avoid using `xio.hpp` for printing xtensor arrays. Instead, manually implement printing logic in `runtime/cudaq/domains/chemistry/molecule.cpp` for the `dump()` methods.
 
-### MLIRExecutionEngine and Shared Library Linking
-
-**Problem:** `MLIRExecutionEngine` is excluded from `libMLIR.dylib` by design (it has `EXCLUDE_FROM_LIBMLIR` in upstream LLVM). When linking against `libMLIR.dylib`, the static `libMLIRExecutionEngine.a` gets pulled in, causing symbol conflicts due to macOS two-level namespace. This manifests as "storage uniquer isn't initialized" or "dialect already registered" errors.
-
-**Solution:** LLVM 19+ includes `MLIRExecutionEngineShared`, a shared library version that links against `libMLIR.dylib`. For LLVM 16, we backport this via `tpls/customizations/llvm/mlir_execution_engine_shared.diff`. The `cudaq_get_mlir_libs()` CMake function automatically substitutes `MLIRExecutionEngine` with `CUDAQMLIRExecutionEngine` (which wraps `MLIRExecutionEngineShared`) when the dylib is available.
-
-**Applying the patch:**
-```bash
-cd $LLVM_SOURCE_DIR
-patch -p1 < /path/to/cuda-quantum/tpls/customizations/llvm/mlir_execution_engine_shared.diff
-```
-
-### Python Bindings and MLIR CAPI Static Libraries
-
-**Problem:** The Python bindings use MLIR's Python infrastructure (`add_mlir_python_common_capi_library`, `declare_mlir_python_extension`) which link against MLIR CAPI static libraries (`MLIRCAPIExecutionEngine`, `MLIRPythonExtension.RegisterEverything`, etc.). These CAPI libraries are not part of `libMLIR.dylib` and don't support dylib linking in LLVM 16.
-
-LLVM 17+ added `mlir_target_link_libraries()` which properly handles dylib substitution, but this doesn't exist in LLVM 16. The CAPI libraries contain their own copies of MLIR static variables, leading to the same symbol conflict issues when mixed with `libMLIR.dylib`.
-
-**Current status:** This remains an open challenge. Potential solutions include:
-1. Upgrading to LLVM 17+ which has better dylib support
-2. Using fully static MLIR linking (no `MLIR_LINK_MLIR_DYLIB`)
-3. Using `-Wl,-flat_namespace` to force global symbol resolution (not fully tested)
-
-For now, if Python tests fail with "storage uniquer isn't initialized" errors, consider building LLVM without `MLIR_LINK_MLIR_DYLIB=ON`.

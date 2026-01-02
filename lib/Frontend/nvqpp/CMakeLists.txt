@@ -9,7 +9,7 @@
 set(LIBRARY_NAME cudaq-mlirgen)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch")
-add_cudaq_library(${LIBRARY_NAME}
+add_mlir_library(${LIBRARY_NAME}
     # bridge from AST to Quake
     ASTBridge.cpp
     ConvertDecl.cpp

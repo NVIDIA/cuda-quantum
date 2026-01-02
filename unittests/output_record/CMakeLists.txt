@@ -21,4 +21,4 @@ target_link_libraries(test_record
     gtest_main
     cudaq-platform-default)
 
-gtest_discover_tests(test_record)
+gtest_discover_tests(test_record DISCOVERY_TIMEOUT 120)
