@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake %cpp_std %s | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 #include "cudaq.h"

@@ -79,18 +79,9 @@ convertOps(const std::initializer_list<OpTy> &ops) {
 // This API is used to evolve a single Hamiltonian with a single initial state.
 //===----------------------------------------------------------------------===//
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const state &initial_state,
@@ -113,18 +104,9 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, InitialState initial_state,
@@ -147,15 +129,8 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy, operator_type CollapseOpTy,
           operator_type ObserveOpTy>
-#else
-template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result evolve(const HamTy &hamiltonian,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, const state &initial_state,
@@ -178,15 +153,8 @@ evolve_result evolve(const HamTy &hamiltonian,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy, operator_type CollapseOpTy,
           operator_type ObserveOpTy>
-#else
-template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result evolve(const HamTy &hamiltonian,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, InitialState initial_state,
@@ -214,12 +182,7 @@ evolve_result evolve(const HamTy &hamiltonian,
 // ===========================================================================
 // Overloads for both `std::vector` and `std::initializer_list` observables are
 // provided to handle inline construction with braces at the call site.
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result evolve(const super_op &super_op,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, const state &initial_state,
@@ -239,12 +202,7 @@ evolve_result evolve(const super_op &super_op,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result evolve(const super_op &super_op,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, InitialState initial_state,
@@ -264,12 +222,7 @@ evolve_result evolve(const super_op &super_op,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result evolve(const super_op &super_op,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, const state &initial_state,
@@ -289,12 +242,7 @@ evolve_result evolve(const super_op &super_op,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 evolve_result evolve(const super_op &super_op,
                      const cudaq::dimension_map &dimensions,
                      const schedule &schedule, InitialState initial_state,
@@ -322,18 +270,9 @@ evolve_result evolve(const super_op &super_op,
 // ===========================================================================
 // Single Hamiltonian with multiple initial states
 // ===========================================================================
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
@@ -357,18 +296,9 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
@@ -397,18 +327,9 @@ evolve(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 // ===========================================================================
 // We provide overloads for both `std::vector` and `std::initializer_list` to
 // handle inline Hamiltonian list construction with braces at the call site.
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const std::initializer_list<HamTy> &hamiltonians,
        const cudaq::dimension_map &dimensions, const schedule &schedule,
@@ -436,18 +357,9 @@ evolve(const std::initializer_list<HamTy> &hamiltonians,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const std::initializer_list<HamTy> &hamiltonians,
        const cudaq::dimension_map &dimensions, const schedule &schedule,
@@ -475,18 +387,9 @@ evolve(const std::initializer_list<HamTy> &hamiltonians,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const std::vector<HamTy> &hamiltonians,
        const cudaq::dimension_map &dimensions, const schedule &schedule,
@@ -514,18 +417,9 @@ evolve(const std::vector<HamTy> &hamiltonians,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const std::vector<HamTy> &hamiltonians,
        const cudaq::dimension_map &dimensions, const schedule &schedule,
@@ -556,12 +450,7 @@ evolve(const std::vector<HamTy> &hamiltonians,
 // ===========================================================================
 // Single super-operator with multiple initial states
 // ===========================================================================
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
@@ -582,12 +471,7 @@ evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
        const schedule &schedule, const std::vector<state> &initial_states,
@@ -610,12 +494,7 @@ evolve(const super_op &super_op, const cudaq::dimension_map &dimensions,
 // ===========================================================================
 // Multiple super-operators with multiple initial states
 // ===========================================================================
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const std::vector<super_op> &super_ops,
        const cudaq::dimension_map &dimensions, const schedule &schedule,
@@ -641,12 +520,7 @@ evolve(const std::vector<super_op> &super_ops,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 std::vector<evolve_result>
 evolve(const std::vector<super_op> &super_ops,
        const cudaq::dimension_map &dimensions, const schedule &schedule,
@@ -672,18 +546,9 @@ evolve(const std::vector<super_op> &super_ops,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy,
           operator_type CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
           operator_type ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>>
-#else
-template <typename HamTy,
-          typename CollapseOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename ObserveOpTy = cudaq::sum_op<cudaq::matrix_handler>,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              const schedule &schedule, const state &initial_state,
@@ -705,12 +570,13 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
         // We used this to set the execution context for the QPU, which performs
         // GPU Id selection based on the QPU Id.
         ExecutionContext context("evolve");
-        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        context.qpuId = qpu_id;
+        cudaq::get_platform().set_exec_ctx(&context);
         state localizedState = cudaq::__internal__::migrateState(initial_state);
         const auto result = evolve(hamiltonian, dimensions, schedule,
                                    localizedState, *cloneIntegrator, cOps, obs,
                                    store_intermediate_results, shots_count);
-        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        cudaq::get_platform().reset_exec_ctx();
         return result;
       },
       qpu_id);
@@ -722,15 +588,8 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type HamTy, operator_type CollapseOpTy,
           operator_type ObserveOpTy>
-#else
-template <typename HamTy, typename CollapseOpTy, typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<HamTy> &&
-                                      cudaq::operator_type<CollapseOpTy> &&
-                                      cudaq::operator_type<ObserveOpTy>>>
-#endif
 async_evolve_result
 evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
              const schedule &schedule, const state &initial_state,
@@ -749,12 +608,13 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
         // We used this to set the execution context for the QPU, which performs
         // GPU Id selection based on the QPU Id.
         ExecutionContext context("evolve");
-        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        context.qpuId = qpu_id;
+        cudaq::get_platform().set_exec_ctx(&context);
         state localizedState = cudaq::__internal__::migrateState(initial_state);
         auto result = evolve(hamiltonian, dimensions, schedule, localizedState,
                              *cloneIntegrator, collapse_operators, observables,
                              store_intermediate_results, shots_count);
-        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        cudaq::get_platform().reset_exec_ctx();
         return result;
       },
       qpu_id);
@@ -765,12 +625,7 @@ evolve_async(const HamTy &hamiltonian, const cudaq::dimension_map &dimensions,
 #endif
 }
 
-#if CUDAQ_USE_STD20
 template <operator_type ObserveOpTy>
-#else
-template <typename ObserveOpTy,
-          typename = std::enable_if_t<cudaq::operator_type<ObserveOpTy>>>
-#endif
 async_evolve_result
 evolve_async(const super_op &super_op, const cudaq::dimension_map &dimensions,
              const schedule &schedule, const state &initial_state,
@@ -789,12 +644,13 @@ evolve_async(const super_op &super_op, const cudaq::dimension_map &dimensions,
         // We used this to set the execution context for the QPU, which performs
         // GPU Id selection based on the QPU Id.
         ExecutionContext context("evolve");
-        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        context.qpuId = qpu_id;
+        cudaq::get_platform().set_exec_ctx(&context);
         state localizedState = cudaq::__internal__::migrateState(initial_state);
         auto result = evolve(super_op, dimensions, schedule, localizedState,
                              *cloneIntegrator, obs, store_intermediate_results,
                              shots_count);
-        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        cudaq::get_platform().reset_exec_ctx();
         return result;
       },
       qpu_id);
@@ -820,9 +676,10 @@ evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
   return cudaq::__internal__::evolve_async(
       [=]() {
         ExecutionContext context("evolve");
-        cudaq::get_platform().set_exec_ctx(&context, qpu_id);
+        context.qpuId = qpu_id;
+        cudaq::get_platform().set_exec_ctx(&context);
         auto result = evolve(hamiltonian, schedule, shots_count);
-        cudaq::get_platform().reset_exec_ctx(qpu_id);
+        cudaq::get_platform().reset_exec_ctx();
         return result;
       },
       qpu_id);

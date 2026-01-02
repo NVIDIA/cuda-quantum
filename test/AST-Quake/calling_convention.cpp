@@ -8,7 +8,7 @@
 
 // This test is only valid for x86_64.
 // RUN: if [ `uname -m` = "x86_64" ] ; then \
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s ; fi
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s ; fi
 
 #include <cudaq.h>
 #include <tuple>

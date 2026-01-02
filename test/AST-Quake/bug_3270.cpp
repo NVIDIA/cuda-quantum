@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --expand-measurements --classical-optimization-pipeline | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --expand-measurements --classical-optimization-pipeline | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
