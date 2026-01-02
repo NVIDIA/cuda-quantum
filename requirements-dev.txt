@@ -1,0 +1,24 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Development dependencies for building and testing CUDA-Q
+lit==18.1.4
+pytest==8.3.0
+numpy==1.26.4
+llvmlite==0.42.0
+scipy==1.11.4
+requests==2.31.0
+fastapi==0.111.0
+uvicorn==0.29.0
+pydantic==2.7.1
+openfermionpyscf==0.5
+h5py==3.12.1
+pyspelling==2.10
+pymdown-extensions==10.8.1
+yapf
+

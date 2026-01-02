@@ -60,7 +60,49 @@ if [ "$(type -t find_executable)" != "function" ]; then
     }
 fi
 
-if [ "${toolchain#gcc}" != "$toolchain" ]; then
+# On macOS, always use system Apple Clang regardless of requested toolchain
+if [[ "$(uname)" == "Darwin" ]]; then
+    # Check if Xcode Command Line Tools are installed
+    if ! xcode-select -p &>/dev/null; then
+        echo "Xcode Command Line Tools are required on macOS."
+        echo "Please run: xcode-select --install"
+        echo "Then re-run this script."
+        (return 0 2>/dev/null) && return 1 || exit 1
+    fi
+
+    if [ "$toolchain" != "llvm" ]; then
+        echo "Note: On macOS, using system Apple Clang (requested: $toolchain)."
+    fi
+    CC="$(xcrun -f clang)"
+    CXX="$(xcrun -f clang++)"
+    unset FC  # No Fortran compiler by default on macOS
+
+    if [ "$toolchain" = "llvm" ]; then
+        # For llvm toolchain, build LLVM using Apple Clang as bootstrap compiler
+        LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-"$HOME/.llvm"}
+        if [ -f "$LLVM_INSTALL_PREFIX/bin/clang" ] && [ -f "$LLVM_INSTALL_PREFIX/bin/clang++" ]; then
+            CC="$LLVM_INSTALL_PREFIX/bin/clang"
+            CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+            FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
+        else
+            temp_install_if_command_unknown ninja ninja
+            temp_install_if_command_unknown cmake cmake
+            # Note: readlink -f doesn't work on macOS, use alternative
+            this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+            LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" LLVM_PROJECTS='clang;lld;runtimes' \
+            LLVM_SOURCE="$LLVM_SOURCE" LLVM_BUILD_FOLDER="$LLVM_BUILD_FOLDER" \
+            CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -c Release -v
+            if [ ! $? -eq 0 ]; then
+                echo -e "\e[01;31mError: Failed to build LLVM toolchain from source.\e[0m" >&2
+                (return 0 2>/dev/null) && return 3 || exit 3
+            fi
+            CC="$LLVM_INSTALL_PREFIX/bin/clang"
+            CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+            FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
+        fi
+    fi
+
+elif [ "${toolchain#gcc}" != "$toolchain" ]; then
 
     gcc_version=${toolchain#gcc}
     if [ -x "$(command -v apt-get)" ]; then
@@ -194,7 +236,8 @@ if [ -x "$(command -v "$CC")" ] && [ -x "$(command -v "$CXX")" ]; then
 
     if [ "$export_dir" != "" ]; then 
         mkdir -p "$export_dir"
-        this_file=`readlink -f "${BASH_SOURCE[0]}"`
+        # Note: readlink -f doesn't work on macOS, use alternative
+        this_file="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
         cat "$this_file" > "$export_dir/install_toolchain.sh"
         env_variables="LLVM_INSTALL_PREFIX=\"$LLVM_INSTALL_PREFIX\" LLVM_SOURCE=\"$LLVM_SOURCE\" LLVM_BUILD_FOLDER=\"$LLVM_BUILD_FOLDER\""
         echo "$env_variables source \"$export_dir/install_toolchain.sh\" -t $toolchain" > "$export_dir/init_command.sh"

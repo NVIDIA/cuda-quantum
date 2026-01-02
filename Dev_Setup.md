@@ -118,3 +118,46 @@ may be beneficial.
 
 [data_center_install]:
     https://nvidia.github.io/cuda-quantum/latest/using/install/data_center_install.html
+
+## Working on macOS
+
+macOS is supported for development builds (CPU-only, no GPU support). The
+development container is not available on macOS, so you will need to set up
+your environment manually.
+
+### Prerequisites
+
+1. **Xcode Command Line Tools**:
+
+   ```bash
+   xcode-select --install
+   ```
+
+   Verify with `xcode-select -p` and `clang --version`.
+
+2. **Homebrew** (package manager for installing dependencies):
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+3. **Python virtual environment**:
+
+   ```bash
+   python3 -m venv ~/.venv/cudaq
+   source ~/.venv/cudaq/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements-dev.txt
+   ```
+
+### Environment Variables (for manual incremental builds)
+
+If you plan to run `cmake` and `ninja` directly in the build directory instead
+of using `build_cudaq.sh`, add to your `.zshrc` or `.bashrc`:
+
+```bash
+export SDKROOT=$(xcrun --show-sdk-path)      # Required for nvq++ to find system headers
+export LLVM_INSTALL_PREFIX=$HOME/.llvm       # Required for cmake to find LLVM
+```
+
+Once set up, proceed to [Building CUDA-Q from Source](./Building.md).
