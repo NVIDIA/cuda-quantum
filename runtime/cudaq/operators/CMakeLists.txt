@@ -24,7 +24,6 @@ set(CUDAQ_OPS_SRC
   handler.cpp
   helpers.cpp
   super_op.cpp
-  ../utils/matrix.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_OPS_SRC})
@@ -42,7 +41,9 @@ set (OPERATOR_DEPENDENCIES "")
 list(APPEND OPERATOR_DEPENDENCIES fmt::fmt-header-only)
 add_openmp_configurations(${LIBRARY_NAME} OPERATOR_DEPENDENCIES)
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE ${OPERATOR_DEPENDENCIES})
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC cudaq-utils
+  PRIVATE ${OPERATOR_DEPENDENCIES})
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-operator-targets DESTINATION lib)
 

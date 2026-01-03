@@ -228,9 +228,14 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # NOTE: Targeted two-level namespace fixes (PRIVATE MLIR/LLVM linking +
-  # force_load workarounds) should handle symbol sharing. Testing removal of
-  # global flat_namespace - uncomment if issues arise.
+  # macOS Two-Level Namespace Workaround:
+  # By default, macOS uses two-level namespace linking where symbols are bound
+  # to the specific library they came from. This causes issues when LLVM/MLIR
+  # static initializers (e.g., PassRegistry, TargetRegistry) are duplicated
+  # across multiple shared libraries - each gets its own isolated copy.
+  #
+  # flat_namespace makes all symbols global, allowing shared libraries to see
+  # each other's registrations. This is a sledgehammer fix.
   add_link_options("-Wl,-flat_namespace")
 endif()
 
@@ -382,7 +387,12 @@ message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
 
 # Detect C++ standard library headers for cudaq-quake
-# Check if LLVM was built with libc++ headers
+# cudaq-quake needs to find C++ stdlib headers for parsing user code.
+# Priority order:
+# 1. LLVM's bundled libc++ (if LLVM was built with LLVM_ENABLE_PROJECTS=libcxx)
+# 2. macOS SDK sysroot (auto-detected via xcrun, provides system libc++)
+# 3. System headers (Linux: /usr/include, works automatically)
+# The paths are passed to cudaq-quake via nvqpp_config.h.in
 set(CUDAQ_LIBCXX_PATH "${LLVM_BINARY_DIR}/include/c++/v1")
 if(EXISTS "${CUDAQ_LIBCXX_PATH}")
   message(STATUS "Using LLVM libc++ headers: ${CUDAQ_LIBCXX_PATH}")
@@ -416,21 +426,6 @@ include_directories(SYSTEM
 
 link_directories(${LLVM_BUILD_LIBRARY_DIR})
 add_definitions(${LLVM_DEFINITIONS})
-
-# On macOS with LLVM/MLIR dylib, install shared libraries alongside CUDA-Q
-if(APPLE AND LLVM_LINK_LLVM_DYLIB)
-  find_library(LLVM_DYLIB_PATH NAMES LLVM PATHS ${LLVM_LIBRARY_DIR} NO_DEFAULT_PATH)
-  if(LLVM_DYLIB_PATH)
-    message(STATUS "Will install LLVM dylib: ${LLVM_DYLIB_PATH}")
-    install(FILES ${LLVM_DYLIB_PATH} DESTINATION lib)
-  endif()
-  # MLIR dylib is built when MLIR_LINK_MLIR_DYLIB=ON
-  find_library(MLIR_DYLIB_PATH NAMES MLIR PATHS ${LLVM_LIBRARY_DIR} NO_DEFAULT_PATH)
-  if(MLIR_DYLIB_PATH)
-    message(STATUS "Will install MLIR dylib: ${MLIR_DYLIB_PATH}")
-    install(FILES ${MLIR_DYLIB_PATH} DESTINATION lib)
-  endif()
-endif()
 
 # Define the default arguments to use with 'lit', and an option for the user to
 # override.

@@ -61,12 +61,15 @@ using namespace cudaq;
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
 PYBIND11_MODULE(_quakeDialects, m) {
-  // Initialize native LLVM target for JIT compilation.
-  // Required for MLIR ExecutionEngine and TargetRegistry lookups.
-  // On macOS with two-level namespace, this must be called within the
-  // library that uses these targets.
+#ifdef __APPLE__
+  // macOS Two-Level Namespace: Each shared library has its own copy of LLVM's
+  // static registries. These calls ensure TargetRegistry is populated in this
+  // library's context. The CMake force_load workarounds (BuildHelpers.cmake)
+  // also help, but explicit initialization here ensures the Python extension
+  // works correctly. On Linux, static initializers handle this automatically.
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
+#endif
 
   holder = std::make_unique<LinkedLibraryHolder>();
 

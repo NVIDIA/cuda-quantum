@@ -34,7 +34,16 @@ function(add_openmp_interface_definitions TARGET_NAME)
     endif()
 endfunction()
 
-# Force-load LLVM libraries on macOS to register static initializers in the target's singletons.
+# macOS Two-Level Namespace Workaround: Force-load LLVM CodeGen libraries.
+#
+# Problem: macOS uses two-level namespace linking where each shared library
+# has its own copy of static data. LLVM's TargetRegistry uses static initializers
+# to register targets (X86, AArch64, etc.) into a global registry. Without
+# force-loading, these registrations happen in the wrong library's copy of
+# the registry, causing "target not found" errors during JIT compilation.
+#
+# Solution: -force_load ensures all symbols from these archives are included,
+# triggering their static initializers in the correct library context.
 function(add_lib_loading_macos_workaround TARGET_NAME NATIVE_TARGET_LIBS)
     if(APPLE)
         target_link_libraries(${TARGET_NAME} PRIVATE LLVMCodeGen)
