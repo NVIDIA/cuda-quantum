@@ -91,6 +91,7 @@ if(APPLE)
     "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
 endif()
 
+add_subdirectory(utils)
 add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
 add_subdirectory(platform)
