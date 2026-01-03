@@ -150,14 +150,17 @@ your environment manually.
    pip install -r requirements-dev.txt
    ```
 
-### Environment Variables (for manual incremental builds)
+### Environment Variables
 
-If you plan to run `cmake` and `ninja` directly in the build directory instead
-of using `build_cudaq.sh`, add to your `.zshrc` or `.bashrc`:
+**Note:** Most environment variables like `LLVM_INSTALL_PREFIX`, `AWS_INSTALL_PREFIX`,
+and `SDKROOT` are only needed during the initial CMake configure. Once set, their
+values are cached in `CMakeCache.txt` and persist across subsequent builds.
 
-```bash
-export SDKROOT=$(xcrun --show-sdk-path)      # Required for nvq++ to find system headers
-export LLVM_INSTALL_PREFIX=$HOME/.llvm       # Required for cmake to find LLVM
-```
+On macOS, the SDK path for system headers is auto-detected via `xcrun --show-sdk-path`
+and baked into `nvq++` at build time, so you don't need to set `SDKROOT` manually.
+
+If you run `build_cudaq.sh` or `scripts/install_prerequisites.sh` first, all
+necessary environment variables will be set automatically during the initial
+configure.
 
 Once set up, proceed to [Building CUDA-Q from Source](./Building.md).

@@ -120,6 +120,10 @@ libraries should be installed:
 export LLVM_INSTALL_PREFIX=<installation_path>
 ```
 
+**Note:** This environment variable only needs to be set during the initial
+CMake configure. After that, the value is cached in `CMakeCache.txt` and
+persists across subsequent builds.
+
 The CUDA-Q [build script](./scripts/build_cudaq.sh) checks if `llvm-config` is
 available in the bin subfolder of that directory, and will automatically invoke
 the [LLVM build script](./scripts/build_llvm.sh) if it is not.

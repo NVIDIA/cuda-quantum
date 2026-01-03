@@ -18,6 +18,8 @@
 # CUDAQ_INSTALL_PREFIX=/path/for/installing/cudaq LLVM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
+# -or-
+# bash scripts/build_cudaq.sh -- -DCUDAQ_LIT_JOBS=2 
 #
 # Options:
 # -c <build_configuration>: The build configuration to use. Defaults to Release.
@@ -27,6 +29,7 @@
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
 # -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
+# --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
@@ -57,6 +60,21 @@ clean_build=true
 install_toolchain=""
 num_jobs=""
 enable_sanitizers=false
+extra_cmake_args=""
+
+# Extract extra cmake args after -- separator
+args_before_sep=()
+found_sep=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    found_sep=true
+  elif $found_sep; then
+    extra_cmake_args="$extra_cmake_args $arg"
+  else
+    args_before_sep+=("$arg")
+  fi
+done
+set -- "${args_before_sep[@]}"
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -249,7 +267,8 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  $extra_cmake_args"
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 
