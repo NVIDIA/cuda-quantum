@@ -269,7 +269,7 @@ struct V3 {
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>)
 // CHECK-LABEL:  func.func @_ZN2V1clE{{(St6vectorIdSaIdEE|NSt3__16vectorIdNS0_9allocatorIdEEEE)}}(
-// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>},
+// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>> {llvm.sret = !cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>>)
 // CHECK-LABEL:  func.func @_ZN2V2clE{{(St6vectorIfSaIfEES0_IsSaIsEE|NSt3__16vectorIfNS0_9allocatorIfEEEENS1_IsNS2_IsEEEE)}}(
@@ -278,7 +278,7 @@ struct V3 {
 // CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<f32>, !cc.ptr<f32>, !cc.ptr<f32>}>>,
 // CHECK-SAME:     %[[VAL_3:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i16>, !cc.ptr<i16>, !cc.ptr<i16>}>>)
 // CHECK-LABEL:  func.func @_ZN2V3clE{{(St6vectorIlSaIlEES0_IbSaIbEE|NSt3__16vectorIlNS0_9allocatorIlEEEENS1_IbNS2_IbEEEE)}}(
-// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i64>, !cc.ptr<i64>, !cc.ptr<i64>}>>, %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>)
+// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<i8>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i64>, !cc.ptr<i64>, !cc.ptr<i64>}>>, %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>)
 // clang-format on
 
 //===----------------------------------------------------------------------===//
