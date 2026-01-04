@@ -14,6 +14,8 @@ namespace cudaq {
 void RemoteSimulationState::execute() const {
   if (!state) {
     auto &platform = cudaq::get_platform();
+    // Save the outer execution context (if any) so we can restore it after.
+    auto *outerContext = platform.get_exec_ctx();
     // Create an execution context, indicate this is for
     // extracting the state representation
     ExecutionContext context("extract-state");
@@ -30,6 +32,9 @@ void RemoteSimulationState::execute() const {
     platform.launchKernel(kernelName, args);
     platform.reset_exec_ctx();
     platform.resetLogStream();
+    // Restore the outer context if there was one.
+    if (outerContext)
+      platform.set_exec_ctx(outerContext);
     // Cache the info log if any.
     platformExecutionLog = remoteLogCout.str();
     state = std::move(context.simulationState);
@@ -144,6 +149,8 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
     return state->getAmplitudes(basisStates);
   }
   auto &platform = cudaq::get_platform();
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = platform.get_exec_ctx();
   // Create an execution context, indicate this is for
   // extracting the state representation
   ExecutionContext context("extract-state");
@@ -156,6 +163,9 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   platform.set_exec_ctx(&context);
   platform.launchKernel(kernelName, args);
   platform.reset_exec_ctx();
+  // Restore the outer context if there was one.
+  if (outerContext)
+    platform.set_exec_ctx(outerContext);
   std::vector<std::complex<double>> amplitudes;
   amplitudes.reserve(basisStates.size());
   for (const auto &basisState : basisStates)
@@ -180,6 +190,8 @@ RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
 
   const auto &otherState = dynamic_cast<const RemoteSimulationState &>(other);
   auto &platform = cudaq::get_platform();
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = platform.get_exec_ctx();
   ExecutionContext context("state-overlap");
   context.overlapComputeStates =
       std::make_pair(static_cast<const cudaq::SimulationState *>(this),
@@ -188,6 +200,9 @@ RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
   [[maybe_unused]] auto dynamicResult =
       platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, {});
   platform.reset_exec_ctx();
+  // Restore the outer context if there was one.
+  if (outerContext)
+    platform.set_exec_ctx(outerContext);
   assert(context.overlapResult.has_value());
   return context.overlapResult.value();
 }

@@ -8,13 +8,11 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
-#include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "cudaq/qis/qubit_qis.h"
 #include "utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>
@@ -73,7 +71,6 @@ public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
-    platformNumQPUs = platformQPUs.size();
   }
 
   /// @brief Set the target backend. Here we have an opportunity
@@ -82,8 +79,8 @@ public:
   /// variable, and if found, will change from the DefaultQPU to the QPU subtype
   /// specified by that variable.
   void setTargetBackend(const std::string &backend) override {
+    executionContext.set(nullptr);
     platformQPUs.clear();
-    threadToQpuId.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
@@ -128,7 +125,6 @@ public:
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
-      threadToQpuId.clear();
       platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
       if (platformQPUs.front() == nullptr)
         throw std::runtime_error(

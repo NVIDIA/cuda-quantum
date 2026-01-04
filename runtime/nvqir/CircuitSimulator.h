@@ -952,9 +952,16 @@ public:
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!isInTracerMode())
+    if (!isInTracerMode()) {
       // Tell the subtype to grow the state representation
-      addQubitToState();
+      try {
+        addQubitToState();
+      } catch (...) {
+        nQubitsAllocated--;
+        stateDimension = previousStateDimension;
+        throw;
+      }
+    }
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -1009,9 +1016,16 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!isInTracerMode())
+    if (!isInTracerMode()) {
       // Tell the subtype to allocate more qubits
-      addQubitsToState(count, state);
+      try {
+        addQubitsToState(count, state);
+      } catch (...) {
+        nQubitsAllocated -= count;
+        stateDimension = previousStateDimension;
+        throw;
+      }
+    }
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -1055,9 +1069,16 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!isInTracerMode())
+    if (!isInTracerMode()) {
       // Tell the subtype to allocate more qubits
-      addQubitsToState(*state);
+      try {
+        addQubitsToState(*state);
+      } catch (...) {
+        nQubitsAllocated -= count;
+        stateDimension = previousStateDimension;
+        throw;
+      }
+    }
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
