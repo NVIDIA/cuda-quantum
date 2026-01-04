@@ -64,6 +64,12 @@ if(OPENSSL_FOUND)
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
   target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
+  # Override the global flat_namespace for this library. cudaq-common doesn't need
+  # LLVM symbol sharing, and flat_namespace causes issues with statically-linked
+  # OpenSSL assembly code linked with flat namespace.
+  if(APPLE)
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-twolevel_namespace")
+  endif()
 endif()
 
 
