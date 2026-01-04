@@ -354,20 +354,48 @@ if [ -n "$CURL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep curl)" ]
     # environment variables and passing them to curl via CURLOPT_CAINFO and CURLOPT_PROXY_CAINFO.
     # We opt to build Curl without any default paths, and instead have the CUDA-Q runtime
     # determine and pass a suitable path.
+    #
+    # Build curl with CMake to generate proper CMake config files (CURLConfig.cmake).
+    # This allows CMake's find_package(CURL) to use config mode, which correctly encodes
+    # full paths to dependencies (OpenSSL, zlib) and avoids pkg-config issues where
+    # -lssl/-lcrypto resolve to the wrong system libraries on macOS.
     wget https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.tar.gz
     tar -xzvf curl-8.5.0.tar.gz && cd curl-8.5.0
-    CC="$CC" CFLAGS="-fPIC" LDFLAGS="-L$OPENSSL_INSTALL_PREFIX/lib64 $LDFLAGS" \
-    ./configure --prefix="$CURL_INSTALL_PREFIX" \
-      --enable-shared=no --enable-static=yes \
-      --with-openssl="$OPENSSL_INSTALL_PREFIX" --with-zlib="$ZLIB_INSTALL_PREFIX" \
-      --without-ca-bundle --without-ca-path \
-      --without-zstd --without-brotli --without-nghttp2 --without-libidn2 \
-      --without-libpsl --without-libssh2 --without-librtmp --disable-ares \
-      --disable-ftp --disable-tftp --disable-smtp --disable-ldap --disable-ldaps \
-      --disable-smb --disable-gopher --disable-telnet --disable-rtsp \
-      --disable-pop3 --disable-imap --disable-file  --disable-dict \
-      --disable-versioned-symbols --disable-manual
-    make CC="$CC" && make install
+    cmake -G Ninja -B build \
+      -DCMAKE_C_COMPILER="$CC" \
+      -DCMAKE_C_FLAGS="-fPIC" \
+      -DCMAKE_INSTALL_PREFIX="$CURL_INSTALL_PREFIX" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DBUILD_CURL_EXE=ON \
+      -DCURL_USE_OPENSSL=ON \
+      -DOPENSSL_ROOT_DIR="$OPENSSL_INSTALL_PREFIX" \
+      -DCURL_ZLIB=ON \
+      -DZLIB_ROOT="$ZLIB_INSTALL_PREFIX" \
+      -DCURL_CA_BUNDLE=none \
+      -DCURL_CA_PATH=none \
+      -DCURL_USE_LIBSSH2=OFF \
+      -DCURL_USE_LIBPSL=OFF \
+      -DUSE_LIBIDN2=OFF \
+      -DCURL_BROTLI=OFF \
+      -DCURL_ZSTD=OFF \
+      -DUSE_NGHTTP2=OFF \
+      -DENABLE_ARES=OFF \
+      -DCURL_DISABLE_FTP=ON \
+      -DCURL_DISABLE_TFTP=ON \
+      -DCURL_DISABLE_SMTP=ON \
+      -DCURL_DISABLE_LDAP=ON \
+      -DCURL_DISABLE_LDAPS=ON \
+      -DCURL_DISABLE_SMB=ON \
+      -DCURL_DISABLE_GOPHER=ON \
+      -DCURL_DISABLE_TELNET=ON \
+      -DCURL_DISABLE_RTSP=ON \
+      -DCURL_DISABLE_POP3=ON \
+      -DCURL_DISABLE_IMAP=ON \
+      -DCURL_DISABLE_FILE=ON \
+      -DCURL_DISABLE_DICT=ON
+    cmake --build build --config Release
+    cmake --install build --config Release
 
     popd
     remove_temp_installs

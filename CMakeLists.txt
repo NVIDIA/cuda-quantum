@@ -188,12 +188,10 @@ endif()
 if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
   SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
 endif()
-if(NOT CURL_LIBRARY AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a")
-  SET(CURL_LIBRARY "$ENV{CURL_INSTALL_PREFIX}/lib/libcurl.a" CACHE FILEPATH "Path to curl library")
-  SET(CURL_INCLUDE_DIR "$ENV{CURL_INSTALL_PREFIX}/include" CACHE PATH "Path to curl include directory")
-  SET(CURL_CONFIG_EXECUTABLE "$ENV{CURL_INSTALL_PREFIX}/bin/curl-config" CACHE FILEPATH "Path to curl-config")
+if(NOT CURL_ROOT AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/cmake/CURL/CURLConfig.cmake")
+  # Point to custom curl installation - CMake will use its config files
+  SET(CURL_ROOT "$ENV{CURL_INSTALL_PREFIX}" CACHE PATH "Path to curl installation")
   SET(CMAKE_USE_SYSTEM_CURL TRUE)
-  SET(CURL_NO_CURL_CMAKE ON)
 endif()
 if(NOT AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   SET(AWSSDK_ROOT "$ENV{AWS_INSTALL_PREFIX}" CACHE PATH "Path to AWS SDK installation")
@@ -236,7 +234,12 @@ else()
   # across multiple shared libraries - each gets its own isolated copy.
   #
   # flat_namespace makes all symbols global, allowing shared libraries to see
-  # each other's registrations. This is a sledgehammer fix.
+  # each other's registrations. This is not a very graceful fix.
+  # Alternatives might be:
+  # A. Restructuring libraries to avoid multiple symbol definitions 
+  #    (but this still might struggle due to how plugin systems are used).
+  # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as 
+  #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
 endif()
 
@@ -550,15 +553,6 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   set(BUILD_SHARED_LIBS OFF)
   set(CPR_ENABLE_SSL ON) # needed for https requests
   set(CPR_FORCE_OPENSSL_BACKEND ON)
-
-  # macOS fix: Clear pkg-config's system curl reference to prevent linking both
-  # custom curl and system curl. FindCURL uses pkg-config which finds system curl
-  # at /usr/lib even when CURL_LIBRARY points to custom build. This causes OpenSSL
-  # symbol collisions when combined with flat_namespace linking.
-  if(APPLE)
-    set(pkgcfg_lib_PC_CURL_curl "" CACHE INTERNAL "" FORCE)
-  endif()
-
   add_subdirectory(tpls/cpr)
   target_compile_options(cpr PRIVATE -Wno-covered-switch-default -w)
 endif()
