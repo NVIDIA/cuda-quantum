@@ -99,6 +99,11 @@ namespace linking model:
 
 These are handled automatically and require no manual configuration.
 
+### macOS Limitations
+
+- **Stack size**: macOS has a smaller default stack size (8MB) than Linux. Some tests with large stack allocations may fail or be skipped.
+- **Two-level namespace**: macOS binds symbols to specific libraries by default, which breaks LLVM/MLIR's static initializer patterns. We use the `flat_namespace` linker option as a workaround to enable global symbol sharing, but this can cause collisions with system libraries (e.g., OpenSSL). When adding new dependencies, you may need `-Wl,-force_load` or two-level namespace linking for specific targets. See `cmake/BuildHelpers.cmake` for examples.
+
 ## Building CUDA-Q with a custom LLVM version
 
 CUDA-Q is intended to be built using the LLVM commit that the submodule is set
