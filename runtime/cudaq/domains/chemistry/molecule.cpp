@@ -39,8 +39,8 @@ std::complex<double> &one_body_integrals::operator()(std::size_t p,
 void one_body_integrals::dump() {
   // Manual print to avoid xio.hpp which triggers clang 17-18 template
   // ambiguity with svector's rebind_container (LLVM #91504).
-  auto arr = xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(),
-                       shape);
+  auto arr =
+      xt::adapt(data.get(), shape[0] * shape[1], xt::no_ownership(), shape);
   std::cerr << "{";
   for (std::size_t i = 0; i < shape[0]; ++i) {
     std::cerr << (i > 0 ? " {" : "{");

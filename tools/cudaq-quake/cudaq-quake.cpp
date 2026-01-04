@@ -372,9 +372,10 @@ int main(int argc, char **argv) {
     clArgs.push_back(path);
   }
 
-  // Configure C++ standard library headers (paths determined at CMake configure time).
-  // If LLVM was built with libc++, use those headers. Otherwise on macOS, use the SDK.
-  // On Linux without LLVM libc++, system headers are found automatically.
+  // Configure C++ standard library headers (paths determined at CMake configure
+  // time). If LLVM was built with libc++, use those headers. Otherwise on
+  // macOS, use the SDK. On Linux without LLVM libc++, system headers are found
+  // automatically.
   const std::string libcxxPath = CUDAQ_LIBCXX_PATH;
   const std::string libcxxTargetPath = CUDAQ_LIBCXX_TARGET_PATH;
   const std::string sysrootPath = CUDAQ_SYSROOT_PATH;

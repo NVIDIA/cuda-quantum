@@ -16,6 +16,8 @@ CLI
 CMake
 CNOT
 COBYLA
+Xcode
+Homebrew
 CPTP
 CPU
 CPUs
@@ -272,6 +274,7 @@ lookup
 lookups
 lossy
 lvalue
+macOS
 makefiles
 merchantability
 mps

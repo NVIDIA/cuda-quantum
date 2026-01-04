@@ -81,7 +81,7 @@ The first build takes a while as it builds LLVM from source.
 
 ### Manual/Incremental Builds
 
-For development, you can rebuild directly with cmake and ninja:
+For development, you can rebuild directly with `cmake` and ninja:
 
 ```bash
 source ~/.venv/cudaq/bin/activate
