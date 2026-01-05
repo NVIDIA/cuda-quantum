@@ -20,8 +20,6 @@ struct angle_test {
     x(q2);
     rx(param, q1);
     rx(-param, q1);
-    mz(q1);
-    mz(q2);
   }
 };
 

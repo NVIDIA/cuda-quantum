@@ -28,8 +28,6 @@ __qpu__ void load_value(unsigned value) {
     if (value & (1 << i))
       x(qubits[3 - i]);
   }
-
-  mz(qubits);
 }
 
 int main() {

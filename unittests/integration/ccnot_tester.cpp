@@ -24,8 +24,6 @@ struct ccnot_test {
 
     auto controls = q.front(2);
     cudaq::control(test_inner_adjoint, controls, q[2]);
-
-    mz(q);
   }
 };
 
@@ -49,8 +47,6 @@ struct nested_ctrl {
           cudaq::control([&](cudaq::qubit &r) { apply_x(r); }, q[1], r);
         },
         q[0], q[2]);
-
-    mz(q);
   }
 };
 
@@ -64,8 +60,6 @@ CUDAQ_TEST(CCNOTTester, checkSimple) {
 
     // Apply control X with q0 q1 as controls
     x<cudaq::ctrl>(q[0], q[1], q[2]);
-
-    mz(q);
   };
 
   auto counts = cudaq::sample(ccnot);
@@ -87,7 +81,6 @@ CUDAQ_TEST(FredkinTester, checkTruth) {
     cudaq::qubit q, r, s;
     x(q, s);
     swap<cudaq::ctrl>(q, r, s);
-    mz(q, r, s);
   };
 
   auto counts = cudaq::sample(test);

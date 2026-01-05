@@ -69,9 +69,6 @@ struct qpe {
     // Apply inverse quantum fourier transform
     iqft{}(counting_qubits);
 
-    // Measure to gather sampling statistics
-    mz(counting_qubits);
-
     return;
   }
 };
@@ -80,8 +77,10 @@ CUDAQ_TEST(QPENisqTester, checkSimple) {
   auto counts = cudaq::sample(
       qpe{}, 3, 1, [](cudaq::qubit &q) __qpu__ { x(q); }, tgate{});
   counts.dump();
-  EXPECT_EQ(1, counts.size());
-  EXPECT_TRUE(counts.begin()->first == "100");
+  auto counting_qubits_result = counts.get_marginal({0, 1, 2});
+  counting_qubits_result.dump();
+  EXPECT_EQ(1, counting_qubits_result.size());
+  EXPECT_TRUE(counting_qubits_result.begin()->first == "100");
 }
 
 struct xOp {
@@ -115,9 +114,6 @@ struct qpeWithForwarding {
     // Apply inverse quantum fourier transform
     iqft{}(counting_qubits);
 
-    // Measure to gather sampling statistics
-    mz(counting_qubits);
-
     return;
   }
 };
@@ -125,8 +121,10 @@ struct qpeWithForwarding {
 CUDAQ_TEST(QPENisqTester, checkPerfectForwardingBug) {
   auto counts = cudaq::sample(qpeWithForwarding{}, 3, 1, xOp{}, tgate{});
   counts.dump();
-  EXPECT_EQ(1, counts.size());
-  EXPECT_TRUE(counts.begin()->first == "100");
+  auto counting_qubits_result = counts.get_marginal({0, 1, 2});
+  counting_qubits_result.dump();
+  EXPECT_EQ(1, counting_qubits_result.size());
+  EXPECT_TRUE(counting_qubits_result.begin()->first == "100");
 }
 
 #endif

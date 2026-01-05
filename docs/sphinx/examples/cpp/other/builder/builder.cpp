@@ -115,7 +115,6 @@ int main() {
     for (int i = 0; i < n_qubits - 1; i++) {
       ghz_builder.x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    ghz_builder.mz(q);
 
     // You can get the MLIR representation
     auto mlir_code = ghz_builder.to_quake();
@@ -135,8 +134,6 @@ int main() {
     auto sim_builder = cudaq::make_kernel();
     std::vector<cudaq::complex> init_state;
     auto qubits = sim_builder.qalloc(init_state);
-    // Build the quantum circuit template here.
-    sim_builder.mz(qubits);
 
     // Now we are ready to instantiate the kernel and invoke it. So we can set
     // the `init_state` to a vector with 2 complex values (1 qubit) and
@@ -165,7 +162,6 @@ int main() {
     ccnot_builder.x(q);
     ccnot_builder.x(q[1]);
     ccnot_builder.x<cudaq::ctrl>(q[0], q[1], q[2]);
-    ccnot_builder.mz(q);
 
     auto mlir_code = ccnot_builder.to_quake();
     printf("%s\n", mlir_code.c_str());

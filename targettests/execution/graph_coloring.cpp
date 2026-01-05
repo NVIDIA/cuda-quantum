@@ -59,7 +59,8 @@ __qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   // cudaq::adjoint(init_state, qubits, theta);
   init_state_adj(qubits, theta);
   x(qubits);
-  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4], qubits[5], qubits[6], qubits[7]);
+  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4],
+                 qubits[5], qubits[6], qubits[7]);
   x(qubits);
   init_state(qubits, theta);
 }
@@ -107,20 +108,27 @@ __qpu__ void grover(double theta) {
 
   oracle(qubits, ancilla);
   reflect_uniform(qubits, theta);
-
-  mz(qubits);
 };
 
 int main() {
   double theta = 2. * std::acos(1. / std::sqrt(3));
-  auto result = cudaq::sample(1000, grover, theta);
+  auto counts = cudaq::sample(1000, grover, theta);
+
+  auto counts_map = counts.to_map();
+  std::size_t total_qubits = counts_map.begin()->first.size();
+  // We need to drop the compiler generated qubits, if any, which are the
+  // beginning, and also drop the ancilla qubit which is the last one
+  std::vector<std::size_t> indices;
+  for (std::size_t i = total_qubits - 9; i < total_qubits - 1; i++)
+    indices.push_back(i);
+  auto result = counts.get_marginal(indices);
 
 #ifndef SYNTAX_CHECK
   std::vector<std::string> strings;
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
 

@@ -30,7 +30,6 @@ __qpu__ void kernel() {
   custom_s<cudaq::adj>(q);
   custom_s_adj(q);
   h(q);
-  mz(q);
 }
 
 int main() {

@@ -10,7 +10,6 @@ int main() {
   auto xgate = []() __qpu__ {
     cudaq::qubit q;
     x(q);
-    mz(q);
   };
 
   // Run noise-less simulation

@@ -26,8 +26,6 @@ int main() {
     cudaq::qvector q(2);
     x(q[0]);
     swap(q[0], q[1]);
-
-    mz(q);
   };
 
   auto counts = cudaq::sample(swapKernel);

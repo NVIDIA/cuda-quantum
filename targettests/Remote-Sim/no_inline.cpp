@@ -32,7 +32,6 @@ struct foo {
     func(q[0]);
     bar(q[0]);
     h(q[0]);
-    auto result = mz(q[0]);
   }
 };
 

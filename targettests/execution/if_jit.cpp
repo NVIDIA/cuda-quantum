@@ -27,8 +27,6 @@ __qpu__ void foo(bool value) {
   cudaq::qubit q;
   if (value)
     x(q);
-
-  mz(q);
 }
 
 int main() {

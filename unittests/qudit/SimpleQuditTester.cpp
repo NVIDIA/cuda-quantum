@@ -51,7 +51,6 @@ TEST(SimpleQuditTester, checkSimple) {
       plusGate(qutrits[0]);
       plusGate(qutrits[1]);
       plusGate(qutrits[1]);
-      mz(qutrits);
     }
   };
 

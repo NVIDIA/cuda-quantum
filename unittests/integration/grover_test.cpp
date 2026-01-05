@@ -37,7 +37,6 @@ struct run_grover {
       oracle(q);
       reflect_about_uniform{}(q);
     }
-    mz(q);
   }
 };
 

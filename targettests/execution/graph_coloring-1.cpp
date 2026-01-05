@@ -88,13 +88,20 @@ __qpu__ void grover(double theta) {
 
   oracle(qubits, ancilla);
   reflect_uniform(qubits, theta);
-
-  mz(qubits);
 };
 
 int main() {
   double theta = 2. * std::acos(1. / std::sqrt(3));
-  auto result = cudaq::sample(1000, grover, theta);
+  auto counts = cudaq::sample(1000, grover, theta);
+
+  auto counts_map = counts.to_map();
+  std::size_t total_qubits = counts_map.begin()->first.size();
+  // We need to drop the compiler generated qubits, if any, which are the
+  // beginning, and also drop the ancilla qubit which is the last one
+  std::vector<std::size_t> indices;
+  for (std::size_t i = total_qubits - 9; i < total_qubits - 1; i++)
+    indices.push_back(i);
+  auto result = counts.get_marginal(indices);
 
 #ifndef SYNTAX_CHECK
   std::vector<std::string> strings;

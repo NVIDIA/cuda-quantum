@@ -26,7 +26,6 @@
 struct kernel {
   __qpu__ void operator()(std::vector<cudaq::complex> vec) {
     cudaq::qvector qubits = vec;
-    mz(qubits);
   }
 };
 

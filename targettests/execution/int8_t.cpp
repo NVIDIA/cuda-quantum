@@ -25,7 +25,6 @@ struct variable_qreg {
   __qpu__ void operator()(std::uint8_t value) {
     cudaq::qvector qubits(value);
 
-    mz(qubits);
   }
 };
 

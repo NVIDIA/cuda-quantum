@@ -3,11 +3,11 @@
 // nvq++ phase_estimation.cpp -o qpe.x && ./qpe.x
 // ```
 
+#include <cmath>
 #include <cudaq.h>
 #include <cudaq/algorithm.h>
+#include <numeric>
 #include <stdio.h>
-
-#include <cmath>
 
 // A pure device quantum kernel defined as a free function
 // (cannot be called from host code).
@@ -67,9 +67,6 @@ struct qpe {
     // Apply inverse quantum Fourier transform
     iqft(counting_qubits);
 
-    // Measure to gather sampling statistics
-    mz(counting_qubits);
-
     return;
   }
 };
@@ -83,7 +80,10 @@ int main() {
   for (auto nQubits : std::vector<int>{2, 4, 6, 8}) {
     auto counts = cudaq::sample(
         qpe{}, nQubits, [](cudaq::qubit &q) __qpu__ { x(q); }, r1PiGate{});
-    auto mostProbable = counts.most_probable();
+    std::vector<std::size_t> indices(nQubits);
+    std::iota(indices.begin(), indices.end(), 0);
+    auto counting_qubits = counts.get_marginal(indices);
+    auto mostProbable = counting_qubits.most_probable();
     double theta = cudaq::to_integer(mostProbable) / (double)(1UL << nQubits);
     auto piEstimate = 1. / (2 * theta);
     printf("Pi Estimate(nQubits == %d) = %lf \n", nQubits, piEstimate);

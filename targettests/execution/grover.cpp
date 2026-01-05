@@ -40,7 +40,6 @@ struct run_grover {
       oracle(target_state, qs);
       reflect_about_uniform(qs);
     }
-    mz(qs);
   }
 };
 
@@ -63,7 +62,8 @@ struct oracle {
 
 int main(int argc, char *argv[]) {
   auto secret = 1 < argc ? strtol(argv[1], NULL, 2) : 0b1011;
-  auto counts = cudaq::sample(run_grover{}, 4, secret, oracle{});
+  auto all_counts = cudaq::sample(run_grover{}, 4, secret, oracle{});
+  auto counts = all_counts.get_marginal({1, 2, 3, 4}); // drop ancilla
   printf("Found string %s\n", counts.most_probable().c_str());
   return 0;
 }

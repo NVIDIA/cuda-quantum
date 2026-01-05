@@ -44,7 +44,6 @@ int main() {
   auto kernel = [](double angle) __qpu__ {
     cudaq::qubit q;
     rx(angle, q);
-    mz(q);
   };
 
   // Now let's set the noise and we're ready to run the simulation!

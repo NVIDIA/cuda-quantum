@@ -28,7 +28,6 @@ struct all_h {
     }
     s(q[0]);
     r1(M_PI / 2, q[1]);
-    auto result = mz(q);
   }
 };
 

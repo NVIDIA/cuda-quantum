@@ -24,6 +24,7 @@
 #include "mlir/Transforms/Passes.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include <numeric>
 
 using namespace mlir;
 
@@ -121,7 +122,6 @@ TEST(QuakeSynthTests, checkSimpleIntegerInput) {
   auto [kernel, nQubits] = cudaq::make_kernel<int>();
   auto qubits = kernel.qalloc(nQubits);
   kernel.h(qubits);
-  kernel.mz(qubits);
   std::cout << kernel.to_quake() << '\n';
 
   // Set the proper name for the kernel
@@ -294,7 +294,6 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
     kernel.c_if(hiddenBits[i], [&]() { kernel.x<cudaq::ctrl>(aq, q[i]); });
   }
   kernel.h(q);
-  kernel.mz(q);
 
   // Dump the kernel to stdout.
   std::cout << kernel.to_quake() << '\n';
@@ -305,7 +304,11 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   // Should get a uniform distribution of all bit strings
   std::vector<int> ghostBits = {0, 1, 1, 0, 0};
   auto counts = cudaq::sample(kernel, ghostBits);
-  EXPECT_EQ(counts.size(), 1);
+  EXPECT_EQ(counts.size(), 2);
+  std::vector<std::size_t> indices(ghostBits.size());
+  std::iota(indices.begin(), indices.end(), 0);
+  auto qs_counts = counts.get_marginal(indices);
+  EXPECT_EQ(qs_counts.size(), 1);
 
   // Map the kernel_builder to_quake output to MLIR
   auto context = cudaq::initializeMLIR();
@@ -332,7 +335,9 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
 
   // Sample this new kernel processed with quake synth
   auto countz = sampleJitCode(jit.get(), kernel.name());
-  EXPECT_EQ(countz.size(), 1);
+  EXPECT_EQ(countz.size(), 2);
+  auto qs_countz = countz.get_marginal(indices);
+  EXPECT_EQ(qs_countz.size(), 1);
 }
 
 TEST(QuakeSynthTests, checkCallable) {
@@ -378,7 +383,6 @@ TEST(QuakeSynthTests, checkVectorOfComplex) {
       cudaq::make_kernel<std::vector<std::complex<double>>>();
   auto qubits = colonel.qalloc(stateVec);
   colonel.h(qubits);
-  colonel.mz(qubits);
   std::cout << colonel.to_quake() << '\n';
 
   // Generate name of the kernel
@@ -408,7 +412,6 @@ TEST(QuakeSynthTests, checkVectorOfPauliWord) {
   colonel.h(qubit);
   colonel.y(qubit);
   colonel.z(qubit);
-  colonel.mz(qubit);
   std::cout << colonel.to_quake() << '\n';
 
   // Generate name of the kernel

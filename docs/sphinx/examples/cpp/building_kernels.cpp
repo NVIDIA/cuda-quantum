@@ -105,7 +105,6 @@ __qpu__ void kernel7() {
   x(qvector);
   x(qvector[1]);
   x<cudaq::ctrl>(qvector[0], qvector[1]);
-  mz(qvector);
 }
 
 int main() {
