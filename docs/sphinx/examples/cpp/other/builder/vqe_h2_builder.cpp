@@ -28,7 +28,7 @@ namespace cudaq {
 // the builder on the provided qubits with the provided parameters.
 // Note we keep this qubit and parameter arguments as auto as these
 // will default to taking the qubits and variational parameters (`QuakeValue`s)
-void so4(cudaq::kernel_builder<std::vector<double>> &builder, QuakeValue &&q,
+void so4(cudaq::kernel<std::vector<double>> &builder, QuakeValue &&q,
          QuakeValue &&r, QuakeValue &parameters) {
   builder.ry(parameters[0], q);
   builder.ry(parameters[1], r);

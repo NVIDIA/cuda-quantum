@@ -71,7 +71,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
       },
       "Utility function for Python clients to register all LLVM Dialect "
       "Translation passes with the provided MLIR Context. Primarily used by "
-      "kernel_builder and ast_bridge when created new MLIR Contexts.");
+      "kernel and ast_bridge when created new MLIR Contexts.");
   cudaqRuntime.def(
       "initialize_cudaq",
       [&](py::kwargs kwargs) {

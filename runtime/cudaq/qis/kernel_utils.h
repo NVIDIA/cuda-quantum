@@ -43,8 +43,8 @@ cudaq::qkernel<Q> createQKernel(QuantumKernel &&kernel) {
 template <typename QuantumKernel>
 std::string getKernelName(QuantumKernel &&kernel) {
   if constexpr (has_name<QuantumKernel>::value) {
-    // kernel_builder kernel: need to JIT code to get it registered.
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    // kernel kernel: need to JIT code to get it registered.
+    static_cast<cudaq::details::kernel_base &>(kernel).jitCode();
     return kernel.name();
   } else {
     // R (S::operator())(Args..) or R(*)(Args...) kernels are registered

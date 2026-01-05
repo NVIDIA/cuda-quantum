@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq/builder/kernel_builder.h"
+#include "cudaq/builder/kernel.h"
 #include <cudaq.h>
 namespace cudaq {
 /// @brief Apply global phase (e^(i * theta)).
@@ -70,10 +70,10 @@ __qpu__ void fermionic_swap(double phi, cudaq::qubit &q0, cudaq::qubit &q1) {
 
 namespace builder {
 /// @brief Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
-/// kernel builder object
-template <typename KernelBuilder>
-void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue phi,
-                    cudaq::QuakeValue q0, cudaq::QuakeValue q1) {
+/// kernel object
+template <typename Kernel>
+void fermionic_swap(Kernel &kernel, cudaq::QuakeValue phi, cudaq::QuakeValue q0,
+                    cudaq::QuakeValue q1) {
   kernel.h(q0);
   kernel.h(q1);
 
@@ -103,8 +103,8 @@ void fermionic_swap(KernelBuilder &kernel, cudaq::QuakeValue phi,
 
 /// @brief Add Fermionic SWAP rotation kernel (fixed phi angle) to the kernel
 /// builder object
-template <typename KernelBuilder>
-void fermionic_swap(KernelBuilder &kernel, double phi, cudaq::QuakeValue q0,
+template <typename Kernel>
+void fermionic_swap(Kernel &kernel, double phi, cudaq::QuakeValue q0,
                     cudaq::QuakeValue q1) {
   fermionic_swap(kernel, kernel.constantVal(phi), q0, q1);
 }

@@ -9,7 +9,7 @@
 include(HandleLLVMOptions)
 set(LIBRARY_NAME cudaq-builder)
 
-add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp kernels.cpp)
+add_library(cudaq-builder SHARED kernel.cpp QuakeValue.cpp kernels.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(cudaq-builder PUBLIC 
           $<INSTALL_INTERFACE:include> 

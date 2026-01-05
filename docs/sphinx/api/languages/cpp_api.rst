@@ -275,19 +275,19 @@ Noise Modeling
 
 .. doxygenenum:: cudaq::noise_model_type
 
-Kernel Builder
+Kernel
 ===============
 
-.. doxygenclass:: cudaq::kernel_builder
+.. doxygenclass:: cudaq::kernel
     :members:
 
 .. doxygenclass:: cudaq::QuakeValue
     :members:
 
-.. doxygenclass:: cudaq::details::kernel_builder_base
+.. doxygenclass:: cudaq::details::kernel_base
     :members:
 
-.. doxygenclass:: cudaq::details::KernelBuilderType
+.. doxygenclass:: cudaq::details::KernelType
     :members:
 
 Algorithms

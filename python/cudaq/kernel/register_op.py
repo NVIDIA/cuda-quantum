@@ -12,7 +12,7 @@ from functools import partialmethod
 from typing import Callable, List
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from .kernel_builder import PyKernel, __generalCustomOperation
+from .kernel import PyKernel, __generalCustomOperation
 from .utils import globalRegisteredOperations
 
 
@@ -56,7 +56,7 @@ def register_operation(operation_name: str, unitary):
     # Register the operation name so JIT AST can get it.
     globalRegisteredOperations[operation_name] = matrix
 
-    # Make available to kernel builder object
+    # Make available to kernel object
     setattr(PyKernel, operation_name,
             partialmethod(__generalCustomOperation, operation_name))
     # Let the runtime know about this registered operation.

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "kernel_builder.h"
+#include "kernel.h"
 #include <complex>
 
 namespace cudaq {
@@ -55,7 +55,7 @@ std::vector<double> getAlphaY(const std::span<double> data,
 
 /// @brief Decompose the input state vector data to a set of
 /// controlled operations and rotations. This function takes as input
-/// a `kernel_builder` and appends the operations of the decomposition
+/// a `kernel` and appends the operations of the decomposition
 /// to its internal representation. This implementation follows the algorithm
 /// defined in `https://arxiv.org/pdf/quant-ph/0407010.pdf`.
 template <typename Kernel>
@@ -111,12 +111,12 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
 }
 
 /// @brief Construct a CUDA-Q kernel that produces the
-/// given state. This overload will return the `kernel_builder` as a
+/// given state. This overload will return the `kernel` as a
 /// `unique_ptr`.
 auto from_state(const std::span<std::complex<double>> data) {
   auto numQubits = std::log2(data.size());
-  std::vector<details::KernelBuilderType> empty;
-  auto kernel = std::make_unique<kernel_builder<>>(empty);
+  std::vector<details::KernelType> empty;
+  auto kernel = std::make_unique<cudaq::kernel<>>(empty);
   auto qubits = kernel->qalloc(numQubits);
   from_state(*kernel.get(), qubits, data);
   return kernel;
