@@ -358,10 +358,6 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
       throw std::runtime_error(
           "Mismatch between degrees and modalities sizes.");
 
-    if (sub_degrees.size() != 1)
-      throw std::runtime_error(
-          "Elementary operator must act on a single degree.");
-
     for (size_t j = 0; j < sub_degrees.size(); j++) {
       std::size_t degree = sub_degrees[j];
       int modality = modalities[j];
