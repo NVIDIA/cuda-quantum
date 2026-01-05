@@ -163,7 +163,8 @@ public:
   // created.
   [[nodiscard]] KernelThunkResultType
   launchModule(const std::string &kernelName, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, mlir::Type resultTy);
+               const std::vector<void *> &rawArgs, mlir::Type resultTy,
+               std::size_t qpu_id = 0);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

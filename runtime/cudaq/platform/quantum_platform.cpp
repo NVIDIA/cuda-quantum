@@ -206,16 +206,8 @@ void quantum_platform::launchKernel(const std::string &kernelName,
 
 KernelThunkResultType quantum_platform::launchModule(
     const std::string &kernelName, mlir::ModuleOp module,
-    const std::vector<void *> &rawArgs, mlir::Type resTy) {
-  std::size_t qpu_id = 0;
-
-  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  {
-    std::shared_lock lock(threadToQpuIdMutex);
-    auto iter = threadToQpuId.find(tid);
-    if (iter != threadToQpuId.end())
-      qpu_id = iter->second;
-  }
+    const std::vector<void *> &rawArgs, mlir::Type resTy, std::size_t qpu_id) {
+  validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
   return qpu->launchModule(kernelName, module, rawArgs, resTy);
 }
@@ -299,7 +291,8 @@ streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp module,
 
   auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
-  return platform.launchModule(kernelName, module, rawArgs, resultTy);
+  std::size_t qpu_id = platform.get_current_qpu();
+  return platform.launchModule(kernelName, module, rawArgs, resultTy, qpu_id);
 }
 
 KernelThunkResultType
