@@ -122,6 +122,92 @@ def test_state_from_mps_tensors():
     assert np.isclose(reconstructed[2**10 - 1], 1. / np.sqrt(2.))
 
 
+@skipIfNoGPU
+def test_mps_observe_with_noise():
+    """
+    Test that MPS observe returns correct expectation values with noise model.
+    """
+    cudaq.set_target('tensornet-mps')
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        x(q)  # |0> -> |1>, so <Z> should be -1
+
+    # Z operator: |1> state gives <Z> = -1
+    H = cudaq.spin.z(0)
+
+    # Without noise: expect -1.0
+    result_no_noise = cudaq.observe(kernel, H)
+    assert np.isclose(result_no_noise.expectation(), -1.0, atol=1e-6), \
+        f"Without noise: expected -1.0, got {result_no_noise.expectation()}"
+
+    # With 10% bit-flip noise on X gate:
+    # - 90% trajectories: |0> -> |1>, <Z> = -1
+    # - 10% trajectories: |0> -> |1> -> |0>, <Z> = +1
+    # Expected: 0.9*(-1) + 0.1*(+1) = -0.8
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(0.1))
+
+    result_with_noise = cudaq.observe(kernel,
+                                      H,
+                                      noise_model=noise,
+                                      num_trajectories=1000)
+
+    # The expectation value should be around -0.8, NOT 0.0
+    # Use a tolerance of 0.15 to account for statistical variation
+    exp_val = result_with_noise.expectation()
+    expected_val = -0.8
+
+    assert abs(exp_val) > 0.1, \
+        f"Bug detected: observe() returned {exp_val}, expected ~{expected_val}"
+
+    assert np.isclose(exp_val, expected_val, atol=0.15), \
+        f"With noise: expected ~{expected_val}, got {exp_val}"
+
+
+@skipIfNoGPU
+def test_mps_observe_with_noise_multi_term():
+    """
+    Test MPS observe with a multi-term Hamiltonian and noise model.
+    """
+    cudaq.set_target('tensornet-mps')
+
+    @cudaq.kernel
+    def ansatz(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+        x.ctrl(q[1], q[0])
+
+    # Multi-term Hamiltonian
+    H = (5.907 - 2.1433 * cudaq.spin.x(0) * cudaq.spin.x(1) -
+         2.1433 * cudaq.spin.y(0) * cudaq.spin.y(1) +
+         0.21829 * cudaq.spin.z(0) - 6.125 * cudaq.spin.z(1))
+
+    # Without noise
+    result_no_noise = cudaq.observe(ansatz, H, 0.59)
+    exp_no_noise = result_no_noise.expectation()
+    assert np.isclose(exp_no_noise, -1.7487, atol=1e-3), \
+        f"Without noise: expected -1.7487, got {exp_no_noise}"
+
+    # With depolarization noise
+    noise = cudaq.NoiseModel()
+    noise.add_all_qubit_channel("x", cudaq.DepolarizationChannel(0.05))
+    noise.add_all_qubit_channel("ry", cudaq.DepolarizationChannel(0.05))
+
+    result_with_noise = cudaq.observe(ansatz,
+                                      H,
+                                      0.59,
+                                      noise_model=noise,
+                                      num_trajectories=500)
+    exp_with_noise = result_with_noise.expectation()
+
+    # With noise, expectation value should be non-zero and different from noiseless
+    assert abs(exp_with_noise) > 0.1, \
+        f"Bug detected: observe() returned {exp_with_noise}, expected non-zero value"
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

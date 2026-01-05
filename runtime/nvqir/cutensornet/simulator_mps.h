@@ -278,7 +278,7 @@ public:
     std::vector<cudaq::spin_op_term> prods;
     termStrs.reserve(ham.num_terms());
     prods.reserve(ham.num_terms());
-    for (auto &&term : prods) {
+    for (auto &&term : ham) {
       termStrs.emplace_back(term.get_term_id());
       prods.push_back(std::move(term));
     }
@@ -322,6 +322,7 @@ public:
     results.reserve(terms.size());
 
     for (std::size_t i = 0; i < terms.size(); ++i) {
+      expVal += termExpVals[i];
       results.emplace_back(
           cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
     }
