@@ -37,7 +37,8 @@ all_models = [
     TestBatchedCavityModelTimeDependentCollapseOp,
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
-    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326
+    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326,
+    TestMultiDegreeElemOp
 ]
 
 
