@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ inputs.github_commit || '' }}"
 
@@ -90,7 +90,7 @@ jobs:
             echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
       - name: Upload metapackages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.metapackage_build.outputs.artifact_name }}
           path: /tmp/packages/
@@ -119,14 +119,14 @@ jobs:
 
     steps:
       - name: Load metapackages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
           path: /tmp/metapackages/
           merge-multiple: true
 
       - name: Load wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: ${{ inputs.wheel_artifacts }}
           path: /tmp/wheels/

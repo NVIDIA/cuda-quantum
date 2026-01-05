@@ -24,7 +24,7 @@ jobs:
           echo "source-sha: ${{ github.sha }}" >> metadata.txt
 
       - name: Upload metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: metadata_pr
           path: metadata.txt

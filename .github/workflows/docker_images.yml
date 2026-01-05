@@ -101,7 +101,7 @@ jobs:
   
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -232,7 +232,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -404,7 +404,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -678,7 +678,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -757,7 +757,7 @@ jobs:
 
       - name: Upload build artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: build
           path: /tmp/build
@@ -765,7 +765,7 @@ jobs:
 
       - name: Upload documentation
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cuda_quantum_docs # changing the artifact name requires updating other workflows
           path: docs
@@ -797,7 +797,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -875,7 +875,7 @@ jobs:
 
       - name: Upload job summary
         if: steps.job_summary.outputs.validation_summary != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
@@ -894,7 +894,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -918,7 +918,7 @@ jobs:
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}
@@ -942,7 +942,7 @@ jobs:
           echo "$keys" >> cache_keys.txt
           echo "artifact_name=${{ needs.validation.outputs.artifact_id }}_cache_keys" >> $GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.workflow_inputs.outputs.artifact_name }}
           path: cache_keys.txt
