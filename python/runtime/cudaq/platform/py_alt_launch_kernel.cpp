@@ -230,18 +230,14 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                 appendVectorValue(value, data, offset, char());
                 return;
               }
-
               appendVectorValue(value, data, offset, std::size_t());
-              return;
             })
             .Case([&](mlir::FloatType type) {
               if (type.isF32()) {
                 appendVectorValue(value, data, offset, float());
                 return;
               }
-
               appendVectorValue(value, data, offset, double());
-              return;
             });
       })
       .Default([&](mlir::Type ty) {
