@@ -55,7 +55,8 @@ def observe(kernel,
             shots_count=0,
             noise_model=None,
             num_trajectories=None,
-            execution=None):
+            execution=None,
+            qpu_id=0):
     """
     Compute the expected value of the `spin_operator` with respect to the
     `kernel`. If the input `spin_operator` is a list of `SpinOperator` then
@@ -108,12 +109,13 @@ def observe(kernel,
 
     # Handle parallel execution use cases
     if execution != None:
-        return cudaq_runtime.observe_parallel(kernel,
-                                              spin_operator,
-                                              *args,
-                                              execution=execution,
-                                              shots_count=shots_count,
-                                              noise_model=noise_model)
+        return observe_parallel(kernel,
+                                spin_operator,
+                                execution,
+                                *args,
+                                qpu_id=qpu_id,
+                                shots_count=shots_count,
+                                noise_model=noise_model)
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
