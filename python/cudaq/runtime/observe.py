@@ -159,6 +159,7 @@ def observe(kernel,
         else:
             ctx = cudaq_runtime.ExecutionContext('observe')
         ctx.setSpinOperator(localOp)
+        ctx.allowJitEngineCaching = True
         if num_trajectories is not None:
             if noise_model is None:
                 raise RuntimeError(
@@ -199,6 +200,7 @@ def observe(kernel,
             results.append(
                 cudaq_runtime.ObserveResult(observeResult.expectation(op), op,
                                             observeResult.counts(op)))
+        ctx.unset_jit_engine()
 
     if noise_model != None:
         cudaq_runtime.unset_noise()

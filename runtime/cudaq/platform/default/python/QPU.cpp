@@ -80,7 +80,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
 /// transport layer. If \p kernelName and \p args are provided, they will
 /// specialize the selected entry-point kernel.
 std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
-                                             mlir::ModuleOp module,
+                                             ModuleOp module,
                                              OpaqueArguments &args,
                                              const std::string &format) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
@@ -96,7 +96,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   llvm::LLVMContext llvmContext;
   llvmContext.setOpaquePointers(false);
   std::unique_ptr<llvm::Module> llvmModule =
-      mlir::translateModuleToLLVMIR(module, llvmContext);
+      translateModuleToLLVMIR(module, llvmContext);
   if (!llvmModule)
     return "{translation failed}";
   std::string result;
@@ -110,7 +110,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
 /// QASM` code. \p kernelName and \p args should be provided, as they will
 /// specialize the selected entry-point kernel.
 std::string cudaq::detail::lower_to_openqasm(const std::string &name,
-                                             mlir::ModuleOp module,
+                                             ModuleOp module,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
   // Translate module to OpenQASM2 transport layer.
@@ -138,7 +138,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
 }
 
 /// Scan \p module and set flags in the current platform context accordingly.
-static void establishExecutionContext(mlir::ModuleOp module) {
+static void establishExecutionContext(ModuleOp module) {
   auto &plat = cudaq::get_platform();
   auto *currentExecCtx = plat.get_exec_ctx();
   if (!currentExecCtx)
@@ -159,12 +159,33 @@ static void establishExecutionContext(mlir::ModuleOp module) {
   plat.set_exec_ctx(currentExecCtx);
 }
 
+static ExecutionEngine *alreadyBuiltJITCode() {
+  auto *currentExecCtx = cudaq::get_platform().get_exec_ctx();
+  if (!currentExecCtx || !currentExecCtx->allowJitEngineCaching)
+    return {};
+  return reinterpret_cast<ExecutionEngine *>(currentExecCtx->jitEng);
+}
+
+/// In a sample launch context, the (`JIT` compiled) execution engine may be
+/// cached so that it can be called many times in a loop without being
+/// recompiled. This exploits the fact that the arguments processed at the
+/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
+static bool cacheJITForPerformance(ExecutionEngine *jit) {
+  auto *currentExecCtx = cudaq::get_platform().get_exec_ctx();
+  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
+    if (!currentExecCtx->jitEng)
+      currentExecCtx->jitEng = reinterpret_cast<void *>(jit);
+    return true;
+  }
+  return false;
+}
+
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
   cudaq::KernelThunkResultType launchModule(const std::string &name,
-                                            mlir::ModuleOp module,
+                                            ModuleOp module,
                                             const std::vector<void *> &rawArgs,
-                                            mlir::Type resultTy) override {
+                                            Type resultTy) override {
     // In this launch scenario, we have a ModuleOp that has the entry-point
     // kernel, but needs to be merged with anything else it may call. The
     // merging of modules mirrors the late binding and dynamic scoping of the
@@ -173,34 +194,40 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     const bool enablePythonCodegenDump =
         cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
 
-    // 1. Check that this call is sane.
-    if (enablePythonCodegenDump)
-      module.dump();
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
-    auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
-    if (!funcOp)
-      throw std::runtime_error("no kernel named " + name + " found in module");
-
-    // 2. Merge other modules (e.g., if there are device kernel calls).
-    cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
-
-    // Mark all newly merged kernels private.
-    for (auto &op : module)
-      if (auto f = dyn_cast<func::FuncOp>(op))
-        if (f != funcOp)
-          f.setPrivate();
-
-    establishExecutionContext(module);
-
-    // 3. LLVM JIT the code so we can execute it.
-    CUDAQ_INFO("Run Argument Synth.\n");
-    if (enablePythonCodegenDump)
-      module.dump();
-    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump);
-
-    // 4. Execute the code right here, right now.
     cudaq::KernelThunkResultType result{nullptr, 0};
-    auto *jit = cudaq::createQIRJITEngine(module, "qir:");
+    ExecutionEngine *jit = alreadyBuiltJITCode();
+    if (!jit) {
+      // 1. Check that this call is sane.
+      if (enablePythonCodegenDump)
+        module.dump();
+      auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
+      if (!funcOp)
+        throw std::runtime_error("no kernel named " + name +
+                                 " found in module");
+
+      // 2. Merge other modules (e.g., if there are device kernel calls).
+      cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
+
+      // Mark all newly merged kernels private.
+      for (auto &op : module)
+        if (auto f = dyn_cast<func::FuncOp>(op))
+          if (f != funcOp)
+            f.setPrivate();
+
+      establishExecutionContext(module);
+
+      // 3. LLVM JIT the code so we can execute it.
+      CUDAQ_INFO("Run Argument Synth.\n");
+      if (enablePythonCodegenDump)
+        module.dump();
+      specializeKernel(name, module, rawArgs, resultTy,
+                       enablePythonCodegenDump);
+
+      // 4. Execute the code right here, right now.
+      jit = cudaq::createQIRJITEngine(module, "qir:");
+    }
+
     if (resultTy) {
       // Proceed to call the .thunk function so that the result value will be
       // properly marshaled into the buffer we allocated in
@@ -222,7 +249,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
             "kernel disappeared underneath execution engine");
       reinterpret_cast<void (*)()>(*funcPtr)();
     }
-    delete jit;
+    if (!cacheJITForPerformance(jit))
+      delete jit;
     // FIXME: actually handle results
     return result;
   }

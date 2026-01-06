@@ -182,6 +182,7 @@ def sample(kernel,
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
     ctx.explicitMeasurements = explicit_measurements
+    ctx.allowJitEngineCaching = True
     cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()
@@ -221,6 +222,7 @@ def sample(kernel,
             cudaq_runtime.setExecutionContext(ctx)
 
     cudaq_runtime.unset_noise()
+    ctx.unset_jit_engine()
     return counts
 
 
