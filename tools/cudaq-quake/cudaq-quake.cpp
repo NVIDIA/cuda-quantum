@@ -380,12 +380,13 @@ int main(int argc, char **argv) {
   const std::string libcxxTargetPath = CUDAQ_LIBCXX_TARGET_PATH;
   const std::string sysrootPath = CUDAQ_SYSROOT_PATH;
   if (!libcxxPath.empty()) {
-    clArgs.push_back("-isystem");
-    clArgs.push_back(libcxxPath);
+    // Target-specific path (eg., containing __config_site) must come first.
     if (!libcxxTargetPath.empty()) {
       clArgs.push_back("-isystem");
       clArgs.push_back(libcxxTargetPath);
     }
+    clArgs.push_back("-isystem");
+    clArgs.push_back(libcxxPath);
   } else if (!sysrootPath.empty()) {
     clArgs.push_back("-isysroot");
     clArgs.push_back(sysrootPath);
