@@ -112,7 +112,6 @@ def observe(kernel,
                                 spin_operator,
                                 execution,
                                 *args,
-                                qpu_id=qpu_id,
                                 shots_count=shots_count,
                                 noise_model=noise_model)
 
@@ -264,7 +263,6 @@ def observe_parallel(kernel,
                      spin_operator,
                      execution,
                      *args,
-                     qpu_id=0,
                      shots_count=-1,
                      noise_model=None):
     """
@@ -322,6 +320,6 @@ def observe_parallel(kernel,
     specMod, processedArgs = decorator.handle_call_arguments(*args)
     returnTy = decorator.get_none_type()
     return cudaq_runtime.observe_parallel_impl(shortName, specMod, returnTy,
-                                               execution, spin_operator, qpu_id,
+                                               execution, spin_operator,
                                                shots_count, noise_model,
                                                *processedArgs)
