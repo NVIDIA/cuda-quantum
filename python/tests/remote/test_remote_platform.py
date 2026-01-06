@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -274,22 +274,6 @@ def test_state_kernel():
             x.ctrl(qreg[i], qreg[i + 1])
 
     check_state(kernel)
-
-
-def test_disallowed_execution_context():
-    print("In test_disallowed_execution_context...")
-
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def simple_kernel():
-            qubits = cudaq.qvector(2)
-            h(qubits[0])
-            x.ctrl(qubits[0], qubits[1])
-            mz(qubits)
-
-        cudaq.draw(simple_kernel)
-    assert "tracer operation is not supported" in repr(e)
 
 
 def check_overlap(entity_bell, entity_x):

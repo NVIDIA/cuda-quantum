@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -38,16 +38,6 @@ protected:
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<RemoteRuntimeClient> m_client;
   bool in_resource_estimation = false;
-  static constexpr std::array<std::string_view, 1>
-      DISALLOWED_EXECUTION_CONTEXT = {"tracer"};
-
-  static constexpr bool isDisallowed(std::string_view context) {
-    return std::any_of(DISALLOWED_EXECUTION_CONTEXT.begin(),
-                       DISALLOWED_EXECUTION_CONTEXT.end(),
-                       [context](std::string_view disallowed) {
-                         return disallowed == context;
-                       });
-  }
 
   /// @brief Return a pointer to the execution context for this thread. It will
   /// return `nullptr` if it was not found in `m_contexts`.
@@ -161,11 +151,6 @@ public:
           "a kernel inside of a choice function?)");
 
     ExecutionContext *executionContextPtr = getExecutionContextForMyThread();
-
-    if (executionContextPtr && isDisallowed(executionContextPtr->name))
-      throw std::runtime_error(
-          executionContextPtr->name +
-          " operation is not supported with cudaq target remote-mqpu!");
 
     // Run resource estimation locally
     if (executionContextPtr && executionContextPtr->name == "resource-count") {
