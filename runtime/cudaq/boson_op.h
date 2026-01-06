@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "cudaq/operators/operator_leafs.h"
 #include "cudaq/operators/matrix.h"
+#include "cudaq/operators/operator_leafs.h"
 
 namespace cudaq {
 class boson_handler : public operator_handler, mdiag_operator_handler {

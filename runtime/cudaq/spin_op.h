@@ -13,8 +13,8 @@
 #include <vector>
 
 #include "cudaq/operators/helpers.h"
-#include "cudaq/operators/operator_leafs.h"
 #include "cudaq/operators/matrix.h"
+#include "cudaq/operators/operator_leafs.h"
 
 namespace cudaq {
 
