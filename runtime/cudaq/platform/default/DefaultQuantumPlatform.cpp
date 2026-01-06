@@ -13,7 +13,6 @@
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "utils/cudaq_utils.h"
 #include "cudaq/version2/cudaq/qpus/any_qpu.h"
 #include "utils/cudaq_utils.h"
 #include <filesystem>
