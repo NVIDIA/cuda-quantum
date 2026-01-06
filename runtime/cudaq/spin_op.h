@@ -14,7 +14,7 @@
 
 #include "cudaq/operators/helpers.h"
 #include "cudaq/operators/operator_leafs.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 namespace cudaq {
 

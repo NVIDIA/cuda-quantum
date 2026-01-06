@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "cudaq/operators/operator_leafs.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 namespace cudaq {
 /// @brief The matrix_handler class manages matrix-based quantum operators.

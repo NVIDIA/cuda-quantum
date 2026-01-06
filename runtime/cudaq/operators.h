@@ -18,7 +18,7 @@
 #include "operators/evaluation.h"
 #include "operators/operator_leafs.h"
 #include "operators/templates.h"
-#include "utils/matrix.h"
+#include "operators/matrix.h"
 
 namespace cudaq {
 
