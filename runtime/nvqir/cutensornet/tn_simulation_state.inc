@@ -321,7 +321,7 @@ void TensorNetSimulationState<ScalarType>::toHostImpl(
         stateVec.size(), numElements));
   if (std::is_same_v<ScalarType, T>) {
     std::memcpy(clientAllocatedData, stateVec.data(),
-                numElements * sizeof(ScalarType));
+                numElements * sizeof(std::complex<ScalarType>));
   } else {
     for (std::size_t i = 0; i < numElements; ++i)
       clientAllocatedData[i] = stateVec[i];
