@@ -146,8 +146,6 @@ CUDAQ_TEST(MPSToHostTester, checkToHostSingleQubit) {
   EXPECT_NEAR(0.0, hostBuffer[1].imag(), 1e-6);
 }
 
-#endif // CUDAQ_BACKEND_TENSORNET_MPS
-
 // Test for fp32 precision backend (tensornet-mps-fp32)
 #ifdef CUDAQ_SIMULATION_SCALAR_FP32
 
@@ -187,6 +185,8 @@ CUDAQ_TEST(MPSToHostTester, checkToHostFP32Precision) {
 }
 
 #endif // CUDAQ_SIMULATION_SCALAR_FP32
+
+#endif // CUDAQ_BACKEND_TENSORNET_MPS
 
 // Test for tensornet (non-MPS) backend - same bug exists in
 // tn_simulation_state.inc
