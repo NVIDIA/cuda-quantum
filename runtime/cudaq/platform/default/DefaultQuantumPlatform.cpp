@@ -82,7 +82,6 @@ public:
     CUDAQ_REGISTER_QPU_TYPE(DefaultQPU, default);
     platformQPUs.emplace_back(
         cudaq::registry::QPURegistry::get().instantiate("default"));
-    platformNumQPUs = platformQPUs.size();
   }
 
   /// @brief Set the target backend. Here we have an opportunity
@@ -93,7 +92,6 @@ public:
   void setTargetBackend(const std::string &backend) override {
     executionContext.set(nullptr);
     platformQPUs.clear();
-    threadToQpuId.clear();
     platformQPUs.emplace_back(
         cudaq::registry::QPURegistry::get().instantiate("default"));
 
@@ -139,7 +137,6 @@ public:
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
-      threadToQpuId.clear();
       platformQPUs.emplace_back(
           cudaq::registry::QPURegistry::get().instantiate(qpuName));
       if (platformQPUs.front() == nullptr)

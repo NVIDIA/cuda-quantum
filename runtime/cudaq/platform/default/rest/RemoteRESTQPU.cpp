@@ -47,10 +47,7 @@ protected:
 
 public:
   /// @brief The constructor
-  RemoteRESTQPU() : BaseRemoteRESTQPU() {
-    CUDAQ_INFO("Constructing a new RemoteRESTQPU");
-  }
-  RemoteRESTQPU(const RemoteRESTQPU &) = delete;
+  RemoteRESTQPU() : BaseRemoteRESTQPU() {}
 
   RemoteRESTQPU(RemoteRESTQPU &&) = delete;
   virtual ~RemoteRESTQPU() = default;
