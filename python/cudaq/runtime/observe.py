@@ -55,8 +55,7 @@ def observe(kernel,
             shots_count=0,
             noise_model=None,
             num_trajectories=None,
-            execution=None,
-            qpu_id=0):
+            execution=None):
     """
     Compute the expected value of the `spin_operator` with respect to the
     `kernel`. If the input `spin_operator` is a list of `SpinOperator` then
