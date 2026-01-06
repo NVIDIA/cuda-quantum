@@ -331,7 +331,7 @@ LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 PLATFORM_TRANSPORT_LAYER="qir:0.1"
 LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
-LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator -lcudaq-utils"
+LINKLIBS="-lcudaq -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
