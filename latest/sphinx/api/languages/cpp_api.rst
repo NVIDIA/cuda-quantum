@@ -326,8 +326,6 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
-.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
-
 .. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
@@ -339,8 +337,6 @@ Platform
 
 .. doxygenstruct:: cudaq::RemoteCapabilities
     :members:
-
-.. doxygenclass:: cudaq::SerializedCodeExecutionContext
 
 .. doxygentypedef:: cudaq::QuantumTask
 

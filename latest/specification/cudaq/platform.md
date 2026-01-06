@@ -1058,23 +1058,6 @@ latest
             -   [Submission from
                 Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](../../using/backends/cloud/nvqc.html){.reference
-            .internal}
-            -   [Quick
-                Start](../../using/backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](../../using/backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](../../using/backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](../../using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](../../using/backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
         .internal}
@@ -1781,8 +1764,19 @@ available quantum processing units (QPUs), with each QPU assigned a
 logical integer index ([`{0,1,2,...}`{.code .docutils .literal
 .notranslate}]{.pre}).
 
-**\[4\]** Programmers can specify the ID of the desired QPU and all
-subsequent CUDA-Q kernel executions will target that QPU.
+**\[4\]** The properties of the QPUs on the platform are exposed by a
+collection of functions such as [`get_num_qubits`{.code .docutils
+.literal .notranslate}]{.pre}, [`is_simulator`{.code .docutils .literal
+.notranslate}]{.pre}, [`is_remote`{.code .docutils .literal
+.notranslate}]{.pre}, [`is_emulated`{.code .docutils .literal
+.notranslate}]{.pre}, etc. They take an optional [`qpu_id`{.code
+.docutils .literal .notranslate}]{.pre} argument (defaults to 0) to
+specify the QPU of interest.
+
+**\[5\]** The ID of the desired QPU can be specified as argument when
+invoking kernel functions such as [`cudaq::sample_async`{.code .docutils
+.literal .notranslate}]{.pre}, [`cudaq::run_async`{.code .docutils
+.literal .notranslate}]{.pre}, etc.
 
 The [`cudaq::quantum_platform`{.code .docutils .literal
 .notranslate}]{.pre} should take the following structure
@@ -1800,15 +1794,15 @@ The [`cudaq::quantum_platform`{.code .docutils .literal
         std::optional<QubitConnectivity> connectivity();
 
         std::size_t num_qpus() const;
+
         std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
-
         bool is_simulator(std::size_t qpu_id = 0) const;
-        bool is_remote(std::size_t qpuId = 0);
-        bool is_emulated(std::size_t qpuId = 0) const;
+        bool is_remote(std::size_t qpu_id = 0) const;
+        bool is_emulated(std::size_t qpu_id = 0) const;
+        bool supports_conditional_feedback(std::size_t qpu_id = 0) const;
+        bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
+        RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
         std::string name() const;
-
-        std::size_t get_current_qpu() const ;
-        void set_current_qpu(const std::size_t device_id);
 
       };
     }
@@ -1842,7 +1836,7 @@ aria-hidden="true"}](algorithmic_primitives.html "12. Quantum Algorithmic Primit
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

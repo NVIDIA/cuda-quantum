@@ -1047,23 +1047,6 @@ latest
             -   [Submission from
                 Python](using/backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](using/backends/cloud/nvqc.html){.reference
-            .internal}
-            -   [Quick
-                Start](using/backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](using/backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](using/backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](using/backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](using/dynamics.html){.reference .internal}
     -   [Quick Start](using/dynamics.html#quick-start){.reference
         .internal}
@@ -2062,10 +2045,9 @@ The full change log can be found
 
 **0.7.0**
 
-The 0.7.0 release adds support for using [[NVIDIA Quantum
-Cloud]{.doc}](using/backends/cloud/nvqc.html){.reference .internal},
-giving you access to our most powerful GPU-accelerated simulators even
-if you don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly
+The 0.7.0 release adds support for using NVIDIA Quantum Cloud, giving
+you access to our most powerful GPU-accelerated simulators even if you
+don't have an NVIDIA GPU. With 0.7.0, we have furthermore greatly
 increased expressiveness of the Python and C++ language frontends. Check
 out our
 [documentation](https://nvidia.github.io/cuda-quantum/0.7.0/using/quick_start.html){.reference
@@ -2249,7 +2231,7 @@ The 0.3.0 release of CUDA-Q is available as a Docker image for
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

@@ -646,14 +646,6 @@
 <li class="toctree-l4"><a class="reference internal" href="backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backends/cloud/nvqc.html#faq">FAQ</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -1028,9 +1020,7 @@ If you have already installed and configured CUDA-Q, or if you are using our
 found in our complete <a class="reference internal" href="install/install.html"><span class="doc">Installation Guide</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>If you are using CUDA 12.8 on Blackwell, you may need to install additional
-dependencies to use the python wheels.</p>
-<p>See <a class="reference internal" href="install/local_installation.html#blackwell-cuda-dependencies"><span class="std std-ref">Blackwell CUDA Dependencies</span></a> for more information.</p>
+<p>CUDA-Q is currently supported on Linux only. On Windows, you can use <a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/">Windows Subsystem for Linux (WSL)</a> to install CUDA-Q.</p>
 </div>
 <section id="install-cuda-q">
 <h2>Install CUDA-Q<a class="headerlink" href="#install-cuda-q" title="Permalink to this heading">¶</a></h2>
@@ -1080,10 +1070,20 @@ environment, like the commands above do for <code class="docutils literal notran
 to set them every time you launch a new shell, we recommend adding them to
 <code class="docutils literal notranslate"><span class="pre">~/.profile</span></code> (create the file if it does not exist), and to <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> or
 <code class="docutils literal notranslate"><span class="pre">~/.bash_login</span></code> if such a file exists.</p>
-<p>Once you completed the installation, please follow the instructions
-<a class="reference internal" href="#validate-installation"><span class="std std-ref">below</span></a> to run your first CUDA-Q program!</p>
 </div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are using CUDA 12.8 on Blackwell, you may need to install additional
+dependencies to use the python wheels.
+See <a class="reference internal" href="install/local_installation.html#blackwell-cuda-dependencies"><span class="std std-ref">Blackwell CUDA Dependencies</span></a> for more information.</p>
+</div>
+<dl class="simple">
+<dt>Once you completed the installation, please follow the instructions</dt><dd><p><a class="reference internal" href="#validate-installation"><span class="std std-ref">below</span></a> to run your first CUDA-Q program!</p>
+</dd>
+</dl>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">C++</label><div class="tab-content docutils">
 <p>To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
 that supports C++20, for example <code class="code docutils literal notranslate"><span class="pre">g++</span></code> version 11 or newer.
 Download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture and CUDA version (<code class="code docutils literal notranslate"><span class="pre">_cu12</span></code> suffix for CUDA 12 and <code class="code docutils literal notranslate"><span class="pre">_cu13</span></code> suffix for CUDA 13)
@@ -1115,7 +1115,7 @@ either yield <code class="code docutils literal notranslate"><span class="pre">0
 and prints how many times each output was measured. On average, the values <code class="code docutils literal notranslate"><span class="pre">00</span></code> and <code class="code docutils literal notranslate"><span class="pre">11</span></code>
 should be observed around 500 times each.</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <p>Create a file titled <code class="code docutils literal notranslate"><span class="pre">program.py</span></code>, containing the following code:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1142,7 +1142,7 @@ should be observed around 500 times each.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
 <p>Create a file titled <code class="code docutils literal notranslate"><span class="pre">program.cpp</span></code>, containing the following code:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cudaq.h&gt;</span>
 
@@ -1174,12 +1174,12 @@ increase the numbers of qubits the program uses to 28 and
 compare the time to execute the program on the
 <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target (<a class="reference internal" href="backends/sims/svsims.html#cuquantum-single-gpu"><span class="std std-ref">GPU-accelerated statevector simulator</span></a>) to the time when setting the target to <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> (<a class="reference internal" href="backends/sims/svsims.html#openmp-cpu-only"><span class="std std-ref">OpenMP parallelized CPU-only statevector simulator</span></a>):</p>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 program.py 28 --target nvidia</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">nvq++ program.cpp -o program.x --target nvidia &amp;&amp; ./program.x 28</span>
 </pre></div>
 </div>
@@ -1219,7 +1219,7 @@ to the fundamental features of CUDA-Q.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

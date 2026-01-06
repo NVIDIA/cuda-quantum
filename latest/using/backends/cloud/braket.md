@@ -1034,19 +1034,6 @@ latest
                 .internal}
             -   [Submission from
                 Python](#submission-from-python){.reference .internal}
-        -   [NVIDIA Quantum Cloud (nvqc)](nvqc.html){.reference
-            .internal}
-            -   [Quick Start](nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple GPUs](nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](nvqc.html#faq){.reference .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
         .internal}
@@ -1741,8 +1728,8 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](nvqc.html "NVIDIA Quantum Cloud"){.btn .btn-neutral
-.float-right accesskey="n"}
+aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -1906,14 +1893,14 @@ To see a complete example, take a look at [[Amazon Braket examples]{.std
 Previous](../cloud.html "CUDA-Q Cloud Backends"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](nvqc.html "NVIDIA Quantum Cloud"){.btn .btn-neutral
-.float-right accesskey="n" rel="next"}
+aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

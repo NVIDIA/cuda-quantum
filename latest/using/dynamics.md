@@ -1034,22 +1034,6 @@ latest
             -   [Submission from
                 Python](backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](backends/cloud/nvqc.html){.reference .internal}
-            -   [Quick
-                Start](backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](#){.current .reference .internal}
     -   [Quick Start](#quick-start){.reference .internal}
     -   [Operator](#operator){.reference .internal}
@@ -1725,9 +1709,8 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/nvqc.html "NVIDIA Quantum Cloud"){.btn
-.btn-neutral .float-left accesskey="p"} [Next []{.fa
-.fa-arrow-circle-right
+Previous](backends/cloud/braket.html "Amazon Braket"){.btn .btn-neutral
+.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
 aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 .float-right accesskey="n"}
 :::
@@ -3378,8 +3361,8 @@ qubit modalities, and utilize multi-GPU multi-Node capabilities.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/nvqc.html "NVIDIA Quantum Cloud"){.btn
-.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](backends/cloud/braket.html "Amazon Braket"){.btn .btn-neutral
+.float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 .float-right accesskey="n" rel="next"}
@@ -3388,7 +3371,7 @@ aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

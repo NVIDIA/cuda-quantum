@@ -646,14 +646,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/nvqc.html#faq">FAQ</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -1409,14 +1401,28 @@ representing the return value of a single kernel execution.</p>
 <p><strong>[7]</strong> The <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code> function supports a variety of return types from the quantum kernel:</p>
 <ul class="simple">
 <li><p>Scalar types: <code class="code docutils literal notranslate"><span class="pre">bool</span></code>, <code class="code docutils literal notranslate"><span class="pre">int</span></code>, <code class="code docutils literal notranslate"><span class="pre">float</span></code>, and their variants (<code class="code docutils literal notranslate"><span class="pre">int8/16/32/64</span></code>, <code class="code docutils literal notranslate"><span class="pre">float32/64</span></code>)</p></li>
+<li><p>Vector/List types: <code class="code docutils literal notranslate"><span class="pre">std::vector&lt;T&gt;</span></code> in C++ and <code class="code docutils literal notranslate"><span class="pre">list[T]</span></code> in Python, where <code class="code docutils literal notranslate"><span class="pre">T</span></code> can be <code class="code docutils literal notranslate"><span class="pre">bool</span></code>, <code class="code docutils literal notranslate"><span class="pre">int</span></code>, <code class="code docutils literal notranslate"><span class="pre">float</span></code>, and their variants</p></li>
 <li><p>User-defined data structures (via custom structs in C++ or <code class="code docutils literal notranslate"><span class="pre">dataclass</span></code> in Python)</p></li>
+</ul>
+<p><strong>[7.1]</strong> Note: Nested or aggregate vectors / lists / structs (e.g., <code class="code docutils literal notranslate"><span class="pre">list[list[int]]</span></code>) are not yet supported.</p>
+<p><strong>[7.2]</strong> For Python, tuple return types are supported with limitations:</p>
+<ul class="simple">
+<li><p>Elements can be scalar types (<code class="code docutils literal notranslate"><span class="pre">bool</span></code>, <code class="code docutils literal notranslate"><span class="pre">int</span></code>, <code class="code docutils literal notranslate"><span class="pre">float</span></code>)</p></li>
+<li><p>Tuple elements are immutable and cannot be modified within the kernel</p></li>
+<li><p>Note: <code class="code docutils literal notranslate"><span class="pre">std::tuple</span></code> is not supported in C++ - use custom structs instead</p></li>
+</ul>
+<p><strong>[7.3]</strong> For Python, <code class="code docutils literal notranslate"><span class="pre">dataclass</span></code> return types are supported with limitations:</p>
+<ul class="simple">
+<li><p>Must use <code class="code docutils literal notranslate"><span class="pre">&#64;dataclass(slots=True)</span></code> decorator</p></li>
+<li><p>Cannot contain user-defined methods beyond generated ones</p></li>
+<li><p>Can be created and modified within the kernel using <code class="code docutils literal notranslate"><span class="pre">.copy()</span></code> for modifications</p></li>
 </ul>
 <p><strong>[8]</strong> There are specific requirements on input quantum kernels for the use of the
 <code class="code docutils literal notranslate"><span class="pre">run</span></code> function which must be enforced by compiler implementations:</p>
 <ul class="simple">
 <li><p>The kernel must be an entry-point kernel</p></li>
 <li><p>The kernel must return a non-void value</p></li>
-<li><p>Currently, the kernel can’t return lists or tuples directly</p></li>
+<li><p>The kernel must have a return statement in all code paths</p></li>
 </ul>
 <p><strong>[9]</strong> CUDA-Q also provides an asynchronous version of this function
 (<code class="code docutils literal notranslate"><span class="pre">cudaq::run_async</span></code>) which returns a <code class="code docutils literal notranslate"><span class="pre">std::future</span></code>:</p>
@@ -1746,7 +1752,7 @@ default <code class="code docutils literal notranslate"><span class="pre">std::v
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

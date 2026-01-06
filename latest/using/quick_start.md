@@ -1031,22 +1031,6 @@ latest
             -   [Submission from
                 Python](backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](backends/cloud/nvqc.html){.reference .internal}
-            -   [Quick
-                Start](backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](dynamics.html){.reference .internal}
     -   [Quick Start](dynamics.html#quick-start){.reference .internal}
     -   [Operator](dynamics.html#operator){.reference .internal}
@@ -1761,12 +1745,10 @@ Guide]{.doc}](install/install.html){.reference .internal}.
 ::: {.admonition .note}
 Note
 
-If you are using CUDA 12.8 on Blackwell, you may need to install
-additional dependencies to use the python wheels.
-
-See [[Blackwell CUDA Dependencies]{.std
-.std-ref}](install/local_installation.html#blackwell-cuda-dependencies){.reference
-.internal} for more information.
+CUDA-Q is currently supported on Linux only. On Windows, you can use
+[Windows Subsystem for Linux
+(WSL)](https://learn.microsoft.com/en-us/windows/wsl/){.reference
+.external} to install CUDA-Q.
 :::
 
 ::: {#install-cuda-q .section}
@@ -1859,12 +1841,25 @@ adding them to [`~/.profile`{.docutils .literal .notranslate}]{.pre}
 [`~/.bash_profile`{.docutils .literal .notranslate}]{.pre} or
 [`~/.bash_login`{.docutils .literal .notranslate}]{.pre} if such a file
 exists.
-
-Once you completed the installation, please follow the instructions
-[[below]{.std .std-ref}](#validate-installation){.reference .internal}
-to run your first CUDA-Q program!
+:::
 :::
 
+::: {.admonition .note}
+Note
+
+If you are using CUDA 12.8 on Blackwell, you may need to install
+additional dependencies to use the python wheels. See [[Blackwell CUDA
+Dependencies]{.std
+.std-ref}](install/local_installation.html#blackwell-cuda-dependencies){.reference
+.internal} for more information.
+:::
+
+Once you completed the installation, please follow the instructions
+
+:   [[below]{.std .std-ref}](#validate-installation){.reference
+    .internal} to run your first CUDA-Q program!
+
+::: {.tab-set .docutils}
 C++
 
 ::: {.tab-content .docutils}
@@ -2119,7 +2114,7 @@ aria-hidden="true"}](basics/basics.html "CUDA-Q Basics"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

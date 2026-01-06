@@ -644,14 +644,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#faq">FAQ</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -1364,7 +1356,7 @@ sleep<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>And add the following to your <code class="docutils literal notranslate"><span class="pre">targettests</span></code> <code class="docutils literal notranslate"><span class="pre">.cpp</span></code> file:</p>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi</span>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// RUN: if %provider_avail; then nvq++ --target provider %s -o %t.x; fi</span>
 </pre></div>
 </div>
 </section>
@@ -1615,7 +1607,7 @@ sleep<span class="w"> </span><span class="m">2</span>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

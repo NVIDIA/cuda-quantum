@@ -644,14 +644,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#faq">FAQ</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -1105,7 +1097,7 @@ by including <code class="code docutils literal notranslate"><span class="pre">m
 </pre></div>
 </div>
 <p>To get an executable, compile the code with</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++17<span class="w"> </span>-Xcompiler<span class="w"> </span>-fPIC<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvcc<span class="w"> </span>-c<span class="w"> </span>-std<span class="o">=</span>c++20<span class="w"> </span>-Xcompiler<span class="w"> </span>-fPIC<span class="w"> </span>my_proj.cu<span class="w"> </span>-o<span class="w"> </span>my_proj.o
 nvq++<span class="w"> </span>my_proj_quantum.cpp<span class="w"> </span>my_proj.o<span class="w"> </span>-I<span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/include/&quot;</span><span class="w"> </span>-L<span class="s2">&quot;</span><span class="si">${</span><span class="nv">CUDA_HOME</span><span class="si">}</span><span class="s2">/lib64&quot;</span><span class="w"> </span>-lcudart<span class="w"> </span>-o<span class="w"> </span>my_executable
 </pre></div>
 </div>
@@ -1125,7 +1117,7 @@ The CUDA runtime is explicitly added to this command.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

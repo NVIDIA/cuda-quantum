@@ -1048,22 +1048,6 @@ latest
             -   [Submission from
                 Python](../backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](../backends/cloud/nvqc.html){.reference .internal}
-            -   [Quick
-                Start](../backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](../backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](../backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](../backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](../backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
         .internal}
@@ -1886,7 +1870,7 @@ To get an executable, compile the code with
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    nvcc -c -std=c++17 -Xcompiler -fPIC my_proj.cu -o my_proj.o
+    nvcc -c -std=c++20 -Xcompiler -fPIC my_proj.cu -o my_proj.o
     nvq++ my_proj_quantum.cpp my_proj.o -I"${CUDA_HOME}/include/" -L"${CUDA_HOME}/lib64" -lcudart -o my_executable
 :::
 :::
@@ -1911,7 +1895,7 @@ aria-hidden="true"}](libraries.html "Integrating with Third-Party Libraries"){.b
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

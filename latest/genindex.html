@@ -641,14 +641,6 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="using/backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="using/backends/cloud/nvqc.html#faq">FAQ</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>
@@ -1317,8 +1309,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq19async_sample_resultE">cudaq::async_sample_result (C++ type)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20BaseNvcfSimulatorQPUE">cudaq::BaseNvcfSimulatorQPU (C++ class)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17BaseRemoteRESTQPUE">cudaq::BaseRemoteRESTQPU (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">cudaq::BaseRemoteSimulatorQPU (C++ class)</a>
@@ -1381,7 +1371,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7contribE">cudaq::contrib (C++ type)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args">cudaq::contrib::draw (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args">cudaq::contrib::draw (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7contrib16get_unitary_cmatE14complex_matrixRR13QuantumKernelDpRR4Args">cudaq::contrib::get_unitary_cmat (C++ function)</a>
 </li>
@@ -1435,7 +1425,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16canHandleObserveE">cudaq::ExecutionContext::canHandleObserve (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringE">cudaq::ExecutionContext::ExecutionContext (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringENSt6size_tE">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringE">cudaq::ExecutionContext::ExecutionContext (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringENSt6size_tENSt6size_tE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext16expectationValueE">cudaq::ExecutionContext::expectationValue (C++ member)</a>
 </li>
@@ -1468,6 +1458,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE">cudaq::ExecutionContext::overlapComputeStates (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13overlapResultE">cudaq::ExecutionContext::overlapResult (C++ member)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext5qpuIdE">cudaq::ExecutionContext::qpuId (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16ExecutionContext13registerNamesE">cudaq::ExecutionContext::registerNames (C++ member)</a>
 </li>
@@ -1735,7 +1727,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18num_available_gpusEv">cudaq::num_available_gpus (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args">cudaq::observe (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args">[3]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I00DpEN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args">cudaq::observe (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args">[3]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15observe_optionsE">cudaq::observe_options (C++ struct)</a>
 </li>
@@ -1775,10 +1767,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq17OrcaRemoteRESTQPUE">cudaq::OrcaRemoteRESTQPU (C++ class)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli1E">cudaq::pauli1 (C++ class)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli114num_parametersE">cudaq::pauli1::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli111num_targetsE">cudaq::pauli1::num_targets (C++ member)</a>
@@ -1889,8 +1881,6 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringE15KernelThunkTypePvNSt8uint64_tENSt8uint64_tERKNSt6vectorIPvEE">cudaq::QPU::launchKernel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringERKNSt6vectorIPvEE">[1]</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU29launchSerializedCodeExecutionERKNSt6stringERN5cudaq30SerializedCodeExecutionContextE">cudaq::QPU::launchSerializedCodeExecution (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">cudaq::QPU::onRandomSeedSet (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUENSt6size_tE">cudaq::QPU::QPU (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUERR3QPU">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU3QPUEv">[2]</a>
@@ -1911,7 +1901,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8QPUStateE">cudaq::QPUState (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE">cudaq::qreg (C++ class)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE">cudaq::qreg (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backENSt6size_tE">cudaq::qreg::back (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4backEv">[1]</a>
 </li>
@@ -1922,6 +1912,8 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontENSt6size_tE">cudaq::qreg::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg5frontEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qregixEKNSt6size_tE">cudaq::qreg::operator[] (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4qregENSt6size_tE">cudaq::qreg::qreg (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq4qreg4qregEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq4qreg4sizeEv">cudaq::qreg::size (C++ function)</a>
 </li>
@@ -1965,37 +1957,33 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platformE">cudaq::quantum_platform (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform11clear_shotsEv">cudaq::quantum_platform::clear_shots (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12connectivityEv">cudaq::quantum_platform::connectivity (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16enqueueAsyncTaskEKNSt6size_tER19KernelExecutionTask">cudaq::quantum_platform::enqueueAsyncTask (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16enqueueAsyncTaskEKNSt6size_tERNSt8functionIFvvEEE">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform18get_codegen_configEv">cudaq::quantum_platform::get_codegen_config (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform15get_current_qpuEv">cudaq::quantum_platform::get_current_qpu (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform15get_current_qpuEv">cudaq::quantum_platform::get_current_qpu (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12get_exec_ctxEv">cudaq::quantum_platform::get_exec_ctx (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9get_noiseEv">cudaq::quantum_platform::get_noise (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9get_noiseENSt6size_tE">cudaq::quantum_platform::get_noise (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">cudaq::quantum_platform::get_num_qubits (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14get_num_qubitsEv">[1]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">cudaq::quantum_platform::get_num_qubits (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE">cudaq::quantum_platform::get_remote_capabilities (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesENSt6size_tE">cudaq::quantum_platform::get_remote_capabilities (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform18get_runtime_targetEv">cudaq::quantum_platform::get_runtime_target (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9get_shotsEv">cudaq::quantum_platform::get_shots (C++ function)</a>
-</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12getLogStreamEv">cudaq::quantum_platform::getLogStream (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform11is_emulatedEKNSt6size_tE">cudaq::quantum_platform::is_emulated (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform11is_emulatedENSt6size_tE">cudaq::quantum_platform::is_emulated (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9is_remoteEKNSt6size_tE">cudaq::quantum_platform::is_remote (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform9is_remoteENSt6size_tE">cudaq::quantum_platform::is_remote (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12is_simulatorEKNSt6size_tE">cudaq::quantum_platform::is_simulator (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform12is_simulatorENSt6size_tE">cudaq::quantum_platform::is_simulator (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tE">cudaq::quantum_platform::launchVQE (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tENSt6size_tE">cudaq::quantum_platform::launchVQE (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14list_platformsEv">cudaq::quantum_platform::list_platforms (C++ function)</a>
 </li>
@@ -2005,27 +1993,23 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE">cudaq::quantum_platform::onRandomSeedSet (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxENSt6size_tE">cudaq::quantum_platform::reset_exec_ctx (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxEv">cudaq::quantum_platform::reset_exec_ctx (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform11reset_noiseEv">cudaq::quantum_platform::reset_noise (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform11reset_noiseENSt6size_tE">cudaq::quantum_platform::reset_noise (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14resetLogStreamEv">cudaq::quantum_platform::resetLogStream (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform15set_current_qpuEKNSt6size_tE">cudaq::quantum_platform::set_current_qpu (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEP16ExecutionContext">cudaq::quantum_platform::set_exec_ctx (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEPN5cudaq16ExecutionContextENSt6size_tE">cudaq::quantum_platform::set_exec_ctx (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model">cudaq::quantum_platform::set_noise (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9set_shotsEi">cudaq::quantum_platform::set_shots (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_modelNSt6size_tE">cudaq::quantum_platform::set_noise (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform12setLogStreamERNSt7ostreamE">cudaq::quantum_platform::setLogStream (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform16setTargetBackendERKNSt6stringE">cudaq::quantum_platform::setTargetBackend (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackEKNSt6size_tE">cudaq::quantum_platform::supports_conditional_feedback (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackENSt6size_tE">cudaq::quantum_platform::supports_conditional_feedback (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsEKNSt6size_tE">cudaq::quantum_platform::supports_explicit_measurements (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsENSt6size_tE">cudaq::quantum_platform::supports_explicit_measurements (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv">cudaq::quantum_platform::supports_task_distribution (C++ function)</a>
 </li>
@@ -2067,9 +2051,25 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I_NSt6size_tEEN5cudaq5qviewE">cudaq::qview (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview4backENSt6size_tE">cudaq::qview::back (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview5beginEv">cudaq::qview::begin (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview3endEv">cudaq::qview::end (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview5frontENSt6size_tE">cudaq::qview::front (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview5frontEv">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qviewixEKNSt6size_tE">cudaq::qview::operator[] (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq5qview5qviewERR1R">cudaq::qview::qview (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview5qviewERK5qview">[1]</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq5qview4sizeEv">cudaq::qview::size (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview5sliceENSt6size_tENSt6size_tE">cudaq::qview::slice (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5qview10value_typeE">cudaq::qview::value_type (C++ type)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType">cudaq::range (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5rangeENSt6size_tE">[2]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType">cudaq::range (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq5rangeENSt6size_tE">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq4realE">cudaq::real (C++ type)</a>
 </li>
@@ -2082,8 +2082,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities17isRemoteSimulatorE">cudaq::RemoteCapabilities::isRemoteSimulator (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18RemoteCapabilitiesEb">cudaq::RemoteCapabilities::RemoteCapabilities (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE">cudaq::RemoteCapabilities::serializedCodeExec (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq18RemoteCapabilities12stateOverlapE">cudaq::RemoteCapabilities::stateOverlap (C++ member)</a>
 </li>
@@ -2099,7 +2097,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13RuntimeTargetE">cudaq::RuntimeTarget (C++ struct)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args">[2]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args">cudaq::sample (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14sample_optionsE">cudaq::sample_options (C++ struct)</a>
 </li>
@@ -2200,8 +2198,6 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq15scalar_operator9to_stringEv">cudaq::scalar_operator::to_string (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15scalar_operatorD0Ev">cudaq::scalar_operator::~scalar_operator (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq30SerializedCodeExecutionContextE">cudaq::SerializedCodeExecutionContext (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9set_noiseERKN5cudaq11noise_modelE">cudaq::set_noise (C++ function)</a>
 </li>
@@ -3372,7 +3368,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

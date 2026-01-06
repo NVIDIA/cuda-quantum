@@ -1058,23 +1058,6 @@ latest
             -   [Submission from
                 Python](../../using/backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](../../using/backends/cloud/nvqc.html){.reference
-            .internal}
-            -   [Quick
-                Start](../../using/backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](../../using/backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](../../using/backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](../../using/backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](../../using/backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
         .internal}
@@ -7679,7 +7662,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ::: {#quantum .section}
 ## Quantum[¶](#quantum "Permalink to this heading"){.headerlink}
 
-[]{#qspan_8h_1a2c3fa68d916be379bab257d559f25d24 .target}[[constexpr]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dyn]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[\~]{.pre}]{.o}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq3dynE "Permalink to this definition"){.headerlink}\
+[]{#qspan_8h_1a013e77a5c740465782d7dd3182e8c69c .target}[[constexpr]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dyn]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[dynamic_extent]{.pre}]{.n}[¶](#_CPPv4N5cudaq3dynE "Permalink to this definition"){.headerlink}\
 
 :   
 
@@ -7705,8 +7688,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[N]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[Levels]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[2]{.pre}]{.m}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[(]{.pre}]{.p}[[[N]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE "cudaq::qreg::N"){.reference .internal}[ ]{.w}[[\>]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.m}[[)]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#classcudaq_1_1qreg .target}[[class]{.pre}]{.k}[ ]{.w}[[[qreg]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[N]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[Levels]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[2]{.pre}]{.m}[[\>]{.pre}]{.p}\
+[]{#classcudaq_1_1qreg .target}[[class]{.pre}]{.k}[ ]{.w}[[[qreg]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE "Permalink to this definition"){.headerlink}\
 
 :   A [`qreg`{.docutils .literal .notranslate}]{.pre} is a container for
     qudits. This container can be dynamic or compile-time-size
@@ -7719,7 +7702,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Types
 
-    []{#classcudaq_1_1qreg_1a609490620e68c0ec536e2ef6a3d921f4 .target}[[using]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[qudit]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5quditE "cudaq::qudit"){.reference .internal}[[\<]{.pre}]{.p}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq4qreg10value_typeE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1a09c822ec5503ed57ed996fe5949ed13a .target}[[using]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[qudit]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5quditE "cudaq::qudit"){.reference .internal}[[\<]{.pre}]{.p}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq4qreg10value_typeE "Permalink to this definition"){.headerlink}\
 
     :   Useful typedef indicating the underlying qudit type.
     :::
@@ -7727,7 +7710,29 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#classcudaq_1_1qreg_1aeaf9c41b1f57bb63ecf3acf411367bdc .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[begin]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5beginEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1adc71b5df74f4696a5aa5d352cd6f93f0 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qreg]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[size]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg4qregENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Construct a [`qreg`{.docutils .literal .notranslate}]{.pre} with
+        [`size`{.docutils .literal .notranslate}]{.pre} qudits in the
+        \|0\> state. Can only be used for [`dyn`{.docutils .literal
+        .notranslate}]{.pre} sized [`qregs`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qreg_1a2a5fc4d272b8c61a5118d0c9cb0688ef .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qreg]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg4qregEv "Permalink to this definition"){.headerlink}\
+
+    :   Nullary constructor. Can only be used for [`qreg<N>`{.docutils
+        .literal .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`q`{.docutils .literal .notranslate}]{.pre};.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qreg_1a8cc6bbb638e71a8939e4ee20a17e3d09 .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[begin]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5beginEv "Permalink to this definition"){.headerlink}\
 
     :   Iterator interface, begin.
 
@@ -7735,7 +7740,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1a1dba67a7873d440e7b94f584914f0266 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq4qreg10value_typeE "cudaq::qreg::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[\[\]]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qregixEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1a7ba1472dba716667b001e1be448a0192 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq4qreg10value_typeE "cudaq::qreg::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[\[\]]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qregixEKNSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Returns the qudit at [`idx`{.docutils .literal
         .notranslate}]{.pre}.
@@ -7744,7 +7749,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1a1fd9a79ba06a022d5d8299bb00bc9669 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qspan]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE "cudaq::qspan"){.reference .internal}[[\<]{.pre}]{.p}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[front]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5frontENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1aec88403ae6d55b9ef70c95a1eb132141 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qspan]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE "cudaq::qspan"){.reference .internal}[[\<]{.pre}]{.p}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[front]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5frontENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Returns the [`[0,`{.docutils .literal
         .notranslate}]{.pre}` `{.docutils .literal
@@ -7755,7 +7760,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1a32a03f7a1ca19a220db168caabdb4f71 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq4qreg10value_typeE "cudaq::qreg::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[front]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5frontEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1afaf92691fb1b929bf22b0f4e7a0ba4dd .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq4qreg10value_typeE "cudaq::qreg::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[front]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5frontEv "Permalink to this definition"){.headerlink}\
 
     :   Returns the first qudit.
 
@@ -7763,20 +7768,20 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1a176a76f8829ff346b7e5f9ca41e6d20b .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qspan]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE "cudaq::qspan"){.reference .internal}[[\<]{.pre}]{.p}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg4backENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1af648639f99d90f1fc7013e33d819c7eb .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qspan]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE "cudaq::qspan"){.reference .internal}[[\<]{.pre}]{.p}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg4backENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Returns the [`[count,`{.docutils .literal
         .notranslate}]{.pre}` `{.docutils .literal
         .notranslate}[[[`size()`{.docutils .literal
         .notranslate}]{.pre}]{.std
-        .std-ref}](#classcudaq_1_1qreg_1ac65686ebfda02852643371396350fba6){.reference
+        .std-ref}](#classcudaq_1_1qreg_1adfda17e45d256b5c9cf5216a725c5ea7){.reference
         .internal}[`)`{.docutils .literal .notranslate}]{.pre} qudits.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1ad9adbd2e3a216840f470061c5b999a73 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq4qreg10value_typeE "cudaq::qreg::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg4backEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1a10eb26edaedf12c81611e785484a8158 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq4qreg10value_typeE "cudaq::qreg::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg4backEv "Permalink to this definition"){.headerlink}\
 
     :   Returns the last qudit.
 
@@ -7784,7 +7789,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1a7dfda2cff5b477b77440f3a794d76e7b .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qspan]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE "cudaq::qspan"){.reference .internal}[[\<]{.pre}]{.p}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tE0EN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[slice]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[start]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[size]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5sliceENSt6size_tENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1a125770ab37c0c6502653e73b7d3e1a2b .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qspan]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq5qspanE "cudaq::qspan"){.reference .internal}[[\<]{.pre}]{.p}[[[dyn]{.pre}]{.n}](#_CPPv4N5cudaq3dynE "cudaq::dyn"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tE_NSt6size_tEEN5cudaq4qregE "cudaq::qreg::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[slice]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[start]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[size]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5sliceENSt6size_tENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Returns the [`[start,`{.docutils .literal
         .notranslate}]{.pre}` `{.docutils .literal
@@ -7795,7 +7800,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1ac65686ebfda02852643371396350fba6 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[size]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq4qreg4sizeEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1adfda17e45d256b5c9cf5216a725c5ea7 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[size]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq4qreg4sizeEv "Permalink to this definition"){.headerlink}\
 
     :   Returns the number of contained qudits.
 
@@ -7803,11 +7808,11 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qreg_1a7747f90309085d531f8fafa248e19c4d .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[clear]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5clearEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qreg_1afeb83df6eb80418bb1d67d9791b4f17c .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[clear]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq4qreg5clearEv "Permalink to this definition"){.headerlink}\
 
     :   Destroys all contained qudits. Postcondition:
         [[[`size()`{.docutils .literal .notranslate}]{.pre}]{.std
-        .std-ref}](#classcudaq_1_1qreg_1ac65686ebfda02852643371396350fba6){.reference
+        .std-ref}](#classcudaq_1_1qreg_1adfda17e45d256b5c9cf5216a725c5ea7){.reference
         .internal}` `{.docutils .literal .notranslate}[`==`{.docutils
         .literal .notranslate}]{.pre}` `{.docutils .literal
         .notranslate}[`0`{.docutils .literal .notranslate}]{.pre}.
@@ -8026,6 +8031,106 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         [`qview`{.docutils .literal .notranslate}]{.pre} contains.
     :::
 
+    ::: {.breathe-sectiondef .docutils .container}
+    Public Functions
+
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[R]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1qview_1aa42666bffb48a6991d42ae297f3be915 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qview]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[R]{.pre}]{.n}](#_CPPv4I0EN5cudaq5qview5qviewERR1R "cudaq::qview::qview::R"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq5qview5qviewERR1R "Permalink to this definition"){.headerlink}\
+
+    :   Construct a [`qview`{.docutils .literal .notranslate}]{.pre}
+        that refers to the qudits in [`other`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a739d3fb25f3b50e20cb0ea9b0117b465 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qview]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[qview]{.pre}]{.n}](#_CPPv4N5cudaq5qview5qviewERK5qview "cudaq::qview::qview"){.reference .internal}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview5qviewERK5qview "Permalink to this definition"){.headerlink}\
+
+    :   Copy constructor.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a72c64b274a4182146110b8254efae27d .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[begin]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview5beginEv "Permalink to this definition"){.headerlink}\
+
+    :   Iterator interface, begin.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a0e0bac734ee64a58a1da48c64eb03977 .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[end]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview3endEv "Permalink to this definition"){.headerlink}\
+
+    :   Iterator interface, end.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a1fa307122fb9fe385458a324a7d8e2e2 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq5qview10value_typeE "cudaq::qview::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[\[\]]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[idx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qviewixEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Returns the qudit at [`idx`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a09e3554c50264f015f209ee0f97f1f1b .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qview]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5qviewE "cudaq::qview"){.reference .internal}[[\<]{.pre}]{.p}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5qviewE "cudaq::qview::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[front]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview5frontENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   
+
+        Returns[:]{.colon}
+
+        :   the [`[0,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`count)`{.docutils .literal
+            .notranslate}]{.pre} qudits as a new [`qview`{.docutils
+            .literal .notranslate}]{.pre}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a224ae073e438b06953dd2aace0da1a35 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq5qview10value_typeE "cudaq::qview::value_type"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[front]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview5frontEv "Permalink to this definition"){.headerlink}\
+
+    :   Returns the first qudit.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a2a1c8f90a6e09a3a9e5e012cd3508226 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qview]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5qviewE "cudaq::qview"){.reference .internal}[[\<]{.pre}]{.p}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5qviewE "cudaq::qview::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[back]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview4backENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Returns the [`[count,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[[[`size()`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1qview_1a7f499ca67892fa7d94c9e246d2409cf7){.reference
+        .internal}[`)`{.docutils .literal .notranslate}]{.pre} qudits.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a9fcc473232536847c0385ede6661ac61 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qview]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5qviewE "cudaq::qview"){.reference .internal}[[\<]{.pre}]{.p}[[[Levels]{.pre}]{.n}](#_CPPv4I_NSt6size_tEEN5cudaq5qviewE "cudaq::qview::Levels"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[slice]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[start]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[count]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5qview5sliceENSt6size_tENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Returns the [`[start,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`start+count)`{.docutils .literal
+        .notranslate}]{.pre} qudits.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1qview_1a7f499ca67892fa7d94c9e246d2409cf7 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[size]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq5qview4sizeEv "Permalink to this definition"){.headerlink}\
+
+    :   Returns the number of contained qudits.
+    :::
+
 ```{=html}
 <!-- -->
 ```
@@ -8175,8 +8280,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#observe_8h_1ad4b23a4555a734d75458e300782de5ab .target}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[observe_options]{.pre}]{.n}](#_CPPv4N5cudaq15observe_optionsE "cudaq::observe_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#observe_8h_1acbeae9010f4d871aa26777221463f44b .target}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[observe_options]{.pre}]{.n}](#_CPPv4N5cudaq15observe_optionsE "cudaq::observe_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq7observeE14observe_resultRK15observe_optionsRR13QuantumKernelRK7spin_opDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Compute the expected value of [`H`{.docutils .literal
     .notranslate}]{.pre} with respect to [`kernel(Args...)`{.docutils
@@ -8186,8 +8291,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#observe_8h_1a14bbd33ee410c6cf1d5bdaa0b1fce576 .target}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#observe_8h_1a0806044447ffed7567b7b6d4425c4f73 .target}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq7observeE14observe_resultNSt6size_tERR13QuantumKernelRK7spin_opDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Compute the expected value of [`H`{.docutils .literal
     .notranslate}]{.pre} with respect to [`kernel(Args...)`{.docutils
@@ -8200,8 +8305,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#observe_8h_1a6f5de6db1483aaac1dd0bc10185a1716 .target}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#observe_8h_1ad3d5093fc7139d2c0d41ba97bfff62d8 .target}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq7observeE14observe_resultRR13QuantumKernelRK7spin_opDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Compute the expected value of [`H`{.docutils .literal
     .notranslate}]{.pre} with respect to [`kernel(Args...)`{.docutils
@@ -8214,8 +8319,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[[SpinOpContainer]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#observe_8h_1ab93faa23228bcaa0a433fd0bc0d8b019 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[SpinOpContainer]{.pre}]{.n}](#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::SpinOpContainer"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[termList]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00Dp0EN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[[SpinOpContainer]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#observe_8h_1ad0ba5eddc4b99c5dfb9129cf8b7461a2 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[observe_result]{.pre}]{.n}](#_CPPv4N5cudaq14observe_resultE "cudaq::observe_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[observe]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I00DpEN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[SpinOpContainer]{.pre}]{.n}](#_CPPv4I00DpEN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::SpinOpContainer"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[termList]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I00DpEN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "cudaq::observe::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00DpEN5cudaq7observeENSt6vectorI14observe_resultEERR13QuantumKernelRK15SpinOpContainerDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Compute the expected value of every [`spin_op`{.docutils .literal
     .notranslate}]{.pre} provided in [`SpinOpContainer`{.docutils
@@ -8252,7 +8357,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1ae3d84b5d5f9cba2d1d011a47a3762a03 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[ExecutionContext]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[n]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots\_]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1ExecutionContext_1a0dfc1bd3514ae1fde6b643533e092024 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[ExecutionContext]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[n]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots\_]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16ExecutionContext16ExecutionContextERKNSt6stringENSt6size_tENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   The constructor, takes the name and the number of shots.
 
@@ -8261,6 +8366,10 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         :   -   **n** -- The name of the context
 
             -   **shots\_** -- The number of shots
+
+            -   **qpu_id** -- The ID of the [[QPU]{.std
+                .std-ref}](#classcudaq_1_1QPU){.reference .internal}
+                that this execution context is running on.
     :::
 
     ::: {.breathe-sectiondef .docutils .container}
@@ -8449,6 +8558,16 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   A vector containing information about how to reorder the global
         register after execution. Empty means no reordering.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1af6a11ebbc93aacd5ba2912417c2c1ec8 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[qpuId]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq16ExecutionContext5qpuIdE "Permalink to this definition"){.headerlink}\
+
+    :   The ID of the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} that this
+        execution context is running on.
 
     ```{=html}
     <!-- -->
@@ -9326,8 +9445,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#sample_8h_1a81d9b9c49afb4b58768cfdf4ba24b7ae .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sample_options]{.pre}]{.n}](#_CPPv4N5cudaq14sample_optionsE "cudaq::sample_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#sample_8h_1acf3d021ed76e0b5b8b28e13cc5e8fce4 .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sample_options]{.pre}]{.n}](#_CPPv4N5cudaq14sample_optionsE "cudaq::sample_options"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[options]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRK14sample_optionsRR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Sample the given quantum kernel expression and return the mapping of
     observed bit strings to corresponding number of times observed.
@@ -9355,8 +9474,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#sample_8h_1a1739a49bfb2fef6298023face97b8d6d .target}[[auto]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#sample_8h_1a9397c121d7b3b11efe40b8975c6d1cd7 .target}[[auto]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq6sampleEDaNSt6size_tERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Sample the given quantum kernel expression and return the mapping of
     observed bit strings to corresponding number of times observed.
@@ -9388,8 +9507,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_r_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[,]{.pre}]{.p}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#sample_8h_1a8bc21fe7373f6097f1df2210f025549f .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#sample_8h_1a7631612625fe1a5b9b710803f602f44e .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[sample]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "cudaq::sample::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "cudaq::sample::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq6sampleE13sample_resultRR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Sample the given quantum kernel expression and return the mapping of
     observed bit strings to corresponding number of times observed.
@@ -9419,7 +9538,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ```
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[ARGS]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#run_8h_1ad3d68c458bf04e01064f063ec0247adf .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
+[]{#run_8h_1a81e58121732ce970048fdd2213129a32 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
 
 :   Run a kernel [`shots`{.docutils .literal .notranslate}]{.pre} number
     of times and return a [`std::vector`{.docutils .literal
@@ -9449,7 +9568,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ```
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[ARGS]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#run_8h_1a257c40c568260fd87721051d289bb5fa .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[noise_model]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
+[]{#run_8h_1ae55fbe8f507c12ec060721270c2053c1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[noise_model]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq3runENSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
 
 :   Run a kernel [`shots`{.docutils .literal .notranslate}]{.pre} number
     of times with noise and return a [`std::vector`{.docutils .literal
@@ -9481,7 +9600,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ```
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[ARGS]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#run_8h_1af8beb377625f1a9004b7e6b92512b0d2 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[future]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run_async]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
+[]{#run_8h_1a4c69885f095b75383c1c3782d8ba87ce .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[future]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run_async]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
 
 :   Launch a run of a kernel for [`shots`{.docutils .literal
     .notranslate}]{.pre} number of times on a specific [[QPU]{.std
@@ -9516,7 +9635,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ```
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[ARGS]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#run_8h_1a1bb97c7f51b56550deccccdd059afcfb .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[future]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run_async]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[noise_model]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
+[]{#run_8h_1a2591b4df3d3be95a9c26e189c14c8d14 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[future]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[invoke_result_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[decay_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[run_async]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[noise_model]{.pre}]{.n .sig-param}, [[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[ARGS]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "cudaq::run_async::ARGS"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq9run_asyncENSt6futureINSt6vectorINSt15invoke_result_tINSt7decay_tI13QuantumKernelEEDpNSt7decay_tI4ARGSEEEEEEEENSt6size_tENSt6size_tERN5cudaq11noise_modelERR13QuantumKernelDpRR4ARGS "Permalink to this definition"){.headerlink}\
 
 :   Launch a run of a kernel for [`shots`{.docutils .literal
     .notranslate}]{.pre} number of times with noise on a specific
@@ -9937,8 +10056,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[ElementType]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_integral_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_signed_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#cudaq__utils_8h_1ab5c4da9827fd0d2f3575706bda49941c .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[range]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[N]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[ElementType]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#cudaq__utils_8h_1a40126c87095042170f6c7dbd264e5d04 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[range]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ElementType]{.pre}]{.n}](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[N]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType "Permalink to this definition"){.headerlink}\
 
 :   Return a vector of integers. The first element is zero, and the
     remaining elements are all values incremented by 1 to the total size
@@ -9948,8 +10067,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[ElementType]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_integral_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_signed_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#cudaq__utils_8h_1aaf2865114850e54f70afe8b087297ce9 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[range]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[start]{.pre}]{.n .sig-param}, [[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[stop]{.pre}]{.n .sig-param}, [[[ElementType]{.pre}]{.n}](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[step]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[1]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[ElementType]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#cudaq__utils_8h_1ac82566e8f7017c2f905a8c626b9a0837 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ElementType]{.pre}]{.n}](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[range]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ElementType]{.pre}]{.n}](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[start]{.pre}]{.n .sig-param}, [[[ElementType]{.pre}]{.n}](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[stop]{.pre}]{.n .sig-param}, [[[ElementType]{.pre}]{.n}](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "cudaq::range::ElementType"){.reference .internal}[ ]{.w}[[step]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[1]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq5rangeENSt6vectorI11ElementTypeEE11ElementType11ElementType11ElementType "Permalink to this definition"){.headerlink}\
 
 :   Return a vector of integers. The first element is the user-specified
     [`start`{.docutils .literal .notranslate}]{.pre} value. The
@@ -11768,7 +11887,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     :   Take the quantum kernel and concrete arguments for all arguments
         except the first std::vector\<double\> argument, which is used
         for the variational parameters for the gradient. Serialize and
-        save those arguments into this object. (Useful for NVQC.)
+        save those arguments into this object.
 
     ```{=html}
     <!-- -->
@@ -12295,15 +12414,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a1d10a4aec2af11778d55f97cd959243f .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[launchSerializedCodeExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[name]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SerializedCodeExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq30SerializedCodeExecutionContextE "cudaq::SerializedCodeExecutionContext"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[serializeCodeExecutionObject]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU29launchSerializedCodeExecutionERKNSt6stringERN5cudaq30SerializedCodeExecutionContextE "Permalink to this definition"){.headerlink}\
-
-    :   Launch serialized code for remote execution. Subtypes that
-        support this should override this function.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Notify the [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
@@ -12328,19 +12438,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
 []{#classcudaq_1_1BaseRemoteSimulatorQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseRemoteSimulatorQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE "Permalink to this definition"){.headerlink}\
 
-:   Subclassed by [[cudaq::BaseNvcfSimulatorQPU]{.std
-    .std-ref}](#classcudaq_1_1BaseNvcfSimulatorQPU){.reference
-    .internal}
-
-```{=html}
-<!-- -->
-```
-
-[]{#classcudaq_1_1BaseNvcfSimulatorQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseNvcfSimulatorQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[BaseRemoteSimulatorQPU]{.pre}]{.n}](#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE "cudaq::BaseRemoteSimulatorQPU"){.reference .internal}[¶](#_CPPv4N5cudaq20BaseNvcfSimulatorQPUE "Permalink to this definition"){.headerlink}\
-
-:   Implementation of base [[QPU]{.std
-    .std-ref}](#classcudaq_1_1QPU){.reference .internal} subtype that
-    submits simulation request to NVCF.
+:   
 
 ```{=html}
 <!-- -->
@@ -12411,10 +12509,11 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a3daf9ab69de7ba94d639043de23ba977 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_num_qubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14get_num_qubitsEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a9552749bad6b44d31284b5614b3cc841 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_num_qubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE "Permalink to this definition"){.headerlink}\
 
-    :   Get the number of qubits for the current [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
+    :   Get the number of qubits for the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} with ID
+        qpu_id.
 
     ```{=html}
     <!-- -->
@@ -12429,46 +12528,9 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a01da4519c0c507cd59cfea0e7f493608 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_num_qubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14get_num_qubitsENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a8e84687c7e0c862db0a4ce489f566da6 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEP16ExecutionContext "Permalink to this definition"){.headerlink}\
 
-    :   Get the number of qubits for the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} with ID
-        qpu_id.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a73c885b661d50e6fc7315270846facb8 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[get_shots]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9get_shotsEv "Permalink to this definition"){.headerlink}\
-
-    :   Getter for the shots. This will be deprecated once
-        [`set_shots`{.docutils .literal .notranslate}]{.pre} and
-        [`clear_shots`{.docutils .literal .notranslate}]{.pre} are
-        removed.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a102472165450ce351417e897d813b9f3 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[set_shots]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[int]{.pre}]{.kt}[ ]{.w}[[numShots]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9set_shotsEi "Permalink to this definition"){.headerlink}\
-
-    :   Setter for the shots.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a996c2cc3b40e8c531ad1504af1d212de .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[clear_shots]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11clear_shotsEv "Permalink to this definition"){.headerlink}\
-
-    :   Reset shots.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a6f25ae9f5846cf99e58794b604a1b0d2 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12set_exec_ctxEPN5cudaq16ExecutionContextENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Specify the execution context for this platform.
+    :   Specify the execution context for the current thread.
 
     ```{=html}
     <!-- -->
@@ -12482,9 +12544,9 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1ac98cd229d35948309412a2139ec5fc80 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxENSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a6be2f55e2b9a9902a3d5cd7113d6c61d .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_exec_ctx]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxEv "Permalink to this definition"){.headerlink}\
 
-    :   Reset the execution context for this platform.
+    :   Reset the execution context for the current thread.
 
     ```{=html}
     <!-- -->
@@ -12498,15 +12560,15 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a2cbc4b549fe8a3e1e9c8edc1193135a3 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_simulator]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform12is_simulatorEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1ae2a1d0d5b1db7cf6816b2700f6f275e6 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_simulator]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform12is_simulatorENSt6size_tE "Permalink to this definition"){.headerlink}\
 
-    :   Return whether this platform is simulating the architecture.
+    :   Return whether this platform is a simulator.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1ac477ee8827975113e29a01fc638bcd5a .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_conditional_feedback]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1aeac440481aa3ac34614d6aeef6aea0f0 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_conditional_feedback]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform29supports_conditional_feedbackENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return whether the [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} has
@@ -12516,7 +12578,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a91598b3ce38311762c5da229800e2326 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_explicit_measurements]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1ae3b977f857e1c8258f2644494ed25b11 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_explicit_measurements]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform30supports_explicit_measurementsENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return whether the [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} supports
@@ -12535,26 +12597,17 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1ad6cc6e01d40b010e8ae07e0332c61656 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_current_qpu]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform15get_current_qpuEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1aa2431d8e8b5bb3c44945a8039b6188fc .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_current_qpu]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform15get_current_qpuEv "Permalink to this definition"){.headerlink}\
 
-    :   Get the ID of the current [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a67006ab2622bc51fa3f92310d65137f1 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_current_qpu]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[device_id]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform15set_current_qpuEKNSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Set the current [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} via its
-        device ID.
+    :   Get the ID of the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} in the
+        current execution context.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a61163027d2aa2e064e0d1ff2e65e4d5a .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_remote]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpuId]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9is_remoteEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a79551233cf95bb1bacc8cc816dbc9b04 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_remote]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform9is_remoteENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return true if the [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} is remote.
@@ -12563,7 +12616,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1aaa21661369c0930137d6e6c0f4d98ec5 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_emulated]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpuId]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform11is_emulatedEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a792706705262ba5fe57aa102e2a7ff91 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_emulated]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform11is_emulatedENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Return true if [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal} is locally
@@ -12574,24 +12627,25 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a6e798c291d46aff40ce8fdad40e6fb90 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[model]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_model "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a996bf5dce275114b603dea2ec14d7a75 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[set_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[model]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9set_noiseEPK11noise_modelNSt6size_tE "Permalink to this definition"){.headerlink}\
 
-    :   Set the noise model for future invocations of quantum kernels.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1aa523466e2bde7c9d7e4bce7ef4322f73 .target}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[get_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9get_noiseEv "Permalink to this definition"){.headerlink}\
-
-    :   Return the current noise model or [`nullptr`{.docutils .literal
-        .notranslate}]{.pre} if none set.
+    :   Set the noise model for [`qpu_id`{.docutils .literal
+        .notranslate}]{.pre} on this platform.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a1459a03708bb0236c804148fb6775cbf .target}[[[RemoteCapabilities]{.pre}]{.n}](#_CPPv4N5cudaq18RemoteCapabilitiesE "cudaq::RemoteCapabilities"){.reference .internal}[ ]{.w}[[[get_remote_capabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpuId]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesEKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1ac5080a00024594f2974dc30e4cef0aa4 .target}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[get_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9get_noiseENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Return the noise model for [`qpu_id`{.docutils .literal
+        .notranslate}]{.pre} on this platform.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1quantum__platform_1ab4edf1b6d496e6ca7f883627f208288c .target}[[[RemoteCapabilities]{.pre}]{.n}](#_CPPv4N5cudaq18RemoteCapabilitiesE "cudaq::RemoteCapabilities"){.reference .internal}[ ]{.w}[[[get_remote_capabilities]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform23get_remote_capabilitiesENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Get the remote capabilities (only applicable for remote
         platforms)
@@ -12616,7 +12670,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a39b49eb99f389ffbf2d6aa64698e6110 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11reset_noiseEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a944aa5d4b452d275778dcb5f91da3b53 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11reset_noiseENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Turn off any noise models.
 
@@ -12641,7 +12695,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a28843be78cb54fb04dfbf4ebad27a2f0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[launchVQE]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[kernelName]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[kernelArgs]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[gradient]{.pre}]{.n}](#_CPPv4N5cudaq8gradientE "cudaq::gradient"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[gradient]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[optimizer]{.pre}]{.n}](#_CPPv4N5cudaq9optimizerE "cudaq::optimizer"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[optimizer]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[int]{.pre}]{.kt}[ ]{.w}[[n_params]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a4e553d4087f2a1a7d520e3482e32de67 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[launchVQE]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[kernelName]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[kernelArgs]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[gradient]{.pre}]{.n}](#_CPPv4N5cudaq8gradientE "cudaq::gradient"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[gradient]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[spin_op]{.pre}]{.n}](#_CPPv4N5cudaq7spin_opE "cudaq::spin_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[H]{.pre}]{.n .sig-param}, [[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[optimizer]{.pre}]{.n}](#_CPPv4N5cudaq9optimizerE "cudaq::optimizer"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[optimizer]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[int]{.pre}]{.kt}[ ]{.w}[[n_params]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[shots]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform9launchVQEEKNSt6stringEPKvPN5cudaq8gradientERKN5cudaq7spin_opERN5cudaq9optimizerEKiKNSt6size_tENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Launch a VQE operation on the platform.
 
@@ -12729,15 +12783,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#structcudaq_1_1RemoteCapabilities_1a59e51afc4c9baeefbad76528f0291857 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[serializedCodeExec]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq18RemoteCapabilities18serializedCodeExecE "Permalink to this definition"){.headerlink}\
-
-    :   True if the remote can perform serialized code execution (raw
-        Python commands).
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#structcudaq_1_1RemoteCapabilities_1a9747aef4cba0c08f8a8c762848663c64 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[vqe]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq18RemoteCapabilities3vqeE "Permalink to this definition"){.headerlink}\
 
     :   True if the remote can perform an entire VQE operation without
@@ -12753,17 +12798,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         generation (including synthesis) and execution are performed in
         different processes.
     :::
-
-```{=html}
-<!-- -->
-```
-
-[]{#classcudaq_1_1SerializedCodeExecutionContext .target}[[class]{.pre}]{.k}[ ]{.w}[[[SerializedCodeExecutionContext]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq30SerializedCodeExecutionContextE "Permalink to this definition"){.headerlink}\
-
-:   The [[SerializedCodeExecutionContext]{.std
-    .std-ref}](#classcudaq_1_1SerializedCodeExecutionContext){.reference
-    .internal} is an abstraction to indicate how a serialized code
-    should be executed.
 
 ```{=html}
 <!-- -->
@@ -12873,8 +12907,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_invocable_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "cudaq::contrib::draw::QuantumKernel"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "cudaq::contrib::draw::Args"){.reference .internal}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
-[]{#draw_8h_1a5ba1c68731156efd49a310a05362e3e5 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[draw]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "cudaq::contrib::draw::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "cudaq::contrib::draw::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0Dp0EN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#draw_8h_1a29cc6cf77ecf7fdab425a7853bf358cc .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[contrib]{.pre}]{.n}](#_CPPv4N5cudaq7contribE "cudaq::contrib"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[draw]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "cudaq::contrib::draw::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "cudaq::contrib::draw::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq7contrib4drawENSt6stringERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
 
 :   Returns a drawing of the execution path, i.e., the trace, of the
     kernel. The drawing is a UTF-8 encoded string.
@@ -13206,7 +13240,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

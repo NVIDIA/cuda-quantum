@@ -1048,22 +1048,6 @@ latest
             -   [Submission from
                 Python](../backends/cloud/braket.html#submission-from-python){.reference
                 .internal}
-        -   [NVIDIA Quantum Cloud
-            (nvqc)](../backends/cloud/nvqc.html){.reference .internal}
-            -   [Quick
-                Start](../backends/cloud/nvqc.html#quick-start){.reference
-                .internal}
-            -   [Simulator Backend
-                Selection](../backends/cloud/nvqc.html#simulator-backend-selection){.reference
-                .internal}
-            -   [Multiple
-                GPUs](../backends/cloud/nvqc.html#multiple-gpus){.reference
-                .internal}
-            -   [Multiple QPUs Asynchronous
-                Execution](../backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution){.reference
-                .internal}
-            -   [FAQ](../backends/cloud/nvqc.html#faq){.reference
-                .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
         .internal}
@@ -3075,7 +3059,8 @@ The following table summarizes the required components.
 +--------------------------+--------------------------------------------+
 | CPU architectures        | x86_64, ARM64                              |
 +--------------------------+--------------------------------------------+
-| Operating System         | Linux                                      |
+| Operating systems        | Linux, Windows via Windows Subsystem for   |
+|                          | Linux 2 (WSL2)                             |
 +--------------------------+--------------------------------------------+
 | Tested Distributions     | CentOS 8; Debian 11, 12; Fedora 41;        |
 |                          | OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9;  |
@@ -3277,7 +3262,7 @@ aria-hidden="true"}](data_center_install.html "Installation from Source"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

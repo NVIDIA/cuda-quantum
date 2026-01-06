@@ -16,10 +16,7 @@ found in our complete :doc:`Installation Guide <install/install>`.
 
 .. note::
 
-    If you are using CUDA 12.8 on Blackwell, you may need to install additional
-    dependencies to use the python wheels.
-
-    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
+    CUDA-Q is currently supported on Linux only. On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
 
 Install CUDA-Q
 ----------------------------
@@ -35,7 +32,13 @@ Install CUDA-Q
       :start-after: (Begin complete install)
       :end-before: (End complete install)
 
-   Once you completed the installation, please follow the instructions
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
+
+Once you completed the installation, please follow the instructions
    :ref:`below <validate-installation>` to run your first CUDA-Q program!
 
 .. tab:: C++
