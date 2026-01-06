@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -37,18 +37,12 @@ struct TargetFinalizationPipelineOptions
       llvm::cl::init(true)};
 };
 
-struct PythonAOTOptions : public PassPipelineOptions<PythonAOTOptions> {
+struct PreDeviceCodeLoaderOptions
+    : public PassPipelineOptions<PreDeviceCodeLoaderOptions> {
   PassOptions::Option<bool> autoGenRunStack{
       *this, "gen-run-stack",
       llvm::cl::desc("Autogenerate the cudaq::run dispatch stack."),
       llvm::cl::init(true)};
-  PassOptions::Option<bool> deferGKEToJIT{
-      *this, "defer-gke-to-jit",
-      llvm::cl::desc("Defer running GKE until JIT time."),
-      llvm::cl::init(true)};
-  PassOptions::Option<std::size_t> codegenKind{
-      *this, "codegen-kind", llvm::cl::desc("GKE launch codegen kind."),
-      llvm::cl::init(0)};
 };
 } // namespace
 
@@ -64,6 +58,7 @@ static void createTargetPrepPipeline(OpPassManager &pm,
                                                   {options.allowEarlyExit});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplySpecialization(
@@ -165,24 +160,22 @@ void cudaq::opt::registerJITPipelines() {
   registerTargetFinalizePipeline();
 }
 
-/// This pipeline is defined to mirror the nvq++ driver's pipeline. It can be
-/// used post front-end bridge to lower the Quake IR to a target agnostic
-/// version of Quake code.
-static void createPythonAOTPipeline(OpPassManager &pm,
-                                    const PythonAOTOptions &options) {
+/// This pipeline is defined to mirror the nvq++ driver's pipeline up to and
+/// including generation of the device code loader. It can be used post
+/// front-end bridge to lower the Quake IR to the same GDCL level.
+static void
+createPreDeviceCodeLoaderPipeline(OpPassManager &pm,
+                                  const PreDeviceCodeLoaderOptions &options) {
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addPass(cudaq::opt::createLambdaLifting());
+  pm.addPass(cudaq::opt::createLambdaLiftingPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;
   gkeOpts.genRunStack = options.autoGenRunStack;
-  gkeOpts.deferToJIT = options.deferGKEToJIT;
-  gkeOpts.codegenKind = options.codegenKind;
   pm.addPass(cudaq::opt::createGenerateKernelExecution(gkeOpts));
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
@@ -192,22 +185,25 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
+  pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader());
 }
 
-void cudaq::opt::createPythonAOTPipeline(OpPassManager &pm,
-                                         bool autoGenRunStack) {
-  PythonAOTOptions opts;
+void cudaq::opt::createPreDeviceCodeLoaderPipeline(OpPassManager &pm,
+                                                   bool autoGenRunStack) {
+  PreDeviceCodeLoaderOptions opts;
   opts.autoGenRunStack = autoGenRunStack;
-  ::createPythonAOTPipeline(pm, opts);
+  ::createPreDeviceCodeLoaderPipeline(pm, opts);
 }
 
-static void registerPythonAOTPipeline() {
-  PassPipelineRegistration<PythonAOTOptions>(
+static void registerPreDeviceCodeLoaderPipeline() {
+  PassPipelineRegistration<PreDeviceCodeLoaderOptions>(
       "aot-prep-pipeline",
       "Pipeline to lower code for simulation or JIT compilation.",
-      [](OpPassManager &pm, const PythonAOTOptions &options) {
-        ::createPythonAOTPipeline(pm, options);
+      [](OpPassManager &pm, const PreDeviceCodeLoaderOptions &options) {
+        ::createPreDeviceCodeLoaderPipeline(pm, options);
       });
 }
 
-void cudaq::opt::registerAOTPipelines() { registerPythonAOTPipeline(); }
+void cudaq::opt::registerAOTPipelines() {
+  registerPreDeviceCodeLoaderPipeline();
+}
