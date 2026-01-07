@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
@@ -18,7 +19,6 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
-#include "cudaq/utils/registry.h"
 #include <complex>
 #include <vector>
 
