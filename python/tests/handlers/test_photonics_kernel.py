@@ -13,7 +13,7 @@ from typing import List
 import cudaq
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def do_something():
     cudaq.set_target("orca-photonics")
     yield
