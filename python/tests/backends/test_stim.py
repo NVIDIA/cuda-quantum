@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,10 +16,9 @@ import numpy as np
 
 @pytest.fixture(scope="session", autouse=True)
 def setTarget():
-    old_target = cudaq.get_target()
     cudaq.set_target('stim')
     yield
-    cudaq.set_target(old_target)
+    cudaq.reset_target()
 
 
 def test_stim_non_clifford():
