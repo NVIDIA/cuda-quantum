@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -113,47 +113,47 @@ def test_openqasm2_gates():
 # CHECK: rz(0.000000e+00) var0[0];
 # CHECK: rx(-1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
-# CHECK: cx var0[1], var0[0];
+# CHECK: cx var0[2], var0[0];
 # CHECK: rz(-7.853982e-01) var0[0];
 # CHECK: rx(1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
 # CHECK: rx(-1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
-# CHECK: cx var0[2], var0[0];
+# CHECK: cx var0[1], var0[0];
 # CHECK: rz(7.853982e-01) var0[0];
 # CHECK: rx(1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
 # CHECK: rx(-1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
-# CHECK: cx var0[1], var0[0];
+# CHECK: cx var0[2], var0[0];
 # CHECK: rz(-7.853982e-01) var0[0];
 # CHECK: rx(1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
 # CHECK: rx(-1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
-# CHECK: cx var0[2], var0[0];
+# CHECK: cx var0[1], var0[0];
 # CHECK: rz(7.853982e-01) var0[0];
 # CHECK: rx(1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
 # CHECK: rx(-1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];
-# CHECK: cx var0[2], var0[1];
-# CHECK: rz(-7.853982e-01) var0[1];
-# CHECK: rx(1.570796e+00) var0[1];
-# CHECK: rz(0.000000e+00) var0[1];
-# CHECK: rx(-1.570796e+00) var0[1];
-# CHECK: rz(0.000000e+00) var0[1];
-# CHECK: cx var0[2], var0[1];
-# CHECK: rz(7.853982e-01) var0[1];
-# CHECK: rx(1.570796e+00) var0[1];
-# CHECK: rz(0.000000e+00) var0[1];
-# CHECK: rx(-1.570796e+00) var0[1];
-# CHECK: rz(0.000000e+00) var0[1];
+# CHECK: cx var0[1], var0[2];
+# CHECK: rz(-7.853982e-01) var0[2];
+# CHECK: rx(1.570796e+00) var0[2];
+# CHECK: rz(0.000000e+00) var0[2];
+# CHECK: rx(-1.570796e+00) var0[2];
+# CHECK: rz(0.000000e+00) var0[2];
+# CHECK: cx var0[1], var0[2];
 # CHECK: rz(7.853982e-01) var0[2];
 # CHECK: rx(1.570796e+00) var0[2];
 # CHECK: rz(0.000000e+00) var0[2];
 # CHECK: rx(-1.570796e+00) var0[2];
 # CHECK: rz(0.000000e+00) var0[2];
+# CHECK: rz(7.853982e-01) var0[1];
+# CHECK: rx(1.570796e+00) var0[1];
+# CHECK: rz(0.000000e+00) var0[1];
+# CHECK: rx(-1.570796e+00) var0[1];
+# CHECK: rz(0.000000e+00) var0[1];
 # CHECK: rz(1.570796e+00) var0[0];
 # CHECK: rx(1.570796e+00) var0[0];
 # CHECK: rz(0.000000e+00) var0[0];

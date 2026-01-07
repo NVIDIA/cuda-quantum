@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -18,40 +18,48 @@
 #include <map>
 #include <thread>
 
+namespace {
+// Endpoint to submit jobs
+constexpr const char *JOBS_ENDPOINT = "cudaq/v1/jobs/";
+// Time constants
+constexpr std::size_t POLLING_INTERVAL_MICRO = 1000000; // 1 second
+// Default values
+namespace defaults {
+/// Base URL for QCI's service.
+constexpr const char *API_URL = "https://aqumen.quantumcircuits.com/";
+/// This is not a secret nor a credential. QCI uses these to identify the
+/// library or app and the version that is originating each network request to
+/// both monitor usage and to disable defective or obsolete releases. Each new
+/// release of the SDK should incorporate a new API token.
+constexpr const char *API_TOKEN =
+    "eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0."
+    "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzODkyNzMxMDUsImlhdCI6MTc1ODU1MzEwNSwiaXNz"
+    "IjoiYXF1bWVuIiwianRpIjoiMDE5OTcxZWUtZTI4NS03MGM2LWE3NzMtNzhhMGI4MDRmNTVh"
+    "IiwibmJmIjoxNzU4NTUzMTA1LCJzdWIiOiIwMTk5NzFlZS1lMjgwLTdmNjktYjU0Ny05ZTc5"
+    "YTc2YTEwNTkifQ."
+    "-tthQDI6XuiKPkNJ8sEAKlJthG4hTC2-0mcukejlW82eYZa_u1RBf4J5yQ3Z-2J6O4ZNQvC2"
+    "MEIOYzvmZ4-HAg";
+constexpr const char *MACHINE = "AquSim";
+constexpr const char *METHOD = "simulate";
+} // namespace defaults
+// Configuration keys
+namespace config_keys {
+constexpr const char *API_URL = "apiUrl";
+constexpr const char *API_TOKEN = "apiToken";
+constexpr const char *AUTH_TOKEN = "authToken";
+constexpr const char *MACHINE = "machine";
+constexpr const char *METHOD = "method";
+constexpr const char *NOISY = "noisy";
+constexpr const char *RUSR = "repeat_until_shots_requested";
+} // namespace config_keys
+} // namespace
+
 namespace cudaq {
 
-/// @brief The QcIServerHelper class extends the ServerHelper class to handle
+/// @brief The QCIServerHelper class extends the ServerHelper class to handle
 /// interactions with the QCI server for submitting and retrieving quantum
 /// computation jobs.
 class QCIServerHelper : public ServerHelper, public QirServerHelper {
-private:
-  /// @brief Default API token. This is not a secret nor a credential. QCI uses
-  /// these to identify the library or app and the version that is originating
-  /// each network request to both monitor usage and to disable defective or
-  /// obsolete releases. Each new release of the SDK should incorporate a new
-  /// API token.
-  const std::string DEFAULT_API_TOKEN =
-      "eyJhbGciOiJFZDI1NTE5IiwidHlwIjoiSldUIn0."
-      "eyJhdWQiOiJjbGllbnQiLCJleHAiOjIzODkyNzMxMDUsImlhdCI6MTc1ODU1MzEwNSwiaXNz"
-      "IjoiYXF1bWVuIiwianRpIjoiMDE5OTcxZWUtZTI4NS03MGM2LWE3NzMtNzhhMGI4MDRmNTVh"
-      "IiwibmJmIjoxNzU4NTUzMTA1LCJzdWIiOiIwMTk5NzFlZS1lMjgwLTdmNjktYjU0Ny05ZTc5"
-      "YTc2YTEwNTkifQ."
-      "-tthQDI6XuiKPkNJ8sEAKlJthG4hTC2-0mcukejlW82eYZa_u1RBf4J5yQ3Z-2J6O4ZNQvC2"
-      "MEIOYzvmZ4-HAg";
-
-  /// @brief Default base URL for QCI's service.
-  const std::string DEFAULT_API_URL = "https://aqumen.quantumcircuits.com/";
-
-  /// @brief Default machine, the simulator.
-  const std::string DEFAULT_MACHINE = "AquSim";
-
-  /// @brief Default action to perform
-  const std::string DEFAULT_METHOD = "simulate";
-
-  /// @brief Polling interval for job status via QCI's CUDA-Q endpoint in
-  /// microseconds.
-  const std::size_t QCI_CUDAQ_ENDPOINT_POLL_MICRO = 1000000;
-
 protected:
   /// @brief RestClient used to POST HTTP requests.
   RestClient restClient;
@@ -77,19 +85,29 @@ public:
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
   void initialize(BackendConfig config) override {
-    CUDAQ_INFO("Initializing Quantum Circuits backend.");
+    CUDAQ_INFO("Initializing Quantum Circuits, Inc. backend.");
 
-    auto apiUrl = getEnvVar("QCI_API_URL", DEFAULT_API_URL, false);
-    config["apiUrl"] = apiUrl.ends_with("/") ? apiUrl : apiUrl + "/";
-    CUDAQ_INFO("QCI backend API URL: {}", config["apiUrl"]);
+    auto apiUrl = getEnvVar("QCI_API_URL", defaults::API_URL, false);
+    config[config_keys::API_URL] =
+        apiUrl.ends_with("/") ? apiUrl : apiUrl + "/";
 
-    config["apiToken"] = getEnvVar("QCI_API_TOKEN", DEFAULT_API_TOKEN, false);
+    config[config_keys::API_TOKEN] =
+        getEnvVar("QCI_API_TOKEN", defaults::API_TOKEN, false);
 
-    config["machine"] = getValueOrDefault(config, "machine", DEFAULT_MACHINE);
+    config[config_keys::MACHINE] =
+        getValueOrDefault(config, config_keys::MACHINE, defaults::MACHINE);
 
-    config["method"] = getValueOrDefault(config, "method", DEFAULT_METHOD);
-    CUDAQ_INFO("QCI backend machine: {} with method: {}", config["machine"],
-               config["method"]);
+    config[config_keys::METHOD] =
+        getValueOrDefault(config, config_keys::METHOD, defaults::METHOD);
+
+    CUDAQ_INFO("QCI backend machine: {} with method: {}",
+               config[config_keys::MACHINE], config[config_keys::METHOD]);
+
+    config[config_keys::NOISY] =
+        getValueOrDefault(config, config_keys::NOISY, "false");
+
+    config[config_keys::RUSR] =
+        getValueOrDefault(config, config_keys::RUSR, "false");
 
     // Authentication token not required in emulation mode
     bool isTokenRequired = [&]() {
@@ -97,7 +115,7 @@ public:
       return !(it != config.end() && it->second == "true");
     }();
 
-    config["authToken"] =
+    config[config_keys::AUTH_TOKEN] =
         getEnvVar("QCI_AUTH_TOKEN", "QCI_AUTH_TOKEN_NOT_SET", isTokenRequired);
 
     if (!config["shots"].empty()) {
@@ -142,7 +160,7 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
-  // Extract QIR output data
+  /// @brief Extract QIR output data from the server's response to a job
   std::string extractOutputLog(ServerMessage &postJobResponse,
                                std::string &jobId) override;
 };
@@ -151,7 +169,6 @@ public:
 std::string QCIServerHelper::getEnvVar(const std::string &key,
                                        const std::string &defaultVal,
                                        const bool isRequired) const {
-  // Get the environment variable
   const char *env_var = std::getenv(key.c_str());
   // If the variable is not set, either return the default or throw an
   // exception
@@ -161,7 +178,6 @@ std::string QCIServerHelper::getEnvVar(const std::string &key,
     else
       return defaultVal;
   }
-  // Return the variable as a string
   return std::string(env_var);
 }
 
@@ -177,37 +193,50 @@ ServerJobPayload
 QCIServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
   std::vector<ServerMessage> messages;
 
+  // Note that the options can be set as string dictionary from other
+  // application(s) which call the CUDA-Q client.
+  // Ref: https://github.com/NVIDIA/cuda-quantum/issues/3525
+  auto toBool = [](const std::string &value) {
+    return value == "True" || value == "true" || value == "1";
+  };
+
+  bool rusr = toBool(backendConfig.at(config_keys::RUSR));
+  bool noisy = toBool(backendConfig.at(config_keys::NOISY));
+
   for (auto &circuitCode : circuitCodes) {
     ServerMessage job;
     job["code"] = circuitCode.code;
-    job["machine"] = backendConfig.at("machine");
-    job["method"] = backendConfig.at("method");
-    job["mappingReorderIdx"] = circuitCode.mapping_reorder_idx;
     job["name"] = circuitCode.name;
-    job["outputNames"] = circuitCode.output_names;
-    job["shots"] = shots;
-    job["userData"] = circuitCode.user_data;
+    // Target-specific parameters
+    job[config_keys::MACHINE] = backendConfig.at(config_keys::MACHINE);
+    job[config_keys::METHOD] = backendConfig.at(config_keys::METHOD);
+    job["options"] = nlohmann::json::object();
+    job["options"]["aqusim"] = {{"shots", shots},
+                                {config_keys::NOISY, noisy},
+                                {config_keys::RUSR, rusr}};
+    if (rusr)
+      job["options"]["compiler"] = {{"shots_requested", shots}};
+    job["options"]["qpu"] = {{"shots", shots}};
 
     messages.push_back(job);
   }
 
   RestHeaders headers = generateRequestHeaders();
-  return std::make_tuple(backendConfig.at("apiUrl") + "cudaq/v1/jobs", headers,
-                         messages);
+  return std::make_tuple(backendConfig.at(config_keys::API_URL) + JOBS_ENDPOINT,
+                         headers, messages);
 }
 
-/// @brief Extract the job ID from the server's response to a job submission.
 std::string QCIServerHelper::extractJobId(ServerMessage &postResponse) {
   return postResponse["id"].get<std::string>();
 }
 
 std::string QCIServerHelper::constructGetJobPath(ServerMessage &postResponse) {
-  return backendConfig.at("apiUrl") + "cudaq/v1/jobs/" +
+  return backendConfig.at(config_keys::API_URL) + JOBS_ENDPOINT +
          extractJobId(postResponse);
 }
 
 std::string QCIServerHelper::constructGetJobPath(std::string &jobId) {
-  return backendConfig.at("apiUrl") + "cudaq/v1/jobs/" + jobId;
+  return backendConfig.at(config_keys::API_URL) + JOBS_ENDPOINT + jobId;
 }
 
 bool QCIServerHelper::jobIsDone(ServerMessage &getJobResponse) {
@@ -226,28 +255,25 @@ bool QCIServerHelper::jobIsDone(ServerMessage &getJobResponse) {
       throw std::runtime_error("Job was cancelled.");
     }
   }
-
   return exited;
 }
 
 std::chrono::microseconds
 QCIServerHelper::nextResultPollingInterval(ServerMessage &postResponse) {
-  return std::chrono::microseconds(QCI_CUDAQ_ENDPOINT_POLL_MICRO);
+  return std::chrono::microseconds(POLLING_INTERVAL_MICRO);
 }
 
-// Get the QIR output log from a given path
 std::string QCIServerHelper::getOutputLog(std::string &outputLogPath) {
   RestHeaders headers = {{"Accept", "*/*"}};
   // The path returns TSV text
   return restClient.getRawText(outputLogPath, "", headers);
 }
 
-// Process the results from a job
 cudaq::sample_result
 QCIServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobId) {
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
-  CUDAQ_DBG("jobId: {}", jobId);
+  CUDAQ_INFO("jobId: {}", jobId);
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   auto qirResults = getOutputLog(outputPath);
   return createSampleResultFromQirOutput(qirResults);
@@ -256,9 +282,9 @@ QCIServerHelper::processResults(ServerMessage &postJobResponse,
 std::map<std::string, std::string>
 QCIServerHelper::generateRequestHeaders() const {
   std::map<std::string, std::string> headers{
-      {"API-Token", backendConfig.at("apiToken")},
+      {"API-Token", backendConfig.at(config_keys::API_TOKEN)},
       {"Accept", "application/json"},
-      {"Authorization", "Bearer " + backendConfig.at("authToken")},
+      {"Authorization", "Bearer " + backendConfig.at(config_keys::AUTH_TOKEN)},
       {"Connection", "keep-alive"},
       {"Content-Type", "application/json"},
       {"User-Agent", "cudaq/" + std::string(cudaq::getVersion())}};
@@ -268,11 +294,10 @@ QCIServerHelper::generateRequestHeaders() const {
 
 RestHeaders QCIServerHelper::getHeaders() { return generateRequestHeaders(); }
 
-// Extract QIR output data
 std::string QCIServerHelper::extractOutputLog(ServerMessage &postJobResponse,
                                               std::string &jobId) {
   CUDAQ_DBG("postJobResponse: {}", postJobResponse.dump());
-  CUDAQ_DBG("jobId: {}", jobId);
+  CUDAQ_INFO("jobId: {}", jobId);
   auto outputPath = postJobResponse.at("outputUrl").get<std::string>();
   return getOutputLog(outputPath);
 }

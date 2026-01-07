@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,7 +28,6 @@ namespace cudaq {
 class ExecutionContext;
 class gradient;
 class optimizer;
-class SerializedCodeExecutionContext;
 
 /// Base interface encapsulating a CUDA-Q runtime server capable of
 /// running kernel IR code.
@@ -103,7 +102,6 @@ public:
   // if this was a local execution.
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
-              SerializedCodeExecutionContext *serializedCodeContext,
               cudaq::gradient *vqe_gradient, cudaq::optimizer *vqe_optimizer,
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -389,6 +389,23 @@ void test_vectors(mlir::MLIRContext *ctx) {
   // clang-format on
 
   {
+    // The code here is generated strictly for the device side. We will never
+    // have the template specialization of std::vector<bool> present in any form
+    // on the device side. Any such data will always be marshaled correctly. For
+    // the test, this means we use std::vector<char> here to avoid the
+    // template specialization.
+    std::vector<char> x = {true, false};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<i1>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array [true, false] : !cc.array<i1 x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<i1 x ?>) -> !cc.stdvec<i1>
+ // CHECK:         }
+  // clang-format on
+
+  {
     std::vector<std::vector<cudaq::pauli_word>> x = {
         {cudaq::pauli_word{"XX"}, cudaq::pauli_word{"XY"}},
         {cudaq::pauli_word{"ZI"}, cudaq::pauli_word{"YY"}},
@@ -426,6 +443,20 @@ void test_vectors(mlir::MLIRContext *ctx) {
 // CHECK-LABEL:   cc.arg_subst[0] {
 // CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[1, 2, 3, 0], [14, 15, 16, 13], [127, 128, 129, 126]] : !cc.array<!cc.array<i64 x ?> x ?>
 // CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i64 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i64>>
+// CHECK:         }
+  // clang-format on
+
+  {
+    std::vector<std::vector<char>> x = {{true, true, false, true},
+                                        {false, false, false, true},
+                                        {true, false, false, true}};
+    std::vector<void *> v = {static_cast<void *>(&x)};
+    doSimpleTest(ctx, "!cc.stdvec<!cc.stdvec<i1>>", v);
+  }
+  // clang-format off
+// CHECK-LABEL:   cc.arg_subst[0] {
+// CHECK: %[[VAL_0:.*]] = cc.const_array {{\[}}[true, true, false, true], [false, false, false, true], [true, false, false, true]] : !cc.array<!cc.array<i1 x ?> x ?>
+// CHECK: %[[VAL_1:.*]] = cc.reify_span %[[VAL_0]] : (!cc.array<!cc.array<i1 x ?> x ?>) -> !cc.stdvec<!cc.stdvec<i1>>
 // CHECK:         }
   // clang-format on
 }

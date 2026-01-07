@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -71,7 +71,7 @@ def test_call_with_return_bool2():
                 if z_stabilizers[zi * len(logicalQubit.data) + di] == 1:
                     x.ctrl(logicalQubit.data[di], logicalQubit.ancz[zi])
 
-        results = mz(logicalQubit.ancx, logicalQubit.ancz)
+        results = mz([*logicalQubit.ancx, *logicalQubit.ancz])
 
         reset(logicalQubit.ancx)
         reset(logicalQubit.ancz)

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -20,8 +20,8 @@ from .analysis import HasReturnNodeVisitor
 from .ast_bridge import compile_to_mlir, PyASTBridge
 from .captured_data import CapturedDataStorage
 from .utils import (emitFatalError, emitErrorIfInvalidPauli, globalAstRegistry,
-                    globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
-                    nvqppPrefix)
+                    globalKernelDecorators, globalRegisteredTypes,
+                    mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix)
 
 # This file implements the decorator mechanism needed to
 # JIT compile CUDA-Q kernels. It exposes the cudaq.kernel()
@@ -65,10 +65,11 @@ class PyKernelDecorator(object):
             self.signature = signature
         else:
             self.kernelFunction = function
-            self.name = kernelName if kernelName != None else self.kernelFunction.__name__
-            self.location = (inspect.getfile(self.kernelFunction),
-                             inspect.getsourcelines(self.kernelFunction)[1]
-                            ) if self.kernelFunction is not None else ('', 0)
+            self.name = (kernelName if kernelName != None else
+                         self.kernelFunction.__name__)
+            self.location = ((inspect.getfile(self.kernelFunction),
+                              inspect.getsourcelines(self.kernelFunction)[1])
+                             if self.kernelFunction is not None else ('', 0))
 
         self.capturedDataStorage = None
 
@@ -164,6 +165,8 @@ class PyKernelDecorator(object):
         # building up call graphs. We also must retain
         # the source code location for error diagnostics
         globalAstRegistry[self.name] = (self.astModule, self.location)
+        # Add this decorator to the global set
+        globalKernelDecorators.add(self)
 
     def compile(self):
         """
@@ -451,6 +454,25 @@ class PyKernelDecorator(object):
 
         return arg
 
+    def processCallableArg(self, arg):
+        """
+        Process a callable argument
+        """
+        if not isinstance(arg, PyKernelDecorator):
+            emitFatalError(
+                "Callable argument provided is not a cudaq.kernel decorated function."
+            )
+        # It may be that the provided input callable kernel
+        # is not currently in the ModuleOp. Need to add it
+        # if that is the case, we have to use the AST
+        # so that it shares self.module's MLIR Context
+        symbols = SymbolTable(self.module.operation)
+        if nvqppPrefix + arg.name not in symbols:
+            tmpBridge = PyASTBridge(self.capturedDataStorage,
+                                    existingModule=self.module,
+                                    disableEntryPointTag=True)
+            tmpBridge.visit(globalAstRegistry[arg.name][0])
+
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to MLIR 
@@ -498,16 +520,7 @@ class PyKernelDecorator(object):
             if cc.CallableType.isinstance(mlirType):
                 # Assume this is a PyKernelDecorator
                 callableNames.append(arg.name)
-                # It may be that the provided input callable kernel
-                # is not currently in the ModuleOp. Need to add it
-                # if that is the case, we have to use the AST
-                # so that it shares self.module's MLIR Context
-                symbols = SymbolTable(self.module.operation)
-                if nvqppPrefix + arg.name not in symbols:
-                    tmpBridge = PyASTBridge(self.capturedDataStorage,
-                                            existingModule=self.module,
-                                            disableEntryPointTag=True)
-                    tmpBridge.visit(globalAstRegistry[arg.name][0])
+                self.processCallableArg(arg)
 
             # Convert `numpy` arrays to lists
             if cc.StdvecType.isinstance(mlirType) and hasattr(arg, "tolist"):

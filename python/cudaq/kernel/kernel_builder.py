@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -1399,7 +1399,7 @@ class PyKernel(object):
             if self.getIntegerType(1) != conditional.type:
                 # not equal to 0, then compare with 1
                 condPred = IntegerAttr.get(self.getIntegerType(), 1)
-                conditional = arith.CmpIOp(condPred, condition,
+                conditional = arith.CmpIOp(condPred, conditional,
                                            self.getConstantInt(0)).result
 
             ifOp = cc.IfOp([], conditional, [])

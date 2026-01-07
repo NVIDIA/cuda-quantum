@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -443,7 +443,9 @@ def quake_ApplyOp : QuakeOp<"apply",
 
     /// Return the callee of this operation.
     mlir::CallInterfaceCallable getCallableForCallee() {
-      return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
+      if (getCallee())
+        return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
+      return getIndirectCallee().front();
     }
   }];
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -100,24 +100,29 @@ void runge_kutta::integrate(double targetTime) {
       castSimState += k1;
     } else if (m_order == 2) {
       // Midpoint method (2nd order)
+      // Standard formula: y_{n+1} = y_n + h * k2
+      // where k1 = f(t, y_n), k2 = f(t + h/2, y_n + h/2 * k1)
       for (const auto &param : m_schedule.get_parameters()) {
         params[param] = m_schedule.get_value_function()(param, m_t);
       }
       auto k1State = m_stepper->compute(*m_state, m_t, params);
       auto &k1 = *asCudmState(k1State);
-      k1 *= (step_size / 2.0);
 
-      castSimState += k1;
+      // Create temporary state: y_temp = y_n + (h/2) * k1
+      auto rho_temp = CuDensityMatState::clone(castSimState);
+      rho_temp->accumulate_inplace(k1, step_size / 2.0);
+
+      // Compute k2 at the midpoint
       for (const auto &param : m_schedule.get_parameters()) {
         params[param] =
             m_schedule.get_value_function()(param, m_t + step_size / 2.0);
       }
-      auto k2State =
-          m_stepper->compute(*m_state, m_t + step_size / 2.0, params);
+      auto k2State = m_stepper->compute(cudaq::state(rho_temp.release()),
+                                        m_t + step_size / 2.0, params);
       auto &k2 = *asCudmState(k2State);
-      k2 *= (step_size / 2.0);
 
-      castSimState += k2;
+      // Final update: y_{n+1} = y_n + h * k2
+      castSimState.accumulate_inplace(k2, step_size);
     } else if (m_order == 4) {
       // Runge-Kutta method (4th order)
       for (const auto &param : m_schedule.get_parameters()) {

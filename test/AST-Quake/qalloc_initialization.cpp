@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %cpp_std %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %cpp_std %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake -D CUDAQ_SIMULATION_SCALAR_FP64 %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 // Test various flavors of qubits declared with initial state information.

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,6 +20,9 @@ namespace cudaq {
 namespace details {
 std::tuple<std::string, MlirModule, OpaqueArguments *>
 getKernelLaunchParameters(py::object &kernel, py::args args) {
+  if (!py::hasattr(kernel, "arguments"))
+    throw std::runtime_error(
+        "unrecognized kernel - did you forget the @kernel attribute?");
   if (py::len(kernel.attr("arguments")) != args.size())
     throw std::runtime_error("Invalid number of arguments passed to draw:" +
                              std::to_string(args.size()) + " expected " +
@@ -122,7 +125,9 @@ Returns:
   # Output
   #      ╭───╮╭──────────╮
   # q0 : ┤ h ├┤ ry(0.59) ├
-  #      ╰───╯╰──────────╯)#");
+  #      ╰───╯╰──────────╯
+
+Note: This function is only available when using simulator backends.)#");
 }
 
 } // namespace cudaq

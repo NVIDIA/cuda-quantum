@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ %cpp_std --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: CUDAQ_DEFAULT_SIMULATOR=stim nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t
 // clang-format on
 
 #include <cudaq.h>
@@ -57,7 +57,7 @@ int main() {
 
   auto &platform = cudaq::get_platform();
 
-  // If you run this on quantinuum hardware (i.e. H1-1E), the following parity
+  // If you run this on quantinuum hardware (i.e. H2-1E), the following parity
   // check will check that the results look reasonable. Skip the parity check on
   // `--emulate` runs because the unnamed measurement is not saved and therefore
   // cannot be compared in a parity check.

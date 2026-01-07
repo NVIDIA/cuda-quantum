@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -142,12 +142,19 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.asyncExec = is_async
     cudaq_runtime.setExecutionContext(ctx)
-    cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
-    if is_async:
-        return ctx.asyncResult
-    res = ctx.result
-    cudaq_runtime.resetExecutionContext()
-    return res
+    try:
+        cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
+    except BaseException:
+        # silence any further exceptions
+        try:
+            cudaq_runtime.resetExecutionContext()
+        except BaseException:
+            pass
+        raise
+    else:
+        cudaq_runtime.resetExecutionContext()
+
+    return ctx.asyncResult if is_async else ctx.result
 
 
 # FIXME: move to C++
@@ -544,7 +551,7 @@ def evolve_single_async(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
-    if store_intermediate_results:
+    if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
             num_qubits,
             compute_step_matrix,
@@ -579,12 +586,12 @@ def evolve_single_async(
             return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         if len(collapse_operators) > 0:
-            cudaq_runtime.evolve_async(initial_state,
-                                       kernel,
-                                       parameters[-1],
-                                       observable_spinops,
-                                       noise_model=noise,
-                                       shots_count=shots_count)
+            return cudaq_runtime.evolve_async(initial_state,
+                                              kernel,
+                                              parameters[-1],
+                                              observable_spinops,
+                                              noise_model=noise,
+                                              shots_count=shots_count)
         return cudaq_runtime.evolve_async(initial_state,
                                           kernel,
                                           parameters[-1],

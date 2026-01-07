@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -98,6 +98,9 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   ::addQIRConversionPipeline(pm, options.target);
   pm.addPass(cudaq::opt::createReturnToOutputLog());
+  // In the ReturnToOutputLog pass, we may create a for loop to iterate over
+  // unknown array size. Hence, that loop (if any) needs to be lowered to CFG.
+  cudaq::opt::addLowerToCFG(pm);
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());

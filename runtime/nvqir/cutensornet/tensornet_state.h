@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -86,6 +86,8 @@ protected:
   // This is a reference to the backend random number generator, which can be
   // reseeded by users.
   std::mt19937 &m_randomEngine;
+  // True if deterministic path-finding is to be used
+  static bool m_deterministic;
   bool m_hasNoiseChannel = false;
 
 public:

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -46,14 +46,6 @@ public:
 
   const std::vector<void *> &getArgs() const { return args; }
 
-private:
-  /// @brief The opaque argument pointers
-  std::vector<void *> args;
-
-  /// @brief Deletion functions for the arguments.
-  std::vector<OpaqueArgDeleter> deleters;
-
-public:
   /// @brief Add an opaque argument and its `deleter` to this OpaqueArguments
   template <typename ArgPointer, typename Deleter>
   void emplace_back(ArgPointer &&pointer, Deleter &&deleter) {
@@ -75,6 +67,13 @@ public:
     args.clear();
     deleters.clear();
   }
+
+private:
+  /// @brief The opaque argument pointers
+  std::vector<void *> args;
+
+  /// @brief Deletion functions for the arguments.
+  std::vector<OpaqueArgDeleter> deleters;
 };
 
 /// @brief This function modifies input arguments to convert them into valid
@@ -237,35 +236,8 @@ inline void handleStructMemberVariable(void *data, std::size_t offset,
         appendValue(data, (double)value.cast<py::float_>(), offset);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        auto appendVectorValue = []<typename T>(py::object value, void *data,
-                                                std::size_t offset, T) {
-          auto asList = value.cast<py::list>();
-          std::vector<double> *values = new std::vector<double>(asList.size());
-          for (std::size_t i = 0; auto &v : asList)
-            (*values)[i++] = v.cast<double>();
-
-          std::memcpy(((char *)data) + offset, values, 16);
-        };
-
-        mlir::TypeSwitch<mlir::Type, void>(ty.getElementType())
-            .Case([&](mlir::IntegerType type) {
-              if (type.isInteger(1)) {
-                appendVectorValue(value, data, offset, bool());
-                return;
-              }
-
-              appendVectorValue(value, data, offset, std::size_t());
-              return;
-            })
-            .Case([&](mlir::FloatType type) {
-              if (type.isF32()) {
-                appendVectorValue(value, data, offset, float());
-                return;
-              }
-
-              appendVectorValue(value, data, offset, double());
-              return;
-            });
+        throw std::runtime_error("dynamically sized element types for function "
+                                 "arguments are not yet supported");
       })
       .Default([&](mlir::Type ty) {
         ty.dump();

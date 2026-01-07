@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -246,6 +246,22 @@ def test_conditional_on_measure():
     print(test17)
 
     # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test17() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+
+    @cudaq.kernel
+    def test18() -> int:
+        q = cudaq.qvector(6)
+        x(q[0:3])
+        res = [mz(r) for r in q]
+        ires = 0
+        for idx, v in enumerate(res):
+            ires = ires | (int(v) << idx)
+        if ires:
+            x(q)
+        return ires
+
+    print(test18)
+
+    # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test18() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true}
 
 
 # leave for gdb debugging

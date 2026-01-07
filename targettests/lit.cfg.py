@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -36,9 +36,7 @@ config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
-config.substitutions.append(
-    ('%iqm_test_src_dir',
-     config.cudaq_src_dir + "/runtime/cudaq/platform/default/rest/helpers/iqm"))
+config.substitutions.append(('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
 
 llvm_config.use_default_substitutions()
 
@@ -49,17 +47,6 @@ llvm_config.feature_config([('--assertion-mode', {'ON': 'asserts'})])
 config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
-
-# Allow to filter tests based on environment variables
-cpp_stds = ['c++17', 'c++20', 'c++23']
-std_up_to = os.environ.get('CUDAQ_CPP_STD', 'c++23').lower()
-for std in cpp_stds[:bisect.bisect(cpp_stds, std_up_to)]:
-    config.available_features.add(std)
-std_default = os.environ.get('CUDAQ_CPP_STD')
-if std_default is None:
-    config.substitutions.append(('%cpp_std', ''))
-else:
-    config.substitutions.append(('%cpp_std', '-std=' + std_default.lower()))
 
 # The root path where tests are located.
 config.test_source_root = os.path.dirname(__file__)

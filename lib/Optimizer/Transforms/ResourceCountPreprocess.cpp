@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -69,8 +69,10 @@ struct ResourceCountPreprocessPass
     if (auto loop = dyn_cast<cudaq::cc::LoopOp>(op)) {
       cudaq::opt::LoopComponents comp;
       if (cudaq::opt::isaInvariantLoop(loop, true, false, &comp)) {
-        auto iterations = comp.getIterationsConstant().value();
-
+        auto loopSize = comp.getIterationsConstant();
+        if (!loopSize.has_value())
+          return;
+        auto iterations = loopSize.value();
         for (auto &b : loop.getBodyRegion().getBlocks())
           for (auto &op : b.getOperations())
             preprocessOp(&op, to_add * iterations);
@@ -92,10 +94,14 @@ struct ResourceCountPreprocessPass
   void runOnOperation() override {
     auto func = getOperation();
 
-    for (auto &b : func.getBody())
+    for (auto &b : func.getBody()) {
+      // We only pre-process the main block as the other blocks may be
+      // conditional when the IR is lowered to CFG.
+      if (&b != &func.getBody().front())
+        continue;
       for (auto &op : b.getOperations())
         preprocessOp(&op);
-
+    }
     for (auto op : to_erase)
       op->erase();
 

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -45,4 +45,3 @@ endif()
   
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 add_target_config(remote-mqpu)
-add_target_config(nvqc)

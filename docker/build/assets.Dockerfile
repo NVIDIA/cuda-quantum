@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -164,7 +164,8 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 
 ## [Python support]
 FROM prereqs AS python_build
-ADD "pyproject.toml" /cuda-quantum/pyproject.toml
+# Bring all possible templates into the image, then pick the exact one
+ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
 ADD "include" /cuda-quantum/include
@@ -186,22 +187,13 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && 
     ${PYTHON} -m ensurepip --upgrade && \
     ${PYTHON} -m pip install numpy build auditwheel patchelf
 
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    if [ "${CUDA_VERSION#12.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=12.0 && \
-        cusolver_version=11.4 && \
-        cuda_runtime_version=12.0 && \
-        cuda_nvrtc_version=12.0 && \
-        cupy_version=13.4.1 && \
-        sed -i "s/-cu13/-cu12/g" pyproject.toml && \
-        sed -i "s/-cuda13/-cuda12/g" pyproject.toml && \
-        sed -i -E "s/cupy-cuda[0-9]+x/cupy-cuda12x/g" pyproject.toml && \
-        sed -i -E "s/(cupy-cuda[0-9]+x? ~= )[0-9\.]*/\1${cupy_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cusolver-cu[0-9]* ~= )[0-9\.]*/\1${cusolver_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${cuda_nvrtc_version}/g" pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${cuda_runtime_version}/g" pyproject.toml; \
-    fi && \
+RUN cd /cuda-quantum && \
+    . scripts/configure_build.sh && \
+    case "${CUDA_VERSION%%.*}" in \
+      12) cp pyproject.toml.cu12 pyproject.toml || true ;; \
+      13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
+      *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
+    esac && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \

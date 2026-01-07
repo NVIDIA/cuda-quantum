@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -40,7 +40,8 @@ all_models = [
     TestBatchedCavityModelTimeDependentCollapseOp,
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
-    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326
+    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326,
+    TestMultiDegreeElemOp
 ]
 
 

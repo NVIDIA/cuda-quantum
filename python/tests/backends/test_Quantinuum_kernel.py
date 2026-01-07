@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -196,7 +196,8 @@ def test_quantinuum_state_synthesis_from_simulator():
         qubits = cudaq.qvector(state)
 
     state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
 
     counts = cudaq.sample(kernel, state)
     assert "00" in counts
@@ -241,6 +242,20 @@ def test_exp_pauli():
     assert '11' in counts
     assert not '01' in counts
     assert not '10' in counts
+
+
+def test_draw():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    # Test here is that this does not raise an exception
+    result = cudaq.draw(kernel)
+    assert result is ''
 
 
 # leave for gdb debugging

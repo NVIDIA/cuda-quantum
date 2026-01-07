@@ -16,10 +16,7 @@ found in our complete :doc:`Installation Guide <install/install>`.
 
 .. note::
 
-    If you are using CUDA 12.8 on Blackwell, you may need to install additional
-    dependencies to use the python wheels.
-
-    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
+    CUDA-Q is currently supported on Linux only. On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
 
 Install CUDA-Q
 ----------------------------
@@ -35,14 +32,20 @@ Install CUDA-Q
       :start-after: (Begin complete install)
       :end-before: (End complete install)
 
-   Once you completed the installation, please follow the instructions
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
+
+Once you completed the installation, please follow the instructions
    :ref:`below <validate-installation>` to run your first CUDA-Q program!
 
 .. tab:: C++
 
    To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
    that supports C++20, for example `g++` version 11 or newer.
-   Download the `install_cuda_quantum` file for your processor architecture and CUDA version (`_cu11` suffix for CUDA 11 and `_cu12` suffix for CUDA 12) 
+   Download the `install_cuda_quantum` file for your processor architecture and CUDA version (`_cu12` suffix for CUDA 12 and `_cu13` suffix for CUDA 13) 
    from the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; 
    that is, the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
 

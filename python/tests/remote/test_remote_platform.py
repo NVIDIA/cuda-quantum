@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -395,7 +395,7 @@ def test_math_exp():
     @cudaq.kernel
     def iqft(register: cudaq.qview):
         N = register.size()
-        for i in range(N / 2):
+        for i in range(int(N / 2)):
             swap(register[i], register[N - i - 1])
 
         for i in range(N - 1):
@@ -456,7 +456,7 @@ def test_capture_array():
 
 
 def test_capture_state():
-    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
+    s = cudaq.State.from_data(np.array([1., 0], dtype=cudaq.complex()))
 
     @cudaq.kernel
     def kernel():

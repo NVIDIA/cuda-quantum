@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,9 +15,6 @@ namespace cudaq {
 struct RemoteCapabilities {
   /// True if the remote can perform state overlap operations.
   bool stateOverlap = false;
-  /// True if the remote can perform serialized code execution (raw Python
-  /// commands).
-  bool serializedCodeExec = false;
   /// True if the remote can perform an entire VQE operation without and
   /// back-and-forth client/server communications.
   bool vqe = false;
@@ -26,8 +23,7 @@ struct RemoteCapabilities {
   bool isRemoteSimulator = false;
   /// Constructor that broadcasts \p initValue to all fields.
   RemoteCapabilities(bool initValue)
-      : stateOverlap(initValue), serializedCodeExec(initValue), vqe(initValue),
-        isRemoteSimulator(initValue) {}
+      : stateOverlap(initValue), vqe(initValue), isRemoteSimulator(initValue) {}
 };
 
 } // namespace cudaq

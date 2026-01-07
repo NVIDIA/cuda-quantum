@@ -1,13 +1,13 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq/algorithms/sample.h"
-#include "cudaq/utils/registry.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -88,6 +88,8 @@ for more information on this programming pattern.)#")
         auto &platform = cudaq::get_platform();
         if (py::hasattr(kernel, "compile"))
           kernel.attr("compile")();
+        // Process any callable args
+        const auto callableNames = getCallableNames(kernel, args);
         auto kernelName = kernel.attr("name").cast<std::string>();
         // Clone the kernel module
         auto kernelMod = mlirModuleFromOperation(
@@ -118,7 +120,7 @@ for more information on this programming pattern.)#")
         // Hence, pass it as a unique_ptr for the functor to manage its
         // lifetime.
         std::unique_ptr<OpaqueArguments> argData(
-            toOpaqueArgs(args, kernelMod, kernelName));
+            toOpaqueArgs(args, kernelMod, kernelName, getCallableArgHandler()));
 
         // Should only have C++ going on here, safe to release the GIL
         py::gil_scoped_release release;
@@ -129,9 +131,10 @@ for more information on this programming pattern.)#")
                 // (2) This lambda might be executed multiple times, e.g, when
                 // the kernel contains measurement feedback.
                 cudaq::detail::make_copyable_function(
-                    [argData = std::move(argData), kernelName,
-                     kernelMod]() mutable {
-                      pyAltLaunchKernel(kernelName, kernelMod, *argData, {});
+                    [argData = std::move(argData), kernelName, kernelMod,
+                     callableNames]() mutable {
+                      pyAltLaunchKernel(kernelName, kernelMod, *argData,
+                                        callableNames);
                     }),
                 platform, kernelName, shots, explicitMeasurements, qpu_id),
             std::move(mlirCtx));

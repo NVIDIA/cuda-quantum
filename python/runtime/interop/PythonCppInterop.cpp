@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -119,7 +119,7 @@ __attribute__((visibility("default"))) void
 registerDeviceKernel(const std::string &module, const std::string &name,
                      const std::string &mangled) {
   auto key = module + "." + name;
-  deviceKernelMLIRMap.insert({key, getMLIRCodeAndName(name, mangled)});
+  deviceKernelMLIRMap[key] = getMLIRCodeAndName(name, mangled);
 }
 
 bool isRegisteredDeviceModule(const std::string &compositeName) {

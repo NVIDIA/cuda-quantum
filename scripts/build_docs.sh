@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -146,7 +146,7 @@ echo "Creating README.md for cudaq package"
 package_name=cudaq
 cuda_version_requirement="12.x or 13.x"
 cuda_version_conda=12.4.0 # only used as example in the install script
-deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."
+deprecation_notice=""
 cat "$repo_root/python/README.md.in" > "$repo_root/python/README.md"
 for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
     sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" "$repo_root/python/README.md"
@@ -212,6 +212,14 @@ if [ "$docs_exit_code" -eq "0" ]; then
         find "$sphinx_output_dir" -type f -name "*.md" \
             -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
         echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
+
+        # Copy llms.txt from the repository root to the docs install prefix
+        if [ -f "$CUDAQ_REPO_ROOT/llms.txt" ]; then
+            cp "$CUDAQ_REPO_ROOT/llms.txt" "$DOCS_INSTALL_PREFIX/"
+            echo "Copied llms.txt to $DOCS_INSTALL_PREFIX."
+        else
+            echo "Warning: llms.txt not found in $CUDAQ_REPO_ROOT, skipping copy."
+        fi
     else
         echo "Markdown documentation encountered issues."
     fi

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -33,5 +33,3 @@ export_executable_symbols_for_plugins(${TOOL_NAME})
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
 install(FILES ${TOOL_NAME}.py DESTINATION bin)
-install(FILES nvqc_proxy.py DESTINATION bin)
-install(FILES json_request_runner.py DESTINATION bin)

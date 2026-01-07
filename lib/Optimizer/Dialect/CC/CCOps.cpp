@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1971,6 +1971,20 @@ void cudaq::cc::IfOp::build(OpBuilder &builder, OperationState &result,
   if (elseBuilder)
     elseBuilder(builder, result.location, *elseRegion);
   result.addOperands(cond);
+  result.addTypes(resultTypes);
+}
+
+void cudaq::cc::IfOp::build(OpBuilder &builder, OperationState &result,
+                            TypeRange resultTypes, Value cond,
+                            ValueRange linearVals, RegionBuilderFn thenBuilder,
+                            RegionBuilderFn elseBuilder) {
+  auto *thenRegion = result.addRegion();
+  auto *elseRegion = result.addRegion();
+  thenBuilder(builder, result.location, *thenRegion);
+  if (elseBuilder)
+    elseBuilder(builder, result.location, *elseRegion);
+  result.addOperands(cond);
+  result.addOperands(linearVals);
   result.addTypes(resultTypes);
 }
 

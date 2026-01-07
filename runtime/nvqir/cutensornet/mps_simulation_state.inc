@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -645,7 +645,7 @@ MPSSettings::MPSSettings() {
     }
     svdAlgo = iter->second;
     CUDAQ_INFO("Setting MPS SVD algorithm to {} ({}).",
-                fmt::underlying(svdAlgo), iter->first);
+               fmt::underlying(svdAlgo), iter->first);
   }
 
   using GaugePair =
@@ -672,7 +672,7 @@ MPSSettings::MPSSettings() {
     }
     gaugeOption = iter->second;
     CUDAQ_INFO("Setting MPS GAUGE option to {} ({}).", iter->first,
-                fmt::underlying(iter->second));
+               fmt::underlying(iter->second));
   }
 }
 
@@ -688,7 +688,7 @@ void MPSSimulationState<ScalarType>::toHostImpl(
                     stateVec.size(), numElements));
   if (std::is_same_v<ScalarType, T>) {
     std::memcpy(clientAllocatedData, stateVec.data(),
-                numElements * sizeof(ScalarType));
+                numElements * sizeof(std::complex<ScalarType>));
   } else {
     for (std::size_t i = 0; i < numElements; ++i)
       clientAllocatedData[i] = stateVec[i];

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -682,6 +682,110 @@ CUDAQ_TEST(ParserTester, checkFailedShot_3) {
     // Result should be either 00 or 11
     EXPECT_TRUE((result[0] == false && result[1] == false) ||
                 (result[0] == true && result[1] == true));
+  }
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkOrder) {
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\n"
+      "HEADER\tschema_version\t1.0\n"
+      "START\n"
+      "METADATA\tentry_point\n"
+      "METADATA\toutput_labeling_schema\tschema_id\n"
+      "METADATA\toutput_names\t[[[0,[0,\"r00000\"]],[1,[1,\"r00001\"]],[2,[2,"
+      "\"r00002\"]],[3,[3,\"r00003\"]],[4,[4,\"r00004\"]],[5,[5,\"r00005\"]],["
+      "6,[6,\"r00006\"]],[7,[7,\"r00007\"]]]]\n"
+      "METADATA\tqir_profiles\tbase_profile\n"
+      "METADATA\trequiredQubits\t8\n"
+      "METADATA\trequiredResults\t8\n"
+      "OUTPUT\tRESULT\t1\tr00003\n"
+      "OUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00001\n"
+      "OUTPUT\tRESULT\t0\tr00007\n"
+      "OUTPUT\tRESULT\t0\tr00005\n"
+      "END\t0";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  // This is parsed as a vector of bool vectors
+  std::vector<std::vector<bool>> results = {
+      reinterpret_cast<std::vector<bool> *>(span.data),
+      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
+  // 1 shot
+  EXPECT_EQ(1, results.size());
+  for (const auto &result : results) {
+    // 8 measured bits each
+    EXPECT_EQ(8, result.size());
+    EXPECT_EQ(false, result[0]); // r00000
+    EXPECT_EQ(true, result[1]);  // r00001
+    EXPECT_EQ(false, result[2]); // r00002
+    EXPECT_EQ(true, result[3]);  // r00003
+    EXPECT_EQ(true, result[4]);  // r00004
+    EXPECT_EQ(false, result[5]); // r00005
+    EXPECT_EQ(true, result[6]);  // r00006
+    EXPECT_EQ(false, result[7]); // r00007
+  }
+
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}
+
+CUDAQ_TEST(ParserTester, checkNamedResults) {
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\n"
+      "HEADER\tschema_version\t1.0\n"
+      "START\n"
+      "METADATA\tentry_point\n"
+      "METADATA\toutput_labeling_schema\tschema_id\n"
+      "METADATA\toutput_names\t[[[0,[1,\"result%0\"]],[1,[2,\"result%1\"]],[2,["
+      "3,\"result%2\"]],[3,[4,\"result%3\"]]]]\n"
+      "METADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t5\n"
+      "METADATA\trequired_num_results\t4\n"
+      "OUTPUT\tRESULT\t1\tresult%0\n"
+      "OUTPUT\tRESULT\t1\tresult%1\n"
+      "OUTPUT\tRESULT\t1\tresult%2\n"
+      "OUTPUT\tRESULT\t0\tresult%3\n"
+      "END\t0\n"
+      "START\n"
+      "OUTPUT\tRESULT\t1\tresult%0\n"
+      "OUTPUT\tRESULT\t1\tresult%1\n"
+      "OUTPUT\tRESULT\t0\tresult%3\n"
+      "OUTPUT\tRESULT\t1\tresult%2\n"
+      "END\t0\n";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  // This is parsed as a vector of bool vectors
+  std::vector<std::vector<bool>> results = {
+      reinterpret_cast<std::vector<bool> *>(span.data),
+      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
+  // 2 shots
+  EXPECT_EQ(2, results.size());
+  for (const auto &result : results) {
+    // 4 measured bits each
+    EXPECT_EQ(4, result.size());
+    EXPECT_EQ(true, result[0]);  // result%0
+    EXPECT_EQ(true, result[1]);  // result%1
+    EXPECT_EQ(true, result[2]);  // result%2
+    EXPECT_EQ(false, result[3]); // result%3
   }
   free(buffer);
   buffer = nullptr;

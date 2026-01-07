@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -43,6 +43,6 @@ def test_qreg_iter():
 # CHECK:           ^bb0(%[[VAL_12:.*]]: i64):
 # CHECK:             %[[VAL_13:.*]] = arith.addi %[[VAL_12]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_13]] : i64
-# CHECK:           } {invariant}
+# CHECK:           }
 # CHECK:           return
 # CHECK:         }

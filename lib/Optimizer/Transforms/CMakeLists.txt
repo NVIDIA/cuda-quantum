@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -25,6 +25,7 @@ add_cudaq_library(OptTransforms
   DeadStoreRemoval.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
+  DecompositionPatternSelection.cpp
   DelayMeasurements.cpp
   DeleteStates.cpp
   DistributedDeviceCall.cpp
@@ -63,6 +64,7 @@ add_cudaq_library(OptTransforms
   RefToVeqAlloc.cpp
   RegToMem.cpp
   ReplaceStateWithKernel.cpp
+  ResetBeforeReuse.cpp
   ResourceCountPreprocess.cpp
   SROA.cpp
   StackFramePrealloc.cpp

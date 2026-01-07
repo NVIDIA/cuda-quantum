@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -226,8 +226,7 @@ def test_invalid_ctrl():
 
     with pytest.raises(RuntimeError) as error:
         bell.compile()
-    assert 'controlled operation requested without any control argument(s)' in repr(
-        error)
+    assert 'missing value' in repr(error)
 
 
 def test_bug_2452():
@@ -265,8 +264,7 @@ def test_bug_2452():
 
     with pytest.raises(RuntimeError) as error:
         cudaq.sample(kernel3)
-    assert 'invalid number of arguments (1) passed to custom_cz (requires 2 arguments)' in repr(
-        error)
+    assert 'missing value' in repr(error)
 
 
 # leave for gdb debugging

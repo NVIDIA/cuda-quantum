@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -80,6 +80,10 @@ def test_simple_sampling_qpe():
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
     assert len(counts) == 1
     assert '100' in counts
+
+    counts_async = cudaq.sample_async(qpe, 3, 1, xGate, tGate).get()
+    assert len(counts_async) == 1
+    assert '100' in counts_async
 
     # Test that we can define kernels after the
     # definition of a composable kernel like qpe

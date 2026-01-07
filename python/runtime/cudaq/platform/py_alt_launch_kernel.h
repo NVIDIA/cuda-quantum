@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,10 +26,23 @@ namespace cudaq {
 /// @brief Set current architecture's data layout attribute on a module.
 void setDataLayout(MlirModule module);
 
+/// @brief Get the default callable argument handler for packing arguments.
+std::function<bool(OpaqueArguments &argData, py::object &arg)>
+getCallableArgHandler();
+
+/// @brief Get the names of callable arguments from the given kernel and
+/// arguments.
+// As we process the arguments, we also perform any extra processing required
+// for callable arguments.
+std::vector<std::string> getCallableNames(py::object &kernel, py::args &args);
+
 /// @brief Create a new OpaqueArguments pointer and pack the
 /// python arguments in it. Clients must delete the memory.
-OpaqueArguments *toOpaqueArgs(py::args &args, MlirModule mod,
-                              const std::string &name);
+OpaqueArguments *
+toOpaqueArgs(py::args &args, MlirModule mod, const std::string &name,
+             const std::optional<
+                 std::function<bool(OpaqueArguments &argData, py::object &arg)>>
+                 &optionalBackupHandler = std::nullopt);
 
 inline std::size_t byteSize(mlir::Type ty) {
   if (isa<mlir::ComplexType>(ty)) {

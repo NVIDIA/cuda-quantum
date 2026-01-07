@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -390,7 +390,13 @@ def cc_IfOp : CCOp<"if",
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
                               "mlir::Region &)>":$thenBuilder,
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
-           "mlir::Region &)>", "nullptr">:$elseBuilder)>
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
+    OpBuilder<(ins "mlir::TypeRange":$resultTypes, "mlir::Value":$cond,
+      "mlir::ValueRange":$linearVals,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$thenBuilder,
+      CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
   ];
 
   let hasCustomAssemblyFormat = 1;
