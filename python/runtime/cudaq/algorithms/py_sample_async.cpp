@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "py_sample_async.h"
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq/algorithms/sample.h"
-#include "cudaq/utils/registry.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
