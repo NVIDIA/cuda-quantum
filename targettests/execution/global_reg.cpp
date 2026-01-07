@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %cpp_std -DNO_ADAPTIVE --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ %cpp_std               --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std                                             %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -std=c++17 %s --enable-mlir -o %t
+// RUN: nvq++ -DNO_ADAPTIVE --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++               --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++                                             %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s --enable-mlir -o %t
 // clang-format on
 
 #include <cudaq.h>

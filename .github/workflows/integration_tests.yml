@@ -63,6 +63,20 @@ env:
   python_version: '3.12'
 
 jobs:
+  # Run a daily check of all links in the docs to find any newly broken links
+  links:
+    runs-on: ubuntu-latest
+    name: "Check links"
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check links in Markdown files
+        uses: ./.github/actions/check-markdown-links
+
   # We need this job purely to choose the container image values because the
   # `env` context is unavailable outside of "steps" contexts.
   setup:

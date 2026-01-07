@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // Note: change |& to 2>&1| if running in bash
-// RUN: cudaq-quake %cpp_std %s |& FileCheck %s
-// RUN: cudaq-quake -std=c++17 %s |& FileCheck %s
+// RUN: cudaq-quake %s |& FileCheck %s
+// RUN: cudaq-quake %s |& FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>

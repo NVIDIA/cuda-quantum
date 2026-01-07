@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,6 +37,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/noise_tester.cpp
   integration/get_state_tester.cpp
   integration/measure_reset_tester.cpp
+  integration/mps_to_host_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
   integration/kernels_tester.cpp
@@ -457,6 +458,20 @@ target_link_libraries(test_utils
   nvqir-qpp fmt::fmt-header-only
   gtest_main)
 gtest_discover_tests(test_utils)
+
+# Test for thread-local execution context storage
+add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_exec_ctx_thread PRIVATE -Wl,--no-as-needed)
+endif()
+target_include_directories(test_exec_ctx_thread PRIVATE .)
+target_link_libraries(test_exec_ctx_thread
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_exec_ctx_thread)
 
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,7 @@
 
 // This test is only valid for x86_64.
 // RUN: if [ `uname -m` = "x86_64" ] ; then \
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s ; fi
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s ; fi
 
 #include <cudaq.h>
 #include <tuple>
