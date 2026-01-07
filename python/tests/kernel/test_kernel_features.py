@@ -361,15 +361,13 @@ def test_dynamic_circuit(target):
     def simple():
         q = cudaq.qvector(2)
         h(q[0])
-        i = mz(q[0], register_name="c0")
+        i = mz(q[0])
         if i:
             x(q[1])
         mz(q)
 
     counts = cudaq.sample(simple, shots_count=100)
     counts.dump()
-    c0 = counts.get_register_counts('c0')
-    assert '0' in c0 and '1' in c0
     assert '00' in counts and '11' in counts
 
     @cudaq.kernel

@@ -1105,18 +1105,14 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
-    def mz(self, target, regName=None):
+    def mz(self, target):
         """
-        Measure the given qubit or qubits in the Z-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
-        after execution on the QPU. If the measurement call is saved as a
-        variable, it will return a :class:`QuakeValue` handle to the measurement
-        instruction.
+        Measure the given qubit or qubits in the Z-basis. If the measurement 
+        call is saved as a variable, it will return a :class:`QuakeValue` 
+        handle to the measurement instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
@@ -1137,34 +1133,24 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
             retTy = i1Ty
             measTy = quake.MeasureType.get()
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MzOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MzOp(measTy, [], [target.mlirValue])
+            res = quake.MzOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
-    def mx(self, target, regName=None):
+    def mx(self, target):
         """
-        Measure the given qubit or qubits in the X-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
-        after execution on the QPU. If the measurement call is saved as a
-        variable, it will return a :class:`QuakeValue` handle to the measurement
-        instruction.
+        Measure the given qubit or qubits in the X-basis. If the measurement 
+        call is saved as a variable, it will return a :class:`QuakeValue` 
+        handle to the measurement instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
@@ -1184,34 +1170,24 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
             retTy = i1Ty
             measTy = quake.MeasureType.get()
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MxOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MxOp(measTy, [], [target.mlirValue])
+            res = quake.MxOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
-    def my(self, target, regName=None):
+    def my(self, target):
         """
-        Measure the given qubit or qubits in the Y-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
-        after execution on the QPU. If the measurement call is saved as a
-        variable, it will return a :class:`QuakeValue` handle to the measurement
-        instruction.
+        Measure the given qubit or qubits in the Y-basis. If the measurement 
+        call is saved as a variable, it will return a :class:`QuakeValue` 
+        handle to the measurement instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
@@ -1232,19 +1208,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
             retTy = i1Ty
             measTy = quake.MeasureType.get()
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MyOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MyOp(measTy, [], [target.mlirValue])
+            res = quake.MyOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 

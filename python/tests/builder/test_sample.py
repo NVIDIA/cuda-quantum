@@ -290,8 +290,8 @@ def test_sample_result_multiple_registers(qubit_count, shots_count):
     qreg = kernel.qalloc(qubit_count)
     # Place every qubit in the 1-state.
     kernel.x(qreg)
-    # Name the measurement register.
-    kernel.mz(qreg, register_name="test_measurement")
+    # Note: Cannot name the measurement register anymore
+    kernel.mz(qreg)
 
     # Get the QPU result from a call to `sample`.
     # Check at a varying number of shots.

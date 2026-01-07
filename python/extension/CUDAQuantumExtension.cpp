@@ -264,12 +264,11 @@ PYBIND11_MODULE(_quakeDialects, m) {
       py::arg("name"), py::arg("params"), py::arg("targets"));
   photonicsSubmodule.def(
       "measure",
-      [](std::size_t level, std::size_t id, const std::string &regName) {
+      [](std::size_t level, std::size_t id) {
         return cudaq::getExecutionManager()->measure(
-            cudaq::QuditInfo(level, id), regName);
+            cudaq::QuditInfo(level, id));
       },
-      "Measure the input qudit(s).", py::arg("level"), py::arg("qudit"),
-      py::arg("register_name") = "");
+      "Measure the input qudit(s).", py::arg("level"), py::arg("qudit"));
   photonicsSubmodule.def(
       "release_qudit",
       [](std::size_t level, std::size_t id) {
