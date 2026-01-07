@@ -14,7 +14,7 @@ from cudaq.dynamics import *
 import numpy as np
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def do_something():
     cudaq.set_target("density-matrix-cpu")
     yield
