@@ -1412,11 +1412,11 @@ def test_draw_bug_1400():
     print(cudaq.draw(kernel, 0.59))
     circuit = cudaq.draw(bell_pair)
     print(circuit)
-    expected_str = '''     ╭───╮     
-q0 : ┤ h ├──●──
-     ╰───╯╭─┴─╮
-q1 : ─────┤ x ├
-          ╰───╯
+    expected_str = '''     ╭───╮     ╭────╮
+q0 : ┤ h ├──●──┤ mz ├
+     ╰───╯╭─┴─╮├────┤
+q1 : ─────┤ x ├┤ mz ├
+          ╰───╯╰────╯
 '''
     assert circuit == expected_str
 
