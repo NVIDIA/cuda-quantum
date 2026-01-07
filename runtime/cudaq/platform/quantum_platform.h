@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -77,24 +77,6 @@ public:
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
   virtual bool supports_task_distribution() const { return false; }
-
-  /// Getter for the shots. This will be deprecated once `set_shots` and
-  /// `clear_shots` are removed.
-  std::optional<int> get_shots() { return platformNumShots; }
-
-  /// Setter for the shots
-  [[deprecated("Specify the number of shots in the using the overloaded "
-               "sample() and observe() functions")]] virtual void
-  set_shots(int numShots) {
-    platformNumShots = numShots;
-  }
-
-  /// Reset shots
-  [[deprecated("Specify the number of shots in the using the overloaded "
-               "sample() and observe() functions")]] virtual void
-  clear_shots() {
-    platformNumShots = std::nullopt;
-  }
 
   /// Specify the execution context for the current thread.
   void set_exec_ctx(ExecutionContext *ctx);
@@ -213,9 +195,6 @@ protected:
 
   /// Name of the platform.
   std::string platformName;
-
-  /// Optional number of shots.
-  std::optional<int> platformNumShots;
 
   /// Keep a per-thread pointer to the current execution context.
   // TODO: Remove this

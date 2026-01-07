@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -357,10 +357,6 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     if (sub_degrees.size() != modalities.size())
       throw std::runtime_error(
           "Mismatch between degrees and modalities sizes.");
-
-    if (sub_degrees.size() != 1)
-      throw std::runtime_error(
-          "Elementary operator must act on a single degree.");
 
     for (size_t j = 0; j < sub_degrees.size(); j++) {
       std::size_t degree = sub_degrees[j];
