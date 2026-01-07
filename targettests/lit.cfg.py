@@ -36,8 +36,7 @@ config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
-config.substitutions.append(
-    ('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
+config.substitutions.append(('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
 
 llvm_config.use_default_substitutions()
 
@@ -64,26 +63,12 @@ llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
 
 # Generate test cases
 
-gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated',
-                             'phase-folding')
-os.makedirs(gen_tests_dir, exist_ok=True)  # mode=0o777
-
-
-def generate_phasefolding_test(filename, seed, min_block_length,
-                               max_block_length, rz_weight):
-    test_src_dir = os.path.join(config.cudaq_src_dir, 'targettests',
-                                'Remote-Sim', 'phase-folding')
-    with open(os.path.join(gen_tests_dir, filename + str(seed) + '.cpp'),
-              'w') as fout:
-        subprocess.run([
-            sys.executable, 'random_gen.py', filename + '.template',
-            '--seed=' + str(seed), '--block-length=' + str(min_block_length) +
-            '-' + str(max_block_length), '--rz-weight=' + str(rz_weight)
-        ],
-                       cwd=test_src_dir,
-                       stdout=fout)
-
-
+gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'phase-folding')
+os.makedirs(gen_tests_dir, exist_ok=True) # mode=0o777
+def generate_phasefolding_test(filename, seed, min_block_length, max_block_length, rz_weight):
+    test_src_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'Remote-Sim', 'phase-folding')
+    with open(os.path.join(gen_tests_dir, filename + str(seed) + '.cpp'), 'w') as fout:
+        subprocess.run([sys.executable, 'random_gen.py', filename + '.template', '--seed=' + str(seed), '--block-length=' + str(min_block_length) + '-' + str(max_block_length), '--rz-weight=' + str(rz_weight)], cwd=test_src_dir, stdout=fout)
 for seed in range(1, 11):
     generate_phasefolding_test('branch-in-loop', seed, 30, 45, 0.5)
 for seed in range(1, 11):
