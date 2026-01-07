@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import cudaq
 import matplotlib.pyplot as plt
 import numpy as np
 from math import isclose  # builtin
