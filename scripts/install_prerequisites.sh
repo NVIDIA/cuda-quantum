@@ -55,27 +55,14 @@ while getopts ":e:t:ml:-:" opt; do
 done
 OPTIND=$__optind__
 
+# Set default install prefix environment variables (only when install_all is true)
 if $install_all; then
-  if [ "$(uname)" = "Darwin" ]; then
-    LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-    PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-$HOME/.local/pybind11}
-    BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-$HOME/.local/blas}
-    ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-$HOME/.local/zlib}
-    OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-$HOME/.local/ssl}
-    CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-$HOME/.local/curl}
-    AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-$HOME/.local/aws}
-  else
-    LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
-    PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
-    BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
-    ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
-    OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
-    CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
-    AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}
-    CUQUANTUM_INSTALL_PREFIX=${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}
-    CUTENSOR_INSTALL_PREFIX=${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}
-  fi
+  source "$(dirname "${BASH_SOURCE[0]}")/set_env_defaults.sh"
 fi
+
+echo $PATH
+echo $LLVM_INSTALL_PREFIX
+cmake --help
 
 # Create a temporary directory for building source packages
 PREREQS_BUILD_DIR=$(mktemp -d)
@@ -159,8 +146,8 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       cmake_arch="$(uname -m)"
       wget "https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-macos-universal.tar.gz" -O cmake.tar.gz
       tar -xzf cmake.tar.gz
-      mv cmake-3.26.4-macos-universal/CMake.app/Contents/bin/* /usr/local/bin/
-      mv cmake-3.26.4-macos-universal/CMake.app/Contents/share/* /usr/local/share/
+      mv cmake-3.26.4-macos-universal/CMake.app/Contents/bin/* $HOME/.local/bin/
+      mv cmake-3.26.4-macos-universal/CMake.app/Contents/share/* $HOME/.local/share/
     else
       wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-$(uname -m).sh -O cmake-install.sh
       bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local
@@ -184,7 +171,12 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       LDFLAGS="-static-libstdc++" cmake -B build
     fi
     cmake --build build
-    mv build/ninja /usr/local/bin/
+
+    if [ "$(uname)" = "Darwin" ]; then
+      mv build/ninja $HOME/.local/bin/
+    else
+      mv build/ninja /usr/local/bin/
+    fi 
 
     popd
   fi

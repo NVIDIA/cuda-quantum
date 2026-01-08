@@ -79,7 +79,7 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
     cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
     echo "Building PyBind11..."
     git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
-    mkdir "tpls/pybind11/build" && cd "tpls/pybind11/build"
+    mkdir -p "tpls/pybind11/build" && cd "tpls/pybind11/build"
     cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYBIND11_TEST=False
     cmake --build . --target install --config Release
   fi

@@ -29,6 +29,7 @@
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
 # -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
+# -p: Install prerequisites before building.
 # --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
@@ -57,6 +58,7 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 clean_build=true
+install_prereqs=false
 install_toolchain=""
 num_jobs=""
 enable_sanitizers=false
@@ -84,7 +86,7 @@ build_dir="$working_dir/build"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:is" opt; do
+while getopts ":c:t:j:vB:isp" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -99,6 +101,8 @@ while getopts ":c:t:j:vB:is" opt; do
     i) clean_build=false
     ;;
     s) enable_sanitizers=true
+    ;;
+    p) install_prereqs=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -116,44 +120,37 @@ if $clean_build; then
 fi
 mkdir -p logs && rm -rf logs/*
 
-# On macOS, always run install_prerequisites.sh (it skips already-installed items)
-install_prereqs=false
-if [ "$(uname)" = "Darwin" ] && [ -z "$install_toolchain" ]; then
-  install_prereqs=true
-fi
-
-if [ -n "$install_toolchain" ] || $install_prereqs; then
-  echo "Installing pre-requisites..."
-  prereq_args=""
+# Install prerequisites (opt-in with -p or -t)
+# When installing prerequisites, we also set default install prefix env vars
+# so CMake knows where to find them. Without -p/-t, CMake uses standard discovery.
+if $install_prereqs || [ -n "$install_toolchain" ]; then
+  # Set defaults for where prerequisites will be installed
+  source "$this_file_dir/set_env_defaults.sh"
+  
+  echo "Installing prerequisites..."
+  # Save and clear positional parameters to avoid passing them to sourced script
+  saved_args=("$@")
   if [ -n "$install_toolchain" ]; then
-    prereq_args="-t $install_toolchain"
+    set -- -t "$install_toolchain"
+  else
+    set --
   fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" $prereq_args
+    source "$this_file_dir/install_prerequisites.sh" "$@"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" $prereq_args \
+    source "$this_file_dir/install_prerequisites.sh" "$@" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi
+  # Restore positional parameters
+  set -- "${saved_args[@]}"
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo -e "\e[01;31mError: Failed to install prerequisites.\e[0m" >&2
     cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
   fi
-fi
-
-# On macOS, configure paths so CMake can find prerequisites.
-# All packages are built from source to ~/.local for consistency.
-if [ "$(uname)" = "Darwin" ]; then
-  export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
-  export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-$HOME/.local/blas}
-  export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-$HOME/.local/zlib}
-  export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-$HOME/.local/ssl}
-  export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-$HOME/.local/curl}
-  export PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-$HOME/.local/pybind11}
-  export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-$HOME/.local/aws}
 fi
 
 # Check if a suitable CUDA version is installed

@@ -69,15 +69,21 @@ CUDA-Q can be built on macOS for development purposes. Note that:
 
 - **CPU-only**: No CUDA/GPU support is available on macOS
 - **Apple Clang**: Uses the system compiler (no need to install GCC or LLVM separately)
-- **Automatic LLVM build**: The build script automatically builds LLVM if not found
+- **Prerequisites required**: You must use `-p` to install LLVM and other dependencies
 
-Run the build script as usual:
+Before building, complete the macOS setup steps in
+[`Dev_Setup.md`](./Dev_Setup.md#working-on-macos).
+
+### Building
+
+Run the build script with `-p` to install prerequisites and build:
 
 ```bash
-./scripts/build_cudaq.sh
+./scripts/build_cudaq.sh -p
 ```
 
-The first build takes a while as it builds LLVM from source.
+The first build takes a while as it builds LLVM and other dependencies from source.
+Subsequent builds with `-p` will skip already-installed prerequisites.
 
 ### Manual/Incremental Builds
 
@@ -101,14 +107,21 @@ These are handled automatically and require no manual configuration.
 
 ### macOS Limitations
 
-- **Stack size**: macOS has a smaller default stack size (8MB) than Linux. Some
- tests with large stack allocations may fail or be skipped.
+Tests with large stack allocations may fail or be skipped.
+
 - **Two-level namespace**: macOS binds symbols to specific libraries by default
 , which breaks LLVM/MLIR's static initializer patterns. We use the
 `flat_namespace` linker option as a workaround to enable global symbol sharing,
  but this can cause collisions with system libraries (e.g., OpenSSL). When
  adding new dependencies, you may need `-Wl,-force_load` or two-level namespace
  linking for specific targets. See `cmake/BuildHelpers.cmake` for examples.
+- **Thread limits**: macOS has lower per-process thread limits (~1392-2088)
+  compared to Linux. Each unique kernel execution creates ~8 threads
+  tied to its MLIR Context. Tests creating many kernels (e.g., dynamics evolution
+  with 100+ time steps) may exhaust this limit, causing
+  `pthread_create failed: Resource temporarily unavailable`.
+  If this occurs, reduce concurrent kernels or raise limits via
+  `ulimit -u` / `launchctl limit maxthreads`.
 
 ## Building CUDA-Q with a custom LLVM version
 
@@ -146,3 +159,13 @@ that are available within a container is determined by the WSL settings. Please
 create or modify the [WSL configuration file][wsl_config] if necessary.
 
 [wsl_config]: https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+
+
+## Cleaning up after failed builds
+
+If `/.scripts/build_cuda.sh` fails partway through installation (or installing prerequisites with `-p`) a subsequent rerun may use partially
+written build state and conclude the build stage passed, proceeding onto the next step. In this case a clean retry usally requires one of the following:
+
+- Resetting your build cudaq directory `rm -rf build`
+- Resetting one of your install `*_INSTALL_PREFIX` paths by removing the directory. Eg., `rm - /usr/local/llvm`. *Warning* Linux uses `/usr/local`/`/opt` and MacOS `~/.local` for *other* system installations so do not blindly remove these directories.
+- Resetting one of the submodule build folders, eg., `rm -rf tpls/pybind11/build` or `rm -rf ~/.llvm-project/build`.

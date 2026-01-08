@@ -141,6 +141,22 @@ your environment manually.
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
 
+3. **Core development dependencies**:
+    
+    While the build scripts will install `cmake`/`ninja` if they are not detected,
+    we recommend installing and managing these with `brew`:
+    
+    ```bash
+    brew install cmake ninja
+    ```
+
+    If you do not use `brew` they will be installed at `~/.local/bin` and
+    we recommend adding it to your path:
+    
+    ```bash
+    export PATH="$PATH:$HOME/.local/bin"
+    ```
+
 3. **Python virtual environment**:
 
    ```bash
