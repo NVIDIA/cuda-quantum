@@ -12,6 +12,7 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <future>
 #include <pybind11/complex.h>
 #include <pybind11/functional.h>
@@ -78,6 +79,12 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
+
+  // Enable kernel caching over this launch.
+  auto *execCtx = cudaq::get_platform().get_exec_ctx();
+  if (execCtx)
+    execCtx->allowJitEngineCaching = true;
+
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
@@ -85,6 +92,13 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
       },
       platform, name, name, shots_count, qpu_id, mod.getOperation());
 
+  if (execCtx && execCtx->jitEng) {
+    // Cleanup the kernel caching.
+    auto *p = reinterpret_cast<mlir::ExecutionEngine *>(execCtx->jitEng);
+    delete p;
+    execCtx->jitEng = nullptr;
+    execCtx->allowJitEngineCaching = false;
+  }
   return results;
 }
 
@@ -97,11 +111,10 @@ static std::vector<py::object> pyReadResults(details::RunResultSpan results,
 }
 
 /// @brief Run `cudaq::run` on the provided kernel.
-static std::vector<py::object> pyRun(const std::string &shortName,
-                                     MlirModule module, MlirType returnTy,
-                                     std::size_t shots_count,
-                                     std::optional<noise_model> noise_model,
-                                     std::size_t qpu_id, py::args runtimeArgs) {
+static std::vector<py::object>
+run_impl(const std::string &shortName, MlirModule module, MlirType returnTy,
+         std::size_t shots_count, std::optional<noise_model> noise_model,
+         std::size_t qpu_id, py::args runtimeArgs) {
   if (shots_count == 0)
     return {};
 
@@ -240,7 +253,7 @@ static async_run_result run_async_impl(const std::string &shortName,
 
 /// @brief Bind the run cudaq function.
 void cudaq::bindPyRun(py::module &mod) {
-  mod.def("run_impl", pyRun,
+  mod.def("run_impl", run_impl,
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`).
