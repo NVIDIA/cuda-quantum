@@ -11,8 +11,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
-add_library(${LIBRARY_NAME} 
-         SHARED cudaq.cpp 
+add_library(${LIBRARY_NAME}
+         SHARED cudaq.cpp
                 target_control.cpp
                 algorithms/draw.cpp
                 algorithms/evolve.cpp
@@ -24,7 +24,6 @@ add_library(${LIBRARY_NAME}
                 qis/remote_state.cpp
                 qis/state.cpp
                 utils/cudaq_utils.cpp
-                utils/matrix.cpp
                 distributed/mpi_plugin.cpp)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})

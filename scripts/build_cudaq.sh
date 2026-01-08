@@ -18,6 +18,8 @@
 # CUDAQ_INSTALL_PREFIX=/path/for/installing/cudaq LLVM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
+# -or-
+# bash scripts/build_cudaq.sh -- -DCUDAQ_LIT_JOBS=2 
 #
 # Options:
 # -c <build_configuration>: The build configuration to use. Defaults to Release.
@@ -26,6 +28,8 @@
 # -v: Whether to print verbose output. Defaults to False.
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
+# -p: Install prerequisites before building.
+# --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
@@ -53,18 +57,34 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 clean_build=true
+install_prereqs=false
 install_toolchain=""
 num_jobs=""
+extra_cmake_args=""
+
+# Extract extra cmake args after -- separator
+args_before_sep=()
+found_sep=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    found_sep=true
+  elif $found_sep; then
+    extra_cmake_args="$extra_cmake_args $arg"
+  else
+    args_before_sep+=("$arg")
+  fi
+done
+set -- "${args_before_sep[@]}"
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 build_dir="$working_dir/build"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:i" opt; do
+while getopts ":c:t:j:vB:ip" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -77,6 +97,8 @@ while getopts ":c:t:j:vB:i" opt; do
     B) build_dir="$OPTARG"
     ;;
     i) clean_build=false
+    ;;
+    p) install_prereqs=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -94,17 +116,32 @@ if $clean_build; then
 fi
 mkdir -p logs && rm -rf logs/*
 
-if [ -n "$install_toolchain" ]; then
-  echo "Installing pre-requisites..."
+# Install prerequisites (opt-in with -p or -t)
+# When installing prerequisites, we also set default install prefix env vars
+# so CMake knows where to find them. Without -p/-t, CMake uses standard discovery.
+if $install_prereqs || [ -n "$install_toolchain" ]; then
+  # Set defaults for where prerequisites will be installed
+  source "$this_file_dir/set_env_defaults.sh"
+  
+  echo "Installing prerequisites..."
+  # Save and clear positional parameters to avoid passing them to sourced script
+  saved_args=("$@")
+  if [ -n "$install_toolchain" ]; then
+    set -- -t "$install_toolchain"
+  else
+    set --
+  fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain"
+    source "$this_file_dir/install_prerequisites.sh" "$@"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain" \
+    source "$this_file_dir/install_prerequisites.sh" "$@" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi
+  # Restore positional parameters
+  set -- "${saved_args[@]}"
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo -e "\e[01;31mError: Failed to install prerequisites.\e[0m" >&2
@@ -145,7 +182,8 @@ else
 fi
 
 # Determine linker and linker flags
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+# On macOS, always use the system linker (Apple's ld) as -fuse-ld=lld doesn't work with Apple clang
+if [ "$(uname)" != "Darwin" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
   LINKER_TO_USE="lld"
@@ -155,7 +193,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
-  echo "No lld linker detected. Using the system linker."
+  echo "Using the system linker."
   LINKER_FLAG_LIST=""
 fi
 
@@ -214,7 +252,8 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  $extra_cmake_args"
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 

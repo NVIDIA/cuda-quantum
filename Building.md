@@ -63,6 +63,66 @@ detected running the command `nvidia-smi` in your development environment.
 [cutensor]: https://developer.nvidia.com/cutensor
 [nvidia_driver]: https://www.nvidia.com/download/index.aspx
 
+## Building on macOS
+
+CUDA-Q can be built on macOS for development purposes. Note that:
+
+- **CPU-only**: No CUDA/GPU support is available on macOS
+- **Apple Clang**: Uses the system compiler (no need to install GCC or LLVM separately)
+- **Prerequisites required**: You must use `-p` to install LLVM and other dependencies
+
+Before building, complete the macOS setup steps in
+[`Dev_Setup.md`](./Dev_Setup.md#working-on-macos).
+
+### Building
+
+Run the build script with `-p` to install prerequisites and build:
+
+```bash
+./scripts/build_cudaq.sh -p
+```
+
+The first build takes a while as it builds LLVM and other dependencies from source.
+Subsequent builds with `-p` will skip already-installed prerequisites.
+
+### Manual/Incremental Builds
+
+For development, you can rebuild directly with `cmake` and ninja:
+
+```bash
+source ~/.venv/cudaq/bin/activate
+cd build
+cmake .. && ninja install
+```
+
+### macOS-Specific Workarounds
+
+The build system automatically applies workarounds for macOS's two-level
+namespace linking model:
+
+- **`-Wl,-flat_namespace`**: Enables Linux-like global symbol sharing
+- **`-Wl,-force_load`**: Ensures LLVM static initializers are included
+
+These are handled automatically and require no manual configuration.
+
+### macOS Limitations
+
+Tests with large stack allocations may fail or be skipped.
+
+- **Two-level namespace**: macOS binds symbols to specific libraries by default
+, which breaks LLVM/MLIR's static initializer patterns. We use the
+`flat_namespace` linker option as a workaround to enable global symbol sharing,
+ but this can cause collisions with system libraries (e.g., OpenSSL). When
+ adding new dependencies, you may need `-Wl,-force_load` or two-level namespace
+ linking for specific targets. See `cmake/BuildHelpers.cmake` for examples.
+- **Thread limits**: macOS has lower per-process thread limits (~1392-2088)
+  compared to Linux. Each unique kernel execution creates ~8 threads
+  tied to its MLIR Context. Tests creating many kernels (e.g., dynamics evolution
+  with 100+ time steps) may exhaust this limit, causing
+  `pthread_create failed: Resource temporarily unavailable`.
+  If this occurs, reduce concurrent kernels or raise limits via
+  `ulimit -u` / `launchctl limit maxthreads`.
+
 ## Building CUDA-Q with a custom LLVM version
 
 CUDA-Q is intended to be built using the LLVM commit that the submodule is set
@@ -83,6 +143,10 @@ libraries should be installed:
 ```bash
 export LLVM_INSTALL_PREFIX=<installation_path>
 ```
+
+**Note:** This environment variable only needs to be set during the initial
+CMake configure. After that, the value is cached in `CMakeCache.txt` and
+persists across subsequent builds.
 
 The CUDA-Q [build script](./scripts/build_cudaq.sh) checks if `llvm-config` is
 available in the bin subfolder of that directory, and will automatically invoke

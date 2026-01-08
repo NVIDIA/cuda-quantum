@@ -8,7 +8,7 @@
 
 add_executable(test_braket BraketTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_braket PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_braket PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_compile_definitions(test_braket PRIVATE -DNVQIR_BACKEND_NAME=braket)
 target_include_directories(test_braket PRIVATE ../..)
@@ -23,7 +23,6 @@ target_link_libraries(test_braket
   nvqir nvqir-qpp
   cudaq-platform-default 
   gtest_main)
-
 
 configure_file("BraketStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/braket/BraketStartServerAndTest.sh" @ONLY)
 add_test(NAME braket-tests COMMAND bash BraketStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/braket/)

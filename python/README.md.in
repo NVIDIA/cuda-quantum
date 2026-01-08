@@ -19,8 +19,8 @@ well as a link to the documentation and examples for each version can be found
 in the [release notes][cudaq_docs_releases]. System and compatibility
 requirements are listed in the Installation Guide of the linked documentation.
 
-**Note**: CUDA-Q is currently only supported on Linux operating systems using
-`x86_64` or `aarch64`/`arm64` processors.
+**Note**: CUDA-Q is supported on Linux and macOS using `x86_64` or
+`aarch64`/`arm64` processors. On macOS, only CPU-based simulation is available.
 
 [cudaq_docs_releases]:
     https://nvidia.github.io/cuda-quantum/latest/releases.html
@@ -91,6 +91,20 @@ to set them every time you launch a new shell, we recommend adding them to
 `~/.bash_login` if such a file exists.
 
 [//]: # (End complete install)
+
+### macOS Installation (CPU-only)
+
+On macOS, CUDA-Q runs in CPU-only mode. GPU acceleration is not currently available.
+
+[//]: # (Begin macos install)
+
+```console
+conda create -y -n cudaq-env python=3.11 pip
+conda activate cudaq-env
+pip install ${{ package_name }}
+```
+
+[//]: # (End macos install)
 
 MPI uses [SSH](https://en.wikipedia.org/wiki/Secure_Shell) or
 [RSH](https://en.wikipedia.org/wiki/Remote_Shell) to communicate with each node

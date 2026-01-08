@@ -8,7 +8,7 @@
 
 add_executable(test_quantum_machines QuantumMachinesTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quantum_machines PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_quantum_machines PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_compile_definitions(test_quantum_machines PRIVATE -DNVQIR_BACKEND_NAME=quantum_machines)
 target_include_directories(test_quantum_machines PRIVATE ../..)

@@ -134,3 +134,68 @@ invoking the executable, e.g.
 ```bash
 CUDAQ_LOG_FILE=grover_log.txt CUDAQ_LOG_LEVEL=info grover.out
 ```
+
+## Building and Testing Python Wheels
+
+To test your changes as a Python wheel, use the wheel build script:
+
+```bash
+# Linux (specify CUDA version)
+bash scripts/build_wheel.sh -c 12   # CUDA 12
+bash scripts/build_wheel.sh -c 13   # CUDA 13
+
+# macOS (CPU-only) - requires -p for prerequisites
+bash scripts/build_wheel.sh -p
+```
+
+The wheel will be placed in `dist/` by default.
+
+**Note**: On macOS, `-p` is **required** to install LLVM and other dependencies.
+The script is idempotent and skips already-installed prerequisites on subsequent
+runs.
+
+### Build Options
+
+| Option | Description |
+|--------|-------------|
+| `-c <12\|13>` | CUDA version (required on Linux, ignored on macOS) |
+| `-o <dir>` | Output directory (default: `dist`) |
+| `-a <dir>` | External simulator assets directory (default: `assets`) |
+| `-p` | Install prerequisites before building |
+| `-T <toolchain>` | Install prerequisites with toolchain (e.g., `gcc12`, `llvm`), implies `-p` |
+| `-i` | Incremental build (reuse existing artifacts) |
+| `-t` | Run validation tests after build |
+| `-q` | Quick test mode (core tests only, implies `-t`) |
+| `-v` | Verbose output |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `PYTHON` | Python interpreter to use (default: `python3`) |
+| `CUDA_QUANTUM_VERSION` | Version string for the wheel (default: `0.0.0`) |
+
+### Building and Testing
+
+```bash
+# Build and run quick validation tests
+bash scripts/build_wheel.sh -t -q
+
+# Build with specific version
+CUDA_QUANTUM_VERSION=0.9.0 bash scripts/build_wheel.sh -t
+```
+
+### Validation Only
+
+To run validation tests on an existing wheel without rebuilding:
+
+```bash
+# Auto-detects test files from repo structure
+bash scripts/validate_pycudaq.sh -v 0.9.0 -i dist
+
+# Quick test mode
+bash scripts/validate_pycudaq.sh -v 0.9.0 -i dist -q
+```
+
+The validation script sets up a staging directory at `build/validation/` with
+symlinks to the test files.

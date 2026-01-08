@@ -243,10 +243,26 @@ source code for the latest version of the CUDA-Q Python wheels from our
 The source code for previous versions can be downloaded from the respective 
 `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
 
-At this time, wheels are distributed for Linux operating systems only. 
+Wheels are distributed for Linux and macOS operating systems.
+On macOS, only CPU-based simulation is available (GPU acceleration requires Linux with an NVIDIA GPU).
 If your platform is not :ref:`officially supported <dependencies-and-compatibility>` and
 `pip` does not find a compatible wheel to install, you can build your own 
 wheel from source following the instructions here: :doc:`data_center_install`.
+
+.. note::
+
+    **macOS Runtime Limitations**
+
+    - **Large qubit allocations**: macOS has a smaller default stack size (8MB).
+      Allocating large arrays in cudaq kernels may cause stack overflow errors.
+
+    - **Thread limits**: macOS has lower per-process thread limits (~1392-2088)
+      compared to Linux. Workflows creating many quantum kernels
+      simultaneously may exhaust this limit. Workarounds include reducing
+      the number of kernels alive at once, increasing limits via
+      ``ulimit -n <procs>``, or enabling server performance mode.
+      If this occurs, reduce concurrency or raise limits via
+      ``ulimit -u`` and ``launchctl limit maxthreads``.
 
 To build the CUDA-Q Python API for the purpose of contributing to
 our `GitHub repository <https://github.com/NVIDIA/cuda-quantum>`__,
@@ -877,9 +893,9 @@ The following table summarizes the required components.
     * - CPU architectures
       - x86_64, ARM64
     * - Operating systems
-      - Linux, Windows via Windows Subsystem for Linux 2 (WSL2)
+      - Linux, macOS (CPU-only), Windows via Windows Subsystem for Linux 2 (WSL2)
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
+      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04; macOS 15 (Sequoia)
     * - Python versions
       - 3.10+
 

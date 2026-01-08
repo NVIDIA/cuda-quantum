@@ -66,7 +66,12 @@ else
 fi
 
 # Run the Python test
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/test_app.py @CMAKE_BINARY_DIR@/unittests/backends/extra_payload_provider/libsunrise-provider.so
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  LIB_EXT="dylib"
+else
+  LIB_EXT="so"
+fi
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/extra_payload_provider/test_app.py @CMAKE_BINARY_DIR@/unittests/backends/extra_payload_provider/libsunrise-provider.$LIB_EXT
 if [ $? -ne 0 ]; then
   echo ":x: Python test_app failed"
   test_err_sum=$((test_err_sum+1))

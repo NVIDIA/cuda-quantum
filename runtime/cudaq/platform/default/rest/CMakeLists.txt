@@ -26,15 +26,14 @@ else()
   set(AWSSDK_LINK_LIBRARIES "")
 endif()
 
-target_link_libraries(cudaq-rest-qpu 
-  PUBLIC 
+target_link_libraries(cudaq-rest-qpu
+  PUBLIC
     cudaq-operator
-    cudaq-common 
-  PRIVATE 
-    cudaq-mlir-runtime 
-    MLIRTranslateLib
-    fmt::fmt-header-only 
-    cudaq 
+    cudaq-common
+  PRIVATE
+    cudaq-mlir-runtime
+    fmt::fmt-header-only
+    cudaq
     cudaq-platform-default
     ${AWSSDK_LINK_LIBRARIES})
 

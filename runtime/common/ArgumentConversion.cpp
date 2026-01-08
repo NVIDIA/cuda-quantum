@@ -626,7 +626,9 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
   std::function<Attribute(char *)> genAttr;
   if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
     stepBy = sizeof(VectorType);
-    genAttr = [&](char *p) -> Attribute {
+    // Capture innerTy by value since it's a local variable that goes out of
+    // scope before the lambda is called.
+    genAttr = [innerTy, &builder, &layout](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout);
     };
   } else if (auto stringTy = dyn_cast<cudaq::cc::CharspanType>(eleTy)) {

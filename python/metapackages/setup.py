@@ -193,17 +193,25 @@ def _infer_best_package() -> str:
         if _check_package_installed(pkg):
             installed.append(pkg)
 
-    cuda_version = _get_cuda_version()
-    if cuda_version is None:
-        cudaq_bdist = 'cuda-quantum-cu13'
-    elif cuda_version < 12000:
-        raise Exception(f'Your CUDA version ({cuda_version}) is too old.')
-    elif cuda_version < 13000:
-        cudaq_bdist = 'cuda-quantum-cu12'
-    elif cuda_version < 14000:
+    # Handle macOS - use cu13 package (CPU-only due to environment markers)
+    if sys.platform == 'darwin':
+        _log(
+            "macOS detected, using cuda-quantum-cu13 (CPU-only, CUDA deps excluded)"
+        )
         cudaq_bdist = 'cuda-quantum-cu13'
     else:
-        raise Exception(f'Your CUDA version ({cuda_version}) is too new.')
+        # Linux: detect CUDA version
+        cuda_version = _get_cuda_version()
+        if cuda_version is None:
+            cudaq_bdist = 'cuda-quantum-cu13'
+        elif cuda_version < 12000:
+            raise Exception(f'Your CUDA version ({cuda_version}) is too old.')
+        elif cuda_version < 13000:
+            cudaq_bdist = 'cuda-quantum-cu12'
+        elif cuda_version < 14000:
+            cudaq_bdist = 'cuda-quantum-cu13'
+        else:
+            raise Exception(f'Your CUDA version ({cuda_version}) is too new.')
     _log(f"Identified {cudaq_bdist} as the best package.")
 
     # Disallow -cu11 & -cu12 & -cu13 wheels from coexisting

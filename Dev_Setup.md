@@ -118,3 +118,49 @@ may be beneficial.
 
 [data_center_install]:
     https://nvidia.github.io/cuda-quantum/latest/using/install/data_center_install.html
+
+## Working on macOS
+
+macOS is supported for development builds (CPU-only, no GPU support). The
+development container is not available on macOS, so you will need to set up
+your environment manually.
+
+### Prerequisites
+
+1. **Xcode Command Line Tools**:
+
+   ```bash
+   xcode-select --install
+   ```
+
+   Verify with `xcode-select -p` and `clang --version`.
+
+2. **Homebrew** (package manager for installing dependencies):
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+3. **Python virtual environment**:
+
+   ```bash
+   python3 -m venv ~/.venv/cudaq
+   source ~/.venv/cudaq/bin/activate
+   pip install --upgrade pip
+   pip install -r requirements-dev.txt
+   ```
+
+### Environment Variables
+
+**Note:** Most environment variables like `LLVM_INSTALL_PREFIX`, `AWS_INSTALL_PREFIX`,
+and `SDKROOT` are only needed during the initial CMake configure. Once set, their
+values are cached in `CMakeCache.txt` and persist across subsequent builds.
+
+On macOS, the SDK path for system headers is auto-detected via `xcrun --show-sdk-path`
+and baked into `nvq++` at build time, so you don't need to set `SDKROOT` manually.
+
+If you run `build_cudaq.sh` or `scripts/install_prerequisites.sh` first, all
+necessary environment variables will be set automatically during the initial
+configure.
+
+Once set up, proceed to [Building CUDA-Q from Source](./Building.md).

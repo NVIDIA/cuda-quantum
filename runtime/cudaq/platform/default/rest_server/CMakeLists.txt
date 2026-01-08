@@ -105,5 +105,5 @@ if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   target_link_libraries(rest-remote-platform-server PRIVATE CUDA::cudart_static)
 endif()
 
-target_link_options(rest-remote-platform-server PRIVATE -Wl,--no-as-needed)
+target_link_options(rest-remote-platform-server PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 install(TARGETS rest-remote-platform-server DESTINATION lib)

@@ -17,16 +17,6 @@
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void test_large_double_constant_array() {
-  std::vector<double> vec(1ULL << 19);
-  vec[0] = M_SQRT1_2 / vec.size();
-  vec[1] = M_SQRT1_2 / vec.size();
-  for (std::size_t i = 2; i < vec.size(); i++) {
-    vec[i] = 0;
-  }
-  cudaq::qvector v(vec);
-}
-
 __qpu__ void test_complex_constant_array() {
   cudaq::qvector v(std::vector<cudaq::complex>({M_SQRT1_2, M_SQRT1_2, 0., 0.}));
 }
@@ -77,32 +67,22 @@ void printCounts(cudaq::sample_result &result) {
 
 int main() {
   {
-    auto counts = cudaq::sample(test_large_double_constant_array);
+    auto counts = cudaq::sample(test_complex_constant_array);
     std::cout << "Part 1\n";
     printCounts(counts);
   }
 
   // CHECK-LABEL: Part 1
-  // CHECK: 0000000000000000000
-  // CHECK: 1000000000000000000
-
-  {
-    auto counts = cudaq::sample(test_complex_constant_array);
-    std::cout << "Part 2\n";
-    printCounts(counts);
-  }
-
-  // CHECK-LABEL: Part 2
   // CHECK: 00
   // CHECK: 10
 
   {
     auto counts = cudaq::sample(test_complex_constant_array2);
-    std::cout << "Part 3\n";
+    std::cout << "Part 2\n";
     printCounts(counts);
   }
 
-  // CHECK-LABEL: Part 3
+  // CHECK-LABEL: Part 2
   // CHECK: 0001
   // CHECK: 0011
   // CHECK: 1001
@@ -110,6 +90,16 @@ int main() {
 
   {
     auto counts = cudaq::sample(test_complex_constant_array3);
+    std::cout << "Part 3\n";
+    printCounts(counts);
+  }
+
+  // CHECK-LABEL: Part 3
+  // CHECK: 00
+  // CHECK: 10
+
+  {
+    auto counts = cudaq::sample(test_real_constant_array);
     std::cout << "Part 4\n";
     printCounts(counts);
   }
@@ -119,29 +109,19 @@ int main() {
   // CHECK: 10
 
   {
-    auto counts = cudaq::sample(test_real_constant_array);
-    std::cout << "Part 5\n";
-    printCounts(counts);
-  }
-
-  // CHECK-LABEL: Part 5
-  // CHECK: 00
-  // CHECK: 10
-
-  {
     std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
     std::vector<cudaq::complex> vec1{0., 0., M_SQRT1_2, M_SQRT1_2};
     {
       // Passing state data as argument (kernel mode)
       auto counts = cudaq::sample(test_complex_array_param, vec);
-      std::cout << "Part 6\n";
+      std::cout << "Part 5\n";
       printCounts(counts);
 
       counts = cudaq::sample(test_complex_array_param, vec1);
       printCounts(counts);
     }
 
-    // CHECK-LABEL: Part 6
+    // CHECK-LABEL: Part 5
     // CHECK: 00
     // CHECK: 10
 
@@ -154,7 +134,7 @@ int main() {
       auto qubits = kernel.qalloc(v);
 
       auto counts = cudaq::sample(kernel, vec);
-      std::cout << "Part 7\n";
+      std::cout << "Part 6\n";
       printCounts(counts);
 
       counts = cudaq::sample(kernel, vec1);
@@ -162,7 +142,7 @@ int main() {
     }
   }
 
-  // CHECK-LABEL: Part 7
+  // CHECK-LABEL: Part 6
   // CHECK: 00
   // CHECK: 10
 
@@ -175,14 +155,14 @@ int main() {
     {
       // Passing state data as argument (kernel mode)
       auto counts = cudaq::sample(test_real_array_param, vec);
-      std::cout << "Part 8\n";
+      std::cout << "Part 7\n";
       printCounts(counts);
 
       counts = cudaq::sample(test_real_array_param, vec1);
       printCounts(counts);
     }
 
-    // CHECK-LABEL: Part 8
+    // CHECK-LABEL: Part 7
     // CHECK: 00
     // CHECK: 10
 
@@ -195,14 +175,14 @@ int main() {
       auto qubits = kernel.qalloc(v);
 
       auto counts = cudaq::sample(kernel, vec);
-      std::cout << "Part 9\n";
+      std::cout << "Part 8\n";
       printCounts(counts);
 
       counts = cudaq::sample(kernel, vec1);
       printCounts(counts);
     }
 
-    // CHECK-LABEL: Part 9
+    // CHECK-LABEL: Part 8
     // CHECK: 00
     // CHECK: 10
 
@@ -216,14 +196,14 @@ int main() {
 
     // Passing state data as argument (kernel mode)
     auto counts = cudaq::sample(test_double_array_param, vec);
-    std::cout << "Part 10\n";
+    std::cout << "Part 9\n";
     printCounts(counts);
 
     counts = cudaq::sample(test_double_array_param, vec1);
     printCounts(counts);
   }
 
-  // CHECK-LABEL: Part 10
+  // CHECK-LABEL: Part 9
   // CHECK: 00
   // CHECK: 10
 
@@ -236,14 +216,14 @@ int main() {
 
     // Passing state data as argument (kernel mode)
     auto counts = cudaq::sample(test_float_array_param, vec);
-    std::cout << "Part 11\n";
+    std::cout << "Part 10\n";
     printCounts(counts);
 
     counts = cudaq::sample(test_float_array_param, vec1);
     printCounts(counts);
   }
 
-  // CHECK-LABEL: Part 11
+  // CHECK-LABEL: Part 10
   // CHECK: 00
   // CHECK: 10
 

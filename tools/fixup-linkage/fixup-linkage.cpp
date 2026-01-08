@@ -57,8 +57,6 @@ int main(int argc, char *argv[]) {
   std::ifstream llFile(argv[2]);
   std::ofstream outFile(argv[3]);
   std::regex filterRegex("^define ");
-  std::regex filterInternalRegex("^define internal ");
-  std::regex filterDsoLocalRegex("^define dso_local ");
   auto rgxEnd = std::sregex_iterator();
   auto computeCutPosition =
       [&](const std::string &matchStr) -> std::pair<bool, std::size_t> {
@@ -88,16 +86,17 @@ int main(int argc, char *argv[]) {
       if (pos == std::string::npos)
         continue;
       auto pair = computeCutPosition("define internal");
-      if (!pair.first) {
+      if (!pair.first)
         pair = computeCutPosition("define dso_local");
-        if (!pair.first) {
-          pair = computeCutPosition("define");
-          if (!pair.first) {
-            // This is a hard error because the line must have a define.
-            std::cerr << "internal error: line no longer matches.\n";
-            return 1;
-          }
-        }
+      // On macOS, clang emits some functions with weak linkage.
+      if (!pair.first)
+        pair = computeCutPosition("define weak");
+      if (!pair.first)
+        pair = computeCutPosition("define");
+      if (!pair.first) {
+        // This is a hard error because the line must have a define.
+        std::cerr << "internal error: line no longer matches.\n";
+        return 1;
       }
       pos = pair.second;
       outFile << "define linkonce_odr dso_preemptable" << line.substr(pos)

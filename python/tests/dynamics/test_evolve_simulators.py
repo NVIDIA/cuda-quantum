@@ -6,12 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 import os
+import sys
 
 import pytest
 import cudaq
 from cudaq.operators import *
 from cudaq.dynamics import *
 import numpy as np
+
+# macOS has lower thread limits (~1392-2088) compared to Linux.
+# Each kernel execution creates ~8 threads, so tests with many time steps
+# exhaust the thread limit. See Building.md macOS Limitations section.
+skipif_macos = pytest.mark.skipif(
+    sys.platform == 'darwin',
+    reason="macOS thread limits prevent dynamics evolution tests with many steps"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -172,6 +181,7 @@ expected_result_decay = [
 ]
 
 
+@skipif_macos
 @pytest.mark.parametrize("init_state", ["array", "enum"])
 def test_evolve(init_state):
     # Set random seed for shots-based observe test.
@@ -253,6 +263,7 @@ def test_evolve(init_state):
                                atol=0.1)
 
 
+@skipif_macos
 def test_evolve_async():
     # Set random seed for shots-based observe test.
     cudaq.set_random_seed(13)
@@ -331,6 +342,7 @@ def test_evolve_async():
                                atol=0.1)
 
 
+@skipif_macos
 def test_evolve_no_intermediate_results():
     """Test evolve with store_intermediate_results=NONE 
     to verify the else branch in evolve_single is working."""
@@ -395,6 +407,7 @@ def test_evolve_no_intermediate_results():
     assert final_exp_decay[0][1].expectation() != final_exp[0][1].expectation()
 
 
+@skipif_macos
 def test_evolve_async_no_intermediate_results():
     """Test evolve_async with store_intermediate_results=NONE 
     to verify the else branch in evolve_single_async is working."""

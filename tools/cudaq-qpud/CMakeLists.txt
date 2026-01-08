@@ -29,7 +29,10 @@ if (${CMAKE_EXE_LINKER_FLAGS} MATCHES "^.*static-libstdc\\+\\+.*")
 endif()
 target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cudaq-mlir-runtime)
 target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
+
 export_executable_symbols_for_plugins(${TOOL_NAME})
+
+add_lib_loading_macos_workaround(${TOOL_NAME} FALSE)
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
 install(FILES ${TOOL_NAME}.py DESTINATION bin)

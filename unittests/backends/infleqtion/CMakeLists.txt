@@ -8,7 +8,7 @@
 
 add_executable(test_infleqtion InfleqtionTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_infleqtion PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_infleqtion PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_compile_definitions(test_infleqtion PRIVATE -DNVQIR_BACKEND_NAME=infleqtion)
 target_include_directories(test_infleqtion PRIVATE ../..)

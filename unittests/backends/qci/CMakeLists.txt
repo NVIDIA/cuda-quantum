@@ -8,7 +8,7 @@
 
 add_executable(test_qci QCITester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_qci PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_qci PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_compile_definitions(test_qci PRIVATE -DNVQIR_BACKEND_NAME=qci)
 target_include_directories(test_qci PRIVATE ../..)

@@ -57,8 +57,19 @@ if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  # --start-group is a GNU ld flag for circular dependencies; Apple's ld doesn't support it
+  if(APPLE)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr ZLIB::ZLIB)
+  else()
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  endif()
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
+  # Override the global flat_namespace for this library. cudaq-common doesn't need
+  # LLVM symbol sharing, and flat_namespace causes issues with statically-linked
+  # OpenSSL assembly code linked with flat namespace.
+  if(APPLE)
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-twolevel_namespace")
+  endif()
 endif()
 
 
@@ -109,6 +120,9 @@ set_source_files_properties(
 )
 
 target_include_directories(cudaq-mlir-runtime
+  PUBLIC
+    $<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
+    $<BUILD_INTERFACE:${MLIR_INCLUDE_DIRS}>
   PRIVATE .
     ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
     ${CMAKE_SOURCE_DIR}/tpls/fmt/include
@@ -117,6 +131,7 @@ target_include_directories(cudaq-mlir-runtime
 target_link_libraries(cudaq-mlir-runtime
   PUBLIC
     nvqir
+  PRIVATE
     CCDialect
     QuakeDialect
     OptCodeGen
@@ -125,7 +140,6 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRIR
     MLIRParser
     MLIRPass
-    MLIRTranslateLib
     MLIRSupport
     MLIROptLib
     MLIRExecutionEngine
@@ -133,8 +147,14 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-  PRIVATE
+    LLVMCodeGen
     cudaq
     spdlog::spdlog)
+
+# macOS Two-Level Namespace: Force-load LLVM CodeGen libraries to ensure
+# static initializers (TargetRegistry, PassRegistry) run in this library's
+# context. Without this, LLVM targets aren't registered and JIT fails.
+# This library centralizes LLVM/MLIR symbols for the runtime layer.
+add_lib_loading_macos_workaround(cudaq-mlir-runtime TRUE)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

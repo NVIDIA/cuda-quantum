@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 namespace utils {
 
