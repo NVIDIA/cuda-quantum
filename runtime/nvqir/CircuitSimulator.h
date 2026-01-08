@@ -456,10 +456,6 @@ protected:
   /// deallocated at a later time.
   std::vector<std::size_t> deferredDeallocation;
 
-  /// @brief Map bit register names to the qubits that make it up
-  std::unordered_map<std::string, std::vector<std::size_t>>
-      registerNameToMeasuredQubit;
-
   /// @brief Keep track of the current number of qubits in batch mode
   std::size_t batchModeCurrentNumQubits = 0;
 
@@ -560,82 +556,10 @@ protected:
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
-      // If we're using explicit measurements (an optimized sampling mode), then
-      // don't populate registerNameToMeasuredQubit.
-      if (executionContext->explicitMeasurements)
-        return true;
-
-      auto processForRegName = [&](const std::string &regStr) {
-        // Insert the sample qubit into the register name map
-        auto iter = registerNameToMeasuredQubit.find(regStr);
-        if (iter == registerNameToMeasuredQubit.end())
-          registerNameToMeasuredQubit.emplace(
-              regStr, std::vector<std::size_t>{qubitIdx});
-        else if (std::find(iter->second.begin(), iter->second.end(),
-                           qubitIdx) == iter->second.end())
-          iter->second.push_back(qubitIdx);
-      };
-
-      // Insert into global register and named register (if it exists)
-      processForRegName(cudaq::GlobalRegisterName);
-      if (!regName.empty())
-        processForRegName(regName);
-
       return true;
     }
 
     return false;
-  }
-
-  /// @brief This function handles sampling in the presence of conditional
-  /// statements on qubit measurement results. Specifically, it will keep
-  /// track of a classical register for all measures encountered in the program
-  /// and store mid-circuit measures in the corresponding register.
-  void handleSamplingWithConditionals(const std::size_t qubitIdx,
-                                      const std::string bitResult,
-                                      const std::string &registerName) {
-    // We still care about what qubit we are measuring if in the
-    // sample-conditional context
-    if (executionContext && executionContext->name == "sample" &&
-        executionContext->hasConditionalsOnMeasureResults) {
-      std::string mutableRegisterName = registerName;
-
-      // If no registerName, we'll just sample normally
-      if (registerName.empty()) {
-        // Either this is library mode and we have register names attached
-        // to the execution context
-        if (midCircuitSampleResults.size() <
-            executionContext->registerNames.size()) {
-          mutableRegisterName =
-              executionContext->registerNames[midCircuitSampleResults.size()];
-        } else {
-          // or no register names, in which case we'll just treat it as
-          // a regular sampled qubit and drop out
-          sampleQubits.push_back(qubitIdx);
-          return;
-        }
-      }
-
-      CUDAQ_INFO("Handling Sampling With Conditionals: {}, {}, {}", qubitIdx,
-                 bitResult, mutableRegisterName);
-      // See if we've observed this register before, if not
-      // start a vector of bit results, if we have, add the
-      // bit result to the existing vector
-      auto iter = midCircuitSampleResults.find(mutableRegisterName);
-      if (iter == midCircuitSampleResults.end())
-        midCircuitSampleResults.emplace(mutableRegisterName,
-                                        std::vector<std::string>{bitResult});
-      else
-        iter->second.push_back(bitResult);
-
-      // If this register is the same as last time, then we are
-      // writing to a bit vector register (auto var = mz(qreg))
-      if (lastMidCircuitRegisterName == mutableRegisterName)
-        vectorRegisters.push_back(mutableRegisterName);
-
-      // Store the last register name
-      lastMidCircuitRegisterName = mutableRegisterName;
-    }
   }
 
   /// @brief Utility function that returns a string-view of the current
@@ -748,42 +672,10 @@ protected:
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
 
-    if (registerNameToMeasuredQubit.empty()) {
-      executionContext->result.append(execResult,
-                                      executionContext->explicitMeasurements);
-    } else {
-
-      for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        // Measurements are sorted according to qubit allocation order
-        std::sort(qubits.begin(), qubits.end());
-        auto last = std::unique(qubits.begin(), qubits.end());
-        qubits.erase(last, qubits.end());
-
-        // Find the position of the qubits we have in the result bit string
-        // Create a map of qubit to bit string location
-        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
-        for (std::size_t i = 0; i < qubits.size(); i++) {
-          auto iter =
-              std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
-          auto idx = std::distance(sampleQubits.begin(), iter);
-          qubitLocMap.insert({qubits[i], idx});
-        }
-
-        cudaq::ExecutionResult tmp(regName);
-        for (auto &[bits, count] : execResult.counts) {
-          std::string b = "";
-          b.reserve(qubits.size());
-          for (auto &qb : qubits)
-            b += bits[qubitLocMap[qb]];
-          tmp.appendResult(b, count);
-        }
-
-        executionContext->result.append(tmp);
-      }
-    }
+    executionContext->result.append(execResult,
+                                    executionContext->explicitMeasurements);
 
     sampleQubits.clear();
-    registerNameToMeasuredQubit.clear();
   }
 
   /// @brief Add a new gate application task to the queue
@@ -1455,10 +1347,6 @@ public:
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);
     auto bitResult = measureResult == true ? "1" : "0";
-
-    // If this CUDA-Q kernel has conditional statements on measure results
-    // then we want to handle the sampling a bit differently.
-    handleSamplingWithConditionals(qubitIdx, bitResult, registerName);
 
     // Return the result
     return measureResult;

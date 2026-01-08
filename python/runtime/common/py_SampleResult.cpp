@@ -29,9 +29,8 @@ This includes all measurement counts data from both mid-circuit and
 terminal measurements.
 
 Note:
-	At this time, mid-circuit measurements are not directly supported. 
-	Mid-circuit measurements may only be used if they are passed through 
-	to `c_if`.
+	Conditional logic on mid-circuit measurements is no longer supported with 
+  `sample`. Use `run` instead.
 
 Attributes:
 	register_names (List[str]): A list of the names of each measurement 

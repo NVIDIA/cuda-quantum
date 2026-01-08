@@ -42,23 +42,26 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
 
-  auto hasConditionalFeebdback =
-      cudaq::kernelHasConditionalFeedback(kernelName);
+  if (cudaq::kernelHasConditionalFeedback(kernelName))
+    throw std::runtime_error(
+        "`cudaq::sample` no longer supports kernels that branch on measurement "
+        "results. Kernel '" +
+        kernelName +
+        "' uses conditional feedback. Use "
+        "`cudaq::run` instead. See CUDA-Q documentation for migration guide.");
+
   if (explicitMeasurements) {
     if (!platform.supports_explicit_measurements())
       throw std::runtime_error("The sampling option `explicit_measurements` is "
                                "not supported on this target.");
-    if (hasConditionalFeebdback)
-      throw std::runtime_error(
-          "The sampling option `explicit_measurements` is not supported on a "
-          "kernel with conditional logic on a measurement result.");
   }
   // Create the execution context.
   auto ctx = std::make_unique<ExecutionContext>("sample", shots, qpu_id);
   ctx->kernelName = kernelName;
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
-  ctx->hasConditionalsOnMeasureResults = hasConditionalFeebdback;
+  ctx->hasConditionalsOnMeasureResults =
+      false; // TODO: Remove this logic altogether
   ctx->explicitMeasurements = explicitMeasurements;
 
 #ifdef CUDAQ_LIBRARY_MODE

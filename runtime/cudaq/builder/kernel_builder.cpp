@@ -837,26 +837,8 @@ void checkAndUpdateRegName(quake::MeasurementInterface &measure) {
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
-  auto value = conditional.getValue();
-
-  if (auto discrOp = value.getDefiningOp<quake::DiscriminateOp>())
-    if (auto measureOp = discrOp.getMeasurement()
-                             .getDefiningOp<quake::MeasurementInterface>())
-      checkAndUpdateRegName(measureOp);
-
-  auto type = value.getType();
-  if (!isa<mlir::IntegerType>(type) || type.getIntOrFloatBitWidth() != 1)
-    throw std::runtime_error("Invalid result type passed to c_if.");
-
-  builder.create<cc::IfOp>(TypeRange{}, value,
-                           [&](OpBuilder &builder, Location l, Region &region) {
-                             region.push_back(new Block());
-                             auto &bodyBlock = region.front();
-                             OpBuilder::InsertionGuard guard(builder);
-                             builder.setInsertionPointToStart(&bodyBlock);
-                             thenFunctor();
-                             builder.create<cc::ContinueOp>(l);
-                           });
+  throw std::runtime_error(
+      "`c_if` is no longer supported. Use kernel mode with `run` API.");
 }
 
 /// Trims off the cudaq generated prefix and the mangled suffix, if any.

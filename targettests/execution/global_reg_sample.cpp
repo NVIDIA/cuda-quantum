@@ -7,26 +7,16 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -DNO_ADAPTIVE --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++               --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++                                             %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++                               %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %s --enable-mlir -o %t
 // clang-format on
 
 #include <cudaq.h>
 #include <iostream>
-struct test_adaptive {
-  void operator()() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto bit = mz(b);
-    if (!bit) {
-      x(b); // note that this is not allowed in base profile programs
-    }
-  }
-};
 
-#define RUN_AND_PRINT_GLOBAL_REG(TEST_NAME)                                    \
+#define SAMPLE_AND_PRINT_GLOBAL_REG(TEST_NAME)                                 \
   do {                                                                         \
     auto result = cudaq::sample(nShots, TEST_NAME);                            \
     auto globalRegResults = cudaq::sample_result{                              \
@@ -45,7 +35,7 @@ int main() {
     mz(b);
     mz(a);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test1);
+  SAMPLE_AND_PRINT_GLOBAL_REG(test1);
   // CHECK: test1:
   // CHECK: { 10:1000 }
 
@@ -56,20 +46,11 @@ int main() {
     auto ret_b = mz(b);
     auto ret_a = mz(a);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test2);
+  SAMPLE_AND_PRINT_GLOBAL_REG(test2);
   // CHECK: test2:
   // CHECK: { 10:1000 }
 
   // Check that duplicate measurements don't get duplicated in global bitstring
-#ifndef NO_ADAPTIVE
-  auto test3 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ma1 = mz(a); // 1st measurement of qubit a
-    auto ma2 = mz(a); // 2nd measurement of qubit a
-    auto mb = mz(b);
-  };
-#else
   auto test3 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
@@ -77,8 +58,8 @@ int main() {
     // auto ma2 = mz(a); // 2nd measurement of qubit a
     auto mb = mz(b);
   };
-#endif
-  RUN_AND_PRINT_GLOBAL_REG(test3);
+
+  SAMPLE_AND_PRINT_GLOBAL_REG(test3);
   // CHECK: test3:
   // CHECK: { 10:1000 }
 
@@ -88,7 +69,7 @@ int main() {
     cudaq::qubit a, b;
     x(a);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test4);
+  SAMPLE_AND_PRINT_GLOBAL_REG(test4);
   // CHECK: test4:
   // CHECK: { 10:1000 }
 
@@ -99,7 +80,7 @@ int main() {
     x(a);
     mz(b);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test5);
+  SAMPLE_AND_PRINT_GLOBAL_REG(test5);
   // CHECK: test5:
   // CHECK: { 0:1000 }
 
@@ -112,23 +93,20 @@ int main() {
   //   mz(b);
   //   x(a);
   // };
-  // RUN_AND_PRINT_GLOBAL_REG(test6a);
+  // SAMPLE_AND_PRINT_GLOBAL_REG(test6a);
   // // XHECK: test6a:
   // // XHECK: { 00:1000 }
 
   // Check that performing a quantum operation after the final measurement makes
   // all qubits appear in the global register.
-#ifndef NO_ADAPTIVE
-  auto test6b = test_adaptive{};
-#else
   // Platforms that don't support the adaptive profile will test this instead.
   auto test6b = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
     x(b);
   };
-#endif
-  RUN_AND_PRINT_GLOBAL_REG(test6b);
+
+  SAMPLE_AND_PRINT_GLOBAL_REG(test6b);
   // CHECK: test6b:
   // CHECK: { 11:1000 }
 
@@ -140,7 +118,7 @@ int main() {
     swap(q[0], q[1]);
     mz(q);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test7);
+  SAMPLE_AND_PRINT_GLOBAL_REG(test7);
   // CHECK: test7:
   // CHECK: { 01:1000 }
 
@@ -150,7 +128,7 @@ int main() {
     x(q[0]);
     swap(q[0], q[1]);
   };
-  RUN_AND_PRINT_GLOBAL_REG(test8);
+  SAMPLE_AND_PRINT_GLOBAL_REG(test8);
   // CHECK: test8:
   // CHECK: { 01:1000 }
 
