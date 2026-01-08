@@ -276,13 +276,19 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
                                     {mps2.data(), mpsExtent2}};
     auto state = cudaq::state::from_data(initData);
     state.dump();
-    std::vector<cudaq::complex> stateVec(4);
+    // Use sentinel values to detect incomplete copy in to_host
+    std::vector<cudaq::complex> stateVec(4, {-999.0, -999.0});
     state.to_host(stateVec.data(), stateVec.size());
     EXPECT_NEAR(std::abs(stateVec[0] - static_cast<cudaq::real>(1.0)), 0.0,
                 1e-12);
     EXPECT_NEAR(std::abs(stateVec[1]), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(stateVec[2]), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(stateVec[3]), 0.0, 1e-12);
+    // Verify no sentinel values remain (ensures all elements were copied)
+    for (std::size_t i = 0; i < 4; ++i) {
+      EXPECT_NE(stateVec[i].real(), -999.0)
+          << "Element " << i << " was not copied by to_host";
+    }
   }
   {
     const std::vector<cudaq::complex> mps1{1.0, 0.0};
@@ -303,6 +309,17 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     state2.dump();
     EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
     EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+
+    // Test to_host with Bell state - element 3 is non-zero, directly detects
+    // incomplete copy bug
+    std::vector<cudaq::complex> bellStateVec(4, {-999.0, -999.0});
+    state2.to_host(bellStateVec.data(), bellStateVec.size());
+    // Bell state: (|00> + |11>) / sqrt(2) = [1/sqrt(2), 0, 0, 1/sqrt(2)]
+    EXPECT_NEAR(bellStateVec[0].real(), M_SQRT1_2, 1e-6);
+    EXPECT_NEAR(bellStateVec[1].real(), 0.0, 1e-6);
+    EXPECT_NEAR(bellStateVec[2].real(), 0.0, 1e-6);
+    EXPECT_NEAR(bellStateVec[3].real(), M_SQRT1_2, 1e-6)
+        << "Element 3 should be 1/sqrt(2), not copied correctly by to_host";
   }
   {
     constexpr int numQubits = 10;
