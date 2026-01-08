@@ -380,7 +380,7 @@ jobs:
             # FIXME: some tests fail when building against libc++
             # https://github.com/NVIDIA/cuda-quantum/issues/1712
             # /home/cudaq/python/kernel/test_kernel_parameters.py
-            ${PYTHON} -m pytest -v /home/cudaq/python \
+            ${PYTHON} -m pytest -s -v /home/cudaq/python \
               --ignore /home/cudaq/python/backends \
               --ignore /home/cudaq/python/domains \
               --ignore /home/cudaq/python/kernel/test_kernel_parameters.py

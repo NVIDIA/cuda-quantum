@@ -19,6 +19,7 @@
 #include <sstream>
 #include <string>
 #include <unistd.h>
+#include <cstdlib>
 
 // Our hook into configuring the NVQIR backend.
 extern "C" {
@@ -401,6 +402,7 @@ bool LinkedLibraryHolder::hasTarget(const std::string &name) {
 void LinkedLibraryHolder::setTarget(
     const std::string &targetName,
     std::map<std::string, std::string> extraConfig) {
+  setenv("CUDAQ_LOG_LEVEL", "info", 1);
   // Do not set the default target if the disallow
   // flag has been set.
   if (!cudaq::__internal__::canModifyTarget())
