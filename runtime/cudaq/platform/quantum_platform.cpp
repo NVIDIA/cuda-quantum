@@ -17,7 +17,7 @@
 #include <thread>
 #include <unordered_map>
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
+CUDAQ_INSTANTIATE_TYPE_ERASED_REGISTRY(cudaq::registry::QPURegistry)
 
 namespace cudaq {
 

@@ -98,4 +98,4 @@ KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
 }
 
 } // namespace cudaq
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::OrcaRemoteRESTQPU, orca)
+CUDAQ_REGISTER_QPU_TYPE(cudaq::OrcaRemoteRESTQPU, orca)

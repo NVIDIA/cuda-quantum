@@ -20,8 +20,6 @@
 #include <filesystem>
 #include <fstream>
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
-
 namespace {
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {
   std::vector<std::unique_ptr<cudaq::AutoLaunchRestServerProcess>>
@@ -36,7 +34,7 @@ public:
   }
 
   MultiQPUQuantumPlatform() {
-    if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
+    if (cudaq::registry::QPURegistry::get().is_registered("GPUEmulatedQPU")) {
       int nDevices = cudaq::getCudaGetDeviceCount();
       // Skipped if CUDA-Q was built with CUDA but no devices present at
       // runtime.
@@ -62,10 +60,14 @@ public:
         // Add a QPU for each GPU.
         for (int i = 0; i < nDevices; i++) {
           platformQPUs.emplace_back(
-              cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
+              cudaq::registry::QPURegistry::get().instantiate(
+                  "GPUEmulatedQPU"));
           platformQPUs.back()->setId(i);
         }
       }
+    } else {
+      CUDAQ_WARN(
+          "MultiQPUQuantumPlatform: GPUEmulatedQPU type not registered.");
     }
   }
 
@@ -146,7 +148,7 @@ public:
         return formatted;
       };
 
-      if (!cudaq::registry::isRegistered<cudaq::QPU>(qpuSubType))
+      if (!cudaq::registry::QPURegistry::get().is_registered(qpuSubType))
         throw std::runtime_error(
             fmt::format("Unable to retrieve {} QPU implementation. Please "
                         "check your installation.",
@@ -156,7 +158,8 @@ public:
         platformQPUs.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
-          platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
+          platformQPUs.emplace_back(
+              cudaq::registry::QPURegistry::get().instantiate("orca"));
           platformQPUs.back()->setId(qId);
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
@@ -199,7 +202,8 @@ public:
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
           // Populate the information and add the QPUs
-          auto qpu = cudaq::registry::get<cudaq::QPU>("RemoteSimulatorQPU");
+          auto qpu = cudaq::registry::QPURegistry::get().instantiate(
+              "RemoteSimulatorQPU");
           qpu->setId(qId);
           const std::string configStr =
               fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);

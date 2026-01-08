@@ -10,7 +10,6 @@
 
 #include "QuantumExecutionQueue.h"
 #include "common/Logger.h"
-#include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
@@ -37,7 +36,7 @@ ExecutionManager *getExecutionManager();
 /// related tasks such as sampling and observation.
 ///
 /// This type is meant to be subtyped by concrete quantum_platform subtypes.
-class QPU : public registry::RegisteredType<QPU> {
+class QPU {
 protected:
   /// The logical id of this QPU in the platform set of QPUs
   std::size_t qpu_id = 0;
@@ -123,6 +122,8 @@ public:
   // If no execution_queue has been constructed, returns a 'null' id (does not
   // represent a thread of execution).
   std::thread::id getExecutionThreadId() const {
+    assert(execution_queue &&
+           "QPU::getExecutionThreadId() called before execution_queue init");
     return execution_queue ? execution_queue->getExecutionThreadId()
                            : std::thread::id();
   }

@@ -29,17 +29,25 @@ public:
                const std::vector<void *> &rawArgs) override {
     return {};
   }
+  virtual void launchKernel(const std::string &name,
+                            const std::vector<void *> &rawArgs) override {
+    return;
+  }
 
   void setExecutionContext(cudaq::ExecutionContext *context) override {}
 
   void resetExecutionContext() override {}
 };
 
+CUDAQ_INSTANTIATE_TYPE_ERASED_REGISTRY(cudaq::registry::QPURegistry)
+CUDAQ_REGISTER_QPU_TYPE(DummyQPU, dummy);
+
 class DummyMQPUPlatform : public cudaq::quantum_platform {
 public:
   DummyMQPUPlatform(std::size_t numQPUs) {
     for (std::size_t i = 0; i < numQPUs; ++i) {
-      platformQPUs.emplace_back(std::make_unique<DummyQPU>());
+      platformQPUs.emplace_back(
+          registry::QPURegistry::get().instantiate("dummy"));
     }
   }
 };

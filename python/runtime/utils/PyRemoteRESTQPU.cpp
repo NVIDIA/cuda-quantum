@@ -157,4 +157,4 @@ protected:
 };
 } // namespace cudaq
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::PyRemoteRESTQPU, remote_rest)
+CUDAQ_REGISTER_QPU_TYPE(cudaq::PyRemoteRESTQPU, remote_rest)

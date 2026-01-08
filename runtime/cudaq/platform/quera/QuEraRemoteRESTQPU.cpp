@@ -20,4 +20,4 @@ public:
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, QuEraRemoteRESTQPU, quera)
+CUDAQ_REGISTER_QPU_TYPE(QuEraRemoteRESTQPU, quera)
