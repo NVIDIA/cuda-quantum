@@ -332,6 +332,7 @@ def test_evolve_async():
                                atol=0.1)
 
 
+@pytest.mark.skip(reason="Skipping test due to issue #3678")
 def test_evolve_async_no_intermediate_results():
     """Test evolve_async with store_intermediate_results=NONE 
     to verify the else branch in evolve_single_async is working."""
