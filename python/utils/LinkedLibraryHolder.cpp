@@ -14,6 +14,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/target_control.h"
 #include "nvqir/CircuitSimulator.h"
+#include <cstdlib>
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -71,8 +72,10 @@ int countGPUs() {
 void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
                         RuntimeTarget &target,
                         const std::string nvqppBuildConfig) {
+  CUDAQ_INFO("In parseRuntimeTarget()...");
   simulation_precision precision = simulation_precision::fp32;
   std::optional<std::string> foundPlatformName, foundSimulatorName;
+  CUDAQ_INFO("Iterating through nvqppBuildConfig...");
   for (auto &line : cudaq::split(nvqppBuildConfig, '\n')) {
     if (line.find(PLATFORM_LIBRARY) != std::string::npos) {
       cudaq::trim(line);
@@ -369,7 +372,11 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
       std::string("getQuantumPlatform_") + platformName);
 }
 
-void LinkedLibraryHolder::resetTarget() { setTarget(defaultTarget); }
+void LinkedLibraryHolder::resetTarget() {
+  CUDAQ_INFO("Calling setTarget(defaultTarget) in resetTarget()...");
+  setTarget(defaultTarget);
+  CUDAQ_INFO("setTarget(defaultTarget) executed successfully!");
+}
 
 RuntimeTarget LinkedLibraryHolder::getTarget(const std::string &name) const {
   auto iter = targets.find(name);
@@ -400,19 +407,24 @@ void LinkedLibraryHolder::setTarget(
     std::map<std::string, std::string> extraConfig) {
   // Do not set the default target if the disallow
   // flag has been set.
+  setenv("CUDAQ_LOG_LEVEL", "info", 1);
+  CUDAQ_INFO("Setting target={}", targetName);
   if (!cudaq::__internal__::canModifyTarget())
     return;
 
+  CUDAQ_INFO("Validating target={}", targetName);
   auto iter = targets.find(targetName);
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + targetName + ").");
 
+  CUDAQ_INFO("Iterating extraConfig if any for target={}", targetName);
   std::vector<std::string> argv;
   for (const auto &[k, v] : extraConfig) {
     argv.emplace_back(k);
     argv.emplace_back(v);
   }
 
+  CUDAQ_INFO("Checking warning messages for target={}", targetName);
   auto &target = iter->second;
   if (!target.config.WarningMsg.empty()) {
     fmt::print(fmt::fg(fmt::color::red), "[warning] ");
@@ -420,9 +432,12 @@ void LinkedLibraryHolder::setTarget(
     fmt::print(fmt::fg(fmt::color::blue), "Target {}: {}\n", target.name,
                target.config.WarningMsg);
   }
+  CUDAQ_INFO("Parsing target config for target={}", targetName);
   const std::string targetConfigStr =
       cudaq::config::processRuntimeArgs(target.config, argv);
+  CUDAQ_INFO("targetConfigStr={}", targetConfigStr);
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
+  CUDAQ_INFO("parseRuntimeTarget executed successfully!");
 
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
              target.simulatorName, target.platformName);
