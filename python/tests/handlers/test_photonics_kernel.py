@@ -17,8 +17,8 @@ import cudaq
 def do_something():
     cudaq.set_target("orca-photonics")
     yield
-    cudaq.reset_target()
     cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
 
 
 def test_qudit():
