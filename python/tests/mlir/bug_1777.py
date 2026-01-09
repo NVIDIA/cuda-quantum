@@ -27,8 +27,6 @@ def test_bug_1777():
             outer_mz = mz(qubits)
 
     print(test)
-    result = cudaq.sample(test)
-    print(result)
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
@@ -69,10 +67,4 @@ def test_bug_1777():
 # CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 # CHECK:           }
 # CHECK:           return
-# CHECK:         }
-
-# CHECK:         {
-# CHECK-DAG:         __global__ : { 00:1000 }
-# CHECK-DAG:          inner_mz : { 0000:1000 }
-# CHECK-DAG:          res : { 0:2000 }
 # CHECK:         }

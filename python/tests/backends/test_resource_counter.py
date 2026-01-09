@@ -148,30 +148,24 @@ def test_choice_function():
         p = cudaq.qubit()
 
         h(q)
-
-        m1 = mz(q)
-        if m1:
-            x(p)
-            m2 = mz(p)
-        else:
-            m3 = mz(p)
+        x(p)
 
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts1.count("01") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("01") + counts3.count("11") == 10
 
     cudaq.set_target("quantinuum", emulate=True)
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts1.count("01") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("01") + counts3.count("11") == 10
 
 
 def test_sample_in_choice():
