@@ -791,3 +791,70 @@ CUDAQ_TEST(ParserTester, checkNamedResults) {
   buffer = nullptr;
   origBuffer = nullptr;
 }
+
+CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {
+  const std::string log =
+      "HEADER\tschema_id\tlabeled\n"
+      "HEADER\tschema_version\t1.0\n"
+      "START\n"
+      "METADATA\tentry_point\n"
+      "METADATA\toutput_labeling_schema\tschema_id\n"
+      "METADATA\toutput_names\t[[[0,[0,\"r00000\"]],[1,[1,\"r00001\"]]]]\n"
+      "METADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t2\n"
+      "METADATA\trequired_num_results\t2\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+      "OUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\n"
+      "END\t0\n"
+      "START\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+      "OUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\n"
+      "END\t0\n"
+      "START\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+      "OUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\n"
+      "END\t0\n"
+      "START\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+      "OUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\n"
+      "END\t0\n";
+
+  cudaq::RecordLogParser parser;
+  parser.parse(log);
+  auto *origBuffer = parser.getBufferPtr();
+  std::size_t bufferSize = parser.getBufferSize();
+  char *buffer = static_cast<char *>(malloc(bufferSize));
+  std::memcpy(buffer, origBuffer, bufferSize);
+  cudaq::details::RunResultSpan span = {buffer, bufferSize};
+  // This is parsed as a vector of bool vectors
+  std::vector<std::vector<bool>> results = {
+      reinterpret_cast<std::vector<bool> *>(span.data),
+      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
+
+  // 4 shots
+  EXPECT_EQ(4, results.size());
+  for (const auto &result : results) {
+    // 2 measured bits each
+    EXPECT_EQ(2, result.size());
+  }
+  // 1st shot: 1, 1
+  EXPECT_EQ(1, results[0][0]);
+  EXPECT_EQ(1, results[0][1]);
+  // 2nd shot: 1, 1
+  EXPECT_EQ(1, results[1][0]);
+  EXPECT_EQ(1, results[1][1]);
+  // 3rd shot: 0, 0
+  EXPECT_EQ(0, results[2][0]);
+  EXPECT_EQ(0, results[2][1]);
+  // 4th shot: 1, 1
+  EXPECT_EQ(1, results[3][0]);
+  EXPECT_EQ(1, results[3][1]);
+
+  free(buffer);
+  buffer = nullptr;
+  origBuffer = nullptr;
+}

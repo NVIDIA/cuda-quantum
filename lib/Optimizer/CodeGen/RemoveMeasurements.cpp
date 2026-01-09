@@ -33,7 +33,8 @@ public:
                                 PatternRewriter &rewriter) const override {
     if (auto callee = call.getCallee()) {
       if (callee->equals(cudaq::opt::QIRMeasureBody) ||
-          callee->equals(cudaq::opt::QIRRecordOutput)) {
+          callee->equals(cudaq::opt::QIRRecordOutput) ||
+          callee->equals(cudaq::opt::QIRArrayRecordOutput)) {
         rewriter.eraseOp(call);
         return success();
       }
