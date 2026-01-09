@@ -80,25 +80,12 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "entry-point kernels.");
   }
 
-  // Enable kernel caching over this launch.
-  auto *execCtx = cudaq::get_platform().get_exec_ctx();
-  if (execCtx)
-    execCtx->allowJitEngineCaching = true;
-
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
             clean_launch_module(name, mod, retTy, opaques);
       },
       platform, name, name, shots_count, qpu_id, mod.getOperation());
-
-  if (execCtx && execCtx->jitEng) {
-    // Cleanup the kernel caching.
-    auto *p = reinterpret_cast<mlir::ExecutionEngine *>(execCtx->jitEng);
-    delete p;
-    execCtx->jitEng = nullptr;
-    execCtx->allowJitEngineCaching = false;
-  }
   return results;
 }
 
@@ -130,12 +117,26 @@ run_impl(const std::string &shortName, MlirModule module, MlirType returnTy,
   auto retTy = unwrap(returnTy);
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+
+  // Enable kernel caching over this launch.
+  if (auto *execCtx = cudaq::get_platform().get_exec_ctx())
+    execCtx->allowJitEngineCaching = true;
+
   auto span = pyRunTheKernel(shortName, platform, mod, retTy, shots_count,
                              qpu_id, opaques);
   auto results = pyReadResults(span, mod, shots_count, shortName);
 
   if (noise_model.has_value())
     platform.reset_noise();
+
+  if (auto *execCtx = cudaq::get_platform().get_exec_ctx();
+      execCtx && execCtx->jitEng) {
+    // Cleanup the kernel caching.
+    auto *p = reinterpret_cast<mlir::ExecutionEngine *>(execCtx->jitEng);
+    delete p;
+    execCtx->jitEng = nullptr;
+    execCtx->allowJitEngineCaching = false;
+  }
 
   return results;
 }
