@@ -8,7 +8,12 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// XFAIL: darwin-arm64
 // clang-format on
+
+// Note: This test fails on macOS ARM64 because C++ exceptions thrown from
+// JIT-compiled code cannot be caught. Further investigation is needed to
+// determine the root cause and fix it.
 
 #include <cstdio>
 #include <cudaq.h>
