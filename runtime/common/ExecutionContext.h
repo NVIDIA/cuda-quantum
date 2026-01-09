@@ -11,7 +11,6 @@
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
-#include "SimulationState.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
@@ -19,6 +18,8 @@
 #include <string_view>
 
 namespace cudaq {
+
+class SimulationState;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -147,5 +148,13 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  bool allowJitEngineCaching = false;
+
+  /// For performance, a launcher may cache the JIT execution engine and use it
+  /// for multiple discrete calls. This is actually a pointer to a
+  /// `mlir::ExecutionEngine` object, but we hide that because of problems with
+  /// the structure and organization of the runtime libraries.
+  void *jitEng = nullptr;
 };
 } // namespace cudaq

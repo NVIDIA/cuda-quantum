@@ -15,6 +15,7 @@
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nvqpp_interface.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>
@@ -22,7 +23,10 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
+
+namespace mlir {
+class ModuleOp;
+}
 
 namespace cudaq {
 
@@ -154,6 +158,13 @@ public:
                std::size_t qpu_id = 0);
   void launchKernel(const std::string &kernelName, const std::vector<void *> &,
                     std::size_t qpu_id = 0);
+
+  // This method launches a kernel from a ModuleOp that has already been
+  // created.
+  [[nodiscard]] KernelThunkResultType
+  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs, mlir::Type resultTy,
+               std::size_t qpu_id = 0);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

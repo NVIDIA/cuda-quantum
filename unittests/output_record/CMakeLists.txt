@@ -19,6 +19,6 @@ target_link_libraries(test_record
     fmt::fmt-header-only 
     cudaq-common 
     gtest_main
-)
+    cudaq-platform-default)
 
 gtest_discover_tests(test_record)

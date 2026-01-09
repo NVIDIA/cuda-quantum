@@ -55,6 +55,13 @@ if (CUDAQ_CUSVSIM_PATH)
   set(__base_nvtarget_name "cusvsim")
 endif() 
 
+# Default Target
+add_library(cudaq::cudaq-default-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-default-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
 # NVIDIA Target
 add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES

@@ -28,9 +28,9 @@ def test_make_kernel_multiple_floats():
     print(kernel)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen____nvqppBuilderKernel_{{.*}}(
-# CHECK-SAME:    %[[VAL_0:.*]]: f64,
-# CHECK:         %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint"
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
+# CHECK-SAME:     (%[[VAL_0:.*]]: f64,
+# CHECK-SAME:         %[[VAL_1:.*]]: f64) attributes {"cudaq-entrypoint"
 # CHECK:           return
 # CHECK:         }
 

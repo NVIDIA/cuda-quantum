@@ -21,8 +21,9 @@ namespace cudaq {
 template <typename PluginPointerType>
 PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
                                            const char *libName = nullptr) {
-  CUDAQ_INFO("Requesting {} plugin via symbol name {}.",
-             typeid(PluginPointerType).name(), symbolName);
+  CUDAQ_INFO("Requesting {} plugin via symbol name {} ({}).",
+             typeid(PluginPointerType).name(), symbolName,
+             libName ? libName : "null");
   std::mutex m;
   std::lock_guard<std::mutex> l(m);
   using GetPluginFunction = PluginPointerType *(*)();

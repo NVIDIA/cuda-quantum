@@ -10,8 +10,6 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
 namespace cudaq {
-void bindCountResources(py::module &mod);
-} // namespace cudaq
+void bindCountResources(pybind11::module &mod);
+}

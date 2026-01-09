@@ -186,8 +186,12 @@ async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *);
-state *__nvqpp_cudaq_state_createFromData_fp64(void *, std::size_t);
-state *__nvqpp_cudaq_state_createFromData_fp32(void *, std::size_t);
+state *__nvqpp_cudaq_state_createFromData_f64(double *, std::size_t);
+state *__nvqpp_cudaq_state_createFromData_f32(float *, std::size_t);
+state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *,
+                                                      std::size_t);
+state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *,
+                                                      std::size_t);
 void __nvqpp_cudaq_state_delete(state *);
 }
 

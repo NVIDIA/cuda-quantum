@@ -141,7 +141,6 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
                          quantum_platform &platform, int shots,
                          const std::string &kernelName,
                          std::size_t qpu_id = 0) {
-
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
                                 " is invalid (must be < " +

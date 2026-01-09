@@ -288,6 +288,10 @@ public:
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
+  bool TraverseCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x,
+                                      DataRecursionQueue *q = nullptr) {
+    return TraverseCXXConstructExpr(x, q);
+  }
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool VisitCXXParenListInitExpr(clang::CXXParenListInitExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
