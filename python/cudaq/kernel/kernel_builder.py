@@ -1331,7 +1331,8 @@ class PyKernel(object):
         RuntimeError: If the provided `measurement` is on more than 1 qubit.
         
         """
-        emitFatalError("`c_if` is no longer supported. Use kernel mode with `run` API.")
+        emitFatalError(
+            "`c_if` is no longer supported. Use kernel mode with `run` API.")
 
     def for_loop(self, start, stop, function):
         """

@@ -274,7 +274,6 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
         result = cudaq.sample(kernel, 0.0)
 
 
-
 @pytest.mark.parametrize("shots_count", [10, 100])
 def test_sample_result_observe(shots_count):
     """

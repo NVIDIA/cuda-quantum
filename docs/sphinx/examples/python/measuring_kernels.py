@@ -51,7 +51,6 @@ bitstring_counts = Counter(
 print(f"Bitstring counts: {dict(bitstring_counts)}")
 
 # [End Run0]
-
 ''' [Begin Run1]
 Bitstring counts: {'11': 247, '10': 753}
  [End Run1] '''
