@@ -37,7 +37,7 @@ namespace {
 // "array<i1 x N>" where N is the total number of measurement results. The array
 // record output call is created as:
 // `__quantum__rt__array_record_output(N, label);`
-LogicalResult insertArrayRecordingCall(OpBuilder &builder, mlir::Location loc,
+static LogicalResult insertArrayRecordingCall(OpBuilder &builder, mlir::Location loc,
                                        size_t resultCount) {
   if (resultCount == 0)
     return success();
