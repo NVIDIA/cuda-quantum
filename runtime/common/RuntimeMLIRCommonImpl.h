@@ -181,7 +181,7 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 // block contains irreversible operations (measurements), and the blocks may not
 // overlap.
 // Reference:
-// https://github.com/qir-alliance/qir-spec/blob/684b17b9367ec793efdfbb7d804bb78bea1c51ed/specification/profiles/Base_Profile.md#L196
+// https://github.com/qir-alliance/qir-spec/blob/684b17b/specification/profiles/Base_Profile.md#L196
 mlir::LogicalResult
 verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;

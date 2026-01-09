@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,22 +26,20 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace {
-
 // Inserts a QIR array record output call to declare measurement result storage.
-// QIR requires `__quantum__rt__array_record_output()` be called before multiple
-// measurements to declare the output array size and type label. This is
-// required in `sample` API since it always returns a vector of measurement
-// results. The call is inserted before the first
-// `__quantum__rt__result_record_output` call. The label string is created as
-// "array<i1 x N>" where N is the total number of measurement results. The array
-// record output call is created as:
-// `__quantum__rt__array_record_output(N, label);`
-static LogicalResult insertArrayRecordingCall(OpBuilder &builder, mlir::Location loc,
-                                       size_t resultCount) {
+// Before recording multiple measurement results, QIR requires an array
+// recording call to declare the output size and type label. This is necessary
+// for the `sample` API, which returns a vector of measurement results. The
+// call is inserted before the first result recording call. The label string
+// has the format `array<i1 x N>` where N is the total number of measurement
+// results. The generated call is: `__quantum__rt__array_record_output(N,
+// label)`.
+static LogicalResult insertArrayRecordingCall(OpBuilder &builder,
+                                              mlir::Location loc,
+                                              size_t resultCount) {
   if (resultCount == 0)
     return success();
-  // Create the label string: "array<i1 x N>"
+  // Create the label string: `array<i1 x N>`
   std::string labelStr = "array<i1 x " + std::to_string(resultCount) + ">";
   auto strLitTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
       builder.getContext(), builder.getI8Type(), labelStr.size() + 1));
@@ -56,6 +54,7 @@ static LogicalResult insertArrayRecordingCall(OpBuilder &builder, mlir::Location
   return success();
 }
 
+namespace {
 struct QirInsertArrayRecordPass
     : public cudaq::opt::impl::QirInsertArrayRecordBase<
           QirInsertArrayRecordPass> {
@@ -88,14 +87,13 @@ struct QirInsertArrayRecordPass
       LLVM_DEBUG(llvm::dbgs() << "Before adding array recording call:\n"
                               << *funcOp);
       // Add the declaration of array recording call to the module
-      auto module = funcOp->getParentOfType<ModuleOp>();
-      if (!module.lookupSymbol(cudaq::opt::QIRArrayRecordOutput)) {
-        auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-        if (failed(irBuilder.loadIntrinsic(module,
-                                           cudaq::opt::QIRArrayRecordOutput))) {
-          return signalPassFailure();
-        }
+
+      auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
+      if (failed(irBuilder.loadIntrinsic(module,
+                                         cudaq::opt::QIRArrayRecordOutput))) {
+        return signalPassFailure();
       }
+
       // Insert array record before first result result recording call.
       OpBuilder builder(recordOutputCalls.front());
       if (failed(insertArrayRecordingCall(builder, funcOp.getLoc(),
