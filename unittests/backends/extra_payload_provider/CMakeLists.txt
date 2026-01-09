@@ -31,7 +31,7 @@ target_link_libraries(sunrise-provider
 
 add_executable(test_fake_extra_payload_provider FakeHorizonTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_fake_extra_payload_provider PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_fake_extra_payload_provider PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_compile_definitions(test_fake_extra_payload_provider PRIVATE -DNVQIR_BACKEND_NAME=horizon)
 target_include_directories(test_fake_extra_payload_provider PRIVATE ../..)

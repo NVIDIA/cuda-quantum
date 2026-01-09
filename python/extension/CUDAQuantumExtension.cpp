@@ -47,6 +47,7 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
+#include "llvm/Support/TargetSelect.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -59,6 +60,16 @@ namespace py = pybind11;
 static std::unique_ptr<cudaq::LinkedLibraryHolder> holder;
 
 PYBIND11_MODULE(_quakeDialects, m) {
+#ifdef __APPLE__
+  // macOS Two-Level Namespace: Each shared library has its own copy of LLVM's
+  // static registries. These calls ensure TargetRegistry is populated in this
+  // library's context. The CMake force_load workarounds (BuildHelpers.cmake)
+  // also help, but explicit initialization here ensures the Python extension
+  // works correctly. On Linux, static initializers handle this automatically.
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+#endif
+
   holder = std::make_unique<cudaq::LinkedLibraryHolder>();
 
   cudaq::bindRegisterDialects(m);

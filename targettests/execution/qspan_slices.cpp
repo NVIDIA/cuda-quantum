@@ -15,8 +15,8 @@
 // RUN: nvq++ --target quantinuum                         --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // Tests for --disable-qubit-mapping:
-// RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t |& FileCheck --check-prefix=DISABLE %s
-// RUN: nvq++ -v %s -o %t --target iqm --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t |& FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t 2>&1 | FileCheck --check-prefix=DISABLE %s
+// RUN: nvq++ -v %s -o %t --target iqm --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck --check-prefix=DISABLE %s
 // clang-format on
 
 #include <cudaq.h>

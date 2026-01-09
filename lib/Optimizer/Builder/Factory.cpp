@@ -353,7 +353,7 @@ static cc::StructType stlHostVectorType(Type eleTy) {
   // std::vector<bool> is a different type than std::vector<T>.
   auto ptrTy = cc::PointerType::get(eleTy);
   auto i8Ty = IntegerType::get(ctx, 8);
-  auto padout = cc::ArrayType::get(ctx, i8Ty, 32);
+  auto padout = cc::ArrayType::get(ctx, i8Ty, factory::stdVecBoolPaddingSize);
   return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, padout});
 }
 
@@ -373,7 +373,8 @@ bool factory::isStlVectorBoolHostType(Type ty) {
     return false;
   if (arrTy.getElementType() != IntegerType::get(ty.getContext(), 8))
     return false;
-  if (arrTy.isUnknownSize() || (arrTy.getSize() != 32))
+  if (arrTy.isUnknownSize() ||
+      (arrTy.getSize() != factory::stdVecBoolPaddingSize))
     return false;
   return true;
 }

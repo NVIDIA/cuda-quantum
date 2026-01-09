@@ -25,6 +25,10 @@
 #include "cuda_runtime_api.h"
 #endif
 
+// On macOS, environ is not automatically declared; POSIX requires explicit
+// declaration
+extern char **environ;
+
 // Check if a TCP/IP port is available for use
 bool portAvailable(int port) {
   struct sockaddr_in servAddr;

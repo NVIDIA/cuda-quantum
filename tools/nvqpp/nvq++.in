@@ -310,6 +310,16 @@ COMPILER_FLAGS="-I${CUDAQ_INCLUDE_PATH} ${CUDAQ_CLANG_EXTRA_ARGS}"
 CLANG_RESOURCE_DIR=""
 
 CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
+
+# Set sysroot for finding system headers and libraries. This is critical on macOS
+# where a custom-built clang doesn't know the SDK location (unlike Linux where
+# system headers are in standard /usr/include paths).
+CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-@CUDAQ_SYSROOT_PATH@}"
+if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
+	COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+fi
+
 LINKER_PATH=
 NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
@@ -666,8 +676,11 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 		fi
 		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-		OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-		run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
+		# macOS mktemp requires X's at the end of template
+		TMPBASE=$(mktemp nvqppGenTargetBackend.XXXXXX)
+		OUTFILENAME="${TMPBASE}.o"
+		mv "${TMPBASE}" "${OUTFILENAME}"
+		run ${CXX} ${COMPILER_FLAGS} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
 		OBJS_TO_MERGE="${OUTFILENAME}"
 		TMPFILES="${TMPFILES} ${OUTFILENAME}"
 	fi
@@ -835,7 +848,9 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
+	# Use -nostdlib to avoid implicit library linking (not needed for relocatable link, and
+	# libc++/libSystem may not be available on macOS when LLVM is built without runtimes)
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -nostdlib -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 

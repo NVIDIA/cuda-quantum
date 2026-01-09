@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 #include <algorithm>
 #include <set>
 #include <unordered_map>

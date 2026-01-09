@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 add_executable(test_oqc OQCTester.cpp)
-target_link_options(test_oqc PRIVATE -Wl,--no-as-needed)
+target_link_options(test_oqc PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 target_compile_definitions(test_oqc PRIVATE -DNVQIR_BACKEND_NAME=oqc)
 target_include_directories(test_oqc PRIVATE ../..)
 target_link_libraries(test_oqc

@@ -69,16 +69,31 @@ public:
     });
   }
 
+  // Get users of a qubit register, filtering out any that were deleted by
+  // canonicalization (their cached pointers would be stale).
   SmallVector<Operation *, 8> getUsers(mlir::Value qreg) const {
     if (!isa<quake::VeqType>(qreg.getType()))
       mlir::emitError(qreg.getLoc(),
                       "Unexpected type used: expected a quake::VeqType.");
 
     auto iter = regToOrderedUsers.find(qreg);
-    if (iter != regToOrderedUsers.end())
-      return iter->second;
-    mlir::emitWarning(qreg.getLoc(), "Qubit vector is not tracked.");
-    return {};
+    if (iter == regToOrderedUsers.end()) {
+      mlir::emitWarning(qreg.getLoc(), "Qubit vector is not tracked.");
+      return {};
+    }
+
+    // Filter cached users to only include those still in the current user list.
+    // This handles operations deleted by canonicalization.
+    DenseSet<Operation *> currentUsers;
+    for (auto *user : qreg.getUsers())
+      currentUsers.insert(user);
+
+    SmallVector<Operation *, 8> validUsers;
+    for (auto *cachedUser : iter->second) {
+      if (currentUsers.contains(cachedUser))
+        validUsers.push_back(cachedUser);
+    }
+    return validUsers;
   }
   DominanceInfo &getDominanceInfo() { return domInfo; }
   RegUseTracker(const RegUseTracker &) = delete;
@@ -96,6 +111,7 @@ public:
   LogicalResult matchAndRewrite(quake::MzOp mz,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> useOps;
+    bool modified = false;
     for (Value measuredQubit : mz.getTargets()) {
       auto *nextOp = getNextUse(measuredQubit, mz);
       if (nextOp) {
@@ -138,12 +154,14 @@ public:
               opBuilder.create<quake::XOp>(location, measuredQubit);
               opBuilder.create<cudaq::cc::ContinueOp>(location);
             });
+        modified = true;
       } else {
         LLVM_DEBUG(llvm::dbgs() << "No next use\n");
       }
     }
 
-    return failure();
+    // Return success if we modified the IR, failure otherwise.
+    return modified ? success() : failure();
   }
 
 private:

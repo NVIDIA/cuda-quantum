@@ -68,7 +68,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_qubit_qis.cpp
-    ../runtime/cudaq/operators/py_helpers.cpp  
+    ../runtime/cudaq/operators/py_helpers.cpp
     ../runtime/cudaq/operators/py_matrix.cpp
     ../runtime/cudaq/operators/py_scalar_op.cpp
     ../runtime/cudaq/operators/py_spin_op.cpp
@@ -140,6 +140,9 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
+# macOS: Force-load LLVM target libraries to ensure static initializers run.
+add_lib_loading_macos_workaround(CUDAQuantumPythonCAPI TRUE)
+
 ################################################################################
 # Instantiation of Python module
 ################################################################################
@@ -167,11 +170,15 @@ endif()
 
 if (NOT SKBUILD)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../lib/plugins")
 else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
 
+
+
+# macOS: Force-load LLVM target libraries to ensure static initializers run
+add_lib_loading_macos_workaround(CUDAQuantumPythonModules.extension._quakeDialects.dso TRUE)

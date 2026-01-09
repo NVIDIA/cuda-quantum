@@ -8,7 +8,7 @@
 
 add_executable(test_anyon AnyonTester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_anyon PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_anyon PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_compile_definitions(test_anyon PRIVATE -DNVQIR_BACKEND_NAME=anyon)
 target_include_directories(test_anyon PRIVATE ../..)

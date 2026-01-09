@@ -9,14 +9,14 @@
 add_executable(test_quera JsonPayloadTester.cpp)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quera PRIVATE -Wl,--no-as-needed)
+  target_link_options(test_quera PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 target_include_directories(test_quera PRIVATE ../..)
-target_link_libraries(test_quera PRIVATE 
-    fmt::fmt-header-only 
+target_link_libraries(test_quera PRIVATE
+    fmt::fmt-header-only
     cudaq
-    cudaq-common 
+    cudaq-common
     gtest_main
 )
 
-gtest_discover_tests(test_quera)
+gtest_discover_tests(test_quera DISCOVERY_TIMEOUT 120)

@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1 if running in bash
-// RUN: nvq++ -v %s -o %t --target ionq --emulate && %t |& FileCheck %s
+// RUN: nvq++ -v %s -o %t --target ionq --emulate && %t 2>&1 | FileCheck %s
 // RUN: nvq++ --enable-mlir %s -o %t
 
 #include <cudaq.h>

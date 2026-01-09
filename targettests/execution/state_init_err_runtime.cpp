@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t&& %t |& FileCheck %s
-// RUN: nvq++ --enable-mlir -target remote-mqpu --remote-mqpu-url localhost:9999 -fkernel-exec-kind=1 %s -o %t && %t |& FileCheck %s
+// RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t&& %t 2>&1 | FileCheck %s
+// RUN: nvq++ --enable-mlir -target remote-mqpu --remote-mqpu-url localhost:9999 -fkernel-exec-kind=1 %s -o %t && %t 2>&1 | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
