@@ -94,9 +94,7 @@ static std::once_flag mlir_init_flag;
 std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
   // One-time initialization of LLVM/MLIR components
   std::call_once(mlir_init_flag, []() {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    cudaq::registerAllPasses();
+    cudaq::initializeLangMLIR();
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();

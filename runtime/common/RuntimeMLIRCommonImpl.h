@@ -48,6 +48,8 @@
 
 namespace cudaq {
 
+void initializeLangMLIR();
+
 bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
   auto targetTriple = llvm::sys::getDefaultTargetTriple();

@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "common/ArgumentWrapper.h"
-#include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/platform/fermioniq/FermioniqBaseQPU.h"
 
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -18,28 +17,7 @@ extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
 namespace cudaq {
 
-void registerToQIRTranslation();
-void registerToOpenQASMTranslation();
-void registerToIQMJsonTranslation();
-void registerLLVMDialectTranslation(MLIRContext *context);
-
-} // namespace cudaq
-
-namespace cudaq {
-
 class PyFermioniqRESTQPU : public cudaq::FermioniqBaseQPU {
-private:
-  /// Creates new context without mlir initialization.
-  MLIRContext *createContext() {
-    DialectRegistry registry;
-    cudaq::opt::registerCodeGenDialect(registry);
-    cudaq::registerAllDialects(registry);
-    auto context = new MLIRContext(registry);
-    context->loadAllAvailableDialects();
-    registerLLVMDialectTranslation(*context);
-    return context;
-  }
-
 protected:
   std::tuple<ModuleOp, MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
@@ -58,15 +36,8 @@ protected:
 
     CUDAQ_INFO("extract quake code\n");
 
-    MLIRContext *context = createContext();
-
-    static bool initOnce = [&] {
-      registerToQIRTranslation();
-      registerToOpenQASMTranslation();
-      registerToIQMJsonTranslation();
-      return true;
-    }();
-    (void)initOnce;
+    auto contextPtr = cudaq::initializeMLIR();
+    MLIRContext *context = contextPtr.release();
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);

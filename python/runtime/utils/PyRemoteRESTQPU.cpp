@@ -8,8 +8,6 @@
 
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteRESTQPU.h"
-#include "common/RuntimeMLIRCommonImpl.h"
-#include "cudaq/Optimizer/InitAllDialects.h"
 
 // [RFC]:
 // The RemoteRESTQPU implementation that is now split across several files needs
@@ -22,56 +20,6 @@ using namespace mlir;
 
 extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
-// We have to reproduce the TranslationRegistry here in this Translation Unit
-
-static llvm::StringMap<cudaq::Translation> &getTranslationRegistry() {
-  static llvm::StringMap<cudaq::Translation> translationBundle;
-  return translationBundle;
-}
-
-cudaq::Translation &cudaq::getTranslation(StringRef name) {
-  auto &registry = getTranslationRegistry();
-  auto namePair = name.split(':');
-  if (!registry.count(namePair.first))
-    throw std::runtime_error("Invalid IR Translation (" + namePair.first.str() +
-                             ").");
-  return registry[namePair.first];
-}
-
-static void
-registerTranslation(StringRef name, StringRef description,
-                    const cudaq::TranslateFromMLIRFunction &function) {
-  auto &registry = getTranslationRegistry();
-  if (registry.count(name))
-    return;
-  assert(function &&
-         "Attempting to register an empty translate <file-to-file> function");
-  registry[name] = cudaq::Translation(function, description);
-}
-
-static void
-registerTranslation(StringRef name, StringRef description,
-                    const cudaq::TranslateFromMLIRFunctionExtended &function) {
-  auto &registry = getTranslationRegistry();
-  if (registry.count(name))
-    return;
-  assert(function &&
-         "Attempting to register an empty translate <file-to-file> function");
-  registry[name] = cudaq::Translation(function, description);
-}
-
-cudaq::TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
-    StringRef name, StringRef description,
-    const cudaq::TranslateFromMLIRFunction &function) {
-  registerTranslation(name, description, function);
-}
-
-cudaq::TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
-    StringRef name, StringRef description,
-    const cudaq::TranslateFromMLIRFunctionExtended &function) {
-  registerTranslation(name, description, function);
-}
-
 namespace cudaq {
 
 // We cannot use the RemoteRESTQPU since we'll get LLVM / MLIR statically loaded
@@ -80,17 +28,6 @@ namespace cudaq {
 // twice
 class PyRemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
 private:
-  /// Creates new context without mlir initialization.
-  MLIRContext *createContext() {
-    DialectRegistry registry;
-    cudaq::opt::registerCodeGenDialect(registry);
-    cudaq::registerAllDialects(registry);
-    auto context = new MLIRContext(registry);
-    context->loadAllAvailableDialects();
-    registerLLVMDialectTranslation(*context);
-    return context;
-  }
-
 protected:
   std::tuple<ModuleOp, MLIRContext *, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
@@ -106,16 +43,8 @@ protected:
 
   std::tuple<ModuleOp, MLIRContext *>
   extractQuakeCodeAndContextImpl(const std::string &kernelName) {
-
-    MLIRContext *context = createContext();
-
-    static bool initOnce = [&] {
-      registerToQIRTranslation();
-      registerToOpenQASMTranslation();
-      registerToIQMJsonTranslation();
-      return true;
-    }();
-    (void)initOnce;
+    auto contextPtr = cudaq::initializeMLIR();
+    MLIRContext *context = contextPtr.release();
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
