@@ -1358,4 +1358,9 @@ void invokeU3RotationWithControlQubits(
       /*rotations=*/3, params, numControlOperands, isArrayAndLength, controls,
       /*targets=*/1, targets, reinterpret_cast<void (*)()>(QISFunction));
 }
+
+void __quantum__qis__detector(const std::int64_t *indices,
+                              std::size_t num_indices) {
+  nvqir::getCircuitSimulatorInternal()->detector(indices, num_indices);
+}
 }
