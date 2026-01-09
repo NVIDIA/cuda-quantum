@@ -45,7 +45,8 @@ int main() {
   // Count occurrences of each bitstring
   std::map<std::string, std::size_t> bitstring_counts;
   for (const auto &result : results) {
-    std::string bits = std::to_string(result[0]) + std::to_string(result[1]);
+    std::string bits = std::to_string(static_cast<int>(result[0])) +
+                       std::to_string(static_cast<int>(result[1]));
     bitstring_counts[bits]++;
   }
 
