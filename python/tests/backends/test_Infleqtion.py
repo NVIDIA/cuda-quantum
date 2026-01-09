@@ -153,6 +153,31 @@ def test_observe():
     print(res.expectation())
 
 
+def test_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel1(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    @cudaq.kernel
+    def kernel2(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+        mz(q)
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel1, s)
+    counts = cudaq.sample(kernel2, s)
+    assert '10' in counts
+    assert len(counts) == 1
+
+
 def test_exp_pauli():
 
     @cudaq.kernel
