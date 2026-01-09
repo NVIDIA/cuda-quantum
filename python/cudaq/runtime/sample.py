@@ -25,18 +25,8 @@ def __broadcastSample(kernel,
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
-        cudaq_runtime.setExecutionContext(ctx)
-        try:
+        with ctx:
             kernel(*a)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         res = ctx.result
         results.append(res)
 
@@ -123,21 +113,11 @@ Returns:
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
     ctx.explicitMeasurements = explicit_measurements
-    cudaq_runtime.setExecutionContext(ctx)
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
-        try:
+        with ctx:
             kernel(*args)
-        except BaseException:
-            # silence any further exceptions
-            try:
-                cudaq_runtime.resetExecutionContext()
-            except BaseException:
-                pass
-            raise
-        else:
-            cudaq_runtime.resetExecutionContext()
         # If the platform is a hardware QPU, launch only once
         if (counts.get_total_shots() == 0 and ctx.result.get_total_shots()
                 == shots_count) or cudaq_runtime.isQuantumDevice():
@@ -156,7 +136,5 @@ Returns:
                   "infinite loop.")
             break
         ctx.result.clear()
-        if counts.get_total_shots() < shots_count:
-            cudaq_runtime.setExecutionContext(ctx)
     cudaq_runtime.unset_noise()
     return counts

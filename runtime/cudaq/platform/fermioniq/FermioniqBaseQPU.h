@@ -30,15 +30,13 @@ public:
   }
 
   /// Reset the execution context
-  virtual void resetExecutionContext() override {
+  virtual void
+  finalizeExecutionContext(ExecutionContext &context) const override {
     // set the pre-computed expectation value.
-    if (executionContext->name == "observe") {
-      auto expectation =
-          executionContext->result.expectation(GlobalRegisterName);
-
-      executionContext->expectationValue = expectation;
+    if (context.name == "observe") {
+      auto expectation = context.result.expectation(GlobalRegisterName);
+      context.expectationValue = expectation;
     }
-    executionContext = nullptr;
   }
 
   KernelThunkResultType
@@ -47,6 +45,9 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+
+    // TODO: remove execution context from QPU code
+    auto executionContext = getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)

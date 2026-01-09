@@ -46,8 +46,8 @@ std::string getSampledBitString(QppCircuitSimulator<qpp::ket> &qppBackend,
   // Call `sample` and return the bitstring as the first element of the
   // measurement count map.
   cudaq::ExecutionContext ctx("sample", 1);
-  qppBackend.setExecutionContext(&ctx);
-  qppBackend.resetExecutionContext();
+  qppBackend.configureExecutionContext(ctx);
+  qppBackend.finalizeExecutionContext(ctx);
   auto sampleResults = ctx.result;
   return sampleResults.begin()->first;
 }

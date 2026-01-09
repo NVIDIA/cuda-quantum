@@ -34,6 +34,7 @@
 #include "cudaq/Support/Plugin.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/operators.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "nvqpp_config.h"
@@ -199,10 +200,8 @@ public:
   }
 
   /// Store the execution context for launchKernel
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    if (!context)
-      return;
-
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
     // This check ensures that a kernel is not called whilst actively being
     // used for resource counting (implying that the kernel was somehow
     // invoked from inside the choice function). This check may want to
@@ -210,22 +209,34 @@ public:
     // always fully reset, implying the end of the invocation, being being
     // set again, signaling a new invocation.
     if (nvqir::isUsingResourceCounterSimulator() &&
-        context->name != "resource-count")
+        context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    CUDAQ_INFO("Remote Rest QPU setting execution context to {}",
-               context->name);
+    CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
+               context.name);
 
-    // Execution context is valid
-    executionContext = context;
+    if (context.executionManager)
+      context.executionManager->configureExecutionContext(context);
   }
 
-  /// Reset the execution context
-  void resetExecutionContext() override {
-    // do nothing here
-    executionContext = nullptr;
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
+    if (context.executionManager)
+      context.executionManager->finalizeExecutionContext(context);
+  }
+
+  void beginExecution() override {
+    auto executionContext = getExecutionContext();
+    if (executionContext && executionContext->executionManager)
+      executionContext->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    auto executionContext = getExecutionContext();
+    if (executionContext && executionContext->executionManager)
+      getExecutionContext()->executionManager->endExecution();
   }
 
   /// @brief This setTargetBackend override is in charge of reading the
@@ -465,6 +476,8 @@ public:
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(const std::string &kernelName, void *kernelArgs,
                  const std::vector<void *> &rawArgs) {
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
 
     auto [m_module, contextPtr, updatedArgs] =
         extractQuakeCodeAndContext(kernelName, kernelArgs);
@@ -820,6 +833,9 @@ public:
                     const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
+
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -842,6 +858,9 @@ public:
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
+
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
       throw std::runtime_error(
@@ -862,22 +881,20 @@ public:
 
   void completeLaunchKernel(const std::string &kernelName,
                             std::vector<cudaq::KernelExecution> &&codes) {
+    // TODO: remove execution context from QPU code
+    auto executionContext = cudaq::getExecutionContext();
 
     // After performing lowerQuakeCode, check to see if we are simply drawing
     // the circuit. If so, perform the trace here and then return.
     if (executionContext->name == "tracer" && jitEngines.size() == 1) {
-      cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
-      cudaq::getExecutionManager()->resetExecutionContext();
       jitEngines.clear();
       return;
     }
 
     if (executionContext->name == "resource-count") {
       assert(jitEngines.size() == 1);
-      cudaq::getExecutionManager()->setExecutionContext(executionContext);
       invokeJITKernelAndRelease(jitEngines[0], kernelName);
-      cudaq::getExecutionManager()->resetExecutionContext();
       jitEngines.clear();
       return;
     }
@@ -933,14 +950,16 @@ public:
               // at a time.
               cudaq::sample_result counts;
               for (std::size_t shot = 0; shot < localShots; shot++) {
-                cudaq::ExecutionContext context("sample", 1);
-                context.hasConditionalsOnMeasureResults = true;
-                if (!isRun)
-                  cudaq::getExecutionManager()->setExecutionContext(&context);
-
-                invokeJITKernel(localJIT[0], kernelName);
-                if (!isRun) {
-                  cudaq::getExecutionManager()->resetExecutionContext();
+                if (isRun) {
+                  invokeJITKernel(localJIT[0], kernelName);
+                } else {
+                  cudaq::ExecutionContext context("sample", 1);
+                  context.hasConditionalsOnMeasureResults = true;
+                  context.executionManager =
+                      cudaq::getDefaultExecutionManager();
+                  cudaq::get_platform().with_execution_context(context, [&]() {
+                    invokeJITKernel(localJIT[0], kernelName);
+                  });
                   counts += context.result;
                 }
               }
@@ -964,9 +983,10 @@ public:
               for (std::size_t i = 0; i < codes.size(); i++) {
                 cudaq::ExecutionContext context("sample", localShots);
                 context.reorderIdx = reorderIdx;
-                cudaq::getExecutionManager()->setExecutionContext(&context);
-                invokeJITKernel(localJIT[i], kernelName);
-                cudaq::getExecutionManager()->resetExecutionContext();
+                context.executionManager = cudaq::getDefaultExecutionManager();
+                cudaq::get_platform().with_execution_context(context, [&]() {
+                  invokeJITKernel(localJIT[i], kernelName);
+                });
 
                 if (isObserve) {
                   // Use the code name instead of the global register.

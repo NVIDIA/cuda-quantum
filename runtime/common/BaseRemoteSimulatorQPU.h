@@ -18,6 +18,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -32,21 +33,9 @@ namespace cudaq {
 class BaseRemoteSimulatorQPU : public cudaq::QPU {
 protected:
   std::string m_simName;
-  std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
-  std::mutex m_contextMutex;
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
   std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
   bool in_resource_estimation = false;
-
-  /// @brief Return a pointer to the execution context for this thread. It will
-  /// return `nullptr` if it was not found in `m_contexts`.
-  cudaq::ExecutionContext *getExecutionContextForMyThread() {
-    std::scoped_lock<std::mutex> lock(m_contextMutex);
-    const auto iter = m_contexts.find(std::this_thread::get_id());
-    if (iter == m_contexts.end())
-      return nullptr;
-    return iter->second;
-  }
 
 public:
   BaseRemoteSimulatorQPU()
@@ -66,6 +55,30 @@ public:
   // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
     return m_client->getRemoteCapabilities();
+  }
+
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
+    if (context.executionManager)
+      context.executionManager->configureExecutionContext(context);
+  }
+
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
+    if (context.executionManager)
+      context.executionManager->finalizeExecutionContext(context);
+  }
+
+  void beginExecution() override {
+    auto executionContext = getExecutionContext();
+    if (executionContext && executionContext->executionManager)
+      executionContext->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    auto executionContext = getExecutionContext();
+    if (executionContext && executionContext->executionManager)
+      executionContext->executionManager->endExecution();
   }
 
   virtual void setTargetBackend(const std::string &backend) override {
@@ -90,8 +103,7 @@ public:
                  cudaq::gradient *gradient, const cudaq::spin_op &H,
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots) override {
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
+    cudaq::ExecutionContext *executionContextPtr = getExecutionContext();
 
     if (executionContextPtr && executionContextPtr->name == "tracer")
       return;
@@ -140,8 +152,7 @@ public:
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
+    cudaq::ExecutionContext *executionContextPtr = getExecutionContext();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
       return {};
@@ -150,21 +161,26 @@ public:
     // Run resource estimation locally
     if (executionContextPtr && executionContextPtr->name == "resource-count") {
       in_resource_estimation = true;
-      cudaq::getExecutionManager()->setExecutionContext(executionContextPtr);
-      auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
-                                            voidStarSize, 0, rawArgs);
+      cudaq::ExecutionContext ctx(executionContextPtr->name,
+                                  executionContextPtr->shots,
+                                  executionContextPtr->qpuId);
+      ctx.kernelName = executionContextPtr->kernelName;
+      ctx.executionManager = cudaq::getDefaultExecutionManager();
+      cudaq::get_platform().with_execution_context(ctx, [&]() {
+        auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
+                                              voidStarSize, 0, rawArgs);
 
-      auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
+        auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
 
-      auto funcPtr =
-          jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) + name);
-      if (!funcPtr) {
-        throw std::runtime_error(
-            "cudaq::builder failed to get kernelReg function.");
-      }
-      reinterpret_cast<void (*)()>(*funcPtr)();
-      delete jit;
-      cudaq::getExecutionManager()->resetExecutionContext();
+        auto funcPtr =
+            jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) + name);
+        if (!funcPtr) {
+          throw std::runtime_error(
+              "cudaq::builder failed to get kernelReg function.");
+        }
+        reinterpret_cast<void (*)()>(*funcPtr)();
+        delete jit;
+      });
       in_resource_estimation = false;
       return {};
     }
@@ -219,18 +235,6 @@ public:
 
     // Assumes kernel has no dynamic results. (Static result handled above.)
     return {};
-  }
-
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    CUDAQ_INFO("BaseRemoteSimulatorQPU::setExecutionContext QPU {}", qpu_id);
-    std::scoped_lock<std::mutex> lock(m_contextMutex);
-    m_contexts[std::this_thread::get_id()] = context;
-  }
-
-  void resetExecutionContext() override {
-    CUDAQ_INFO("BaseRemoteSimulatorQPU::resetExecutionContext QPU {}", qpu_id);
-    std::scoped_lock<std::mutex> lock(m_contextMutex);
-    m_contexts.erase(std::this_thread::get_id());
   }
 
   void onRandomSeedSet(std::size_t seed) override {

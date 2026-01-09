@@ -102,8 +102,6 @@ public:
   }
 
   void setTargetBackend(const std::string &description) override {
-    executionContext.set(nullptr);
-
     const auto getOpt = [](const std::string &str,
                            const std::string &prefix) -> std::string {
       // Return the first key-value configuration option found in the format:
