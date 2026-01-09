@@ -159,9 +159,11 @@ class PyQPUState : public QPUState {
   OpaqueArguments *argsData;
 
 public:
-  PyQPUState(const std::string &in_kernelName, OpaqueArguments *argsDataToOwn)
+  PyQPUState(const std::string &in_kernelName, const std::string &in_kernelCode,
+             OpaqueArguments *argsDataToOwn)
       : argsData(argsDataToOwn) {
     this->kernelName = in_kernelName;
+    this->kernelQuake = in_kernelCode;
     this->args = argsData->getArgs();
   }
 
@@ -170,19 +172,17 @@ public:
 
 /// @brief Run `cudaq::get_state` for qpu targets on the provided
 /// kernel and args
-state pyGetStateQPU(py::object kernel, py::args args) {
-  if (py::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-
-  auto kernelName = kernel.attr("uniqName").cast<std::string>();
-  auto kernelMod = kernel.attr("qkeModule").cast<MlirModule>();
+state pyGetStateQPU(const std::string &kernelName, MlirModule kernelMod,
+                    py::args args) {
+  auto moduleOp = unwrap(kernelMod);
+  std::string mlirCode;
+  llvm::raw_string_ostream outStr(mlirCode);
+  mlir::OpPrintingFlags opf;
+  opf.enableDebugInfo(/*enable=*/true, /*pretty=*/false);
+  moduleOp.print(outStr, opf);
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-#if 0
-  auto [argWrapper, size, returnOffset] =
-      pyCreateNativeKernel(kernelName, kernelMod, *argData);
-#endif
-  return state(new PyQPUState(kernelName, argData));
+  return state(new PyQPUState(kernelName, mlirCode, argData));
 }
 
 state pyGetStateLibraryMode(py::object kernel, py::args args) {
@@ -826,10 +826,12 @@ index pair.
           py::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "orca-photonics" ||
-            is_remote_platform() || is_emulated_platform())
+            holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
               "get_state is not supported in this context.");
+
+        if (is_remote_platform() || is_emulated_platform())
+          return pyGetStateQPU(shortName, module, args);
         return get_state_impl(shortName, module, retTy, args);
       },
       "See the python documenation for get_state.");

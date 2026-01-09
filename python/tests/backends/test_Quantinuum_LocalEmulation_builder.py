@@ -114,6 +114,25 @@ def test_quantinuum_exp_pauli():
     assert assert_close(res.expectation())
 
 
+def test_quantinuum_state_synthesis():
+
+    init, n = cudaq.make_kernel(int)
+    qubits = init.qalloc(n)
+    init.x(qubits[0])
+
+    s = cudaq.get_state(init, 2)
+
+    kernel, state = cudaq.make_kernel(cudaq.State)
+    qubits = kernel.qalloc(state)
+    kernel.x(qubits[1])
+    kernel.mz(qubits)
+
+    counts = cudaq.sample(kernel, s)
+    print(counts)
+    assert '11' in counts
+    assert len(counts) == 1
+
+
 def test_exp_pauli():
     test = cudaq.make_kernel()
     q = test.qalloc(2)

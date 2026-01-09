@@ -134,11 +134,6 @@ void RemoteSimulationState::toHost(std::complex<float> *clientAllocatedData,
   }
 }
 
-std::optional<std::pair<std::string, std::vector<void *>>>
-RemoteSimulationState::getKernelInfo() const {
-  return std::make_pair(kernelName, args);
-}
-
 std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
     const std::vector<std::vector<int>> &basisStates) {
   if (basisStates.empty())
