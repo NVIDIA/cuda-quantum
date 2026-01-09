@@ -178,6 +178,25 @@ def test_quantinuum_u3_ctrl_decomposition():
     result = cudaq.sample(kernel)
 
 
+def test_quantinuum_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert len(counts) == 1
+
+
 def test_exp_pauli():
 
     @cudaq.kernel

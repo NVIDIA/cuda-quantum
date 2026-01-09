@@ -25,6 +25,7 @@ protected:
   using ArgDeleter = std::function<void(void *)>;
 
   std::string kernelName;
+  std::string kernelQuake;
   /// @brief  Vector of arguments
   // Note: we create a copy of all arguments except pointers.
   std::vector<void *> args;
@@ -61,21 +62,24 @@ public:
 
   /// @brief Constructor
   template <typename... Args>
-  QPUState(std::string &&name, Args &&...args) {
+  QPUState(std::string &&name, std::string &&quake, Args &&...args) {
     kernelName = name;
+    kernelQuake = quake;
     (addArgument(args), ...);
   }
 
   QPUState() = default;
   QPUState(const QPUState &other)
-      : kernelName(other.kernelName), args(other.args), deleters() {}
+      : kernelName(other.kernelName), kernelQuake(other.kernelQuake),
+        args(other.args), deleters() {}
   virtual ~QPUState() override;
 
   /// @brief True if the state has amplitudes or density matrix available.
   virtual bool hasData() const override { return false; }
 
-  /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  /// @brief Helper to retrieve (kernel name, kernel code, and `args` pointers)
+  virtual std::optional<
+      std::tuple<std::string, std::string, std::vector<void *>>>
   getKernelInfo() const override;
 
   /// @brief Return the number of qubits this state represents.
