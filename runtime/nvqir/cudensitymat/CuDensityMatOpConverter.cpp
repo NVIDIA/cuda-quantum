@@ -521,8 +521,10 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
         m_deviceBuffers.emplace(staticCoefficients_d);
         std::vector<cudaq::scalar_operator> coeffs;
         coeffs.reserve(batchSize);
-        for (const auto &hamiltonian : ops) {
-          coeffs.emplace_back(hamiltonian[termIdx].get_coefficient());
+        // Fix: Use sorted batchedProductTerms instead of unsorted ops to get
+        // the correct coefficient for each term after sorting by degrees.
+        for (const auto &productTerms : batchedProductTerms) {
+          coeffs.emplace_back(productTerms[termIdx].get_coefficient());
         }
         cuDoubleComplex *totalCoefficients_d = static_cast<cuDoubleComplex *>(
             cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(
