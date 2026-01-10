@@ -94,20 +94,24 @@ Returns:
                 if not hasattr(operation, 'name'):
                     continue
                 if nvqppPrefix + kernel.name == operation.name.value:
-                    has_conditionals_on_measure_result = 'qubitMeasurementFeedback' in operation.attributes
+                    has_conditionals_on_measure_result = (
+                        'qubitMeasurementFeedback' in operation.attributes)
                     break
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
         has_conditionals_on_measure_result = True
 
-    if explicit_measurements:
-        if not cudaq_runtime.supportsExplicitMeasurements():
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported on this target."
-            )
-        if has_conditionals_on_measure_result:
-            raise RuntimeError(
-                "The sampling option `explicit_measurements` is not supported on kernel with conditional logic on a measurement result."
-            )
+    if has_conditionals_on_measure_result:
+        raise RuntimeError(
+            f"`cudaq.sample` no longer supports kernels that branch on "
+            f"measurement results. Kernel '{kernel.name}' uses conditional "
+            f"feedback. Use `cudaq.run` instead. See CUDA-Q documentation for "
+            f"migration guide.")
+
+    if explicit_measurements and not cudaq_runtime.supportsExplicitMeasurements(
+    ):
+        raise RuntimeError(
+            "The sampling option `explicit_measurements` is not supported on this target."
+        )
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
@@ -121,7 +125,7 @@ Returns:
         return res
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result
+    ctx.hasConditionalsOnMeasureResults = has_conditionals_on_measure_result  # TODO: Remove this logic altogether
     ctx.explicitMeasurements = explicit_measurements
     cudaq_runtime.setExecutionContext(ctx)
 

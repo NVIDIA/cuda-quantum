@@ -2631,21 +2631,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # so we therefore should not push it on the stack
                 pushResultToStack = registerName != None or self.walkingReturnNode
 
-                # By default we set the `register_name` for the measurement
-                # to the assigned variable name (if there is one). But
-                # the use could have manually specified `register_name='something'`
-                # check for that here and use it there
                 if len(node.keywords) == 1 and hasattr(node.keywords[0], 'arg'):
                     if node.keywords[0].arg == 'register_name':
-                        userProvidedRegName = node.keywords[0]
-                        if not isinstance(userProvidedRegName.value,
-                                          ast.Constant):
-                            self.emitFatalError(
-                                "measurement register_name keyword must be a constant string literal.",
-                                node)
-                        self.debug_msg(lambda: f'[(Inline) Visit Constant]',
-                                       userProvidedRegName.value)
-                        registerName = userProvidedRegName.value.value
+                        self.emitFatalError(
+                            "`register_name` keyword is no longer supported.")
 
                 qubits = self.__groupValues(node.args, [(1, -1)])
                 label = registerName or None

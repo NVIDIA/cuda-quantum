@@ -1105,26 +1105,22 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
-    def mz(self, target, regName=None):
+    def mz(self, target):
         """
-        Measure the given qubit or qubits in the Z-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
-        after execution on the QPU. If the measurement call is saved as a
-        variable, it will return a :class:`QuakeValue` handle to the measurement
-        instruction.
+        Measure the given qubit or qubits in the Z-basis. If the measurement 
+        call is saved as a variable, it will return a :class:`QuakeValue` 
+        handle to the measurement instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Mid-circuit measurements are currently only supported 
-        through the use of :func:`c_if`.
+        Measurements may be applied both mid-circuit and at the end of the 
+        circuit. Conditional logic on mid-circuit measurements is no longer 
+        supported.
 
         ```python
             # Example:
@@ -1137,42 +1133,32 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
             retTy = i1Ty
             measTy = quake.MeasureType.get()
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MzOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MzOp(measTy, [], [target.mlirValue])
+            res = quake.MzOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
-    def mx(self, target, regName=None):
+    def mx(self, target):
         """
-        Measure the given qubit or qubits in the X-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
-        after execution on the QPU. If the measurement call is saved as a
-        variable, it will return a :class:`QuakeValue` handle to the measurement
-        instruction.
+        Measure the given qubit or qubits in the X-basis. If the measurement 
+        call is saved as a variable, it will return a :class:`QuakeValue` 
+        handle to the measurement instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Mid-circuit measurements are currently only supported 
-        through the use of :func:`c_if`.
+        Measurements may be applied both mid-circuit and at the end of the 
+        circuit. Conditional logic on mid-circuit measurements is no longer 
+        supported.
 
         ```python
             kernel = cudaq.make_kernel()
@@ -1184,42 +1170,32 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
             retTy = i1Ty
             measTy = quake.MeasureType.get()
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MxOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MxOp(measTy, [], [target.mlirValue])
+            res = quake.MxOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
-    def my(self, target, regName=None):
+    def my(self, target):
         """
-        Measure the given qubit or qubits in the Y-basis. The optional
-        `register_name` may be used to retrieve results of this measurement
-        after execution on the QPU. If the measurement call is saved as a
-        variable, it will return a :class:`QuakeValue` handle to the measurement
-        instruction.
+        Measure the given qubit or qubits in the Y-basis. If the measurement 
+        call is saved as a variable, it will return a :class:`QuakeValue` 
+        handle to the measurement instruction.
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Mid-circuit measurements are currently only supported 
-        through the use of :func:`c_if`.
+        Measurements may be applied both mid-circuit and at the end of the 
+        circuit. Conditional logic on mid-circuit measurements is no longer 
+        supported.
 
         ```python
             # Example:
@@ -1232,19 +1208,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
             retTy = i1Ty
             measTy = quake.MeasureType.get()
             stdvecTy = cc.StdvecType.get(i1Ty)
             if quake.VeqType.isinstance(target.mlirValue.type):
                 retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MyOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MyOp(measTy, [], [target.mlirValue])
+            res = quake.MyOp(measTy, [], [target.mlirValue])
             disc = quake.DiscriminateOp(retTy, res)
             return self.__createQuakeValue(disc.result)
 
@@ -1359,58 +1329,10 @@ class PyKernel(object):
 
         Raises:
         RuntimeError: If the provided `measurement` is on more than 1 qubit.
-
-        ```python
-            # Example:
-            # Create a kernel and allocate a single qubit.
-            kernel = cudaq.make_kernel()
-            qubit = kernel.qalloc()
-            # Define a function that performs certain operations on the
-            # kernel and the qubit.
-            def then_function():
-                kernel.x(qubit)
-            kernel.x(qubit)
-            # Measure the qubit.
-            measurement = kernel.mz(qubit)
-            # Apply `then_function` to the `kernel` if the qubit was measured
-            # in the 1-state.
-            kernel.c_if(measurement, then_function))
-        ```
+        
         """
-        with self.insertPoint, self.loc:
-            conditional = measurement.mlirValue
-            if not IntegerType.isinstance(conditional.type):
-                emitFatalError("c_if conditional must be of type `bool`.")
-
-            # [RFC]:
-            # The register names in the conditional tests need to be double checked;
-            # The code here may need to be adjusted to reflect the additional
-            # quake.discriminate conversion of the measurement.
-            if isinstance(conditional.owner.opview, quake.MzOp):
-                regName = StringAttr(
-                    conditional.owner.attributes['registerName']).value
-                if len(regName) == 0:
-                    conditional.owner.attributes.__setitem__(
-                        'registerName',
-                        StringAttr.get('auto_register_{}'.format(
-                            self.regCounter)))
-                    self.regCounter += 1
-
-            if self.getIntegerType(1) != conditional.type:
-                # not equal to 0, then compare with 1
-                condPred = IntegerAttr.get(self.getIntegerType(), 1)
-                conditional = arith.CmpIOp(condPred, conditional,
-                                           self.getConstantInt(0)).result
-
-            ifOp = cc.IfOp([], conditional, [])
-            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
-            with InsertionPoint(thenBlock):
-                tmpIp = self.insertPoint
-                self.insertPoint = InsertionPoint(thenBlock)
-                function()
-                self.insertPoint = tmpIp
-                cc.ContinueOp([])
-            self.conditionalOnMeasure = True
+        emitFatalError(
+            "`c_if` is no longer supported. Use kernel mode with `run` API.")
 
     def for_loop(self, start, stop, function):
         """

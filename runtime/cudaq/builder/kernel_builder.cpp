@@ -768,8 +768,7 @@ void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
 }
 
 template <typename QuakeMeasureOp>
-QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
-                        const std::string &regName) {
+QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value) {
   auto type = value.getType();
   if (!isa<quake::RefType, quake::VeqType>(type))
     throw std::runtime_error("Invalid parameter passed to mz.");
@@ -780,8 +779,6 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   // the default. This is a workaround to clear out the empty string so we don't
   // build broken IR.
   StringAttr strAttr;
-  if (!regName.empty())
-    strAttr = builder.getStringAttr(regName);
 
   Type resTy = builder.getI1Type();
   Type measTy = quake::MeasureType::get(builder.getContext());
@@ -802,19 +799,16 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   return QuakeValue(builder, bits);
 }
 
-QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              const std::string &regName) {
-  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
+QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
+  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue());
 }
 
-QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              const std::string &regName) {
-  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
+QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
+  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue());
 }
 
-QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
-              const std::string &regName) {
-  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
+QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
+  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue());
 }
 
 void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
@@ -843,26 +837,8 @@ void checkAndUpdateRegName(quake::MeasurementInterface &measure) {
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
-  auto value = conditional.getValue();
-
-  if (auto discrOp = value.getDefiningOp<quake::DiscriminateOp>())
-    if (auto measureOp = discrOp.getMeasurement()
-                             .getDefiningOp<quake::MeasurementInterface>())
-      checkAndUpdateRegName(measureOp);
-
-  auto type = value.getType();
-  if (!isa<mlir::IntegerType>(type) || type.getIntOrFloatBitWidth() != 1)
-    throw std::runtime_error("Invalid result type passed to c_if.");
-
-  builder.create<cc::IfOp>(TypeRange{}, value,
-                           [&](OpBuilder &builder, Location l, Region &region) {
-                             region.push_back(new Block());
-                             auto &bodyBlock = region.front();
-                             OpBuilder::InsertionGuard guard(builder);
-                             builder.setInsertionPointToStart(&bodyBlock);
-                             thenFunctor();
-                             builder.create<cc::ContinueOp>(l);
-                           });
+  throw std::runtime_error(
+      "`c_if` is no longer supported. Use kernel mode with `run` API.");
 }
 
 /// Trims off the cudaq generated prefix and the mangled suffix, if any.

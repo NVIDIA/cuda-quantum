@@ -122,7 +122,7 @@ def test_named_measurement():
 
     counts = cudaq.sample(kernel)
     assert '__global__' in counts.register_names
-    assert 'val' in counts.register_names
+    assert 'val' not in counts.register_names
 
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert '__global__' in counts.register_names
@@ -270,14 +270,10 @@ def test_error_cases():
         if mz(q[0]):
             x(q[1])
 
-    # This is allowed
-    cudaq.sample(kernel_with_conditional_on_measure).dump()
-
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel_with_conditional_on_measure,
                      explicit_measurements=True)
-    assert "not supported on kernel with conditional logic on a measurement result" in repr(
-        e)
+    assert "no longer supports" in repr(e)
 
     ## NOTE: The following does not fail.
     ## Needs inlining of the function calls.
@@ -295,7 +291,6 @@ def test_error_cases():
     # with pytest.raises(RuntimeError) as e:
     #     cudaq.sample(kernel_with_conditional_on_function,
     #                  explicit_measurements=True)
-    # assert "not supported on kernel with conditional logic on a measurement result" in repr(
-    #     e)
+    # assert "no longer supports" in repr(e)
 
     cudaq.__clearKernelRegistries()
