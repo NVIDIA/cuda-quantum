@@ -5022,54 +5022,23 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError("unhandled BinOp.Mod types",
                                     self.currentNode)
 
-        # FIXME: Refactor. The following error messages are all the same with
+        int_binary_operations = {
+            ast.LShift: lambda l, r: arith.ShLIOp(l, r).result,
+            ast.RShift: lambda l, r: arith.ShRSIOp(l, r).result,
+            ast.BitAnd: lambda l, r: arith.AndIOp(l, r).result,
+            ast.BitOr: lambda l, r: arith.OrIOp(l, r).result,
+            ast.BitXor: lambda l, r: arith.XOrIOp(l, r).result,
+        }
 
-
-# minor variation.
-        if issubclass(nodeType, ast.LShift):
-            if IntegerType.isinstance(left.type):
-                self.pushValue(arith.ShLIOp(left, right).result)
-                return
-            else:
+        for op_cls, builder in int_binary_operations.items():
+            if issubclass(nodeType, op_cls):
+                if IntegerType.isinstance(left.type):
+                    self.pushValue(builder(left, right))
+                    return
                 self.emitFatalError(
-                    "unsupported operand type(s) for BinOp.LShift; "
+                    f"unsupported operand type(s) for BinOp.{op_cls.__name__}; "
                     "only integers supported", self.currentNode)
-
-        if issubclass(nodeType, ast.RShift):
-            if IntegerType.isinstance(left.type):
-                self.pushValue(arith.ShRSIOp(left, right).result)
                 return
-            else:
-                self.emitFatalError(
-                    "unsupported operand type(s) for BinOp.RShift; "
-                    "only integers supported", self.currentNode)
-
-        if issubclass(nodeType, ast.BitAnd):
-            if IntegerType.isinstance(left.type):
-                self.pushValue(arith.AndIOp(left, right).result)
-                return
-            else:
-                self.emitFatalError(
-                    "unsupported operand type(s) for BinOp.BitAnd; "
-                    "only integers supported", self.currentNode)
-
-        if issubclass(nodeType, ast.BitOr):
-            if IntegerType.isinstance(left.type):
-                self.pushValue(arith.OrIOp(left, right).result)
-                return
-            else:
-                self.emitFatalError(
-                    "unsupported operand type(s) for BinOp.BitOr; "
-                    "only integers supported", self.currentNode)
-
-        if issubclass(nodeType, ast.BitXor):
-            if IntegerType.isinstance(left.type):
-                self.pushValue(arith.XOrIOp(left, right).result)
-                return
-            else:
-                self.emitFatalError(
-                    "unsupported operand type(s) for BinOp.BitXor; "
-                    "only integers supported.", self.currentNode)
 
         self.emitFatalError("unhandled binary operator", self.currentNode)
 
