@@ -99,6 +99,11 @@ public:
   /// The data can be host or device data.
   static state from_data(const state_data &data);
 
+  /// Temp: Return projection probabilities for projection noise model.
+  std::vector<double> getProjectionProbabilities() const {
+    return internal->getProjectionProbabilities();
+  }
+
   ~state();
 };
 

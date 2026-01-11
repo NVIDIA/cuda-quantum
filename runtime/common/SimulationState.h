@@ -246,6 +246,11 @@ public:
         "SimulationState::toHost complex64 not implemented.");
   }
 
+  /// Temp: Return projection probabilities for projection noise model.
+  virtual std::vector<double> getProjectionProbabilities() const {
+    throw std::runtime_error(
+        "SimulationState::getProjectionProbabilities not implemented.");
+  }
   /// @brief Destructor
   virtual ~SimulationState() {}
 };

@@ -778,7 +778,9 @@ index pair.
                 std::make_pair(reinterpret_cast<std::complex<double> *>(ptr),
                                numOtherElements)));
           },
-          "Compute overlap with general CuPy device array.");
+          "Compute overlap with general CuPy device array.")
+      .def("get_projection_probabilities", &state::getProjectionProbabilities,
+           "Return the projection probabilities for all projection operators.");
 
   mod.def(
       "get_state",
