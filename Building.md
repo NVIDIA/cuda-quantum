@@ -122,6 +122,11 @@ Tests with large stack allocations may fail or be skipped.
   `pthread_create failed: Resource temporarily unavailable`.
   If this occurs, reduce concurrent kernels or raise limits via
   `ulimit -u` / `launchctl limit maxthreads`.
+- **JIT exception handling on macOS M-series**: C++ exceptions thrown from JIT-compiled
+  code cannot be caught on macOS ARM64 (Apple Silicon). This is a known upstream
+  LLVM bug ([llvm-project#49036](https://github.com/llvm/llvm-project/issues/49036))
+  caused by libunwind not properly handling exception unwinding in JIT-executed
+  code on Darwin ARM64.
 
 ## Building CUDA-Q with a custom LLVM version
 
