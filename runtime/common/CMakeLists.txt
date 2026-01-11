@@ -162,6 +162,8 @@ target_link_libraries(cudaq-mlir-runtime
 # static initializers (TargetRegistry, PassRegistry) run in this library's
 # context. Without this, LLVM targets aren't registered and JIT fails.
 # This library centralizes LLVM/MLIR symbols for the runtime layer.
+# Other libraries (like Python extensions) should NOT use this workaround -
+# they should link against this library instead.
 add_lib_loading_macos_workaround(cudaq-mlir-runtime TRUE)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)
