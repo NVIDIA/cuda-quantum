@@ -249,9 +249,6 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
-  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
-  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
-  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
   ${CCACHE_FLAGS} \
   ${SANITIZER_FLAGS} \
@@ -266,6 +263,14 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
   $extra_cmake_args"
+
+# Add CUDA-specific flags only on non-macOS systems
+if [ "$(uname)" != "Darwin" ]; then
+  cmake_args="$cmake_args \
+  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
+  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
+  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"'"
+fi
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 
