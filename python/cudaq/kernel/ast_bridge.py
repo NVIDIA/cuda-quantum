@@ -57,7 +57,8 @@ class PyScopedSymbolTable(object):
     class Scope(object):
 
         def __init__(self, scope_root, parent=None):
-            assert isinstance(scope_root, Block) and hasattr(scope_root, 'owner')
+            assert isinstance(scope_root, Block) and hasattr(
+                scope_root, 'owner')
             self.root = scope_root
             self.parent = parent
             self._blockID = -1
@@ -103,8 +104,8 @@ class PyScopedSymbolTable(object):
                 if value.owner == self.root:
                     self._symbols[symbol] = (value, 0)
                     return
-                if (hasattr(value.owner, 'parent') and 
-                      value.owner.parent == self.root.owner):
+                if (hasattr(value.owner, 'parent') and
+                        value.owner.parent == self.root.owner):
                     self._symbols[symbol] = (value, 0)
                     return
             self._symbols[symbol] = (value, self._parentBlocks[-1])
@@ -116,7 +117,7 @@ class PyScopedSymbolTable(object):
         def isFromParentBlock(self, symbol):
             if symbol in self._symbols:
                 _, sid = self._symbols[symbol]
-                return (sid in self._parentBlocks and 
+                return (sid in self._parentBlocks and
                         sid != self._parentBlocks[-1])
             return False
 
@@ -184,7 +185,7 @@ class PyScopedSymbolTable(object):
         target_scope = self._scope
         # special handling for function arguments
         if (BlockArgument.isinstance(value) and
-            isinstance(value.owner.owner, func.FuncOp)):
+                isinstance(value.owner.owner, func.FuncOp)):
             # add to the scope of the closest function definition
             while (target_scope.parent and
                    not isinstance(target_scope.root.owner, func.FuncOp)):
@@ -209,14 +210,13 @@ class PyScopedSymbolTable(object):
             # but not allocated in the main function body.
             # This case deviates from Python behavior, and we give
             # a hopefully comprehensive enough error.
-            self.emitError(
-                f"variable of type {value.type} " +
-                "is defined in a prior block and cannot be " +
-                "accessed or changed outside that block" + os.linesep +
-                f"(offending source -> {symbol})")
+            self.emitError(f"variable of type {value.type} " +
+                           "is defined in a prior block and cannot be " +
+                           "accessed or changed outside that block" +
+                           os.linesep + f"(offending source -> {symbol})")
         else:
             return value
-        
+
     def isFromParentScope(self, symbol):
         """
         Returns True if and only if the given symbol is defined
@@ -244,13 +244,14 @@ class PyScopedSymbolTable(object):
         Returns true if and only if there are no remaining scopes frames.
         """
         return not self._scope
-    
+
     @property
     def isInnerScope(self):
         """
         Returns true if and only if the current scope has a parent scope defined.
         """
         return self._scope and self._scope.parent is not None
+
 
 class CompilerError(RuntimeError):
     """
@@ -384,8 +385,10 @@ class PyASTBridge(ast.NodeVisitor):
         track of a symbol table, which maps variable names to constructed
         `mlir.Values`.
         """
+
         def node_error(msg):
             self.emitFatalError(f'processing error - {msg}', self.currentNode)
+
         self.symbolTable = PyScopedSymbolTable(error_handler=node_error)
         self.valueStack = PyStack(error_handler=node_error)
         self.knownResultType = kwargs[
@@ -1156,12 +1159,14 @@ class PyASTBridge(ast.NodeVisitor):
         nor contain return statements.
         """
         if len(arguments):
-            self.emitFatalError("functions defined within kernels cannot have arguments.", self.currentNode)
+            self.emitFatalError(
+                "functions defined within kernels cannot have arguments.",
+                self.currentNode)
 
         ty = cc.CallableType.get(self.ctx, [], [])
         lambdaFct = cc.CreateLambdaOp(ty)
         initBlock = Block.create_at_start(lambdaFct.initRegion, [])
-      
+
         self.symbolTable.pushScope(initBlock)
         with InsertionPoint(initBlock):
             self.symbolTable.beginBlock()
@@ -1718,7 +1723,8 @@ class PyASTBridge(ast.NodeVisitor):
             # This is an inner function def, we will treat it as a cc.callable
             # (cc.create_lambda)
             self.debug_msg(lambda: f'Visiting inner FunctionDef {node.name}')
-            lambdaFct = self.__createFunctionWithinKernel(node.args.args, node.body)
+            lambdaFct = self.__createFunctionWithinKernel(
+                node.args.args, node.body)
             assignNode = ast.Assign()
             assignNode.targets = [ast.Name(node.name)]
             assignNode.value = lambdaFct
@@ -1818,8 +1824,9 @@ class PyASTBridge(ast.NodeVisitor):
                 self.symbolTable.endBlock()
             self.symbolTable.popScope()
             if not self.symbolTable.isEmpty:
-                self.emitFatalError("processing error - unprocessed scope(s) in symbol table",
-                                    node)
+                self.emitFatalError(
+                    "processing error - unprocessed scope(s) in symbol table",
+                    node)
 
             if True not in areQuantumTypes:
                 attr = DictAttr.get(
@@ -1880,8 +1887,10 @@ class PyASTBridge(ast.NodeVisitor):
         # Python lambdas can only have a single statement.
         # Here we will enhance our language by processing a single Tuple
         # statement as a set of statements for each element of the tuple
-        statements = node.body.elts if isinstance(node.body, ast.Tuple) else [node.body]
-        lambdaFct = self.__createFunctionWithinKernel(node.args.args, statements)
+        statements = node.body.elts if isinstance(node.body,
+                                                  ast.Tuple) else [node.body]
+        lambdaFct = self.__createFunctionWithinKernel(node.args.args,
+                                                      statements)
         self.pushValue(lambdaFct)
 
     def visit_Assign(self, node):
@@ -5225,12 +5234,13 @@ class PyASTBridge(ast.NodeVisitor):
         # defined in a parent scope. This behavior is different
         # for standard assignments to variables, where a new
         # variable is created in the current scope that shadows the
-        # one in the parent scope. 
+        # one in the parent scope.
         if (isinstance(node.target, ast.Name) and
-            self.symbolTable.isFromParentScope(node.target.id)):
+                self.symbolTable.isFromParentScope(node.target.id)):
             # matching Python error message here
-            self.emitFatalError(f"cannot access local variable '{node.target.id}'" +
-                                " where it is not associated with a value", node)
+            self.emitFatalError(
+                f"cannot access local variable '{node.target.id}'" +
+                " where it is not associated with a value", node)
 
         self.pushPointerValue = True
         self.visit(node.target)
