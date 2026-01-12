@@ -5221,12 +5221,17 @@ class PyASTBridge(ast.NodeVisitor):
         Visit augment-assign operations (e.g. +=).
         """
 
-        # NOTE: We do *not* treat this like other assignments,
-        # since `AugAssign` must fail if the target is a variable
+        # NOTE: `AugAssign` must fail if the target is a variable
         # defined in a parent scope. This behavior is different
         # for standard assignments to variables, where a new
         # variable is created in the current scope that shadows the
         # one in the parent scope. 
+        if (isinstance(node.target, ast.Name) and
+            self.symbolTable.isFromParentScope(node.target.id)):
+            # matching Python error message here
+            self.emitFatalError(f"cannot access local variable '{node.target.id}'" +
+                                " where it is not associated with a value", node)
+
         self.pushPointerValue = True
         self.visit(node.target)
         self.pushPointerValue = False
@@ -5264,11 +5269,6 @@ class PyASTBridge(ast.NodeVisitor):
         """
 
         if node.id in self.symbolTable:
-            if self.pushPointerValue and self.symbolTable.isFromParentScope(node.id):
-                # matching Python error message here
-                self.emitFatalError(f"cannot access local variable '{node.id}'" +
-                                    " where it is not associated with a value", node)
-
             value = self.symbolTable[node.id]
 
             if (self.pushPointerValue or
