@@ -92,9 +92,9 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
   if (!serverApp)
     throw std::runtime_error("Unable to find CUDA-Q REST server to launch.");
 
-  // If the CUDAQ_DYNLIBS env var is set (typically from the Python
-  // environment), add these to the library search path.
-  // macOS uses DYLD_LIBRARY_PATH; Linux uses LD_LIBRARY_PATH.
+    // If the CUDAQ_DYNLIBS env var is set (typically from the Python
+    // environment), add these to the library search path.
+    // macOS uses DYLD_LIBRARY_PATH; Linux uses LD_LIBRARY_PATH.
 #ifdef __APPLE__
   const char *libPathVar = "DYLD_LIBRARY_PATH";
 #else
