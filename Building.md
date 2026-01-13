@@ -165,12 +165,17 @@ create or modify the [WSL configuration file][wsl_config] if necessary.
 
 [wsl_config]: https://learn.microsoft.com/en-us/windows/wsl/wsl-config
 
-
 ## Cleaning up after failed builds
 
-If `/.scripts/build_cuda.sh` fails partway through installation (or installing prerequisites with `-p`) a subsequent rerun may use partially
-written build state and conclude the build stage passed, proceeding onto the next step. In this case a clean retry usally requires one of the following:
+If `/.scripts/build_cuda.sh` fails partway through installation (or installing
+prerequisites with `-p`) a subsequent rerun may use partially written build
+state and conclude the build stage passed, proceeding onto the next step. In
+this case a clean retry usually requires one of the following:
 
 - Resetting your build cudaq directory `rm -rf build`
-- Resetting one of your install `*_INSTALL_PREFIX` paths by removing the directory. Eg., `rm - /usr/local/llvm`. *Warning* Linux uses `/usr/local`/`/opt` and MacOS `~/.local` for *other* system installations so do not blindly remove these directories.
-- Resetting one of the submodule build folders, eg., `rm -rf tpls/pybind11/build` or `rm -rf ~/.llvm-project/build`.
+- Resetting one of your install `*_INSTALL_PREFIX` paths by removing the
+  directory. Eg., `rm - /usr/local/llvm`. *Warning* Linux uses
+  `/usr/local`/`/opt` and MacOS `~/.local` for *other* system installations
+  so do not blindly remove these directories.
+- Resetting one of the submodule build folders, eg.,
+  `rm -rf tpls/pybind11/build` or `rm -rf ~/.llvm-project/build`.

@@ -70,7 +70,7 @@ automatically](.devcontainer/devcontainer.json) when launching it. This does not
 impact your VS Code configuration outside the container environment.
 
 You should now be all set to build CUDA-Q and run tests. Please open a terminal
-in VS Code and follow the instructions [here](./Building.md) to confirm that
+in VS Code and follow the [build instructions](./Building.md) to confirm that
 everything works as expected.
 
 [vs_code]: https://code.visualstudio.com/download
@@ -142,22 +142,22 @@ your environment manually.
    ```
 
 3. **Core development dependencies**:
-    
-    While the build scripts will install `cmake`/`ninja` if they are not detected,
-    we recommend installing and managing these with `brew`:
-    
-    ```bash
-    brew install cmake ninja
-    ```
 
-    If you do not use `brew` they will be installed at `~/.local/bin` and
-    we recommend adding it to your path:
-    
-    ```bash
-    export PATH="$PATH:$HOME/.local/bin"
-    ```
+   While the build scripts will install `cmake`/`ninja` if they are not detected,
+   we recommend installing and managing these with `brew`:
 
-3. **Python virtual environment**:
+   ```bash
+   brew install cmake ninja
+   ```
+
+   If you do not use `brew` they will be installed at `~/.local/bin` and
+   we recommend adding it to your path:
+
+   ```bash
+   export PATH="$PATH:$HOME/.local/bin"
+   ```
+
+4. **Python virtual environment**:
 
    ```bash
    python3 -m venv ~/.venv/cudaq
