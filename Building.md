@@ -115,13 +115,6 @@ Tests with large stack allocations may fail or be skipped.
  but this can cause collisions with system libraries (e.g., OpenSSL). When
  adding new dependencies, you may need `-Wl,-force_load` or two-level namespace
  linking for specific targets. See `cmake/BuildHelpers.cmake` for examples.
-- **Thread limits**: macOS has lower per-process thread limits (~1392-2088)
-  compared to Linux. Each unique kernel execution creates ~8 threads
-  tied to its MLIR Context. Tests creating many kernels (e.g., dynamics evolution
-  with 100+ time steps) may exhaust this limit, causing
-  `pthread_create failed: Resource temporarily unavailable`.
-  If this occurs, reduce concurrent kernels or raise limits via
-  `ulimit -u` / `launchctl limit maxthreads`.
 - **JIT exception handling on macOS M-series**: C++ exceptions thrown from JIT-compiled
   code cannot be caught on macOS ARM64 (Apple Silicon). This is a known upstream
   LLVM bug ([llvm-project#49036](https://github.com/llvm/llvm-project/issues/49036))
