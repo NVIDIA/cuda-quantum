@@ -228,6 +228,7 @@ enqueuing
 entangler
 entanglers
 enum
+env
 et
 excitations
 executables
@@ -369,6 +370,7 @@ unmarshal
 unmarshalling
 unoptimized
 upvote
+usr
 variadic
 variational
 vazirani

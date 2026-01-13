@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # ============================================================================ #
 # Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
@@ -7,26 +8,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys
+import argparse
 
-import cudaq
 from mock_qpu import get_backend_port, all_backend_names
-import uvicorn
 
 
-def main():
-    if len(sys.argv) < 2:
-        print("Please specify a backend: ", ", ".join(all_backend_names()))
-        sys.exit(1)
+def start_server(backend: str):
+    """Start the mock QPU backend server."""
 
-    backend = sys.argv[1].lower()
+    import cudaq
+    import uvicorn
 
-    try:
-        port = get_backend_port(backend)
-    except KeyError:
-        print(f"Unknown backend '{backend}'. Valid options: ",
-              ", ".join(all_backend_names()))
-        sys.exit(1)
+    port = get_backend_port(backend)
 
     match backend:
         case "anyon":
@@ -59,4 +52,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description="Start one of the available mock QPU backend server.")
+    parser.add_argument("backend",
+                        type=str,
+                        help="backend name",
+                        choices=all_backend_names())
+    args = parser.parse_args()
+    backend = args.backend.lower()
+
+    start_server(backend)
