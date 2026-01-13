@@ -50,8 +50,8 @@ if (CUDA_FOUND)
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
     PRIVATE
+      MLIRIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
@@ -73,8 +73,8 @@ else()
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
     PRIVATE
+      MLIRIR
       nvqir
       fmt::fmt-header-only
       CUDAQTargetConfigUtil

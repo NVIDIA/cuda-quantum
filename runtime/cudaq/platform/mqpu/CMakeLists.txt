@@ -27,6 +27,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-em-default
     cudaq-operator
   PRIVATE
+    MLIRIR
     cudaq-common
     cudaq
     mqpu_util

@@ -27,6 +27,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-em-default cudaq-operator cudaq-common
   PRIVATE
+    MLIRIR
     fmt::fmt-header-only cudaq CUDAQTargetConfigUtil)
 
 install(TARGETS ${LIBRARY_NAME}
