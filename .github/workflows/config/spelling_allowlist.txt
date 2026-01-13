@@ -267,6 +267,7 @@ iterable
 iteratively
 kets
 krylov
+libunwind
 linker
 linkers
 logarithmically
