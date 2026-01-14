@@ -205,14 +205,10 @@ IonQServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     job["input"]["data"] = circuitCode.code;
     // Include error mitigation configuration if set in backendConfig
     if (keyExists("debias")) {
-      try {
-        bool debiasValue =
-            nlohmann::json::parse(backendConfig["debias"]).get<bool>();
-        job["error_mitigation"]["debias"] = debiasValue;
-      } catch (const nlohmann::json::exception &e) {
-        throw std::runtime_error(
-            "Invalid value for 'debias'. It should be a boolean (true/false).");
-      }
+      job["error_mitigation"]["debias"] = getTypedConfigValue("debias");
+    }
+    if (keyExists("sharpen")) {
+      job["error_mitigation"]["sharpen"] = getTypedConfigValue("sharpen");
     }
 
     jobs.push_back(job);

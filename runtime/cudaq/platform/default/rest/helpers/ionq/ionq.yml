@@ -40,11 +40,11 @@ target-arguments:
     help-string: "Specify the noise model for simulation."
   - key: debias
     required: false
-    type: string
-    platform-arg: debias 
-    help-string: "Specify debiasing."
+    type: bool
+    platform-arg: debias
+    help-string: "Enable debiasing error mitigation."
   - key: sharpen
     required: false
-    type: string
+    type: bool
     platform-arg: sharpen
-    help-string: "Specify sharpening."
+    help-string: "Enable sharpening error mitigation."
