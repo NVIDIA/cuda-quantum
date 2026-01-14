@@ -55,30 +55,26 @@ static SmallVector<Operation *, 8> sortUsers(const Value::user_range &users,
 
 // Track qubit register use chains.
 // This is used to track if a qubit is reused after it has been measured across
-// different extract ops. We want to collect this beforehand so that we don't
-// need to repeat for each extract op.
+// different extract ops.
+//
+// NOTE: We compute users on-demand rather than caching them because the greedy
+// pattern rewriter may erase or replace operations during the rewrite process,
+// which would invalidate cached Operation* pointers and lead to use-after-free
+// bugs.
 class RegUseTracker {
-  mlir::DenseMap<mlir::Value, SmallVector<Operation *, 8>> regToOrderedUsers;
   DominanceInfo domInfo;
 
 public:
-  RegUseTracker(func::FuncOp func) : domInfo(func) {
-    func->walk([&](quake::AllocaOp qalloc) {
-      regToOrderedUsers[qalloc.getResult()] =
-          sortUsers(qalloc.getResult().getUsers(), domInfo);
-    });
-  }
+  RegUseTracker(func::FuncOp func) : domInfo(func) {}
 
+  // Compute users on-demand to avoid stale pointer issues during greedy
+  // rewriting.
   SmallVector<Operation *, 8> getUsers(mlir::Value qreg) const {
     if (!isa<quake::VeqType>(qreg.getType()))
       mlir::emitError(qreg.getLoc(),
                       "Unexpected type used: expected a quake::VeqType.");
 
-    auto iter = regToOrderedUsers.find(qreg);
-    if (iter != regToOrderedUsers.end())
-      return iter->second;
-    mlir::emitWarning(qreg.getLoc(), "Qubit vector is not tracked.");
-    return {};
+    return sortUsers(qreg.getUsers(), domInfo);
   }
   DominanceInfo &getDominanceInfo() { return domInfo; }
   RegUseTracker(const RegUseTracker &) = delete;
