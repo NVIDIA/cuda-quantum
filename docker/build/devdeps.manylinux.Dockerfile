@@ -33,10 +33,14 @@ ARG toolchain=gcc11
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Clone the LLVM source code.
-# Preserve access to the history to be able to cherry pick specific commits.
-RUN git clone --filter=tree:0 https://github.com/llvm/llvm-project /llvm-project \
-    && cd /llvm-project && git checkout $llvm_commit
+# Clone the LLVM source code at the specified commit.
+RUN mkdir -p /llvm-project && cd /llvm-project && \
+    git init && \
+    git remote add origin https://github.com/llvm/llvm-project && \
+    git fetch --depth 1 origin $llvm_commit && \
+    git checkout FETCH_HEAD && \
+    # Remove .git directory after checkout
+    rm -rf .git
 
 # Install the C/C++ compiler toolchain to build the LLVM dependencies.
 # CUDA-Q needs to be built with that same toolchain, and the
