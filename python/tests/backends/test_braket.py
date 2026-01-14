@@ -462,6 +462,18 @@ def test_toffoli():
     assert len(counts) == 1
 
 
+def test_state_prep():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        mz(q)
+
+    counts = cudaq.sample(kernel)
+    assert '11' in counts
+    assert '00' in counts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

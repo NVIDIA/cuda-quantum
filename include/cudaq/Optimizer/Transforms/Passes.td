@@ -406,6 +406,71 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   ];
 }
 
+def DeleteStates : Pass<"delete-states", "mlir::ModuleOp"> {
+  let summary =
+    "Remove unnecessary creation of new states from data";
+  let description = [{
+    Argument synthesis for state pointers for remote simulation substitutes state
+    argument by a new state created from materialized data. The new state is not
+    always necessary, and is not deleted from the heap. This pass:
+
+    - Replaces state by its data if possible
+    - Adds delete calls before exits if not possible to replace a new state
+
+    For example, the new state is replaced by its data if only used in `quake.init_state`
+    instruction:
+
+    Before DeleteStates (delete-states):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %c8_i64 = arith.constant 8 : i64
+      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      %5 = quake.get_number_of_qubits %4 : (!cc.ptr<!quake.state>) -> i64
+      %6 = quake.alloca !quake.veq<?>[%5 : i64]
+      %7 = quake.init_state %6, %4 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+
+      return
+    }
+    ```
+
+    After DeleteStates (delete-states):
+    ```
+    module {
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      %c8_i64 = arith.constant 8 : i64
+      %0 = cc.address_of @foo.rodata_synth_0 : !cc.ptr<!cc.array<complex<f32> x 8>>
+      %3 = quake.alloca !quake.veq<3>
+      %4 = quake.init_state %3, %0 : (!quake.veq<3>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<3>
+      return
+    }
+    ```
+
+    Otherwise, if state is used in another instructions and cannot be easily
+    replaced, the new state is deleted before exits:
+
+    Before DeleteStates (delete-states):
+    ```  func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      ...
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
+      return
+    }
+    ```
+
+    After DeleteStates (delete-states):
+    ```
+    func.func @foo() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+      ...
+      %4 = quake.create_state %3, %c8_i64  : (!cc.ptr<!cc.array<complex<f32> x 8>>, i64) -> !cc.ptr<!quake.state>
+      call @__nvqpp__mlirgen__sub_kernel(%4) : (!cc.ptr<!quake.state>) -> ()
+      quake.delete_state %3 : !cc.ptr<!quake.state>
+      return
+    }
+    ```
+  }];
+}
+
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let summary = "Translate cc.device_call operations";
 
@@ -1159,6 +1224,55 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     unsafely remove operations, but the compiler should never do so, as it
     would mean the compiler is generating incorrect code.
   }];
+}
+
+def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
+  let summary =
+    "Convert state vector data into gates";
+  let description = [{
+    Convert quake representation that includes qubit initialization
+    from data into qubit initialization using gates.
+
+    For example:
+
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+        %1 = quake.alloca !quake.veq<2>
+        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+        return
+      }
+      cc.global constant private @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+    }
+    ```
+    Will be rewritten to:
+    ```mlir
+    module {
+      func.func @foo() attributes {
+        %0 = quake.alloca !quake.veq<2>
+        %c1_i64 = arith.constant 1 : i64
+        %1 = quake.extract_ref %0[%c1_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst = arith.constant 0.000000e+00 : f64
+        quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
+        %c0_i64 = arith.constant 0 : i64
+        %2 = quake.extract_ref %0[%c0_i64] : (!quake.veq<2>, i64) -> !quake.ref
+        %cst_0 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_0) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        %cst_1 = arith.constant 0.78539816339744839 : f64
+        quake.ry (%cst_1) %2 : (f64, !quake.ref) -> ()
+        quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+        return
+      }
+    }
+    ```
+  }];
+
+  let options = [
+    Option<"phaseThreshold", "threshold", "double",
+      /*default=*/"1e-10", "Threshold to trigger phase equalization">,
+  ];
 }
 
 // UnitarySynthesis is a module pass because it may modify the `ModuleOp` by
