@@ -254,19 +254,8 @@ def test_mps_overlap_complex_inner_product():
     cudaq.__clearKernelRegistries()
     cudaq.set_target('tensornet-mps', option='fp32')
 
-    @cudaq.kernel
-    def kernel_h_fp32():
-        q = cudaq.qubit()
-        h(q)
-
-    @cudaq.kernel
-    def kernel_sh_fp32():
-        q = cudaq.qubit()
-        h(q)
-        s(q)
-
-    state1_fp32 = cudaq.get_state(kernel_h_fp32)
-    state2_fp32 = cudaq.get_state(kernel_sh_fp32)
+    state1_fp32 = cudaq.get_state(kernel_h)
+    state2_fp32 = cudaq.get_state(kernel_sh)
     overlap_fp32 = state1_fp32.overlap(state2_fp32)
 
     # fp32 should also produce correct result (with slightly looser tolerance)
