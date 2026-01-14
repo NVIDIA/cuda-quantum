@@ -157,6 +157,49 @@ def test_iqm_u3_ctrl_decomposition():
     result = cudaq.sample(kernel)
 
 
+def test_IQM_state_preparation():
+    shots = 10000
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_preparation_builder():
+    shots = 10000
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state, shots_count=shots)
+    assert assert_close(counts["00"], shots / 2, 2)
+    assert assert_close(counts["10"], shots / 2, 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_synthesis_from_simulator_unsupported():
+
+    @cudaq.kernel
+    def kernel(state: cudaq.State):
+        qubits = cudaq.qvector(state)
+
+    # Constructed a state bound to the local simulator is unsupported.
+    state = cudaq.State.from_data(
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
+
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, state)
+
+
 def test_exp_pauli():
 
     @cudaq.kernel

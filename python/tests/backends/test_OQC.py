@@ -203,6 +203,32 @@ def test_OQC_state_synthesis_builder():
     assert len(counts) == 1
 
 
+def test_OQC_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
+def test_OQC_state_preparation_builder():
+    kernel, state = cudaq.make_kernel(List[complex])
+    qubits = kernel.qalloc(state)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
 def test_exp_pauli():
 
     @cudaq.kernel

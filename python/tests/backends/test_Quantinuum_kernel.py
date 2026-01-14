@@ -225,6 +225,20 @@ def test_draw():
     assert result is ''
 
 
+def test_quantinuum_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
