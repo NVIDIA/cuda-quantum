@@ -22,16 +22,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Convert reStructuredText files to Markdown
-        run: |
-          pip install "rst-to-myst[sphinx]==0.4.0"
-          find docs/sphinx/ -type f -name "*.rst" -print0 | xargs -0 rst2myst convert --raise-on-warning
-
       - name: Check links in Markdown files
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        uses: ./.github/actions/check-markdown-links
         with:
-          use-verbose-mode: "yes"
-          config-file: ".github/workflows/config/md_link_check_config.json"        
+          check-modified-files-only: "yes"
 
   license_headers:
     name: Check license headers

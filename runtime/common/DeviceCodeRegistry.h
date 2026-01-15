@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,9 +7,12 @@
  ******************************************************************************/
 
 #pragma once
+#include <cstdint>
+#include <optional>
 #include <string>
 
-namespace cudaq::registry {
+namespace cudaq {
+namespace registry {
 extern "C" {
 void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 void cudaqRegisterKernelName(const char *);
@@ -32,7 +35,7 @@ const char *__cudaq_getLinkableKernelName(std::intptr_t);
 /// Given a kernel key value, return the corresponding device-side kernel
 /// function. If the kernel is not registered, throws a runtime error.
 void *__cudaq_getLinkableKernelDeviceFunction(std::intptr_t);
-}
+} // extern "C"
 
 /// Given a kernel key value, return the name of the kernel. If the kernel is
 /// not registered, runs a `nullptr`. Note this function is not exposed to the
@@ -43,9 +46,28 @@ const char *getLinkableKernelNameOrNull(std::intptr_t);
 /// `runnable` kernel entry point.
 void *getRunnableKernelOrNull(const std::string &kernelName);
 void *__cudaq_getRunnableKernel(const std::string &kernelName);
-} // namespace cudaq::registry
+} // namespace registry
 
-namespace cudaq::detail {
+namespace detail {
 /// Is the kernel `kernelName` registered?
 bool isKernelGenerated(const std::string &kernelName);
-} // namespace cudaq::detail
+} // namespace detail
+
+/// @brief Given a string kernel name, return the corresponding Quake code
+/// This will throw if the kernel name is unknown to the quake code registry.
+std::string get_quake_by_name(const std::string &kernelName);
+
+/// @brief Given a string kernel name, return the corresponding Quake code.
+/// This overload allows one to specify the known mangled arguments string
+/// in order to disambiguate overloaded kernel names.
+/// This will throw if the kernel name is unknown to the quake code registry.
+std::string get_quake_by_name(const std::string &kernelName,
+                              std::optional<std::string> knownMangledArgs);
+
+/// @brief Given a string kernel name, return the corresponding Quake code.
+// If `throwException` is set, it will throw if the kernel name is unknown to
+// the quake code registry. Otherwise, return an empty string in that case.
+std::string
+get_quake_by_name(const std::string &kernelName, bool throwException,
+                  std::optional<std::string> knownMangledArgs = std::nullopt);
+} // namespace cudaq

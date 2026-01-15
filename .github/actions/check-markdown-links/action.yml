@@ -1,0 +1,60 @@
+name: check-markdown-links
+
+inputs:
+  config-file:
+    description: 'Path to the markdown link check config file'
+    required: false
+    default: '.github/workflows/config/md_link_check_config.json'
+  check-modified-files-only:
+    description: 'Whether to check only modified files'
+    required: false
+    default: 'no'
+  base-branch:
+    description: 'Base branch for comparison (only used when check-modified-files-only is yes)'
+    required: false
+    default: 'main'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Convert reStructuredText files to Markdown
+      shell: bash
+      run: |
+        # Convert either all rst files or only the modified ones
+        if [ "${{ inputs.check-modified-files-only }}" == "yes" ]; then
+          echo "Checking links in modified files only"
+
+          # Fetch the base branch
+          git config --global --add safe.directory '*'
+          git fetch origin "${{ inputs.base-branch }}" --depth=1 > /dev/null
+
+          readarray -d '' rst_files < <(git diff --name-only --diff-filter=AM -z origin/${{ inputs.base-branch }} -- 'docs/sphinx/*.rst' 'docs/sphinx/**/*.rst')
+        else
+          echo "Checking links in all files"
+
+          readarray -d '' rst_files < <(find docs/sphinx/ -type f -name "*.rst" -print0)
+        fi
+
+
+        if [ ${#rst_files[@]} -gt 0 ]; then
+          echo "Found ${#rst_files[@]} rst files to check:"
+          echo "${rst_files[@]}"
+
+          pip install "rst-to-myst[sphinx]==0.4.0"
+          rst2myst convert --raise-on-warning "${rst_files[@]}"
+
+          # Stage the newly created .md files to git, so that they appear in
+          # the git diff of the github-action-markdown-link-check step below
+          git add docs/sphinx
+        else
+          echo "No rst files found to check"
+        fi
+
+    - name: Check links in Markdown files
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-verbose-mode: "yes"
+        config-file: ${{ inputs.config-file }}
+        check-modified-files-only: ${{ inputs.check-modified-files-only }}
+        base-branch: ${{ inputs.base-branch }}
+

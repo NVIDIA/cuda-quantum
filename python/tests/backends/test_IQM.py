@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 # Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
@@ -61,6 +61,8 @@ def startUpMockServer():
     # Kill the server, remove the tokens file
     p.terminate()
     os.remove(tmp_tokens_file.name)
+
+    cudaq.reset_target()
 
 
 def test_iqm_ghz():

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
@@ -18,7 +19,6 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
-#include "cudaq/utils/registry.h"
 #include <complex>
 #include <vector>
 
@@ -42,6 +42,8 @@ state extractState(KernelFunctor &&kernel) {
   // This can only be done in simulation
   if (!platform.is_simulator())
     throw std::runtime_error("Cannot use get_state on a physical QPU.");
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = platform.get_exec_ctx();
   // Create an execution context, indicate this is for
   // extracting the state representation
   ExecutionContext context("extract-state");
@@ -51,6 +53,10 @@ state extractState(KernelFunctor &&kernel) {
   platform.set_exec_ctx(&context);
   kernel();
   platform.reset_exec_ctx();
+
+  // Restore the outer context if there was one.
+  if (outerContext)
+    platform.set_exec_ctx(outerContext);
 
   // Return the state data. Since the ExecutionContext
   // is done being used, we'll move the simulation state
@@ -82,11 +88,11 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
         ExecutionContext context("extract-state");
         // Indicate that this is an async exec
         context.asyncExec = true;
+        context.qpuId = qpu_id;
         // Set the platform and the qpu id.
-        platform.set_exec_ctx(&context, qpu_id);
-        platform.set_current_qpu(qpu_id);
+        platform.set_exec_ctx(&context);
         func();
-        platform.reset_exec_ctx(qpu_id);
+        platform.reset_exec_ctx();
         // Extract state data
         p.set_value(state(context.simulationState.release()));
       });

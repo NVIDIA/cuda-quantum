@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -56,7 +56,7 @@ Releases = "https://nvidia.github.io/cuda-quantum/latest/releases.html"
 # https://github.com/h5py/h5py/issues/2408
 [project.optional-dependencies]
 chemistry = [ "openfermionpyscf==0.5", "h5py<3.11"  ]
-visualization = [ "qutip<5" , "matplotlib>=3.5" ]
+visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 # Additional torch-based integrator
 integrators = [ "torchdiffeq" ]
 

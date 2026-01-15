@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -1098,3 +1098,118 @@ class TestBatchedCavityModelSuperOperatorWithBatchSize(TestSystem):
                                        expectation_values_batch_size_1, 1e-3)
             np.testing.assert_allclose(expected_answer,
                                        expectation_values_batch_size_10, 1e-3)
+
+
+class TestMultiDegreeElemOp(TestSystem):
+
+    def run_tests(self, integrator):
+        detuning = 100 * 2 * np.pi
+        coupling_coeff = 7 * 2 * np.pi
+        crosstalk_coeff = 0.2
+        drive_strength = 20 * 2 * np.pi
+
+        # Hamiltonian
+        sigma_minus = spin.minus(0).to_matrix()
+        sigma_plus = spin.plus(0).to_matrix()
+
+        def op_definition():
+            return np.kron(sigma_minus, sigma_plus) + np.kron(
+                sigma_plus, sigma_minus)
+
+        cudaq.operators.define("coupling_op", (2, 2),
+                               op_definition,
+                               override=True)
+
+        hamiltonian = detuning / 2 * spin.z(
+            0) + coupling_coeff * cudaq.operators.instantiate(
+                "coupling_op", [0, 1]) + drive_strength * spin.x(
+                    0) + crosstalk_coeff * drive_strength * spin.x(1)
+
+        # Dimensions of sub-system
+        dimensions = {0: 2, 1: 2}
+
+        # Initial state of the system (ground state).
+        rho0 = cudaq.State.from_data(
+            cp.array([[1.0, 0.0], [0.0, 0.0]], dtype=cp.complex128))
+
+        # Two initial states: |00> and |10>.
+        # We show the 'conditional' evolution when controlled qubit is in |1> state.
+        psi_00 = cudaq.State.from_data(
+            cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
+        psi_10 = cudaq.State.from_data(
+            cp.array([0.0, 1.0, 0.0, 0.0], dtype=cp.complex128))
+
+        # Schedule of time steps.
+        steps = np.linspace(0.0, 1.0, 1001)
+        schedule = Schedule(steps, ["t"])
+
+        # Run the simulation.
+        # Control bit = 0
+        evolution_result_00 = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            psi_00,
+            observables=[
+                spin.x(0),
+                spin.y(0),
+                spin.z(0),
+                spin.x(1),
+                spin.y(1),
+                spin.z(1)
+            ],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
+
+        # Control bit = 1
+        evolution_result_10 = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            psi_10,
+            observables=[
+                spin.x(0),
+                spin.y(0),
+                spin.z(0),
+                spin.x(1),
+                spin.y(1),
+                spin.z(1)
+            ],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.
+            EXPECTATION_VALUE,
+            integrator=integrator())
+
+        get_result = lambda idx, res: [
+            exp_vals[idx].expectation()
+            for exp_vals in res.expectation_values()
+        ]
+        results_00 = [
+            get_result(0, evolution_result_00),
+            get_result(1, evolution_result_00),
+            get_result(2, evolution_result_00),
+            get_result(3, evolution_result_00),
+            get_result(4, evolution_result_00),
+            get_result(5, evolution_result_00)
+        ]
+        results_10 = [
+            get_result(0, evolution_result_10),
+            get_result(1, evolution_result_10),
+            get_result(2, evolution_result_10),
+            get_result(3, evolution_result_10),
+            get_result(4, evolution_result_10),
+            get_result(5, evolution_result_10)
+        ]
+
+        def freq_from_crossings(sig):
+            """
+            Estimate frequency by counting zero crossings
+            """
+            crossings = np.where(np.diff(np.sign(sig)))[0]
+            return 1.0 / np.mean(np.diff(crossings))
+
+        freq_0 = freq_from_crossings(results_00[5])
+        freq_1 = freq_from_crossings(results_10[5])
+        np.testing.assert_allclose(freq_0, 2.0 * freq_1, atol=0.01)
