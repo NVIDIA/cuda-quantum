@@ -835,8 +835,6 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
 
     auto *context = module->getContext();
     mlir::PassManager pm(context);
-    std::string errMsg;
-    llvm::raw_string_ostream errOs(errMsg);
 
     bool containsWireSet =
         module
@@ -860,14 +858,28 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
       pm.enableIRPrinting();
     }
 
+    std::string error_msg;
+    mlir::DiagnosticEngine &engine = context->getDiagEngine();
+    auto handlerId = engine.registerHandler(
+        [&error_msg](mlir::Diagnostic &diag) -> mlir::LogicalResult {
+          if (diag.getSeverity() == mlir::DiagnosticSeverity::Error) {
+            error_msg += diag.str();
+            return mlir::failure(false);
+          }
+          return mlir::failure();
+        });
+
     mlir::DefaultTimingManager tm;
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (failed(pm.run(module)))
+    if (failed(pm.run(module))){
+      engine.eraseHandler(handlerId);
       throw std::runtime_error(
           "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+    }
     timingScope.stop();
+    engine.eraseHandler(handlerId);
 
     // Insert necessary calls to qubit allocations and qubit releases if the
     // original module contained WireSetOp's. This is required because the

@@ -527,19 +527,6 @@ class PyASTBridge(ast.NodeVisitor):
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
             ty) or quake.StruqType.isinstance(ty)
 
-    # FIXME: Needs to be revised when we introduce the proper type distinction
-    # between boolean and measurements.
-    def isMeasureResultType(self, ty, value):
-        """
-        Return true if the given type is a qubit measurement result type (an i1
-        type).
-        """
-        if hasattr(value, 'owner') and hasattr(
-                value.owner,
-                'name') and not 'quake.discriminate' == value.owner.name:
-            return False
-        return IntegerType.isinstance(ty) and ty == IntegerType.get_signless(1)
-
     def isFunctionArgument(self, value):
         return (BlockArgument.isinstance(value) and
                 isinstance(value.owner.owner, func.FuncOp))
@@ -1907,10 +1894,6 @@ class PyASTBridge(ast.NodeVisitor):
         the symbol table.
         """
 
-        # FIXME: Measurement results are stored as values
-        # to preserve their origin from discriminate.
-        # This should be revised when we introduce the proper
-        # type distinction.
         def storedAsValue(val):
             varTy = val.type
             if cc.PointerType.isinstance(varTy):
@@ -1926,12 +1909,19 @@ class PyASTBridge(ast.NodeVisitor):
             containerFuncArg = (not self.buildingFunctionBody and
                                 (cc.StructType.isinstance(varTy) or
                                  cc.StdvecType.isinstance(varTy)))
+            # FIXME: Measurement results are stored as values
+            # to preserve their origin from discriminate.
+            # This should be revised when we introduce the proper
+            # type distinction.
+            measurementResult = (hasattr(val, 'owner') and 
+                                hasattr(val.owner, 'name') and 
+                                val.owner.name == 'quake.discriminate')
             # FIXME: Consider storing vectors and callables as pointers like
             # other variables.
-            storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
+            storeAsVal = (containerFuncArg or measurementResult or
+                          self.isQuantumType(varTy) or
                           cc.CallableType.isinstance(varTy) or
-                          cc.StdvecType.isinstance(varTy) or
-                          self.isMeasureResultType(varTy, val))
+                          cc.StdvecType.isinstance(varTy))
             # Nothing should ever produce a pointer to a type we store as value
             # in the symbol table.
             assert (not storeAsVal or not cc.PointerType.isinstance(val.type))
@@ -5230,6 +5220,8 @@ class PyASTBridge(ast.NodeVisitor):
         Visit augment-assign operations (e.g. +=).
         """
 
+        notAssignableErr = ("augment-assign target variable is not defined " +
+                           "or cannot be assigned to.")
         # NOTE: `AugAssign` must fail if the target is a variable
         # defined in a parent scope. This behavior is different
         # for standard assignments to variables, where a new
@@ -5237,10 +5229,7 @@ class PyASTBridge(ast.NodeVisitor):
         # one in the parent scope.
         if (isinstance(node.target, ast.Name) and
                 self.symbolTable.isFromParentScope(node.target.id)):
-            # matching Python error message here
-            self.emitFatalError(
-                f"cannot access local variable '{node.target.id}'" +
-                " where it is not associated with a value", node)
+            self.emitFatalError(notAssignableErr, node)
 
         self.pushPointerValue = True
         self.visit(node.target)
@@ -5248,9 +5237,7 @@ class PyASTBridge(ast.NodeVisitor):
         target = self.popValue()
 
         if not cc.PointerType.isinstance(target.type):
-            self.emitFatalError(
-                "augment-assign target variable is not defined or "
-                "cannot be assigned to.", node)
+            self.emitFatalError(notAssignableErr, node)
 
         self.visit(node.value)
         value = self.popValue()
@@ -5321,16 +5308,12 @@ class PyASTBridge(ast.NodeVisitor):
             mlirVal = cudaq_runtime.appendKernelArgument(
                 self.kernelFuncOp, argTy)
             self.argTypes.append(argTy)
-
-            assignNode = ast.Assign()
-            assignNode.targets = [node]
-            assignNode.value = mlirVal
-            assignNode.lineno = node.lineno
-            self.visit_Assign(assignNode)
-
-            self.visit(node)
-            self.pushValue(
-                self.popValue())  # propagating the pushed value through
+            # NOTE:
+            # Captured variables are *not* a standard assignment.
+            # They follow the rules of data transfer across the
+            # host-to-kernel boundary.
+            self.symbolTable[node.id] = mlirVal
+            self.pushValue(mlirVal)
             return
 
         if node.id in globalRegisteredOperations:
