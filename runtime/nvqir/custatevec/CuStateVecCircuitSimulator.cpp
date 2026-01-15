@@ -10,7 +10,6 @@
 #include "CuStateVecState.h"
 #include "Gates.h"
 #include "Timing.h"
-#include "common/FmtCore.h"
 #include "cuComplex.h"
 #include "custatevec.h"
 #include "device_launch_parameters.h"
