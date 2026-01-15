@@ -208,6 +208,62 @@ def test_mps_observe_with_noise_multi_term():
         f"Bug detected: observe() returned {exp_with_noise}, expected non-zero value"
 
 
+@skipIfNoGPU
+def test_mps_overlap_complex_inner_product():
+    """
+    Test that MPS overlap correctly handles complex inner products.
+    
+    This test verifies that overlap computation preserves the imaginary
+    component of the inner product for both fp32 and fp64 precision.
+    
+    Test case:
+    - |psi1> = H|0> = (|0> + |1>)/sqrt(2)
+    - |psi2> = SH|0> = (|0> + i|1>)/sqrt(2)
+    - <psi1|psi2> = (1 + i)/2
+    - |<psi1|psi2>| = sqrt(2)/2 ≈ 0.7071
+    
+    Bug reference: mps_simulation_state.inc:240 - fp32 branch was only
+    reading real part via cuCrealf(), discarding imaginary part.
+    """
+    expected = np.sqrt(2) / 2  # ≈ 0.7071
+
+    # Test fp64 precision (default)
+    cudaq.reset_target()
+    cudaq.set_target('tensornet-mps')
+
+    @cudaq.kernel
+    def kernel_h():
+        q = cudaq.qubit()
+        h(q)
+
+    @cudaq.kernel
+    def kernel_sh():
+        q = cudaq.qubit()
+        h(q)
+        s(q)
+
+    state1_fp64 = cudaq.get_state(kernel_h)
+    state2_fp64 = cudaq.get_state(kernel_sh)
+    overlap_fp64 = state1_fp64.overlap(state2_fp64)
+
+    assert np.isclose(abs(overlap_fp64), expected, atol=1e-4), \
+        f"fp64 overlap failed: got {abs(overlap_fp64)}, expected {expected}"
+
+    # Test fp32 precision
+    cudaq.reset_target()
+    cudaq.__clearKernelRegistries()
+    cudaq.set_target('tensornet-mps', option='fp32')
+
+    state1_fp32 = cudaq.get_state(kernel_h)
+    state2_fp32 = cudaq.get_state(kernel_sh)
+    overlap_fp32 = state1_fp32.overlap(state2_fp32)
+
+    # fp32 should also produce correct result (with slightly looser tolerance)
+    assert np.isclose(abs(overlap_fp32), expected, atol=1e-3), \
+        f"fp32 overlap failed: got {abs(overlap_fp32)}, expected {expected}. " \
+        f"This may indicate the fp32 branch is discarding the imaginary part."
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
