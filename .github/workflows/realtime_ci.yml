@@ -63,6 +63,6 @@ jobs:
             #############
             cd /workspace/realtime
             mkdir -p build && cd build
-            cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON
+            cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON -DNVQLINK_ENABLE_ROCE=ON
             make -j$(nproc)
             ctest --output-on-failure 
