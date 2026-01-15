@@ -55,10 +55,10 @@ jobs:
         with:
           image: ghcr.io/nvidia/cuda-quantum-devdeps:ext-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-gcc11-main
           shell: bash
-        run: |
-          apt install libibverbs-dev
-          cd realtime
-          mkdir -p build && cd build
-          cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON
-          make -j$(nproc)
-          ctest --output-on-failure 
+          run: |
+            apt install libibverbs-dev
+            cd realtime
+            mkdir -p build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON
+            make -j$(nproc)
+            ctest --output-on-failure 
