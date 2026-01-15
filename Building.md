@@ -105,6 +105,19 @@ namespace linking model:
 
 These are handled automatically and require no manual configuration.
 
+### OpenMP Support on macOS
+
+Since CUDA/GPU acceleration is unavailable on macOS, OpenMP is built by default
+with LLVM to enable CPU parallelization for quantum simulations. This
+significantly improves simulation performance by utilizing multiple CPU cores.
+
+To disable OpenMP (if needed), set `LLVM_PROJECTS` before building:
+
+```bash
+export LLVM_PROJECTS='clang;lld;mlir;python-bindings'
+./scripts/build_cudaq.sh -p
+```
+
 ### macOS Limitations
 
 Tests with large stack allocations may fail or be skipped.

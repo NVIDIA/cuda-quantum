@@ -213,11 +213,17 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   fi
 fi
 
-# Determine OpenMP flags
-if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
-  OMP_LIBRARY=${OMP_LIBRARY:-libomp}
-  OpenMP_libomp_LIBRARY=${OMP_LIBRARY#lib}
-  OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
+# Determine OpenMP flags (check for .so on Linux, .dylib on macOS)
+OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so' -o -name 'libomp.dylib' 2>/dev/null | head -1)
+if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
+  omp_header_dir=$(find "$LLVM_INSTALL_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
+  # Apple Clang requires -Xpreprocessor -fopenmp; LLVM Clang/GCC use -fopenmp directly
+  # Use -idirafter to add omp.h path AFTER system headers (avoids conflicts with clang's stdint.h)
+  if ${CXX:-c++} --version 2>&1 | grep -q "Apple clang"; then
+    OpenMP_FLAGS="${OpenMP_FLAGS:--Xpreprocessor -fopenmp -idirafter $omp_header_dir}"
+  else
+    OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
+  fi
 fi
 
 # Check for ccache and configure compiler launcher
@@ -252,9 +258,9 @@ cmake_args="-G Ninja '"$repo_root"' \
   ${LINKER_FLAG_LIST} \
   ${CCACHE_FLAGS} \
   ${SANITIZER_FLAGS} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_C_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_CXX_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_omp_LIBRARY='"$OpenMP_libomp_LIBRARY_PATH"'} \
   ${OpenMP_FLAGS:+"-DOpenMP_C_FLAGS='"$OpenMP_FLAGS"'"} \
   ${OpenMP_FLAGS:+"-DOpenMP_CXX_FLAGS='"$OpenMP_FLAGS"'"} \
   -DCUDAQ_REQUIRE_OPENMP=${CUDAQ_REQUIRE_OPENMP:-FALSE} \
@@ -278,10 +284,10 @@ fi
 # the set host compiler is not officially supported. We hence don't set that variable 
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  echo $cmake_args | xargs cmake
+  echo "$cmake_args" | xargs cmake
   status=$?
 else
-  echo $cmake_args | xargs cmake \
+  echo "$cmake_args" | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
   status=$?
 fi

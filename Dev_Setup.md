@@ -157,7 +157,17 @@ your environment manually.
    export PATH="$PATH:$HOME/.local/bin"
    ```
 
-4. **Python virtual environment**:
+4. **OpenMP** (for multi-threaded CPU simulation):
+
+   If you build with `./scripts/build_cudaq.sh -p` (which we recommend), OpenMP (`libomp`) is built
+   automatically as part of LLVM. However, if you're building without the `-p`
+   flag, you'll need OpenMP installed separately to enable (follow any brew specific instructions):
+
+   ```bash
+   brew install libomp
+   ```
+
+5. **Python virtual environment**:
 
    ```bash
    python3 -m venv ~/.venv/cudaq
