@@ -1843,7 +1843,7 @@ if QuTiP is not installed.
 
     except ImportError:
         print("Tools not found, please install and restart your kernel after this is done.")
-        #!{sys.executable} -m pip install qutip\<5 matplotlib\>=3.5
+        #!{sys.executable} -m pip install qutip\>5 matplotlib\>=3.5
 :::
 :::
 :::
