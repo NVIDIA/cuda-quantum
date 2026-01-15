@@ -52,8 +52,11 @@ jobs:
         uses: ./.github/actions/run-in-docker
         with:
           image: ghcr.io/nvidia/cuda-quantum-devdeps:ext-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-gcc11-main
+          volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
+            cd /workspace
+            ls -la
             apt install libibverbs-dev
             cd realtime
             mkdir -p build && cd build
