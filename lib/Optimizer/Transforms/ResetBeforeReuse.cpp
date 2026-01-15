@@ -55,26 +55,42 @@ static SmallVector<Operation *, 8> sortUsers(const Value::user_range &users,
 
 // Track qubit register use chains.
 // This is used to track if a qubit is reused after it has been measured across
-// different extract ops.
-//
-// NOTE: We compute users on-demand rather than caching them because the greedy
-// pattern rewriter may erase or replace operations during the rewrite process,
-// which would invalidate cached Operation* pointers and lead to use-after-free
-// bugs.
+// different extract ops. We cache the sorted order upfront for efficiency, but
+// filter against current users at query time to handle operations that may be
+// erased during pattern rewriting.
 class RegUseTracker {
+  mlir::DenseMap<mlir::Value, SmallVector<Operation *, 8>> regToOrderedUsers;
   DominanceInfo domInfo;
 
 public:
-  RegUseTracker(func::FuncOp func) : domInfo(func) {}
+  RegUseTracker(func::FuncOp func) : domInfo(func) {
+    func->walk([&](quake::AllocaOp qalloc) {
+      regToOrderedUsers[qalloc.getResult()] =
+          sortUsers(qalloc.getResult().getUsers(), domInfo);
+    });
+  }
 
-  // Compute users on-demand to avoid stale pointer issues during greedy
-  // rewriting.
+  // Returns users in dominance order by iterating through the cached sorted
+  // list (regToOrderedUsers) and filtering out any operations that have been
+  // erased during rewriting to avoid use-after-free bugs.
   SmallVector<Operation *, 8> getUsers(mlir::Value qreg) const {
     if (!isa<quake::VeqType>(qreg.getType()))
       mlir::emitError(qreg.getLoc(),
                       "Unexpected type used: expected a quake::VeqType.");
 
-    return sortUsers(qreg.getUsers(), domInfo);
+    auto iter = regToOrderedUsers.find(qreg);
+    if (iter == regToOrderedUsers.end())
+      return {};
+
+    // Filter cached users against current users to handle erased operations.
+    llvm::DenseSet<Operation *> currentUsers(qreg.getUsers().begin(),
+                                             qreg.getUsers().end());
+    SmallVector<Operation *, 8> validUsers;
+    for (auto *op : iter->second) {
+      if (currentUsers.contains(op))
+        validUsers.push_back(op);
+    }
+    return validUsers;
   }
   DominanceInfo &getDominanceInfo() { return domInfo; }
   RegUseTracker(const RegUseTracker &) = delete;
