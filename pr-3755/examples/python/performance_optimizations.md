@@ -1786,14 +1786,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![02c4d99329734dbc92af3880942980b4](../../_images/gate-fuse.png)
+![d3a39ab3238e4096bc52dcb1b91d6c08](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![ea0074f3c95141e0abc0f9da4b6195bf](../../_images/gatefusion.png)
+![0ad3274cfe9945e894b409bd909c375a](../../_images/gatefusion.png)
 :::
 :::
 :::
