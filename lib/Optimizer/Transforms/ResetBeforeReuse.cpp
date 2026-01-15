@@ -108,6 +108,7 @@ public:
   LogicalResult matchAndRewrite(quake::MzOp mz,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> useOps;
+    bool modified = false;
     for (Value measuredQubit : mz.getTargets()) {
       auto *nextOp = getNextUse(measuredQubit, mz);
       if (nextOp) {
@@ -150,12 +151,13 @@ public:
               opBuilder.create<quake::XOp>(location, measuredQubit);
               opBuilder.create<cudaq::cc::ContinueOp>(location);
             });
+        modified = true;
       } else {
         LLVM_DEBUG(llvm::dbgs() << "No next use\n");
       }
     }
 
-    return failure();
+    return success(modified);
   }
 
 private:
