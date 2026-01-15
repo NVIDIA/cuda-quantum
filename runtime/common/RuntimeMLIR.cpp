@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RuntimeMLIR.h"
+#include "common/FmtCore.h"
 #include "ThunkInterface.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"

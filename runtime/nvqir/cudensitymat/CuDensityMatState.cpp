@@ -11,6 +11,7 @@
 #include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "cudaq/utils/cudaq_utils.h"
 namespace cudaq {
 

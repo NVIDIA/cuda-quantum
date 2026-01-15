@@ -8,6 +8,7 @@
 
 #include "MQPUUtils.h"
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/RestClient.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Program.h"

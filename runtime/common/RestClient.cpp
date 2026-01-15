@@ -8,6 +8,7 @@
 
 #include "RestClient.h"
 #include "Logger.h"
+#include "FmtCore.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cpr/cpr.h>
 

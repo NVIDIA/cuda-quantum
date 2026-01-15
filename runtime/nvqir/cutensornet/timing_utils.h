@@ -8,6 +8,7 @@
 
 #pragma once
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 
 #ifndef NTIMING
 #define LOG_API_TIME() ScopedTraceWithContext(__FUNCTION__);

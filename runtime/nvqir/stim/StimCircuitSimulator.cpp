@@ -8,6 +8,7 @@
 
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
+#include "common/FmtCore.h"
 
 using namespace cudaq;
 

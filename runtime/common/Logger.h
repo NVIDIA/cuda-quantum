@@ -8,10 +8,18 @@
 
 #pragma once
 
+#include <array>
 #include <chrono>
-
-// Be careful about fmt getting into public headers
-#include "common/FmtCore.h"
+#include <complex>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <span>
+#include <string>
+#include <type_traits>
+#include <variant>
+#include <vector>
 
 namespace cudaq {
 
@@ -32,6 +40,94 @@ void warn(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
 } // namespace details
 
+namespace details {
+
+//
+// Type traits to check if T is in the variant
+//
+template <typename T, typename... Types>
+struct is_one_of
+    : std::bool_constant<(
+          (std::is_same_v<T, Types> ||
+           std::is_same_v<std::reference_wrapper<const T>, Types>) ||
+          ...)> {};
+
+template <typename T, typename Variant>
+struct is_variant_member;
+
+template <typename T, typename... Types>
+struct is_variant_member<T, std::variant<Types...>> : is_one_of<T, Types...> {};
+
+template <typename T, typename Variant>
+inline constexpr bool is_variant_member_v =
+    is_variant_member<T, Variant>::value;
+
+// Check all types in a parameter pack
+template <typename Variant, typename... Args>
+inline constexpr bool all_in_variant_v =
+    (is_variant_member_v<std::decay_t<Args>, Variant> && ...);
+
+//
+// Packed parameter type passing arguments to fmt
+// Built-in types need to be passed by value.
+// Please store large types (like vectors, strings) as reference_wrappers
+//
+struct fmt_arg {
+  using storage_t = std::variant<
+      bool, uint32_t, int32_t, uint64_t, int64_t, float, double,
+      std::complex<float>, std::complex<double>, std::string_view, const char *,
+      char *, void *, std::chrono::milliseconds,
+      std::chrono::system_clock::time_point,
+      std::reference_wrapper<const std::vector<int32_t>>,
+      std::reference_wrapper<const std::string>,
+      std::reference_wrapper<const std::vector<uint32_t>>,
+      std::reference_wrapper<const std::vector<uint64_t>>,
+      std::reference_wrapper<const std::vector<float>>,
+      std::reference_wrapper<const std::vector<double>>,
+      std::reference_wrapper<const std::vector<std::string>>,
+      std::reference_wrapper<const std::map<std::string, std::string>>,
+      std::reference_wrapper<const std::vector<std::complex<float>>>,
+      std::reference_wrapper<const std::vector<std::complex<double>>>>;
+  storage_t value;
+
+  template <typename T>
+  fmt_arg(const T &v) : value(std::cref(v)) {}
+};
+
+//
+// Packed versions of format and print, implemented in Logger.cpp
+//
+std::string format_packed(const std::string_view message,
+                          const std::span<fmt_arg> &arr);
+
+void print_packed(const std::string_view message,
+                  const std::span<fmt_arg> &arr);
+
+//
+// Functions substitutes for fmt::format and fmt::print
+//
+template <typename... Args>
+std::string format(const std::string_view message, Args &&...args) {
+  static_assert(
+      all_in_variant_v<fmt_arg::storage_t, Args...>,
+      "One or more argument types are not valid variant alternatives. ");
+  auto array = std::array<fmt_arg, sizeof...(Args)>{
+      fmt_arg(std::forward<Args>(args))...};
+  return format_packed(message, array);
+}
+
+template <typename... Args>
+void print(const std::string_view message, Args &&...args) {
+  static_assert(
+      all_in_variant_v<fmt_arg::storage_t, Args...>,
+      "One or more argument types are not valid variant alternatives. ");
+  auto array = std::array<fmt_arg, sizeof...(Args)>{
+      fmt_arg(std::forward<Args>(args))...};
+  return print_packed(message, array);
+}
+
+} // namespace details
+
 /// This type seeks to enable automated injection of the
 /// source location of the `cudaq::info()` or `debug()` call.
 /// We do this via a struct of the same name (info), which
@@ -50,7 +146,7 @@ std::string pathToFileName(const std::string_view fullFilePath);
          const char *fileName = __builtin_FILE(),                              \
          int lineNo = __builtin_LINE()) {                                      \
       if (details::should_log(details::LogLevel::NAME)) {                      \
-        auto msg = fmt::format(fmt::runtime(message), args...);                \
+        auto msg = cudaq::details::format(message, args...);                   \
         std::string name = funcName;                                           \
         auto start = name.find_first_of(" ");                                  \
         name = name.substr(start + 1, name.find_first_of("(") - start - 1);    \
@@ -82,12 +178,12 @@ void log(const std::string_view message, Args &&...args) {
   const auto timestamp = std::chrono::system_clock::now();
   const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
   std::tm now_tm = *std::localtime(&now_c);
-  fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
-             now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
-             now_tm.tm_hour, now_tm.tm_min,
-             std::chrono::round<std::chrono::milliseconds>(
-                 timestamp.time_since_epoch()),
-             fmt::format(fmt::runtime(message), args...));
+  cudaq::details::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
+                        now_tm.tm_year + 1900, now_tm.tm_mon + 1,
+                        now_tm.tm_mday, now_tm.tm_hour, now_tm.tm_min,
+                        std::chrono::round<std::chrono::milliseconds>(
+                            timestamp.time_since_epoch()),
+                        cudaq::details::format(message, args...));
 }
 
 /// @brief Context information (function, file, and line) of a caller
@@ -172,7 +268,7 @@ private:
       for (std::size_t i = 0; i < nArgs; i++) {
         argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
       }
-      argsMsg = fmt::format(fmt::runtime(argsMsg), args...);
+      argsMsg = cudaq::details::format(argsMsg, args...);
       globalTraceStack++;
     }
   }
@@ -205,7 +301,7 @@ private:
           argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
         }
       }
-      argsMsg = fmt::format(fmt::runtime(argsMsg), args...);
+      argsMsg = cudaq::details::format(argsMsg, args...);
       globalTraceStack++;
     }
   }
@@ -252,14 +348,15 @@ public:
               .count() /
           1000.0);
       // If we're printing because the tag was found, then add that tag info
-      std::string tagStr = tagFound ? fmt::format("[tag={}] ", tag) : "";
+      std::string tagStr =
+          tagFound ? cudaq::details::format("[tag={}] ", tag) : "";
       std::string sourceInfo =
           context.fileName
-              ? fmt::format("[{}:{}] ",
-                            details::pathToFileName(context.fileName),
-                            context.lineNo)
+              ? cudaq::details::format(
+                    "[{}:{}] ", details::pathToFileName(context.fileName),
+                    context.lineNo)
               : "";
-      auto str = fmt::format(
+      auto str = cudaq::details::format(
           "{}{}{}{} executed in {} ms.{}",
           globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
           tagStr, sourceInfo, traceName, duration, argsMsg);

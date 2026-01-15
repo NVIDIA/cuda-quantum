@@ -10,6 +10,7 @@
 #include "NVQIRUtil.h"
 #include "QIRTypes.h"
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/PluginUtils.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"

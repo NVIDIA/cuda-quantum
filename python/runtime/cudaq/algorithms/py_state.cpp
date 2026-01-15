@@ -9,6 +9,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "cudaq/algorithms/get_state.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"

@@ -8,6 +8,8 @@
 
 #include "CodeGenConfig.h"
 #include "Logger.h"
+#include "fmt/core.h"
+#include <stdexcept>
 
 namespace {
 

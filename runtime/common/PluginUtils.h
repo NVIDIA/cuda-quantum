@@ -8,6 +8,7 @@
 
 #pragma once
 #include "Logger.h"
+#include "FmtCore.h"
 #include <dlfcn.h>
 #include <mutex>
 #include <string_view>

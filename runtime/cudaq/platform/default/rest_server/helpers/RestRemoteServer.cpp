@@ -9,6 +9,7 @@
 #include "common/JIT.h"
 #include "common/JsonConvert.h"
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/PluginUtils.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RuntimeMLIR.h"

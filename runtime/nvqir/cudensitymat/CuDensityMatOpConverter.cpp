@@ -11,6 +11,7 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "common/Logger.h"
+#include "common/FmtCore.h"
 #include <iostream>
 #include <map>
 #include <ranges>
