@@ -1,0 +1,104 @@
+on:
+  workflow_dispatch:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+      - "features/cudaq.realtime" # TEMP: enable CI for realtime branch for direct pushes as well
+    paths:
+      - realtime/** # Only trigger on changes to the realtime directory
+  merge_group:
+    types: 
+      - checks_requested
+    
+name: Realtime CI 
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  devdeps:
+    name: Load dependencies
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        toolchain: [clang16, gcc11, gcc12]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/devdeps.Dockerfile
+      build_config_id: ${{ matrix.toolchain }}
+      build_args: |
+        toolchain=${{ matrix.toolchain }}
+      registry_cache_from: ${{ inputs.cache_base }}
+      checkout_submodules: true
+      # needed only for the cloudposse GitHub action
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
+
+  config:
+    name: Configure build
+    runs-on: ubuntu-latest
+    needs: [devdeps]
+
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        id: read_json
+        with:
+          matrix-step-name: dev_environment
+
+  build_and_test:
+    name: Build and test
+    needs: config
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        toolchain: [clang16, gcc11, gcc12]
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub CR
+        if: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }} != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build CUDA Quantum Realtime
+        # FIXME: this assumes that we don't make changes to devdeps when working on realtime
+        if: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }} != ''
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+          shell: bash
+        run: |
+          apt install libibverbs-dev
+          cd realtime
+          mkdir -p build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON
+          make -j$(nproc)
+          ctest --output-on-failure 
+   
+
+  
