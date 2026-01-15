@@ -157,7 +157,8 @@ target-arguments:
 
   // Verify non-Bool arguments still work
   EXPECT_EQ(config.TargetArguments[2].KeyName, "machine");
-  EXPECT_EQ(config.TargetArguments[2].Type, cudaq::config::ArgumentType::String);
+  EXPECT_EQ(config.TargetArguments[2].Type,
+            cudaq::config::ArgumentType::String);
 
   EXPECT_EQ(config.TargetArguments[3].KeyName, "shots");
   EXPECT_EQ(config.TargetArguments[3].Type, cudaq::config::ArgumentType::Int);

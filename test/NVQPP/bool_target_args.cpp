@@ -9,6 +9,7 @@
 // Test that Bool-type target arguments are correctly passed to the backend
 // configuration. Bool args can be specified without a value (implicit true).
 
+// clang-format off
 // Test 1: Implicit true (--ionq-debias without value means true)
 // RUN: nvq++ -v --target ionq --ionq-debias %s -o %t |& FileCheck --check-prefix=IMPLICIT %s
 
@@ -17,6 +18,7 @@
 
 // Test 3: Explicit false using = syntax
 // RUN: nvq++ -v --target ionq --ionq-debias=false %s -o %t |& FileCheck --check-prefix=FALSE %s
+// clang-format on
 
 // IMPLICIT: -DNVQPP_TARGET_BACKEND_CONFIG
 // IMPLICIT-SAME: debias;true
@@ -36,6 +38,4 @@ struct test_kernel {
   }
 };
 
-int main() {
-  return 0;
-}
+int main() { return 0; }
