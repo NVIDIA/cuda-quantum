@@ -55,10 +55,13 @@ jobs:
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
-            cd /workspace
-            ls -la
-            apt install libibverbs-dev
-            cd realtime
+            # TEMP: this should be ported to devdeps.ext.Dockerfile (add libibverbs-dev there)
+            apt-get update && apt-get install -y --no-install-recommends gnupg 
+            wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - 
+            mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" 
+            apt-get update -y && apt-get install -y --no-install-recommends libibverbs-dev
+            #############
+            cd /workspace/realtime
             mkdir -p build && cd build
             cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON
             make -j$(nproc)
