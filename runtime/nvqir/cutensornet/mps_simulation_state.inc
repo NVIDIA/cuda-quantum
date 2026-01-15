@@ -237,7 +237,8 @@ std::complex<double> MPSSimulationState<ScalarType>::computeOverlap(
     cuFloatComplex overlapValue;
     HANDLE_CUDA_ERROR(cudaMemcpy(&overlapValue, m_dOverlap, overlapSize,
                                  cudaMemcpyDeviceToHost));
-    overlap = static_cast<double>(cuCrealf(overlapValue));
+    overlap = {static_cast<double>(cuCrealf(overlapValue)),
+               static_cast<double>(cuCimagf(overlapValue))};
   } else if (prec == precision::fp64) {
     cuDoubleComplex overlapValue;
     HANDLE_CUDA_ERROR(cudaMemcpy(&overlapValue, m_dOverlap, overlapSize,
