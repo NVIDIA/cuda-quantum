@@ -61,8 +61,15 @@ jobs:
             mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" 
             apt-get update -y && apt-get install -y --no-install-recommends libibverbs-dev
             #############
+            # Install DOCA SDK
+            arch=$([ "$(uname -m)" == "aarch64" ] && echo arm64 || echo amd64)
+            wget https://www.mellanox.com/downloads/DOCA/DOCA_v3.1.0/host/doca-host_3.1.0-091000-25.07-ubuntu2404_${arch}.deb
+            dpkg -i doca-host_3.1.0-091000-25.07-ubuntu2404_${arch}.deb
+            apt-get update
+            apt install -y doca-all doca-sdk-gpunetio libdoca-sdk-gpunetio-dev
+            #############
             cd /workspace/realtime
             mkdir -p build && cd build
-            cmake -DCMAKE_BUILD_TYPE=Release .. -DNVQLINK_BUILD_TESTS=ON -DNVQLINK_ENABLE_ROCE=ON
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DNVQLINK_BUILD_TESTS=ON -DNVQLINK_ENABLE_ROCE=ON -DNVQLINK_ENABLE_DOCA=ON
             make -j$(nproc)
             ctest --output-on-failure 

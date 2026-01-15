@@ -6,6 +6,15 @@ if(NOT NVQLINK_ENABLE_DOCA)
   return()
 endif()
 
+find_program(NVIDIA_SMI "nvidia-smi")
+if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
+  # No NVIDIA GPU found, we cannot build DOCA example executables,
+  # as they require linking against CUDA driver lib (libcuda.so.1),
+  # which is not available on systems without NVIDIA GPUs.
+  message(STATUS "NVIDIA GPU not found, skipping DOCA examples.")
+  return()
+endif()
+
 # Fetch nlohmann_json for UDP control server
 include(FetchContent)
 FetchContent_Declare(json
