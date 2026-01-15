@@ -952,6 +952,11 @@ TensorNetState<ScalarType>::computeExpVals(
     }
   }
 
+  // Clean up cutensornet resources
+  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
+  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkOperator(cutnNetworkOperator));
+
   free(pauliMats_h);
   HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));
 
