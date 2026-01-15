@@ -24,7 +24,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-
   build_and_test:
     name: Build and test
     needs: config
