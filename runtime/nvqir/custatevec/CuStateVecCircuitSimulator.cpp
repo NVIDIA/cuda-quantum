@@ -5,12 +5,12 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
 #include "CuStateVecCircuitSimulator.h"
 #include "CircuitSimulator.h"
 #include "CuStateVecState.h"
 #include "Gates.h"
 #include "Timing.h"
+#include "common/FmtCore.h"
 #include "cuComplex.h"
 #include "custatevec.h"
 #include "device_launch_parameters.h"

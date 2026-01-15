@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/BraketServerHelper.h"
+#include "common/FmtCore.h"
 
 namespace {
 std::string prepareOpenQasm(std::string source) {

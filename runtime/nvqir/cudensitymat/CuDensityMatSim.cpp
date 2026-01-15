@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
+#include "common/FmtCore.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
 
