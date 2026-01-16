@@ -36,7 +36,7 @@ def test_unprocessed_ast():
         print(f"visit_{node_name}")
         with pytest.raises(RuntimeError) as e:
             dummy_bridge.visit(node)
-        assert f"CUDA-Q does not currently support expressions of type {node_name}" in str(e.value)
+        assert f"CUDA-Q does not currently support {node_name} expressions" in str(e.value)
 
     # We will never override all nodes, and this is to check
     # that the test indeed tests something.
