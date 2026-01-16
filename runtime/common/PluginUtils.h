@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #pragma once
+#include "FmtCore.h"
 #include "Logger.h"
 #include <dlfcn.h>
 #include <mutex>
