@@ -87,7 +87,7 @@ def test_cpp_kernel_from_python_0():
     assert len(counts) == 1 and '0010' in counts
 
     # TODO: currently not supported;
-    # support and enable and test this instead
+    # support and test this instead
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.kernel
@@ -126,7 +126,7 @@ def test_cpp_kernel_from_python_1():
     assert len(counts) == 1 and '0010' in counts
 
     # TODO: currently not supported;
-    # support and enable and test this instead
+    # support and test this instead
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.kernel
@@ -159,7 +159,7 @@ def test_cpp_kernel_from_python_2():
     callUCCSD()
 
     # TODO: currently not supported;
-    # support and enable and test this instead
+    # support and enable test
     with pytest.raises(RuntimeError) as e:
 
         @cudaq.kernel

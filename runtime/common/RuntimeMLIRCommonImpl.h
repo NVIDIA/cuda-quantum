@@ -873,10 +873,10 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (failed(pm.run(module))){
+    if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
       throw std::runtime_error(
-          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.");
+          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.\n" + error_msg);
     }
     timingScope.stop();
     engine.eraseHandler(handlerId);
