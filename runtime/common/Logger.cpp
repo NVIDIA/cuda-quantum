@@ -119,6 +119,38 @@ std::string pathToFileName(const std::string_view fullFilePath) {
   return file.filename().string();
 }
 } // namespace details
+
+namespace details {
+
+void print_packed(const std::string_view message,
+                  const std::span<fmt_arg> &args) {
+  ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+  for (auto const &a : args)
+    std::visit(
+        [&](auto const &v) {
+          store.push_back(v); // uses the matching fmt::formatter<T>
+        },
+        a.value);
+
+  if (::fmt::detail::const_check(!::fmt::detail::use_utf8))
+    return ::fmt::detail::vprint_mojibake(stdout, message, store, false);
+  return ::fmt::vprint_buffered(stdout, message, store);
+}
+
+std::string format_packed(const std::string_view fmt_str,
+                          const std::span<fmt_arg> &args) {
+  ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+  for (auto const &a : args)
+    std::visit(
+        [&](auto const &v) {
+          store.push_back(v); // uses the matching fmt::formatter<T>
+        },
+        a.value);
+
+  return ::fmt::vformat(fmt_str, store);
+}
+
+} // namespace details
 } // namespace cudaq
 
 namespace cudaq_fmt {
