@@ -73,7 +73,7 @@ inline constexpr bool all_in_variant_v =
 //
 struct fmt_arg {
   using storage_t = std::variant<
-      bool, uint32_t, int32_t, uint64_t, int64_t, float, double,
+      bool, char, uint32_t, int32_t, uint64_t, int64_t, float, double,
       std::complex<float>, std::complex<double>, std::string_view, const char *,
       char *, void *, std::chrono::milliseconds,
       std::chrono::system_clock::time_point,
