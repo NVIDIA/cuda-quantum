@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 #include "Logger.h"
+#include "FmtCore.h"
 #include "Timing.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
+#include "fmt/args.h"
 #include <filesystem>
 #include <set>
 #include <spdlog/cfg/env.h>
@@ -117,5 +118,37 @@ std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);
   return file.filename().string();
 }
+} // namespace details
+
+namespace details {
+
+void print_packed(const std::string_view message,
+                  const std::span<fmt_arg> &args) {
+  ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+  for (auto const &a : args)
+    std::visit(
+        [&](auto const &v) {
+          store.push_back(v); // uses the matching fmt::formatter<T>
+        },
+        a.value);
+
+  if (::fmt::detail::const_check(!::fmt::detail::use_utf8))
+    return ::fmt::detail::vprint_mojibake(stdout, message, store, false);
+  return ::fmt::vprint_buffered(stdout, message, store);
+}
+
+std::string format_packed(const std::string_view fmt_str,
+                          const std::span<fmt_arg> &args) {
+  ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+  for (auto const &a : args)
+    std::visit(
+        [&](auto const &v) {
+          store.push_back(v); // uses the matching fmt::formatter<T>
+        },
+        a.value);
+
+  return ::fmt::vformat(fmt_str, store);
+}
+
 } // namespace details
 } // namespace cudaq
