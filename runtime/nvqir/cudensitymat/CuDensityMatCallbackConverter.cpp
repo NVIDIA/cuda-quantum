@@ -9,6 +9,7 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatOpConverter.h"
 #include "CuDensityMatUtils.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include <iostream>
 #include <map>

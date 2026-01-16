@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RecordLogParser.h"
+#include "FmtCore.h"
 #include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"

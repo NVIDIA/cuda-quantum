@@ -566,15 +566,18 @@ public:
 
     // 4) Cleanup all the block arguments, NullWireOp, or UnwrapOp.
     cleanupBlocks(fixupBlocks);
-    func.walk([&](Operation *op) {
+    func.walk([&](Operation *op) -> WalkResult {
       if (isa<quake::NullWireOp, quake::BorrowWireOp, quake::UnwrapOp>(op) &&
-          op->getUses().empty())
+          op->getUses().empty()) {
         op->erase();
+        return WalkResult::skip();
+      }
       if (isa<func::ReturnOp>(op) && !borrowAllocas.empty()) {
         OpBuilder builder(op);
         for (auto v : borrowAllocas)
           builder.create<quake::DeallocOp>(func.getLoc(), v);
       }
+      return WalkResult::advance();
     });
     LLVM_DEBUG(llvm::dbgs() << "After cleanup:\n" << func << "\n\n");
   }

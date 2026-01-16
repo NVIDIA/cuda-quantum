@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/ExtraPayloadProvider.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
