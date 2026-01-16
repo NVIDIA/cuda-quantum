@@ -932,6 +932,28 @@ class PyASTBridge(ast.NodeVisitor):
             self.getIntegerType(1))
         return cc.StdvecInitOp(vecTy, alloca, length=arrSize).result
 
+    def __createStructWithKnownValues(self, mlirVals, name=None):
+        structTy = mlirTryCreateStructType([item.type for item in mlirVals],
+                                            name=name,
+                                            context=self.ctx)
+        if structTy is None:
+            self.emitFatalError(
+                "Hybrid quantum-classical data types and nested "
+                "quantum structs are not allowed.", self.currentNode)
+        if quake.StruqType.isinstance(structTy):
+            # If we have a quantum struct. We cannot allocate classical
+            # memory and load / store quantum type values to that memory
+            # space, so use `quake.MakeStruqOp`.
+            result = quake.MakeStruqOp(structTy, mlirVals).result
+        else:
+            result = cc.UndefOp(structTy)
+            for idx, element in enumerate(mlirVals):
+                result = cc.InsertValueOp(
+                    structTy, result, element,
+                    DenseI64ArrayAttr.get([idx],
+                                        context=self.ctx)).result
+        return result
+
     def getStructMemberIdx(self, memberName, structTy):
         """
         For the given struct type and member variable name, return the index of
@@ -1593,6 +1615,7 @@ class PyASTBridge(ast.NodeVisitor):
         root node that the expression accesses.  Returns the symbol table entry
         for the root node, if such an entry exists, and return None otherwise.
         '''
+        assert isinstance(pyVal, ast.AST)
         pyValRoot = pyVal
         while (isinstance(pyValRoot, ast.Subscript) or
                isinstance(pyValRoot, ast.Attribute)):
@@ -1665,13 +1688,23 @@ class PyASTBridge(ast.NodeVisitor):
                     f"{msg} - use `.copy(deep)` to create a new list",
                     self.currentNode)
 
+    def visit_Module(self, node):
+        return super().generic_visit(node)
+    
+    def generic_visit(self, node):
+        # This overload is here to ensure that Python expressions that are
+        # not implemented by the bridge are not silently ignored but instead
+        # cause a comprehensive error that this expression is not currently
+        # supported.
+        self.emitFatalError("CUDA-Q does not currently support " +
+                            f"expressions of type {type(node).__name__}", node)
+
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
         self.indent_level += 1
         parentNode = self.currentNode
         self.currentNode = node
-        numVals = 0 if isinstance(
-            node, ast.Module) else self.valueStack.currentNumValues
+        numVals = 0 if self.valueStack.isEmpty else self.valueStack.currentNumValues
         self.valueStack.pushFrame()
         super().visit(node)
         self.valueStack.popFrame()
@@ -1829,6 +1862,9 @@ class PyASTBridge(ast.NodeVisitor):
 
             self.knownResultType = parentResultType
 
+    def visit_Pass(self, node):
+        pass
+
     def visit_Expr(self, node):
         """
         Implement `ast.Expr` visitation to screen out all multi-line
@@ -1962,7 +1998,6 @@ class PyASTBridge(ast.NodeVisitor):
                 target_root = target_root.value
             if not isinstance(target_root, ast.Name):
                 self.emitFatalError("invalid target for assignment", node)
-            value_root = self.__get_root_value(value)
 
             def update_in_parent_block(destination, value):
                 assert not cc.PointerType.isinstance(value.type)
@@ -2050,16 +2085,18 @@ class PyASTBridge(ast.NodeVisitor):
                 # values.  NOTE: we don't need to worry about any references in
                 # values that are not `ast.Name` objects, since we don't allow
                 # containers to contain references.
-                value_is_name = False
+                value_is_name, value_root = False, None
                 if (isinstance(value, ast.Name) and
                         value.id in self.symbolTable):
                     value_is_name = True
+                    value_root = self.__get_root_value(value)
                     value = self.symbolTable[value.id]
                 if isinstance(value, ast.AST):
                     # Retain the variable name for potential children (like
                     # `mz(q, registerName=...)`)
                     self.currentAssignVariableName = target.id
                     self.visit(value)
+                    value_root = self.__get_root_value(value)
                     value = self.popValue()
                     self.currentAssignVariableName = None
                 storeAsVal = storedAsValue(value)
@@ -2448,21 +2485,6 @@ class PyASTBridge(ast.NodeVisitor):
                 self.controlNegations.clear()
             return negatedControlQubits
 
-        def processFunctionCall(kernel):
-            nrArgs = len(kernel.type.inputs)
-            values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
-            values = convertArguments([t for t in kernel.type.inputs], values)
-            if len(kernel.type.results) == 0:
-                func.CallOp(kernel, values)
-                return
-
-            # The logic for calls that return values must match the logic in
-            # `visit_Return`; anything copied to the heap during return must be
-            # copied back to the stack. Compiler optimizations should take care
-            # of eliminating unnecessary copies.
-            result = func.CallOp(kernel, values).result
-            return self.__migrateLists(result, copy_list_to_stack)
-
         def checkControlAndTargetTypes(controls, targets):
             """
             Check that the provided control and target operands are of an
@@ -2573,7 +2595,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             return name if decorator else None
 
-        # FIXME: unify with `processFunctionCall`?
         def processDecoratorCall(symName):
             assert symName in self.symbolTable
             self.visit(ast.Name(symName))
@@ -2595,30 +2616,29 @@ class PyASTBridge(ast.NodeVisitor):
             if len(functionTy.results) == 1:
                 result = call.results[0]
             else:
-                # FIXME: SPLIT OUT INTO HELPER FUNCTION
-                for res in call.results:
-                    self.__validate_container_entry(res, node)
-                structTy = mlirTryCreateStructType(functionTy.results,
-                                                   name='tuple',
-                                                   context=self.ctx)
-                if structTy is None:
-                    self.emitFatalError(
-                        "Hybrid quantum-classical data types and nested "
-                        "quantum structs are not allowed.", node)
-                if quake.StruqType.isinstance(structTy):
-                    result = quake.MakeStruqOp(structTy, call.results).result
-                else:
-                    result = cc.UndefOp(structTy)
-                    for idx, element in enumerate(call.results):
-                        result = cc.InsertValueOp(
-                            structTy, result, element,
-                            DenseI64ArrayAttr.get([idx],
-                                                  context=self.ctx)).result
+                for val in call.results:
+                    self.__validate_container_entry(val, node)
+                result = self.__createStructWithKnownValues(call.results)
 
             # The logic for calls that return values must match the logic in
             # `visit_Return`; anything copied to the heap during return must be
             # copied back to the stack. Compiler optimizations should take care
             # of eliminating unnecessary copies.
+            return self.__migrateLists(result, copy_list_to_stack)
+
+        def processFunctionCall(kernel):
+            nrArgs = len(kernel.type.inputs)
+            values = self.__groupValues(node.args, [(nrArgs, nrArgs)])
+            values = convertArguments([t for t in kernel.type.inputs], values)
+            if len(kernel.type.results) == 0:
+                func.CallOp(kernel, values)
+                return
+
+            # The logic for calls that return values must match the logic in
+            # `visit_Return`; anything copied to the heap during return must be
+            # copied back to the stack. Compiler optimizations should take care
+            # of eliminating unnecessary copies.
+            result = func.CallOp(kernel, values).result
             return self.__migrateLists(result, copy_list_to_stack)
 
         # do not walk the FunctionDef decorator_list arguments
@@ -3040,6 +3060,16 @@ class PyASTBridge(ast.NodeVisitor):
                         "supported. The dataclass must be declared with "
                         "@dataclass(slots=True) or @dataclasses.dataclass"
                         "(slots=True).", node)
+                # Disallow user specified methods on structs
+                if len({
+                        k: v
+                        for k, v in cls.__dict__.items()
+                        if not (k.startswith('__') and k.endswith('__')) and
+                        isinstance(v, types.FunctionType)
+                }) != 0:
+                    self.emitFatalError(
+                        'struct types with user specified methods are not allowed.',
+                        node)
 
                 if node.keywords:
                     self.emitFatalError(
@@ -3056,38 +3086,7 @@ class PyASTBridge(ast.NodeVisitor):
                 ctorArgs = convertArguments(structTys, ctorArgs)
                 for idx, arg in enumerate(ctorArgs):
                     self.__validate_container_entry(arg, node.args[idx])
-
-                structTy = mlirTryCreateStructType(structTys,
-                                                   name=node.func.id,
-                                                   context=self.ctx)
-                if structTy is None:
-                    self.emitFatalError(
-                        "Hybrid quantum-classical data types and nested "
-                        "quantum structs are not allowed.", node)
-
-                # Disallow user specified methods on structs
-                if len({
-                        k: v
-                        for k, v in cls.__dict__.items()
-                        if not (k.startswith('__') and k.endswith('__')) and
-                        isinstance(v, types.FunctionType)
-                }) != 0:
-                    self.emitFatalError(
-                        'struct types with user specified methods are not allowed.',
-                        node)
-
-                if quake.StruqType.isinstance(structTy):
-                    # If we have a quantum struct. We cannot allocate classical
-                    # memory and load / store quantum type values to that memory
-                    # space, so use `quake.MakeStruqOp`.
-                    self.pushValue(quake.MakeStruqOp(structTy, ctorArgs).result)
-                    return
-
-                struct = cc.UndefOp(structTy)
-                for idx, element in enumerate(ctorArgs):
-                    struct = cc.InsertValueOp(
-                        structTy, struct, element,
-                        DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+                struct = self.__createStructWithKnownValues(ctorArgs, name=node.func.id)
                 self.pushValue(struct)
                 return
 
@@ -4087,6 +4086,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         "unpack operator `*` is only supported on qvectors",
                         node)
+                self.__validate_container_entry(evalElem, element)
                 listElementValues.append(evalElem)
             else:
                 self.visit(element)
@@ -4930,23 +4930,7 @@ class PyASTBridge(ast.NodeVisitor):
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
-
-        structTys = [v.type for v in elementValues]
-        structTy = mlirTryCreateStructType(structTys, context=self.ctx)
-        if structTy is None:
-            self.emitFatalError(
-                "hybrid quantum-classical data types and nested quantum"
-                " structs are not allowed", node)
-
-        if quake.StruqType.isinstance(structTy):
-            self.pushValue(quake.MakeStruqOp(structTy, elementValues).result)
-            return
-
-        struct = cc.UndefOp(structTy)
-        for idx, element in enumerate(elementValues):
-            struct = cc.InsertValueOp(
-                structTy, struct, element,
-                DenseI64ArrayAttr.get([idx], context=self.ctx)).result
+        struct = self.__createStructWithKnownValues(elementValues)
         self.pushValue(struct)
 
     def visit_UnaryOp(self, node):
