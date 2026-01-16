@@ -8,8 +8,8 @@
 #pragma once
 #include <nlohmann/json.hpp>
 
-#include "quantum_program.h"
-#include "quantum_computation_parameters.h"
+#include "QuantumProgram.h"
+#include "QuantumComputationParameters.h"
 
 namespace qio {
 

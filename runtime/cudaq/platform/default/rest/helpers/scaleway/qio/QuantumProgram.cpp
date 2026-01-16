@@ -5,8 +5,8 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "quantum_program.h"
-#include "compression.h"
+#include "QuantumProgram.h"
+#include "Compression.h"
 
 using json = nlohmann::json;
 
