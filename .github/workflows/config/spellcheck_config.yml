@@ -283,3 +283,6 @@ matrix:
       # Ignore word prefixes, e.g. "pre-" in pre-computed
       - open: '(^|\s)[A-Z]?[a-z]+-'
         close: '(?=.)'
+      # Ignore shebang (#!)
+      - open: '^!'
+        close: '$'
