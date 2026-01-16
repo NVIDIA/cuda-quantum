@@ -34,7 +34,8 @@ QuantumProgram::QuantumProgram(
   }
 }
 
-json QuantumProgram::toJson() const {
+json
+QuantumProgram::toJson() const {
   return {
       {"serialization", m_serialization},
       {"serialization_format", m_serializationFormat},

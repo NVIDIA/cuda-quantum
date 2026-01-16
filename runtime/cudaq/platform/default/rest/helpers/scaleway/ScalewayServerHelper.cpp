@@ -8,7 +8,6 @@
 
 #include "qio/Qio.h"
 #include "common/Logger.h"
-#include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "nlohmann/json.hpp"
@@ -59,7 +58,7 @@ ScalewayServerHelper::ensureSessionIsActive() {
     if (j.contains("id")) {
       m_sessionId = j["id"].get<std::string>();
     } else {
-      throw std::runtime_error("Echec création session Scaleway: " + response);
+      throw std::runtime_error("Failed to create session: " + response);
     }
   }
 }
@@ -87,28 +86,32 @@ ScalewayServerHelper::createModel(const std::string& name, const std::string& co
         circuitPayload["project_id"] = m_projectId;
     }
 
-    std::string response = performInternalRequest("POST", "/model", circuitPayload);
+    std::string response = m_client.post("/models", circuitPayload);
 
     auto j = json::parse(response);
     if (j.contains("id")) {
       return j["id"].get<std::string>();
     }
 
-    throw std::runtime_error("Echec upload circuit: " + response);
+    throw std::runtime_error("Cannot upload kernel: " + response);
   }
 
 virtual
 std::map<std::string, std::string>
-ScalewayServerHelper::createHeaders() override {
+ScalewayServerHelper::getHeaders() override {
   std::map<std::string, std::string> headers;
+
+  // put to initialize
   std::string apiKey = getOption("api_key");
   if (apiKey.empty()) {
-        if (const char* envKey = std::getenv("SCW_SECRET_KEY")) apiKey = envKey;
+      if (const char* envKey = std::getenv("SCW_SECRET_KEY")) apiKey = envKey;
   }
+
   headers["X-Auth-Token"] = apiKey;
   headers["Content-Type"] = "application/json";
+
   return headers;
-  }
+}
 
 ServerJobPayload
 ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) override {
@@ -119,7 +122,7 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) over
     taskRequest["name"] = circuitCode.name;
     taskRequest["session_id"] = m_sessionId;
     taskRequest["model_id"] = uploadModel(circuitCode.name, circuitCode.code);
-    taskRequest["sampling_count"] = shots;
+    // taskRequest["sampling_count"] = shots;
     tasks.push_back(taskRequest);
   }
   CUDAQ_INFO("Created job payload for Scaleway, "
@@ -127,24 +130,6 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) over
               m_platformName);
   return ret;
 }
-
-  // virtual std::string
-  // constructPostMessage(const std::string &circuitName,
-  //                      const std::string &openqasmString,
-  //                      const int shots) override {
-  //   ensureSessionActive();
-
-  //   std::string finalName = circuitName.empty() ? "cudaq-job" : circuitName;
-  //   std::string circuitId = uploadCircuit(finalName, openqasmString);
-
-  //   json payload;
-  //   payload["session_id"] = sessionId;
-  //   payload["model_id"] = modelId;
-  //   payload["name"] = finalName;
-  //   payload["sampling_count"] = shots;
-
-  //   return payload.dump();
-  // }
 
 virtual
 std::string
@@ -166,17 +151,21 @@ ScalewayServerHelper::isJobCompleted(const std::string &getResponse) override {
   return (status == "completed" || status == "canceled");
 }
 
-  /**
-   * @brief Traitement des résultats avec logique de fallback URL (Object Storage).
-   */
-virtual
-void
-ScalewayServerHelper::processResults(const std::string &getResponse,
-                              sample_counts &counts) override {
+sample_result
+ScalewayServerHelper::processResults(ServerMessage &resultsJson,
+                                                 std::string &jobID) {
+  // Get results
+  // For all result
+  // Get raw result or URL
+  // get payload
+  // Unserialize to QuantumProgramResult
+  // Convert list of result to CountsDictionary then ExecutionRsult
+  // Finally return sample_result(ExecutionRsult[])
+
   auto j = json::parse(getResponse);
 
   if (!j.contains("job_results") || j["job_results"].empty()) {
-      throw std::runtime_error("Job terminé mais aucun résultat (job_results vide).");
+      throw std::runtime_error("Job done but empty results.");
   }
 
   auto firstResult = j["job_results"][0];
@@ -191,30 +180,29 @@ ScalewayServerHelper::processResults(const std::string &getResponse,
       rawPayload = performInternalRequest("GET", downloadUrl, {}, true);
   }
   else {
-      throw std::runtime_error("Format de résultat invalide : ni champ 'result' ni champ 'url'.");
+      throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
   }
 
   try {
-      auto resultJson = json::parse(rawPayload);
+      qio::QuantumProgramResult result = qio::QuantumProgramResult::fromJsonString(rawPayload);
 
-      // Selon la structure exacte retournée par le backend (AQT, Sim, Pasqal...)
-      // On assume ici la structure standard QaaS : { "execution_result": { "00": 12, ... } }
-      if (resultJson.contains("execution_result")) {
-          auto executionData = resultJson["execution_result"];
-          for (auto it = executionData.begin(); it != executionData.end(); ++it) {
-              counts.emplace(it.key(), it.value().get<int>());
+      cudaq::CountsDictionary counts;
+
+      for (const auto& sample : result.getSamples()) {
+          std::string bitString;
+          for (auto bit : sample.bits) {
+              bitString += std::to_string(bit);
           }
-      } else {
-            // Fallback: peut-être que le rawPayload EST directement les counts ?
-            for (auto it = resultJson.begin(); it != resultJson.end(); ++it) {
-              if (it.value().is_number()) {
-                  counts.emplace(it.key(), it.value().get<int>());
-              }
-            }
+          counts[bitString] += 1;
       }
 
+      std::vector<ExecutionResult> execResults;
+      execResults.emplace_back(ExecutionResult{counts});
+
+      return cudaq::sample_result(execResults);
+
   } catch (const std::exception& e) {
-      throw std::runtime_error("Erreur parsing du résultat final Scaleway: " + std::string(e.what()) + " | Payload: " + rawPayload);
+      throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
   }
 }
 

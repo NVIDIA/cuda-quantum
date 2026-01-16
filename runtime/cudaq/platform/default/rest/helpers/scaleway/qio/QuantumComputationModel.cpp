@@ -17,7 +17,8 @@ QuantumComputationModel::QuantumComputationModel(
     : m_programs(std::move(programs)),
       m_parameters(std::move(parameters)) {}
 
-json QuantumComputationModel::toJson() const {
+json
+QuantumComputationModel::toJson() const {
   json programsJson = json::array();
   for (const auto &p : m_programs) {
     programsJson.push_back(p.toJson());

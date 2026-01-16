@@ -11,7 +11,8 @@
 
 namespace qio::compression {
 
-std::string gzipCompress(const std::string &input) {
+std::string
+gzipCompress(const std::string &input) {
   z_stream zs{};
   if (deflateInit2(&zs, Z_BEST_COMPRESSION, Z_DEFLATED,
                    15 + 16, 8, Z_DEFAULT_STRATEGY) != Z_OK)
@@ -39,7 +40,8 @@ std::string gzipCompress(const std::string &input) {
 static const char table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-std::string base64Encode(const std::string &in) {
+std::string
+base64Encode(const std::string &in) {
   std::string out;
   int val = 0, valb = -6;
   for (uint8_t c : in) {

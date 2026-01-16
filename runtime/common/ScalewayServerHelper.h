@@ -66,6 +66,7 @@ protected:
   std::string serializeKernelToQio(const std::string& code, size_t shots);
   std::string createModel(const std::string& name, const std::string& content)
 private:
+  RestClient m_client;
   std::string m_baseUrl = "https://api.scaleway.com/qaas/v1alpha1";
   std::string m_basePlatformName = "EMU-CUDAQ-H100";
   std::string m_projectId = "";

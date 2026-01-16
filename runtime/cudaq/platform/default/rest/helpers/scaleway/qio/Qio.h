@@ -10,3 +10,4 @@
 #include <QuantumProgram.h>
 #include <QuantumComputationParameters.h>
 #include <QuantumComputationModel.h>
+#include <QuantumProgramResult.h>
