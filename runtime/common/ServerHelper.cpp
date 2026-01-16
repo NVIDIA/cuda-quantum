@@ -82,7 +82,6 @@ nlohmann::json ServerHelper::getTypedConfigValue(const std::string &key) const {
   case config::ArgumentType::UUID:
   case config::ArgumentType::FeatureFlag:
   case config::ArgumentType::MachineConfig:
-  default:
     return value;
   }
 }
