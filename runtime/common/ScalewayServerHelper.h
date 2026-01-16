@@ -25,7 +25,7 @@ namespace cudaq {
 class ScalewayServerHelper : public ServerHelper {
 public:
   /// @brief Returns the name of the server helper.
-  const std::string name() const override { return "Scaleway"; }
+  const std::string name() const override { return "scaleway"; }
 
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
@@ -61,6 +61,16 @@ protected:
   std::string getValueOrDefault(const BackendConfig &config,
                                 const std::string &key,
                                 const std::string &defaultValue) const;
+
+  void ensureSessionIsActive();
+  std::string serializeKernelToQio(const std::string& code, size_t shots);
+  std::string createModel(const std::string& name, const std::string& content)
+private:
+  std::string m_baseUrl = "https://api.scaleway.com/qaas/v1alpha1";
+  std::string m_basePlatformName = "EMU-CUDAQ-H100";
+  std::string m_projectId = "";
+  std::string m_sessionId = "";
+  std::string m_secretKey = "";
 };
 
 } // namespace cudaq
