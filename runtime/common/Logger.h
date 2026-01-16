@@ -42,29 +42,23 @@ std::string pathToFileName(const std::string_view fullFilePath);
 namespace details {
 
 //
-// Type traits to check if T is in the variant
+// Concepts to check if T is in the variant
 //
 template <typename T, typename... Types>
-struct is_one_of
-    : std::bool_constant<(
-          (std::is_same_v<T, Types> ||
-           std::is_same_v<std::reference_wrapper<const T>, Types>) ||
-          ...)> {};
+concept one_of = ((std::same_as<T, Types> ||
+                   std::same_as<std::reference_wrapper<const T>, Types>) ||
+                  ...);
 
 template <typename T, typename Variant>
 struct is_variant_member;
 
 template <typename T, typename... Types>
-struct is_variant_member<T, std::variant<Types...>> : is_one_of<T, Types...> {};
+struct is_variant_member<T, std::variant<Types...>>
+    : std::bool_constant<one_of<T, Types...>> {};
 
 template <typename T, typename Variant>
-inline constexpr bool is_variant_member_v =
-    is_variant_member<T, Variant>::value;
-
-// Check all types in a parameter pack
-template <typename Variant, typename... Args>
-inline constexpr bool all_in_variant_v =
-    (is_variant_member_v<std::decay_t<Args>, Variant> && ...);
+concept variant_alternative =
+    is_variant_member<std::decay_t<T>, Variant>::value;
 
 //
 // Packed parameter type passing arguments to fmt
@@ -90,6 +84,7 @@ struct fmt_arg {
   storage_t value;
 
   template <typename T>
+    requires variant_alternative<T, storage_t>
   fmt_arg(const T &v) : value(std::cref(v)) {}
 };
 
@@ -107,9 +102,6 @@ void print_packed(const std::string_view message,
 //
 template <typename... Args>
 std::string format(const std::string_view message, Args &&...args) {
-  static_assert(
-      all_in_variant_v<fmt_arg::storage_t, Args...>,
-      "One or more argument types are not valid variant alternatives. ");
   auto array = std::array<fmt_arg, sizeof...(Args)>{
       fmt_arg(std::forward<Args>(args))...};
   return format_packed(message, array);
@@ -117,9 +109,6 @@ std::string format(const std::string_view message, Args &&...args) {
 
 template <typename... Args>
 void print(const std::string_view message, Args &&...args) {
-  static_assert(
-      all_in_variant_v<fmt_arg::storage_t, Args...>,
-      "One or more argument types are not valid variant alternatives. ");
   auto array = std::array<fmt_arg, sizeof...(Args)>{
       fmt_arg(std::forward<Args>(args))...};
   return print_packed(message, array);
