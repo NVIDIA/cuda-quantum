@@ -76,6 +76,8 @@ function temp_install_if_command_unknown {
       dnf install -y --nobest --setopt=install_weak_deps=False $2
     elif [ -x "$(command -v brew)" ]; then
       HOMEBREW_NO_AUTO_UPDATE=1 brew install $2
+      # Refresh shell's command hash table so newly installed commands are found
+      hash -r 2>/dev/null || true
     else
       echo "No package manager was found to install $2." >&2
     fi
@@ -256,6 +258,7 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     temp_install_if_command_unknown make make
     if [ ! -x "$(command -v "$FC")" ]; then
       unset FC
+      # On macOS, 'brew install gfortran' installs gcc which provides gfortran
       temp_install_if_command_unknown gfortran gfortran
     fi
 
