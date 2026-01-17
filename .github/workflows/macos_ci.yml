@@ -32,11 +32,12 @@ jobs:
         include:
           - runner: macos-15
             arch: arm64
-            # Sets MacOS version minimum binary compatiability
             deployment_target: '11.0'  # macOS Big Sur (first ARM64)
-          - runner: macos-13
-            arch: x86_64
-            deployment_target: '10.13' # macOS High Sierra (required by Python 3.12+)
+          # Uncomment to enable Intel x86_64. Should we provide official x86 support?
+          # All current hardware is Apple silicon and Github is deprecating x86 runners in August 2027.
+          # - runner: macos-15-intel  # Intel runner (available until Aug 2027)
+          #   arch: x86_64
+          #   deployment_target: '10.13' # macOS High Sierra (required by Python 3.12+)
       fail-fast: false
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
