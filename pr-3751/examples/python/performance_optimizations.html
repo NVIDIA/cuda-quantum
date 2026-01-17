@@ -1013,9 +1013,9 @@
 <section id="Gate-Fusion">
 <h2>Gate Fusion<a class="headerlink" href="#Gate-Fusion" title="Permalink to this heading">¶</a></h2>
 <p>Gate fusion is an optimization technique where consecutive gates are combined into a single gate operation to improve the efficiency of the simulation (See figure below). By targeting the <code class="docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend and setting the <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE</span></code> environment variable, you can select the degree of fusion that takes place. A full command line example would look like <code class="docutils literal notranslate"><span class="pre">CUDAQ_MGPU_FUSE=4</span> <span class="pre">python</span> <span class="pre">c2h2VQE.py</span> <span class="pre">--target</span> <span class="pre">nvidia</span> <span class="pre">--target-option</span> <span class="pre">fp64,mgpu</span></code></p>
-<p><img alt="897b42f35ded4d2f8d1e0a00af8b8938" src="../../_images/gate-fuse.png" /></p>
+<p><img alt="20cfc3367e3b402d81792e0feda649d7" src="../../_images/gate-fuse.png" /></p>
 <p>The importance of gate fusion is system dependent, but can have a large influence on the performance of the simulation. See the example below for a 24 qubit VQE experiment where changing the fusion level resulted in significant performance boosts.</p>
-<p><img alt="f4368debb0a94a99bd5df872c0d21a8a" src="../../_images/gatefusion.png" /></p>
+<p><img alt="0496da24cd1844acbd737c06e22459af" src="../../_images/gatefusion.png" /></p>
 </section>
 </section>
 
