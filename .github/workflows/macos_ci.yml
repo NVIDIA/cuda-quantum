@@ -91,7 +91,7 @@ jobs:
           echo "LLVM_PROJECTS=$LLVM_PROJECTS"
           echo "Building with $(sysctl -n hw.ncpu) cores, $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 )) GB RAM"
           
-          bash scripts/install_prerequisites.sh -v
+          bash scripts/install_prerequisites.sh
 
       - name: Verify installation
         run: |
