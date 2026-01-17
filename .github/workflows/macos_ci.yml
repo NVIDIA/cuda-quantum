@@ -43,8 +43,7 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
+        # Note: submodules not needed for this stage - LLVM is cloned to ~/.llvm-project by build script
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -72,6 +71,8 @@ jobs:
           path: |
             ~/.local
             ~/.llvm-project
+          # Cache: installed libs (~/.local) + LLVM source/build (~/.llvm-project)
+          # Source+build needed for incremental Python bindings rebuild in wheel job
           key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
 
       - name: Build prerequisites
@@ -100,8 +101,8 @@ jobs:
           $LLVM_INSTALL_PREFIX/bin/clang --version
           echo "=== OpenMP Check ==="
           ls -la $LLVM_INSTALL_PREFIX/lib/libomp* 2>/dev/null || echo "OpenMP libraries not found"
-          echo "=== LLVM Source (for Python bindings rebuild) ==="
-          ls -la ~/.llvm-project/ 2>/dev/null | head -10 || echo "LLVM source not found"
+          echo "=== LLVM Source + Build ==="
+          ls -la ~/.llvm-project/ 2>/dev/null | head -5 || echo "LLVM project not found"
           echo "=== Cache sizes ==="
           du -sh ~/.local || true
           du -sh ~/.llvm-project || true
