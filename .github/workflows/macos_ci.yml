@@ -5,6 +5,39 @@ on:
 
 jobs:
   # ============================================================================
+  # Quick smoke test: Verify brew install + hash -r fix works
+  # This runs fast (~2 min) before the long LLVM build
+  # ============================================================================
+  brew_install_test:
+    name: Test brew install fix
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Test gfortran install and hash refresh
+        run: |
+          echo "=== Testing brew install + hash -r fix ==="
+          
+          # Ensure gcc/gfortran not already installed
+          brew uninstall gcc 2>/dev/null || true
+          
+          # This should fail before our fix (gfortran not in hash table)
+          # But work with hash -r
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install gfortran
+          hash -r 2>/dev/null || true
+          
+          # Verify gfortran is found
+          echo "Looking for gfortran..."
+          which gfortran
+          gfortran --version
+          
+          echo "✅ gfortran found after brew install + hash -r"
+          
+          # Cleanup
+          brew uninstall gcc
+
+  # ============================================================================
   # Metadata: Get commit hashes for cache keys
   # ============================================================================
   metadata:
