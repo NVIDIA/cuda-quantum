@@ -1,0 +1,24 @@
+name: macOS CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke_test:
+    name: Smoke test
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: System info
+        run: |
+          echo "=== System ===" 
+          uname -a
+          sw_vers
+          echo "=== Hardware ==="
+          sysctl hw.ncpu hw.memsize
+          df -h
+          echo "=== Toolchain ==="
+          clang --version
+          python3 --version
+          brew --version
