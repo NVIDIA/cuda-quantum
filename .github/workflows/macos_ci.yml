@@ -4,12 +4,52 @@ on:
   workflow_dispatch:
 
 jobs:
-  smoke_test:
-    name: Smoke test
-    runs-on: macos-15
+  # ============================================================================
+  # Metadata: Get commit hashes for cache keys
+  # ============================================================================
+  metadata:
+    name: Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
     steps:
       - uses: actions/checkout@v4
-      
+      - id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+
+  # ============================================================================
+  # Build prerequisites (LLVM, OpenMP, etc.) - WITHOUT Python bindings
+  # Python bindings will be rebuilt per-Python-version in wheel job
+  # ============================================================================
+  devdeps:
+    name: Prerequisites (${{ matrix.arch }})
+    needs: metadata
+    strategy:
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+            # Sets MacOS version minimum binary compatiability
+            deployment_target: '11.0'  # macOS Big Sur (first ARM64)
+          - runner: macos-13
+            arch: x86_64
+            deployment_target: '10.13' # macOS High Sierra (required by Python 3.12+)
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: System info
         run: |
           echo "=== System ===" 
@@ -21,4 +61,46 @@ jobs:
           echo "=== Toolchain ==="
           clang --version
           python3 --version
+          cmake --version
           brew --version
+
+      - name: Cache prerequisites
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local
+            ~/.llvm-project
+          key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
+
+      - name: Build prerequisites
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+        run: |
+          # Override LLVM_PROJECTS to exclude python-bindings
+          # Python bindings will be rebuilt per-Python-version in wheel job
+          export LLVM_PROJECTS='clang;lld;mlir;openmp'
+          
+          echo "MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
+          source scripts/set_env_defaults.sh
+          echo "=== Build Configuration ==="
+          echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"
+          echo "LLVM_PROJECTS=$LLVM_PROJECTS"
+          echo "Building with $(sysctl -n hw.ncpu) cores, $(( $(sysctl -n hw.memsize) / 1024 / 1024 / 1024 )) GB RAM"
+          
+          bash scripts/install_prerequisites.sh -v
+
+      - name: Verify installation
+        run: |
+          source scripts/set_env_defaults.sh
+          echo "=== LLVM Installation ==="
+          ls -la $LLVM_INSTALL_PREFIX/bin/ | head -20
+          $LLVM_INSTALL_PREFIX/bin/clang --version
+          echo "=== OpenMP Check ==="
+          ls -la $LLVM_INSTALL_PREFIX/lib/libomp* 2>/dev/null || echo "OpenMP libraries not found"
+          echo "=== LLVM Source (for Python bindings rebuild) ==="
+          ls -la ~/.llvm-project/ 2>/dev/null | head -10 || echo "LLVM source not found"
+          echo "=== Cache sizes ==="
+          du -sh ~/.local || true
+          du -sh ~/.llvm-project || true
