@@ -5,94 +5,6 @@ on:
 
 jobs:
   # ============================================================================
-  # Diagnostic: Explore CI runner's gcc/gfortran state
-  # This helps us understand what's pre-installed and how to handle it
-  # ============================================================================
-  gfortran_diagnostic:
-    name: Diagnose gfortran
-    runs-on: macos-15
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: "Step 1: Check pre-installed state"
-        run: |
-          echo "============================================"
-          echo "=== PRE-INSTALLED STATE ==="
-          echo "============================================"
-          
-          echo "--- PATH ---"
-          echo "$PATH" | tr ':' '\n'
-          
-          echo ""
-          echo "--- which gfortran ---"
-          which gfortran 2>/dev/null || echo "NOT FOUND"
-          
-          echo ""
-          echo "--- brew list gcc ---"
-          brew list gcc 2>/dev/null || echo "gcc NOT in brew list"
-          
-          echo ""
-          echo "--- brew --prefix gcc ---"
-          gcc_prefix="$(brew --prefix gcc 2>/dev/null)" && echo "$gcc_prefix" || echo "FAILED"
-          
-          echo ""
-          echo "--- Contents of gcc bin dir ---"
-          ls -la "$(brew --prefix gcc)/bin/" 2>/dev/null || echo "Directory not found"
-          
-          echo ""
-          echo "--- Look for any fortran binaries ---"
-          find /opt/homebrew -name '*fortran*' -type f 2>/dev/null | head -10 || echo "None found"
-      
-      - name: "Step 2: Test if gfortran symlink just needs creating"
-        run: |
-          echo "============================================"
-          echo "=== TEST: Create symlink if versioned exists ==="
-          echo "============================================"
-          
-          gcc_prefix="$(brew --prefix gcc 2>/dev/null)"
-          
-          # Check for versioned gfortran
-          versioned=$(ls "$gcc_prefix/bin"/gfortran-* 2>/dev/null | head -1)
-          if [ -x "$versioned" ]; then
-            echo "Found versioned: $versioned"
-            echo "Creating symlink..."
-            ln -sf "$versioned" /opt/homebrew/bin/gfortran
-            
-            echo "Testing gfortran command..."
-            which gfortran
-            gfortran --version
-            echo "✅ Symlink approach works!"
-          else
-            echo "No versioned gfortran found"
-          fi
-      
-      - name: "Step 3: Test fresh install approach"
-        run: |
-          echo "============================================"
-          echo "=== TEST: Uninstall and reinstall fresh ==="
-          echo "============================================"
-          
-          # Remove any symlink we created
-          rm -f /opt/homebrew/bin/gfortran 2>/dev/null || true
-          
-          # Uninstall gcc
-          echo "Uninstalling gcc..."
-          brew uninstall gcc 2>/dev/null || echo "gcc not installed"
-          
-          # Clear hash table
-          hash -r 2>/dev/null || true
-          
-          # Fresh install
-          echo "Installing gcc fresh..."
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install gcc
-          hash -r 2>/dev/null || true
-          
-          # Check result
-          echo "Testing gfortran command..."
-          which gfortran && gfortran --version && echo "✅ Fresh install works!"
-
-  # ============================================================================
   # Metadata: Get commit hashes for cache keys
   # ============================================================================
   metadata:
@@ -168,6 +80,10 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
         run: |
+          # CI runner quirk: gcc may be pre-installed but not linked
+          # This ensures gfortran is available for BLAS build
+          brew link gcc 2>/dev/null || true
+          
           # Override LLVM_PROJECTS to exclude python-bindings
           # Python bindings will be rebuilt per-Python-version in wheel job
           export LLVM_PROJECTS='clang;lld;mlir;openmp'
