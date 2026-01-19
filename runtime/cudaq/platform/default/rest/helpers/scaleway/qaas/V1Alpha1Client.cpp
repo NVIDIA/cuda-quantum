@@ -15,8 +15,8 @@ namespace cudaq::qaas::v1alpha1 {
 
 void
 V1Alpha1Client::initialize(const std::string projectId,
-                                const std::string secretKey,
-                                std::string url) {
+                            const std::string secretKey,
+                            std::string url) {
   m_projectId = projectId;
   m_secretKey = secretKey;
   if (!url.empty()) {
@@ -50,7 +50,6 @@ V1Alpha1Client::listPlatforms(const std::string platformName) {
   auto headers = getHeader();
   std::string path = "/platforms";
 
-  // Gestion du query param pour le filtrage par nom
   if (!platformName.empty()) {
     path += "?name=" + platformName;
   }
@@ -58,7 +57,6 @@ V1Alpha1Client::listPlatforms(const std::string platformName) {
   try {
     auto response = m_client.get(m_baseUrl, path, headers, m_secure);
 
-    // L'API retourne généralement { "platforms": [ ... ] }
     if (response.contains("platforms")) {
       return response["platforms"].get<std::vector<Platform>>();
     }

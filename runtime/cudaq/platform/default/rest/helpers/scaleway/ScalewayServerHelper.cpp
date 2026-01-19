@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "qio/Qio.h"
+#include "qaas/Qaas.h"
 #include "common/Logger.h"
 #include "common/ServerHelper.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -18,137 +19,34 @@ using json = nlohmann::json;
 
 namespace cudaq {
 
-void
-ScalewayServerHelper::initialize(BackendConfig config) {
-}
+  void
+  ScalewayServerHelper::initialize(BackendConfig config) {
+      m_qaasClient.initialize(
+          getOption("project_id"),
+          getOption("secret_key"),
+          getOption("url")
+      );
+  }
 
-void
-ScalewayServerHelper::ensureSessionIsActive() {
-    if (!m_sessionId.empty()) {
-    try {
-      std::string response = performInternalRequest("GET", "/sessions/" + sessionId);
-      auto j = json::parse(response);
-      std::string status = j.value("status", "unknown");
+  std::chrono::microseconds
+  ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) override {
+    return std::chrono::microseconds(1000000);
+  }
 
-      if (status == "error" || status == "stopped" || status == "stopping") {
-        m_sessionId = "";
-      } else {
-        return;
-      }
-    } catch (...) {
-      m_sessionId = "";
+  bool
+  ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) override {
+    auto j = json::parse(getJobResponse);
+    std::string status = j.value("status", "unknown");
+    if (status == "error") {
+        std::string err = j.contains("result") ? j["result"].value("error_message", "Unknown error") : "Unknown";
+        throw std::runtime_error("Scaleway Job Error: " + err);
     }
+    return (status == "completed" || status == "canceled");
   }
 
-  if (m_sessionId.empty()) {
-    m_platformName = getOption("machine", m_basePlatformName);
-    m_projectId = getOption("project_id");
-
-    json sessionPayload;
-    sessionPayload["name"] = "cudaq-session-" + std::to_string(std::rand());
-    sessionPayload["platform_id"] = m_platformName; // TODO: get platform id
-    if (!m_projectId.empty()) {
-      sessionPayload["project_id"] = m_projectId;
-    }
-
-    // Endpoint sans région
-    std::string response = performInternalRequest("POST", "/sessions", sessionPayload);
-
-    auto j = json::parse(response);
-    if (j.contains("id")) {
-      m_sessionId = j["id"].get<std::string>();
-    } else {
-      throw std::runtime_error("Failed to create session: " + response);
-    }
-  }
-}
-
-std::string
-ScalewayServerHelper::serializeKernelToQio(const std::string& code) {
-    qio::QQuantumProgram program(
-        kernel,
-        qio::SerializationFormat::QIR,
-        qio::CompressionFormat::GZIP);
-
-    qio::QuantumComputationParameters params(1024);
-
-    qio::QuantumComputationModel model(program, params);
-
-    return model.toJson().dump();
-}
-
-std::string
-ScalewayServerHelper::createModel(const std::string& payload) {
-    json circuitPayload;
-    circuitPayload["project_id"] = m_projectId;
-    circuitPayload["payload"] = payload;
-
-    std::string response = m_client.post("/models", circuitPayload);
-
-    auto j = json::parse(response);
-    if (j.contains("id")) {
-      return j["id"].get<std::string>();
-    }
-
-    throw std::runtime_error("Cannot upload kernel: " + response);
-  }
-
-virtual
-std::map<std::string, std::string>
-ScalewayServerHelper::getHeaders() override {
-  std::map<std::string, std::string> headers;
-  std::string apiKey = getOption("api_key");
-
-  if (apiKey.empty()) {
-      if (const char* envKey = std::getenv("SCW_SECRET_KEY")) apiKey = envKey;
-  }
-
-  headers["X-Auth-Token"] = apiKey;
-  headers["Content-Type"] = "application/json";
-
-  return headers;
-}
-
-ServerJobPayload
-ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) override {
-  ServerJobPayload ret;
-  std::vector<ServerMessage> &tasks = std::get<2>(ret);
-  for (auto &circuitCode : circuitCodes) {
-    ServerMessage taskRequest;
-    taskRequest["name"] = circuitCode.name;
-    taskRequest["session_id"] = m_sessionId;
-    taskRequest["model_id"] = uploadModel(circuitCode.name, circuitCode.code);
-    tasks.push_back(taskRequest);
-  }
-  CUDAQ_INFO("Created job payload for Scaleway, "
-              "targeting platform {}",
-              m_platformName);
-  return ret;
-}
-
-virtual
-std::string
-ScalewayServerHelper::extractJobId(const std::string &postResponse) override {
-  auto j = json::parse(postResponse);
-  if (j.contains("id")) return j["id"].get<std::string>();
-  throw std::runtime_error("Job submission failed: " + postResponse);
-}
-
-virtual
-bool
-ScalewayServerHelper::isJobCompleted(const std::string &getResponse) override {
-  auto j = json::parse(getResponse);
-  std::string status = j.value("status", "unknown");
-  if (status == "error") {
-      std::string err = j.contains("result") ? j["result"].value("error_message", "Unknown error") : "Unknown";
-      throw std::runtime_error("Scaleway Job Error: " + err);
-  }
-  return (status == "completed" || status == "canceled");
-}
-
-sample_result
-ScalewayServerHelper::processResults(ServerMessage &resultsJson,
-                                                 std::string &jobID) {
+  cudaq::sample_result
+  ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
+                std::string &jobId) override {
   // Get results
   // For all result
   // Get raw result or URL
@@ -172,7 +70,7 @@ ScalewayServerHelper::processResults(ServerMessage &resultsJson,
   }
   else if (firstResult.contains("url") && !firstResult["url"].is_null()) {
       std::string downloadUrl = firstResult["url"].get<std::string>();
-      rawPayload = performInternalRequest("GET", downloadUrl, {}, true);
+      // rawPayload = performInternalRequest("GET", downloadUrl, {}, true);
   }
   else {
       throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
@@ -197,9 +95,148 @@ ScalewayServerHelper::processResults(ServerMessage &resultsJson,
       return cudaq::sample_result(execResults);
 
   } catch (const std::exception& e) {
-      throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
+    throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
   }
 }
+
+  RestHeaders
+  ScalewayServerHelper::getHeaders() override {
+    return m_qaasClient.getHeader();
+  }
+
+  virtual ServerJobPayload
+  ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) override {
+    ensureSessionIsActive();
+
+    // ServerJobPayload ret;
+    // std::vector<ServerMessage> &tasks = std::get<2>(ret);
+    // for (auto &circuitCode : circuitCodes) {
+    //   ServerMessage taskRequest;
+    //   // taskRequest["name"] = circuitCode.name;
+    //   // taskRequest["session_id"] = m_sessionId;
+    //   // taskRequest["model_id"] = uploadModel(circuitCode.name, circuitCode.code);
+    //   // tasks.push_back(taskRequest);
+    // }
+    CUDAQ_INFO("Created job payload for Scaleway, "
+                "targeting platform {}",
+                m_platformName);
+    return ret;
+  }
+
+  std::string
+  ScalewayServerHelper::extractJobId(ServerMessage &postResponse) override {
+    auto j = json::parse(postResponse);
+    if (j.contains("id")) return j["id"].get<std::string>();
+    if (j.contains("job_id")) return j["job_id"].get<std::string>();
+    throw std::runtime_error("Job submission failed: " + postResponse);
+  }
+
+  std::string
+  ScalewayServerHelper::constructGetJobPath(std::string &jobId) override {
+    return m_qaasClient.getJobResultsUrl(jobId);
+  }
+
+  std::string
+  ScalewayServerHelper::constructGetJobPath(ServerMessage &postResponse) override {
+    std::string jobId = extractJobId(postResponse);
+    return m_qaasClient.getJobResultsUrl(jobId);
+  }
+
+  std::string
+  ScalewayServerHelper::ensureSessionIsActive() {
+    if (!m_sessionId.empty()) {
+    try {
+      auto session = m_qaasClient.getSession(m_sessionId);
+      auto status = session.status;
+
+      if (status == "error" || status == "stopped" || status == "stopping") {
+        m_sessionId = "";
+      } else {
+        return m_sessionId;
+      }
+    } catch (...) {
+      m_sessionId = "";
+    }
+  }
+
+  if (m_sessionId.empty()) {
+    m_platformName = getOption("machine", m_basePlatformName);
+
+    auto platforms = m_qaasClient.listPlatforms(m_platformName);
+
+    if (platforms.empty()) {
+      throw std::runtime_error("No platforms found with name: " + m_platformName);
+    }
+
+    auto platform = platforms[0];
+
+    CUDAQ_INFO("Creating session on Scaleway platform {} (id={})",
+                platform.name, platform.id);
+
+    auto session = m_qaasClient.createSession(
+        platform.id,
+        m_sessionName.empty() ? "cudaq-session-" + std::to_string(std::rand()) : m_sessionName,
+        m_sessionDeduplicationId.empty() ? "" : m_sessionDeduplicationId,
+        "", // No model id
+        m_sessionMaxDuration.empty() ? "59m" : m_sessionMaxDuration,
+        m_sessionMaxIdleDuration.empty() ? "59m" : m_sessionMaxIdleDuration,
+        ""); // No parameters
+
+    if (session.id.empty()) {
+      throw std::runtime_error("Failed to create Scaleway session");
+    }
+
+    m_sessionId = session.id;
+  }
+
+  return m_sessionId;
+}
+
+  std::string
+  ScalewayServerHelper::serializeKernelToQio(const std::string& code) {
+      qio::QuantumProgram program(
+          kernel,
+          qio::SerializationFormat::QIR,
+          qio::CompressionFormat::GZIP);
+
+      qio::QuantumComputationParameters params(1024);
+
+      qio::QuantumComputationModel model(program, params);
+
+      return model.toJson().dump();
+  }
+
+// std::string
+// ScalewayServerHelper::createModel(const std::string& payload) {
+//     json circuitPayload;
+//     circuitPayload["project_id"] = m_projectId;
+//     circuitPayload["payload"] = payload;
+
+//     std::string response = m_client.post("/models", circuitPayload);
+
+//     auto j = json::parse(response);
+//     if (j.contains("id")) {
+//       return j["id"].get<std::string>();
+//     }
+
+//     throw std::runtime_error("Cannot upload kernel: " + response);
+//   }
+
+// virtual
+// std::map<std::string, std::string>
+// ScalewayServerHelper::getHeaders() override {
+//   std::map<std::string, std::string> headers;
+//   std::string apiKey = getOption("api_key");
+
+//   if (apiKey.empty()) {
+//       if (const char* envKey = std::getenv("SCW_SECRET_KEY")) apiKey = envKey;
+//   }
+
+//   headers["X-Auth-Token"] = apiKey;
+//   headers["Content-Type"] = "application/json";
+
+//   return headers;
+// }
 
 } // namespace cudaq
 

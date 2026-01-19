@@ -20,7 +20,7 @@ namespace cudaq::qaas::v1alpha1 {
 
 class V1Alpha1Client {
 public:
-    void initialize(const std::string projectId, const std::string secretKey, std::string url);
+    void initialize(const std::string projectId, const std::string secretKey, const std::string url);
 
     Platform getPlatform(const std::string& platformId);
     std::vector<Platform> listPlatforms(const std::string platformName);
@@ -41,8 +41,9 @@ public:
 
     Model createModel(const std::string& payload);
 
-protected:
-    RestHeaders getHeader() const;
+    std::string getJobResultsUrl(const std::string& jobId);
+    RestHeaders getHeader();
+
 private:
     RestClient m_client;
     std::string m_baseUrl = "https://api.scaleway.com/qaas/v1alpha1";
