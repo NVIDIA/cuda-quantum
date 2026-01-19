@@ -9,7 +9,7 @@ It fulfills two primary responsibilities:
 > This library is currently in early access / alpha stage and will continue to rapidly evolve as we build interactively with collaborators.
 
 > [!NOTE]
-> While in early access, instructions to reproduce the FPGA-GPU latency round trip on third party systems can be found at [docs/nvqlink_latency_demo.md](docs/nvqlink_latency_demo.md).
+> While the library is in early access, instructions to reproduce the FPGA-GPU latency round trip on third party systems can be found at [docs/nvqlink_latency_demo.md](docs/nvqlink_latency_demo.md).
 
 ## Getting Started
 
