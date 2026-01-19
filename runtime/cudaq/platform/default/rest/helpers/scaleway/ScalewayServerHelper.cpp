@@ -34,6 +34,7 @@ namespace cudaq {
       m_sessionMaxDuration = getOption("maxDuration", "");
       m_sessionMaxIdleDuration = getOption("maxIdleDuration", "");
       m_sessionName = getOption("name", "cudaq-session");
+      m_shots = std::stoul(getOption("shots"));
   }
 
   std::chrono::microseconds
@@ -121,7 +122,7 @@ namespace cudaq {
 
     for (auto &circuitCode : circuitCodes) {
       ServerMessage taskRequest;
-      std::string qioPayload = serializeKernelToQio(circuitCode.code);
+      std::string qioPayload = serializeKernelToQio(circuitCode.code, m_shots);
       std::string modelId = m_qaasClient.createModel(qioPayload);
       taskRequest["model_id"] = modelId;
       taskRequest["session_id"] = m_sessionId;
@@ -220,38 +221,6 @@ namespace cudaq {
 
       return model.toJson().dump();
   }
-
-// std::string
-// ScalewayServerHelper::createModel(const std::string& payload) {
-//     json circuitPayload;
-//     circuitPayload["project_id"] = m_projectId;
-//     circuitPayload["payload"] = payload;
-
-//     std::string response = m_client.post("/models", circuitPayload);
-
-//     auto j = json::parse(response);
-//     if (j.contains("id")) {
-//       return j["id"].get<std::string>();
-//     }
-
-//     throw std::runtime_error("Cannot upload kernel: " + response);
-//   }
-
-// virtual
-// std::map<std::string, std::string>
-// ScalewayServerHelper::getHeaders() override {
-//   std::map<std::string, std::string> headers;
-//   std::string apiKey = getOption("api_key");
-
-//   if (apiKey.empty()) {
-//       if (const char* envKey = std::getenv("SCW_SECRET_KEY")) apiKey = envKey;
-//   }
-
-//   headers["X-Auth-Token"] = apiKey;
-//   headers["Content-Type"] = "application/json";
-
-//   return headers;
-// }
 
 } // namespace cudaq
 
