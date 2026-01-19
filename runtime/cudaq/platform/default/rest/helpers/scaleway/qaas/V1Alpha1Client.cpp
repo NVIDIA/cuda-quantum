@@ -1,0 +1,185 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+#include "V1Alpha1Client.h"
+#include "V1Alpha1Objects.h"
+#include <iostream>
+#include <stdexcept>
+#include <sstream>
+
+namespace cudaq::qaas::v1alpha1 {
+
+void
+V1Alpha1Client::initialize(const std::string projectId,
+                                const std::string secretKey,
+                                std::string url) {
+  m_projectId = projectId;
+  m_secretKey = secretKey;
+  if (!url.empty()) {
+    m_baseUrl = url;
+  }
+}
+
+std::map<std::string, std::string>
+V1Alpha1Client::getHeader() const {
+  return {
+      {"X-Auth-Token", m_secretKey},
+      {"Content-Type", "application/json"},
+      {"Accept", "application/json"}};
+}
+
+Platform
+V1Alpha1Client::getPlatform(const std::string &platformId) {
+  auto headers = getHeader();
+  std::string path = "/platforms/" + platformId;
+
+  try {
+    auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+    return response.get<Platform>();
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during get platform " + platformId + ": " + e.what());
+  }
+}
+
+std::vector<Platform>
+V1Alpha1Client::listPlatforms(const std::string platformName) {
+  auto headers = getHeader();
+  std::string path = "/platforms";
+
+  // Gestion du query param pour le filtrage par nom
+  if (!platformName.empty()) {
+    path += "?name=" + platformName;
+  }
+
+  try {
+    auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+
+    // L'API retourne généralement { "platforms": [ ... ] }
+    if (response.contains("platforms")) {
+      return response["platforms"].get<std::vector<Platform>>();
+    }
+    return {};
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during list platforms: " + std::string(e.what()));
+  }
+}
+
+Session
+V1Alpha1Client::createSession(const std::string &platformId,
+                                      std::string name,
+                                      std::string deduplicationId,
+                                      const std::string &modelId,
+                                      std::string maxDuration,
+                                      std::string maxIdleDuration,
+                                      std::string parameters) {
+  auto headers = getHeader();
+  nlohmann::json payload;
+
+  payload["project_id"] = m_projectId;
+  payload["platform_id"] = platformId;
+
+  if (!name.empty()) payload["name"] = name;
+  if (!deduplicationId.empty()) payload["deduplication_id"] = deduplicationId;
+  if (!modelId.empty()) payload["model_id"] = modelId;
+
+  payload["max_duration"] = maxDuration.empty() ? "3600s" : maxDuration;
+  payload["max_idle_duration"] = maxIdleDuration.empty() ? "600s" : maxIdleDuration;
+
+  if (!parameters.empty()) {
+    try {
+        payload["parameters"] = nlohmann::json::parse(parameters);
+    } catch (...) {
+        payload["parameters"] = parameters;
+    }
+  }
+
+  try {
+    auto response = m_client.post(m_baseUrl, "/sessions", payload, headers, m_logging, m_secure);
+    return response.get<Session>();
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during session creation: " + std::string(e.what()));
+  }
+}
+
+Session
+V1Alpha1Client::getSession(const std::string &sessionId) {
+  auto headers = getHeader();
+  std::string path = "/sessions/" + sessionId;
+
+  try {
+    auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+    return response.get<Session>();
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during get session " + sessionId + ": " + e.what());
+  }
+}
+
+Job
+V1Alpha1Client::createJob(const std::string &sessionId, const std::string &modelId, std::string name) {
+  auto headers = getHeader();
+  nlohmann::json payload;
+
+  payload["project_id"] = m_projectId;
+  payload["session_id"] = sessionId;
+  payload["model_id"] = modelId;
+  payload["name"] = name;
+
+  try {
+    auto response = m_client.post(m_baseUrl, "/jobs", payload, headers, m_logging, m_secure);
+    return response.get<Job>();
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during job submission: " + std::string(e.what()));
+  }
+}
+
+Job
+V1Alpha1Client::getJob(const std::string &jobId) {
+  auto headers = getHeader();
+  std::string path = "/jobs/" + jobId;
+
+  try {
+    auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+    return response.get<Job>();
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during get job " + jobId + ": " + e.what());
+  }
+}
+
+std::vector<JobResult>
+V1Alpha1Client::listJobResults(const std::string &jobId) {
+  auto headers = getHeader();
+  std::string path = "/jobs/" + jobId + "/results";
+
+  try {
+    auto response = m_client.get(m_baseUrl, path, headers, m_secure);
+
+    if (response.contains("job_results")) {
+      return response["job_results"].get<std::vector<JobResult>>();
+    }
+    return {};
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during list job results " + jobId + ": " + e.what());
+  }
+}
+
+Model
+V1Alpha1Client::createModel(const std::string &payload) {
+  auto headers = getHeader();
+  nlohmann::json reqBody;
+
+  reqBody["project_id"] = m_projectId;
+  reqBody["payload"] = payload;
+
+  try {
+    auto response = m_client.post(m_baseUrl, "/models", reqBody, headers, m_logging, m_secure);
+    return response.get<Model>();
+  } catch (const std::exception &e) {
+    throw std::runtime_error("fail during model creation: " + std::string(e.what()));
+  }
+}
+
+} // namespace cudaq::qaas::v1alpha1

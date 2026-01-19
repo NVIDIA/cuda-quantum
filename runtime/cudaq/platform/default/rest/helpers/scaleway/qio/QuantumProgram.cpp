@@ -10,7 +10,7 @@
 
 using json = nlohmann::json;
 
-namespace qio {
+namespace cudaq::qio {
 
 QuantumProgram::QuantumProgram(
     const cudaq::Kernel &kernel,

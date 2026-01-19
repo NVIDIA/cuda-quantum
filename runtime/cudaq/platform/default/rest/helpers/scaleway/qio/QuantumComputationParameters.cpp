@@ -9,7 +9,7 @@
 
 using json = nlohmann::json;
 
-namespace qio {
+namespace cudaq::qio {
 
 QuantumComputationParameters::QuantumComputationParameters(std::size_t shots)
     : m_shots(shots) {}

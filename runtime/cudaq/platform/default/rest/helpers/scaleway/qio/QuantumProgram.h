@@ -9,7 +9,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-namespace qio {
+namespace cudaq::qio {
 
 class QuantumProgram {
 public:
@@ -27,7 +27,7 @@ public:
     ZLIB_BASE64_V1 = 2
   };
 
-  QioQuantumProgram(const cudaq::Kernel &kernel,
+  QuantumProgram(const cudaq::Kernel &kernel,
                     SerializationFormat serializationFormat,
                     CompressionFormat compressionFormat);
 

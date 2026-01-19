@@ -9,7 +9,7 @@
 #include <zlib.h>
 #include <stdexcept>
 
-namespace qio::compression {
+namespace cudaq::qio::compression {
 
 std::string
 gzipCompress(const std::string &input) {

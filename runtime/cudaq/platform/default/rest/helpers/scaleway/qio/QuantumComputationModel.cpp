@@ -9,10 +9,10 @@
 
 using json = nlohmann::json;
 
-namespace qio {
+namespace cudaq::qio {
 
 QuantumComputationModel::QuantumComputationModel(
-    std::vector<QioQuantumProgram> programs,
+    std::vector<QuantumProgram> programs,
     QuantumComputationParameters parameters)
     : m_programs(std::move(programs)),
       m_parameters(std::move(parameters)) {}

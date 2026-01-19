@@ -8,7 +8,7 @@
 #pragma once
 #include <string>
 
-namespace qio::compression {
+namespace cudaq::qio::compression {
 
 std::string gzipCompress(const std::string &input);
 std::string gzipDecompress(const std::string &input);

@@ -72,19 +72,16 @@ ScalewayServerHelper::serializeKernelToQio(const std::string& code) {
 
     qio::QuantumComputationParameters params(1024);
 
-    qio::QioQuantumComputationModel model(program, params);
+    qio::QuantumComputationModel model(program, params);
 
     return model.toJson().dump();
 }
 
 std::string
-ScalewayServerHelper::createModel(const std::string& name, const std::string& content) {
+ScalewayServerHelper::createModel(const std::string& payload) {
     json circuitPayload;
-    circuitPayload["name"] = name;
-    circuitPayload["definition"]["openqasm"] = content;
-    if (!m_projectId.empty()) {
-        circuitPayload["project_id"] = m_projectId;
-    }
+    circuitPayload["project_id"] = m_projectId;
+    circuitPayload["payload"] = payload;
 
     std::string response = m_client.post("/models", circuitPayload);
 
@@ -100,9 +97,8 @@ virtual
 std::map<std::string, std::string>
 ScalewayServerHelper::getHeaders() override {
   std::map<std::string, std::string> headers;
-
-  // put to initialize
   std::string apiKey = getOption("api_key");
+
   if (apiKey.empty()) {
       if (const char* envKey = std::getenv("SCW_SECRET_KEY")) apiKey = envKey;
   }
@@ -122,7 +118,6 @@ ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) over
     taskRequest["name"] = circuitCode.name;
     taskRequest["session_id"] = m_sessionId;
     taskRequest["model_id"] = uploadModel(circuitCode.name, circuitCode.code);
-    // taskRequest["sampling_count"] = shots;
     tasks.push_back(taskRequest);
   }
   CUDAQ_INFO("Created job payload for Scaleway, "

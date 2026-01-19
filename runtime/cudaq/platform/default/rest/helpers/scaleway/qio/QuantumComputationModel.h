@@ -11,11 +11,11 @@
 #include "QuantumProgram.h"
 #include "QuantumComputationParameters.h"
 
-namespace qio {
+namespace cudaq::qio {
 
-class QioQuantumComputationModel {
+class QuantumComputationModel {
 public:
-  QioQuantumComputationModel(std::vector<QioQuantumProgram> programs,
+  QuantumComputationModel(std::vector<QioQuantumProgram> programs,
                              QuantumComputationParameters parameters);
 
   nlohmann::json toJson() const;

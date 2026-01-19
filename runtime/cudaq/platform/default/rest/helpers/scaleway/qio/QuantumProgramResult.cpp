@@ -9,6 +9,6 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-namespace qio {
+namespace cudaq::qio {
 
 }
