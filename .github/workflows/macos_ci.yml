@@ -114,3 +114,47 @@ jobs:
           echo "=== Cache sizes ==="
           du -sh ~/.local || true
           du -sh ~/.llvm-project || true
+
+  # ============================================================================
+  # Build and test CUDA-Q
+  # ============================================================================
+  build_and_test:
+    name: Build (${{ matrix.arch }})
+    needs: [metadata, devdeps]
+    strategy:
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+            deployment_target: '11.0'
+          # Uncomment to enable Intel x86_64
+          # - runner: macos-15-intel
+          #   arch: x86_64
+          #   deployment_target: '10.13'
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Restore prerequisites cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local
+            ~/.llvm-project
+          key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
+          fail-on-cache-miss: true
+
+      - name: Build CUDA-Q
+        env:
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+        run: |
+          bash scripts/build_cudaq.sh -v

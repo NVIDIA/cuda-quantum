@@ -84,6 +84,9 @@ this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 build_dir="$working_dir/build"
 
+# Set default environment variables (won't override if already set)
+source "$this_file_dir/set_env_defaults.sh"
+
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":c:t:j:vB:isp" opt; do
@@ -121,12 +124,7 @@ fi
 mkdir -p logs && rm -rf logs/*
 
 # Install prerequisites (opt-in with -p or -t)
-# When installing prerequisites, we also set default install prefix env vars
-# so CMake knows where to find them. Without -p/-t, CMake uses standard discovery.
 if $install_prereqs || [ -n "$install_toolchain" ]; then
-  # Set defaults for where prerequisites will be installed
-  source "$this_file_dir/set_env_defaults.sh"
-  
   echo "Installing prerequisites..."
   # Save and clear positional parameters to avoid passing them to sourced script
   saved_args=("$@")
