@@ -27,9 +27,13 @@ public:
     ZLIB_BASE64_V1 = 2
   };
 
-  QuantumProgram(const cudaq::Kernel &kernel,
-                    SerializationFormat serializationFormat,
-                    CompressionFormat compressionFormat);
+  QuantumProgram(const cudaq::Kernel& kernel,
+                  SerializationFormat serializationFormat,
+                  CompressionFormat compressionFormat);
+
+  QuantumProgram(const std::string& serialization,
+                  SerializationFormat serializationFormat,
+                  CompressionFormat compressionFormat);
 
   nlohmann::json toJson() const;
 

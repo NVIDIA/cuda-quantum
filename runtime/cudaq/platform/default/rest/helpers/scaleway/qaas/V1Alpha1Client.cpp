@@ -121,7 +121,6 @@ V1Alpha1Client::createJob(const std::string &sessionId, const std::string &model
   auto headers = getHeader();
   nlohmann::json payload;
 
-  payload["project_id"] = m_projectId;
   payload["session_id"] = sessionId;
   payload["model_id"] = modelId;
   payload["name"] = name;

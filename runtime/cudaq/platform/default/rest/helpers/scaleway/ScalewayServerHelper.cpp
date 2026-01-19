@@ -26,6 +26,14 @@ namespace cudaq {
           getOption("secret_key"),
           getOption("url")
       );
+
+      auto platformName = getOption("machine")
+
+      m_platformName = if platformName.empty() ? m_defaultPlatformName : getOption("machine");
+      m_sessionDeduplicationId = getOption("deduplicationId", "");
+      m_sessionMaxDuration = getOption("maxDuration", "");
+      m_sessionMaxIdleDuration = getOption("maxIdleDuration", "");
+      m_sessionName = getOption("name", "cudaq-session");
   }
 
   std::chrono::microseconds
@@ -108,15 +116,22 @@ namespace cudaq {
   ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) override {
     ensureSessionIsActive();
 
-    // ServerJobPayload ret;
-    // std::vector<ServerMessage> &tasks = std::get<2>(ret);
-    // for (auto &circuitCode : circuitCodes) {
-    //   ServerMessage taskRequest;
-    //   // taskRequest["name"] = circuitCode.name;
-    //   // taskRequest["session_id"] = m_sessionId;
-    //   // taskRequest["model_id"] = uploadModel(circuitCode.name, circuitCode.code);
-    //   // tasks.push_back(taskRequest);
-    // }
+    ServerJobPayload ret;
+    std::vector<ServerMessage> &tasks = std::get<2>(ret);
+
+    for (auto &circuitCode : circuitCodes) {
+      ServerMessage taskRequest;
+      std::string qioPayload = serializeKernelToQio(circuitCode.code);
+      std::string modelId = m_qaasClient.createModel(qioPayload);
+      taskRequest["model_id"] = modelId;
+      taskRequest["session_id"] = m_sessionId;
+      taskRequest["name"] = circuitCode.name;
+
+      CUDAQ_INFO("Uploaded model to Scaleway with id {}", modelId);
+
+      tasks.push_back(taskRequest);
+    }
+
     CUDAQ_INFO("Created job payload for Scaleway, "
                 "targeting platform {}",
                 m_platformName);
@@ -193,13 +208,13 @@ namespace cudaq {
 }
 
   std::string
-  ScalewayServerHelper::serializeKernelToQio(const std::string& code) {
+  ScalewayServerHelper::serializeKernelToQio(const std::string& code, size_t shots) {
       qio::QuantumProgram program(
-          kernel,
+          code,
           qio::SerializationFormat::QIR,
           qio::CompressionFormat::GZIP);
 
-      qio::QuantumComputationParameters params(1024);
+      qio::QuantumComputationParameters params(shots);
 
       qio::QuantumComputationModel model(program, params);
 

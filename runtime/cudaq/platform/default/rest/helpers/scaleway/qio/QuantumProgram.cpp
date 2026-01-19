@@ -34,6 +34,15 @@ QuantumProgram::QuantumProgram(
   }
 }
 
+QuantumProgram::QuantumProgram(
+    const std::string &serialization,
+    SerializationFormat serializationFormat,
+    CompressionFormat compressionFormat)
+    : m_serialization(serialization),
+      m_serializationFormat(serializationFormat),
+      m_compressionFormat(compressionFormat) {
+}
+
 json
 QuantumProgram::toJson() const {
   return {
