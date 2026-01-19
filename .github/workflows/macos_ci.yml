@@ -21,8 +21,9 @@ jobs:
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
 
   # ============================================================================
-  # Build prerequisites (LLVM, OpenMP, etc.) - WITHOUT Python bindings
-  # Python bindings will be rebuilt per-Python-version in wheel job
+  # Build prerequisites (LLVM, OpenMP, etc.) WITHOUT Python bindings
+  # Python bindings are rebuilt per-Python-version in build_and_test/wheel jobs
+  # This mirrors the Linux CI architecture (wheeldeps → python_wheels)
   # ============================================================================
   devdeps:
     name: Prerequisites (${{ matrix.arch }})
@@ -153,6 +154,11 @@ jobs:
           key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
 
+      - name: Install build tools
+        run: |
+          # Install LLD for faster linking (must match devdeps configuration)
+          brew install lld
+
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
 
@@ -161,7 +167,9 @@ jobs:
           source scripts/set_env_defaults.sh
           
           # Rebuild MLIR Python bindings for this Python version
-          # Uses cached LLVM source in ~/.llvm-project
+          # Uses cached LLVM build in ~/.llvm-project (incremental rebuild)
+          # This mirrors Linux CI: wheeldeps has LLVM without python-bindings,
+          # then each wheel build adds python-bindings for its Python version
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;mlir;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
