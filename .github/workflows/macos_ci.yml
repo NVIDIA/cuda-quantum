@@ -75,26 +75,19 @@ jobs:
           # Source+build needed for incremental Python bindings rebuild in wheel job
           key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
 
-      - name: Fix gfortran (CI runner quirk)
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          # CI runner has gcc pre-installed but not linked properly
-          # Force relink to ensure gfortran is available for BLAS build
-          echo "=== Before fix ==="
-          which gfortran 2>/dev/null || echo "gfortran NOT found"
-          
-          brew unlink gcc 2>/dev/null || true
-          brew link gcc --overwrite 2>/dev/null || true
-          
-          echo "=== After fix ==="
-          which gfortran || { echo "ERROR: gfortran still not found!"; exit 1; }
-          gfortran --version
-
       - name: Build prerequisites
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
         run: |
+          # Fix CI runner quirk: gcc pre-installed but not linked
+          brew unlink gcc 2>/dev/null || true
+          brew link gcc --overwrite 2>/dev/null || true
+          which gfortran || { echo "ERROR: gfortran not found!"; exit 1; }
+          
+          # Install LLD for faster linking
+          brew install lld
+          
           # Override LLVM_PROJECTS to exclude python-bindings
           # Python bindings will be rebuilt per-Python-version in wheel job
           export LLVM_PROJECTS='clang;lld;mlir;openmp'

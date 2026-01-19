@@ -186,7 +186,7 @@ else
 fi
 
 # Determine linker and linker flags
-# On macOS, always use the system linker (Apple's ld) as -fuse-ld=lld doesn't work with Apple clang
+# On macOS, always use the system linker (Apple's ld) as we haven't yet added building with lld on MacOS.
 if [ "$(uname)" != "Darwin" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"

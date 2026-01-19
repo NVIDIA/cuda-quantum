@@ -215,6 +215,21 @@ fi
 cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
 
+# Use system LLD if available for faster linking
+# Set LLVM_ENABLE_LLD=ON/OFF to override auto-detection
+lld_flags=""
+if [ -n "${LLVM_ENABLE_LLD:-}" ]; then
+  lld_flags="-DLLVM_ENABLE_LLD=$LLVM_ENABLE_LLD"
+elif [ "$(uname)" = "Darwin" ]; then
+  if command -v ld64.lld &>/dev/null; then
+    echo "Using LLD"
+    lld_flags="-DLLVM_ENABLE_LLD=ON"
+  fi
+elif command -v ld.lld &>/dev/null; then
+  echo "Using LLD"
+  lld_flags="-DLLVM_ENABLE_LLD=ON"
+fi
+
 # Some flags that may be useful to build a GPU-offload-capable compiler: 
 # targets_to_build="host;NVPTX"
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
@@ -232,7 +247,8 @@ cmake_args=" \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_FLAGS='-w'"
+  -DCMAKE_CXX_FLAGS='-w' \
+  ${lld_flags}"
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
