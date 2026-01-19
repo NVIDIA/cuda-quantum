@@ -52,7 +52,7 @@ public:
     getExecutionManager()->initializeState({QuditInfo(n_levels(), idx)},
                                            state.data(), precision);
   }
-  
+
   qudit(const std::initializer_list<complex> &list)
       : qudit({list.begin(), list.end()}) {}
 
