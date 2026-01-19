@@ -8418,6 +8418,218 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     []{#classcudaq_1_1ExecutionContext_1a7a508d29f07472fa255e3193ef3281dc .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[optimization_result]{.pre}]{.n}](#_CPPv4N5cudaq19optimization_resultE "cudaq::optimization_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[optResult]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext9optResultE "Permalink to this definition"){.headerlink}\
 
     :   An optimization result.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a642d36be68417213256b572f0ba180cb .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[hasConditionalsOnMeasureResults]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext31hasConditionalsOnMeasureResultsE "Permalink to this definition"){.headerlink}\
+
+    :   The kernel being executed in this context has conditional
+        statements on measure results.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1aae5795038c44595b2af0b3297b2ef7c7 .target}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[noiseModel]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext10noiseModelE "Permalink to this definition"){.headerlink}\
+
+    :   Noise model to apply to the current execution.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a2d9c2a355ea502e92b23a03ed2913005 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[canHandleObserve]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext16canHandleObserveE "Permalink to this definition"){.headerlink}\
+
+    :   Flag to indicate if backend can handle spin_op observe task
+        under this [[ExecutionContext]{.std
+        .std-ref}](#classcudaq_1_1ExecutionContext){.reference
+        .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a7bd212c313ec3a8800ad6193af5845c6 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[asyncExec]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext9asyncExecE "Permalink to this definition"){.headerlink}\
+
+    :   Flag indicating that the current execution should occur
+        asynchronously.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a53330c89e4b1c462523dabe7edc6b696 .target}[[[details]{.pre}]{.n}](#_CPPv4N5cudaq7detailsE "cudaq::details"){.reference .internal}[[::]{.pre}]{.p}[[[future]{.pre}]{.n}](#_CPPv4N5cudaq7details6futureE "cudaq::details::future"){.reference .internal}[ ]{.w}[[[futureResult]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext12futureResultE "Permalink to this definition"){.headerlink}\
+
+    :   When execution asynchronously, store the expected results as a
+        cudaq::future here.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a93bf2cc98e0912bcccaa269e3fad4f41 .target}[[[async_result]{.pre}]{.n}](#_CPPv4I0EN5cudaq12async_resultE "cudaq::async_result"){.reference .internal}[[\<]{.pre}]{.p}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[asyncResult]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext11asyncResultE "Permalink to this definition"){.headerlink}\
+
+    :   Construct a [`async_sample_result`{.docutils .literal
+        .notranslate}]{.pre} so as to pass across Python boundary.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1ad9af730512e65f603c4060850017f2a3 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[simulationState]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext15simulationStateE "Permalink to this definition"){.headerlink}\
+
+    :   Pointer to simulation-specific simulation data.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a225ca6c6264dc4bab3ebffd1d23252c5 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[map]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[amplitudeMaps]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext13amplitudeMapsE "Permalink to this definition"){.headerlink}\
+
+    :   A map of basis-state amplitudes.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1aa33674ead54268a410e60557fdaeb8e0 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\*]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[overlapComputeStates]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE "Permalink to this definition"){.headerlink}\
+
+    :   List of pairs of states to compute the overlap.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a82f52405385514432d039465fde1ddee .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[overlapResult]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext13overlapResultE "Permalink to this definition"){.headerlink}\
+
+    :   Overlap results.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a832079b8beaec29c27462f27704d6386 .target}[[[Trace]{.pre}]{.n}](#_CPPv4N5cudaq5TraceE "cudaq::Trace"){.reference .internal}[ ]{.w}[[[kernelTrace]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext11kernelTraceE "Permalink to this definition"){.headerlink}\
+
+    :   When run under the tracer context, persist the traced quantum
+        resources here.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a2c25b49d493c82f6a0660d0a41af6ea6 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[kernelName]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext10kernelNameE "Permalink to this definition"){.headerlink}\
+
+    :   The name of the kernel being executed.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a0c0571f6674fe3e6af79fd064d828cb6 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[batchIteration]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq16ExecutionContext14batchIterationE "Permalink to this definition"){.headerlink}\
+
+    :   The current iteration for a batch execution, used by
+        [`observe_n`{.docutils .literal .notranslate}]{.pre} and
+        [`sample_n`{.docutils .literal .notranslate}]{.pre}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a688a9bdfda43ff68bb48124bedf6a9f4 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[totalIterations]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq16ExecutionContext15totalIterationsE "Permalink to this definition"){.headerlink}\
+
+    :   For batch execution, the total number of batch iterations.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1aff429589472a75c69a48edd06ced97d6 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[registerNames]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext13registerNamesE "Permalink to this definition"){.headerlink}\
+
+    :   For mid-circuit measurements in library mode keep track of the
+        register names.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a33d991dd8e3d37e040eb8fc625228c19 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[reorderIdx]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext10reorderIdxE "Permalink to this definition"){.headerlink}\
+
+    :   A vector containing information about how to reorder the global
+        register after execution. Empty means no reordering.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1af6a11ebbc93aacd5ba2912417c2c1ec8 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[qpuId]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq16ExecutionContext5qpuIdE "Permalink to this definition"){.headerlink}\
+
+    :   The ID of the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} that this
+        execution context is running on.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a2cbc25e01de0353f7909f3e434cb2065 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[char]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[invocationResultBuffer]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext22invocationResultBufferE "Permalink to this definition"){.headerlink}\
+
+    :   A buffer containing the return value of a kernel invocation.
+        Note: this is only needed for invocation not able to return a
+        [[[`sample_result`{.docutils .literal .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1sample__result){.reference .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a1d8a8a13f8765a8fce850e1a124a5fbb .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[numberTrajectories]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext18numberTrajectoriesE "Permalink to this definition"){.headerlink}\
+
+    :   The number of trajectories to be used for an expectation
+        calculation on simulation backends that support trajectory
+        simulation.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a446b7349d57ff400cf0121e5f29962be .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[explicitMeasurements]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext20explicitMeasurementsE "Permalink to this definition"){.headerlink}\
+
+    :   Whether or not to simply concatenate measurements in execution
+        order.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1ae3f00ca492659c5715faa185edecff1e .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_probabilities]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext17msm_probabilitiesE "Permalink to this definition"){.headerlink}\
+
+    :   Probability of occurrence of each error mechanism (column) in
+        Measurement Syndrome Matrix (0-1 range).
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a9a7627c0aa37bcf0938be2941795b2aa .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_prob_err_id]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext15msm_prob_err_idE "Permalink to this definition"){.headerlink}\
+
+    :   Error mechanism ID. From a probability perspective, each error
+        mechanism ID is independent of all other error mechanism ID. For
+        all errors with the *same* ID, only one of them can happen. That
+        is - the errors containing the same ID are correlated with each
+        other.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1a676ed0f74e3f9f671c1066e5476b8f22 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[msm_dimensions]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext14msm_dimensionsE "Permalink to this definition"){.headerlink}\
+
+    :   The number of rows and columns of a Measurement Syndrome Matrix.
+        Note: Measurement Syndrome Matrix is defined in
+        [https://arxiv.org/pdf/2407.13826](https://arxiv.org/pdf/2407.13826){.reference
+        .external}.
     :::
 
 ```{=html}
