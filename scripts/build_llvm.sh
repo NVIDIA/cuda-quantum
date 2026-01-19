@@ -195,14 +195,24 @@ else
   if [ -n "$mlir_python_bindings" ]; then
     # Cherry-pick the necessary commit to have a distribution target
     # for the mlir-python-sources; to be removed after we update to LLVM 17.
-    echo "Cherry-picking commit 9494bd84df3c5b496fc087285af9ff40d7859b6a"
-    git cherry-pick --no-commit 9494bd84df3c5b496fc087285af9ff40d7859b6a
+    COMMIT_HASH="9494bd84df3c5b496fc087285af9ff40d7859b6a"
+    echo "Cherry-picking commit $COMMIT_HASH"
+    
+    # Check if the commit exists locally
+    if ! git cat-file -e "$COMMIT_HASH^{commit}" 2>/dev/null; then
+      echo "Commit not found locally, attempting to fetch it..."
+      # Try to fetch the commit from the remote
+      git fetch --depth 1 origin "$COMMIT_HASH"
+      if [ ! 0 -eq $? ]; then
+        echo "Error: Could not fetch commit $COMMIT_HASH from origin."
+      fi
+    fi
+    
+    # Now attempt the cherry-pick
+    git cherry-pick --no-commit "$COMMIT_HASH"
     if [ ! 0 -eq $? ]; then
       echo "Cherry-pick failed."
-      if $(git rev-parse --is-shallow-repository); then
-        echo "Unshallow the repository and try again."
-        (return 0 2>/dev/null) && return 1 || exit 1
-      fi
+      (return 0 2>/dev/null) && return 1 || exit 1
     fi
   fi
 fi

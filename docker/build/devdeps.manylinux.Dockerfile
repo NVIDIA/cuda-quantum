@@ -38,9 +38,7 @@ RUN mkdir -p /llvm-project && cd /llvm-project && \
     git init && \
     git remote add origin https://github.com/llvm/llvm-project && \
     git fetch --depth 1 origin $llvm_commit && \
-    git checkout FETCH_HEAD && \
-    # Remove .git directory after checkout
-    rm -rf .git
+    git checkout FETCH_HEAD
 
 # Install the C/C++ compiler toolchain to build the LLVM dependencies.
 # CUDA-Q needs to be built with that same toolchain, and the
