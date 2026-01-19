@@ -166,12 +166,9 @@ jobs:
         run: |
           source scripts/set_env_defaults.sh
           
-          # Rebuild MLIR Python bindings for this Python version
-          # Uses cached LLVM build in ~/.llvm-project (incremental rebuild)
-          # This mirrors Linux CI: wheeldeps has LLVM without python-bindings,
-          # then each wheel build adds python-bindings for its Python version
+          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
-          LLVM_PROJECTS='clang;mlir;python-bindings' \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
           bash scripts/build_llvm.sh -c Release -v
 
