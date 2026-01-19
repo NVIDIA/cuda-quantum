@@ -153,6 +153,20 @@ jobs:
           key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
 
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+          
+          # Rebuild MLIR Python bindings for this Python version
+          # Uses cached LLVM source in ~/.llvm-project
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;mlir;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v
+
       - name: Build CUDA-Q
         env:
           MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
