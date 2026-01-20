@@ -160,9 +160,12 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
     if (indices.size() != 2)
       throw std::runtime_error("CuDensityMatState holding a density matrix "
                                "supports only 2-dimensional indices");
-    if (indices[0] >= dimension || indices[1] >= dimension)
+    // For density matrix, dimension is the total size (dim*dim), so we need
+    // to compute the single-side dimension for bounds checking.
+    const std::size_t dim = static_cast<std::size_t>(std::sqrt(dimension));
+    if (indices[0] >= dim || indices[1] >= dim)
       throw std::runtime_error("CuDensityMatState indices out of range");
-    return extractValue(indices[0] * dimension + indices[1]);
+    return extractValue(indices[0] * dim + indices[1]);
   }
   if (indices.size() != 1)
     throw std::runtime_error(
