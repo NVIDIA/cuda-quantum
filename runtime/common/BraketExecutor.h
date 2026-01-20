@@ -12,7 +12,6 @@
 #include "common/Executor.h"
 #include "common/Logger.h"
 #include "common/SampleResult.h"
-#include "common/cudaq_fmt.h"
 #include "cudaq.h"
 #include <aws/braket/BraketClient.h>
 #include <aws/core/Aws.h>
