@@ -1293,7 +1293,7 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 
 <span class="c1"># Start the mock server</span>
-python3<span class="w"> </span>-m<span class="w"> </span>utils.mock_qpu.&lt;provider_name&gt;<span class="w"> </span>@PORT@<span class="w"> </span><span class="p">&amp;</span>
+python3<span class="w"> </span>utils/start_mock_qpu.py<span class="w"> </span>&lt;provider_name&gt;<span class="w"> </span><span class="p">&amp;</span>
 <span class="nv">SERVER_PID</span><span class="o">=</span><span class="nv">$!</span>
 
 <span class="c1"># Wait for server to start</span>
