@@ -12,5 +12,6 @@ from .infleqtion import *
 from .ionq import *
 from .iqm import *
 from .qci import *
+from .qibo import *
 from .quantinuum import *
 from .quantum_machines import *
