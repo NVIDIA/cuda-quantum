@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore environment
         id: restore_devdeps
@@ -158,7 +158,7 @@ jobs:
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
       - name: Upload environment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: inputs.export_environment
         with:
           name: ${{ steps.env_save.outputs.filename }}
@@ -174,7 +174,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Restore environment
         id: restore_devdeps
@@ -284,7 +284,7 @@ jobs:
           echo "output_directory=$output_directory" >> $GITHUB_OUTPUT
 
       - name: Upload environment
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: inputs.export_environment
         with:
           name: ${{ steps.env_save.outputs.filename }}

@@ -50,7 +50,7 @@ jobs:
   
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ (github.event.workflow_run.name == 'CI' && vars.preview_branch) || vars.live_branch }}
           token: ${{ (github.event.workflow_run.name == 'CI' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}

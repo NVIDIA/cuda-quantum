@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ vars.assets_repo || github.repository }}
           ref: ${{ vars.data_branch }}
@@ -322,7 +322,7 @@ jobs:
   
       - name: Upload CUDA-Q assets
         if: steps.artifacts.outputs.releases != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.assets_retrieval.outputs.artifact_name }}
           path: /tmp/assets
@@ -353,7 +353,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -371,7 +371,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Load docker assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
@@ -545,12 +545,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load build assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
@@ -628,7 +628,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
           path: /tmp/install
@@ -657,12 +657,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheel assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.assets.outputs.retrieved_assets }}
           path: /tmp/assets
@@ -743,7 +743,7 @@ jobs:
           fi
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-py${{ matrix.python_version }}-wheels
           path: /tmp/wheels
@@ -837,7 +837,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
           path: github-repo
@@ -937,7 +937,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
@@ -948,7 +948,7 @@ jobs:
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
 
       - name: Load installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
           path: /tmp/install
@@ -1053,12 +1053,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: '*-wheels'
           path: /tmp/wheels
@@ -1066,7 +1066,7 @@ jobs:
 
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
@@ -1156,19 +1156,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.github_commit || needs.assets.outputs.github_commit }}
 
       - name: Load wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: '*-wheels'
           path: /tmp/wheels
           merge-multiple: true
       
       - name: Load metapackage
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: /tmp/packages
@@ -1224,19 +1224,19 @@ jobs:
 
     steps:
       - name: Download CUDA-Q installer
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: '*-installer'
           path: installers
 
       - name: Download CUDA-Q Python wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: '*-wheels'
           path: wheelhouse
 
       - name: Download CUDA-Q metapackages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
           path: metapackages
@@ -1316,7 +1316,7 @@ jobs:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
 
       - name: Delete artifacts
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const res = await github.rest.actions.listArtifactsForRepo({

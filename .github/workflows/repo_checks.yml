@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check links in Markdown files
         uses: ./.github/actions/check-markdown-links
@@ -34,7 +34,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: apache/skywalking-eyes/header@v0.4.0
         with:
           config: .licenserc.yaml
@@ -50,7 +50,7 @@ jobs:
       json: ${{ steps.files.outputs.json }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: ${{ (github.event_name == 'pull_request' && '0') || '1' }}
 
@@ -102,7 +102,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: C++
         run: |
@@ -171,7 +171,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Check spelling allowlist
         run: |
