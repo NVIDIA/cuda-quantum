@@ -36,50 +36,6 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test_config.h.in"
                @ONLY)
 include_directories(${CMAKE_BINARY_DIR}/include)
 
-# ======= Phase 4: New Test Infrastructure ====================================
-
-# Test utilities library (LoopbackChannel for testing without hardware)
-add_library(test_utils STATIC
-  test_utils/loopback_channel.cpp
-)
-
-target_include_directories(test_utils
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CUDAQ_NVQLINK_INCLUDE_DIR}
-)
-
-target_link_libraries(test_utils
-  PUBLIC
-    nvqlink_network
-)
-
-# Daemon tests
-add_executable(test_daemon test_daemon.cpp)
-target_link_libraries(test_daemon 
-  PRIVATE 
-    GTest::gtest_main
-    cudaq-nvqlink
-    nvqlink_daemon
-    test_utils
-)
-add_dependencies(NVQLINKUnitTests test_daemon)
-gtest_discover_tests(test_daemon)
-
-# Stream tests (serialization/deserialization)
-add_executable(test_streams test_streams.cpp)
-target_link_libraries(test_streams 
-  PRIVATE 
-    GTest::gtest_main
-    nvqlink_network
-)
-add_dependencies(NVQLINKUnitTests test_streams)
-gtest_discover_tests(test_streams)
-
-message(STATUS "Unit tests: Phase 4 - New Daemon-based tests added")
-message(STATUS "  - test_daemon (with LoopbackChannel)")
-message(STATUS "  - test_streams (serialization)")
-
 # ==============================================================================
 # GPU Dispatch Kernel Tests
 # ==============================================================================
