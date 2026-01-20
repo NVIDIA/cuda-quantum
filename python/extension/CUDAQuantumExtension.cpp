@@ -26,6 +26,7 @@
 #include "runtime/cudaq/algorithms/py_run.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_state.h"
+#include "runtime/cudaq/algorithms/py_trace_kernel.h"
 #include "runtime/cudaq/algorithms/py_translate.h"
 #include "runtime/cudaq/algorithms/py_unitary.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
@@ -121,6 +122,7 @@ PYBIND11_MODULE(_quakeDialects, m) {
   cudaq::bindPyDataClassRegistry(cudaqRuntime);
   cudaq::bindPyEvolve(cudaqRuntime);
   cudaq::bindEvolveResult(cudaqRuntime);
+  cudaq::bindPyTraceKernel(cudaqRuntime);
   cudaq::bindPyDraw(cudaqRuntime);
   cudaq::bindPyUnitary(cudaqRuntime);
   cudaq::bindPyRun(cudaqRuntime);
