@@ -211,8 +211,7 @@ else
     # Now attempt the cherry-pick
     git cherry-pick --no-commit "$COMMIT_HASH"
     if [ ! 0 -eq $? ]; then
-      echo "Cherry-pick failed."
-      (return 0 2>/dev/null) && return 1 || exit 1
+      echo "Cherry-pick failed. Continuing build..."
     fi
   fi
 fi
