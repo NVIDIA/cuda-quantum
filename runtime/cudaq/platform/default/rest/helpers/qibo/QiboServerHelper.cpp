@@ -6,7 +6,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <regex>
 #include <sstream>
@@ -16,13 +15,23 @@
 using json = nlohmann::json;
 
 namespace cudaq {
+std::string lowercaseArgument(std::string value) {
+  std::transform(
+    value.begin(), value.end(), value.begin(), [](unsigned char c){return std::tolower(c);}
+  );
+  return value;
+}
+
+bool booleanArgument(const std::string& string_argument) {
+  return lowercaseArgument(string_argument) == "true";  // we should handle wrong string-boolean values
+}
 
 /// @brief The QiboServerHelper class extends the ServerHelper class
 /// to handle interactions with the Qibo server for submitting and
 /// retrieving quantum computation jobs.
 class QiboServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://cloud.qibo.science";
-  static constexpr const char *DEFAULT_VERSION = "0.2.1";
+  static constexpr const char *DEFAULT_VERSION = "0.2.2";
 
 public:
   const std::string name() const override { return "qibo"; }
@@ -60,15 +69,6 @@ public:
   /// @brief Example implementation of simple job creation.
   ServerJobPayload createJob(std::vector<KernelExecution> &circuitCodes) override {
     ServerMessage job;
-    std::string lowercaseArgument = [](std::string value) {
-      std::transform(
-        value.begin(), value.end(), value.begin(), [](unsigned char c){return std::tolower(c);}
-      );
-      return value;
-    };
-    bool booleanArgument = [](const std::string& string_argument) {
-      return lowercaseArgument(string_argument) == "true";  // we should handle wrong string-boolean values
-    };
 
     job["circuit"] = circuitCodes[0].code;
     job["nshots"] = shots;
