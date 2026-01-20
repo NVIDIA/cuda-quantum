@@ -26,19 +26,20 @@ jobs:
   # This mirrors the Linux CI architecture (wheeldeps → python_wheels)
   # ============================================================================
   devdeps:
-    name: Prerequisites (${{ matrix.arch }})
+    name: Prerequisites (${{ matrix.runner }})
     needs: metadata
     strategy:
       matrix:
         include:
-          - runner: macos-15
+          - runner: macos-15-arm64
             arch: arm64
             deployment_target: '11.0'  # macOS Big Sur (first ARM64)
-          # Uncomment to enable Intel x86_64. Should we provide official x86 support?
-          # All current hardware is Apple silicon and Github is deprecating x86 runners in August 2027.
-          # - runner: macos-15-intel  # Intel runner (available until Aug 2027)
-          #   arch: x86_64
-          #   deployment_target: '10.13' # macOS High Sierra (required by Python 3.12+)
+          - runner: macos-26
+            arch: arm64
+            deployment_target: '11.0'  # macOS Big Sur (first ARM64)
+          - runner: macos-13
+            arch: x86_64
+            deployment_target: '10.15'  # macOS Catalina (x86_64)
       fail-fast: false
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
@@ -74,7 +75,7 @@ jobs:
             ~/.llvm-project
           # Cache: installed libs (~/.local) + LLVM source/build (~/.llvm-project)
           # Source+build needed for incremental Python bindings rebuild in wheel job
-          key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
+          key: ${{ matrix.runner }}-${{ matrix.deployment_target }}-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
 
       - name: Build prerequisites
         if: steps.cache.outputs.cache-hit != 'true'
@@ -117,18 +118,20 @@ jobs:
   # Build and test CUDA-Q
   # ============================================================================
   build_and_test:
-    name: Build (${{ matrix.arch }})
+    name: Build (${{ matrix.runner }})
     needs: [metadata, devdeps]
     strategy:
       matrix:
         include:
-          - runner: macos-15
+          - runner: macos-15-arm64
             arch: arm64
             deployment_target: '11.0'
-          # Uncomment to enable Intel x86_64
-          # - runner: macos-15-intel
-          #   arch: x86_64
-          #   deployment_target: '10.13'
+          - runner: macos-26
+            arch: arm64
+            deployment_target: '11.0'
+          - runner: macos-13
+            arch: x86_64
+            deployment_target: '10.15'
       fail-fast: false
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
@@ -148,7 +151,7 @@ jobs:
           path: |
             ~/.local
             ~/.llvm-project
-          key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
+          key: ${{ matrix.runner }}-${{ matrix.deployment_target }}-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
 
       - name: Install Python dependencies
