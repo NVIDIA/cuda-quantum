@@ -2328,6 +2328,7 @@ void cudaq::opt::addConvertToQIRAPIPipeline(OpPassManager &pm, StringRef api,
   pm.addPass(cudaq::opt::createLowerToCG());
   QuakeToQIRAPIOptions apiOpt{.api = api.str(), .opaquePtr = opaquePtr};
   pm.addPass(cudaq::opt::createQuakeToQIRAPI(apiOpt));
+  pm.addPass(cudaq::opt::createQirInsertArrayRecord());
   pm.addPass(createCanonicalizerPass());
   QuakeToQIRAPIFinalOptions finalApiOpt{.api = api.str()};
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
