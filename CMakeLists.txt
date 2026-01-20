@@ -103,6 +103,11 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
+# Enable Qilimanjaro target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QILIMANJARO_BACKEND)
+  set(CUDAQ_ENABLE_QILIMANJARO_BACKEND ON CACHE BOOL "Enable building the Qilimanjaro target.")
+endif()
+
 # Enable Quantum Circuits, Inc. (QCI) target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
   set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
