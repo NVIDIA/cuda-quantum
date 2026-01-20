@@ -201,8 +201,8 @@ else
     # Check if the commit exists locally
     if ! git cat-file -e "$COMMIT_HASH^{commit}" 2>/dev/null; then
       echo "Commit not found locally, attempting to fetch it..."
-      # Try to fetch the commit from the remote
-      git fetch --depth 1 origin "$COMMIT_HASH"
+      # Try to fetch the commit and its parent from the remote
+      git fetch --depth 2 origin "$COMMIT_HASH"
       if [ ! 0 -eq $? ]; then
         echo "Error: Could not fetch commit $COMMIT_HASH from origin."
       fi
