@@ -55,14 +55,12 @@ public:
   constructGetJobPath(ServerMessage &postResponse) override;
 
   virtual std::chrono::microseconds
-  nextResultPollingInterval(ServerMessage &postResponse) overide {
-    return std::chrono::microseconds(100);
-  }
+  nextResultPollingInterval(ServerMessage &postResponse) override;
 
 protected:
-  void ensureSessionIsActive();
-  std::string serializeKernelToQio(const std::string& code, size_t shots);
-  std::string createModel(const std::string& name, const std::string& content)
+  std::string ensureSessionIsActive();
+  std::string serializeKernelToQio(const std::string& code);
+  std::string serializeParametersToQio(size_t shots);
 private:
   const std::string m_defaultPlatformName = "EMU-CUDAQ-H100";
   cudaq::qaas::v1alpha1::V1Alpha1Client m_qaasClient;
@@ -72,7 +70,6 @@ private:
   std::string m_sessionName = "";
   std::string m_sessionMaxDuration = "";
   std::string m_sessionMaxIdleDuration = "";
-  size_t m_shots;
 };
 
 } // namespace cudaq

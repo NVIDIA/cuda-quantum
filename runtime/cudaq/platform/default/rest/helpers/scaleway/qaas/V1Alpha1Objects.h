@@ -83,7 +83,6 @@ namespace cudaq::qaas::v1alpha1 {
         std::string id;
         std::string name;
         std::string session_id;
-
         std::string created_at;
         std::optional<std::string> started_at;
         std::optional<std::string> updated_at;
@@ -107,7 +106,6 @@ namespace cudaq::qaas::v1alpha1 {
 
     struct JobResult {
         std::string job_id;
-
         std::optional<std::string> result;
         std::optional<std::string> url;
         std::string created_at;

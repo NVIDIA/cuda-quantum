@@ -9,20 +9,17 @@
 #include <nlohmann/json.hpp>
 
 #include "QuantumProgram.h"
-#include "QuantumComputationParameters.h"
 
 namespace cudaq::qio {
 
 class QuantumComputationModel {
 public:
-  QuantumComputationModel(std::vector<QioQuantumProgram> programs,
-                             QuantumComputationParameters parameters);
+  QuantumComputationModel(std::vector<QuantumProgram> programs);
 
   nlohmann::json toJson() const;
 
 private:
-  std::vector<QioQuantumProgram> m_programs;
-  QuantumComputationParameters m_parameters;
+  std::vector<QuantumProgram> m_programs;
 };
 
 }

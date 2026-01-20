@@ -22,8 +22,8 @@ namespace cudaq {
   void
   ScalewayServerHelper::initialize(BackendConfig config) {
       m_qaasClient.initialize(
-          getOption("project_id"),
-          getOption("secret_key"),
+          getOption("projectId"),
+          getOption("secretKey"),
           getOption("url")
       );
 
@@ -34,79 +34,8 @@ namespace cudaq {
       m_sessionMaxDuration = getOption("maxDuration", "");
       m_sessionMaxIdleDuration = getOption("maxIdleDuration", "");
       m_sessionName = getOption("name", "cudaq-session");
-      m_shots = std::stoul(getOption("shots"));
+      setShots(std::stoul(getOption("shots")));
   }
-
-  std::chrono::microseconds
-  ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) override {
-    return std::chrono::microseconds(1000000);
-  }
-
-  bool
-  ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) override {
-    auto j = json::parse(getJobResponse);
-    std::string status = j.value("status", "unknown");
-    if (status == "error") {
-        std::string err = j.contains("result") ? j["result"].value("error_message", "Unknown error") : "Unknown";
-        throw std::runtime_error("Scaleway Job Error: " + err);
-    }
-    return (status == "completed" || status == "canceled");
-  }
-
-  cudaq::sample_result
-  ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
-                std::string &jobId) override {
-  // Get results
-  // For all result
-  // Get raw result or URL
-  // get payload
-  // Unserialize to QuantumProgramResult
-  // Convert list of result to CountsDictionary then ExecutionRsult
-  // Finally return sample_result(ExecutionRsult[])
-
-  auto j = json::parse(getResponse);
-
-  if (!j.contains("job_results") || j["job_results"].empty()) {
-      throw std::runtime_error("Job done but empty results.");
-  }
-
-  auto firstResult = j["job_results"][0];
-
-  std::string rawPayload;
-
-  if (firstResult.contains("result") && !firstResult["result"].is_null() && firstResult["result"] != "") {
-      rawPayload = firstResult["result"].get<std::string>();
-  }
-  else if (firstResult.contains("url") && !firstResult["url"].is_null()) {
-      std::string downloadUrl = firstResult["url"].get<std::string>();
-      // rawPayload = performInternalRequest("GET", downloadUrl, {}, true);
-  }
-  else {
-      throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
-  }
-
-  try {
-      qio::QuantumProgramResult result = qio::QuantumProgramResult::fromJsonString(rawPayload);
-
-      cudaq::CountsDictionary counts;
-
-      for (const auto& sample : result.getSamples()) {
-          std::string bitString;
-          for (auto bit : sample.bits) {
-              bitString += std::to_string(bit);
-          }
-          counts[bitString] += 1;
-      }
-
-      std::vector<ExecutionResult> execResults;
-      execResults.emplace_back(ExecutionResult{counts});
-
-      return cudaq::sample_result(execResults);
-
-  } catch (const std::exception& e) {
-    throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
-  }
-}
 
   RestHeaders
   ScalewayServerHelper::getHeaders() override {
@@ -118,17 +47,19 @@ namespace cudaq {
     ensureSessionIsActive();
 
     ServerJobPayload ret;
-    std::vector<ServerMessage> &tasks = std::get<2>(ret);
+    std::vector<ServerMessage> tasks;
+    headers = m_qaasClient.getHeader();
 
     for (auto &circuitCode : circuitCodes) {
       ServerMessage taskRequest;
-      std::string qioPayload = serializeKernelToQio(circuitCode.code, m_shots);
+      std::string qioPayload = serializeKernelToQio(circuitCode.code);
+      std::string qioParams = serializeParametersToQio(m_shots);
       std::string modelId = m_qaasClient.createModel(qioPayload);
+
       taskRequest["model_id"] = modelId;
       taskRequest["session_id"] = m_sessionId;
       taskRequest["name"] = circuitCode.name;
-
-      CUDAQ_INFO("Uploaded model to Scaleway with id {}", modelId);
+      taskRequest["parameters"] = qioParams;
 
       tasks.push_back(taskRequest);
     }
@@ -136,7 +67,8 @@ namespace cudaq {
     CUDAQ_INFO("Created job payload for Scaleway, "
                 "targeting platform {}",
                 m_platformName);
-    return ret;
+
+    return std::make_tuple(m_qaasClient.getJobsUrl(), headers, tasks);
   }
 
   std::string
@@ -149,13 +81,88 @@ namespace cudaq {
 
   std::string
   ScalewayServerHelper::constructGetJobPath(std::string &jobId) override {
-    return m_qaasClient.getJobResultsUrl(jobId);
+    return m_qaasClient.getJobsUrl(jobId);
   }
 
   std::string
   ScalewayServerHelper::constructGetJobPath(ServerMessage &postResponse) override {
     std::string jobId = extractJobId(postResponse);
-    return m_qaasClient.getJobResultsUrl(jobId);
+    return m_qaasClient.getJobsUrl(jobId);
+  }
+
+  std::chrono::microseconds
+  ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) override {
+    return std::chrono::microseconds(1000000);
+  }
+
+  bool
+  ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) override {
+    auto j = json::parse(getJobResponse);
+    std::string status = j.value("status", "unknown");
+
+    if (status == "error") {
+        std::string err = j.contains("result") ? j["result"].value("error_message", "Unknown error") : "Unknown";
+        throw std::runtime_error("Scaleway Job Error: " + err);
+    }
+
+    return (status == "completed" || status == "cancelled" || status == "cancelling");
+  }
+
+  cudaq::sample_result
+  ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
+                std::string &jobId) override {
+    // Get results
+    // For all result
+    // Get raw result or URL
+    // get payload
+    // Unserialize to QuantumProgramResult
+    // Convert list of result to CountsDictionary then ExecutionRsult
+    // Finally return sample_result(ExecutionRsult[])
+
+    auto jobResults = m_qaasClient.getJobResults(jobId);
+    auto results = jobResults.results;
+
+    if (results.empty()) {
+        throw std::runtime_error("Job done but empty results.");
+    }
+
+    auto firstResult = results[0];
+
+    std::string rawPayload;
+
+    if (firstResult.has_inline_result()) {
+        rawPayload = firstResult.result.value();
+    }
+    else if (firstResult.has_download_url()) {
+        std::string downloadUrl = firstResult.url.value();
+
+        // rawPayload = performInternalRequest("GET", downloadUrl, {}, true);
+    }
+    else {
+        throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
+    }
+
+    try {
+        qio::QuantumProgramResult result = qio::QuantumProgramResult::fromJsonString(rawPayload);
+
+        cudaq::CountsDictionary counts;
+
+        for (const auto& sample : result.getSamples()) {
+            std::string bitString;
+            for (auto bit : sample.bits) {
+                bitString += std::to_string(bit);
+            }
+            counts[bitString] += 1;
+        }
+
+        std::vector<ExecutionResult> execResults;
+        execResults.emplace_back(ExecutionResult{counts});
+
+        return cudaq::sample_result(execResults);
+
+    } catch (const std::exception& e) {
+      throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
+    }
   }
 
   std::string
@@ -209,15 +216,22 @@ namespace cudaq {
 }
 
   std::string
-  ScalewayServerHelper::serializeKernelToQio(const std::string& code, size_t shots) {
+  ScalewayServerHelper::serializeParametersToQio(size_t shots) {
+      qio::QuantumComputationParameters parameters(shots);
+
+      return parameters.toJson().dump();
+  }
+
+  std::string
+  ScalewayServerHelper::serializeKernelToQio(const std::string& code) {
       qio::QuantumProgram program(
           code,
           qio::SerializationFormat::QIR,
           qio::CompressionFormat::GZIP);
 
-      qio::QuantumComputationParameters params(shots);
+      std::vector<qio::QuantumProgram> programs = {program};
 
-      qio::QuantumComputationModel model(program, params);
+      qio::QuantumComputationModel model(programs);
 
       return model.toJson().dump();
   }

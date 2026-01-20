@@ -9,7 +9,7 @@ target_sources(cudaq-rest-qpu PRIVATE ScalewayServerHelper.cpp)
 add_target_config(scaleway)
 
 
-add_library(cudaq-serverhelper-scaleway SHARED ScalewayServerHelper.cpp )
+add_library(cudaq-serverhelper-scaleway SHARED ScalewayServerHelper.cpp)
 target_link_libraries(cudaq-serverhelper-scaleway
   PUBLIC
     cudaq-common

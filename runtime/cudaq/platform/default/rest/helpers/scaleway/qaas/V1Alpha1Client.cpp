@@ -28,8 +28,17 @@ std::map<std::string, std::string>
 V1Alpha1Client::getHeader() const {
   return {
       {"X-Auth-Token", m_secretKey},
-      {"Content-Type", "application/json"},
-      {"Accept", "application/json"}};
+      {"Content-Type", "application/json"}};
+}
+
+std::string
+V1Alpha1Client::getJobsUrl() {
+  return m_baseUrl + "/jobs";
+}
+
+std::string
+V1Alpha1Client::getJobResultsUrl(const std::string &jobId) {
+  return m_baseUrl + "/jobs/" + jobId + "/results";
 }
 
 Platform

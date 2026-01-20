@@ -41,6 +41,7 @@ public:
 
     Model createModel(const std::string& payload);
 
+    std::string getJobsUrl();
     std::string getJobResultsUrl(const std::string& jobId);
     RestHeaders getHeader();
 

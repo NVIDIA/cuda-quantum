@@ -12,10 +12,8 @@ using json = nlohmann::json;
 namespace cudaq::qio {
 
 QuantumComputationModel::QuantumComputationModel(
-    std::vector<QuantumProgram> programs,
-    QuantumComputationParameters parameters)
-    : m_programs(std::move(programs)),
-      m_parameters(std::move(parameters)) {}
+    std::vector<QuantumProgram> programs)
+    : m_programs(std::move(programs)) {}
 
 json
 QuantumComputationModel::toJson() const {
@@ -26,8 +24,6 @@ QuantumComputationModel::toJson() const {
 
   return {
       {"programs", programsJson},
-      {"parameters", m_parameters.toJson()}
   };
 }
-
 }
