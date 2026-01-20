@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/platform.h"
-#include "execution_manager.h"
+#include "measure_result.h"
 
 bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();

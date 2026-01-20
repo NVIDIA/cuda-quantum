@@ -14,7 +14,7 @@ struct Eins {
   std::vector<bool> operator()(cudaq::state *state) __qpu__ {
     cudaq::qvector v(state);
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -28,7 +28,7 @@ struct Zwei {
   std::vector<bool> operator()(const cudaq::state *state) __qpu__ {
     cudaq::qvector v(state);
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -42,7 +42,7 @@ struct Drei {
   std::vector<bool> operator()(cudaq::state &state) __qpu__ {
     cudaq::qvector v(state);
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -56,7 +56,7 @@ struct Vier {
   std::vector<bool> operator()(const cudaq::state &state) __qpu__ {
     cudaq::qvector v(state);
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 

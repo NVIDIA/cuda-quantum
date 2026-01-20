@@ -16,7 +16,7 @@ struct K9 {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
     cudaq::qubit p;
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 

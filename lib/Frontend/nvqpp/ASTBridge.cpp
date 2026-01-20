@@ -73,6 +73,19 @@ static bool hasAnyQubitTypes(FunctionType funcTy) {
   return false;
 }
 
+// Check the builtin type `FunctionType` to see if it has any `MeasureType`
+// arguments.
+static bool hasMeasureResultArgs(FunctionType funcTy) {
+  for (auto ty : funcTy.getInputs()) {
+    if (isa<quake::MeasureType>(ty))
+      return true;
+    if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+      if (isa<quake::MeasureType>(vecTy.getElementType()))
+        return true;
+  }
+  return false;
+}
+
 // Remove the Itanium mangling "_ZTS" prefix. This is to match the name returned
 // by `typeid(TYPE).name()`.
 static std::string
@@ -640,6 +653,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
       if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+          (!hasMeasureResultArgs(func.getFunctionType())) &&
           (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.
