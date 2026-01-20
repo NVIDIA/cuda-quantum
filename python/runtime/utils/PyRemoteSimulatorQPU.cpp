@@ -161,4 +161,4 @@ public:
 
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, PyRemoteSimulatorQPU, RemoteSimulatorQPU)
+CUDAQ_REGISTER_QPU_TYPE(PyRemoteSimulatorQPU, RemoteSimulatorQPU)

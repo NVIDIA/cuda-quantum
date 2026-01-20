@@ -27,4 +27,4 @@ public:
 
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteSimulatorQPU, RemoteSimulatorQPU)
+CUDAQ_REGISTER_QPU_TYPE(RemoteSimulatorQPU, RemoteSimulatorQPU)

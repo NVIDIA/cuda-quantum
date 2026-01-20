@@ -50,4 +50,4 @@ public:
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, FermioniqRestQPU, fermioniq)
+CUDAQ_REGISTER_QPU_TYPE(FermioniqRestQPU, fermioniq)
