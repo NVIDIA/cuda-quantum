@@ -86,9 +86,6 @@ jobs:
           brew link gcc --overwrite 2>/dev/null || true
           which gfortran || { echo "ERROR: gfortran not found!"; exit 1; }
           
-          # Install LLD for faster linking
-          brew install lld
-          
           # Override LLVM_PROJECTS to exclude python-bindings
           # Python bindings will be rebuilt per-Python-version in wheel job
           export LLVM_PROJECTS='clang;lld;mlir;openmp'
@@ -153,11 +150,6 @@ jobs:
             ~/.llvm-project
           key: macos-${{ matrix.arch }}-${{ matrix.deployment_target }}-devdeps-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
-
-      - name: Install build tools
-        run: |
-          # Install LLD for faster linking (must match devdeps configuration)
-          brew install lld
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
