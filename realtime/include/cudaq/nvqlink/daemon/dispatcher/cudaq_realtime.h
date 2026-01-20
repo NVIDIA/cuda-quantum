@@ -28,6 +28,18 @@ typedef enum {
   CUDAQ_ERR_CUDA = 3
 } cudaq_status_t;
 
+// Kernel synchronization type
+typedef enum {
+  CUDAQ_KERNEL_REGULAR = 0,
+  CUDAQ_KERNEL_COOPERATIVE = 1
+} cudaq_kernel_type_t;
+
+// Dispatch invocation mode
+typedef enum {
+  CUDAQ_DISPATCH_DEVICE_CALL = 0,
+  CUDAQ_DISPATCH_GRAPH_LAUNCH = 1
+} cudaq_dispatch_mode_t;
+
 // Dispatcher configuration
 typedef struct {
   int device_id;              // GPU device ID (>=0)
@@ -35,6 +47,9 @@ typedef struct {
   uint32_t threads_per_block; // block size
   uint32_t num_slots;         // ring buffer slots
   uint32_t slot_size;         // bytes per slot
+  uint32_t vp_id;             // virtual port ID
+  cudaq_kernel_type_t kernel_type;   // regular/cooperative kernel
+  cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
 } cudaq_dispatcher_config_t;
 
 // GPU ring buffer pointers (device-visible mapped pointers)

@@ -25,6 +25,26 @@ struct cudaq_dispatcher_t {
   bool running = false;
 };
 
+static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
+  switch (kernel_type) {
+  case CUDAQ_KERNEL_REGULAR:
+  case CUDAQ_KERNEL_COOPERATIVE:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static bool is_valid_dispatch_mode(cudaq_dispatch_mode_t dispatch_mode) {
+  switch (dispatch_mode) {
+  case CUDAQ_DISPATCH_DEVICE_CALL:
+  case CUDAQ_DISPATCH_GRAPH_LAUNCH:
+    return true;
+  default:
+    return false;
+  }
+}
+
 static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t* dispatcher) {
   if (!dispatcher)
     return CUDAQ_ERR_INVALID_ARG;
@@ -37,7 +57,11 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t* dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
   if (dispatcher->config.num_blocks == 0 ||
       dispatcher->config.threads_per_block == 0 ||
-      dispatcher->config.num_slots == 0)
+      dispatcher->config.num_slots == 0 ||
+      dispatcher->config.slot_size == 0)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (!is_valid_kernel_type(dispatcher->config.kernel_type) ||
+      !is_valid_dispatch_mode(dispatcher->config.dispatch_mode))
     return CUDAQ_ERR_INVALID_ARG;
   return CUDAQ_OK;
 }

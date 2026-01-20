@@ -103,10 +103,13 @@ if(CMAKE_CUDA_COMPILER)
   target_link_libraries(test_dispatch_kernel PRIVATE 
     GTest::gtest_main 
     CUDA::cudart
+    cudaq-realtime
   )
   
   add_dependencies(NVQLINKUnitTests test_dispatch_kernel)
-  gtest_discover_tests(test_dispatch_kernel)
+  gtest_discover_tests(test_dispatch_kernel
+    TEST_PREFIX "test_dispatch_kernel."
+  )
   
   message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
 endif()
