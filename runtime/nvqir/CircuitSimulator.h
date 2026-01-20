@@ -151,6 +151,10 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   virtual void generateMSM() {}
 
+  virtual void detector(const std::int64_t *indices, std::size_t num_indices) {
+    return;
+  }
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -1449,8 +1453,11 @@ public:
     if (handleBasicSampling(qubitIdx, registerName))
       return true;
 
-    if (isInTracerMode())
+    if (isInTracerMode()) {
+      executionContext->kernelTrace.appendInstruction(
+          "mz", {}, {}, {cudaq::QuditInfo(2, qubitIdx)});
       return true;
+    }
 
     // Get the actual measurement from the subtype measureQubit implementation
     auto measureResult = measureQubit(qubitIdx);
@@ -1531,7 +1538,16 @@ public:
       flushGateQueue();
     }
   }
-
+  void detector(const std::int64_t *indices, std::size_t num_indices) override {
+    flushGateQueue();
+    flushAnySamplingTasks();
+    if (isInTracerMode()) {
+      std::vector<double> params(indices, indices + num_indices);
+      cudaq::QuditInfo dummyTarget(2, 0);
+      executionContext->kernelTrace.appendInstruction("detector", params, {},
+                                                      {dummyTarget});
+    }
+  }
 }; // namespace nvqir
 } // namespace nvqir
 

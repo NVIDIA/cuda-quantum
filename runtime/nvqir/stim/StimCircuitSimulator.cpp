@@ -61,6 +61,10 @@ protected:
   /// for speed)
   bool is_msm_mode = false;
 
+  bool isToStimMode() const {
+    return executionContext && executionContext->name == "to_stim";
+  }
+
   std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
@@ -164,6 +168,34 @@ protected:
           executionContext->msm_dimensions.value_or(std::make_pair(1, 1))
               .second;
     return batch_size;
+  }
+
+  void detector(const std::int64_t *indices, std::size_t num_indices) override {
+    // Call the base class detector method first.
+    CircuitSimulatorBase::detector(indices, num_indices);
+    if (num_indices < 1) {
+      throw std::runtime_error("Detector must have at least 1 index");
+    }
+    if (isToStimMode()) {
+      // There is no need to send this to Stim yet, so we do not call
+      // applyOpToSims right now. Therefore, we append the instruction to the
+      // trace here.
+      {
+        std::stringstream ss;
+        ss << "DETECTOR";
+        for (std::size_t i = 0; i < num_indices; i++) {
+          if (indices[i] < 0) {
+            ss << " rec[" << indices[i] << "]";
+          } else {
+            throw std::runtime_error(
+                "Detector index cannot be positive when running with 'to_stim' "
+                "execution context");
+          }
+        }
+        executionContext->kernelTrace.appendInstruction(ss.str(), {}, {},
+                                                        {QuditInfo(2, 0)});
+      }
+    }
   }
 
   /// @brief Return the number of rows and columns needed for a Parity Check
@@ -278,6 +310,10 @@ protected:
     tempCircuit.safe_append_u(gate_name, targets);
     tableau->safe_do_circuit(tempCircuit);
     sampleSim->safe_do_circuit(tempCircuit);
+    if (isToStimMode()) {
+      executionContext->kernelTrace.appendInstruction(tempCircuit.str(), {}, {},
+                                                      {QuditInfo(2, 0)});
+    }
   }
 
   /// @brief Apply the noise channel on \p qubits
@@ -376,6 +412,13 @@ protected:
         // Only apply the noise operations to the sample simulator (not the
         // Tableau simulator).
         sampleSim->safe_do_circuit(noiseOps);
+
+        // Since we do not call applyOpToSims here, we append the instruction to
+        // the trace here.
+        if (isToStimMode()) {
+          executionContext->kernelTrace.appendInstruction(
+              noiseOps.str(), {}, {}, {QuditInfo(2, 0)});
+        }
 
         // Increment the error count by the number of mechanisms
         msm_err_count += res->params.size();

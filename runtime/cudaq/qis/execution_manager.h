@@ -156,6 +156,9 @@ public:
   /// End the adjoint region
   virtual void endAdjointRegion() = 0;
 
+  virtual void detector(const std::int64_t *indices,
+                        std::size_t num_indices) = 0;
+
   /// Start a region of code where all operations will be controlled on the
   /// given qudits.
   virtual void

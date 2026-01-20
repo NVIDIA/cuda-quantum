@@ -252,6 +252,10 @@ public:
     return;
   }
 
+  void detector(const std::int64_t *indices, std::size_t num_indices) override {
+    return;
+  }
+
   void synchronize() override {
     for (auto &instruction : instructionQueue) {
       if (!isInTracerMode()) {
@@ -268,8 +272,10 @@ public:
 
   int measure(const cudaq::QuditInfo &target,
               const std::string registerName = "") override {
-    if (isInTracerMode())
+    if (isInTracerMode()) {
+      executionContext->kernelTrace.appendInstruction("mz", {}, {}, {target});
       return 0;
+    }
 
     // We hit a measure, need to exec / clear instruction queue
     synchronize();

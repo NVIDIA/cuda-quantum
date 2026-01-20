@@ -221,6 +221,10 @@ protected:
         })();
   }
 
+  void detector(const std::int64_t *indices, std::size_t num_indices) override {
+    simulator()->detector(indices, num_indices);
+  }
+
   void applyNoise(const kraus_channel &channel,
                   const std::vector<QuditInfo> &targets) override {
     if (isInTracerMode())

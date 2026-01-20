@@ -532,6 +532,19 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise", [AttrSizedOperandSegments]> {
   }];
 }
 
+def quake_DetectorOp : QuakeOp<"detector"> {
+  let summary = "Create a detector.";
+  let description = [{
+    This operation creates a detector.
+  }];
+
+  let arguments = (ins
+    Variadic<AnyTypeOf<[AnyInteger, StdvecOf<[AnyInteger]>]>>:$measures
+  );
+
+  let hasVerifier = 1;
+}
+
 //===----------------------------------------------------------------------===//
 // Memory and register conversion instructions: These operations are useful for
 // intermediate conversions between memory-SSA and value-SSA semantics and vice

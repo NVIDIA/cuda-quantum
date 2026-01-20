@@ -14,6 +14,7 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 add_library(${LIBRARY_NAME} 
          SHARED cudaq.cpp 
                 target_control.cpp
+                algorithms/detectors.cpp
                 algorithms/draw.cpp
                 algorithms/evolve.cpp
                 algorithms/schedule.cpp
