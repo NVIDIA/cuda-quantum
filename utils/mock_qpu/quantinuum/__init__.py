@@ -218,6 +218,9 @@ async def create_job(job: dict):
     funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
+    # Clear any leftover log from previous jobs
+    cudaq.testing.getAndClearOutputLog()
+
     # Invoke the Kernel
     if is_ng_device:
         qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
