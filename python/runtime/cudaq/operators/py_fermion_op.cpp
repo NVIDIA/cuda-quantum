@@ -220,6 +220,12 @@ void bindFermionOperator(py::module &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
 
+      // Adjoint
+      .def("adjoint", &fermion_op::adjoint,
+           "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &fermion_op::adjoint_in_place,
+           "In-place adjoint of the operator.")
+
       // comparisons
 
       .def("__eq__", &fermion_op::operator==, py::is_operator(),
@@ -533,6 +539,12 @@ void bindFermionOperator(py::module &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+
+      // Adjoint
+      .def("adjoint", &fermion_op_term::adjoint,
+           "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &fermion_op_term::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 
