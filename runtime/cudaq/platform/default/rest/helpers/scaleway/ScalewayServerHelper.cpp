@@ -111,19 +111,11 @@ namespace cudaq {
   cudaq::sample_result
   ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
                 std::string &jobId) override {
-    // Get results
-    // For all result
-    // Get raw result or URL
-    // get payload
-    // Unserialize to QuantumProgramResult
-    // Convert list of result to CountsDictionary then ExecutionRsult
-    // Finally return sample_result(ExecutionRsult[])
-
     auto jobResults = m_qaasClient.getJobResults(jobId);
     auto results = jobResults.results;
 
     if (results.empty()) {
-        throw std::runtime_error("Job done but empty results.");
+      throw std::runtime_error("Job done but empty results.");
     }
 
     auto firstResult = results[0];
@@ -131,35 +123,25 @@ namespace cudaq {
     std::string rawPayload;
 
     if (firstResult.has_inline_result()) {
-        rawPayload = firstResult.result.value();
+      rawPayload = firstResult.result.value();
     }
     else if (firstResult.has_download_url()) {
-        std::string downloadUrl = firstResult.url.value();
-
-        // rawPayload = performInternalRequest("GET", downloadUrl, {}, true);
+      RestClient client;
+      rawPayload = client.getRawText(
+          firstResult.url.value(),
+          "",
+          true);
     }
     else {
-        throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
+      throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
     }
 
     try {
-        qio::QuantumProgramResult result = qio::QuantumProgramResult::fromJsonString(rawPayload);
+      qio::QuantumProgramResult qioResult = qio::QuantumProgramResult::fromJson(rawPayload);
 
-        cudaq::CountsDictionary counts;
+      executionResults = qioResult.toExecutionResults();
 
-        for (const auto& sample : result.getSamples()) {
-            std::string bitString;
-            for (auto bit : sample.bits) {
-                bitString += std::to_string(bit);
-            }
-            counts[bitString] += 1;
-        }
-
-        std::vector<ExecutionResult> execResults;
-        execResults.emplace_back(ExecutionResult{counts});
-
-        return cudaq::sample_result(execResults);
-
+      return cudaq::sample_result(executionResults);
     } catch (const std::exception& e) {
       throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
     }

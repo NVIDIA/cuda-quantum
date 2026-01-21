@@ -11,15 +11,13 @@
 #include "QuantumProgram.h"
 
 namespace cudaq::qio {
+  class QuantumComputationModel {
+    public:
+      QuantumComputationModel(std::vector<QuantumProgram> programs);
 
-class QuantumComputationModel {
-public:
-  QuantumComputationModel(std::vector<QuantumProgram> programs);
+      nlohmann::json toJson() const;
 
-  nlohmann::json toJson() const;
-
-private:
-  std::vector<QuantumProgram> m_programs;
-};
-
+    private:
+      std::vector<QuantumProgram> m_programs;
+  };
 }

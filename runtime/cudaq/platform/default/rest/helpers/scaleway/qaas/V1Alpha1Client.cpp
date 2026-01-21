@@ -93,8 +93,8 @@ V1Alpha1Client::createSession(const std::string &platformId,
   if (!deduplicationId.empty()) payload["deduplication_id"] = deduplicationId;
   if (!modelId.empty()) payload["model_id"] = modelId;
 
-  payload["max_duration"] = maxDuration.empty() ? "3600s" : maxDuration;
-  payload["max_idle_duration"] = maxIdleDuration.empty() ? "600s" : maxIdleDuration;
+  payload["max_duration"] = maxDuration;
+  payload["max_idle_duration"] = maxIdleDuration;
 
   if (!parameters.empty()) {
     try {

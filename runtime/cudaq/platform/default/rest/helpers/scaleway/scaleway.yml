@@ -23,7 +23,7 @@ config:
   # jit-mid-level-pipeline: "lower-to-cfg,scaleway-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(delay-measurements,regtomem),scaleway-gate-set-mapping"
   jit-mid-level-pipeline: "lower-to-cfg,decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   # Tell the rest-qpu that we are generating QIR.
-  codegen-emission: qir-base
+  codegen-emission: openqasm2
   # Library mode is only for simulators, physical backends must turn this off
   library-mode: false
 

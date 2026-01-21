@@ -10,5 +10,25 @@
 #include <nlohmann/json.hpp>
 
 namespace cudaq::qio {
+    static
+    QuantumProgramResult
+    QuantumProgramResult::fromJson(nlohmann::json json) const {
 
+    }
+
+    std::vector<cudaq::ExecutionResult>
+    QuantumProgramResult::toExecutionResults() const {
+      cudaq::CountsDictionary counts;
+
+      for (const auto& sample : result.getSamples()) {
+          std::string bitString;
+          for (auto bit : sample.bits) {
+              bitString += std::to_string(bit);
+          }
+          counts[bitString] += 1;
+      }
+
+      std::vector<ExecutionResult> execResults;
+      execResults.emplace_back(ExecutionResult{counts});
+    }
 }

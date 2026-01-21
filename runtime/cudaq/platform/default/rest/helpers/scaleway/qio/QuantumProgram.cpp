@@ -11,45 +11,43 @@
 using json = nlohmann::json;
 
 namespace cudaq::qio {
+  QuantumProgram::QuantumProgram(
+      const cudaq::Kernel &kernel,
+      SerializationFormat serializationFormat,
+      CompressionFormat compressionFormat)
+      : m_serializationFormat(serializationFormat),
+        m_compressionFormat(compressionFormat) {
 
-QuantumProgram::QuantumProgram(
-    const cudaq::Kernel &kernel,
-    SerializationFormat serializationFormat,
-    CompressionFormat compressionFormat)
-    : m_serializationFormat(serializationFormat),
-      m_compressionFormat(compressionFormat) {
+    if (m_serializationFormat != SerializationFormat::QIR) {
+      throw std::runtime_error(
+          "Only QIR serialization is implemented in qio");
+    }
 
-  if (m_serializationFormat != SerializationFormat::QIR) {
-    throw std::runtime_error(
-        "Only QIR serialization is implemented in qio");
+    std::string serialization = cudaq::to_qir(kernel);
+
+    if (m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1) {
+      auto gz = compression::gzipCompress(serialization);
+      serialization = compression::base64Encode(gz);
+    } else {
+      serialization = compression::base64Encode(serialization);
+    }
   }
 
-  std::string serialization = cudaq::to_qir(kernel);
-
-  if (m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1) {
-    auto gz = compression::gzipCompress(serialization);
-    serialization = compression::base64Encode(gz);
-  } else {
-    serialization = compression::base64Encode(serialization);
+  QuantumProgram::QuantumProgram(
+      const std::string &serialization,
+      SerializationFormat serializationFormat,
+      CompressionFormat compressionFormat)
+      : m_serialization(serialization),
+        m_serializationFormat(serializationFormat),
+        m_compressionFormat(compressionFormat) {
   }
-}
 
-QuantumProgram::QuantumProgram(
-    const std::string &serialization,
-    SerializationFormat serializationFormat,
-    CompressionFormat compressionFormat)
-    : m_serialization(serialization),
-      m_serializationFormat(serializationFormat),
-      m_compressionFormat(compressionFormat) {
-}
-
-json
-QuantumProgram::toJson() const {
-  return {
-      {"serialization", m_serialization},
-      {"serialization_format", m_serializationFormat},
-      {"compression_format", m_compressionFormat}
-  };
-}
-
+  json
+  QuantumProgram::toJson() const {
+    return {
+        {"serialization", m_serialization},
+        {"serialization_format", m_serializationFormat},
+        {"compression_format", m_compressionFormat}
+    };
+  }
 }

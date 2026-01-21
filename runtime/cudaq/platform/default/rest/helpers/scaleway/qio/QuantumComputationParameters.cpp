@@ -10,15 +10,13 @@
 using json = nlohmann::json;
 
 namespace cudaq::qio {
+  QuantumComputationParameters::QuantumComputationParameters(std::size_t shots)
+      : m_shots(shots) {}
 
-QuantumComputationParameters::QuantumComputationParameters(std::size_t shots)
-    : m_shots(shots) {}
-
-json
-QuantumComputationParameters::toJson() const {
-  return {
-      {"shots", m_shots}
-  };
-}
-
+  json
+  QuantumComputationParameters::toJson() const {
+    return {
+        {"shots", m_shots}
+    };
+  }
 }

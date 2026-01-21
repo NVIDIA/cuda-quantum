@@ -22,8 +22,8 @@ namespace cudaq::qaas::v1alpha1 {
         std::string name;
         std::string provider_name;
         std::string backend_name;
-        std::string type;              // ex: "simulator", "qpu"
-        std::string technology;        // ex: "superconducting", "photonic"
+        std::string type;
+        std::string technology;
         std::optional<int64_t> max_qubit_count;
         std::optional<int64_t> max_shot_count;
         std::optional<int64_t> max_circuit_count;
@@ -99,7 +99,7 @@ namespace cudaq::qaas::v1alpha1 {
             model_id, parameters
         )
 
-        bool is_terminal() const {
+        bool is_terminated() const {
             return status == "completed" || status == "error" || status == "cancelled";
         }
     };
