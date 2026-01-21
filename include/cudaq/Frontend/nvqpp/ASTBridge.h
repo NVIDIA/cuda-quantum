@@ -20,6 +20,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "llvm/ADT/ScopedHashTable.h"
+#include "llvm/Support/Allocator.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/IR/Builders.h"
@@ -620,6 +621,9 @@ private:
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
   std::unordered_map<std::string, std::string> &customOperationNames;
+  /// Allocator for dynamically generated symbol names, referenced by the symbol
+  /// table.
+  llvm::BumpPtrAllocator allocator;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
