@@ -14,6 +14,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/Resources.h"
 #include "common/RestClient.h"
@@ -469,123 +470,8 @@ public:
     auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
-    llvm::SmallVector<mlir::func::FuncOp> newFuncOpsWithDefinitions;
-    llvm::SmallSet<std::string, 4> deviceCallCallees;
-    // For every declaration without a definition, we need to try to find the
-    // function in the Quake registry and copy the functions into this module.
-    m_module.walk([&](mlir::func::FuncOp funcOp) {
-      if (!funcOp.isDeclaration()) {
-        // Skipping function because it already has a definition.
-        return mlir::WalkResult::advance();
-      }
-      // Definition doesn't exist, so we need to find it in the Quake registry.
-      mlir::StringRef fullFuncName = funcOp.getName();
-      mlir::StringRef kernelName = [fullFuncName]() {
-        mlir::StringRef retVal = fullFuncName;
-        // TODO - clean this up to not have to do this. Considering the module's
-        // map, or cudaq::details::getKernelName(). But make sure it works for
-        // standard C++ functions.
-
-        // Only get the portion before the first ".".
-        if (auto ix = fullFuncName.find("."); ix != mlir::StringRef::npos)
-          retVal = fullFuncName.substr(0, ix);
-        // Also strip out __nvqpp_mlirgen__function_ from the beginning of the
-        // function name.
-        if (retVal.starts_with(cudaq::runtime::cudaqGenPrefixName)) {
-          retVal = retVal.substr(cudaq::runtime::cudaqGenPrefixLength);
-        }
-        return retVal;
-      }();
-      std::string quakeCode =
-          kernelName.empty()
-              ? ""
-              : cudaq::get_quake_by_name(kernelName.str(),
-                                         /*throwException=*/false);
-      if (quakeCode.empty()) {
-        // Skipping function because it does not have a quake code.
-        return mlir::WalkResult::advance();
-      }
-      auto tmp_module =
-          parseSourceString<mlir::ModuleOp>(quakeCode, contextPtr);
-      auto tmpFuncOpWithDefinition =
-          tmp_module->lookupSymbol<mlir::func::FuncOp>(fullFuncName);
-      auto newNameAttr = mlir::StringAttr::get(m_module.getContext(),
-                                               fullFuncName.str() + ".stitch");
-      auto clonedFunc = tmpFuncOpWithDefinition.clone();
-      clonedFunc.setName(newNameAttr);
-      mlir::SymbolTable symTable(m_module);
-      symTable.insert(clonedFunc);
-      newFuncOpsWithDefinitions.push_back(clonedFunc);
-
-      if (failed(mlir::SymbolTable::replaceAllSymbolUses(
-              funcOp.getOperation(), newNameAttr, m_module.getOperation()))) {
-        throw std::runtime_error(
-            cudaq_fmt::format("Failed to replace symbol uses for function {}",
-                              fullFuncName.str()));
-      }
-      return mlir::WalkResult::advance();
-    });
-
-    // For each one of the added functions, we need to traverse them to find
-    // device calls (in order to create declarations for them)
-    for (auto &funcOp : newFuncOpsWithDefinitions) {
-      mlir::OpBuilder builder(m_module);
-      builder.setInsertionPointToStart(m_module.getBody());
-      funcOp.walk([&](cudaq::cc::DeviceCallOp deviceCall) {
-        auto calleeName = deviceCall.getCallee();
-        // If the callee is already in the symbol table, nothing to do.
-        if (m_module.lookupSymbol<mlir::func::FuncOp>(calleeName))
-          return;
-
-        // Otherwise, we need to create a declaration for the callback function.
-        auto argTypes = deviceCall.getArgs().getTypes();
-        auto resTypes = deviceCall.getResultTypes();
-        auto funcType = builder.getFunctionType(argTypes, resTypes);
-
-        // Create a *declaration* (no body) for the callback function.
-        [[maybe_unused]] auto decl = builder.create<mlir::func::FuncOp>(
-            deviceCall.getLoc(), calleeName, funcType);
-        decl.setPrivate();
-        deviceCallCallees.insert(calleeName.str());
-      });
-    }
-
-    // Create a new Module to clone the function into
-    auto location = mlir::FileLineColLoc::get(&context, "<builder>", 1, 1);
-    mlir::ImplicitLocOpBuilder builder(location, &context);
-
-    // FIXME this should be added to the builder.
-    if (!func->hasAttr(cudaq::entryPointAttrName))
-      func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-    auto moduleOp = builder.create<mlir::ModuleOp>();
-    moduleOp->setAttrs(m_module->getAttrDictionary());
-    auto mangledNameMap = m_module->getAttrOfType<mlir::DictionaryAttr>(
-        cudaq::runtime::mangledNameMap);
-
-    for (auto &op : m_module.getOps()) {
-      // Add any global symbols, including global constant arrays. Global
-      // constant arrays can be created during compilation, `lift-array-alloc`,
-      // `argument-synthesis`, `quake-synthesizer`, and `get-concrete-matrix`
-      // passes.
-      if (auto lfunc = dyn_cast<mlir::func::FuncOp>(op)) {
-        bool skip = lfunc.getName().ends_with(".thunk");
-        if (!skip && !deviceCallCallees.contains(lfunc.getName().str()))
-          for (auto &entry : mangledNameMap)
-            if (lfunc.getName() ==
-                cast<mlir::StringAttr>(entry.getValue()).getValue()) {
-              skip = true;
-              break;
-            }
-        if (!skip) {
-          auto clonedFunc = lfunc.clone();
-          if (clonedFunc.getName() != func.getName())
-            clonedFunc.setPrivate();
-          moduleOp.push_back(std::move(clonedFunc));
-        }
-      } else {
-        moduleOp.push_back(op.clone());
-      }
-    }
+    auto moduleOp = lowerQuakeCodeBuildModule<destroyContext>(
+        kernelName, m_module, contextPtr, origFn);
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
