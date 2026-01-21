@@ -42,7 +42,7 @@ jobs:
             deployment_target: '10.15'  # macOS Catalina (x86_64)
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 360
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         # Note: submodules not needed for this stage - LLVM is cloned to ~/.llvm-project by build script
@@ -134,7 +134,7 @@ jobs:
             deployment_target: '10.15'
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 360
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
