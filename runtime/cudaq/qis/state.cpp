@@ -8,14 +8,10 @@
 
 #include "state.h"
 #include "common/EigenDense.h"
-#include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "cudaq/simulators.h"
 #include <iostream>
 
 namespace cudaq {
-
-std::mutex deleteStateMutex;
 
 state state::from_data(const state_data &data) {
   auto *simulator = cudaq::get_simulator();
@@ -112,16 +108,12 @@ state &state::operator=(state &&other) {
   return *this;
 }
 
-state::~state() {
-  // Make sure destroying the state is thread safe.
-  std::lock_guard<std::mutex> lock(deleteStateMutex);
-
-  // Current use count is 1, so the
-  // shared_ptr is about to go out of scope,
-  // there are no users. Delete the state data.
-  if (internal && internal.use_count() == 1)
-    internal->destroyState();
-}
+state::state(SimulationState *ptrToOwn)
+    : internal(
+          std::shared_ptr<SimulationState>(ptrToOwn, [](SimulationState *ptr) {
+            ptr->destroyState();
+            delete ptr;
+          })) {}
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
