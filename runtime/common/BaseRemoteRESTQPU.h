@@ -14,11 +14,11 @@
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
-#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/cudaq_fmt.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -526,8 +526,8 @@ public:
       if (failed(mlir::SymbolTable::replaceAllSymbolUses(
               funcOp.getOperation(), newNameAttr, m_module.getOperation()))) {
         throw std::runtime_error(
-            fmt::format("Failed to replace symbol uses for function {}",
-                        fullFuncName.str()));
+            cudaq_fmt::format("Failed to replace symbol uses for function {}",
+                              fullFuncName.str()));
       }
       return mlir::WalkResult::advance();
     });
