@@ -13,7 +13,6 @@
 #include "nlohmann/json.hpp"
 
 namespace cudaq::qaas::v1alpha1 {
-
     using json = nlohmann::json;
 
     struct Platform {
@@ -120,5 +119,4 @@ namespace cudaq::qaas::v1alpha1 {
             return url.has_value() && !url->empty();
         }
     };
-
 } // namespace cudaq::qaas::v1alpha1

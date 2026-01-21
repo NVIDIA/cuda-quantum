@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include "qio/Qio.h"
 #include "qaas/Qaas.h"
 #include "common/Logger.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include <iostream>
 #include <map>
 #include <regex>

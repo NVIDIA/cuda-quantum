@@ -17,41 +17,39 @@
 #include <thread>
 
 namespace cudaq::qaas::v1alpha1 {
+    class V1Alpha1Client {
+    public:
+        void initialize(const std::string projectId, const std::string secretKey, const std::string url);
 
-class V1Alpha1Client {
-public:
-    void initialize(const std::string projectId, const std::string secretKey, const std::string url);
+        Platform getPlatform(const std::string& platformId);
+        std::vector<Platform> listPlatforms(const std::string platformName);
 
-    Platform getPlatform(const std::string& platformId);
-    std::vector<Platform> listPlatforms(const std::string platformName);
+        Session createSession(
+            const std::string& platformId,
+            std::string name = "",
+            std::string deduplicationId = "",
+            const std::string& modelId = "",
+            std::string maxDuration = "59m",
+            std::string maxIdleDuration = "59m",
+            std::string parameters = "");
+        Session getSession(const std::string& sessionId);
 
-    Session createSession(
-        const std::string& platformId,
-        std::string name = "",
-        std::string deduplicationId = "",
-        const std::string& modelId = "",
-        std::string maxDuration = "59m",
-        std::string maxIdleDuration = "59m",
-        std::string parameters = "");
-    Session getSession(const std::string& sessionId);
+        Job createJob(const std::string& sessionId, const std::string& modelId, std::string name = "");
+        Job getJob(const std::string& jobId);
+        std::vector<JobResult> listJobResults(const std::string& jobId);
 
-    Job createJob(const std::string& sessionId, const std::string& modelId, std::string name = "");
-    Job getJob(const std::string& jobId);
-    std::vector<JobResult> listJobResults(const std::string& jobId);
+        Model createModel(const std::string& payload);
 
-    Model createModel(const std::string& payload);
+        std::string getJobsUrl();
+        std::string getJobResultsUrl(const std::string& jobId);
+        RestHeaders getHeader();
 
-    std::string getJobsUrl();
-    std::string getJobResultsUrl(const std::string& jobId);
-    RestHeaders getHeader();
-
-private:
-    RestClient m_client;
-    std::string m_baseUrl = "https://api.scaleway.com/qaas/v1alpha1";
-    std::string m_projectId = "";
-    std::string m_secretKey = "";
-    bool m_secure = true;
-    bool m_logging = false;
-};
-
+    private:
+        RestClient m_client;
+        std::string m_baseUrl = "https://api.scaleway.com/qaas/v1alpha1";
+        std::string m_projectId = "";
+        std::string m_secretKey = "";
+        bool m_secure = true;
+        bool m_logging = false;
+    };
 } // namespace cudaq::qaas::v1alpha1

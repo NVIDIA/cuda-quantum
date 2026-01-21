@@ -6,14 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "qio/Qio.h"
-#include "qaas/Qaas.h"
-#include "common/Logger.h"
-#include "common/ServerHelper.h"
-#include "cudaq/utils/cudaq_utils.h"
-#include "nlohmann/json.hpp"
-#include <iostream>
-#include <map>
+// #include "qio/Qio.h"
+// #include "qaas/Qaas.h"
+// #include "common/Logger.h"
+// #include "common/ServerHelper.h"
+// #include "cudaq/utils/cudaq_utils.h"
+// #include "nlohmann/json.hpp"
+// #include <iostream>
+// #include <map>
+#include "ScalewayServerHelper.h"
 
 using json = nlohmann::json;
 
@@ -141,7 +142,7 @@ namespace cudaq {
 
       executionResults = qioResult.toExecutionResults();
 
-      return cudaq::sample_result(executionResults);
+      return ;
     } catch (const std::exception& e) {
       throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
     }
