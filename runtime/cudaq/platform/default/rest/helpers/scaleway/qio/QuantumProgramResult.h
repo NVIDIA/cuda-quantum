@@ -10,13 +10,17 @@
 #include <nlohmann/json.hpp>
 
 namespace cudaq::qio {
+    struct Platform {
+        std::string id;
+    }
+
     class QuantumProgramResult {
         public:
             enum class SerializationFormat {
                 UNKOWN_SERIALIZATION_FORMAT = 0
                 CIRQ_RESULT_JSON_V1 = 1
                 QISKIT_RESULT_JSON_V1 = 2
-                CUDAQ_EXECUTION_RESULT_JSON_V1 = 3
+                CUDAQ_SAMPLE_RESULT_JSON_V1 = 3
             };
 
             enum class CompressionFormat {
@@ -26,7 +30,7 @@ namespace cudaq::qio {
             };
 
             static QuantumProgramResult fromJson(nlohmann::json json) const;
-            std::vector<cudaq::ExecutionResult> toExecutionResults() const;
+            sample_result toCudaqSampleResult() const;
         private:
             std::string m_serialization;
             SerializationFormat m_serializationFormat;

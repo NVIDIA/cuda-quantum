@@ -12,23 +12,34 @@
 namespace cudaq::qio {
     static
     QuantumProgramResult
-    QuantumProgramResult::fromJson(nlohmann::json json) const {
-
+    QuantumProgramResult::fromJson(nlohmann::json j) const {
+        return QuantumProgramResult(
+            j.value("serialization", ""),
+            j.value("serialization_format", SerializationFormat::UNKOWN_SERIALIZATION_FORMAT),
+            j.value("compression_format", CompressionFormat::NONE)
+        );
     }
 
-    std::vector<cudaq::ExecutionResult>
-    QuantumProgramResult::toExecutionResults() const {
-      cudaq::CountsDictionary counts;
+    sample_result
+    QuantumProgramResult::toCudaqSampleResult() const {
+        if (m_serializationFormat != SerializationFormat::CUDAQ_SAMPLE_RESULT_JSON_V1) {
+            throw std::runtime_error("QuantumProgramResult: Unsupported serialization format for conversion to cudaq::sample_result");
+        }
 
-      for (const auto& sample : result.getSamples()) {
-          std::string bitString;
-          for (auto bit : sample.bits) {
-              bitString += std::to_string(bit);
-          }
-          counts[bitString] += 1;
-      }
+        std::string uncompressedSerialization = m_serialization;
 
-      std::vector<ExecutionResult> execResults;
-      execResults.emplace_back(ExecutionResult{counts});
+        if m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1 {
+            std::string decodedSerialization = compression::base64Decode(m_serialization);
+            uncompressedSerialization = compression::gzipDecompress(decodedSerialization);
+        } else if (m_compressionFormat != CompressionFormat::NONE) {
+            throw std::runtime_error("QuantumProgramResult: Unsupported compression format for conversion to cudaq::sample_result");
+        }
+
+        auto resultJson = nlohmann::json::parse(uncompressedSerialization);
+
+        cudaq::sample_result sample_result;
+        sample_result.deserialize(resultJson);
+
+        return sample_result;
     }
 }

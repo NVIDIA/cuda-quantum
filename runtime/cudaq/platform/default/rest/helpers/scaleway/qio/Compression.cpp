@@ -15,7 +15,7 @@ namespace cudaq::qio::compression {
 
   inline
   bool
-  is_base64(unsigned char c) {
+  isBase64(unsigned char c) {
     return (isalnum(c) || (c == '+') || (c == '/'));
   }
 

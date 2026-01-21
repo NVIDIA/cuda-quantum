@@ -19,5 +19,6 @@ namespace cudaq::qio {
 
     private:
       std::size_t m_shots;
+      std::unordered_map<std::string, std::string> m_options;
   };
 }
