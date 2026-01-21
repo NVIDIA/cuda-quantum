@@ -25,8 +25,6 @@ add_library(${LIBRARY_NAME} SHARED
   utils/logger.cpp
 )
 
-add_subdirectory(compilers)
-
 target_include_directories(${LIBRARY_NAME}
   PUBLIC 
     $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
@@ -54,6 +52,3 @@ add_subdirectory(daemon)
 add_subdirectory(network)
 add_subdirectory(qcs)
 add_subdirectory(utils)
-
-# FIXME:
-# add_subdirectory(plugins)

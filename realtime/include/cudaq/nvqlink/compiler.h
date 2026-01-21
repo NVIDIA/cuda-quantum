@@ -23,17 +23,6 @@
 /// kernels into executable control programs for quantum processing units.
 namespace cudaq::nvqlink {
 
-/// @brief Internal implementation details for quantum kernel compilation
-namespace details {
-/// @brief Removes non-entrypoint functions from MLIR code manually
-/// @param mlirCode The input MLIR code string to process
-/// @return Processed MLIR code with non-entrypoint functions removed
-/// @details This function manually parses and filters MLIR code to retain only
-/// the quantum kernel entrypoint functions, removing auxiliary functions that
-/// are not needed for device execution.
-std::string removeNonEntrypointFunctionsManual(const std::string &mlirCode);
-} // namespace details
-
 /// @brief Binary program representation for quantum control systems
 /// @details Encapsulates a compiled quantum program as binary data along with
 /// the target quantum device identifier. Used to store device-specific compiled
@@ -113,7 +102,7 @@ public:
 /// @details Defines the interface that all quantum compiler implementations
 /// must provide. Uses the extension point pattern to allow pluggable compiler
 /// backends for different quantum architectures and programming models.
-class compiler : public cudaqx::extension_point<compiler> {
+class compiler : public cudaq::nvqlink::extension_point<compiler> {
 public:
   /// @brief Virtual destructor for proper cleanup of derived classes
   virtual ~compiler() = default;
@@ -141,24 +130,5 @@ public:
   compile(const std::string &code, const std::string &kernel_name,
           std::size_t num_qcs_devices) = 0;
 };
-
-/// @brief Extracts MLIR code and kernel name from a quantum kernel callable
-/// @tparam QuantumKernel Type of the quantum kernel callable object
-/// @param kernel The quantum kernel object to extract information from
-/// @return Tuple containing the processed MLIR code and kernel name
-/// @details This template function works with any quantum kernel type to
-/// extract the underlying MLIR representation and kernel identifier. The MLIR
-/// code is processed to remove non-entrypoint functions, preparing it for
-/// compilation.
-/// @note The kernel parameter is forwarded to preserve value category and
-/// enable perfect forwarding for both lvalue and rvalue kernel objects.
-// template <typename QuantumKernel>
-// std::tuple<std::string, std::string> extract_code(QuantumKernel &&kernel) {
-//   std::string kernelName{
-//       cudaq::details::getKernelName(std::forward<QuantumKernel>(kernel))};
-//   auto code = details::removeNonEntrypointFunctionsManual(
-//       cudaq::get_quake_by_name(kernelName));
-//   return std::make_tuple(code, kernelName);
-// }
 
 } // namespace cudaq::nvqlink
