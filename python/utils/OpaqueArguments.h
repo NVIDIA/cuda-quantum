@@ -9,7 +9,6 @@
 #pragma once
 
 #include "PyTypes.h"
-#include "common/FmtCore.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"

@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #pragma once
-#include "FmtCore.h"
 #include "Logger.h"
+#include "cudaq_fmt.h"
 #include <dlfcn.h>
 #include <mutex>
 #include <string_view>
@@ -31,8 +31,8 @@ PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
   GetPluginFunction fcn =
       (GetPluginFunction)(intptr_t)dlsym(handle, symbolName.data());
   if (!fcn)
-    throw std::runtime_error(
-        fmt::format("Could not load the requested plugin. \n{}\n", dlerror()));
+    throw std::runtime_error(cudaq_fmt::format(
+        "Could not load the requested plugin. \n{}\n", dlerror()));
 
   CUDAQ_INFO("Successfully loaded the plugin.");
   return fcn();
