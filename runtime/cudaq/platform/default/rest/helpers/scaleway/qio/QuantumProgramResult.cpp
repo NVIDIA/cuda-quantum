@@ -38,6 +38,7 @@ namespace cudaq::qio {
         auto resultJson = nlohmann::json::parse(uncompressedSerialization);
 
         cudaq::sample_result sample_result;
+
         sample_result.deserialize(resultJson);
 
         return sample_result;

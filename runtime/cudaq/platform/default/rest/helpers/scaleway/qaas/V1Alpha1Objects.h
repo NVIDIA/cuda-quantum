@@ -98,7 +98,7 @@ namespace cudaq::qaas::v1alpha1 {
             model_id, parameters
         )
 
-        bool is_terminated() const {
+        inline bool is_finished() const {
             return status == "completed" || status == "error" || status == "cancelled";
         }
     };
@@ -111,11 +111,11 @@ namespace cudaq::qaas::v1alpha1 {
 
         NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url, created_at)
 
-        bool has_inline_result() const {
+        inline bool has_inline_result() const {
             return result.has_value() && !result->empty();
         }
 
-        bool has_download_url() const {
+        inline bool has_download_url() const {
             return url.has_value() && !url->empty();
         }
     };

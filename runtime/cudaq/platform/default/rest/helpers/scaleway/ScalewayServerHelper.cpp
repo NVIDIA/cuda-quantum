@@ -6,14 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// #include "qio/Qio.h"
-// #include "qaas/Qaas.h"
-// #include "common/Logger.h"
-// #include "common/ServerHelper.h"
-// #include "cudaq/utils/cudaq_utils.h"
-// #include "nlohmann/json.hpp"
-// #include <iostream>
-// #include <map>
 #include "ScalewayServerHelper.h"
 
 using json = nlohmann::json;
