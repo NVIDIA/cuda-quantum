@@ -21,6 +21,10 @@
 
 namespace py = pybind11;
 
+namespace mlir {
+class ExecutionEngine;
+}
+
 namespace cudaq {
 
 /// @brief Set current architecture's data layout attribute on a module.
@@ -54,6 +58,7 @@ py::object marshal_and_launch_module(const std::string &kernelName,
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod, mlir::Type retTy,
                                           OpaqueArguments &args);
+
 OpaqueArguments
 marshal_arguments_for_module_launch(mlir::ModuleOp mod, py::args runtimeArgs,
                                     mlir::func::FuncOp kernelFunc);

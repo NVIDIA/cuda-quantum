@@ -19,7 +19,7 @@ set(default_backend_unittest_libs
   cudaq-platform-default 
   gtest_main)
 
-define_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS INHERITED)
+define_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS INHERITED BRIEF_DOCS "whatever" FULL_DOCS "man")
 set_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS ${default_backend_unittest_libs})
 
 # Helper function to create an executable to be used by the gtest unit tests
