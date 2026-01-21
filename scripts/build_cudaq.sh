@@ -26,6 +26,7 @@
 # -v: Whether to print verbose output. Defaults to False.
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
+# -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
 # 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
@@ -55,6 +56,7 @@ verbose=false
 clean_build=true
 install_toolchain=""
 num_jobs=""
+enable_sanitizers=false
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -64,7 +66,7 @@ build_dir="$working_dir/build"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:i" opt; do
+while getopts ":c:t:j:vB:is" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -77,6 +79,8 @@ while getopts ":c:t:j:vB:i" opt; do
     B) build_dir="$OPTARG"
     ;;
     i) clean_build=false
+    ;;
+    s) enable_sanitizers=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -193,6 +197,36 @@ else
   echo "ccache not found. To speed up recompilation, consider installing ccache."
 fi
 
+# Configure sanitizer flags (ASan, UBSan, and related options)
+SANITIZER_FLAGS=""
+if $enable_sanitizers; then
+  echo "Enabling Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)..."
+  if [ "$build_configuration" != "Debug" ]; then
+    echo -e "\e[01;33mWarning: Sanitizers are enabled but build configuration is '$build_configuration'.\e[0m"
+    echo -e "\e[01;33m         Consider using '-c Debug' for better stack traces and debug symbols.\e[0m"
+  fi
+  # Sanitizer flags:
+  # -fsanitize=address: Detects use-after-free, buffer overflows, stack overflows
+  # -fsanitize=undefined: Detects undefined behavior (null ptr deref, signed overflow, etc.)
+  # -fno-sanitize=vptr: Disable vptr sanitizer (requires RTTI, but LLVM is built without RTTI)
+  # -fno-omit-frame-pointer: Preserves frame pointers for better stack traces
+  # -fno-optimize-sibling-calls: Disables tail call optimization for accurate stack traces
+  # -fsanitize-address-use-after-scope: Detects use-after-scope bugs. Clang only
+  SANITIZER_COMPILE_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer -fno-optimize-sibling-calls"
+  if [[ "$CXX" == *clang* ]]; then
+    SANITIZER_COMPILE_FLAGS+=" -fsanitize-address-use-after-scope"
+  fi
+  SANITIZER_LINK_FLAGS="-fsanitize=address,undefined"
+  SANITIZER_FLAGS="\
+    -DCMAKE_C_FLAGS_INIT='$SANITIZER_COMPILE_FLAGS' \
+    -DCMAKE_CXX_FLAGS_INIT='$SANITIZER_COMPILE_FLAGS' \
+    -DCMAKE_EXE_LINKER_FLAGS_INIT='$SANITIZER_LINK_FLAGS' \
+    -DCMAKE_SHARED_LINKER_FLAGS_INIT='$SANITIZER_LINK_FLAGS' \
+    -DCMAKE_MODULE_LINKER_FLAGS_INIT='$SANITIZER_LINK_FLAGS'"
+  echo "  Sanitizer compile flags: $SANITIZER_COMPILE_FLAGS"
+  echo "  Sanitizer link flags: $SANITIZER_LINK_FLAGS"
+fi
+
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
@@ -205,6 +239,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
   ${CCACHE_FLAGS} \
+  ${SANITIZER_FLAGS} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
