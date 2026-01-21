@@ -14,4 +14,6 @@ namespace cudaq::qio::compression {
 
     std::string base64Encode(const std::string &input);
     std::string base64Decode(const std::string &input);
+
+    bool is_base64(unsigned char c);
 }
