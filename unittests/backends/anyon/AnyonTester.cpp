@@ -12,6 +12,7 @@
 #include <fstream>
 #include <gtest/gtest.h>
 #include <regex>
+#include <filesystem>
 
 // port number and localhost connect to mock_qpu backend server within the
 // container (mock_qpu/anyon).
@@ -300,6 +301,7 @@ int main(int argc, char **argv) {
   std::string home = std::getenv("HOME");
   std::string fileName = home + "/FakeCppAnyon.config";
   std::ofstream out(fileName);
+  std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
   out << "credentials: "
          "{\"username\":\"testuser0\",\"password\":\"testuser0passwd\"}";
   out.close();
