@@ -119,7 +119,9 @@ std::string pathToFileName(const std::string_view fullFilePath) {
   return file.filename().string();
 }
 } // namespace details
+} // namespace cudaq
 
+namespace cudaq_fmt {
 namespace details {
 
 void print_packed(const std::string_view message,
@@ -151,4 +153,4 @@ std::string format_packed(const std::string_view fmt_str,
 }
 
 } // namespace details
-} // namespace cudaq
+} // namespace cudaq_fmt
