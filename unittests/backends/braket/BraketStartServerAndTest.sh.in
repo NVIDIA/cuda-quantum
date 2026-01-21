@@ -36,7 +36,7 @@ EOF
 
 # Uncomment this and connect to mock_qpu backend server within the container (mock_qpu/braket) under main/utils
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/braket/__init__.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py braket &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0

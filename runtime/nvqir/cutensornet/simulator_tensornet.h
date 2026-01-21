@@ -47,11 +47,11 @@ public:
             std::getenv("CUDAQ_TENSORNET_CONTROLLED_RANK")) {
       auto maxControlledRank = std::atoi(maxControlledRankEnvVar);
       if (maxControlledRank <= 0)
-        throw std::runtime_error(
-            fmt::format("Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
-                        "variable setting. Expecting a "
-                        "positive integer value, got '{}'.",
-                        maxControlledRank));
+        throw std::runtime_error(cudaq_fmt::format(
+            "Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
+            "variable setting. Expecting a "
+            "positive integer value, got '{}'.",
+            maxControlledRank));
 
       CUDAQ_INFO("Setting max controlled rank for full tensor expansion from "
                  "{} to {}.",

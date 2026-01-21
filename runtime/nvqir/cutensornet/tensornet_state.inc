@@ -484,7 +484,7 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
   std::complex<ScalarType> stateNorm{0.0, 0.0};
   if (!in_projectedModeValues.empty() &&
       in_projectedModeValues.size() != projectedModes.size())
-    throw std::invalid_argument(fmt::format(
+    throw std::invalid_argument(cudaq_fmt::format(
         "The number of projected modes ({}) must equal the number of "
         "projected values ({}).",
         projectedModes.size(), in_projectedModeValues.size()));
@@ -951,6 +951,11 @@ TensorNetState<ScalarType>::computeExpVals(
           expVal * std::complex<ScalarType>(coeff.real(), coeff.imag()));
     }
   }
+
+  // Clean up cutensornet resources
+  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
+  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkOperator(cutnNetworkOperator));
 
   free(pauliMats_h);
   HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));

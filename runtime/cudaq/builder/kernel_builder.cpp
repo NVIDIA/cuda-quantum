@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "kernel_builder.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
