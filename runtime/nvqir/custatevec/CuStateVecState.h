@@ -7,8 +7,9 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/FmtCore.h"
+#include "common/Logger.h"
 #include "common/SimulationState.h"
+#include "common/cudaq_fmt.h"
 
 #include <thrust/complex.h>
 #include <thrust/device_ptr.h>
@@ -20,9 +21,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != CUSTATEVEC_STATUS_SUCCESS) {                                    \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           custatevecGetErrorString(err),      \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(cudaq_fmt::format(                              \
+          "[custatevec] %{} in {} (line {})", custatevecGetErrorString(err),   \
+          __FUNCTION__, __LINE__));                                            \
     }                                                                          \
   };
 
@@ -30,9 +31,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           cudaGetErrorString(err),            \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(                                                \
+          cudaq_fmt::format("[custatevec] %{} in {} (line {})",                \
+                            cudaGetErrorString(err), __FUNCTION__, __LINE__)); \
     }                                                                          \
   };
 
@@ -160,11 +161,11 @@ public:
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     if (getNumQubits() != basisState.size())
-      throw std::runtime_error(
-          fmt::format("[custatevec-state] getAmplitude with an invalid number "
-                      "of bits in the "
-                      "basis state: expected {}, provided {}.",
-                      getNumQubits(), basisState.size()));
+      throw std::runtime_error(cudaq_fmt::format(
+          "[custatevec-state] getAmplitude with an invalid number "
+          "of bits in the "
+          "basis state: expected {}, provided {}.",
+          getNumQubits(), basisState.size()));
     if (std::any_of(basisState.begin(), basisState.end(),
                     [](int x) { return x != 0 && x != 1; }))
       throw std::runtime_error(

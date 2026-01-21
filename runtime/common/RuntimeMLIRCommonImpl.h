@@ -489,9 +489,9 @@ mlir::LogicalResult qirProfileTranslationFunction(
 
   auto config = parseCodeGenTranslation(qirProfile);
   if (!config.isQIRProfile)
-    throw std::runtime_error(
-        fmt::format("Unexpected codegen profile while translating to QIR: {}",
-                    config.profile));
+    throw std::runtime_error(cudaq_fmt::format(
+        "Unexpected codegen profile while translating to QIR: {}",
+        config.profile));
 
   auto context = op->getContext();
   mlir::PassManager pm(context);
