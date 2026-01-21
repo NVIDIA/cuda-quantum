@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #pragma once
-#include "common/FmtCore.h"
 #include "common/Logger.h"
 
 #ifndef NTIMING

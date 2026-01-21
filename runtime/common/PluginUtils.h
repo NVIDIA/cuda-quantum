@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #pragma once
-#include "FmtCore.h"
 #include "Logger.h"
 #include "cudaq_fmt.h"
 #include <dlfcn.h>
