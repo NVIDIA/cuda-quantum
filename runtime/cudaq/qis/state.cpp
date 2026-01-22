@@ -11,33 +11,16 @@
 #include "cudaq/simulators.h"
 #include <iostream>
 
-namespace {
-/// Create a shared pointer that calls destroyState at destruction.
-std::shared_ptr<cudaq::SimulationState>
-makeSharedSimulationState(cudaq::SimulationState *ptrToOwn) {
-  return std::shared_ptr<cudaq::SimulationState>(
-      ptrToOwn, [](cudaq::SimulationState *ptr) {
-        ptr->destroyState();
-        delete ptr;
-      });
-}
-} // namespace
-
 namespace cudaq {
 
-state &state::initialize(const state_data &data) {
+state state::from_data(const state_data &data) {
   auto *simulator = cudaq::get_simulator();
   if (!simulator)
     throw std::runtime_error(
         "[state::from_data] Could not find valid simulator backend.");
-  std::shared_ptr<SimulationState> newPtr =
-      makeSharedSimulationState(simulator->createStateFromData(data).release());
-  std::swap(internal, newPtr);
-  return *this;
-}
 
-state::state(SimulationState *ptrToOwn)
-    : internal(makeSharedSimulationState(ptrToOwn)) {}
+  return state(simulator->createStateFromData(data).release());
+}
 
 SimulationState::precision state::get_precision() const {
   return internal->getPrecision();
@@ -125,42 +108,46 @@ state &state::operator=(state &&other) {
   return *this;
 }
 
+state::state(SimulationState *ptrToOwn)
+    : internal(
+          std::shared_ptr<SimulationState>(ptrToOwn, [](SimulationState *ptr) {
+            ptr->destroyState();
+            delete ptr;
+          })) {}
+
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
 
-// Code gen helpers to convert spans (device side data) to state objects.
-state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *d,
-                                                      std::size_t size) {
-  if (cudaq::get_simulator()->isSinglePrecision())
-    return new state(std::vector<std::complex<float>>{d, d + size});
+state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
+  auto d = reinterpret_cast<std::complex<double> *>(data);
 
-  return new state(std::vector<std::complex<double>>{d, d + size});
+  // Convert the data to the current simulation precision
+  // if different from the data's precision.
+  auto *simulator = cudaq::get_simulator();
+  if (simulator->isSinglePrecision()) {
+    std::vector<std::complex<float>> converted(d, d + size);
+    return new state(state::from_data(converted));
+  }
+
+  std::vector<std::complex<double>> current(d, d + size);
+  return new state(state::from_data(current));
 }
 
-state *__nvqpp_cudaq_state_createFromData_f64(double *d, std::size_t size) {
+state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
+  auto d = reinterpret_cast<std::complex<float> *>(data);
 
-  if (cudaq::get_simulator()->isSinglePrecision())
-    return new state(std::vector<std::complex<float>>{d, d + size});
+  // Convert the data to the current simulation precision
+  // if different from the data's precision.
+  auto *simulator = cudaq::get_simulator();
+  if (simulator->isDoublePrecision()) {
+    std::vector<std::complex<double>> converted(d, d + size);
+    return new state(state::from_data(converted));
+  }
 
-  return new state(std::vector<std::complex<double>>{d, d + size});
-}
-
-state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *d,
-                                                      std::size_t size) {
-  if (cudaq::get_simulator()->isSinglePrecision())
-    return new state(std::vector<std::complex<float>>{d, d + size});
-
-  return new state(std::vector<std::complex<double>>{d, d + size});
-}
-
-state *__nvqpp_cudaq_state_createFromData_f32(float *d, std::size_t size) {
-
-  if (cudaq::get_simulator()->isSinglePrecision())
-    return new state(std::vector<std::complex<float>>{d, d + size});
-
-  return new state(std::vector<std::complex<double>>{d, d + size});
+  std::vector<std::complex<float>> current(d, d + size);
+  return new state(state::from_data(current));
 }
 
 void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }
