@@ -27,6 +27,7 @@ add_library(${LIBRARY_NAME}
     qis/remote_state.cpp
     qis/state.cpp
     utils/cudaq_utils.cpp
+    utils/matrix.cpp
     distributed/mpi_plugin.cpp
 )
 

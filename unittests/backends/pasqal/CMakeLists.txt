@@ -14,6 +14,7 @@ add_backend_unittest_executable(test_pasqal
   cudaq
   cudaq-common 
   gtest_main
-  )
+  cudaq-platform-default
+)
 
 gtest_discover_tests(test_pasqal)

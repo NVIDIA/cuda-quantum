@@ -181,15 +181,19 @@ struct RockyRoad {
 // CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 0.000000e+00 : f[[F80:[0-9]*]]
+// CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 1.000000e+00 : f64
+// CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 1.000000e+00 : f[[F80]]
+// CHECK-DAG:       %[[VAL_8:.*]] = arith.constant 0.000000e+00 : f64
 // CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
-// CHECK:           cc.store %{{.*}}, %[[VAL_9]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_10:.*]] = call @_ZNS{{.*}}(%{{.*}}) : (f{{[0-9]+}}) -> complex<f64>
+// CHECK:           cc.store %[[VAL_8]], %[[VAL_9]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_10:.*]] = call @_ZNS{{.*}}(%[[VAL_7]]) : (f[[F80]]) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_12:.*]] = call @_Z{{.*}}(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_13:.*]] = cc.alloca f64
-// CHECK:           cc.store %{{.*}}, %[[VAL_13]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_14:.*]] = call @_ZNS{{.*}}(%{{.*}}) : (f{{[0-9]+}}) -> complex<f64>
+// CHECK:           cc.store %[[VAL_6]], %[[VAL_13]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_14:.*]] = call @_ZNS{{.*}}(%[[VAL_5]]) : (f[[F80]]) -> complex<f64>
 // CHECK:           %[[VAL_15:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_16:.*]] = call @_Z{{.*}}(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>

@@ -255,57 +255,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // FIXME: actually handle results
     return result;
   }
-
-  void *specializeModule(const std::string &name, ModuleOp module,
-                         const std::vector<void *> &rawArgs, Type resultTy,
-                         void *cachedEngine) override {
-    // In this launch scenario, we have a ModuleOp that has the entry-point
-    // kernel, but needs to be merged with anything else it may call. The
-    // merging of modules mirrors the late binding and dynamic scoping of the
-    // host language (Python).
-    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule");
-    const bool enablePythonCodegenDump =
-        cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
-
-    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
-    // 1. Check that this call is sane.
-    if (enablePythonCodegenDump)
-      module.dump();
-    auto funcOp = module.lookupSymbol<func::FuncOp>(fullName);
-    if (!funcOp)
-      throw std::runtime_error("no kernel named " + name + " found in module");
-
-    // 2. Merge other modules (e.g., if there are device kernel calls).
-    cudaq::detail::mergeAllCallableClosures(module, name, rawArgs);
-
-    // Mark all newly merged kernels private.
-    for (auto &op : module)
-      if (auto f = dyn_cast<func::FuncOp>(op))
-        if (f != funcOp)
-          f.setPrivate();
-
-    establishExecutionContext(module);
-
-    // 3. LLVM JIT the code so we can execute it.
-    CUDAQ_INFO("Run Argument Synth.\n");
-    if (enablePythonCodegenDump)
-      module.dump();
-    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump);
-
-    // 4. Execute the code right here, right now.
-    auto *jit = cudaq::createQIRJITEngine(module, "qir:");
-    auto **cache = reinterpret_cast<ExecutionEngine **>(cachedEngine);
-    if (*cache)
-      throw std::runtime_error("cache must not be populated");
-    *cache = jit;
-
-    std::string entryName = resultTy ? name + ".thunk" : fullName;
-    auto funcPtr = jit->lookup(entryName);
-    if (!funcPtr)
-      throw std::runtime_error(
-          "kernel disappeared underneath execution engine");
-    return *funcPtr;
-  }
 };
 } // namespace
 

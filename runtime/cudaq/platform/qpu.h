@@ -194,11 +194,6 @@ public:
   launchModule(const std::string &name, mlir::ModuleOp module,
                const std::vector<void *> &rawArgs, mlir::Type resultTy);
 
-  [[nodiscard]] virtual void *
-  specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
-                   void *cachedEngine);
-
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
   virtual void onRandomSeedSet(std::size_t seed) {}
@@ -211,9 +206,6 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
                                              mlir::ModuleOp module,
                                              const std::vector<void *> &rawArgs,
                                              mlir::Type resultTy) = 0;
-  virtual void *specializeModule(const std::string &name, mlir::ModuleOp module,
-                                 const std::vector<void *> &rawArgs,
-                                 mlir::Type resultTy, void *cachedEngine) = 0;
 };
 
 } // namespace cudaq

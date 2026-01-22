@@ -8,8 +8,7 @@
 
 import cudaq, pytest
 
-cudaq_test_cpp_algo = pytest.importorskip(
-    'cudaq_test_cpp_algo', reason="cannot find the cudaq_test_cpp_algo.so")
+cudaq_test_cpp_algo = pytest.importorskip('cudaq_test_cpp_algo')
 
 
 @pytest.fixture(autouse=True)
@@ -25,6 +24,7 @@ def test_mergeExternal():
         q = cudaq.qvector(i)
         h(q[0])
 
+    kernel.compile()
     kernel(10)
 
     otherMod = '''module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__test = "__nvqpp__mlirgen__test_PyKernelEntryPointRewrite"}} {
@@ -36,8 +36,9 @@ def test_mergeExternal():
   }
 }'''
     newMod = kernel.merge_quake_source(otherMod)
-    s = str(newMod)
-    assert '__nvqpp__mlirgen__test' in s and '__nvqpp__mlirgen__kernel' in s
+    print(newMod)
+    assert '__nvqpp__mlirgen__test' in str(
+        newMod) and '__nvqpp__mlirgen__kernel' in str(newMod)
 
 
 def testSynthTwoArgs():
@@ -59,10 +60,10 @@ def testSynthTwoArgs():
     def callee1(q: cudaq.qview):
         x(q)
 
-    # Merge callee1 into kernel22 and then kernel22 into that result. The second
-    # merge must be a NOP.
     ka = kernel22.merge_kernel(callee1)
+    print(ka)
     kb = ka.merge_kernel(kernel22)
+    print(kb)
 
     counts = cudaq.sample(kb, callee0, callee1)
     counts.dump()
@@ -113,65 +114,16 @@ def test_cpp_kernel_from_python_2():
     callUCCSD()
 
 
-def test_callbacks():
+def test_capture():
 
     @cudaq.kernel
-    def entry(qnum: int):
-        qs = cudaq.qvector(qnum)
-        h(qs)
-        x(qs)
+    def takesCapture(s: int):
+        pass
 
-    cudaq_test_cpp_algo.run0(entry, 4)
+    spin = 0
 
-
-@pytest.mark.skip(reason="temporarily disabled")
-def test_callbacks_b():
-
-    @cudaq.kernel
-    def entry(qnum: int):
-        qs = cudaq.qvector(qnum)
-        h(qs)
-        z(qs)
-
-    cudaq_test_cpp_algo.run0b(entry, 4)
-
-
-def test_callback_with_capture():
-
-    @cudaq.kernel
-    def captured_qernel(s: int):
-        qs = cudaq.qvector(s)
-        h(qs)
-        y(qs)
-        h(qs)
-
-    egb_spin = 6
-
-    @cudaq.kernel
+    @cudaq.kernel(verbose=True)
     def entry():
-        captured_qernel(egb_spin)
+        takesCapture(spin)
 
-    cudaq_test_cpp_algo.run1(entry)
-
-
-def test_callback_with_capture_quantum():
-
-    @cudaq.kernel
-    def entry(qs: cudaq.qview):
-        h(qs)
-        y(qs)
-        h(qs)
-
-    cudaq_test_cpp_algo.run2(entry)
-
-
-def test_callback_with_capture_quantum_and_classical():
-
-    @cudaq.kernel
-    def entry(qs: cudaq.qview, i: int):
-        h(qs)
-        x(qs[i])
-        y(qs)
-        h(qs)
-
-    cudaq_test_cpp_algo.run3(entry)
+    entry.compile()

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/operators/matrix.h"
+#include "cudaq/utils/matrix.h"
 #include <algorithm>
 #include <bitset>
 #include <complex>
