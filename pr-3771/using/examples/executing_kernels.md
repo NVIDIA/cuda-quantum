@@ -2485,7 +2485,7 @@ Python
     # Compute the statevector of the kernel
     result = cudaq.get_state(kernel, qubit_count)
 
-    print(np.array(result))
+    print(np.array(result.dump()))
 :::
 :::
 :::
@@ -2582,7 +2582,7 @@ Python
     # Get the state when ready
     state = state_future.get()
     print("Bell state vector:")
-    print(np.array(state))
+    print(np.array(state.dump()))
 :::
 :::
 :::

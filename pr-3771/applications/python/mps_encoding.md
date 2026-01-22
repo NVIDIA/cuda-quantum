@@ -2201,7 +2201,7 @@ index error.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [ ]:
 :::
 :::
 
@@ -2214,7 +2214,7 @@ index error.
 
     # Sanity check
     print(np.dot(
-        np.array(cudaq.get_state(qc)).conj().T, statevector
+        np.array(cudaq.StateMemoryView(cudaq.get_state(qc))).conj().T, statevector
     ))
 :::
 :::
@@ -2235,7 +2235,7 @@ index error.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [ ]:
 :::
 :::
 
@@ -2248,7 +2248,7 @@ index error.
 
     # Sanity check
     print(np.dot(
-        np.array(cudaq.get_state(qc)).conj().T, statevector
+        np.array(cudaq.StateMemoryView(cudaq.get_state(qc))).conj().T, statevector
     ))
 :::
 :::
