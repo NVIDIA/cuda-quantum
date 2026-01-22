@@ -24,29 +24,37 @@ status_sum=0
 # Set PYTHONPATH to find the built cudaq module
 export PYTHONPATH="$build_dir/python:${PYTHONPATH:-}"
 
+# Determine number of parallel jobs (use all available CPUs)
+if [ "$(uname)" = "Darwin" ]; then
+  num_jobs=$(sysctl -n hw.ncpu)
+else
+  num_jobs=$(nproc)
+fi
+echo "Running tests with $num_jobs parallel jobs"
+
 # 1. CTest
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" --timeout 300 \
-  -E "ctest-nvqpp|ctest-targettests"
+  -j "$num_jobs" -E "ctest-nvqpp|ctest-targettests"
 status_sum=$((status_sum + $?))
 
 # 2. Main lit tests
 echo "=== Running llvm-lit (build/test) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
   --param nvqpp_site_config="$build_dir/test/lit.site.cfg.py" \
   "$build_dir/test"
 status_sum=$((status_sum + $?))
 
 # 3. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
   --param nvqpp_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 status_sum=$((status_sum + $?))
 
 # 4. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
   --param nvqpp_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
   "$build_dir/python/tests/mlir"
 status_sum=$((status_sum + $?))
