@@ -97,7 +97,7 @@ def test_quantinuum_exp_pauli():
     kernel, theta = cudaq.make_kernel(float)
     qreg = kernel.qalloc(2)
     kernel.x(qreg[0])
-    kernel.exp_pauli(theta, qreg, "XY")
+    kernel.exp_pauli(theta / -2.0, qreg, "XY")
     print(kernel)
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
