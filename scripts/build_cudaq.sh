@@ -197,34 +197,11 @@ else
   echo "ccache not found. To speed up recompilation, consider installing ccache."
 fi
 
-# Configure sanitizer flags (ASan, UBSan, and related options)
+# Configure sanitizer option for CMake
 SANITIZER_FLAGS=""
 if $enable_sanitizers; then
   echo "Enabling Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)..."
-  if [ "$build_configuration" != "Debug" ]; then
-    echo -e "\e[01;33mWarning: Sanitizers are enabled but build configuration is '$build_configuration'.\e[0m"
-    echo -e "\e[01;33m         Consider using '-c Debug' for better stack traces and debug symbols.\e[0m"
-  fi
-  # Sanitizer flags:
-  # -fsanitize=address: Detects use-after-free, buffer overflows, stack overflows
-  # -fsanitize=undefined: Detects undefined behavior (null ptr deref, signed overflow, etc.)
-  # -fno-sanitize=vptr: Disable vptr sanitizer (requires RTTI, but LLVM is built without RTTI)
-  # -fno-omit-frame-pointer: Preserves frame pointers for better stack traces
-  # -fno-optimize-sibling-calls: Disables tail call optimization for accurate stack traces
-  # -fsanitize-address-use-after-scope: Detects use-after-scope bugs. Clang only
-  SANITIZER_COMPILE_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer -fno-optimize-sibling-calls"
-  if [[ "$CXX" == *clang* ]]; then
-    SANITIZER_COMPILE_FLAGS+=" -fsanitize-address-use-after-scope"
-  fi
-  SANITIZER_LINK_FLAGS="-fsanitize=address,undefined"
-  SANITIZER_FLAGS="\
-    -DCMAKE_C_FLAGS_INIT='$SANITIZER_COMPILE_FLAGS' \
-    -DCMAKE_CXX_FLAGS_INIT='$SANITIZER_COMPILE_FLAGS' \
-    -DCMAKE_EXE_LINKER_FLAGS_INIT='$SANITIZER_LINK_FLAGS' \
-    -DCMAKE_SHARED_LINKER_FLAGS_INIT='$SANITIZER_LINK_FLAGS' \
-    -DCMAKE_MODULE_LINKER_FLAGS_INIT='$SANITIZER_LINK_FLAGS'"
-  echo "  Sanitizer compile flags: $SANITIZER_COMPILE_FLAGS"
-  echo "  Sanitizer link flags: $SANITIZER_LINK_FLAGS"
+  SANITIZER_FLAGS="-DCUDAQ_ENABLE_SANITIZERS=ON"
 fi
 
 # Generate CMake files 
