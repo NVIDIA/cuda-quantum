@@ -26,13 +26,21 @@ jobs:
   # This mirrors the Linux CI architecture (wheeldeps → python_wheels)
   # ============================================================================
   devdeps:
-    name: Prerequisites
+    name: Prerequisites (${{ matrix.runner }})
     needs: metadata
-    # Only build devdeps on macos-26 for now (testing deployment targets)
-    runs-on: macos-26
+    strategy:
+      matrix:
+        include:
+          - runner: macos-26
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     env:
-      DEPLOYMENT_TARGET: '11.0'  # For cache key consistency
+      # Minimum supported macOS version determined from CI testing (13.0 Ventura)
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
     steps:
       - uses: actions/checkout@v4
         # Note: submodules not needed for this stage - LLVM is cloned to ~/.llvm-project by build script
@@ -65,12 +73,10 @@ jobs:
             ~/.llvm-project
           # Cache: installed libs (~/.local) + LLVM source/build (~/.llvm-project)
           # Source+build needed for incremental Python bindings rebuild in wheel job
-          key: macos-26-11.0-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
+          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
 
       - name: Build prerequisites
         if: steps.cache.outputs.cache-hit != 'true'
-        env:
-          MACOSX_DEPLOYMENT_TARGET: '11.0'
         run: |
           # Fix CI runner quirk: gcc pre-installed but not linked
           brew unlink gcc 2>/dev/null || true
@@ -108,34 +114,21 @@ jobs:
   # Build and test CUDA-Q
   # ============================================================================
   build_and_test:
-    name: Build (${{ matrix.runner }}${{ matrix.name_suffix }})
+    name: Build (${{ matrix.runner }})
     needs: [metadata, devdeps]
     strategy:
       matrix:
         include:
           - runner: macos-26
             arch: arm64
-            deployment_target: ''  # Native - no override, use host default
-            name_suffix: '-native'
-          - runner: macos-26
-            arch: arm64
-            deployment_target: '15.0'
-            name_suffix: '-target15'
-          - runner: macos-26
-            arch: arm64
-            deployment_target: '14.0'
-            name_suffix: '-target14'
-          - runner: macos-26
-            arch: arm64
-            deployment_target: '13.0'
-            name_suffix: '-target13'
-          - runner: macos-26
-            arch: arm64
-            deployment_target: '11.0'
-            name_suffix: '-target11'
+          - runner: macos-15-intel
+            arch: x86_64
       fail-fast: false
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
+    env:
+      # Minimum supported macOS version determined from CI testing (13.0 Ventura)
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -152,8 +145,7 @@ jobs:
           path: |
             ~/.local
             ~/.llvm-project
-          # All builds reuse the same devdeps cache (devdeps don't depend on deployment target)
-          key: ${{ matrix.runner }}-11.0-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
+          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
 
       - name: Install Python dependencies
@@ -170,52 +162,7 @@ jobs:
           bash scripts/build_llvm.sh -c Release -v
 
       - name: Build CUDA-Q
-        run: |
-          # Only set deployment target if specified (empty = use native/default)
-          if [ -n "${{ matrix.deployment_target }}" ]; then
-            export MACOSX_DEPLOYMENT_TARGET="${{ matrix.deployment_target }}"
-            echo "Using MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
-          else
-            echo "Using native deployment target (no override)"
-          fi
-          bash scripts/build_cudaq.sh -v
-
-      - name: Debug environment
-        run: |
-          echo "=== Environment ==="
-          env | sort
-          echo "=== DYLD paths ==="
-          echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH:-not set}"
-          echo "DYLD_FALLBACK_LIBRARY_PATH=${DYLD_FALLBACK_LIBRARY_PATH:-not set}"
-          echo "=== Linker version ==="
-          ld -v 2>&1 || true
-          echo "=== LLVM install ==="
-          ls -la ~/.local/llvm/lib/*.dylib 2>/dev/null | head -20 || echo "No dylibs found"
-          echo "=== Build libs ==="
-          ls -la build/lib/*.dylib 2>/dev/null | head -20 || echo "No build dylibs"
-          
-      - name: Debug single test
-        run: |
-          source scripts/set_env_defaults.sh
-          echo "=== Running single BuilderTester test with debug ==="
-          cd build
-          # Enable CUDAQ debug logging
-          export CUDAQ_LOG_LEVEL=info
-          # Run single test to see crash details
-          ctest -V -R "qpp_BuilderTester.checkSimple" --timeout 60 || true
-          echo "=== Test exit code: $? ==="
-          
-      - name: Check crash reports
-        if: always()
-        run: |
-          echo "=== Recent crash reports ==="
-          ls -la ~/Library/Logs/DiagnosticReports/*.crash 2>/dev/null | tail -10 || echo "No crash reports"
-          # Show most recent crash report if exists
-          latest=$(ls -t ~/Library/Logs/DiagnosticReports/*.crash 2>/dev/null | head -1)
-          if [ -n "$latest" ]; then
-            echo "=== Latest crash report: $latest ==="
-            head -200 "$latest"
-          fi
+        run: bash scripts/build_cudaq.sh -v
 
       - name: Run tests
         run: bash scripts/run_tests.sh -v
