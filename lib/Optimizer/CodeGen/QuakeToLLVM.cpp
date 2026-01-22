@@ -827,7 +827,8 @@ public:
         cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
-    funcArgs.append(instOperands.begin(), instOperands.end());
+    funcArgs.append(adaptor.getControls().begin(), adaptor.getControls().end());
+    funcArgs.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
 
     // Call our utility function.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
@@ -1008,7 +1009,8 @@ public:
         cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
-    funcArgs.append(instOperands.begin(), instOperands.end());
+    funcArgs.append(adaptor.getControls().begin(), adaptor.getControls().end());
+    funcArgs.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
 
     // Call our utility function.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
