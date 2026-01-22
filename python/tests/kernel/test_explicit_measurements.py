@@ -273,7 +273,7 @@ def test_error_cases():
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(kernel_with_conditional_on_measure,
                      explicit_measurements=True)
-    assert "no longer supports" in repr(e)
+    assert "no longer support" in repr(e)
 
     ## NOTE: The following does not fail.
     ## Needs inlining of the function calls.
@@ -291,6 +291,6 @@ def test_error_cases():
     # with pytest.raises(RuntimeError) as e:
     #     cudaq.sample(kernel_with_conditional_on_function,
     #                  explicit_measurements=True)
-    # assert "no longer supports" in repr(e)
+    # assert "no longer support" in repr(e)
 
     cudaq.__clearKernelRegistries()

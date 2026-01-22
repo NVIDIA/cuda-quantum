@@ -22,4 +22,4 @@ int main() {
   return 0;
 }
 
-// FAIL: no longer supports kernels that branch on measurement results
+// FAIL: no longer support kernels that branch on measurement results

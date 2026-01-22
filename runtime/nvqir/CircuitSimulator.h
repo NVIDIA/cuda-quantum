@@ -544,9 +544,7 @@ protected:
   /// sampling and to exit early. False otherwise.
   bool handleBasicSampling(const std::size_t qubitIdx,
                            const std::string &regName) {
-    if (executionContext && executionContext->name == "sample" &&
-        !executionContext->hasConditionalsOnMeasureResults) {
-
+    if (executionContext && executionContext->name == "sample") {
       // Handle duplicate measurements in explicit measurements mode
       if (executionContext->explicitMeasurements) {
         auto iter =
@@ -556,10 +554,8 @@ protected:
       }
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
-
       return true;
     }
-
     return false;
   }
 

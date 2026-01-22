@@ -385,7 +385,7 @@ def test_dynamic_circuit(target):
 
     with pytest.raises(RuntimeError) as e:
         cudaq.sample(simple, shots_count=100)
-    assert "no longer supports" in repr(e)
+    assert "no longer support" in repr(e)
 
     @cudaq.kernel
     def simple_run() -> list[bool]:
