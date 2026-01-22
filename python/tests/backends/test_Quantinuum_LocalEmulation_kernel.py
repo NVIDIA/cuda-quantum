@@ -133,11 +133,14 @@ def test_quantinuum_exp_pauli():
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
     # Run the observe task on quantinuum synchronously
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
+    res = cudaq.observe(ansatz, hamiltonian, .59 * -0.5, shots_count=100000)
     assert assert_close(-1.7, res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
+    future = cudaq.observe_async(ansatz,
+                                 hamiltonian,
+                                 .59 * -0.5,
+                                 shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
     assert assert_close(-1.7, res.expectation())
@@ -190,6 +193,24 @@ def test_exp_pauli_param():
     assert '11' in counts
     assert not '01' in counts
     assert not '10' in counts
+
+
+def test_exp_pauli_zz():
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        h(q[1])
+        exp_pauli(theta, q, "ZZ")
+        h(q[0])
+        h(q[1])
+        mz(q)
+
+    counts = cudaq.sample(kernel, np.pi / 2)
+    counts.dump()
+    assert len(counts) == 1
+    assert '11' in counts
 
 
 def test_list_complex_param():
