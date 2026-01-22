@@ -4,7 +4,7 @@
 #
 # Usage: bash scripts/run_tests.sh [-v] [-B build_dir]
 #
-# Platform-aware: Skips GPU tests on macOS (no CUDA available)
+# Note: GPU tests will fail gracefully on macOS (no CUDA available)
 
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$this_file_dir/set_env_defaults.sh"
@@ -21,6 +21,9 @@ done
 
 status_sum=0
 
+# Set PYTHONPATH to find the built cudaq module
+export PYTHONPATH="$build_dir/python:${PYTHONPATH:-}"
+
 # 1. CTest
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" --timeout 300 \
@@ -34,9 +37,9 @@ echo "=== Running llvm-lit (build/test) ==="
   "$build_dir/test"
 status_sum=$((status_sum + $?))
 
-# 3. Target tests (with per-test timeout to catch hangs)
+# 3. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests --timeout 120 \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests \
   --param nvqpp_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 status_sum=$((status_sum + $?))

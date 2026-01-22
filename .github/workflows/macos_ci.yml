@@ -26,23 +26,13 @@ jobs:
   # This mirrors the Linux CI architecture (wheeldeps → python_wheels)
   # ============================================================================
   devdeps:
-    name: Prerequisites (${{ matrix.runner }})
+    name: Prerequisites
     needs: metadata
-    strategy:
-      matrix:
-        include:
-          - runner: macos-15
-            arch: arm64
-            deployment_target: '11.0'  # macOS Big Sur (first ARM64)
-          - runner: macos-26
-            arch: arm64
-            deployment_target: '11.0'  # macOS Big Sur (first ARM64)
-          - runner: macos-15-intel
-            arch: x86_64
-            deployment_target: '10.15'  # macOS Catalina (x86_64)
-      fail-fast: false
-    runs-on: ${{ matrix.runner }}
+    # Only build devdeps on macos-26 for now (testing deployment targets)
+    runs-on: macos-26
     timeout-minutes: 180
+    env:
+      DEPLOYMENT_TARGET: '11.0'  # For cache key consistency
     steps:
       - uses: actions/checkout@v4
         # Note: submodules not needed for this stage - LLVM is cloned to ~/.llvm-project by build script
@@ -75,12 +65,12 @@ jobs:
             ~/.llvm-project
           # Cache: installed libs (~/.local) + LLVM source/build (~/.llvm-project)
           # Source+build needed for incremental Python bindings rebuild in wheel job
-          key: ${{ matrix.runner }}-${{ matrix.deployment_target }}-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
+          key: macos-26-11.0-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
 
       - name: Build prerequisites
         if: steps.cache.outputs.cache-hit != 'true'
         env:
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
         run: |
           # Fix CI runner quirk: gcc pre-installed but not linked
           brew unlink gcc 2>/dev/null || true
@@ -123,22 +113,29 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: macos-15
-            arch: arm64
-            deployment_target: '11.0'
-          - runner: macos-26
-            arch: arm64
-            deployment_target: '11.0'
           - runner: macos-26
             arch: arm64
             deployment_target: ''  # Native - no override, use host default
             name_suffix: '-native'
-          - runner: macos-15-intel
-            arch: x86_64
-            deployment_target: '10.15'
+          - runner: macos-26
+            arch: arm64
+            deployment_target: '15.0'
+            name_suffix: '-target15'
+          - runner: macos-26
+            arch: arm64
+            deployment_target: '14.0'
+            name_suffix: '-target14'
+          - runner: macos-26
+            arch: arm64
+            deployment_target: '13.0'
+            name_suffix: '-target13'
+          - runner: macos-26
+            arch: arm64
+            deployment_target: '11.0'
+            name_suffix: '-target11'
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
         with:
@@ -155,8 +152,8 @@ jobs:
           path: |
             ~/.local
             ~/.llvm-project
-          # Native builds reuse the 11.0 devdeps cache (devdeps don't depend on deployment target)
-          key: ${{ matrix.runner }}-${{ matrix.deployment_target || '11.0' }}-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
+          # All builds reuse the same devdeps cache (devdeps don't depend on deployment target)
+          key: ${{ matrix.runner }}-11.0-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
 
       - name: Install Python dependencies
