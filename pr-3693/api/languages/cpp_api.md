@@ -11629,7 +11629,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#classcudaq_1_1state_1ae07a132f3563b069e3e2acd494ec4eec .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ptrToOwn]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state5stateEP15SimulationState "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1state_1ae07a132f3563b069e3e2acd494ec4eec .target}[[explicit]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ptrToOwn]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state5stateEP15SimulationState "Permalink to this definition"){.headerlink}\
 
     :   The constructor, takes the simulation data and owns it.
 
@@ -11661,6 +11661,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     []{#classcudaq_1_1state_1acbe39e2bb1d4d4180dd4055be938eeff .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5stateaSERR5state "Permalink to this definition"){.headerlink}\
 
     :   Copy assignment.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1state_1acf612f065fb4c3fb3496ec7deb3ae5c8 .target}[[[\~state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq5stateD0Ev "Permalink to this definition"){.headerlink}\
+
+    :   Default destructor.
 
     ```{=html}
     <!-- -->

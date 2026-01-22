@@ -3819,6 +3819,9 @@ pr-3693
 |                                   | api/languages/cpp_api.html#_CPPv4 |
 |                                   | I0ENK5cudaq5state7to_hostEvPNSt7c |
 |                                   | omplexI10ScalarTypeEENSt6size_tE) |
+|                                   | -   [cudaq::state::\~state (C++   |
+|                                   |     function)](api/languages/cpp_ |
+|                                   | api.html#_CPPv4N5cudaq5stateD0Ev) |
 |                                   | -   [cudaq::state_data (C++       |
 |                                   |     type)](api/languages/cpp_api  |
 |                                   | .html#_CPPv4N5cudaq10state_dataE) |
