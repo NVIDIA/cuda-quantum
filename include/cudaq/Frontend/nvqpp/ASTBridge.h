@@ -20,6 +20,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "llvm/ADT/ScopedHashTable.h"
+#include "llvm/Support/Allocator.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/IR/Builders.h"
@@ -151,12 +152,12 @@ public:
       MangledKernelNamesMap &namesMap, clang::CompilerInstance &ci,
       clang::ItaniumMangleContext *mangler,
       std::unordered_map<std::string, std::string> &customOperations,
-      bool tuplesAreReversed)
+      llvm::BumpPtrAllocator &alloc, bool tuplesAreReversed)
       : astContext(astCtx), mlirContext(mlirCtx), builder(bldr), module(module),
         symbolTable(symTab), functionsToEmit(funcsToEmit),
         reachableFunctions(reachableFuncs), namesMap(namesMap),
         compilerInstance(ci), mangler(mangler),
-        customOperationNames(customOperations),
+        customOperationNames(customOperations), allocator(alloc),
         tuplesAreReversed(tuplesAreReversed) {}
 
   /// `nvq++` renames quantum kernels to differentiate them from classical C++
@@ -624,6 +625,9 @@ private:
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
   std::unordered_map<std::string, std::string> &customOperationNames;
+  /// Allocator for dynamically generated symbol names, referenced by the symbol
+  /// table.
+  llvm::BumpPtrAllocator &allocator;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -710,6 +714,10 @@ public:
 
     // The symbol table, holding MLIR values keyed on variable name.
     SymbolTable symbol_table;
+
+    /// Allocator for dynamically generated symbol names, referenced by the
+    /// symbol table.
+    llvm::BumpPtrAllocator allocator;
 
     // The mangler is constructed and owned by `this`.
     clang::ItaniumMangleContext *mangler;

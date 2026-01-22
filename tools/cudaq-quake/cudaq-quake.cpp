@@ -38,6 +38,17 @@
 #include "mlir/Transforms/Passes.h"
 #include <filesystem>
 
+// LeakSanitizer suppression, currently necessary to successfully compile with
+// ASan.
+// TODO: find cause of leak and fix it (see
+// https://github.com/NVIDIA/cuda-quantum/issues/3780).
+#if defined(__SANITIZE_ADDRESS__) ||                                           \
+    defined(__has_feature) && __has_feature(address_sanitizer)
+extern "C" const char *__lsan_default_suppressions() {
+  return "leak:llvm::SmallVectorBase<unsigned int>::grow_pod\n";
+}
+#endif
+
 using namespace llvm;
 
 static constexpr const char toolName[] = "cudaq-quake";
