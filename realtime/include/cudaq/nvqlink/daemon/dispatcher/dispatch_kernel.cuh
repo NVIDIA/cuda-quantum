@@ -89,6 +89,12 @@ __global__ void dispatch_kernel(
         
         // Parse RPC header
         RPCHeader* header = static_cast<RPCHeader*>(data_buffer);
+        if (header->magic != RPC_MAGIC_REQUEST) {
+          // Invalid framing, drop slot
+          __threadfence_system();
+          rx_flags[current_slot] = 0;
+          continue;
+        }
         std::uint32_t function_id = header->function_id;
         std::uint32_t arg_len = header->arg_len;
         
@@ -108,6 +114,7 @@ __global__ void dispatch_kernel(
           
           // Write response header
           RPCResponse* response = static_cast<RPCResponse*>(data_buffer);
+          response->magic = RPC_MAGIC_RESPONSE;
           response->status = status;
           response->result_len = result_len;
           

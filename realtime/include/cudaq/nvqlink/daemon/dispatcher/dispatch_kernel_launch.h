@@ -21,12 +21,14 @@ namespace cudaq::nvqlink {
 /// @brief RPC request header - wire format for function dispatch.
 /// Must be wire-compatible with cuda-quantum RPC protocol.
 struct __attribute__((packed)) RPCHeader {
+  std::uint32_t magic;        ///< Magic value to validate message framing
   std::uint32_t function_id;  ///< Hash of function name (FNV-1a)
   std::uint32_t arg_len;      ///< Length of argument data in bytes
 };
 
 /// @brief RPC response header - returned to caller.
 struct __attribute__((packed)) RPCResponse {
+  std::uint32_t magic;        ///< Magic value to validate message framing
   std::int32_t status;        ///< Return status (0 = success)
   std::uint32_t result_len;   ///< Length of result data in bytes
 };
@@ -60,5 +62,9 @@ constexpr std::uint32_t fnv1a_hash(const char* str) {
   }
   return hash;
 }
+
+// RPC framing magic values (ASCII: CUQ?).
+constexpr std::uint32_t RPC_MAGIC_REQUEST = 0x43555152;  // 'CUQR'
+constexpr std::uint32_t RPC_MAGIC_RESPONSE = 0x43555153; // 'CUQS'
 
 } // namespace cudaq::nvqlink

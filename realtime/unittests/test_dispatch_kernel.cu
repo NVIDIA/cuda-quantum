@@ -353,6 +353,7 @@ protected:
     std::uint8_t* slot_data =
         const_cast<std::uint8_t*>(rx_data_host_) + slot * slot_size_;
     auto* header = reinterpret_cast<cudaq::nvqlink::RPCHeader*>(slot_data);
+    header->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
     header->function_id = RPC_INCREMENT_FUNCTION_ID;
     header->arg_len = static_cast<std::uint32_t>(payload.size());
     memcpy(slot_data + sizeof(cudaq::nvqlink::RPCHeader), payload.data(),
@@ -369,6 +370,8 @@ protected:
     auto* response =
         reinterpret_cast<const cudaq::nvqlink::RPCResponse*>(slot_data);
 
+    if (response->magic != cudaq::nvqlink::RPC_MAGIC_RESPONSE)
+      return false;
     if (status_out)
       *status_out = response->status;
     if (result_len_out)
