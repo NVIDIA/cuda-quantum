@@ -5263,7 +5263,7 @@ def compile_to_mlir(uniqueId, astModule,
     except:
         raise RuntimeError(f"could not compile code for '{bridge.name}'.")
 
-    # DEBUG: manually delete the PassManager to debug crash on exit issues.
+    # Eagerly delete the pass manager to avoid potential issues where the garbage collector delays the deletion to the very end, possibly causing context issues.
     del pm
 
     bridge.module.operation.attributes.__setitem__(
