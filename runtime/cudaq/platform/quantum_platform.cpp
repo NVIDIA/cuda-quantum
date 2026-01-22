@@ -204,6 +204,14 @@ void quantum_platform::launchKernel(const std::string &kernelName,
   qpu->launchKernel(kernelName, rawArgs);
 }
 
+KernelThunkResultType quantum_platform::launchModule(
+    const std::string &kernelName, mlir::ModuleOp module,
+    const std::vector<void *> &rawArgs, mlir::Type resTy, std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
+  return qpu->launchModule(kernelName, module, rawArgs, resTy);
+}
+
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
   for (auto &qpu : platformQPUs)
@@ -273,6 +281,24 @@ streamlinedLaunchKernel(const char *kernelName,
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
+}
+
+KernelThunkResultType
+streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp module,
+                        const std::vector<void *> &rawArgs,
+                        mlir::Type resultTy) {
+  ScopedTraceWithContext("streamlinedLaunchModule", kernelName, rawArgs.size());
+
+  auto &platform = *getQuantumPlatformInternal();
+  std::string kernName = kernelName;
+  std::size_t qpu_id = platform.get_current_qpu();
+  return platform.launchModule(kernelName, module, rawArgs, resultTy, qpu_id);
+}
+
+KernelThunkResultType
+streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
+                        const std::vector<void *> &rawArgs, mlir::Type resTy) {
+  return streamlinedLaunchModule(kernelName.c_str(), moduleOp, rawArgs, resTy);
 }
 
 KernelThunkResultType hybridLaunchKernel(const char *kernelName,

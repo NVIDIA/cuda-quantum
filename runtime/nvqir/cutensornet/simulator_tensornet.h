@@ -123,6 +123,9 @@ public:
       m_state = TensorNetState<ScalarType>::createFromOpTensors(
           in_state.getNumQubits(), casted->getAppliedTensors(), scratchPad,
           m_cutnHandle, m_randomEngine);
+      // Need to extend lifetime of all the device pointers stored in the input
+      // state.
+      m_state->m_tempDevicePtrs = casted->m_state->m_tempDevicePtrs;
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits
@@ -149,6 +152,11 @@ public:
           m_state->applyQubitProjector(op.deviceData,
                                        mapQubitIdxs(op.targetQubitIds));
       }
+      // Append the temp. pointer
+      m_state->m_tempDevicePtrs.insert(
+          m_state->m_tempDevicePtrs.end(),
+          casted->m_state->m_tempDevicePtrs.begin(),
+          casted->m_state->m_tempDevicePtrs.end());
     }
   }
   bool requireCacheWorkspace() const override { return true; }
