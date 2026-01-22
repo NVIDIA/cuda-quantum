@@ -31,13 +31,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: macos-15-arm64
+          - runner: macos-15
             arch: arm64
             deployment_target: '11.0'  # macOS Big Sur (first ARM64)
           - runner: macos-26
             arch: arm64
             deployment_target: '11.0'  # macOS Big Sur (first ARM64)
-          - runner: macos-15
+          - runner: macos-15-intel
             arch: x86_64
             deployment_target: '10.15'  # macOS Catalina (x86_64)
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: macos-15-arm64
+          - runner: macos-15
             arch: arm64
             deployment_target: '11.0'
           - runner: macos-26
@@ -133,7 +133,7 @@ jobs:
             arch: arm64
             deployment_target: ''  # Native - no override, use host default
             name_suffix: '-native'
-          - runner: macos-15
+          - runner: macos-15-intel
             arch: x86_64
             deployment_target: '10.15'
       fail-fast: false
