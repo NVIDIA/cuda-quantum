@@ -12,7 +12,7 @@ from typing import Callable
 
 import cudaq
 import numpy as np
-import warnings
+import gc
 import pytest
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
@@ -35,7 +35,7 @@ def is_close_array(actual, expected):
 @pytest.fixture(autouse=True)
 def do_something():
     yield
-    cudaq.reset_target()
+    gc.collect()
     cudaq.__clearKernelRegistries()
 
 
