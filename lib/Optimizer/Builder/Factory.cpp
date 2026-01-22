@@ -185,6 +185,11 @@ std::optional<double> factory::maybeValueOfFloatConstant(Value v) {
   return std::nullopt;
 }
 
+bool factory::isConstantOp(Value v) {
+  Attribute attr;
+  return matchPattern(v, m_Constant(&attr));
+}
+
 void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   auto *ctx = mod.getContext();
   auto loc = mod.getLoc();

@@ -219,7 +219,7 @@ void SimulatorTensorNetBase<ScalarType>::applyKrausChannel(
         const auto targetPrecision = std::is_same_v<ScalarType, float>
                                          ? cudaq::simulation_precision::fp32
                                          : cudaq::simulation_precision::fp64;
-        const std::string cacheKey = fmt::format(
+        const std::string cacheKey = cudaq_fmt::format(
             "GeneralKrausMat_{}", std::to_string(vecComplexHash(op.data)));
         if (op.precision == targetPrecision)
           return getOrCacheMat(cacheKey, op.data, m_gateDeviceMemCache);

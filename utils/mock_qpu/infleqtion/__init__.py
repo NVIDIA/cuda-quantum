@@ -8,7 +8,7 @@
 
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
-import uvicorn, uuid
+import uuid
 from pydantic import BaseModel
 
 # Define the REST Server App
@@ -85,11 +85,3 @@ async def getJob(id: str):
         },
     }
     return res
-
-
-def startServer(port):
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer(62447)

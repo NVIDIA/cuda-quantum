@@ -6,41 +6,27 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_quantinuum QuantinuumTester.cpp QuantinuumNGTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quantinuum PRIVATE -Wl,--no-as-needed)
-endif()
-target_compile_definitions(test_quantinuum PRIVATE -DNVQIR_BACKEND_NAME=quantinuum)
-target_include_directories(test_quantinuum PRIVATE ../..)
-target_link_libraries(test_quantinuum
-  PRIVATE fmt::fmt-header-only 
-  cudaq-common 
-  cudaq
-  cudaq-builder
-  cudaq-mlir-runtime
-  cudaq-rest-qpu
-  cudaq-operator
-  nvqir nvqir-qpp
-  cudaq-platform-default 
-  gtest_main)
-
+add_backend_unittest_executable(test_quantinuum 
+  SOURCES QuantinuumTester.cpp QuantinuumNGTester.cpp
+  BACKEND quantinuum
+  )
 
 configure_file("QuantinuumStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/quantinuum/QuantinuumStartServerAndTest.sh" @ONLY)
 add_test(NAME quantinuum-tests COMMAND bash QuantinuumStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/quantinuum/)
 
 # Test for Nexus helper functions
-add_executable(test_quantinuum_util QuantinuumUtilTester.cpp)
-target_include_directories(test_quantinuum_util
-  PRIVATE 
+add_backend_unittest_executable(test_quantinuum_util 
+  SOURCES QuantinuumUtilTester.cpp
+  
+  INCLUDES
   ../.. 
-  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/default/rest/helpers/quantinuum)
-target_link_libraries(test_quantinuum_util
-  PRIVATE 
+  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/default/rest/helpers/quantinuum
+
+  LINK_LIBS
   cudaq
   cudaq-common 
   cudaq-operator
-  gtest_main)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quantinuum_util PRIVATE -Wl,--no-as-needed)
-endif()
+  cudaq-platform-default
+  gtest_main
+)
 gtest_discover_tests(test_quantinuum_util)

@@ -8,6 +8,7 @@
 
 #include "QIRTypes.h"
 #include "NVQIRUtil.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include <algorithm>
 #include <cassert>

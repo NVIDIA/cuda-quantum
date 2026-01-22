@@ -30,9 +30,10 @@ def test_bug_1775():
     print(test)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant true
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
+# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant true
+# CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
 # CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 # CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
@@ -43,5 +44,6 @@ def test_bug_1775():
 # CHECK:           } else {
 # CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_1]] name "false_res" : (!quake.ref) -> !quake.measure
 # CHECK:           }
+# CHECK:           quake.dealloc %[[VAL_1]]
 # CHECK:           return
 # CHECK:         }

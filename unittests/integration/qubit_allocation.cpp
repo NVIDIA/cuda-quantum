@@ -14,7 +14,7 @@
 #ifndef CUDAQ_BACKEND_STIM
 
 std::vector<cudaq::complex> randomState(int numQubits) {
-  std::vector<cudaq::complex> stateVec(1ULL << numQubits);
+  std::vector<cudaq::complex> stateVec(1 << numQubits);
   std::generate(stateVec.begin(), stateVec.end(), []() -> cudaq::complex {
     thread_local std::default_random_engine
         generator; // thread_local so we don't have to do any locking
@@ -40,26 +40,38 @@ struct test_state_vector_init {
   }
 };
 
+struct test_state_vector_init_state_ctor {
+  void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
+    cudaq::qvector q(cudaq::state{stateVec});
+    mz(q);
+  }
+};
+
 CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   constexpr int numQubits = 5;
   // Large number of shots
   constexpr int numShots = 1000000;
   const auto stateVec = randomState(numQubits);
   cudaq::set_random_seed(13); // set for repeatability
-  auto counts = cudaq::sample(numShots, test_state_vector_init{}, stateVec);
-  counts.dump();
-  for (const auto &[bitStrOrg, count] : counts) {
-    auto bitStr = bitStrOrg;
-    std::reverse(bitStr.begin(), bitStr.end());
-    const int val = std::stoi(bitStr, nullptr, 2);
-    const double prob = 1.0 * count / numShots;
-    const double expectedProb = std::norm(stateVec[val]);
-    if (expectedProb > 1e-6) {
-      const double relError = std::abs(expectedProb - prob) / expectedProb;
-      // Less than 10% difference (relative)
-      EXPECT_LT(relError, 0.1);
+
+  auto runTest = [&](auto &&kernel) {
+    auto counts = cudaq::sample(numShots, kernel, stateVec);
+    counts.dump();
+    for (const auto &[bitStrOrg, count] : counts) {
+      auto bitStr = bitStrOrg;
+      std::reverse(bitStr.begin(), bitStr.end());
+      const int val = std::stoi(bitStr, nullptr, 2);
+      const double prob = 1.0 * count / numShots;
+      const double expectedProb = std::norm(stateVec[val]);
+      if (expectedProb > 1e-6) {
+        const double relError = std::abs(expectedProb - prob) / expectedProb;
+        // Less than 10% difference (relative)
+        EXPECT_LT(relError, 0.1);
+      }
     }
-  }
+  };
+  runTest(test_state_vector_init{});
+  runTest(test_state_vector_init_state_ctor{});
 }
 
 // Same as test_state_vector_init with some dummy gates
