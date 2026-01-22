@@ -29,9 +29,8 @@ std::unique_ptr<T> get(const std::string &name) {
   for (typename T::RegistryType::iterator it = T::RegistryType::begin(),
                                           ie = T::RegistryType::end();
        it != ie; ++it) {
-    if (name == it->getName().str()) {
+    if (name == it->getName().str())
       return it->instantiate();
-    }
   }
   return nullptr;
 }

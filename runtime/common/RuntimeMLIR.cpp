@@ -97,6 +97,7 @@ std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
   std::call_once(mlir_init_flag, []() {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
+    cudaq::registerAllCLOptions();
     cudaq::registerAllPasses();
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
@@ -115,12 +116,13 @@ std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
 
 std::optional<std::string>
 cudaq::getEntryPointName(OwningOpRef<ModuleOp> &module) {
-  for (auto &a : *module)
+  for (auto &a : *module) {
     if (auto op = dyn_cast<mlir::func::FuncOp>(a)) {
       // Note: the .thunk function is where unmarshalling happens. It is *not*
       // an entry point.
       if (op.getName().endswith(".thunk"))
         return {op.getName().str()};
     }
+  }
   return std::nullopt;
 }
