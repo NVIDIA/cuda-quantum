@@ -26,6 +26,11 @@ private:
   cudensitymatHandle_t cudmHandle = nullptr;
   std::vector<int64_t> hilbertSpaceDims;
   std::size_t batchSize = 1;
+  // The dimension of a single state in the batch (used for distributed mode).
+  // For non-batched states, this equals dimension.
+  // For batched states in distributed mode, dimension < batchSize *
+  // singleStateDimension.
+  std::size_t singleStateDimension = 0;
 
 public:
   // Create a state with a size and data pointer.
