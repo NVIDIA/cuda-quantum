@@ -118,7 +118,7 @@ jobs:
   # Build and test CUDA-Q
   # ============================================================================
   build_and_test:
-    name: Build (${{ matrix.runner }})
+    name: Build (${{ matrix.runner }}${{ matrix.name_suffix }})
     needs: [metadata, devdeps]
     strategy:
       matrix:
@@ -129,12 +129,16 @@ jobs:
           - runner: macos-26
             arch: arm64
             deployment_target: '11.0'
+          - runner: macos-26
+            arch: arm64
+            deployment_target: ''  # Native - no override, use host default
+            name_suffix: '-native'
           - runner: macos-15
             arch: x86_64
             deployment_target: '10.15'
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 180
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
@@ -151,7 +155,8 @@ jobs:
           path: |
             ~/.local
             ~/.llvm-project
-          key: ${{ matrix.runner }}-${{ matrix.deployment_target }}-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
+          # Native builds reuse the 11.0 devdeps cache (devdeps don't depend on deployment target)
+          key: ${{ matrix.runner }}-${{ matrix.deployment_target || '11.0' }}-devdeps-v3-${{ needs.metadata.outputs.llvm_commit }}
           fail-on-cache-miss: true
 
       - name: Install Python dependencies
@@ -168,10 +173,52 @@ jobs:
           bash scripts/build_llvm.sh -c Release -v
 
       - name: Build CUDA-Q
-        env:
-          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.deployment_target }}
         run: |
+          # Only set deployment target if specified (empty = use native/default)
+          if [ -n "${{ matrix.deployment_target }}" ]; then
+            export MACOSX_DEPLOYMENT_TARGET="${{ matrix.deployment_target }}"
+            echo "Using MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
+          else
+            echo "Using native deployment target (no override)"
+          fi
           bash scripts/build_cudaq.sh -v
+
+      - name: Debug environment
+        run: |
+          echo "=== Environment ==="
+          env | sort
+          echo "=== DYLD paths ==="
+          echo "DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH:-not set}"
+          echo "DYLD_FALLBACK_LIBRARY_PATH=${DYLD_FALLBACK_LIBRARY_PATH:-not set}"
+          echo "=== Linker version ==="
+          ld -v 2>&1 || true
+          echo "=== LLVM install ==="
+          ls -la ~/.local/llvm/lib/*.dylib 2>/dev/null | head -20 || echo "No dylibs found"
+          echo "=== Build libs ==="
+          ls -la build/lib/*.dylib 2>/dev/null | head -20 || echo "No build dylibs"
+          
+      - name: Debug single test
+        run: |
+          source scripts/set_env_defaults.sh
+          echo "=== Running single BuilderTester test with debug ==="
+          cd build
+          # Enable CUDAQ debug logging
+          export CUDAQ_LOG_LEVEL=info
+          # Run single test to see crash details
+          ctest -V -R "qpp_BuilderTester.checkSimple" --timeout 60 || true
+          echo "=== Test exit code: $? ==="
+          
+      - name: Check crash reports
+        if: always()
+        run: |
+          echo "=== Recent crash reports ==="
+          ls -la ~/Library/Logs/DiagnosticReports/*.crash 2>/dev/null | tail -10 || echo "No crash reports"
+          # Show most recent crash report if exists
+          latest=$(ls -t ~/Library/Logs/DiagnosticReports/*.crash 2>/dev/null | head -1)
+          if [ -n "$latest" ]; then
+            echo "=== Latest crash report: $latest ==="
+            head -200 "$latest"
+          fi
 
       - name: Run tests
         run: bash scripts/run_tests.sh -v

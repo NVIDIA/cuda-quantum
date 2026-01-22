@@ -34,9 +34,9 @@ echo "=== Running llvm-lit (build/test) ==="
   "$build_dir/test"
 status_sum=$((status_sum + $?))
 
-# 3. Target tests
+# 3. Target tests (with per-test timeout to catch hangs)
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests \
+"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests --timeout 120 \
   --param nvqpp_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 status_sum=$((status_sum + $?))
