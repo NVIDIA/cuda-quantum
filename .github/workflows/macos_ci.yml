@@ -176,13 +176,25 @@ jobs:
     needs: [metadata, devdeps]
     strategy:
       matrix:
-        runner: [macos-26, macos-15-intel]
-        python_version: ['3.11', '3.12', '3.13']
         include:
           - runner: macos-26
             arch: arm64
+            python_version: '3.11'
+          - runner: macos-26
+            arch: arm64
+            python_version: '3.12'
+          - runner: macos-26
+            arch: arm64
+            python_version: '3.13'
           - runner: macos-15-intel
             arch: x86_64
+            python_version: '3.11'
+          - runner: macos-15-intel
+            arch: x86_64
+            python_version: '3.12'
+          - runner: macos-15-intel
+            arch: x86_64
+            python_version: '3.13'
       fail-fast: false
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
@@ -266,13 +278,25 @@ jobs:
     needs: wheel
     strategy:
       matrix:
-        runner: [macos-26, macos-15-intel]
-        python_version: ['3.11', '3.12', '3.13']
         include:
           - runner: macos-26
             arch: arm64
+            python_version: '3.11'
+          - runner: macos-26
+            arch: arm64
+            python_version: '3.12'
+          - runner: macos-26
+            arch: arm64
+            python_version: '3.13'
           - runner: macos-15-intel
             arch: x86_64
+            python_version: '3.11'
+          - runner: macos-15-intel
+            arch: x86_64
+            python_version: '3.12'
+          - runner: macos-15-intel
+            arch: x86_64
+            python_version: '3.13'
       fail-fast: false
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
