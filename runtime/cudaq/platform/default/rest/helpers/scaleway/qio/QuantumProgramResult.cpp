@@ -8,14 +8,14 @@
 #include "QuantumProgramResult.h"
 
 namespace cudaq::qio {
-QuantumProgramResult(std::string serialization,
+QuantumProgramResult::QuantumProgramResult(std::string serialization,
                       QuantumProgramResultSerializationFormat serializationFormat,
                       CompressionFormat compressionFormat) :
     m_serialization(serialization),
     m_serializationFormat(serializationFormat),
     m_compressionFormat(compressionFormat) {}
 
-static QuantumProgramResult
+QuantumProgramResult
 QuantumProgramResult::fromJson(nlohmann::json j) {
   return QuantumProgramResult(
       j.value("serialization", ""),
@@ -47,9 +47,10 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
 
   auto resultJson = nlohmann::json::parse(uncompressedSerialization);
 
-  cudaq::sample_result sample_result;
+  cudaq::sample_result kk;
 
-  sample_result.deserialize(resultJson);
+  kk.deserialize(resultJson);
 
-  return sample_result;
+  return kk;
+}
 } // namespace cudaq::qio

@@ -8,6 +8,7 @@
 #pragma once
 #include "Compression.h"
 #include "Format.h"
+#include "common/SampleResult.h"
 #include <nlohmann/json.hpp>
 #include <string>
 

@@ -9,13 +9,11 @@
 #include "ScalewayServerHelper.h"
 
 using json = nlohmann::json;
-// using qio = cudaq::qio;
 
 namespace cudaq {
 
 void ScalewayServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
-
   m_qaasClient = qaas::v1alpha1::V1Alpha1Client(
                       config["projectId"],
                       config["secretKey"],
@@ -29,6 +27,7 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
   m_sessionMaxDuration = config["maxDuration"];
   m_sessionMaxIdleDuration = config["maxIdleDuration"];
   m_sessionName = config["name"];
+
   setShots(std::stoul(config["shots"]));
 }
 
@@ -120,10 +119,10 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   std::string rawPayload;
 
   if (firstResult.has_inline_result()) {
-    rawPayload = firstResult.result.value();
+    rawPayload = firstResult.result;
   } else if (firstResult.has_download_url()) {
     RestClient client;
-    rawPayload = client.getRawText(firstResult.url.value(), "", {}, true);
+    rawPayload = client.getRawText(firstResult.url, "", backendConfig, true);
   } else {
     throw std::runtime_error(
         "invalid: empty 'result' and 'url' fields to get result.");

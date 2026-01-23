@@ -8,7 +8,6 @@
 #pragma once
 
 #include "nlohmann/json.hpp"
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -43,21 +42,21 @@ struct Session {
   std::string name;
   std::string platform_id;
   std::string created_at;
-  std::optional<std::string> started_at;
-  std::optional<std::string> updated_at;
-  std::optional<std::string> terminated_at;
+  std::string started_at;
+  std::string updated_at;
+  std::string terminated_at;
   std::string max_idle_duration;
   std::string max_duration;
-  int64_t waiting_job_count = 0;
-  int64_t finished_job_count = 0;
+  int64_t waiting_job_count;
+  int64_t finished_job_count;
   std::string status;
   std::string project_id;
-  std::optional<std::string> deduplication_id;
+  std::string deduplication_id;
   std::string origin_type;
   std::string origin_id;
-  std::optional<std::string> progress_message;
-  std::optional<std::string> booking_id;
-  std::optional<std::string> model_id;
+  std::string progress_message;
+  std::string booking_id;
+  std::string model_id;
   std::string parameters;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
@@ -82,13 +81,13 @@ struct Job {
   std::string name;
   std::string session_id;
   std::string created_at;
-  std::optional<std::string> started_at;
-  std::optional<std::string> updated_at;
+  std::string started_at;
+  std::string updated_at;
   std::string
       status; // waiting, running, completed, error, cancelling, cancelled
-  std::optional<std::string> progress_message;
-  std::optional<std::string> job_duration;
-  std::optional<std::string> result_distribution;
+  std::string progress_message;
+  std::string job_duration;
+  std::string result_distribution;
   std::string model_id;
   std::string parameters;
 
@@ -103,19 +102,19 @@ struct Job {
 
 struct JobResult {
   std::string job_id;
-  std::optional<std::string> result;
-  std::optional<std::string> url;
+  std::string result;
+  std::string url;
   std::string created_at;
 
   NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
                                               created_at)
 
   inline bool has_inline_result() const {
-    return result.has_value() && !result->empty();
+    return !result.empty();
   }
 
   inline bool has_download_url() const {
-    return url.has_value() && !url->empty();
+    return !url.empty();
   }
 };
 } // namespace cudaq::qaas::v1alpha1
