@@ -29,12 +29,7 @@ endif()
 include(GoogleTest)
 
 
-add_compile_options(-Wno-attributes) 
-
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/test_config.h.in"
-               "${CMAKE_BINARY_DIR}/include/test_config.h" 
-               @ONLY)
-include_directories(${CMAKE_BINARY_DIR}/include)
+add_compile_options(-Wno-attributes)
 
 # ==============================================================================
 # GPU Dispatch Kernel Tests
