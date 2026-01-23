@@ -21,7 +21,8 @@ protected:
   cudensitymatHandle_t handle_;
   cudensitymatOperator_t liouvillian_;
   std::unique_ptr<CuDensityMatTimeStepper> time_stepper_;
-  cudaq::state state_ = cudaq::state(nullptr);
+  cudaq::state state_ =
+      cudaq::state::from_data(std::vector<std::complex<double>>{0.0});
 
   void SetUp() override {
     // Create library handle
@@ -46,7 +47,7 @@ protected:
   void TearDown() override {
     // Clean up
     HANDLE_CUDM_ERROR(cudensitymatDestroyOperator(liouvillian_));
-    // HANDLE_CUDM_ERROR(cudensitymatDestroy(handle_));
+    HANDLE_CUDM_ERROR(cudensitymatDestroy(handle_));
   }
 };
 
