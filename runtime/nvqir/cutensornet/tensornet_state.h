@@ -77,8 +77,15 @@ protected:
   cutensornetState_t m_quantumState;
   /// Track id of gate tensors that are applied to the state tensors.
   std::int64_t m_tensorId = InvalidTensorIndexValue;
+  struct TempDevicePtrDeleter {
+    void operator()(void *ptr) const {
+      if (ptr)
+        cudaFree(ptr);
+    }
+  };
+
   // Device memory pointers to be cleaned up.
-  std::vector<void *> m_tempDevicePtrs;
+  std::vector<std::shared_ptr<void>> m_tempDevicePtrs;
   // Tensor ops that have been applied to the state.
   std::vector<AppliedTensorOp> m_tensorOps;
   ScratchDeviceMem &scratchPad;
@@ -232,6 +239,8 @@ public:
 private:
   template <typename ScalarTy>
   friend class SimulatorMPS;
+  template <typename ScalarTy>
+  friend class SimulatorTensorNet;
   template <typename ScalarTy>
   friend class TensorNetSimulationState;
   /// Internal method to contract the tensor network.

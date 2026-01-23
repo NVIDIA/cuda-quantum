@@ -1,0 +1,52 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Regression test for variadic argument duplication bug in controlled rotations.
+// 
+// QuakeToLLVM.cpp was passing the rotation parameter twice to
+// invokeRotationWithControlQubits. Once as a fixed argument, then again
+// in the variadic arguments.
+//
+// This test verifies that controlled rotations with multiple controls
+// (or single ref control) generate the correct type signature without
+// duplicate f64 parameters.
+//
+// The bug crashed on ARM64 Darwin (where all variadic args go on stack) but was
+// silently masked on x86_64 (where float and int variadic args are stored
+// separately in registers and variadic args therefore was ignoring the extra floating point
+// variables).
+
+// RUN: cudaq-opt --quake-to-qir %s | FileCheck %s
+
+func.func @test_controlled_rx_two_refs() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst = arith.constant 3.14159265358979 : f64
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.rx (%cst) [%0, %1] %2 : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: llvm.func @test_controlled_rx_two_refs()
+// CHECK: @invokeRotationWithControlQubits
+// CHECK-NOT: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, f64
+// CHECK-SAME: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, !llvm.ptr<struct<"Qubit", opaque>>
+
+
+func.func @test_controlled_ry_single_ref() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %cst = arith.constant 1.5707963267948966 : f64
+  %0 = quake.alloca !quake.ref
+  %1 = quake.alloca !quake.ref
+  quake.ry (%cst) [%0] %1 : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: llvm.func @test_controlled_ry_single_ref()
+// CHECK: @invokeRotationWithControlQubits
+// CHECK-NOT: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, f64
+// CHECK-SAME: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, !llvm.ptr<struct<"Qubit", opaque>>

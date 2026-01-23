@@ -10,8 +10,6 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
 namespace cudaq {
-void bindObserveAsync(py::module &mod);
+void bindObserveAsync(pybind11::module &mod);
 } // namespace cudaq
