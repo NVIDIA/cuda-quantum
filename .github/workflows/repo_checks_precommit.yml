@@ -1,0 +1,142 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+on:
+  workflow_dispatch:
+  pull_request:
+  merge_group:
+    types:
+      - checks_requested
+
+name: "Basic content checks (pre-commit)"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit-checks:
+    name: Pre-commit checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          # clang-format-16 for C++ formatting
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+            clang-format-16 \
+            aspell \
+            aspell-en
+
+          # Link clang-format-16 as clang-format for pre-commit
+          sudo ln -sf /usr/bin/clang-format-16 /usr/bin/clang-format
+
+      - name: Install Go (for license-eye)
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install Node.js (for markdown-link-check)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}-${{ runner.os }}
+          restore-keys: |
+            pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}-
+            pre-commit-
+
+      - name: Determine files to check
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            git fetch origin ${{ github.event.pull_request.base.ref }}
+            base_ref="origin/${{ github.event.pull_request.base.ref }}"
+
+            # Get all changed files
+            changed_files=$(git diff --name-only --diff-filter=d ${base_ref}...HEAD)
+
+            # Save for use in subsequent steps
+            echo "$changed_files" > /tmp/changed_files.txt
+            echo "mode=pr" >> $GITHUB_OUTPUT
+          else
+            echo "mode=all" >> $GITHUB_OUTPUT
+          fi
+
+      # Stage 1: Formatting checks
+      - name: "Stage 1: Check code formatting"
+        if: success() || failure()
+        run: |
+          if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
+            cat /tmp/changed_files.txt | xargs -r pre-commit run \
+              clang-format yapf markdownlint-cli2 \
+              check-added-large-files check-case-conflict check-merge-conflict check-symlinks \
+              check-yaml check-toml check-json end-of-file-fixer trailing-whitespace mixed-line-ending \
+              --files
+          else
+            pre-commit run --all-files \
+              clang-format yapf markdownlint-cli2 \
+              check-added-large-files check-case-conflict check-merge-conflict check-symlinks \
+              check-yaml check-toml check-json end-of-file-fixer trailing-whitespace mixed-line-ending \
+              --show-diff-on-failure
+          fi
+
+      # Stage 2: License header checks
+      - name: "Stage 2: Check license headers"
+        if: success() || failure()
+        run: |
+          pre-commit run license-headers spellcheck-allowlist-sorted --all-files --hook-stage manual
+
+      # Stage 3: Spell checking
+      - name: "Stage 3: Check spelling"
+        if: success() || failure()
+        run: |
+          if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
+            cat /tmp/changed_files.txt | xargs -r pre-commit run \
+              spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python \
+              --hook-stage manual \
+              --files
+          else
+            pre-commit run --all-files --hook-stage manual \
+              spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python \
+              --show-diff-on-failure
+          fi
+
+      # Stage 4: Link validation
+      - name: "Stage 4: Check links"
+        if: success() || failure()
+        run: |
+          if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
+            cat /tmp/changed_files.txt | grep '\.md$' | xargs -r pre-commit run markdown-link-check --hook-stage manual --files
+          else
+            pre-commit run markdown-link-check --all-files --hook-stage manual
+          fi
