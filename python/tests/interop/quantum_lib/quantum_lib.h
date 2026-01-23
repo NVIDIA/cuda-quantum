@@ -22,11 +22,10 @@ void another(cudaq::qview<> qubits, std::size_t);
 
 void uccsd(cudaq::qview<> qubits, std::size_t);
 
-__qpu__ void sit_and_spin_test(qkernel<void()> &&);
-__qpu__ void marshal_test(qkernel<void(std::size_t)> &&, std::size_t);
-__qpu__ void plug_and_chug_test(qkernel<void()> &&);
-__qpu__ void brain_bend_test(qkernel<void(cudaq::qvector<> &)> &&);
-__qpu__ void
-most_curious_test(qkernel<void(cudaq::qvector<> &, std::size_t)> &&);
+void sit_and_spin_test(qkernel<void()> &&);
+void marshal_test(qkernel<void(std::size_t)> &&, std::size_t);
+void plug_and_chug_test(qkernel<void()> &&);
+void brain_bend_test(qkernel<void(cudaq::qvector<> &)> &&);
+void most_curious_test(qkernel<void(cudaq::qvector<> &, std::size_t)> &&);
 
 } // namespace cudaq
