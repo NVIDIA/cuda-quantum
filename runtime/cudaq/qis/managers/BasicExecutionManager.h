@@ -98,6 +98,7 @@ public:
   }
 
   void endExecution() override {
+    CUDAQ_INFO("Ending execution in manager, deallocating qubits");
     deallocateQudits(contextQuditIdsForDeletion);
     for (auto &q : contextQuditIdsForDeletion)
       returnIndex(q.id);

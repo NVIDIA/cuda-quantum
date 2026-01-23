@@ -426,6 +426,7 @@ void __quantum__rt__qubit_release(Qubit *q) {
 
 void __quantum__rt__deallocate_all(const std::size_t numQubits,
                                    const std::size_t *qubitIdxs) {
+  CUDAQ_INFO("nvqir: Deallocating all qubits");
   std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
 }
@@ -699,8 +700,12 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
 void __quantum__qis__trap(std::int64_t code) {
   if (code == 0)
     throw std::runtime_error("could not autogenerate the adjoint of a kernel");
-  if (code == 1)
+  if (code == 1) {
+    CUDAQ_INFO("trap 1 caught: throwing exception now");
+    // just in case this takes a bit to flush
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     throw std::runtime_error("unsupported return type from entry-point kernel");
+  }
   throw std::runtime_error("code generation failure for target");
 }
 

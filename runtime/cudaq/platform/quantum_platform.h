@@ -88,10 +88,16 @@ public:
     auto cleanup = [&]() {
       detail::try_finally(
           [&] {
+            CUDAQ_INFO("Finalizing execution context");
             finalizeExecutionContext(ctx);
+            CUDAQ_INFO("Ending execution");
             endExecution();
+            CUDAQ_INFO("Execution ended successfully");
           },
           [&] {
+            CUDAQ_INFO("resetting execution context");
+            detail::resetExecutionContext();
+            CUDAQ_INFO("done");
             detail::resetExecutionContext();
             if (outerContext)
               detail::setExecutionContext(outerContext);
