@@ -51,6 +51,12 @@ def test_all(model, integrator):
     model().run_tests(integrator)
 
 
+def test_density_matrix_indexing():
+    # Note: for this test, we must use a fixed step integrator as this has zero dynamics;
+    # hence, an adaptive step integrator would fail to find the step size.
+    TestDensityMatrixIndexing().run_tests(CUDATorchDiffEqRK4Integrator)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
