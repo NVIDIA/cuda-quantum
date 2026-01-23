@@ -4,11 +4,25 @@
 #include "CUDAQTestUtils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "gtest/gtest.h"
+#include <string>
+#include <unordered_map>
 
 std::string mockPort = "62450";
 std::string auth_token = "api_key";
 std::string backendStringTemplate =
     "qibo;emulate;false;url;http://localhost:{};auth_token;{};";
+
+bool result_maps_are_matching(
+  const std::unordered_map<std::string, std::size_t>& results,
+  const std::unordered_map<std::string, std::size_t>& expected) {
+    for (const auto& [key, value] : expected) {
+        auto it = results.find(key);
+        if (it == results.end() || it->second != value) {
+            return false;
+        }
+    }
+    return true;
+}
 
 TEST(QiboTester, checkSimpleCircuit) {
   // Initialize the platform
@@ -25,9 +39,12 @@ TEST(QiboTester, checkSimpleCircuit) {
 
   // Execute the circuit
   auto counts = cudaq::sample(kernel);
-
+  counts.dump();
   // Check results
   EXPECT_EQ(counts.size(), 2);
-  // EXPECT_TRUE(counts.has_key("00"));
-  // EXPECT_TRUE(counts.has_key("11"));
+  std::unordered_map<std::string, std::size_t> expected = {
+    {"00", 500},
+    {"11", 500}
+  };
+  EXPECT_TRUE(result_maps_are_matching(counts.to_map(), expected));
 }
