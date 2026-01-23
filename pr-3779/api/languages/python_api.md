@@ -1836,7 +1836,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[funcSrc]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[PyKernelDecorator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[function]{.pre}]{.n}*, *[[verbose]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[module]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[kernelName]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[funcSrc]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[signature]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[location]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[overrideGlobalScopedVars]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[decorator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[fromBuilder]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator "Permalink to this definition"){.headerlink}
 
 :   The [`PyKernelDecorator`{.code .docutils .literal
     .notranslate}]{.pre} serves as a standard Python decorator that
@@ -1851,18 +1851,12 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[\_\_call\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__call__ "Permalink to this definition"){.headerlink}
 
-    :   Invoke the CUDA-Q kernel. JIT compilation of the kernel AST to
-        MLIR will occur here if it has not already occurred, except when
-        the target requires custom handling.
+    :   Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT
+        Quake module to machine code will occur here.
 
     [[\_\_str\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__str__ "Permalink to this definition"){.headerlink}
 
     :   Return the MLIR Module string representation for this kernel.
-
-    [[compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.compile "Permalink to this definition"){.headerlink}
-
-    :   Compile the Python function AST to MLIR. This is a no-op if the
-        kernel is already compiled.
 
     [[enable_return_to_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
 
@@ -1878,22 +1872,46 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Convert a JSON string into a new PyKernelDecorator object.
 
+    [[handle_call_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[ignoreReturnType]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.handle_call_arguments "Permalink to this definition"){.headerlink}
+
+    :   Resolve all the arguments at the call site for this decorator.
+
+    [[launch_args_required]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.launch_args_required "Permalink to this definition"){.headerlink}
+
+    :   This is a deeper query on the quake module. The quake module may
+        have been specialized such that none of the arguments are, in
+        fact, required to be provided in order to run the kernel.
+        (Argument synthesis.)
+
+        This will analyze the designated entry-point kernel for the
+        quake module and determine if any arguments are used and return
+        the number used.
+
+    [[lower_quake_to_codegen]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[argValues]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.lower_quake_to_codegen "Permalink to this definition"){.headerlink}
+
+    :   Take the quake code as input and lower it to be ready for final
+        code generation. If argument values are provided, we run
+        argument synthesis and specialize this instance of the kernel.
+
     [[merge_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[otherMod]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.merge_kernel "Permalink to this definition"){.headerlink}
 
     :   Merge the kernel in this PyKernelDecorator (the ModuleOp) with
         the provided ModuleOp.
 
-    [[processCallableArg]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.processCallableArg "Permalink to this definition"){.headerlink}
+    [[merge_quake_source]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[quakeText]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.merge_quake_source "Permalink to this definition"){.headerlink}
 
-    :   Process a callable argument
+    :   Merge a module of quake code from source text form into this
+        decorator's [`qkeModule`{.code .docutils .literal
+        .notranslate}]{.pre} attribute.
 
-    [[synthesize_callable_arguments]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[funcNames]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.synthesize_callable_arguments "Permalink to this definition"){.headerlink}
+    [[pre_compile]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.pre_compile "Permalink to this definition"){.headerlink}
 
-    :   Given this Kernel has callable block arguments, synthesize away
-        these callable arguments with the in-module FuncOps with given
-        names. The name at index 0 in the list corresponds to the first
-        callable block argument, index 1 to the second callable block
-        argument, etc.
+    :   Compile the Python AST to portable Quake.
+
+    [[signatureWithCallables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.signatureWithCallables "Permalink to this definition"){.headerlink}
+
+    :   returns True if and only if the entry-point contains callable
+        arguments and/or return values.
 
     [[to_json]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.to_json "Permalink to this definition"){.headerlink}
 
@@ -1990,12 +2008,16 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Returns[:]{.colon}
 
-    :   A dictionary containing the measurement count results for the
-        [[`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-        .internal}, or a list of such results in the case of
-        [`sample`{.code .docutils .literal .notranslate}]{.pre} function
-        broadcasting.
+    :   
+
+        A dictionary containing
+
+        :   the measurement count results for the [[`Kernel`{.xref .py
+            .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}, or a list of such results in the case of
+            [`sample`{.code .docutils .literal .notranslate}]{.pre}
+            function broadcasting.
 
     Return type[:]{.colon}
 
@@ -2008,22 +2030,17 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.sample_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[explicit_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample_async "Permalink to this definition"){.headerlink}
 
-:   
-
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[shots_count:]{.pre} [int]{.pre} [=]{.pre} [1000]{.pre}]{.n}*, *[[explicit_measurements:]{.pre} [bool]{.pre} [=]{.pre} [False]{.pre}]{.n}*, *[[qpu_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncSampleResult]{.pre}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
-
-    :   
-
-    Asynchronously sample the state of the provided [`kernel`{.code
-    .docutils .literal .notranslate}]{.pre} at the specified number of
-    circuit executions ([`shots_count`{.code .docutils .literal
-    .notranslate}]{.pre}). When targeting a quantum platform with more
-    than one QPU, the optional [`qpu_id`{.code .docutils .literal
-    .notranslate}]{.pre} allows for control over which QPU to enable.
-    Will return a future whose results can be retrieved via
-    [`future.get()`{.code .docutils .literal .notranslate}]{.pre}.
+:   Asynchronously sample the state of the provided kernel
+    [`decorator`{.code .docutils .literal .notranslate}]{.pre} at the
+    specified number of circuit executions ([`shots_count`{.code
+    .docutils .literal .notranslate}]{.pre}). When targeting a quantum
+    platform with more than one QPU, the optional [`qpu_id`{.code
+    .docutils .literal .notranslate}]{.pre} allows for control over
+    which QPU to enable. Will return a future whose results can be
+    retrieved via [`future.get()`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
@@ -2058,10 +2075,14 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Returns[:]{.colon}
 
-    :   A dictionary containing the measurement count results for the
-        [[`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-        .internal}.
+    :   
+
+        A dictionary containing the measurement count
+
+        :   results for the [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}.
 
     Return type[:]{.colon}
 
@@ -2073,44 +2094,15 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.run "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run "Permalink to this definition"){.headerlink}
 
 :   
-
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[shots_count:]{.pre} [int]{.pre} [=]{.pre} [100]{.pre}]{.n}*, *[[noise_model:]{.pre} [Optional\[NoiseModel\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-    :   
-
-    Run the provided [`kernel`{.code .docutils .literal
-    .notranslate}]{.pre} with the given kernel arguments over the
-    specified number of circuit executions ([`shots_count`{.code
-    .docutils .literal .notranslate}]{.pre}).
-
-    Parameters[:]{.colon}
-
-    :   -   **kernel** -- The kernel to execute [`shots_count`{.code
-            .docutils .literal .notranslate}]{.pre} times on the QPU.
-
-        -   **\*arguments** -- The concrete values to evaluate the
-            kernel function at.
-
-        -   **shots_count** -- The number of kernel executions on the
-            QPU. Defaults to 100.
-
-        -   **noise_model** -- The optional noise model to add noise to
-            the kernel execution.
-
-    Returns[:]{.colon}
-
-    :   A list of kernel return values from each execution. The length
-        equals [`shots_count`{.code .docutils .literal
-        .notranslate}]{.pre}.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run_async "Permalink to this definition"){.headerlink}
 
 :   Run the provided [`kernel`{.code .docutils .literal
     .notranslate}]{.pre} with the given kernel [`arguments`{.code
@@ -2239,7 +2231,8 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional number of trajectories for
             noisy simulation. Only valid if a noise model is provided.
-            Key-word only.
+            [`Keyword`{.code .docutils .literal .notranslate}]{.pre}
+            only.
 
     Returns[:]{.colon}
 
@@ -2267,15 +2260,9 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.observe_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[-1]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe_async "Permalink to this definition"){.headerlink}
 
-:   
-
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[spin_operator:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[qpu_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*, *[[shots_count:]{.pre} [int]{.pre} [=]{.pre} [-1]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncObserveResult]{.pre}](#cudaq.AsyncObserveResult "cudaq.AsyncObserveResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
-
-    :   
-
-    Compute the expected value of the [`spin_operator`{.code .docutils
+:   Compute the expected value of the [`spin_operator`{.code .docutils
     .literal .notranslate}]{.pre} with respect to the [`kernel`{.code
     .docutils .literal .notranslate}]{.pre} asynchronously. If the
     kernel accepts arguments, it will be evaluated with respect to
@@ -2318,7 +2305,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Returns[:]{.colon}
 
-    :   A future containing the result of the call to observe.
+    :   
+
+        A future containing the result of the call
+
+        :   to observe.
 
     Return type[:]{.colon}
 
@@ -2330,15 +2321,9 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_state "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.get_state "Permalink to this definition"){.headerlink}
 
-:   
-
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
-
-    :   
-
-    Return the [[`State`{.xref .py .py-class .docutils .literal
+:   Return the [[`State`{.xref .py .py-class .docutils .literal
     .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
     .internal} of the system after execution of the provided
     [`kernel`{.code .docutils .literal .notranslate}]{.pre}.
@@ -2357,38 +2342,34 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
-    ::: {.highlight-python .notranslate}
-    ::: highlight
-        # Example:
-        import numpy as np
+    \# Example: [`import`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`numpy`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`as`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`np`{.code .docutils .literal .notranslate}]{.pre}
 
-        # Define a kernel that will produced the all |11...1> state.
-        kernel = cudaq.make_kernel()
-        qubits = kernel.qalloc(3)
-        # Prepare qubits in the 1-state.
-        kernel.x(qubits)
+    \# Define a kernel that will produced the all [`|11...1>`{.code
+    .docutils .literal .notranslate}]{.pre} state. [`qubits`{.code
+    .docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`kernel.qalloc(3)`{.code .docutils .literal
+    .notranslate}]{.pre} \# Prepare qubits in the 1-state.
+    kernel.x(qubits)
 
-        # Get the state of the system. This will execute the provided kernel
-        # and, depending on the selected target, will return the state as a
-        # vector or matrix.
-        state = cudaq.get_state(kernel)
-        print(state)
-    :::
-    :::
+    Get the state of the system. This will execute the provided kernel
+    \# and, depending on the selected target, will return the state as a
+    \# vector or matrix. state = cudaq.get_state(kernel) print(state)
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.get_state_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.get_state_async "Permalink to this definition"){.headerlink}
 
-:   
-
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[qpu_id:]{.pre} [int]{.pre} [=]{.pre} [0]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[AsyncStateResult]{.pre}](#cudaq.AsyncStateResult "cudaq.AsyncStateResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
-
-    :   
-
-    Asynchronously retrieve the state generated by the given quantum
+:   Asynchronously retrieve the state generated by the given quantum
     kernel. When targeting a quantum platform with more than one QPU,
     the optional [`qpu_id`{.code .docutils .literal .notranslate}]{.pre}
     allows for control over which QPU to enable. Will return a future
@@ -2416,7 +2397,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Returns[:]{.colon}
 
-    :   Quantum state (state vector or density matrix) data).
+    :   
+
+        Quantum state data. (state vector or density
+
+        :   matrix)
 
     Return type[:]{.colon}
 
@@ -2428,165 +2413,60 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.vqe "Permalink to this definition"){.headerlink}
-
-:   Overloaded function.
-
-    1.  
-
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-    2.  
-
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[argument_mapper]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-    3.  
-
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[gradient_strategy]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-    4.  
-
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[gradient_strategy]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[gradients.gradient]{.pre}](#cudaq.gradients.gradient "cudaq.gradients.gradient"){.reference .internal}]{.n}*, *[[spin_operator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[object]{.pre}](https://docs.python.org/3/library/functions.html#object "(in Python v3.14)"){.reference .external}]{.n}*, *[[optimizer]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[optimizers.optimizer]{.pre}](#cudaq.optimizers.optimizer "cudaq.optimizers.optimizer"){.reference .internal}]{.n}*, *[[parameter_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[argument_mapper]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[Callable]{.pre}]{.n}*, *[[shots]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[-1]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/library/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-```{=html}
-<!-- -->
-```
-
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.draw "Permalink to this definition"){.headerlink}
-
-:   Overloaded function.
-
-    1.  
-
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [str]{.pre}]{.n}*, *[[arg1:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-    Return a string representing the drawing of the execution path, in
-    the format specified as the first argument. If the format is
-    'ascii', the output will be a UTF-8 encoded string. If the format is
-    'latex', the output will be a LaTeX string.
-
-    Parameters[:]{.colon}
-
-    :   -   **format**
-            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
-            .external}) -- The format of the output. Can be 'ascii' or
-            'latex'.
-
-        -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to draw.
-
-        -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
-            to evaluate the kernel function at. Leave empty if the
-            kernel doesn't accept any arguments.
-
-    2.  
-
-        [[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-    Return a UTF-8 encoded string representing drawing of the execution
-    path, i.e., the trace, of the provided [`kernel`{.code .docutils
-    .literal .notranslate}]{.pre}.
-
-    Parameters[:]{.colon}
-
-    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
-            .literal
-            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-            .internal} to draw.
-
-        -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
-            to evaluate the kernel function at. Leave empty if the
-            kernel doesn't accept any arguments.
-
-    Returns[:]{.colon}
-
-    :   The UTF-8 encoded string of the circuit, without measurement
-        operations.
-
-    ::: {.highlight-python .notranslate}
-    ::: highlight
-        # Example
-        import cudaq
-        @cudaq.kernel
-        def bell_pair():
-            q = cudaq.qvector(2)
-            h(q[0])
-            cx(q[0], q[1])
-            mz(q)
-        print(cudaq.draw(bell_pair))
-        # Output
-        #      ╭───╮
-        # q0 : ┤ h ├──●──
-        #      ╰───╯╭─┴─╮
-        # q1 : ─────┤ x ├
-        #           ╰───╯
-
-        # Example with arguments
-        import cudaq
-        @cudaq.kernel
-        def kernel(angle:float):
-            q = cudaq.qubit()
-            h(q)
-            ry(angle, q)
-        print(cudaq.draw(kernel, 0.59))
-        # Output
-        #      ╭───╮╭──────────╮
-        # q0 : ┤ h ├┤ ry(0.59) ├
-        #      ╰───╯╰──────────╯
-    :::
-    :::
-
-    Note: This function is only available when using simulator backends.
-
-```{=html}
-<!-- -->
-```
-
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.translate "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[vqe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[kernel]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[gradient_strategy]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[spin_operator]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[optimizer]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[parameter_count]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[argument_wrapper]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[shots]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.vqe "Permalink to this definition"){.headerlink}
 
 :   
 
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[format:]{.pre} [str]{.pre} [=]{.pre} [\'qir:0.1\']{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+```{=html}
+<!-- -->
+```
 
-    :   
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decoratorOrFormat]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.draw "Permalink to this definition"){.headerlink}
 
-    Return a UTF-8 encoded string representing drawing of the execution
-    path, i.e., the trace, of the provided [`kernel`{.code .docutils
-    .literal .notranslate}]{.pre}.
+:   The CUDA-Q specification overloads draw. To meet that, this function
+    uses parameter type checking. The two overloads for
+    [`cudaq.draw`{.code .docutils .literal .notranslate}]{.pre} are:
+    [`` ` ``{.docutils .literal .notranslate}]{.pre}` `{.docutils
+    .literal .notranslate}[`python`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`cudaq.draw("<format>",`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`kernel,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`opt_args...)`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`cudaq.draw(kernel,`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`opt_args...)`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`` ` ``{.docutils .literal .notranslate}]{.pre} The
+    second overload is equivalent to using a format string of
+    [`"ascii"`{.code .docutils .literal .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[translate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[format]{.pre}]{.n}[[=]{.pre}]{.o}[[\'qir:0.1\']{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.translate "Permalink to this definition"){.headerlink}
+
+:   Return a [`UTF-8`{.code .docutils .literal .notranslate}]{.pre}
+    encoded string representing drawing of the execution path, i.e., the
+    trace, of the provided [`kernel`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
     Parameters[:]{.colon}
 
-    :   -   **format**
-            ([*str*](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference
-            .external}) -- format to translate to, \<name\[:version\]\>.
-            Available format names: [`qir`{.code .docutils .literal
-            .notranslate}]{.pre}, [`qir-full`{.code .docutils .literal
-            .notranslate}]{.pre}, [`qir-base`{.code .docutils .literal
-            .notranslate}]{.pre}, [`qir-adaptive`{.code .docutils
-            .literal .notranslate}]{.pre}, [`openqasm2`{.code .docutils
-            .literal .notranslate}]{.pre}. QIR versions: [`0.1`{.code
-            .docutils .literal .notranslate}]{.pre} and [`1.0`{.code
-            .docutils .literal .notranslate}]{.pre}.
+    :   -   **format** ([`str`{.code .docutils .literal
+            .notranslate}]{.pre}) -- format to translate to,
+            \<name\[:version\]\>. Available format names: [`qir`{.code
+            .docutils .literal .notranslate}]{.pre}, [`qir-full`{.code
+            .docutils .literal .notranslate}]{.pre}, [`qir-base`{.code
+            .docutils .literal .notranslate}]{.pre},
+            [`qir-adaptive`{.code .docutils .literal
+            .notranslate}]{.pre}, [`openqasm2`{.code .docutils .literal
+            .notranslate}]{.pre}. QIR versions: [`0.1`{.code .docutils
+            .literal .notranslate}]{.pre} and [`1.0`{.code .docutils
+            .literal .notranslate}]{.pre}.
 
         -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
             .literal
@@ -2600,61 +2480,66 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
-        -   **Note** -- Translating functions with arguments to OpenQASM
-            2.0 is not supported.
+    Note: Translating functions with arguments to OpenQASM 2.0 is not
+    supported.
 
     Returns[:]{.colon}
 
-    :   The UTF-8 encoded string of the circuit, without measurement
-        operations.
+    :   The [`UTF-8`{.code .docutils .literal .notranslate}]{.pre}
+        encoded string of the circuit, without measurement operations.
 
-    ::: {.highlight-python .notranslate}
-    ::: highlight
-        # Example
-        import cudaq
-        @cudaq.kernel
-        def bell_pair():
-            q = cudaq.qvector(2)
-            h(q[0])
-            cx(q[0], q[1])
-            mz(q)
-        print(cudaq.translate(bell_pair, format="qir"))
+    \# Example: import cudaq \@cudaq.kernel def bell_pair(): [`q`{.code
+    .docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`cudaq.qvector(2)`{.code .docutils .literal
+    .notranslate}]{.pre} h(q\[0\]) [`cx(q[0],`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`q[1])`{.code .docutils .literal .notranslate}]{.pre}
+    [`mz(q)`{.code .docutils .literal .notranslate}]{.pre}
+    print(cudaq.translate(bell_pair, [`format="qir"`{.code .docutils
+    .literal .notranslate}]{.pre}))
 
-        # Output
-        ; ModuleID = 'LLVMDialectModule'
-        source_filename = 'LLVMDialectModule'
+    \# Output [`;`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`ModuleID`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`'LLVMDialectModule'`{.code .docutils .literal
+    .notranslate}]{.pre} [`source_filename`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`=`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`'LLVMDialectModule'`{.code .docutils .literal
+    .notranslate}]{.pre}
 
-        %Array = type opaque
-        %Result = type opaque
-        %Qubit = type opaque
+    %Array = type opaque %Result = type opaque %Qubit = type opaque
 
-        ...
-        ...
+    ::: {#id1 .section}
+    ### ...[¶](#id1 "Permalink to this heading"){.headerlink}
 
-        define void @__nvqpp__mlirgen__function_variable_qreg._Z13variable_qregv() local_unnamed_addr {
-          %1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
-          ...
-          %8 = tail call %Result* @__quantum__qis__mz(%Qubit* %4)
-          %9 = tail call %Result* @__quantum__qis__mz(%Qubit* %7)
-          tail call void @__quantum__rt__qubit_release_array(%Array* %1)
-          ret void
-        }
-    :::
+    define void
+    [`` @__nvqpp__mlirgen__function_variable_qreg._Z13variable_qregv`() ``{.code
+    .docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`` `local_unnamed_addr ``{.code .docutils .literal
+    .notranslate}]{.pre} { %1 = tail call %Array\*
+    \@\_\_quantum\_\_rt\_\_qubit_allocate_array(i64 2) ... %8 = tail
+    call %Result\* @\`\_\_quantum\_\_qis\_\_mz\`(%Qubit\* %4) %9 = tail
+    call %Result\* @\`\_\_quantum\_\_qis\_\_mz\`(%Qubit\* %7) tail call
+    void @\`\_\_quantum\_\_rt\_\_qubit_release_array\`(%Array\* %1)
+    [`ret`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+    .docutils .literal .notranslate}[`void`{.code .docutils .literal
+    .notranslate}]{.pre} }
     :::
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.estimate_resources "Permalink to this definition"){.headerlink}
 
-:   
-
-    [[cudaq.]{.pre}]{.sig-prename .descclassname}[[estimate_resources]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel:]{.pre} [object]{.pre}]{.n}*, *[[\\\*args]{.pre}]{.n}*, *[[choice:]{.pre} [Optional\[Callable\[\[\]]{.pre}]{.n}*, *[[bool\]\]]{.pre} [=]{.pre} [None]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
-
-    :   
-
-    Performs resource counting on the given quantum kernel expression
+:   Performs resource counting on the given quantum kernel expression
     and returns an accounting of how many times each gate was applied,
     in addition to the total number of gates and qubits used.
 
@@ -2684,10 +2569,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Returns[:]{.colon}
 
-    :   A dictionary containing the resource count results for the
-        [[`Kernel`{.xref .py .py-class .docutils .literal
-        .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
-        .internal}.
+    :   
+
+        A dictionary containing the resource count results
+
+        :   for the [[`Kernel`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}.
 
     Return type[:]{.colon}
 
@@ -3661,7 +3549,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1608334462]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2813167184]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -6460,11 +6348,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 *[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[State]{.pre}]{.sig-name .descname}[¶](#cudaq.State "Permalink to this definition"){.headerlink}
 
-:   A data-type representing the quantum state of the internal
-    simulator. This type is not user-constructible and instances can
-    only be retrieved via the [`cudaq.get_state(...)`{.code .docutils
-    .literal .notranslate}]{.pre} function or the static
-    cudaq.State.from_data() method.
+:   FIXME: document
 
     [[amplitude]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.State.amplitude "Permalink to this definition"){.headerlink}
 
@@ -6622,6 +6506,16 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   
 
         Return all the tensors that comprise this state representation.
+
+    [[get_state_refval]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.get_state_refval "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[get_state_refval]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[State]{.pre}](#cudaq.State "cudaq.State"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Convert the address of the state object to an integer.
 
     [[is_on_gpu]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.State.is_on_gpu "Permalink to this definition"){.headerlink}
 
@@ -7474,33 +7368,9 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncSampleResult]{.pre}]{.sig-name .descname}[¶](#cudaq.AsyncSampleResult "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[AsyncSampleResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.AsyncSampleResult "Permalink to this definition"){.headerlink}
 
-:   A data-type containing the results of a call to
-    [[`sample_async()`{.xref .py .py-func .docutils .literal
-    .notranslate}]{.pre}](#cudaq.sample_async "cudaq.sample_async"){.reference
-    .internal}. The [`AsyncSampleResult`{.code .docutils .literal
-    .notranslate}]{.pre} models a future-like type, whose
-    [[`SampleResult`{.xref .py .py-class .docutils .literal
-    .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
-    .internal} may be returned via an invocation of the [`get`{.code
-    .docutils .literal .notranslate}]{.pre} method. This kicks off a
-    wait on the current thread until the results are available. See
-    [future](https://en.cppreference.com/w/cpp/thread/future){.reference
-    .external} for more information on this programming pattern.
-
-    [[get]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.AsyncSampleResult.get "Permalink to this definition"){.headerlink}
-
-    :   
-
-        [[get]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[AsyncSampleResult]{.pre}](#cudaq.AsyncSampleResult "cudaq.AsyncSampleResult"){.reference .internal}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SampleResult]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
-
-        :   
-
-        Return the [[`SampleResult`{.xref .py .py-class .docutils
-        .literal
-        .notranslate}]{.pre}](#cudaq.SampleResult "cudaq.SampleResult"){.reference
-        .internal} from the asynchronous sample execution.
+:   
 
 ```{=html}
 <!-- -->

@@ -1742,7 +1742,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [30]:
+    [1]:
 :::
 :::
 
@@ -1760,7 +1760,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [17]:
+    [2]:
 :::
 :::
 
@@ -1786,7 +1786,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
 
 
     # Let us save the statevector of the circuit so far for later use.
-    psi_0 = cudaq.get_state(teleportation)
+    psi_0 = cudaq.StateMemoryView(cudaq.get_state(teleportation))
 :::
 :::
 :::
@@ -1794,7 +1794,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [35]:
+    [3]:
 :::
 :::
 
@@ -1836,7 +1836,7 @@ state, [\\(\\ket{\\psi} = \\alpha\\ket{0} + \\beta\\ket{1}\\)]{.math
             x(qubits[2])
 
 
-    psi_4 = cudaq.get_state(teleportation)
+    psi_4 = cudaq.StateMemoryView(cudaq.get_state(teleportation))
 :::
 :::
 :::
@@ -1851,7 +1851,7 @@ matrix representation to trace out subsystems.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [12]:
+    [4]:
 :::
 :::
 
@@ -1891,7 +1891,7 @@ matrix representation to trace out subsystems.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [39]:
+    [5]:
 :::
 :::
 
@@ -1944,7 +1944,7 @@ on the 0th qubit and hence we only have 1 copy of it as shown below
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [40]:
+    [6]:
 :::
 :::
 
@@ -1966,7 +1966,7 @@ on the 0th qubit and hence we only have 1 copy of it as shown below
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [40]:
+    [6]:
 :::
 :::
 
