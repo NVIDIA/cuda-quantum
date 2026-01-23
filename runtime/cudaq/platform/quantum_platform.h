@@ -83,7 +83,9 @@ public:
     auto cleanup = [&]() {
       detail::try_finally(
           [&] {
+            CUDAQ_INFO("Finalizing execution context");
             finalizeExecutionContext(ctx);
+            CUDAQ_INFO("Ending execution");
             endExecution();
           },
           [&] {

@@ -426,6 +426,7 @@ void __quantum__rt__qubit_release(Qubit *q) {
 
 void __quantum__rt__deallocate_all(const std::size_t numQubits,
                                    const std::size_t *qubitIdxs) {
+  CUDAQ_INFO("nvqir: Deallocating all qubits");
   std::vector<std::size_t> qubits(qubitIdxs, qubitIdxs + numQubits);
   nvqir::getCircuitSimulatorInternal()->deallocateQubits(qubits);
 }

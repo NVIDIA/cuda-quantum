@@ -114,6 +114,7 @@ protected:
   }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {
+    CUDAQ_INFO("Deallocating qubit {}", q.id);
 
     // Before trying to deallocate, make sure the qudit hasn't
     // been requested but not allocated.
