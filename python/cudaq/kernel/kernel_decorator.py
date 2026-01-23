@@ -644,6 +644,25 @@ class PyKernelDecorator(object):
             self.uniqName, specialized_module, mlirTy, *processedArgs)
         return result
 
+    def beta_reduction(self, execEngine, *args):
+        """
+        Perform beta reduction on this kernel decorator in the current calling
+        context. We are primary concerned with resolving the lambda lifted
+        arguments, but the formal arguments may be supplied as well.
+
+        This beta reduction may happen in a context that is earlier than the
+        actual call to the decorator. While this loses some of Python's
+        intrinsic dynamism, it allows Python kernels to be specialized and
+        passed to algorithms written in C++ that call back to these Python
+        kernels in a functional composition.
+        """
+        specialized_module, processedArgs = self.handle_call_arguments(*args)
+        mlirTy = self.handle_call_results()
+        return cudaq_runtime.marshal_and_retain_module(self.uniqName,
+                                                       specialized_module,
+                                                       mlirTy, execEngine,
+                                                       *processedArgs)
+
     def resolve_decorator_at_callsite(self, callingMod):
         # Resolve all lifted arguments for `self`.
         processedArgs = []
