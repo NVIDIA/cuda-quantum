@@ -835,6 +835,15 @@ public:
     return {};
   }
 
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         void *cachedEngine) override {
+    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
+    throw std::runtime_error(
+        "NYI: Remote rest execution via Python/C++ interop.");
+    return nullptr;
+  }
+
   void completeLaunchKernel(const std::string &kernelName,
                             std::vector<cudaq::KernelExecution> &&codes) {
 
