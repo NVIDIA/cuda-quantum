@@ -238,6 +238,10 @@ jobs:
       - name: Build wheel
         id: build_wheel
         run: |
+          # Source env defaults to set ZLIB_INSTALL_PREFIX, LLVM_INSTALL_PREFIX, etc.
+          # These point to cached prerequisites in ~/.local
+          source scripts/set_env_defaults.sh
+          
           export CUDA_QUANTUM_VERSION=${{ steps.version.outputs.cudaq_version }}
           bash scripts/build_wheel.sh -v
           
