@@ -63,7 +63,7 @@ protected:
 
 private:
   std::string m_defaultPlatformName = "EMU-CUDAQ-H100";
-  qaas::v1alpha1::V1Alpha1Client m_qaasClient;
+  std::unique_ptr<qaas::v1alpha1::V1Alpha1Client> m_qaasClient;
   std::string m_targetPlatformName = "";
   std::string m_sessionId = "";
   std::string m_sessionDeduplicationId = "";

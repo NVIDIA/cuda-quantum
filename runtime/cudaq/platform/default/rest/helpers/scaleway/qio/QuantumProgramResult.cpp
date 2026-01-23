@@ -47,10 +47,11 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
 
   auto resultJson = nlohmann::json::parse(uncompressedSerialization);
 
-  cudaq::sample_result kk;
+  cudaq::sample_result sampleResult;
+  auto serialization = resultJson.get<std::vector<std::size_t>>();
 
-  kk.deserialize(resultJson);
+  sampleResult.deserialize(serialization);
 
-  return kk;
+  return sampleResult;
 }
 } // namespace cudaq::qio

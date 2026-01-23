@@ -7,6 +7,8 @@
  ******************************************************************************/
 #pragma once
 #include <string>
+#include <stdexcept>
+#include <zlib.h>
 
 namespace cudaq::qio::compression {
 std::string gzipCompress(const std::string &input);

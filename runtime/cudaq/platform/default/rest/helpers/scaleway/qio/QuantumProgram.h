@@ -14,10 +14,6 @@
 namespace cudaq::qio {
 class QuantumProgram {
 public:
-  QuantumProgram(const cudaq::Kernel &kernel,
-                 QuantumProgramSerializationFormat serializationFormat,
-                 CompressionFormat compressionFormat);
-
   QuantumProgram(const std::string &serialization,
                  QuantumProgramSerializationFormat serializationFormat,
                  CompressionFormat compressionFormat);

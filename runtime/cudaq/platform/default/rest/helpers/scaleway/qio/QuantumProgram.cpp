@@ -10,26 +10,6 @@
 using json = nlohmann::json;
 
 namespace cudaq::qio {
-QuantumProgram::QuantumProgram(const cudaq::Kernel &kernel,
-                               QuantumProgramSerializationFormat serializationFormat,
-                               CompressionFormat compressionFormat)
-    : m_serializationFormat(serializationFormat),
-      m_compressionFormat(compressionFormat) {
-
-  if (m_serializationFormat != QuantumProgramSerializationFormat::QIR_V1) {
-    throw std::runtime_error("Only QIR serialization is implemented in qio");
-  }
-
-  std::string serialization = cudaq::to_qir(kernel);
-
-  if (m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1) {
-    auto gz = compression::gzipCompress(serialization);
-    serialization = compression::base64Encode(gz);
-  } else {
-    serialization = compression::base64Encode(serialization);
-  }
-}
-
 QuantumProgram::QuantumProgram(const std::string &serialization,
                                QuantumProgramSerializationFormat serializationFormat,
                                CompressionFormat compressionFormat)

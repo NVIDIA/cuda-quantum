@@ -16,7 +16,7 @@ namespace cudaq::qio {
     QIR_V1 = 4
   };
 
-  enum class QuantumProgramResultSerializationFormat {
+  enum QuantumProgramResultSerializationFormat {
     UNKOWN_SERIALIZATION_FORMAT = 0,
     CIRQ_RESULT_JSON_V1 = 1,
     QISKIT_RESULT_JSON_V1 = 2,

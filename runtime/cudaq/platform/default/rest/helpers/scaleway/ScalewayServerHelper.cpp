@@ -12,27 +12,32 @@ using json = nlohmann::json;
 
 namespace cudaq {
 
+// Helper function to get a value from config or return a default
+std::string getValueOrDefault(const BackendConfig &config,
+                              const std::string &key,
+                              const std::string &defaultValue) {
+  auto it = config.find(key);
+  return (it != config.end()) ? it->second : defaultValue;
+}
+
 void ScalewayServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
-  m_qaasClient = qaas::v1alpha1::V1Alpha1Client(
-                      config["projectId"],
-                      config["secretKey"],
-                      config["url"]
+  m_qaasClient = std::make_unique<qaas::v1alpha1::V1Alpha1Client>(
+                      getValueOrDefault(config, "project_id", ""),
+                      getValueOrDefault(config, "secret_key", ""),
+                      getValueOrDefault(config, "url", "")
   );
 
-  auto platformName = config["machine"];
-
-  m_targetPlatformName = !platformName.empty() ? platformName : m_defaultPlatformName;
-  m_sessionDeduplicationId = config["deduplicationId"];
-  m_sessionMaxDuration = config["maxDuration"];
-  m_sessionMaxIdleDuration = config["maxIdleDuration"];
-  m_sessionName = config["name"];
-
-  setShots(std::stoul(config["shots"]));
+  m_targetPlatformName = getValueOrDefault(config, "machine", m_defaultPlatformName);
+  m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "");
+  m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "");
+  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "");
+  m_sessionName = getValueOrDefault(config, "name", "");
+  setShots(std::stoul(getValueOrDefault(config, "shots", "1000")));
 }
 
 RestHeaders ScalewayServerHelper::getHeaders() {
-  return m_qaasClient.getHeaders();
+  return m_qaasClient->getHeaders();
 }
 
 ServerJobPayload ScalewayServerHelper::createJob(
@@ -41,13 +46,13 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
   ServerJobPayload ret;
   std::vector<ServerMessage> tasks;
-  auto headers = m_qaasClient.getHeaders();
+  auto headers = m_qaasClient->getHeaders();
 
   for (auto &circuitCode : circuitCodes) {
     ServerMessage taskRequest;
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     std::string qioParams = serializeParametersToQio(shots);
-    qaas::v1alpha1::Model model = m_qaasClient.createModel(qioPayload);
+    qaas::v1alpha1::Model model = m_qaasClient->createModel(qioPayload);
 
     taskRequest["model_id"] = model.id;
     taskRequest["session_id"] = m_sessionId;
@@ -61,7 +66,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
              "targeting platform {}",
              m_targetPlatformName);
 
-  return std::make_tuple(m_qaasClient.getJobsUrl(), headers, tasks);
+  return std::make_tuple(m_qaasClient->getJobsUrl(), headers, tasks);
 }
 
 std::string
@@ -76,13 +81,13 @@ ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
 
 std::string
 ScalewayServerHelper::constructGetJobPath(std::string &jobId) {
-  return m_qaasClient.getJobUrl(jobId);
+  return m_qaasClient->getJobUrl(jobId);
 }
 
 std::string ScalewayServerHelper::constructGetJobPath(
     ServerMessage &postResponse) {
   std::string jobId = extractJobId(postResponse);
-  return m_qaasClient.getJobUrl(jobId);
+  return m_qaasClient->getJobUrl(jobId);
 }
 
 std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
@@ -108,7 +113,7 @@ bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
                                      std::string &jobId) {
-  auto jobResults = m_qaasClient.listJobResults(jobId);
+  auto jobResults = m_qaasClient->listJobResults(jobId);
 
   if (jobResults.empty()) {
     throw std::runtime_error("Job done but empty results.");
@@ -145,7 +150,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 std::string ScalewayServerHelper::ensureSessionIsActive() {
   if (!m_sessionId.empty()) {
     try {
-      qaas::v1alpha1::Session session = m_qaasClient.getSession(m_sessionId);
+      qaas::v1alpha1::Session session = m_qaasClient->getSession(m_sessionId);
       auto status = session.status;
 
       if (status == "error" || status == "stopped" || status == "stopping") {
@@ -159,7 +164,7 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
   }
 
   if (m_sessionId.empty()) {
-    auto platforms = m_qaasClient.listPlatforms(m_targetPlatformName);
+    auto platforms = m_qaasClient->listPlatforms(m_targetPlatformName);
 
     if (platforms.empty()) {
       throw std::runtime_error("No platforms found with name: " +
@@ -171,7 +176,7 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
     CUDAQ_INFO("Creating session on Scaleway platform {} (id={})",
                platform.name, platform.id);
 
-    auto session = m_qaasClient.createSession(
+    auto session = m_qaasClient->createSession(
         platform.id,
         m_sessionName.empty() ? "cudaq-session-" + std::to_string(std::rand())
                               : m_sessionName,
