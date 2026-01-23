@@ -1,0 +1,36 @@
+#!/bin/bash
+
+checkServerConnection() {
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
+import socket
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(("localhost", 62450))
+    s.close()
+except Exception:
+    exit(1)
+EOF
+}
+
+
+# Launch the mock server
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/qibo/__init__.py &
+# we'll need the process id to kill it
+pid=$(echo "$!")
+n=0
+while ! checkServerConnection; do
+  sleep 1
+  n=$((n+1))
+  if [ "$n" -eq "20" ]; then
+    kill -INT $pid
+    exit 99
+  fi
+done
+# Run the tests
+./test_qibo
+# Did they fail? 
+testsPassed=$?
+# kill the server
+kill -INT $pid
+# return success / failure
+exit $testsPassed
