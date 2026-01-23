@@ -185,7 +185,7 @@ public:
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
     // was set before launching the kernel. Use a static variable per thread to
     // set up a single-shot execution context for this case.
-    static thread_local ExecutionContext defaultContext("sample",
+    static thread_local ExecutionContext defaultContext("direct-invocation",
                                                         /*shots=*/1);
     // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
     const bool isDirectInvocation = !executionContextPtr;

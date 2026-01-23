@@ -544,6 +544,10 @@ protected:
   /// sampling and to exit early. False otherwise.
   bool handleBasicSampling(const std::size_t qubitIdx,
                            const std::string &regName) {
+    if (executionContext && executionContext->name == "direct-invocation") {
+      // For direct invocation, just measure and return the bit
+      return false;
+    }
     if (executionContext && executionContext->name == "sample") {
       // Handle duplicate measurements in explicit measurements mode
       if (executionContext->explicitMeasurements) {
