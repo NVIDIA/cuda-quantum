@@ -48,7 +48,7 @@ public:
 
 private:
   RestClient m_client;
-  std::string m_baseUrl = "https://api.scaleway.com/qaas/v1alpha1";
+  std::string m_baseUrl = "";
   std::string m_projectId = "";
   std::string m_secretKey = "";
   bool m_secure = true;

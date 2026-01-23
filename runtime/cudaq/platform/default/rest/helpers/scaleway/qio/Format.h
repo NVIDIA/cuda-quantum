@@ -9,7 +9,7 @@
 
 namespace cudaq::qio {
   enum QuantumProgramSerializationFormat {
-    UNKOWN_SERIALIZATION_FORMAT = 0,
+    UNKOWN_PROGRAM_SERIALIZATION_FORMAT = 0,
     QASM_V1 = 1,
     QASM_V2 = 2,
     QASM_V3 = 3,
@@ -17,7 +17,7 @@ namespace cudaq::qio {
   };
 
   enum QuantumProgramResultSerializationFormat {
-    UNKOWN_SERIALIZATION_FORMAT = 0,
+    UNKOWN_RESULT_SERIALIZATION_FORMAT = 0,
     CIRQ_RESULT_JSON_V1 = 1,
     QISKIT_RESULT_JSON_V1 = 2,
     CUDAQ_SAMPLE_RESULT_JSON_V1 = 3

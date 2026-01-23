@@ -20,19 +20,36 @@ std::string getValueOrDefault(const BackendConfig &config,
   return (it != config.end()) ? it->second : defaultValue;
 }
 
+std::string serializeParametersToQio(size_t nb_shots) {
+  qio::QuantumComputationParameters parameters(nb_shots, {});
+
+  return parameters.toJson().dump();
+}
+
+std::string serializeKernelToQio(const std::string &code) {
+  qio::QuantumProgram program(code, qio::QuantumProgramSerializationFormat::QASM_V2,
+                              qio::CompressionFormat::ZLIB_BASE64_V1);
+
+  std::vector<qio::QuantumProgram> programs = {program};
+
+  qio::QuantumComputationModel model(programs);
+
+  return model.toJson().dump();
+}
+
 void ScalewayServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
   m_qaasClient = std::make_unique<qaas::v1alpha1::V1Alpha1Client>(
                       getValueOrDefault(config, "project_id", ""),
                       getValueOrDefault(config, "secret_key", ""),
-                      getValueOrDefault(config, "url", "")
+                      getValueOrDefault(config, "url", DEFAULT_URL)
   );
 
-  m_targetPlatformName = getValueOrDefault(config, "machine", m_defaultPlatformName);
+  m_targetPlatformName = getValueOrDefault(config, "machine", DEFAULT_PLATFORM_NAME);
+  m_sessionMaxDuration = getValueOrDefault(config, "max_duration", DEFAULT_MAX_DURATION);
+  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", DEFAULT_MAX_IDLE_DURATION);
   m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "");
-  m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "");
-  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "");
-  m_sessionName = getValueOrDefault(config, "name", "");
+  m_sessionName = getValueOrDefault(config, "name", "cudaq-session-" + std::to_string(std::rand()));
   setShots(std::stoul(getValueOrDefault(config, "shots", "1000")));
 }
 
@@ -177,13 +194,11 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
                platform.name, platform.id);
 
     auto session = m_qaasClient->createSession(
-        platform.id,
-        m_sessionName.empty() ? "cudaq-session-" + std::to_string(std::rand())
-                              : m_sessionName,
-        m_sessionDeduplicationId.empty() ? "" : m_sessionDeduplicationId,
+        platform.id, m_sessionName,
+        m_sessionDeduplicationId,
         "", // No model id
-        m_sessionMaxDuration.empty() ? "59m" : m_sessionMaxDuration,
-        m_sessionMaxIdleDuration.empty() ? "59m" : m_sessionMaxIdleDuration,
+        m_sessionMaxDuration,
+        m_sessionMaxIdleDuration,
         ""); // No parameters
 
     if (session.id.empty()) {
@@ -194,24 +209,6 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
   }
 
   return m_sessionId;
-}
-
-std::string ScalewayServerHelper::serializeParametersToQio(size_t nb_shots) {
-  qio::QuantumComputationParameters parameters(nb_shots, {});
-
-  return parameters.toJson().dump();
-}
-
-std::string
-ScalewayServerHelper::serializeKernelToQio(const std::string &code) {
-  qio::QuantumProgram program(code, qio::QuantumProgramSerializationFormat::QASM_V2,
-                              qio::CompressionFormat::ZLIB_BASE64_V1);
-
-  std::vector<qio::QuantumProgram> programs = {program};
-
-  qio::QuantumComputationModel model(programs);
-
-  return model.toJson().dump();
 }
 
 } // namespace cudaq
