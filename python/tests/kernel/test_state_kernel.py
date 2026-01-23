@@ -62,7 +62,8 @@ def test_state_vector_simple():
         # if not np.isclose(got_vector[i], got_vector_b[i]):
         print(f"want = {want_state[i]}")
         print(f"got = {got_vector[i]}")
-    assert np.allclose(want_state, np.array(got_state))
+    assert np.allclose(np.array(cudaq.StateMemoryView(want_state)),
+                       np.array(got_state))
     cudaq.reset_target()
 
 

@@ -1213,3 +1213,85 @@ class TestMultiDegreeElemOp(TestSystem):
         freq_0 = freq_from_crossings(results_00[5])
         freq_1 = freq_from_crossings(results_10[5])
         np.testing.assert_allclose(freq_0, 2.0 * freq_1, atol=0.01)
+
+
+class TestDensityMatrixIndexing(TestSystem):
+
+    def run_tests(self, integrator):
+        """
+        Test that density matrix element access uses correct indexing.
+        
+        This is a regression test for a bug where the operator() function
+        used the total dimension (dim*dim) instead of single-side dimension (dim)
+        for bounds checking and linear index calculation.
+        
+        For a 2-qubit system (4x4 density matrix with 16 total elements):
+        - Valid indices should be 0, 1, 2, 3
+        - Accessing rho[i, j] should compute linear index as i * 4 + j
+        - The bug computed i * 16 + j, causing out-of-bounds access
+        """
+
+        import pytest
+
+        # 1-qubit system: 2x2 density matrix
+        psi0_1q = cudaq.State.from_data(
+            cp.array([1.0, 0.0], dtype=cp.complex128))
+        hamiltonian_1q = 0.0 * spin.z(0)
+        steps = np.linspace(0.0, 0.1, 2)
+        schedule = Schedule(steps, ["t"])
+
+        result_1q = cudaq.evolve(
+            hamiltonian_1q, {0: 2},
+            schedule,
+            psi0_1q,
+            collapse_operators=[spin.z(0)],
+            store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+            integrator=integrator())
+
+        rho_1q = result_1q.final_state()
+        # For |0> initial state, density matrix is |0><0|
+        # rho[0,0] = 1, rho[1,1] = 0
+        assert abs(rho_1q[0, 0] - 1.0) < 1e-10
+        assert abs(rho_1q[1, 1]) < 1e-10
+        assert abs(rho_1q[0, 1]) < 1e-10
+        assert abs(rho_1q[1, 0]) < 1e-10
+
+        # Test out-of-bounds access is rejected
+        with pytest.raises(RuntimeError, match="indices out of range"):
+            _ = rho_1q[2, 0]
+
+        # 2-qubit system: 4x4 density matrix
+        psi0_2q = cudaq.State.from_data(
+            cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
+        hamiltonian_2q = 0.0 * spin.z(0) + 0.0 * spin.z(1)
+
+        result_2q = cudaq.evolve(
+            hamiltonian_2q, {
+                0: 2,
+                1: 2
+            },
+            schedule,
+            psi0_2q,
+            collapse_operators=[spin.z(0)],
+            store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+            integrator=integrator())
+
+        rho_2q = result_2q.final_state()
+        # For |00> initial state, density matrix is |00><00|
+        # Only rho[0,0] = 1, all other elements = 0
+        assert abs(rho_2q[0, 0] - 1.0) < 1e-10
+        # These indices would cause out-of-bounds access with the old buggy code
+        assert abs(rho_2q[1, 1]) < 1e-10
+        assert abs(rho_2q[2, 2]) < 1e-10
+        assert abs(rho_2q[3, 3]) < 1e-10
+        # Off-diagonal elements
+        assert abs(rho_2q[0, 3]) < 1e-10
+        assert abs(rho_2q[3, 0]) < 1e-10
+
+        # Test out-of-bounds access is rejected
+        with pytest.raises(RuntimeError, match="indices out of range"):
+            _ = rho_2q[4, 0]
+        with pytest.raises(RuntimeError, match="indices out of range"):
+            _ = rho_2q[0, 4]
+        with pytest.raises(RuntimeError, match="indices out of range"):
+            _ = rho_2q[4, 4]
