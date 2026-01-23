@@ -1809,7 +1809,7 @@ explained above.
 
 <div>
 
-![4fc5c5b77b3e4b0399297660c598d121](../../_images/adapt-qaoa.png){.no-scaled-link
+![4cc1bda8f0c64d61a9e7cb06cc6adb4a](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
@@ -2064,7 +2064,7 @@ in the
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [21]:
+    [ ]:
 :::
 :::
 
@@ -2078,7 +2078,7 @@ in the
         qubits = cudaq.qvector(qubits_num)
         h(qubits)
 
-    state = cudaq.get_state(initial_state, qubits_num)
+    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, qubits_num))
 
     #print(state)
     ###############################################
@@ -2125,7 +2125,7 @@ pool has the same value. For production, users need to remove that.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [22]:
+    [ ]:
 :::
 :::
 
@@ -2245,7 +2245,7 @@ pool has the same value. For production, users need to remove that.
             else:
 
                 # Compute the state of this current step for the gradient
-                state = cudaq.get_state(kernel_qaoa, qubits_num, ham_word, ham_coef,mixer_pool, gamma, beta, num_layer)
+                state = cudaq.StateMemoryView(cudaq.get_state(kernel_qaoa, qubits_num, ham_word, ham_coef,mixer_pool, gamma, beta, num_layer))
                 #print('State at step ', istep)
                 #print(state)
                 istep+=1

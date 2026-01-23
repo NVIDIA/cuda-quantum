@@ -1069,13 +1069,13 @@
 </div>
 <p>The state vectors can be accessed using the <code class="docutils literal notranslate"><span class="pre">get_state</span></code> command and printed as numpy arrays:</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">psi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Psi state: &#39;</span><span class="p">,</span> <span class="n">psi_state</span><span class="p">)</span>
 
-<span class="n">phi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">)</span>
+<span class="n">phi_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">qubit_num</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Phi state: &#39;</span><span class="p">,</span> <span class="n">phi_state</span><span class="p">)</span>
 </pre></div>
 </div>

@@ -1110,7 +1110,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
 <p>Next, the noiseless simulation is performed on a GPU simulated with the <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> backend to obtain the state vector. The <code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code> backend is used to sample the noisy circuit.</p>
 <p>The rest of function processes these results to determine the heavy bitstring sample probabilities.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">percent_heavy_sampled</span><span class="p">(</span><span class="n">circuit_params</span><span class="p">,</span>
@@ -1129,7 +1129,7 @@ process is repeated many times and the resulted averaged. The test is passed if 
     <span class="c1"># Gets noiseless probability distribution</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;nvidia&quot;</span><span class="p">)</span>
     <span class="n">clean_result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-        <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">circuit_params</span><span class="p">,</span> <span class="n">layer_permutations</span><span class="p">))</span>
+        <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">qv</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">circuit_params</span><span class="p">,</span> <span class="n">layer_permutations</span><span class="p">)))</span>
 
     <span class="c1"># Performs noisy sampling</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;density-matrix-cpu&quot;</span><span class="p">)</span>
