@@ -166,3 +166,132 @@ jobs:
 
       - name: Run tests
         run: bash scripts/run_tests.sh -v
+
+  # ============================================================================
+  # Build Python wheels for all supported Python versions
+  # Rebuilds MLIR Python bindings for each Python version from cached LLVM
+  # ============================================================================
+  wheel:
+    name: Wheel (${{ matrix.runner }}, py${{ matrix.python_version }})
+    needs: [metadata, devdeps]
+    strategy:
+      matrix:
+        runner: [macos-26, macos-15-intel]
+        python_version: ['3.11', '3.12', '3.13']
+        include:
+          - runner: macos-26
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    outputs:
+      cudaq_version: ${{ steps.build_wheel.outputs.cudaq_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Restore prerequisites cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local
+            ~/.llvm-project
+          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
+          fail-on-cache-miss: true
+
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+          
+          # Incremental rebuild: add python-bindings to cached LLVM build
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v
+
+      - name: Determine version
+        id: version
+        run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          else
+            cudaq_version=0.0.0
+          fi
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+          echo "Building wheel version: $cudaq_version"
+
+      - name: Build wheel
+        id: build_wheel
+        run: |
+          export CUDA_QUANTUM_VERSION=${{ steps.version.outputs.cudaq_version }}
+          bash scripts/build_wheel.sh -v
+          
+          # Find and report the built wheel
+          wheel_file=$(ls dist/cuda_quantum*.whl 2>/dev/null | head -1)
+          echo "Built wheel: $wheel_file"
+          echo "cudaq_version=${{ steps.version.outputs.cudaq_version }}" >> $GITHUB_OUTPUT
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pycudaq-macos-${{ matrix.arch }}-py${{ matrix.python_version }}
+          path: dist/cuda_quantum*.whl
+          retention-days: 1
+          if-no-files-found: error
+
+  # ============================================================================
+  # Validate wheels in clean environments
+  # ============================================================================
+  validate_wheel:
+    name: Validate (${{ matrix.runner }}, py${{ matrix.python_version }})
+    needs: wheel
+    strategy:
+      matrix:
+        runner: [macos-26, macos-15-intel]
+        python_version: ['3.11', '3.12', '3.13']
+        include:
+          - runner: macos-26
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pycudaq-macos-${{ matrix.arch }}-py${{ matrix.python_version }}
+          path: dist/
+
+      - name: Validate wheel
+        run: |
+          # Full validation: core tests, examples, snippets, backends
+          # GPU/MPI tests are automatically skipped on macOS (CPU-only)
+          bash scripts/validate_pycudaq.sh \
+            -v ${{ needs.wheel.outputs.cudaq_version }} \
+            -i dist \
+            -p ${{ matrix.python_version }}
