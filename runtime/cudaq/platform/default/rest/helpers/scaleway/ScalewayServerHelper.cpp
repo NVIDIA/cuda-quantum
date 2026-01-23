@@ -12,137 +12,135 @@ using json = nlohmann::json;
 
 namespace cudaq {
 
-  void
-  ScalewayServerHelper::initialize(BackendConfig config) {
-      m_qaasClient.initialize(
-          getOption("projectId"),
-          getOption("secretKey"),
-          getOption("url")
-      );
+void ScalewayServerHelper::initialize(BackendConfig config) {
+  m_qaasClient.initialize(getOption("projectId"),
+                          getOption("secretKey"),
+                          getOption("url"));
 
-      auto platformName = getOption("machine")
+  auto platformName = getOption("machine");
 
-      m_platformName = if platformName.empty() ? m_defaultPlatformName : getOption("machine");
-      m_sessionDeduplicationId = getOption("deduplicationId", "");
-      m_sessionMaxDuration = getOption("maxDuration", "");
-      m_sessionMaxIdleDuration = getOption("maxIdleDuration", "");
-      m_sessionName = getOption("name", "cudaq-session");
-      setShots(std::stoul(getOption("shots")));
+  m_targetPlatformName = !platformName.empty() ? platformName : m_defaultPlatformName;
+  m_sessionDeduplicationId = getOption("deduplicationId", "");
+  m_sessionMaxDuration = getOption("maxDuration", "");
+  m_sessionMaxIdleDuration = getOption("maxIdleDuration", "");
+  m_sessionName = getOption("name", "cudaq-session");
+  setShots(std::stoul(getOption("shots")));
+}
+
+RestHeaders ScalewayServerHelper::getHeaders() {
+  return m_qaasClient.getHeader();
+}
+
+ServerJobPayload ScalewayServerHelper::createJob(
+    std::vector<KernelExecution> &circuitCodes) {
+  ensureSessionIsActive();
+
+  ServerJobPayload ret;
+  std::vector<ServerMessage> tasks;
+  auto headers = m_qaasClient.getHeaders();
+
+  for (auto &circuitCode : circuitCodes) {
+    ServerMessage taskRequest;
+    std::string qioPayload = serializeKernelToQio(circuitCode.code);
+    std::string qioParams = serializeParametersToQio(shots);
+    std::string modelId = m_qaasClient.createModel(qioPayload);
+
+    taskRequest["model_id"] = modelId;
+    taskRequest["session_id"] = m_sessionId;
+    taskRequest["name"] = circuitCode.name;
+    taskRequest["parameters"] = qioParams;
+
+    tasks.push_back(taskRequest);
   }
 
-  RestHeaders
-  ScalewayServerHelper::getHeaders() override {
-    return m_qaasClient.getHeader();
+  CUDAQ_INFO("Created job payload for Scaleway, "
+             "targeting platform {}",
+             m_platformName);
+
+  return std::make_tuple(m_qaasClient.getJobsUrl(), headers, tasks);
+}
+
+std::string
+ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
+  auto j = json::parse(postResponse);
+  if (j.contains("id"))
+    return j["id"].get<std::string>();
+  if (j.contains("job_id"))
+    return j["job_id"].get<std::string>();
+  throw std::runtime_error("Job submission failed: " + postResponse);
+}
+
+std::string
+ScalewayServerHelper::constructGetJobPath(std::string &jobId) {
+  return m_qaasClient.getJobsUrl(jobId);
+}
+
+std::string ScalewayServerHelper::constructGetJobPath(
+    ServerMessage &postResponse) {
+  std::string jobId = extractJobId(postResponse);
+  return m_qaasClient.getJobsUrl(jobId);
+}
+
+std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
+    ServerMessage &postResponse) {
+  return std::chrono::microseconds(1000000);
+}
+
+bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
+  auto j = json::parse(getJobResponse);
+  std::string status = j.value("status", "unknown");
+
+  if (status == "error") {
+    std::string err = j.contains("result")
+                          ? j["result"].value("error_message", "Unknown error")
+                          : "Unknown";
+    throw std::runtime_error("Scaleway Job Error: " + err);
   }
 
-  virtual ServerJobPayload
-  ScalewayServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) override {
-    ensureSessionIsActive();
+  return (status == "completed" || status == "cancelled" ||
+          status == "cancelling");
+}
 
-    ServerJobPayload ret;
-    std::vector<ServerMessage> tasks;
-    headers = m_qaasClient.getHeader();
+cudaq::sample_result
+ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
+                                     std::string &jobId) {
+  auto jobResults = m_qaasClient.getJobResults(jobId);
+  auto results = jobResults.results;
 
-    for (auto &circuitCode : circuitCodes) {
-      ServerMessage taskRequest;
-      std::string qioPayload = serializeKernelToQio(circuitCode.code);
-      std::string qioParams = serializeParametersToQio(m_shots);
-      std::string modelId = m_qaasClient.createModel(qioPayload);
-
-      taskRequest["model_id"] = modelId;
-      taskRequest["session_id"] = m_sessionId;
-      taskRequest["name"] = circuitCode.name;
-      taskRequest["parameters"] = qioParams;
-
-      tasks.push_back(taskRequest);
-    }
-
-    CUDAQ_INFO("Created job payload for Scaleway, "
-                "targeting platform {}",
-                m_platformName);
-
-    return std::make_tuple(m_qaasClient.getJobsUrl(), headers, tasks);
+  if (results.empty()) {
+    throw std::runtime_error("Job done but empty results.");
   }
 
-  std::string
-  ScalewayServerHelper::extractJobId(ServerMessage &postResponse) override {
-    auto j = json::parse(postResponse);
-    if (j.contains("id")) return j["id"].get<std::string>();
-    if (j.contains("job_id")) return j["job_id"].get<std::string>();
-    throw std::runtime_error("Job submission failed: " + postResponse);
+  auto firstResult = results[0];
+
+  std::string rawPayload;
+
+  if (firstResult.has_inline_result()) {
+    rawPayload = firstResult.result.value();
+  } else if (firstResult.has_download_url()) {
+    RestClient client;
+    rawPayload = client.getRawText(firstResult.url.value(), "", true);
+  } else {
+    throw std::runtime_error(
+        "invalid: empty 'result' and 'url' fields to get result.");
   }
 
-  std::string
-  ScalewayServerHelper::constructGetJobPath(std::string &jobId) override {
-    return m_qaasClient.getJobsUrl(jobId);
+  try {
+    qio::QuantumProgramResult qioResult =
+        qio::QuantumProgramResult::fromJson(rawPayload);
+
+    auto sampleResult = qioResult.toCudaqSampleResult();
+
+    return sampleResult;
+  } catch (const std::exception &e) {
+    throw std::runtime_error(
+        "Error while parsing result: " + std::string(e.what()) +
+        " | payload: " + rawPayload);
   }
+}
 
-  std::string
-  ScalewayServerHelper::constructGetJobPath(ServerMessage &postResponse) override {
-    std::string jobId = extractJobId(postResponse);
-    return m_qaasClient.getJobsUrl(jobId);
-  }
-
-  std::chrono::microseconds
-  ScalewayServerHelper::nextResultPollingInterval(ServerMessage &postResponse) override {
-    return std::chrono::microseconds(1000000);
-  }
-
-  bool
-  ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) override {
-    auto j = json::parse(getJobResponse);
-    std::string status = j.value("status", "unknown");
-
-    if (status == "error") {
-        std::string err = j.contains("result") ? j["result"].value("error_message", "Unknown error") : "Unknown";
-        throw std::runtime_error("Scaleway Job Error: " + err);
-    }
-
-    return (status == "completed" || status == "cancelled" || status == "cancelling");
-  }
-
-  cudaq::sample_result
-  ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
-                std::string &jobId) override {
-    auto jobResults = m_qaasClient.getJobResults(jobId);
-    auto results = jobResults.results;
-
-    if (results.empty()) {
-      throw std::runtime_error("Job done but empty results.");
-    }
-
-    auto firstResult = results[0];
-
-    std::string rawPayload;
-
-    if (firstResult.has_inline_result()) {
-      rawPayload = firstResult.result.value();
-    }
-    else if (firstResult.has_download_url()) {
-      RestClient client;
-      rawPayload = client.getRawText(
-          firstResult.url.value(),
-          "",
-          true);
-    }
-    else {
-      throw std::runtime_error("invalid: empty 'result' and 'url' fields to get result.");
-    }
-
-    try {
-      qio::QuantumProgramResult qioResult = qio::QuantumProgramResult::fromJson(rawPayload);
-
-      executionResults = qioResult.toExecutionResults();
-
-      return ;
-    } catch (const std::exception& e) {
-      throw std::runtime_error("Error while parsing result: " + std::string(e.what()) + " | payload: " + rawPayload);
-    }
-  }
-
-  std::string
-  ScalewayServerHelper::ensureSessionIsActive() {
-    if (!m_sessionId.empty()) {
+std::string ScalewayServerHelper::ensureSessionIsActive() {
+  if (!m_sessionId.empty()) {
     try {
       auto session = m_qaasClient.getSession(m_sessionId);
       auto status = session.status;
@@ -158,22 +156,24 @@ namespace cudaq {
   }
 
   if (m_sessionId.empty()) {
-    m_platformName = getOption("machine", m_basePlatformName);
+    m_targetPlatformName = getOption("machine", m_targetPlatformName);
 
-    auto platforms = m_qaasClient.listPlatforms(m_platformName);
+    auto platforms = m_qaasClient.listPlatforms(m_targetPlatformName);
 
     if (platforms.empty()) {
-      throw std::runtime_error("No platforms found with name: " + m_platformName);
+      throw std::runtime_error("No platforms found with name: " +
+                               m_targetPlatformName);
     }
 
     auto platform = platforms[0];
 
     CUDAQ_INFO("Creating session on Scaleway platform {} (id={})",
-                platform.name, platform.id);
+               platform.name, platform.id);
 
     auto session = m_qaasClient.createSession(
         platform.id,
-        m_sessionName.empty() ? "cudaq-session-" + std::to_string(std::rand()) : m_sessionName,
+        m_sessionName.empty() ? "cudaq-session-" + std::to_string(std::rand())
+                              : m_sessionName,
         m_sessionDeduplicationId.empty() ? "" : m_sessionDeduplicationId,
         "", // No model id
         m_sessionMaxDuration.empty() ? "59m" : m_sessionMaxDuration,
@@ -190,26 +190,23 @@ namespace cudaq {
   return m_sessionId;
 }
 
-  std::string
-  ScalewayServerHelper::serializeParametersToQio(size_t shots) {
-      qio::QuantumComputationParameters parameters(shots);
+std::string ScalewayServerHelper::serializeParametersToQio(size_t nb_shots) {
+  qio::QuantumComputationParameters parameters(nb_shots, {});
 
-      return parameters.toJson().dump();
-  }
+  return parameters.toJson().dump();
+}
 
-  std::string
-  ScalewayServerHelper::serializeKernelToQio(const std::string& code) {
-      qio::QuantumProgram program(
-          code,
-          qio::SerializationFormat::QIR,
-          qio::CompressionFormat::GZIP);
+std::string
+ScalewayServerHelper::serializeKernelToQio(const std::string &code) {
+  qio::QuantumProgram program(code, qio::SerializationFormat::QIR,
+                              qio::CompressionFormat::GZIP);
 
-      std::vector<qio::QuantumProgram> programs = {program};
+  std::vector<qio::QuantumProgram> programs = {program};
 
-      qio::QuantumComputationModel model(programs);
+  qio::QuantumComputationModel model(programs);
 
-      return model.toJson().dump();
-  }
+  return model.toJson().dump();
+}
 
 } // namespace cudaq
 

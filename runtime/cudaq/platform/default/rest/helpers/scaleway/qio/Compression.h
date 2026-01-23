@@ -9,11 +9,11 @@
 #include <string>
 
 namespace cudaq::qio::compression {
-    std::string gzipCompress(const std::string &input);
-    std::string gzipDecompress(const std::string &input);
+std::string gzipCompress(const std::string &input);
+std::string gzipDecompress(const std::string &input);
 
-    std::string base64Encode(const std::string &input);
-    std::string base64Decode(const std::string &input);
+std::string base64Encode(const std::string &input);
+std::string base64Decode(const std::string &input);
 
-    bool isBase64(unsigned char c);
-}
+bool isBase64(unsigned char c);
+} // namespace cudaq::qio::compression

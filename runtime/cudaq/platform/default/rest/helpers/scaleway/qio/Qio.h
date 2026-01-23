@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-#include <Compression.h>
-#include <QuantumProgram.h>
-#include <QuantumComputationParameters.h>
-#include <QuantumComputationModel.h>
-#include <QuantumProgramResult.h>
+#include "Compression.h"
+#include "QuantumComputationModel.h"
+#include "QuantumComputationParameters.h"
+#include "QuantumProgram.h"
+#include "QuantumProgramResult.h"

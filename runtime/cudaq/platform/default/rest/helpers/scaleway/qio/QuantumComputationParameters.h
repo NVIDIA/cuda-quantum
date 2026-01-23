@@ -7,18 +7,18 @@
  ******************************************************************************/
 #pragma once
 #include <nlohmann/json.hpp>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace cudaq::qio {
-  class QuantumComputationParameters {
-    public:
-      explicit QuantumComputationParameters(std::size_t shots);
+class QuantumComputationParameters {
+public:
+  explicit QuantumComputationParameters(std::size_t shots, std::unordered_map<std::string, std::string> options);
 
-      nlohmann::json toJson() const;
+  nlohmann::json toJson() const;
 
-    private:
-      std::size_t m_shots;
-      std::unordered_map<std::string, std::string> m_options;
-  };
-}
+private:
+  std::size_t m_shots;
+  std::unordered_map<std::string, std::string> m_options;
+};
+} // namespace cudaq::qio

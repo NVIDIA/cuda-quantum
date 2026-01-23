@@ -8,9 +8,6 @@
 target_sources(cudaq-rest-qpu PRIVATE ScalewayServerHelper.cpp)
 add_target_config(scaleway)
 
-add_subdirectory(qaas)
-add_subdirectory(qio)
-
 add_library(cudaq-serverhelper-scaleway
             SHARED
             ScalewayServerHelper.cpp

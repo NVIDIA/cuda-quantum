@@ -8,11 +8,12 @@
 
 #pragma once
 
-#include "qio/Qio.h"
 #include "qaas/Qaas.h"
+#include "qio/Qio.h"
 
 #include "common/Logger.h"
 #include "common/ServerHelper.h"
+#include "common/RestClient.h"
 
 #include "nlohmann/json.hpp"
 
@@ -24,9 +25,9 @@
 
 namespace cudaq {
 
-/// @brief The ScalewayServerHelper class extends the ServerHelper class to handle
-/// interactions with the Amazon Scaleway server for submitting and retrieving
-/// quantum computation jobs.
+/// @brief The ScalewayServerHelper class extends the ServerHelper class to
+/// handle interactions with the Amazon Scaleway server for submitting and
+/// retrieving quantum computation jobs.
 class ScalewayServerHelper : public ServerHelper {
 public:
   /// @brief Returns the name of the server helper.
@@ -34,41 +35,35 @@ public:
 
   /// @brief Initializes the server helper with the provided backend
   /// configuration.
-  void
-  initialize(BackendConfig config) override;
+  void initialize(BackendConfig config) override;
 
-  RestHeaders
-  getHeaders() override;
+  RestHeaders getHeaders() override;
 
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override;
 
-  std::string
-  extractJobId(ServerMessage &postResponse) override;
+  std::string extractJobId(ServerMessage &postResponse) override;
 
-  bool
-  jobIsDone(ServerMessage &getJobResponse) override;
+  bool jobIsDone(ServerMessage &getJobResponse) override;
 
-  cudaq::sample_result
-  processResults(ServerMessage &postJobResponse,
-                std::string &jobId) override;
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobId) override;
 
-  std::string
-  constructGetJobPath(std::string &jobId) override;
+  std::string constructGetJobPath(std::string &jobId) override;
 
-  std::string
-  constructGetJobPath(ServerMessage &postResponse) override;
+  std::string constructGetJobPath(ServerMessage &postResponse) override;
 
   virtual std::chrono::microseconds
   nextResultPollingInterval(ServerMessage &postResponse) override;
 
 protected:
   std::string ensureSessionIsActive();
-  std::string serializeKernelToQio(const std::string& code);
+  std::string serializeKernelToQio(const std::string &code);
   std::string serializeParametersToQio(size_t shots);
+
 private:
   const std::string m_defaultPlatformName = "EMU-CUDAQ-H100";
-  cudaq::qaas::v1alpha1::V1Alpha1Client m_qaasClient;
+  qaas::v1alpha1::V1Alpha1Client m_qaasClient;
   std::string m_targetPlatformName = "";
   std::string m_sessionId = "";
   std::string m_sessionDeduplicationId = "";
