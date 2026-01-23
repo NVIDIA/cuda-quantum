@@ -199,10 +199,21 @@ else
   if [ -n "$mlir_python_bindings" ]; then
     # Cherry-pick the necessary commit to have a distribution target
     # for the mlir-python-sources; to be removed after we update to LLVM 17.
-    echo "Cherry-picking commit 9494bd84df3c5b496fc087285af9ff40d7859b6a"
-    git cherry-pick --no-commit 9494bd84df3c5b496fc087285af9ff40d7859b6a
-    if [ ! 0 -eq $? ]; then
-      echo "Cherry-pick failed."
+    cherry_pick_commit=9494bd84df3c5b496fc087285af9ff40d7859b6a
+    echo "Cherry-picking commit $cherry_pick_commit"
+    cherry_pick_success=false
+    for attempt in 1 2 3; do
+      if git cherry-pick --no-commit $cherry_pick_commit 2>/dev/null; then
+        cherry_pick_success=true
+        break
+      fi
+      if [ $attempt -lt 3 ]; then
+        echo "Cherry-pick attempt $attempt failed, retrying in 5s..."
+        sleep 5
+      fi
+    done
+    if ! $cherry_pick_success; then
+      echo "Cherry-pick failed after 3 attempts."
       if $(git rev-parse --is-shallow-repository); then
         echo "Unshallow the repository and try again."
         (return 0 2>/dev/null) && return 1 || exit 1
