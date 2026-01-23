@@ -21,10 +21,6 @@
 
 namespace py = pybind11;
 
-namespace mlir {
-class ExecutionEngine;
-}
-
 namespace cudaq {
 
 /// @brief Set current architecture's data layout attribute on a module.
