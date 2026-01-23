@@ -2108,7 +2108,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum ae1972dd2f2171def61e5ff695e03bb7b7660037)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e37c4cbd9a5684729f319532140b1c3a793dd052)
 :::
 :::
 :::
