@@ -8,7 +8,9 @@
 
 add_backend_unittest_executable(test_infleqtion 
   SOURCES InfleqtionTester.cpp
-  BACKEND infleqtion)
+  BACKEND infleqtion
+  BACKEND_CONFIG "infleqtion emulate=false url=http://localhost:62447"
+)
 
-configure_file("InfleqtionStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/infleqtion/InfleqtionStartServerAndTest.sh" @ONLY)
-add_test(NAME infleqtion-tests COMMAND bash InfleqtionStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/infleqtion/)
+configure_file(InfleqtionStartServerAndTest.sh.in InfleqtionStartServerAndTest.sh @ONLY)
+add_test(NAME infleqtion-tests COMMAND bash InfleqtionStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

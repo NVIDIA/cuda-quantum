@@ -6,13 +6,48 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+configure_file(QuantinuumStartServerAndTest.sh.in QuantinuumStartServerAndTest.sh @ONLY)
+
+# Mock server test
+set(BACKEND_CONFIG "quantinuum emulate=false url=http://localhost:62440 credentials=FakeCppQuantinuum.config project=mock_project_id")
+
 add_backend_unittest_executable(test_quantinuum 
   SOURCES QuantinuumTester.cpp QuantinuumNGTester.cpp
   BACKEND quantinuum
-  )
+  BACKEND_CONFIG ${BACKEND_CONFIG}
+)
+add_test(NAME quantinuum-tests COMMAND bash QuantinuumStartServerAndTest.sh test_quantinuum WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-configure_file("QuantinuumStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/quantinuum/QuantinuumStartServerAndTest.sh" @ONLY)
-add_test(NAME quantinuum-tests COMMAND bash QuantinuumStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/quantinuum/)
+# Emulation test
+string(REPLACE "emulate=false" "emulate=true" EMULATION_CONFIG ${BACKEND_CONFIG})
+add_backend_unittest_executable(test_quantinuum_emulation 
+  SOURCES QuantinuumEmulationTester.cpp 
+  BACKEND quantinuum
+  BACKEND_CONFIG ${EMULATION_CONFIG}
+)
+add_test(NAME quantinuum-emulation-tests COMMAND bash QuantinuumStartServerAndTest.sh test_quantinuum_emulation WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+ # Extra payload test
+string(CONCAT BACKEND_CONFIG ${BACKEND_CONFIG} " extra_payload_provider=dummy")
+add_backend_unittest_executable(test_quantinuum_payload
+  SOURCES QuantinuumPayloadTester.cpp
+  BACKEND quantinuum
+  BACKEND_CONFIG ${BACKEND_CONFIG}
+)
+add_test(NAME quantinuum-tests-payload COMMAND bash QuantinuumStartServerAndTest.sh test_quantinuum_payload WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+
+# Testing other .cpp files
+configure_file(QuantinuumStartServerAndTest2.sh.in QuantinuumStartServerAndTest2.sh @ONLY)
+add_test(NAME quantinuum-tests-2 COMMAND bash QuantinuumStartServerAndTest2.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Tests are sharing the same port
+set_tests_properties(
+  quantinuum-tests 
+  quantinuum-emulation-tests 
+  quantinuum-tests-payload 
+  quantinuum-tests-2
+  PROPERTIES RESOURCE_LOCK "quantinuum_port")
 
 # Test for Nexus helper functions
 add_backend_unittest_executable(test_quantinuum_util 

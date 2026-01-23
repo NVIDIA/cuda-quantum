@@ -16,20 +16,21 @@ bool isValidExpVal(double value) {
   return value < -1.1 && value > -2.3;
 }
 
-CUDAQ_TEST(BraketTester, checkSampleSync) {
-  GTEST_SKIP() << "Amazon Braket credentials required";
+CUDAQ_TEST(QuantinuumTester, checkSampleSyncEmulate) {
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
+  kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
   kernel.mz(qubit[0]);
+  kernel.mz(qubit[1]);
+
   auto counts = cudaq::sample(kernel);
   counts.dump();
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(BraketTester, checkSampleAsync) {
-  GTEST_SKIP() << "Amazon Braket credentials required";
+CUDAQ_TEST(QuantinuumTester, checkSampleAsyncEmulate) {
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
@@ -38,64 +39,30 @@ CUDAQ_TEST(BraketTester, checkSampleAsync) {
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
+  counts.dump();
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(BraketTester, checkSampleAsyncLoadFromFile) {
-  GTEST_SKIP() << "Fails with: Cannot persist a cudaq::future for a local "
-                  "kernel execution.";
-
-  auto kernel = cudaq::make_kernel();
-  auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
-
-  // Can sample asynchronously and get a future
-  auto future = cudaq::sample_async(kernel);
-
-  // Future can be persisted for later
-  {
-    std::ofstream out("saveMe.json");
-    out << future;
-  }
-
-  // Later you can come back and read it in
-  cudaq::async_result<cudaq::sample_result> readIn;
-  std::ifstream in("saveMe.json");
-  in >> readIn;
-
-  // Get the results of the read in future.
-  auto counts = readIn.get();
-  EXPECT_EQ(counts.size(), 2);
-
-  std::remove("saveMe.json");
-}
-
-CUDAQ_TEST(BraketTester, checkObserveSync) {
-  GTEST_SKIP() << "Fails with: Cannot observe kernel with measures in it";
+CUDAQ_TEST(QuantinuumTester, checkObserveSyncEmulate) {
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
   kernel.x(qubit[0]);
   kernel.ry(theta, qubit[1]);
   kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
-  kernel.mz(qubit);
 
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto result = cudaq::observe(10000, kernel, h, .59);
+  auto result = cudaq::observe(100000, kernel, h, .59);
   result.dump();
 
   printf("ENERGY: %lf\n", result.expectation());
   EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
-CUDAQ_TEST(BraketTester, checkObserveAsync) {
-  GTEST_SKIP() << "Fails with: Device requires all qubits in the program to be "
-                  "measured. This may be caused by declaring non-contiguous "
-                  "qubits or measuring partial qubits";
+CUDAQ_TEST(QuantinuumTester, checkObserveAsyncEmulate) {
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
@@ -107,7 +74,7 @@ CUDAQ_TEST(BraketTester, checkObserveAsync) {
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto future = cudaq::observe_async(kernel, h, .59);
+  auto future = cudaq::observe_async(100000, 0, kernel, h, .59);
 
   auto result = future.get();
   result.dump();
