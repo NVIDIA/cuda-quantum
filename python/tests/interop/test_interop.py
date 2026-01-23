@@ -123,6 +123,7 @@ def test_callbacks():
 
     cudaq_test_cpp_algo.run0(entry, 4)
 
+
 @pytest.mark.skip(reason="temporarily disabled")
 def test_callbacks_b():
 
@@ -133,7 +134,7 @@ def test_callbacks_b():
         z(qs)
 
     cudaq_test_cpp_algo.run0b(entry, 4)
-    
+
 
 def test_callback_with_capture():
 
@@ -162,6 +163,7 @@ def test_callback_with_capture_quantum():
         h(qs)
 
     cudaq_test_cpp_algo.run2(entry)
+
 
 def test_callback_with_capture_quantum_and_classical():
 
