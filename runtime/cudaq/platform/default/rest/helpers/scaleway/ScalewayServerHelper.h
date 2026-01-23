@@ -62,7 +62,7 @@ protected:
   std::string serializeParametersToQio(size_t shots);
 
 private:
-  const std::string m_defaultPlatformName = "EMU-CUDAQ-H100";
+  std::string m_defaultPlatformName = "EMU-CUDAQ-H100";
   qaas::v1alpha1::V1Alpha1Client m_qaasClient;
   std::string m_targetPlatformName = "";
   std::string m_sessionId = "";

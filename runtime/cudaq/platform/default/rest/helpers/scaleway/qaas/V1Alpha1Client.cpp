@@ -8,10 +8,13 @@
 #include "V1Alpha1Client.h"
 
 namespace cudaq::qaas::v1alpha1 {
-void V1Alpha1Client::initialize(const std::string projectId,
-                                const std::string secretKey, std::string url) {
-  m_projectId = projectId;
-  m_secretKey = secretKey;
+V1Alpha1Client::V1Alpha1Client(const std::string projectId,
+                                const std::string secretKey, std::string url,
+                                bool secure, bool logging) :
+                                m_projectId(projectId),
+                                m_secretKey(secretKey),
+                                m_secure(secure),
+                                m_logging(logging) {
   if (!url.empty()) {
     m_baseUrl = url;
   }

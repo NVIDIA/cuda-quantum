@@ -9,11 +9,11 @@
 
 namespace cudaq::qio {
 QuantumProgramResult(std::string serialization,
-                      SerializationFormat serializationFormat,
-                      CompressionFormat compressionFormat)
-    : m_serialization(serialization),
-      m_serializationFormat(serializationFormat),
-      m_compressionFormat(compressionFormat) {}
+                      QuantumProgramResultSerializationFormat serializationFormat,
+                      CompressionFormat compressionFormat) :
+    m_serialization(serialization),
+    m_serializationFormat(serializationFormat),
+    m_compressionFormat(compressionFormat) {}
 
 static QuantumProgramResult
 QuantumProgramResult::fromJson(nlohmann::json j) {

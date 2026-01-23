@@ -14,18 +14,22 @@ using json = nlohmann::json;
 namespace cudaq {
 
 void ScalewayServerHelper::initialize(BackendConfig config) {
-  m_qaasClient.initialize(getOption("projectId"),
-                          getOption("secretKey"),
-                          getOption("url"));
+  backendConfig = config;
 
-  auto platformName = getOption("machine");
+  m_qaasClient = qaas::v1alpha1::V1Alpha1Client(
+                      config["projectId"],
+                      config["secretKey"],
+                      config["url"]
+  );
+
+  auto platformName = config["machine"];
 
   m_targetPlatformName = !platformName.empty() ? platformName : m_defaultPlatformName;
-  m_sessionDeduplicationId = getOption("deduplicationId", "");
-  m_sessionMaxDuration = getOption("maxDuration", "");
-  m_sessionMaxIdleDuration = getOption("maxIdleDuration", "");
-  m_sessionName = getOption("name", "cudaq-session");
-  setShots(std::stoul(getOption("shots")));
+  m_sessionDeduplicationId = config["deduplicationId"];
+  m_sessionMaxDuration = config["maxDuration"];
+  m_sessionMaxIdleDuration = config["maxIdleDuration"];
+  m_sessionName = config["name"];
+  setShots(std::stoul(config["shots"]));
 }
 
 RestHeaders ScalewayServerHelper::getHeaders() {
@@ -156,8 +160,6 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
   }
 
   if (m_sessionId.empty()) {
-    m_targetPlatformName = getOption("machine", m_targetPlatformName);
-
     auto platforms = m_qaasClient.listPlatforms(m_targetPlatformName);
 
     if (platforms.empty()) {
