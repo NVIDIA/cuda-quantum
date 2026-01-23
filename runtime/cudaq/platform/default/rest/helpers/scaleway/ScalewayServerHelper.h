@@ -29,10 +29,9 @@ namespace cudaq {
 /// handle interactions with the Amazon Scaleway server for submitting and
 /// retrieving quantum computation jobs.
 class ScalewayServerHelper : public ServerHelper {
-  static constexpr std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";
-  static constexpr std::string DEFAULT_MAX_DURATION = "59m";
-  static constexpr std::string DEFAULT_MAX_IDLE_DURATION = "59m";
-  static constexpr std::string DEFAULT_URL = "https://api.scaleway.com/qaas/v1alpha1";
+  inline static const std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";
+  inline static const std::string DEFAULT_MAX_DURATION = "59m";
+  inline static const std::string DEFAULT_MAX_IDLE_DURATION = "59m";
 public:
 
   /// @brief Returns the name of the server helper.

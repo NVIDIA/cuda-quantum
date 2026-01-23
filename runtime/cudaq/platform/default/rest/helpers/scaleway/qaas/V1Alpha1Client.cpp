@@ -14,8 +14,9 @@ V1Alpha1Client::V1Alpha1Client(const std::string projectId,
                                 m_projectId(projectId),
                                 m_secretKey(secretKey),
                                 m_secure(secure),
-                                m_logging(logging),
-                                m_baseUrl(url) {}
+                                m_logging(logging) {
+    m_baseUrl = url.empty() ? DEFAULT_URL : url;
+}
 
 std::map<std::string, std::string> V1Alpha1Client::getHeaders() {
   return {{"X-Auth-Token", m_secretKey}, {"Content-Type", "application/json"}};

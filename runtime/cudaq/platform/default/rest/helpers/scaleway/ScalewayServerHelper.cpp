@@ -42,14 +42,14 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
   m_qaasClient = std::make_unique<qaas::v1alpha1::V1Alpha1Client>(
                       getValueOrDefault(config, "project_id", ""),
                       getValueOrDefault(config, "secret_key", ""),
-                      getValueOrDefault(config, "url", DEFAULT_URL)
-  );
+                      getValueOrDefault(config, "url", ""));
 
   m_targetPlatformName = getValueOrDefault(config, "machine", DEFAULT_PLATFORM_NAME);
   m_sessionMaxDuration = getValueOrDefault(config, "max_duration", DEFAULT_MAX_DURATION);
   m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", DEFAULT_MAX_IDLE_DURATION);
   m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "");
   m_sessionName = getValueOrDefault(config, "name", "cudaq-session-" + std::to_string(std::rand()));
+
   setShots(std::stoul(getValueOrDefault(config, "shots", "1000")));
 }
 

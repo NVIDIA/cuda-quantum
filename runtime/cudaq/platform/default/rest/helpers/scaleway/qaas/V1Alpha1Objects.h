@@ -22,9 +22,9 @@ struct Platform {
   std::string backend_name;
   std::string type;
   std::string technology;
-  std::optional<int64_t> max_qubit_count;
-  std::optional<int64_t> max_shot_count;
-  std::optional<int64_t> max_circuit_count;
+  int64_t max_qubit_count;
+  int64_t max_shot_count;
+  int64_t max_circuit_count;
   std::string availability;
   std::string metadata;
   std::string description;
