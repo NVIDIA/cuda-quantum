@@ -38,7 +38,7 @@ public:
             .attr("beta_reduction")(&execution_engine, std::forward<As>(as)...)
             .template cast<void *>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
-    p = reinterpret_cast<void*>(reinterpret_cast<std::intptr_t>(p) | 1);
+    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
     auto *fptr = reinterpret_cast<typename T::function_type *>(p);
     // Translate the pointer to the entry point code buffer to a `qkernel`.
     return T{fptr};
