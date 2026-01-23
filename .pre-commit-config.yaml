@@ -1,0 +1,156 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# .pre-commit-config.yaml
+# CUDA-Q Pre-commit Configuration
+#
+# Local usage:
+#   pre-commit install  # Enable for all commits
+#   pre-commit run --all-files  # Run on all files
+#   pre-commit run --hook-stage manual  # Run slow hooks
+#
+# CI usage:
+#   pre-commit run --all-files --hook-stage manual --show-diff-on-failure
+
+# Configuration
+default_language_version:
+  python: python3
+
+default_stages: [pre-commit, pre-push]
+
+# Third-party directories to exclude globally
+exclude: '^tpls/|^test/|^targettests/'
+
+repos:
+  # Formatting hooks
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v16.0.6
+    hooks:
+      - id: clang-format
+        name: C++ formatting (clang-format-16)
+        types_or: [c++, c]
+        files: '\.(cpp|h|hpp)$'
+        exclude: '^(test|targettests|tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
+        args: ['-i']  # In-place formatting
+
+  - repo: https://github.com/google/yapf
+    rev: v0.40.2
+    hooks:
+      - id: yapf
+        name: Python formatting (yapf Google style)
+        types: [python]
+        exclude: '^(test|targettests|tpls|docs/sphinx/conf\.py)$'
+        args: ['--style', 'google', '--in-place']
+
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.12.1
+    hooks:
+      - id: markdownlint-cli2
+        name: Markdown linting
+        files: '\.md$'
+        exclude: '^tpls/'
+        args: ['--config', '.github/workflows/config/md_lint_config.yml']
+
+  # Standard quality checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+        exclude: '^\.github/workflows/'  # GitHub Actions uses specific YAML features
+      - id: check-toml
+      - id: check-json
+      - id: end-of-file-fixer
+        exclude: '^(test|targettests|tpls)/'
+      - id: trailing-whitespace
+        exclude: '^(test|targettests|tpls)/'
+        args: ['--markdown-linebreak-ext=md']
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Local hooks
+  - repo: local
+    hooks:
+      - id: license-headers
+        name: License header validation
+        entry: bash scripts/run_header_checks.sh -c check
+        language: system
+        pass_filenames: false
+        stages: [pre-push, manual]
+
+      - id: spellcheck-allowlist-sorted
+        name: Spell check - Verify allowlists are sorted
+        entry: bash scripts/pre-commit/check_allowlist_sorted.sh
+        language: system
+        files: '^\.github/workflows/config/spelling_allowlist.*\.txt$'
+        pass_filenames: false
+        stages: [pre-commit, pre-push, manual]
+
+      # Spell checking (runs on push)
+      - id: spellcheck-markdown
+        name: Spell check - Markdown files
+        entry: scripts/pre-commit/spellcheck_wrapper.py markdown
+        language: python
+        types: [markdown]
+        exclude: '^tpls/'
+        stages: [pre-push, manual]
+        additional_dependencies:
+          - pyspelling>=2.8.2
+          - pymdown-extensions
+
+      - id: spellcheck-rst
+        name: Spell check - reStructuredText files
+        entry: scripts/pre-commit/spellcheck_wrapper.py rst
+        language: python
+        files: '\.rst$'
+        exclude: '^(tpls|docs/sphinx/_templates)/'
+        stages: [pre-push, manual]
+        additional_dependencies:
+          - pyspelling>=2.8.2
+          - pymdown-extensions
+
+      - id: spellcheck-cxx-headers
+        name: Spell check - C++ headers
+        entry: scripts/pre-commit/spellcheck_wrapper.py cxx_headers
+        language: python
+        files: '\.(h|hpp)$'
+        exclude: '^(test|targettests|tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
+        stages: [pre-push, manual]
+        additional_dependencies:
+          - pyspelling>=2.8.2
+
+      - id: spellcheck-cxx-examples
+        name: Spell check - C++ examples
+        entry: scripts/pre-commit/spellcheck_wrapper.py cxx_examples
+        language: python
+        files: '^docs/sphinx/(examples|applications/cpp|targets/cpp)/.*\.cpp$'
+        stages: [pre-push, manual]
+        additional_dependencies:
+          - pyspelling>=2.8.2
+
+      - id: spellcheck-python
+        name: Spell check - Python files
+        entry: scripts/pre-commit/spellcheck_wrapper.py python
+        language: python
+        types: [python]
+        exclude: '^(python/tests|test|targettests|tpls|docs/sphinx/conf\.py)$'
+        stages: [pre-push, manual]
+        additional_dependencies:
+          - pyspelling>=2.8.2
+
+      - id: markdown-link-check
+        name: Check links in Markdown files
+        entry: bash scripts/pre-commit/check_markdown_links.sh
+        language: system
+        types: [markdown]
+        pass_filenames: true
+        stages: [pre-push, manual]
