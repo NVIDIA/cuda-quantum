@@ -11,6 +11,7 @@ if(APPLE)
   set(_origin_prefix "@loader_path")
 endif()
 
+set(COMPILE_WARNING_AS_ERROR OFF)
 set(CMAKE_INSTALL_RPATH
   "${CMAKE_INSTALL_RPATH}:${_origin_prefix}:${CMAKE_BINARY_DIR}/lib")
 
