@@ -73,7 +73,7 @@ TensorNetState<ScalarType>::TensorNetState(const std::vector<int> &basisState,
   HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_gate, h_xGate, sizeBytes, cudaMemcpyHostToDevice));
-  m_tempDevicePtrs.emplace_back(d_gate);
+  m_tempDevicePtrs.emplace_back(d_gate, TempDevicePtrDeleter{});
   for (int32_t qId = 0; const auto &bit : basisState) {
     if (bit == 1) {
       applyGate({}, {qId}, d_gate);
@@ -251,7 +251,7 @@ void TensorNetState<ScalarType>::addQubits(
 
   // Project the state of those new qubits to the input state.
   applyQubitProjector(d_proj, qubitIdx);
-  m_tempDevicePtrs.emplace_back(d_proj);
+  m_tempDevicePtrs.emplace_back(d_proj, TempDevicePtrDeleter{});
 }
 
 template <typename ScalarType>
@@ -484,7 +484,7 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
   std::complex<ScalarType> stateNorm{0.0, 0.0};
   if (!in_projectedModeValues.empty() &&
       in_projectedModeValues.size() != projectedModes.size())
-    throw std::invalid_argument(fmt::format(
+    throw std::invalid_argument(cudaq_fmt::format(
         "The number of projected modes ({}) must equal the number of "
         "projected values ({}).",
         projectedModes.size(), in_projectedModeValues.size()));
@@ -1219,7 +1219,7 @@ TensorNetState<ScalarType>::createFromStateVector(
   std::iota(qubitIdx.begin(), qubitIdx.end(), 0);
   // Project the state to the input state.
   state->applyQubitProjector(d_proj, qubitIdx);
-  state->m_tempDevicePtrs.emplace_back(d_proj);
+  state->m_tempDevicePtrs.emplace_back(d_proj, TempDevicePtrDeleter{});
   return state;
 }
 
@@ -1227,8 +1227,7 @@ template <typename ScalarType>
 TensorNetState<ScalarType>::~TensorNetState() {
   // Destroy the quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
-  for (auto *ptr : m_tempDevicePtrs)
-    HANDLE_CUDA_ERROR(cudaFree(ptr));
+  m_tempDevicePtrs.clear();
 }
 
 } // namespace nvqir

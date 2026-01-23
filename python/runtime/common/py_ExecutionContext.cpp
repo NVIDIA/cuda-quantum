@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RecordLogParser.h"
 #include "cudaq/platform.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <fmt/core.h>
 #include <pybind11/complex.h>
 #include <pybind11/stl.h>
@@ -39,8 +40,20 @@ void bindExecutionContext(py::module &mod) {
                      &cudaq::ExecutionContext::numberTrajectories)
       .def_readwrite("explicitMeasurements",
                      &cudaq::ExecutionContext::explicitMeasurements)
+      .def_readwrite("allowJitEngineCaching",
+                     &cudaq::ExecutionContext::allowJitEngineCaching)
       .def_readonly("invocationResultBuffer",
                     &cudaq::ExecutionContext::invocationResultBuffer)
+      .def("unset_jit_engine",
+           [&](cudaq::ExecutionContext &execCtx) {
+             if (execCtx.jitEng) {
+               auto *p =
+                   reinterpret_cast<mlir::ExecutionEngine *>(execCtx.jitEng);
+               delete p;
+               execCtx.jitEng = nullptr;
+               execCtx.allowJitEngineCaching = false;
+             }
+           })
       .def("setSpinOperator",
            [](cudaq::ExecutionContext &ctx, cudaq::spin_op &spin) {
              ctx.spin = spin;

@@ -160,9 +160,12 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
     if (indices.size() != 2)
       throw std::runtime_error("CuDensityMatState holding a density matrix "
                                "supports only 2-dimensional indices");
-    if (indices[0] >= dimension || indices[1] >= dimension)
+    // For density matrix, dimension is the total size (dim*dim), so we need
+    // to compute the single-side dimension for bounds checking.
+    const std::size_t dim = static_cast<std::size_t>(std::sqrt(dimension));
+    if (indices[0] >= dim || indices[1] >= dim)
       throw std::runtime_error("CuDensityMatState indices out of range");
-    return extractValue(indices[0] * dimension + indices[1]);
+    return extractValue(indices[0] * dim + indices[1]);
   }
   if (indices.size() != 1)
     throw std::runtime_error(
@@ -364,6 +367,7 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   state->dimension = other.dimension;
   state->isDensityMatrix = other.isDensityMatrix;
   state->batchSize = other.batchSize;
+  state->singleStateDimension = other.singleStateDimension;
   const size_t dataSize = state->dimension * sizeof(std::complex<double>);
   state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, other.devicePtr, dataSize,
@@ -658,20 +662,50 @@ void CuDensityMatState::distributeBatchedStateData(
       batchedState.cudmHandle, batchedState.cudmState,
       /*stateComponentLocalId=*/0, &stateComponentGlobalId, &numModes,
       stateComponentModeExtents.data(), stateComponentModeOffsets.data()));
-  int64_t startIdx = 0;
-  int64_t accumulatedIdx = 1;
-  for (int32_t i = 0; i < numModes; ++i) {
-    accumulatedIdx *= stateComponentModeExtents[i];
-    startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
+
+  // Calculate the batch index using the batch mode location.
+  // The batchModeLocation tells us which mode corresponds to the batch
+  // dimension. If batchModeLocation is valid (>= 0), use the offset directly
+  // from that mode. Otherwise, fall back to computing from the linear index.
+  int batchIdx = 0;
+  if (batchModeLocation >= 0 && batchModeLocation < numModes) {
+    // The batch mode offset directly gives us the starting batch index
+    batchIdx = static_cast<int>(stateComponentModeOffsets[batchModeLocation]);
+  } else {
+    // Fallback: compute from linear index (original logic)
+    int64_t startIdx = 0;
+    int64_t accumulatedIdx = 1;
+    for (int32_t i = 0; i < numModes; ++i) {
+      accumulatedIdx *= stateComponentModeExtents[i];
+      startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
+    }
+    batchIdx = startIdx / singleStateDimension;
+    if (batchIdx * singleStateDimension != startIdx)
+      throw std::runtime_error(
+          "Batched state cannot be evenly distributed across available GPUs");
   }
-  const int batchIdx = startIdx / singleStateDimension;
+
   const int64_t stateVolume = batchedState.dimension;
   const int numStatesPerGpu = stateVolume / singleStateDimension;
-  if (batchIdx * singleStateDimension != startIdx)
+
+  // Validate that we won't access out-of-bounds indices in inputStates.
+  const int64_t totalInputStates = static_cast<int64_t>(inputStates.size());
+  if (batchIdx < 0 || batchIdx + numStatesPerGpu > totalInputStates) {
     throw std::runtime_error(
-        "Batched state cannot be evenly distributed across available GPUs");
+        "Distributed batched state data access would exceed input states "
+        "bounds. batchIdx=" +
+        std::to_string(batchIdx) +
+        ", numStatesPerGpu=" + std::to_string(numStatesPerGpu) +
+        ", totalInputStates=" + std::to_string(totalInputStates));
+  }
+
   for (int i = 0; i < numStatesPerGpu; ++i) {
     auto *sourcePtr = inputStates[i + batchIdx]->devicePtr;
+    if (sourcePtr == nullptr) {
+      throw std::runtime_error("Input state at index " +
+                               std::to_string(i + batchIdx) +
+                               " has null device pointer");
+    }
     std::complex<double> *destPtr =
         static_cast<std::complex<double> *>(batchedState.devicePtr) +
         i * singleStateDimension;
@@ -723,6 +757,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createBatchedState(
   cudmState->hilbertSpaceDims = dimensions;
   cudmState->batchSize = initial_states.size();
   cudmState->isDensityMatrix = isDm;
+  cudmState->singleStateDimension = firstStateDimension;
   const cudensitymatStatePurity_t purity = cudmState->isDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
@@ -780,11 +815,31 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
   if (batchedState.batchSize <= 1) {
     throw std::runtime_error("Input is not a batched state");
   }
-  const int64_t stateSize = batchedState.dimension / batchedState.batchSize;
+
+  // Use the stored single state dimension if available, otherwise fall back to
+  // the old calculation (for backward compatibility with non-distributed
+  // states).
+  const int64_t stateSize =
+      (batchedState.singleStateDimension > 0)
+          ? batchedState.singleStateDimension
+          : batchedState.dimension / batchedState.batchSize;
+
+  // Calculate the number of states stored locally on this rank.
+  // In distributed mode, dimension < batchSize * singleStateDimension.
+  // In non-distributed mode, dimension == batchSize * singleStateDimension.
+  const int64_t localNumStates = batchedState.dimension / stateSize;
+
+  if (localNumStates <= 0) {
+    throw std::runtime_error(
+        "Invalid state configuration: no local states available");
+  }
+
   std::complex<double> *ptr =
       static_cast<std::complex<double> *>(batchedState.devicePtr);
   std::vector<CuDensityMatState *> splitStates;
-  for (int i = 0; i < batchedState.batchSize; ++i) {
+
+  // Only iterate over the states that are actually stored locally.
+  for (int64_t i = 0; i < localNumStates; ++i) {
     // Each split state needs to own its memory
     // Allocate memory for the split state
     void *splitStateMemPtr = cudaq::dynamics::DeviceAllocator::allocate(

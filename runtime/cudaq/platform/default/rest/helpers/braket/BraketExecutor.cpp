@@ -8,6 +8,7 @@
 
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
+#include "common/FmtCore.h"
 
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>

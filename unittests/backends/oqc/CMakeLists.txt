@@ -6,21 +6,10 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_oqc OQCTester.cpp)
-target_link_options(test_oqc PRIVATE -Wl,--no-as-needed)
-target_compile_definitions(test_oqc PRIVATE -DNVQIR_BACKEND_NAME=oqc)
-target_include_directories(test_oqc PRIVATE ../..)
-target_link_libraries(test_oqc
-  PRIVATE fmt::fmt-header-only 
-  cudaq-common 
-  cudaq
-  cudaq-builder
-  cudaq-mlir-runtime
-  cudaq-rest-qpu
-  cudaq-operator
-  cudaq-platform-default 
-  gtest_main)
-
+add_backend_unittest_executable(test_oqc 
+  SOURCES OQCTester.cpp
+  BACKEND oqc
+  )
 
 configure_file("OQCStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/oqc/OQCStartServerAndTest.sh" @ONLY)
 add_test(NAME oqc-tests COMMAND bash OQCStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/oqc/)

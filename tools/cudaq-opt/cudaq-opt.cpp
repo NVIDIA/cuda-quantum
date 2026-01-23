@@ -56,6 +56,7 @@ int main(int argc, char **argv) {
   // nvidia/cuda-quantum
   llvm::setBugReportMsg(cudaq::bugReportMsg);
 
+  cudaq::registerAllCLOptions();
   cudaq::registerAllPasses();
 
   // See if we have been asked to load a pass plugin,
