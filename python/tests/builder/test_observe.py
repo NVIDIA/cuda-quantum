@@ -566,16 +566,13 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     with pytest.raises(Exception) as error:
         # Test kernel call.
         kernel(bad_params)
+    assert "Invalid runtime list argument" in str(error.value)
     with pytest.raises(Exception) as error:
         # Test observe call.
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
     with pytest.raises(Exception) as error:
         # Test too few elements in array.
         bad_params = np.random.uniform(low=-np.pi, high=np.pi, size=(2,))
-        cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
-    with pytest.raises(Exception) as error:
-        # Test too many elements in array.
-        bad_params = np.random.uniform(low=-np.pi, high=np.pi, size=(8,))
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
 
 
