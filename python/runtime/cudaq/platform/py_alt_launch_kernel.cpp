@@ -901,7 +901,7 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// NB: `cachedEngine` is actually of type `mlir:;ExecutionEngine**`.
+// NB: `cachedEngine` is actually of type `mlir::ExecutionEngine**`.
 static void *marshal_and_retain_module(const std::string &name,
                                        MlirModule module, MlirType returnType,
                                        void *cachedEngine,
