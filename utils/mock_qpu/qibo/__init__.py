@@ -30,11 +30,9 @@ class QiboMockServer(BaseHTTPRequestHandler):
             response = {
                 'pid': 'job-123',
                 'status': 'success',
-                'results': {
-                    'counts': {
-                        '00': 500,
-                        '11': 500
-                    }
+                'frequencies': {
+                    '00': 500,
+                    '11': 500
                 }
             }
             self._set_headers()
