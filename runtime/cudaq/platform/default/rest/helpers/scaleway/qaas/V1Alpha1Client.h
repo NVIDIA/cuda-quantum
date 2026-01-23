@@ -6,12 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-#include "V1Alpha1Objects.h"
 
+#include "V1Alpha1Objects.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <regex>
 #include <sstream>
 #include <thread>
@@ -41,6 +42,7 @@ public:
   Model createModel(const std::string &payload);
 
   std::string getJobsUrl();
+  std::string getJobUrl(const std::string &jobId);
   std::string getJobResultsUrl(const std::string &jobId);
   std::map<std::string, std::string> getHeaders();
 

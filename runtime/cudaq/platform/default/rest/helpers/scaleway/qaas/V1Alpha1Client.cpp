@@ -6,10 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "V1Alpha1Client.h"
-#include "V1Alpha1Objects.h"
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
 
 namespace cudaq::qaas::v1alpha1 {
 void V1Alpha1Client::initialize(const std::string projectId,
@@ -21,11 +17,15 @@ void V1Alpha1Client::initialize(const std::string projectId,
   }
 }
 
-std::map<std::string, std::string> V1Alpha1Client::getHeaders() const {
+std::map<std::string, std::string> V1Alpha1Client::getHeaders() {
   return {{"X-Auth-Token", m_secretKey}, {"Content-Type", "application/json"}};
 }
 
 std::string V1Alpha1Client::getJobsUrl() { return m_baseUrl + "/jobs"; }
+
+std::string V1Alpha1Client::getJobUrl(const std::string &jobId) {
+  return m_baseUrl + "/jobs/" + jobId;
+}
 
 std::string V1Alpha1Client::getJobResultsUrl(const std::string &jobId) {
   return m_baseUrl + "/jobs/" + jobId + "/results";

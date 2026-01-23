@@ -9,6 +9,7 @@
 #include "ScalewayServerHelper.h"
 
 using json = nlohmann::json;
+// using qio = cudaq::qio;
 
 namespace cudaq {
 
@@ -28,7 +29,7 @@ void ScalewayServerHelper::initialize(BackendConfig config) {
 }
 
 RestHeaders ScalewayServerHelper::getHeaders() {
-  return m_qaasClient.getHeader();
+  return m_qaasClient.getHeaders();
 }
 
 ServerJobPayload ScalewayServerHelper::createJob(
@@ -43,9 +44,9 @@ ServerJobPayload ScalewayServerHelper::createJob(
     ServerMessage taskRequest;
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
     std::string qioParams = serializeParametersToQio(shots);
-    std::string modelId = m_qaasClient.createModel(qioPayload);
+    qaas::v1alpha1::Model model = m_qaasClient.createModel(qioPayload);
 
-    taskRequest["model_id"] = modelId;
+    taskRequest["model_id"] = model.id;
     taskRequest["session_id"] = m_sessionId;
     taskRequest["name"] = circuitCode.name;
     taskRequest["parameters"] = qioParams;
@@ -55,7 +56,7 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
   CUDAQ_INFO("Created job payload for Scaleway, "
              "targeting platform {}",
-             m_platformName);
+             m_targetPlatformName);
 
   return std::make_tuple(m_qaasClient.getJobsUrl(), headers, tasks);
 }
@@ -67,18 +68,18 @@ ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
     return j["id"].get<std::string>();
   if (j.contains("job_id"))
     return j["job_id"].get<std::string>();
-  throw std::runtime_error("Job submission failed: " + postResponse);
+  throw std::runtime_error("Job submission failed");
 }
 
 std::string
 ScalewayServerHelper::constructGetJobPath(std::string &jobId) {
-  return m_qaasClient.getJobsUrl(jobId);
+  return m_qaasClient.getJobUrl(jobId);
 }
 
 std::string ScalewayServerHelper::constructGetJobPath(
     ServerMessage &postResponse) {
   std::string jobId = extractJobId(postResponse);
-  return m_qaasClient.getJobsUrl(jobId);
+  return m_qaasClient.getJobUrl(jobId);
 }
 
 std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
@@ -104,14 +105,13 @@ bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
                                      std::string &jobId) {
-  auto jobResults = m_qaasClient.getJobResults(jobId);
-  auto results = jobResults.results;
+  auto jobResults = m_qaasClient.listJobResults(jobId);
 
-  if (results.empty()) {
+  if (jobResults.empty()) {
     throw std::runtime_error("Job done but empty results.");
   }
 
-  auto firstResult = results[0];
+  auto firstResult = jobResults[0];
 
   std::string rawPayload;
 
@@ -119,7 +119,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
     rawPayload = firstResult.result.value();
   } else if (firstResult.has_download_url()) {
     RestClient client;
-    rawPayload = client.getRawText(firstResult.url.value(), "", true);
+    rawPayload = client.getRawText(firstResult.url.value(), "", {}, true);
   } else {
     throw std::runtime_error(
         "invalid: empty 'result' and 'url' fields to get result.");
@@ -142,7 +142,7 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
 std::string ScalewayServerHelper::ensureSessionIsActive() {
   if (!m_sessionId.empty()) {
     try {
-      auto session = m_qaasClient.getSession(m_sessionId);
+      qaas::v1alpha1::Session session = m_qaasClient.getSession(m_sessionId);
       auto status = session.status;
 
       if (status == "error" || status == "stopped" || status == "stopping") {
@@ -198,8 +198,8 @@ std::string ScalewayServerHelper::serializeParametersToQio(size_t nb_shots) {
 
 std::string
 ScalewayServerHelper::serializeKernelToQio(const std::string &code) {
-  qio::QuantumProgram program(code, qio::SerializationFormat::QIR,
-                              qio::CompressionFormat::GZIP);
+  qio::QuantumProgram program(code, qio::QuantumProgramSerializationFormat::QASM_V2,
+                              qio::CompressionFormat::ZLIB_BASE64_V1);
 
   std::vector<qio::QuantumProgram> programs = {program};
 

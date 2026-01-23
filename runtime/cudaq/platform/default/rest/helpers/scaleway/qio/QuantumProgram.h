@@ -7,39 +7,26 @@
  ******************************************************************************/
 #pragma once
 #include "Compression.h"
+#include "Format.h"
 #include <nlohmann/json.hpp>
 #include <string>
 
 namespace cudaq::qio {
 class QuantumProgram {
 public:
-  enum SerializationFormat {
-    UNKOWN_SERIALIZATION_FORMAT = 0,
-    QASM_V1 = 1,
-    QASM_V2 = 2,
-    QASM_V3 = 3,
-    QIR_V1 = 4
-  };
-
-  enum CompressionFormat {
-    UNKNOWN_COMPRESSION_FORMAT = 0,
-    NONE = 1,
-    ZLIB_BASE64_V1 = 2
-  };
-
   QuantumProgram(const cudaq::Kernel &kernel,
-                 SerializationFormat serializationFormat,
+                 QuantumProgramSerializationFormat serializationFormat,
                  CompressionFormat compressionFormat);
 
   QuantumProgram(const std::string &serialization,
-                 SerializationFormat serializationFormat,
+                 QuantumProgramSerializationFormat serializationFormat,
                  CompressionFormat compressionFormat);
 
   nlohmann::json toJson() const;
 
 private:
   std::string m_serialization;
-  SerializationFormat m_serializationFormat;
+  QuantumProgramSerializationFormat m_serializationFormat;
   CompressionFormat m_compressionFormat;
 };
 } // namespace cudaq::qio

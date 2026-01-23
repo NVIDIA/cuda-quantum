@@ -5,22 +5,28 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#pragma once
 #include "QuantumProgramResult.h"
 
 namespace cudaq::qio {
+QuantumProgramResult(std::string serialization,
+                      SerializationFormat serializationFormat,
+                      CompressionFormat compressionFormat)
+    : m_serialization(serialization),
+      m_serializationFormat(serializationFormat),
+      m_compressionFormat(compressionFormat) {}
+
 static QuantumProgramResult
 QuantumProgramResult::fromJson(nlohmann::json j) {
   return QuantumProgramResult(
       j.value("serialization", ""),
       j.value("serialization_format",
-              SerializationFormat::UNKOWN_SERIALIZATION_FORMAT),
+              QuantumProgramResultSerializationFormat::UNKOWN_SERIALIZATION_FORMAT),
       j.value("compression_format", CompressionFormat::NONE));
 }
 
-cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() const {
+cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
   if (m_serializationFormat !=
-      SerializationFormat::CUDAQ_SAMPLE_RESULT_JSON_V1) {
+      QuantumProgramResultSerializationFormat::CUDAQ_SAMPLE_RESULT_JSON_V1) {
     throw std::runtime_error("QuantumProgramResult: Unsupported serialization "
                              "format for conversion to cudaq::sample_result");
   }
@@ -46,5 +52,4 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() const {
   sample_result.deserialize(resultJson);
 
   return sample_result;
-}
 } // namespace cudaq::qio
