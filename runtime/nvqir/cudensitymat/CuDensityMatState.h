@@ -31,12 +31,14 @@ private:
   // For batched states in distributed mode, dimension < batchSize *
   // singleStateDimension.
   std::size_t singleStateDimension = 0;
+  bool borrowedData = false;
 
 public:
   // Create a state with a size and data pointer.
   // Note: the underlying cudm state is not yet initialized as we don't know the
   // dimensions of sub-systems.
-  CuDensityMatState(std::size_t s, void *ptr);
+  // If `borrowed` is true, the state does not own the device data pointer.
+  CuDensityMatState(std::size_t s, void *ptr, bool borrowed = false);
 
   // Default constructor
   CuDensityMatState() {}

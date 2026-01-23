@@ -205,10 +205,12 @@ void CuDensityMatState::destroyState() {
     cudmState = nullptr;
   }
   if (devicePtr != nullptr) {
-    cudaq::dynamics::DeviceAllocator::free(devicePtr);
+    if (!borrowedData)
+      cudaq::dynamics::DeviceAllocator::free(devicePtr);
     devicePtr = nullptr;
     dimension = 0;
     isDensityMatrix = false;
+    borrowedData = false;
   }
 }
 
@@ -224,8 +226,8 @@ calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims) {
   return vectorSize * vectorSize;
 }
 
-CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr)
-    : devicePtr(ptr), dimension(size),
+CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr, bool borrowed)
+    : devicePtr(ptr), dimension(size), borrowedData(borrowed),
       cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {
   if (size == 0)
     throw std::invalid_argument("Zero-length state is not allowed.");
@@ -396,7 +398,7 @@ CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
     : isDensityMatrix(other.isDensityMatrix), dimension(other.dimension),
       devicePtr(other.devicePtr), cudmState(other.cudmState),
       cudmHandle(other.cudmHandle), hilbertSpaceDims(other.hilbertSpaceDims),
-      batchSize(other.batchSize) {
+      batchSize(other.batchSize), borrowedData(other.borrowedData) {
   other.isDensityMatrix = false;
   other.dimension = 0;
   other.devicePtr = nullptr;
@@ -404,6 +406,7 @@ CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
   other.cudmState = nullptr;
   other.cudmHandle = nullptr;
   other.hilbertSpaceDims.clear();
+  other.borrowedData = false;
 }
 
 CuDensityMatState &
@@ -413,7 +416,7 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     if (cudmState)
       cudensitymatDestroyState(cudmState);
 
-    if (devicePtr) {
+    if (devicePtr != nullptr && !borrowedData) {
       cudaq::dynamics::DeviceAllocator::free(devicePtr);
     }
 
@@ -425,6 +428,7 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     cudmHandle = other.cudmHandle;
     hilbertSpaceDims = std::move(other.hilbertSpaceDims);
     batchSize = other.batchSize;
+    borrowedData = other.borrowedData;
     // Nullify other
     other.isDensityMatrix = false;
     other.dimension = 0;
@@ -432,6 +436,7 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
 
     other.cudmState = nullptr;
     other.batchSize = 1;
+    other.borrowedData = false;
   }
   return *this;
 }
@@ -455,8 +460,8 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
     throw std::runtime_error("State is already a density matrix.");
 
   if (batchSize > 1)
-    throw std::runtime_error(
-        "Conversion of a batched state to a density matrix is not supported.");
+    throw std::runtime_error("Conversion of a batched state to a density "
+                             "matrix is not supported.");
 
   const std::size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
   const std::size_t expectedDensityMatrixSize = vectorSize * vectorSize;
@@ -738,8 +743,8 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createBatchedState(
     throw std::invalid_argument("Invalid hilbertSpaceDims for the state data");
 
   const bool isDm = firstStateDimension == expectedDensityMatrixSize;
-  // These are state vectors but we need density matrices (e.g., with collapsed
-  // operators)
+  // These are state vectors but we need density matrices (e.g., with
+  // collapsed operators)
   if (!isDm && createDensityState) {
     std::vector<CuDensityMatState *> initialDensityMatrixStates =
         convertStateVecToDensityMatrix(initial_states,
