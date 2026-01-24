@@ -323,3 +323,124 @@ jobs:
             -v ${{ needs.wheel.outputs.cudaq_version }} \
             -i dist \
             -p ${{ matrix.python_version }}
+
+  # ============================================================================
+  # Build self-extracting installer for C++ SDK
+  # ============================================================================
+  installer:
+    name: Installer (${{ matrix.runner }})
+    needs: [metadata, devdeps]
+    strategy:
+      matrix:
+        include:
+          - runner: macos-26
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    outputs:
+      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Restore prerequisites cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local
+            ~/.llvm-project
+          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
+          fail-on-cache-miss: true
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          brew install makeself
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+          
+          # Incremental rebuild: add python-bindings to cached LLVM build
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v
+
+      - name: Build CUDA-Q
+        run: bash scripts/build_cudaq.sh -v
+
+      - name: Determine version
+        id: version
+        run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          else
+            cudaq_version=0.0.0
+          fi
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+          echo "Building installer version: $cudaq_version"
+
+      - name: Build installer
+        run: |
+          source scripts/set_env_defaults.sh
+          bash scripts/build_installer.sh -v -V ${{ steps.version.outputs.cudaq_version }}
+          
+          # List output
+          ls -la out/
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cudaq-installer-macos-${{ matrix.arch }}
+          path: out/install_cuda_quantum*
+          retention-days: 1
+          if-no-files-found: error
+
+  # ============================================================================
+  # Validate installation in clean environment
+  # ============================================================================
+  validate_installation:
+    name: Validate Installation (${{ matrix.runner }})
+    needs: installer
+    strategy:
+      matrix:
+        include:
+          - runner: macos-26
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+      fail-fast: false
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cudaq-installer-macos-${{ matrix.arch }}
+          path: installer/
+
+      - name: Install CUDA-Q
+        run: |
+          # Make installer executable and run with sudo (installs to /opt/nvidia/cudaq)
+          chmod +x installer/install_cuda_quantum*
+          sudo bash installer/install_cuda_quantum* --accept
+
+      - name: Validate installation
+        run: bash scripts/validate_installation.sh

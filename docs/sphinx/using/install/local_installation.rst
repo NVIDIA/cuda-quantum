@@ -268,8 +268,8 @@ Starting with the 0.6.0 release, we provide pre-built binaries for using
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
 `PyPI.org <https://pypi.org/project/cudaq/>`__.
-The pre-built binaries work across a range of Linux operating systems listed 
-under :ref:`dependencies-and-compatibility`. 
+The pre-built binaries work across the operating systems listed 
+under :ref:`dependencies-and-compatibility`, including Linux and macOS (CPU-only).
 
 Before installing our pre-built binaries, please make sure that your 
 operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
@@ -308,7 +308,8 @@ The installation ensures that the necessary environment variables for
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the `nvq++` command is found. If it is not, please make sure 
 to set the environment variables defined by the `set_env.sh` script in the 
-CUDA-Q installation folder (usually `/usr/local/cudaq` or `/opt/nvidia/cudaq`).
+CUDA-Q installation folder (``/opt/nvidia/cudaq`` for the pre-built installer, 
+or ``$HOME/.cudaq`` for local builds from source).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
 the installer automatically enables MPI support in CUDA-Q.
