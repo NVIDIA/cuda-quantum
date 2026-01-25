@@ -179,13 +179,11 @@ jobs:
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "Build version: $cudaq_version"
 
-      - name: Upload build directory (tarball for test and installer)
-        run: tar -cf build.tar build/
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload build directory
+        uses: actions/upload-artifact@v4
         with:
           name: cudaq-build-dir-${{ matrix.arch }}
-          path: build.tar
+          path: build/
           retention-days: 1
           if-no-files-found: error
 
@@ -231,9 +229,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cudaq-build-dir-${{ matrix.arch }}
-
-      - name: Extract build directory
-        run: tar -xf build.tar
+          path: build/
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -426,10 +422,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cudaq-build-dir-${{ matrix.arch }}
+          path: build/
 
-      - name: Extract and install
+      - name: Install from build
         run: |
-          tar -xf build.tar
           # Install only (skip configure/build, just run ninja install + post-install)
           bash scripts/build_cudaq.sh -I -v
 
