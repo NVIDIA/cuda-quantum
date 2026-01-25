@@ -400,7 +400,7 @@ jobs:
   # ============================================================================
   installer:
     name: Installer (${{ matrix.runner }})
-    needs: build
+    needs: [metadata, build]
     strategy:
       matrix:
         include:
@@ -417,6 +417,15 @@ jobs:
 
       - name: Install makeself
         run: brew install makeself
+
+      - name: Restore prerequisites cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local
+            ~/.llvm-project
+          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
+          fail-on-cache-miss: true
 
       - name: Download build directory
         uses: actions/download-artifact@v4
