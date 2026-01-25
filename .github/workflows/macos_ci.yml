@@ -412,10 +412,11 @@ jobs:
 
   # ============================================================================
   # Validate installation in clean environment
+  # Installer provides C++ support; wheel provides Python support
   # ============================================================================
   validate_installation:
     name: Validate Installation (${{ matrix.runner }})
-    needs: installer
+    needs: [installer, wheel]
     strategy:
       matrix:
         include:
@@ -430,17 +431,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Download installer artifact
         uses: actions/download-artifact@v4
         with:
           name: cudaq-installer-macos-${{ matrix.arch }}
           path: installer/
 
-      - name: Install CUDA-Q
+      - name: Download wheel artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: pycudaq-macos-${{ matrix.arch }}-py3.12
+          path: wheel/
+
+      - name: Install CUDA-Q (C++ via installer)
         run: |
           # Make installer executable and run with sudo (installs to /opt/nvidia/cudaq)
           chmod +x installer/install_cuda_quantum*
           sudo bash installer/install_cuda_quantum* --accept
+
+      - name: Install CUDA-Q (Python via wheel)
+        run: |
+          # Install wheel for Python support (per documentation, Python is separate)
+          pip install wheel/*.whl
 
       - name: Validate installation
         run: bash scripts/validate_installation.sh

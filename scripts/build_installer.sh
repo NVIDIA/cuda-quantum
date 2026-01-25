@@ -23,6 +23,7 @@
 #   -o <output_dir>: Output directory for installer (default: out)
 #   -i <install_dir>: Directory with built CUDA-Q installation (default: $HOME/.cudaq)
 #   -V <version>: CUDA-Q version string for installer name (e.g., 0.9.0)
+#   -d: Docker mode (assets already in place, skip verification checks)
 #   -v: Verbose output
 #
 # Prerequisites:
@@ -55,17 +56,19 @@ cuda_variant=""
 output_dir="out"
 install_dir=""
 cudaq_version=""
+docker_mode=false
 verbose=false
 
 # Parse command line arguments
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:o:i:V:v" opt; do
+while getopts ":c:o:i:V:dv" opt; do
   case $opt in
     c) cuda_variant="$OPTARG" ;;
     o) output_dir="$OPTARG" ;;
     i) install_dir="$OPTARG" ;;
     V) cudaq_version="$OPTARG" ;;
+    d) docker_mode=true ;;
     v) verbose=true ;;
     \?) echo "Invalid command line option -$OPTARG" >&2; exit 1 ;;
   esac
@@ -117,8 +120,14 @@ fi
 
 installer_name=$(build_installer_name)
 
-# Source environment defaults for LLVM_INSTALL_PREFIX, etc.
-source "$this_file_dir/set_env_defaults.sh"
+# Source environment variables for LLVM_INSTALL_PREFIX, etc.
+if $docker_mode; then
+    # Docker mode: use Docker container paths (from configure_build.sh)
+    source "$this_file_dir/configure_build.sh"
+else
+    # Local mode: use platform-specific defaults
+    source "$this_file_dir/set_env_defaults.sh"
+fi
 
 # Set install directory (use -i flag or CUDAQ_INSTALL_PREFIX env var)
 # Defaults match build_cudaq.sh: $HOME/.cudaq for local builds
@@ -126,30 +135,36 @@ if [ -z "$install_dir" ]; then
     install_dir="${CUDAQ_INSTALL_PREFIX:-$HOME/.cudaq}"
 fi
 
-# Verify CUDA-Q is built
-if [ ! -d "$install_dir" ] || [ ! -f "$install_dir/bin/nvq++" ]; then
-    echo "Error: CUDA-Q installation not found at $install_dir" >&2
-    echo "Please build CUDA-Q first: bash scripts/build_cudaq.sh" >&2
-    exit 1
-fi
-
-# Verify LLVM is available
-llvm_prefix="${LLVM_INSTALL_PREFIX:-/opt/llvm}"
-if [ ! -d "$llvm_prefix" ] || [ ! -f "$llvm_prefix/bin/clang" ]; then
-    echo "Error: LLVM installation not found at $llvm_prefix" >&2
-    exit 1
-fi
-
-# Verify makeself is installed
-if ! command -v makeself &> /dev/null; then
-    echo "Error: makeself not found" >&2
-    if [ "$platform" = "Darwin" ]; then
-        echo "Install with: brew install makeself" >&2
-    else
-        echo "Install with: apt install makeself  # or: yum install makeself" >&2
+# Verification checks (skipped in Docker mode where assets are pre-configured)
+if ! $docker_mode; then
+    # Verify CUDA-Q is built
+    if [ ! -d "$install_dir" ] || [ ! -f "$install_dir/bin/nvq++" ]; then
+        echo "Error: CUDA-Q installation not found at $install_dir" >&2
+        echo "Please build CUDA-Q first: bash scripts/build_cudaq.sh" >&2
+        exit 1
     fi
-    exit 1
+
+    # Verify LLVM is available
+    llvm_prefix="${LLVM_INSTALL_PREFIX:-/opt/llvm}"
+    if [ ! -d "$llvm_prefix" ] || [ ! -f "$llvm_prefix/bin/clang" ]; then
+        echo "Error: LLVM installation not found at $llvm_prefix" >&2
+        exit 1
+    fi
+
+    # Verify makeself is installed
+    if ! command -v makeself &> /dev/null; then
+        echo "Error: makeself not found" >&2
+        if [ "$platform" = "Darwin" ]; then
+            echo "Install with: brew install makeself" >&2
+        else
+            echo "Install with: apt install makeself  # or: yum install makeself" >&2
+        fi
+        exit 1
+    fi
 fi
+
+# Set llvm_prefix for asset copying (set after sourcing env)
+llvm_prefix="${LLVM_INSTALL_PREFIX:-/opt/llvm}"
 
 if $verbose; then
     echo "CUDAQ_INSTALL_PREFIX: $install_dir"
