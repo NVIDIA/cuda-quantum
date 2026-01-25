@@ -30,6 +30,7 @@
 # -i: Whether to build incrementally. Defaults to False.
 # -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
 # -p: Install prerequisites before building.
+# -I: Install only (skip configure and build, just run ninja install + post-install).
 # --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
@@ -60,6 +61,7 @@ verbose=false
 clean_build=true
 install_prereqs=false
 install_toolchain=""
+install_only=false
 num_jobs=""
 enable_sanitizers=false
 extra_cmake_args=""
@@ -89,7 +91,7 @@ source "$this_file_dir/set_env_defaults.sh"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:isp" opt; do
+while getopts ":c:t:j:vB:ispI" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -107,6 +109,8 @@ while getopts ":c:t:j:vB:isp" opt; do
     ;;
     p) install_prereqs=true
     ;;
+    I) install_only=true
+    ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
@@ -118,10 +122,15 @@ OPTIND=$__optind__
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$build_dir" && cd "$build_dir"
-if $clean_build; then
+if ! $install_only && $clean_build; then
   rm -rf *
 fi
 mkdir -p logs && rm -rf logs/*
+
+# Skip configure/build if install-only mode
+if $install_only; then
+  echo "Install-only mode: skipping configure and build..."
+else
 
 # Install prerequisites (opt-in with -p or -t)
 if $install_prereqs || [ -n "$install_toolchain" ]; then
@@ -297,8 +306,14 @@ if [ "$status" -ne 0 ]; then
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
-# Build and install CUDA-Q
-echo "Building CUDA-Q with configuration $build_configuration..."
+fi # end of skip for install-only mode
+
+# Install CUDA-Q (and build if not install-only)
+if $install_only; then
+  echo "Running ninja install..."
+else
+  echo "Building CUDA-Q with configuration $build_configuration..."
+fi
 logs_dir=`pwd`/logs
 if $verbose; then 
   ninja ${num_jobs} install
