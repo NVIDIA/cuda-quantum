@@ -117,7 +117,7 @@ def testMpiBatchedStatesStoreAll():
     # Verify each result
     for i, result in enumerate(evolution_results):
         final_state = result.final_state()
-        state_array = np.array(final_state)
+        state_array = np.array(cudaq.StateMemoryView(final_state))
 
         # State should be a 2-element vector (single qubit)
         assert state_array.shape == (2,), \
@@ -175,7 +175,7 @@ def testMpiBatchedStatesStoreNone():
 
     for i, result in enumerate(evolution_results):
         final_state = result.final_state()
-        state_array = np.array(final_state)
+        state_array = np.array(cudaq.StateMemoryView(final_state))
         assert state_array.shape == (2,)
         norm = np.linalg.norm(state_array)
         assert abs(norm - 1.0) < 0.01
@@ -221,7 +221,7 @@ def testMpiBatchedDifferentSizes():
 
         for result in evolution_results:
             final_state = result.final_state()
-            state_array = np.array(final_state)
+            state_array = np.array(cudaq.StateMemoryView(final_state))
             assert state_array.shape == (2,)
             norm = np.linalg.norm(state_array)
             assert abs(norm - 1.0) < 0.01
@@ -270,7 +270,7 @@ def testMpiBatchedWithCollapseOperators():
     # With collapse operators, states are density matrices
     for result in evolution_results:
         final_state = result.final_state()
-        state_array = np.array(final_state)
+        state_array = np.array(cudaq.StateMemoryView(final_state))
         # Density matrix should be 2x2 = 4 elements
         assert state_array.size == 4, \
             f"Expected density matrix with 4 elements, got {state_array.size}"
@@ -322,12 +322,52 @@ def testMpiTwoQubitBatched():
 
     for result in evolution_results:
         final_state = result.final_state()
-        state_array = np.array(final_state)
+        state_array = np.array(cudaq.StateMemoryView(final_state))
         # Two-qubit state should have 4 elements
         assert state_array.shape == (4,), \
             f"Expected shape (4,), got {state_array.shape}"
         norm = np.linalg.norm(state_array)
         assert abs(norm - 1.0) < 0.01
+
+
+@skipIfUnsupported
+def testMpiBatchedStatesInvalidBatchSize():
+    """
+    Test invalid batch size for distributed batched evolution. This should raise a runtime error when the batch size
+    is not evenly divisible by the number of MPI ranks.
+    """
+    import cupy as cp
+
+    rank = cudaq.mpi.rank()
+    num_ranks = cudaq.mpi.num_ranks()
+
+    # Simple single-qubit Hamiltonian
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+
+    # Create (num_ranks + 1) distinct initial states to ensure invalid batch size
+    initial_states = []
+    for i in range(num_ranks + 1):
+        theta = i * np.pi / 8
+        state_data = cp.array([np.cos(theta), np.sin(theta)],
+                              dtype=cp.complex128)
+        initial_states.append(cudaq.State.from_data(state_data))
+
+    batch_size = len(initial_states)
+    steps = np.linspace(0, 1, 11)
+    schedule = Schedule(steps, ['time'])
+
+    # This should raise a runtime error due to invalid batch size
+    with pytest.raises(RuntimeError) as excinfo:
+        evolution_results = cudaq.evolve(
+            hamiltonian,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[spin.z(0)],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+            integrator=RungeKuttaIntegrator())
 
 
 # leave for gdb debugging

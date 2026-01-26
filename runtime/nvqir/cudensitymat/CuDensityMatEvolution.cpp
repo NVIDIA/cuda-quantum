@@ -13,11 +13,13 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
+#include "common/FmtCore.h"
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>
 #include <stdexcept>
+
 namespace cudaq::__internal__ {
 template <typename Key, typename Value>
 std::map<Key, Value>
@@ -345,6 +347,16 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
+
+  // We requires an even partition for distributed batched states.
+  if (batchSize > 1 &&
+      batchSize % dynamics::Context::getCurrentContext()->getNumRanks() != 0) {
+    throw std::runtime_error(fmt::format(
+        "Distributed batched states require an even partition across ranks: "
+        "batch size {} is not divisible by number of ranks {}. Please adjust "
+        "the number of MPI ranks or the batch size.",
+        batchSize, dynamics::Context::getCurrentContext()->getNumRanks()));
+  }
 
   std::vector<CuDensityMatExpectation> expectations;
   auto &opConverter =
