@@ -307,8 +307,10 @@ preprocessor
 probability
 programmatically
 pybind
+qaas
 qaoa
 qed
+qio
 quantize
 quantized
 qubit
@@ -324,7 +326,7 @@ runtimes
 rvalue
 scalability
 scalable
-Scaleway
+scaleway
 selectable
 sexualized
 shifter
