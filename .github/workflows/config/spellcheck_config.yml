@@ -1,9 +1,16 @@
+# Pyspelling configuration for CUDA-Q
+# Note: Source exclusion patterns (e.g., !tpls/**) match the exclusions
+# defined in .pre-commit-config.yaml to ensure consistent behavior when
+# running spellcheck via pre-commit or directly via pyspelling.
+
 spellchecker: aspell
 matrix:
 
 - name: markdown
   sources:
-  - '**/*.md'
+  # Exclude third-party code (tpls/)
+  - '**/*.md|!tpls/**/*.md'
+  glob_flags: N|G|B
   expect_match: false
   aspell:
     lang: en
@@ -45,7 +52,8 @@ matrix:
 
 - name: rst
   sources:
-  - '**/*.rst|!docs/sphinx/_templates/**/*.rst'
+  # Exclude third-party code (tpls/) and auto-generated templates
+  - '**/*.rst|!tpls/**/*.rst|!docs/sphinx/_templates/**/*.rst'
   glob_flags: N|G|B
   expect_match: false
   aspell:
@@ -102,7 +110,9 @@ matrix:
 
 - name: html
   sources:
-  - '**/*.html'
+  # Exclude third-party code (tpls/)
+  - '**/*.html|!tpls/**/*.html'
+  glob_flags: N|G|B
   expect_match: true
   aspell:
     lang: en
@@ -127,7 +137,9 @@ matrix:
 
 - name: cxx_headers
   sources:
-  - '**/*.h'
+  # Exclude test directories, third-party code (tpls/), and vendored nlopt
+  - '**/*.h|!test/**/*.h|!targettests/**/*.h|!tpls/**/*.h|!runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src/**/*.h'
+  glob_flags: N|G|B
   expect_match: false
   aspell:
     lang: en
@@ -249,7 +261,9 @@ matrix:
 
 - name: python
   sources:
-  - '**/*.py'
+  # Exclude test directories, third-party code (tpls/), and sphinx config
+  - '**/*.py|!python/tests/**/*.py|!test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!docs/sphinx/conf.py'
+  glob_flags: N|G|B
   expect_match: false
   aspell:
     lang: en
