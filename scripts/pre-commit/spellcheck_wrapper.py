@@ -7,7 +7,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
 """
 Pre-commit wrapper for pyspelling checks.
 
@@ -40,15 +39,11 @@ def run_pyspelling(task_name: str, files: list) -> int:
         print(f"No files to check for task '{task_name}'")
         return 0
 
-    repo_root = subprocess.check_output(
-        ['git', 'rev-parse', '--show-toplevel'],
-        text=True
-    ).strip()
+    repo_root = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'],
+                                        text=True).strip()
 
     config_path = os.path.join(
-        repo_root,
-        '.github/workflows/config/spellcheck_config.yml'
-    )
+        repo_root, '.github/workflows/config/spellcheck_config.yml')
 
     # Check each file individually for better error reporting
     failures = []
@@ -58,15 +53,9 @@ def run_pyspelling(task_name: str, files: list) -> int:
 
         print(f"Checking {filepath}...")
         result = subprocess.run(
-            [
-                'pyspelling',
-                '-n', task_name,
-                '-c', config_path,
-                '-S', filepath
-            ],
+            ['pyspelling', '-n', task_name, '-c', config_path, '-S', filepath],
             capture_output=True,
-            text=True
-        )
+            text=True)
 
         if result.returncode != 0:
             failures.append(filepath)
@@ -88,24 +77,16 @@ def run_pyspelling(task_name: str, files: list) -> int:
 
 
 def main():
-    valid_tasks = [
-        'markdown', 'rst',
-        'cxx_headers', 'cxx_examples', 'python'
-    ]
+    valid_tasks = ['markdown', 'rst', 'cxx_headers', 'cxx_examples', 'python']
 
     parser = argparse.ArgumentParser(
-        description='Pre-commit wrapper for pyspelling checks'
-    )
-    parser.add_argument(
-        'task_name',
-        choices=valid_tasks,
-        help='Pyspelling task name from spellcheck_config.yml'
-    )
-    parser.add_argument(
-        'files',
-        nargs='*',
-        help='Files to check (passed by pre-commit)'
-    )
+        description='Pre-commit wrapper for pyspelling checks')
+    parser.add_argument('task_name',
+                        choices=valid_tasks,
+                        help='Pyspelling task name from spellcheck_config.yml')
+    parser.add_argument('files',
+                        nargs='*',
+                        help='Files to check (passed by pre-commit)')
 
     args = parser.parse_args()
     return run_pyspelling(args.task_name, args.files)
