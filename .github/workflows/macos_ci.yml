@@ -179,11 +179,21 @@ jobs:
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "Build version: $cudaq_version"
 
-      - name: Upload build directory
-        uses: actions/upload-artifact@v4
+      - name: Upload build directory (for test job)
+        run: tar -cf build.tar build/
+      - uses: actions/upload-artifact@v4
         with:
-          name: cudaq-build-dir-${{ matrix.arch }}
-          path: build/
+          name: cudaq-build-tar-${{ matrix.arch }}
+          path: build.tar
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Upload install directory (for installer job)
+        run: tar -cf install.tar -C ~ .cudaq/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cudaq-install-tar-${{ matrix.arch }}
+          path: install.tar
           retention-days: 1
           if-no-files-found: error
 
@@ -228,8 +238,8 @@ jobs:
       - name: Download build directory
         uses: actions/download-artifact@v4
         with:
-          name: cudaq-build-dir-${{ matrix.arch }}
-          path: build/
+          name: cudaq-build-tar-${{ matrix.arch }}
+      - run: tar -xf build.tar
 
       - name: Install Python dependencies
         run: pip install -r requirements-dev.txt
@@ -400,7 +410,7 @@ jobs:
   # ============================================================================
   installer:
     name: Installer (${{ matrix.runner }})
-    needs: [metadata, devdeps, build]
+    needs: build
     strategy:
       matrix:
         include:
@@ -418,25 +428,11 @@ jobs:
       - name: Install makeself
         run: brew install makeself
 
-      - name: Restore prerequisites cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.local
-            ~/.llvm-project
-          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
-          fail-on-cache-miss: true
-
-      - name: Download build directory
+      - name: Download install directory
         uses: actions/download-artifact@v4
         with:
-          name: cudaq-build-dir-${{ matrix.arch }}
-          path: build/
-
-      - name: Install from build
-        run: |
-          # Install only (skip configure/build, just run ninja install + post-install)
-          bash scripts/build_cudaq.sh -I -v
+          name: cudaq-install-tar-${{ matrix.arch }}
+      - run: tar -xf install.tar -C ~
 
       - name: Build installer
         run: |
