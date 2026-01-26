@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 name: scaleway
-description: "CUDA-Q target for Scaleway."
+description: "CUDA-Q target for Scaleway Quantum-as-a-Service."
 
 config:
   # Tell DefaultQuantumPlatform what QPU subtype to use

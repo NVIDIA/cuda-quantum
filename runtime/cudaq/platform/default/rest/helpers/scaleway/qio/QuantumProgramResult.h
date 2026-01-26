@@ -6,7 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-#include "Compression.h"
 #include "Format.h"
 #include "common/SampleResult.h"
 #include <nlohmann/json.hpp>

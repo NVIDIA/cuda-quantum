@@ -12,6 +12,7 @@ add_library(cudaq-serverhelper-scaleway
             SHARED
             ScalewayServerHelper.cpp
             qio/Compression.cpp
+            qio/Base64.cpp
             qio/QuantumProgram.cpp
             qio/QuantumProgramResult.cpp
             qio/QuantumComputationParameters.cpp

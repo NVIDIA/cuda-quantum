@@ -7,7 +7,6 @@
  ******************************************************************************/
 #pragma once
 #include "Format.h"
-#include "Compression.h"
 #include "QuantumComputationModel.h"
 #include "QuantumComputationParameters.h"
 #include "QuantumProgram.h"

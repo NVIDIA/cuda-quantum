@@ -1,13 +1,12 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2026 Scaleway                                        *
+ * Copyright 2026 Scaleway                                                     *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "Compression.h"
-#include "Base64.h"  
 
 std::string gzipCompress(const std::string &input) {
   z_stream zs{};
@@ -73,10 +72,10 @@ std::string gzipDecompress(const std::string &input) {
   return out;
 }
 
-std::string base64Encode(const std::string &input) {
-  return base64::to_base64(input);
-}
+// std::string base64Encode(const std::string &input) {
+//   return base64::to_base64(input);
+// }
 
-std::string base64Decode(const std::string &input) {
-  return base64::from_base64(input);
-}
+// std::string base64Decode(const std::string &input) {
+//   return base64::from_base64(input);
+// }

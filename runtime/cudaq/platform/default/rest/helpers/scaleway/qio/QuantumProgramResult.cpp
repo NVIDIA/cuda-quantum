@@ -1,12 +1,14 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2026 Scaleway                                      *
+ * Copyright 2026 Scaleway                                                     *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "QuantumProgramResult.h"
+#include "Compression.h"
+#include "Base64.h"
 
 using namespace cudaq::qio;
 
@@ -38,7 +40,7 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
   if (m_compressionFormat
     == CompressionFormat::ZLIB_BASE64_V1) {
       std::string decodedSerialization =
-          base64Decode(m_serialization);
+          decodeBase64(m_serialization);
       uncompressedSerialization =
           gzipDecompress(decodedSerialization);
     }

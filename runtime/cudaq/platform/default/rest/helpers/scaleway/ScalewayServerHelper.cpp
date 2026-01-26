@@ -1,12 +1,18 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2026 Scaleway                                      *
+ * Copyright 2026 Scaleway                                                     *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "ScalewayServerHelper.h"
+#include "common/Logger.h"
+#include "common/RestClient.h"
+#include <iostream>
+#include <map>
+#include <regex>
+#include <sstream>
 
 using json = nlohmann::json;
 using namespace cudaq; 
