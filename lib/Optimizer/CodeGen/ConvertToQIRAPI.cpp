@@ -579,8 +579,9 @@ struct DiscriminateOpRewrite
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
     Value m = adaptor.getMeasurement();
-    auto i1PtrTy = cudaq::cc::PointerType::get(rewriter.getI1Type());
-    auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i1PtrTy, m);
+    auto resultTy = typeConverter->convertType(disc.getResult().getType());
+    auto ptrTy = cudaq::cc::PointerType::get(resultTy);
+    auto cast = rewriter.create<cudaq::cc::CastOp>(loc, ptrTy, m);
     rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, cast);
     return success();
   }
