@@ -702,7 +702,7 @@ fi
 AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
 
 RUN_OPT=false
-# NB: Keep this in synch with the PreDeviceCodeLoader pipeline
+# NB: Keep this in synch with the PythonAOT pipeline
 OPT_PASSES=
 if ${ENABLE_VARIABLE_COALESCE}; then
 	RUN_OPT=true

@@ -6,8 +6,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1| if running in bash
-// RUN: cudaq-quake %s |& FileCheck %s
 // RUN: cudaq-quake %s |& FileCheck %s
 
 #include <cudaq.h>
