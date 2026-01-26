@@ -1237,10 +1237,6 @@ cudaq-qclink/
 │   │   ├── qcs_device.h              # QCS connection management
 │   │   └── control_server.h          # UDP control protocol
 │   │
-│   ├── compilers/                    # CUDA-Q integration
-│   │   └── cudaq/
-│   │       ├── cudaq.h
-│   │       └── cudaq_toolchain.h
 │   │
 │   └── utils/                        # Utilities
 │       ├── extension_point.h
@@ -1258,7 +1254,6 @@ cudaq-qclink/
 │   ├── daemon/
 │   ├── network/
 │   ├── qcs/
-│   ├── compilers/cudaq/
 │   └── utils/
 │
 ├── examples/                         # Example applications

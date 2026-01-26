@@ -17,7 +17,7 @@ set(CMAKE_BUILD_TYPE "Release" CACHE STRING
     "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel")
 
 # Set a default install prefix if none was specified.
-set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.cudaqx" CACHE STRING
+set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.nvqlink" CACHE STRING
     "Install path prefix, prepended onto install directories")
 
 # Project setup

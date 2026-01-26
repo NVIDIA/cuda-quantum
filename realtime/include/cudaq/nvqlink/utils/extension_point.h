@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
-namespace cudaqx {
+namespace cudaq::nvqlink {
 
 /// @brief A template class for implementing an extension point mechanism.
 ///
@@ -29,13 +29,13 @@ namespace cudaqx {
 /// frameworks with plugin-like functionality. Here's how to use it:
 ///
 /// 1. Define your extension point:
-///    Create a new class that inherits from cudaq::extension_point<YourClass>.
-///    This class should declare pure virtual methods that extensions will
-///    implement.
+///    Create a new class that inherits from
+///    cudaq::nvqlink::extension_point<YourClass>. This class should declare
+///    pure virtual methods that extensions will implement.
 ///
 /// @code
-/// class MyExtensionPoint : public cudaq::extension_point<MyExtensionPoint> {
-/// public:
+/// class MyExtensionPoint : public
+/// cudaq::nvqlink::extension_point<MyExtensionPoint> { public:
 ///   virtual std::string parrotBack(const std::string &msg) const = 0;
 /// };
 /// @endcode
@@ -177,7 +177,7 @@ public:
   template <>                                                                  \
   std::unordered_map<std::string,                                              \
                      std::function<std::unique_ptr<FULL_TYPE_NAME>()>> &       \
-  cudaqx::extension_point<FULL_TYPE_NAME>::get_registry() {                    \
+  cudaq::nvqlink::extension_point<FULL_TYPE_NAME>::get_registry() {            \
     static std::unordered_map<                                                 \
         std::string, std::function<std::unique_ptr<FULL_TYPE_NAME>()>>         \
         registry;                                                              \
@@ -191,7 +191,8 @@ public:
   std::unordered_map<                                                          \
       std::string,                                                             \
       std::function<std::unique_ptr<FULL_TYPE_NAME>(__VA_ARGS__)>> &           \
-  cudaqx::extension_point<FULL_TYPE_NAME, __VA_ARGS__>::get_registry() {       \
+  cudaq::nvqlink::extension_point<FULL_TYPE_NAME,                              \
+                                  __VA_ARGS__>::get_registry() {               \
     static std::unordered_map<                                                 \
         std::string,                                                           \
         std::function<std::unique_ptr<FULL_TYPE_NAME>(__VA_ARGS__)>>           \
@@ -199,4 +200,4 @@ public:
     return registry;                                                           \
   }
 
-} // namespace cudaqx
+} // namespace cudaq::nvqlink
