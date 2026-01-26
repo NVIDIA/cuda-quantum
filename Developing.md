@@ -207,7 +207,8 @@ required changes. Fix the issue and try committing again.
 **Tool not found:**
 If a hook complains about a missing tool:
 
-1. Check if it's a system dependency (aspell, markdown-link-check, Go) - see Prerequisites section above
+1. Check if it's a system dependency (aspell, markdown-link-check, Go) -
+   see Prerequisites section above
 2. For pre-commit-managed tools, run:
 
 ```bash

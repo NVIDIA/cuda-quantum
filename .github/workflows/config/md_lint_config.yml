@@ -24,9 +24,15 @@ ul-style:
 no-duplicate-heading:
   siblings_only: true
 
-# Allow selective inline markdown
+# Allow selective inline markdown (img needed for badges in README)
 no-inline-html:
-  allowed_elements: [br, h1, sup, sub, a]
+  allowed_elements: [br, h1, sup, sub, a, img]
+
+# Disable alt-text requirement (badges don't need alt text)
+no-alt-text: false
+
+# Disable first-line-h1 requirement (PR templates use ### Description)
+first-line-heading: false
 
 # Allow exclamation mark and question marks in headings
 no-emphasis-as-heading:
