@@ -45,15 +45,18 @@ runs:
           pre-commit-${{ inputs.cache-key-suffix }}-
 
     # ========== Apt Packages (clang-format, aspell) ==========
-    - name: Cache apt packages
-      uses: awalsh128/cache-apt-pkgs-action@latest
-      with:
-        packages: clang-format-16 aspell aspell-en
-        version: 1.0
-
-    - name: Link clang-format-16
+    - name: Install system dependencies
       shell: bash
-      run: sudo ln -sf /usr/bin/clang-format-16 /usr/bin/clang-format
+      run: |
+        # clang-format-16 for C++ formatting
+        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+        sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+        sudo apt-get update && sudo apt-get install -y --no-install-recommends \
+          clang-format-16 \
+          aspell \
+          aspell-en
+        # Link clang-format-16 as clang-format for pre-commit
+        sudo ln -sf /usr/bin/clang-format-16 /usr/bin/clang-format
 
     # ========== Node.js & npm packages ==========
     - name: Set up Node.js
