@@ -66,15 +66,18 @@ void print_packed(const std::string_view message,
 // Please store large types (like vectors, strings) as reference_wrappers
 //
 struct fmt_arg {
+  // Note: On macOS ARM64, unsigned long is distinct from unsigned long long
+  // (both 64-bit), so we need both types for cross-platform compatibility.
   using storage_t = std::variant<
-      bool, char, uint32_t, int32_t, uint64_t, int64_t, float, double,
-      std::complex<float>, std::complex<double>, std::string_view, const char *,
-      char *, void *, std::chrono::milliseconds,
+      bool, char, uint32_t, int32_t, uint64_t, int64_t, unsigned long, long,
+      float, double, std::complex<float>, std::complex<double>,
+      std::string_view, const char *, char *, void *, std::chrono::milliseconds,
       std::chrono::system_clock::time_point,
       std::reference_wrapper<const std::vector<int32_t>>,
       std::reference_wrapper<const std::string>,
       std::reference_wrapper<const std::vector<uint32_t>>,
       std::reference_wrapper<const std::vector<uint64_t>>,
+      std::reference_wrapper<const std::vector<unsigned long>>,
       std::reference_wrapper<const std::vector<float>>,
       std::reference_wrapper<const std::vector<double>>,
       std::reference_wrapper<const std::vector<std::string>>,
