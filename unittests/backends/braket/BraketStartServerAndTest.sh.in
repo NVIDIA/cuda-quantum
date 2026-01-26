@@ -50,8 +50,7 @@ while ! checkServerConnection; do
 done
 # Create the configuration file which needs to exist before entering main
 config=FakeCppBraket.config
-cp @CMAKE_CURRENT_SOURCE_DIR@/$config
-echo -n 'credentials: {"username":"testuser0","password":"testuser0passwd"}' > $config
+cp @CMAKE_CURRENT_SOURCE_DIR@/$config .
 # Run the tests
 ./$1
 # Did they fail? 
