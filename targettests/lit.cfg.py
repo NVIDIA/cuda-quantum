@@ -1,12 +1,13 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
+import os, sys
+import subprocess
 import shutil
 import bisect
 
@@ -35,9 +36,7 @@ config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
-config.substitutions.append(
-    ('%iqm_test_src_dir',
-     config.cudaq_src_dir + "/runtime/cudaq/platform/default/rest/helpers/iqm"))
+config.substitutions.append(('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
 
 llvm_config.use_default_substitutions()
 
@@ -48,17 +47,6 @@ llvm_config.feature_config([('--assertion-mode', {'ON': 'asserts'})])
 config.targets = frozenset(config.targets_to_build.split())
 for arch in config.targets_to_build.split():
     config.available_features.add(arch.lower() + '-registered-target')
-
-# Allow to filter tests based on environment variables
-cpp_stds = ['c++17', 'c++20', 'c++23']
-std_up_to = os.environ.get('CUDAQ_CPP_STD', 'c++23').lower()
-for std in cpp_stds[:bisect.bisect(cpp_stds, std_up_to)]:
-    config.available_features.add(std)
-std_default = os.environ.get('CUDAQ_CPP_STD')
-if std_default is None:
-    config.substitutions.append(('%cpp_std', ''))
-else:
-    config.substitutions.append(('%cpp_std', '-std=' + std_default.lower()))
 
 # The root path where tests are located.
 config.test_source_root = os.path.dirname(__file__)
@@ -72,3 +60,18 @@ llvm_config.with_system_environment(['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
+
+# Generate test cases
+
+gen_tests_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'generated', 'phase-folding')
+os.makedirs(gen_tests_dir, exist_ok=True) # mode=0o777
+def generate_phasefolding_test(filename, seed, min_block_length, max_block_length, rz_weight):
+    test_src_dir = os.path.join(config.cudaq_src_dir, 'targettests', 'Remote-Sim', 'phase-folding')
+    with open(os.path.join(gen_tests_dir, filename + str(seed) + '.cpp'), 'w') as fout:
+        subprocess.run([sys.executable, 'random_gen.py', filename + '.template', '--seed=' + str(seed), '--block-length=' + str(min_block_length) + '-' + str(max_block_length), '--rz-weight=' + str(rz_weight)], cwd=test_src_dir, stdout=fout)
+for seed in range(1, 11):
+    generate_phasefolding_test('branch-in-loop', seed, 30, 45, 0.5)
+for seed in range(1, 11):
+    generate_phasefolding_test('loop-with-break', seed, 20, 30, 0.5)
+generate_phasefolding_test('straight-line', 27, 100, 100, 0.5)
+generate_phasefolding_test('subkernel', 1, 20, 30, 0.5)

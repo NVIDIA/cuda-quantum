@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -36,5 +36,7 @@ int main() {
 // CHECK:  qreg var0[2];
 // CHECK:  h var0[0];
 // CHECK:  cx var0[0], var0[1];
-// CHECK:  creg var3[2];
-// CHECK:  measure var0 -> var3;
+// CHECK:  creg var3[1];
+// CHECK:  measure var0[0] -> var3[0];
+// CHECK:  creg var4[1];
+// CHECK:  measure var0[1] -> var4[0];

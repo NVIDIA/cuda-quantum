@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,19 +9,17 @@
 import base64
 import ctypes
 import uuid
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 import cudaq
-import uvicorn
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import PlainTextResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
+from .. import get_backend_port
 
 # Define the REST Server App
 app = FastAPI()
-
-# Define the port for the mock QCI server
-port = 62449
 
 # In-memory storage
 createdJobs = {}
@@ -39,11 +37,11 @@ numQubitsRequired = 0
 class JobRequest(BaseModel):
     code: str
     machine: str
-    mappingReorderIdx: Optional[List[int]] = None
+    mappingReorderIdx: Optional[list[int]] = None
     name: str
     outputNames: Optional[Any] = None
-    shots: int
     userData: Optional[Any] = None
+    options: dict[str, Any] = {}
 
 
 llvm.initialize()
@@ -55,19 +53,44 @@ backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 
 
-def getKernelFunction(module):
-    for f in module.functions:
-        if not f.is_declaration:
-            return f
-    return None
+class KernelAnalyzer:
+    """Analyzes LLVM modules to extract kernel information"""
 
+    @staticmethod
+    def get_kernel_function(module):
+        """Find the main kernel function in the module"""
+        for func in module.functions:
+            if not func.is_declaration:
+                return func
+        return None
 
-def getNumRequiredQubits(function):
-    for a in function.attributes:
-        if "requiredQubits" in str(a):
-            return int(
-                str(a).split("requiredQubits\"=")[-1].split(" ")[0].replace(
-                    "\"", "").replace("'", ""))
+    @staticmethod
+    def _extract_attribute_value(function,
+                                 attribute_names: list[str]) -> Optional[int]:
+        """Extract integer value from function attributes"""
+        for attr in function.attributes:
+            attr_str = str(attr)
+            for attr_name in attribute_names:
+                if attr_name in attr_str:
+                    try:
+                        value = attr_str.split(f'{attr_name}"=')[-1].split(
+                            " ")[0]
+                        return int(value.replace('"', '').replace("'", ""))
+                    except (IndexError, ValueError):
+                        continue
+        return None
+
+    @classmethod
+    def get_num_required_qubits(cls, function) -> Optional[int]:
+        """Extract required number of qubits from function attributes"""
+        return cls._extract_attribute_value(
+            function, ["required_num_qubits", "requiredQubits"])
+
+    @classmethod
+    def get_num_required_results(cls, function) -> Optional[int]:
+        """Extract required number of results from function attributes"""
+        return cls._extract_attribute_value(
+            function, ["required_num_results", "requiredResults"])
 
 
 # Here we expose a way to post jobs,
@@ -82,21 +105,25 @@ async def postJob(job: JobRequest,
     if token == None:
         raise HTTPException(status_code(401), detail="Credentials not provided")
 
-    print('Posting job with shots = ', job.shots)
+    n_shots = job.options.get("aqusim", {}).get("shots", 1000)
+    print('Posting job with shots = ', n_shots)
     jobId = str(uuid.uuid4())
     jobName = job.name
-    shots = job.shots
+    shots = n_shots
     program = job.code
     decoded = base64.b64decode(program)
     m = llvm.module.parse_bitcode(decoded)
     mstr = str(m)
     assert ('entry_point' in mstr)
 
+    analyzer = KernelAnalyzer()
+
     # Get the function, number of qubits, and kernel name
-    function = getKernelFunction(m)
+    function = analyzer.get_kernel_function(m)
     if function == None:
         raise Exception("Could not find kernel function")
-    numQubitsRequired = getNumRequiredQubits(function)
+    numQubitsRequired = analyzer.get_num_required_qubits(function) or 0
+    numResultsRequired = analyzer.get_num_required_results(function) or 0
     kernelFunctionName = function.name
 
     print("Kernel name = ", kernelFunctionName)
@@ -110,12 +137,21 @@ async def postJob(job: JobRequest,
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
     # Invoke the Kernel
-    cudaq.testing.toggleDynamicQubitManagement()
-    qubits, context = cudaq.testing.initialize(numQubitsRequired, job.shots)
-    kernel()
-    results = cudaq.testing.finalize(qubits, context)
-    results.dump()
-    createdJobs[jobId] = (jobName, results)
+    # NOTE: This uses QIR v1.0
+    qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
+    for i in range(shots):
+        cudaq.testing.toggleDynamicQubitManagement()
+        qubits, context = cudaq.testing.initialize(numQubitsRequired, 1, "run")
+        kernel()
+        _ = cudaq.testing.finalize(qubits, context)
+
+        shot_log = cudaq.testing.getAndClearOutputLog()
+        if i > 0:
+            qir_log += "START\n"
+        qir_log += shot_log
+        qir_log += "END\t0\n"
+
+    createdJobs[jobId] = (jobName, qir_log)
 
     engine.remove_module(m)
 
@@ -125,7 +161,9 @@ async def postJob(job: JobRequest,
 
 @app.get("/cudaq/v1/jobs/{job_id}")
 async def get_job_status(job_id: str):
-    global createdJobs, createdResults, port
+    global createdJobs, createdResults
+    port = get_backend_port("qci")
+
     if job_id not in createdJobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -141,7 +179,7 @@ async def get_job_status(job_id: str):
             "id": job_id,
             "status": "completed",
             "exited": True,
-            "resultUrl": f"http://localhost:{port}/cudaq/v1/results/{job_id}"
+            "outputUrl": f"http://localhost:{port}/cudaq/v1/results/{job_id}"
         }
 
     # Job still running
@@ -156,33 +194,8 @@ async def get_job_results(job_id: str):
 
     if job_id not in jobResults:
         # Prepare and store results
-        _, counts = createdJobs[job_id]
+        _, qir_log = createdJobs[job_id]
+        jobResults[job_id] = qir_log
 
-        # Convert counts to measurements which is a list of length shots with the results of each shot
-        measurements = []
-        for r in counts:
-            for _ in range(counts[r]):
-                measurements.append([int(bit) for bit in r])
-
-        # Create a list of indices like - "index":[["r00000",0],["r00001",1]]
-        indices = [[f"r{i:05d}", i] for i in range(len(counts))]
-
-        jobResults[job_id] = {
-            "id": str(uuid.uuid4()),
-            "job": {
-                "id": job_id
-            },
-            "measurements": measurements,
-            "index": indices
-        }
-
-    return jobResults[job_id]
-
-
-def startServer(port=port):
-    """Start the mock QCI server"""
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer()
+    return PlainTextResponse(content=jobResults[job_id],
+                             media_type="text/tab-separated-values")

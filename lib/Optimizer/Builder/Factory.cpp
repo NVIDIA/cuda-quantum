@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -185,6 +185,11 @@ std::optional<double> factory::maybeValueOfFloatConstant(Value v) {
   return std::nullopt;
 }
 
+bool factory::isConstantOp(Value v) {
+  Attribute attr;
+  return matchPattern(v, m_Constant(&attr));
+}
+
 void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
   auto *ctx = mod.getContext();
   auto loc = mod.getLoc();
@@ -357,6 +362,27 @@ static cc::StructType stlHostVectorType(Type eleTy) {
   return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, padout});
 }
 
+bool factory::isStlVectorBoolHostType(Type ty) {
+  auto strTy = dyn_cast<cc::StructType>(ty);
+  if (!strTy)
+    return false;
+  if (strTy.getMembers().size() != 2)
+    return false;
+  auto ptrTy = dyn_cast<cc::PointerType>(strTy.getMember(0));
+  if (!ptrTy)
+    return false;
+  if (ptrTy.getElementType() != IntegerType::get(ty.getContext(), 1))
+    return false;
+  auto arrTy = dyn_cast<cc::ArrayType>(strTy.getMember(1));
+  if (!arrTy)
+    return false;
+  if (arrTy.getElementType() != IntegerType::get(ty.getContext(), 8))
+    return false;
+  if (arrTy.isUnknownSize() || (arrTy.getSize() != 32))
+    return false;
+  return true;
+}
+
 // FIXME: Give these front-end names so we can disambiguate more types.
 cc::StructType factory::getDynamicBufferType(MLIRContext *ctx) {
   auto ptrTy = cc::PointerType::get(IntegerType::get(ctx, 8));
@@ -374,7 +400,7 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
   if (auto spanTy = dyn_cast<cc::SpanLikeType>(funcTy.getResult(0)))
-    return stlVectorType(spanTy.getElementType());
+    return stlHostVectorType(spanTy.getElementType());
   return funcTy.getResult(0);
 }
 
@@ -775,7 +801,7 @@ factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
 }
 
 void factory::mergeModules(ModuleOp into, ModuleOp from) {
-  for (Operation &op : *from.getBody()) {
+  for (Operation &op : from) {
     auto sym = dyn_cast<SymbolOpInterface>(op);
     if (!sym)
       continue; // Only merge named symbols, avoids duplicating anonymous ops.

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -118,31 +118,31 @@ private:
   ExecutionResult &retrieve_result(const std::string &registerName);
 
 public:
-  /// @brief Nullary constructor
+  /// @brief Default constructor
   sample_result() = default;
 
   /// @brief The constructor, sets the __global__ sample result.
   sample_result(ExecutionResult &&result);
 
   /// @brief The constructor, sets the __global__ sample result.
-  /// @param result
-  sample_result(ExecutionResult &result);
+  /// @param result - is copied and the copy inserted into the map.
+  sample_result(const ExecutionResult &result);
 
   /// @brief The constructor, appends all provided `ExecutionResult`s
-  sample_result(std::vector<ExecutionResult> &results);
+  sample_result(const std::vector<ExecutionResult> &results);
 
-  /// @brief The constructor, takes a precomputed expectation value and
-  /// stores it with the `__global__` `ExecutionResult`.
-  sample_result(double preComputedExp, std::vector<ExecutionResult> &results);
+  /// @brief The constructor, takes a precomputed expectation value and stores
+  /// it with the `__global__` `ExecutionResult`.
+  sample_result(double preComputedExp,
+                const std::vector<ExecutionResult> &results);
 
-  /// @brief Copy Constructor
+  /// @brief Constructors
+  sample_result(sample_result &&) = default;
   sample_result(const sample_result &) = default;
 
-  /// @brief Move constructor
-  sample_result(sample_result &&) = default;
-
-  /// @brief Move assignment constructor
+  /// @brief Assignment operators
   sample_result &operator=(sample_result &&counts) = default;
+  sample_result &operator=(const sample_result &counts) = default;
 
   /// @brief The destructor
   ~sample_result() = default;
@@ -156,19 +156,13 @@ public:
   /// @param result Result to append
   /// @param concatenate If prior results are found, this concatenates the
   /// bitstrings.
-  void append(ExecutionResult &result, bool concatenate = false);
+  void append(const ExecutionResult &result, bool concatenate = false);
 
   /// @brief Return all register names. Can be used in tandem with
   /// sample_result::to_map(regName : string) to retrieve the counts
   /// for each register.
   /// @return
   std::vector<std::string> register_names() const;
-
-  /// @brief Set this sample_result equal to the provided one
-  /// @param counts
-  /// @return
-  sample_result &operator=(sample_result &counts) = default;
-  sample_result &operator=(const sample_result &counts) = default;
 
   /// @brief Append all the data from other to this sample_result.
   /// Merge when necessary.

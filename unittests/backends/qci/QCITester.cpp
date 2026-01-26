@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -95,7 +95,7 @@ CUDAQ_TEST(QCITester, checkObserveSync) {
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
       2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
       .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
-  auto result = cudaq::observe(100, kernel, h, .59);
+  auto result = cudaq::observe(200, kernel, h, .59);
   result.dump();
 
   printf("ENERGY: %lf\n", result.expectation());

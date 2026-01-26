@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -31,8 +31,14 @@ std::optional<CudaDeviceProperties> getCudaProperties() {
     SAFE_HANDLE_CUDA_ERROR(cudaRuntimeGetVersion(&runtimeVersion));
     CudaDeviceProperties info;
     info.deviceName = deviceProp.name;
-    info.memoryClockRateMhz = deviceProp.memoryClockRate * 1e-3;
-    info.clockRateMhz = deviceProp.clockRate * 1e-3;
+    int memoryClockRate;
+    SAFE_HANDLE_CUDA_ERROR(cudaDeviceGetAttribute(
+        &memoryClockRate, cudaDevAttrMemoryClockRate, 0));
+    info.memoryClockRateMhz = memoryClockRate * 1e-3;
+    int clockRate;
+    SAFE_HANDLE_CUDA_ERROR(
+        cudaDeviceGetAttribute(&clockRate, cudaDevAttrClockRate, 0));
+    info.clockRateMhz = clockRate * 1e-3;
     info.totalGlobalMemMbytes = deviceProp.totalGlobalMem / 1048576;
     info.driverVersion = driverVersion;
     info.runtimeVersion = runtimeVersion;

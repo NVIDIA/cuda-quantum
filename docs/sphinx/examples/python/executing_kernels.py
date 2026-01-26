@@ -62,12 +62,12 @@ def simple_ghz(num_qubits: int) -> int:
         x.ctrl(qubits[0], qubits[i])
 
     # Measure and return total number of qubits in state |1⟩
-    result = 0
+    res = 0
     for i in range(num_qubits):
         if mz(qubits[i]):
-            result += 1
+            res += 1
 
-    return result
+    return res
 
 
 # Execute the kernel 20 times
@@ -226,7 +226,7 @@ print('<H> =', result)
 # Compute the statevector of the kernel
 result = cudaq.get_state(kernel, qubit_count)
 
-print(np.array(result))
+print(np.array(result.dump()))
 # [End `GetState`]
 ''' [Begin `GetStateOutput`]
 [0.+0.j 0.+0.j 0.+0.j 1.+0.j]
@@ -252,7 +252,7 @@ print("Computing state asynchronously...")
 # Get the state when ready
 state = state_future.get()
 print("Bell state vector:")
-print(np.array(state))
+print(np.array(state.dump()))
 # [End `GetStateAsync`]
 ''' [Begin `GetStateAsyncOutput`]
 Computing state asynchronously...

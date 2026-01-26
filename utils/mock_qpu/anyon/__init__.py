@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,7 @@
 import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
-import uvicorn, uuid, base64, ctypes
+import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 
@@ -149,13 +149,3 @@ async def getJob(jobId: str):
     # downstream code to recognize that this isn't from a true QPU.
     res = ({"status": "done", "results": {"MOCK_SERVER_RESULTS": retData}}, 201)
     return res
-
-
-def startServer(port):
-    print("Server Started")
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    print("Server Starting")
-    startServer(62446)

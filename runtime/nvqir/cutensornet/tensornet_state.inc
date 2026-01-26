@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/EigenDense.h"
+#include "common/Environment.h"
 #include <algorithm>
 #include <bitset>
 #include <cassert>
@@ -16,6 +17,11 @@
 namespace nvqir {
 template <typename ScalarType>
 std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
+  // Path optimization hyper samples are multithreaded.
+  // Default to 8 samples, reasonable for most systems (trade-off between
+  // prepare/path optimization time and contraction time). On systems with more
+  // CPU cores and/or larger circuits, users may consider increasing this number
+  // to improve the path quality.
   constexpr int32_t defaultNumHyperSamples = 8;
   if (auto envVal = std::getenv("CUDAQ_TENSORNET_NUM_HYPER_SAMPLES")) {
     int32_t specifiedNumHyperSamples = 0;
@@ -26,7 +32,7 @@ std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
         throw std::invalid_argument("must be a positive number");
       }
       CUDAQ_INFO("Update number of hyper samples from {} to {}.",
-                  defaultNumHyperSamples, specifiedNumHyperSamples);
+                 defaultNumHyperSamples, specifiedNumHyperSamples);
       return specifiedNumHyperSamples;
     } catch (...) {
       throw std::runtime_error(
@@ -35,6 +41,11 @@ std::int32_t TensorNetState<ScalarType>::numHyperSamples = []() {
     }
   }
   return defaultNumHyperSamples;
+}();
+
+template <typename ScalarType>
+bool TensorNetState<ScalarType>::m_deterministic = []() {
+  return cudaq::getEnvBool("CUDAQ_TENSORNET_FIND_DETERMINISTIC", false);
 }();
 
 template <typename ScalarType>
@@ -62,7 +73,7 @@ TensorNetState<ScalarType>::TensorNetState(const std::vector<int> &basisState,
   HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_gate, h_xGate, sizeBytes, cudaMemcpyHostToDevice));
-  m_tempDevicePtrs.emplace_back(d_gate);
+  m_tempDevicePtrs.emplace_back(d_gate, TempDevicePtrDeleter{});
   for (int32_t qId = 0; const auto &bit : basisState) {
     if (bit == 1) {
       applyGate({}, {qId}, d_gate);
@@ -240,7 +251,7 @@ void TensorNetState<ScalarType>::addQubits(
 
   // Project the state of those new qubits to the input state.
   applyQubitProjector(d_proj, qubitIdx);
-  m_tempDevicePtrs.emplace_back(d_proj);
+  m_tempDevicePtrs.emplace_back(d_proj, TempDevicePtrDeleter{});
 }
 
 template <typename ScalarType>
@@ -263,13 +274,25 @@ TensorNetState<ScalarType>::prepareSample(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_NUM_HYPER_SAMPLES,
         &numHyperSamples, sizeof(numHyperSamples)));
   }
+  // Generate a random seed from the backend simulator's random engine to
+  // configure cutn for deterministic path-finding. Here the configure is
+  // before the prepare call so setting the deterministic attribute will
+  // limit # of pathfinding threads to 1 and can therefore cause significant
+  // performance impact
+  if (m_deterministic) {
+    const int32_t rndSeed = m_randomEngine();
+    HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
+        m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
+        &rndSeed, sizeof(rndSeed)));
+  }
 
   // Prepare the quantum circuit sampler
   cutensornetWorkspaceDescriptor_t workDesc;
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetSamplerPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetSamplerPrepare");
     HANDLE_CUTN_ERROR(cutensornetSamplerPrepare(m_cutnHandle, sampler,
                                                 scratchPad.scratchSize,
                                                 workDesc, /*cudaStream*/ 0));
@@ -345,7 +368,11 @@ TensorNetState<ScalarType>::executeSample(
       // Note: Even after a random seed setting at the user's level,
       // consecutive `cudaq::sample` calls will still return different results
       // (yet deterministic), i.e., the seed that we send to cutensornet should
-      // not be the user's seed.
+      // not be the user's seed. Here the configure is after the prepare call so
+      // setting the deterministic attribute won't impact # of pathfinding
+      // threads. If m_deterministic is not set, there is some possibility of a
+      // small deviation in sampling results from finite precision on a
+      // different contraction path
       const int32_t rndSeed = m_randomEngine();
       HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
           m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
@@ -353,7 +380,8 @@ TensorNetState<ScalarType>::executeSample(
     }
 
     {
-      ScopedTraceWithContext("cutensornetSamplerSample");
+      ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                             "cutensornetSamplerSample");
       HANDLE_CUTN_ERROR(cutensornetSamplerSample(
           m_cutnHandle, sampler, numShots, workDesc, samples.data(),
           /*cudaStream*/ 0));
@@ -434,7 +462,8 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetAccessorPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetAccessorPrepare");
     HANDLE_CUTN_ERROR(cutensornetAccessorPrepare(
         m_cutnHandle, accessor, scratchPad.scratchSize, workDesc, 0));
   }
@@ -455,7 +484,7 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
   std::complex<ScalarType> stateNorm{0.0, 0.0};
   if (!in_projectedModeValues.empty() &&
       in_projectedModeValues.size() != projectedModes.size())
-    throw std::invalid_argument(fmt::format(
+    throw std::invalid_argument(cudaq_fmt::format(
         "The number of projected modes ({}) must equal the number of "
         "projected values ({}).",
         projectedModes.size(), in_projectedModeValues.size()));
@@ -465,7 +494,8 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
           ? std::vector<int64_t>(projectedModes.size(), 0)
           : in_projectedModeValues;
   {
-    ScopedTraceWithContext("cutensornetAccessorCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetAccessorCompute");
     HANDLE_CUTN_ERROR(cutensornetAccessorCompute(
         m_cutnHandle, accessor, projectedModeValues.data(), workDesc, d_sv,
         static_cast<void *>(&stateNorm), 0));
@@ -577,7 +607,7 @@ void TensorNetState<ScalarType>::computeMPSFactorize(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetStatePrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET, "cutensornetStatePrepare");
     HANDLE_CUTN_ERROR(cutensornetStatePrepare(
         m_cutnHandle, m_quantumState, scratchPad.scratchSize, workDesc, 0));
   }
@@ -613,7 +643,7 @@ void TensorNetState<ScalarType>::computeMPSFactorize(
       CUTENSORNET_WORKSPACE_SCRATCH, hostWork, hostWorkspaceSize));
 
   {
-    ScopedTraceWithContext("cutensornetStateCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET, "cutensornetStateCompute");
     // Execute MPS computation
     HANDLE_CUTN_ERROR(cutensornetStateCompute(
         m_cutnHandle, m_quantumState, workDesc, extentsPtr.data(),
@@ -678,7 +708,8 @@ TensorNetState<ScalarType>::computeRDM(const std::vector<int32_t> &qubits) {
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetMarginalPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetMarginalPrepare");
     HANDLE_CUTN_ERROR(cutensornetMarginalPrepare(
         m_cutnHandle, marginal, scratchPad.scratchSize, workDesc, 0));
   }
@@ -695,7 +726,8 @@ TensorNetState<ScalarType>::computeRDM(const std::vector<int32_t> &qubits) {
     throw std::runtime_error("ERROR: Insufficient workspace size on Device!");
   }
   {
-    ScopedTraceWithContext("cutensornetMarginalCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetMarginalCompute");
     // Compute the specified quantum circuit reduced density matrix (marginal)
     HANDLE_CUTN_ERROR(cutensornetMarginalCompute(m_cutnHandle, marginal,
                                                  nullptr, workDesc, d_rdm, 0));
@@ -807,7 +839,8 @@ TensorNetState<ScalarType>::computeExpVals(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetExpectationPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetExpectationPrepare");
     HANDLE_CUTN_ERROR(
         cutensornetExpectationPrepare(m_cutnHandle, tensorNetworkExpectation,
                                       scratchPad.scratchSize, workDesc,
@@ -906,7 +939,8 @@ TensorNetState<ScalarType>::computeExpVals(
       std::complex<ScalarType> expVal = 0.0;
       for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
         std::complex<ScalarType> result;
-        ScopedTraceWithContext("cutensornetExpectationCompute");
+        ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                               "cutensornetExpectationCompute");
         HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
             m_cutnHandle, tensorNetworkExpectation, workDesc, &result, nullptr,
             /*cudaStream*/ 0));
@@ -917,6 +951,11 @@ TensorNetState<ScalarType>::computeExpVals(
           expVal * std::complex<ScalarType>(coeff.real(), coeff.imag()));
     }
   }
+
+  // Clean up cutensornet resources
+  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
+  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkOperator(cutnNetworkOperator));
 
   free(pauliMats_h);
   HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));
@@ -951,7 +990,8 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
   HANDLE_CUTN_ERROR(
       cutensornetCreateWorkspaceDescriptor(m_cutnHandle, &workDesc));
   {
-    ScopedTraceWithContext("cutensornetExpectationPrepare");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetExpectationPrepare");
     HANDLE_CUTN_ERROR(cutensornetExpectationPrepare(
         m_cutnHandle, tensorNetworkExpectation, scratchPad.scratchSize,
         workDesc, /*cudaStream*/ 0));
@@ -990,7 +1030,8 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
   std::complex<ScalarType> expVal = 0.0;
   for (std::size_t trajId = 0; trajId < numObserveTrajectories; ++trajId) {
     std::complex<ScalarType> result;
-    ScopedTraceWithContext("cutensornetExpectationCompute");
+    ScopedTraceWithContext(cudaq::TIMING_TENSORNET,
+                           "cutensornetExpectationCompute");
     HANDLE_CUTN_ERROR(cutensornetExpectationCompute(
         m_cutnHandle, tensorNetworkExpectation, workDesc, &result,
         /*stateNorm*/ nullptr,
@@ -1178,7 +1219,7 @@ TensorNetState<ScalarType>::createFromStateVector(
   std::iota(qubitIdx.begin(), qubitIdx.end(), 0);
   // Project the state to the input state.
   state->applyQubitProjector(d_proj, qubitIdx);
-  state->m_tempDevicePtrs.emplace_back(d_proj);
+  state->m_tempDevicePtrs.emplace_back(d_proj, TempDevicePtrDeleter{});
   return state;
 }
 
@@ -1186,8 +1227,7 @@ template <typename ScalarType>
 TensorNetState<ScalarType>::~TensorNetState() {
   // Destroy the quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
-  for (auto *ptr : m_tempDevicePtrs)
-    HANDLE_CUDA_ERROR(cudaFree(ptr));
+  m_tempDevicePtrs.clear();
 }
 
 } // namespace nvqir

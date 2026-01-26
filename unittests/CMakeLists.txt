@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,6 +37,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/noise_tester.cpp
   integration/get_state_tester.cpp
   integration/measure_reset_tester.cpp
+  integration/mps_to_host_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
   integration/kernels_tester.cpp
@@ -118,6 +119,36 @@ create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim "")
 
 if (CUSTATEVEC_ROOT AND CUDA_FOUND)
+  find_program(NVIDIA_SMI "nvidia-smi")
+  if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")
+    # libcustatevec.so has linkage to libnvdia-ml.so.1, which is part of NVIDIA driver.
+    # On a build system without NVIDIA GPUs, this lib cannot be resolved;
+    # hence, linking these test executables will fail.
+    # On these CPU-only build systems, we directly link the nvidia-ml-dev library, which provides
+    # stub symbols for the actual driver library, to these test executables.
+    # Running these tests will ultimately requires a system with GPUs, i.e., the proper nvidia-ml lib
+    # will be loaded by the runtime linker/loader.
+    find_package(CUDAToolkit REQUIRED)
+    # make sure CUDA_TOOLKIT_ROOT_DIR is set
+    if(NOT DEFINED CUDA_TOOLKIT_ROOT_DIR)
+      set(CUDA_TOOLKIT_ROOT_DIR ${CUDAToolkit_BIN_DIR}/..)
+    endif()
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+      set(NVIDIA_ML_PATH ${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/lib/stubs)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+      set(NVIDIA_ML_PATH ${CUDA_TOOLKIT_ROOT_DIR}/targets/sbsa-linux/lib/stubs)
+    else()
+      message(FATAL_ERROR "Neither x86_64 nor aarch64 was detected." )
+    endif()
+    # Find nvidia-ml manually
+    find_library(NVIDIA_ML NAMES nvidia-ml PATHS ${NVIDIA_ML_PATH})
+    message(STATUS "NVIDIA ML lib: ${NVIDIA_ML}")
+    # Inject the file during build and remove it after build (install)
+    file(CREATE_LINK ${NVIDIA_ML} ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1 SYMBOLIC)
+    link_directories(${CMAKE_CURRENT_BINARY_DIR})
+    install(CODE "file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/libnvidia-ml.so.1)")
+  endif()
+
   create_tests_with_backend(custatevec-fp32 "")
   # Given that the fp32 and fp64 difference is largely inherited
   # from a dependency, we omit fp64 tests here and rely on the
@@ -269,7 +300,8 @@ target_link_libraries(test_spin
   PRIVATE 
   cudaq
   cudaq-operator
-  gtest_main)
+  gtest_main
+  cudaq-platform-default)
 target_include_directories(test_spin PRIVATE operators)
 gtest_discover_tests(test_spin)
 
@@ -295,7 +327,8 @@ target_link_libraries(test_operators
   PRIVATE
   cudaq-operator
   cudaq
-  gtest_main)
+  gtest_main
+  cudaq-platform-default)
 gtest_discover_tests(test_operators)
 
 if (CUDA_FOUND)
@@ -335,44 +368,44 @@ if (CUDA_FOUND)
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+   target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
   endif()
   target_link_libraries(test_dynamics
-    PRIVATE
-    cudaq-operator
-    cudaq
-    nvqir-dynamics
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart
-    CUDA::cublas
-    ${CUTENSOR_LIB}
-    CUDA::cusparse
-    ${CUTENSORNET_LIB}
-    gtest_main
-    fmt::fmt-header-only)
+   PRIVATE
+   cudaq-operator
+   cudaq
+   nvqir-dynamics
+   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   CUDA::cudart
+   CUDA::cublas
+   ${CUTENSOR_LIB}
+   CUDA::cusparse
+   ${CUTENSORNET_LIB}
+   gtest_main
+   fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
 
   # Multi-QPU evolve_async test
   add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+   target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
   endif()
   target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_ANALOG_TARGET)
   target_link_libraries(test_evolve_async
-    PRIVATE
-    cudaq-operator
-    cudaq
-    cudaq-platform-mqpu
-    nvqir-dynamics
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart
-    CUDA::cublas
-    ${CUTENSOR_LIB}
-    CUDA::cusparse
-    ${CUTENSORNET_LIB}
-    gtest_main
-    fmt::fmt-header-only)
+   PRIVATE
+   cudaq-operator
+   cudaq
+   cudaq-platform-mqpu
+   nvqir-dynamics
+   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   CUDA::cudart
+   CUDA::cublas
+   ${CUTENSOR_LIB}
+   CUDA::cusparse
+   ${CUTENSORNET_LIB}
+   gtest_main
+   fmt::fmt-header-only)
   # Count the number of GPUs
   find_program(NVIDIA_SMI "nvidia-smi")
   if(NVIDIA_SMI)
@@ -427,6 +460,20 @@ target_link_libraries(test_utils
   nvqir-qpp fmt::fmt-header-only
   gtest_main)
 gtest_discover_tests(test_utils)
+
+# Test for thread-local execution context storage
+add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_exec_ctx_thread PRIVATE -Wl,--no-as-needed)
+endif()
+target_include_directories(test_exec_ctx_thread PRIVATE .)
+target_link_libraries(test_exec_ctx_thread
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_exec_ctx_thread)
 
 # Create an executable for MPI UnitTests
 # (only if MPI was found, i.e., the builtin plugin is available)

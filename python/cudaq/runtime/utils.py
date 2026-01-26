@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 from cudaq.kernel.kernel_builder import PyKernel
-from cudaq.kernel.kernel_decorator import PyKernelDecorator
+from cudaq.kernel.kernel_decorator import isa_kernel_decorator
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc
 
@@ -17,7 +17,7 @@ from typing import List
 
 
 def __isBroadcast(kernel, *args):
-    # kernel could be a PyKernel or PyKernelDecorator
+    # kernel could be a PyKernel or kernel decorator
     if isinstance(kernel, PyKernel):
         argTypes = kernel.mlirArgTypes
         if len(argTypes) == 0 or len(args) == 0:
@@ -52,7 +52,7 @@ def __isBroadcast(kernel, *args):
 
         return False
 
-    elif isinstance(kernel, PyKernelDecorator):
+    elif isa_kernel_decorator(kernel):
         argTypes = kernel.signature
         if len(argTypes) == 0 or len(args) == 0:
             return False

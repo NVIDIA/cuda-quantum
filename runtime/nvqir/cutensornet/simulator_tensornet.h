@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,11 +47,11 @@ public:
             std::getenv("CUDAQ_TENSORNET_CONTROLLED_RANK")) {
       auto maxControlledRank = std::atoi(maxControlledRankEnvVar);
       if (maxControlledRank <= 0)
-        throw std::runtime_error(
-            fmt::format("Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
-                        "variable setting. Expecting a "
-                        "positive integer value, got '{}'.",
-                        maxControlledRank));
+        throw std::runtime_error(cudaq_fmt::format(
+            "Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
+            "variable setting. Expecting a "
+            "positive integer value, got '{}'.",
+            maxControlledRank));
 
       CUDAQ_INFO("Setting max controlled rank for full tensor expansion from "
                  "{} to {}.",
@@ -123,6 +123,9 @@ public:
       m_state = TensorNetState<ScalarType>::createFromOpTensors(
           in_state.getNumQubits(), casted->getAppliedTensors(), scratchPad,
           m_cutnHandle, m_randomEngine);
+      // Need to extend lifetime of all the device pointers stored in the input
+      // state.
+      m_state->m_tempDevicePtrs = casted->m_state->m_tempDevicePtrs;
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits
@@ -149,6 +152,11 @@ public:
           m_state->applyQubitProjector(op.deviceData,
                                        mapQubitIdxs(op.targetQubitIds));
       }
+      // Append the temp. pointer
+      m_state->m_tempDevicePtrs.insert(
+          m_state->m_tempDevicePtrs.end(),
+          casted->m_state->m_tempDevicePtrs.begin(),
+          casted->m_state->m_tempDevicePtrs.end());
     }
   }
   bool requireCacheWorkspace() const override { return true; }

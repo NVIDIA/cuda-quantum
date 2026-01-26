@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/ExtraPayloadProvider.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
@@ -19,7 +19,7 @@
 namespace cudaq {
 
 class HorizonServerHelper : public ServerHelper {
-  std::string url = "http://localhost:56686";
+  std::string url = "http://localhost:62450";
 
 public:
   const std::string name() const override { return "horizon"; }

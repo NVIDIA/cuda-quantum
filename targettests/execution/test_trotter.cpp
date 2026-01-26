@@ -1,25 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
 // TODO-FIX-KERNEL-EXEC
 // Simulators
-// RUN: nvq++ %cpp_std %s -o %t && %t | FileCheck %s
-
-// Quantum emulators
-// RUN: nvq++ %cpp_std -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target ionq       -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target oqc        -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s; fi
-// 2 different IQM machines for 2 different topologies
-// RUN: nvq++ %cpp_std -target iqm --iqm-machine Crystal_5 -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std -target iqm --iqm-machine Crystal_20 -emulate %s -fkernel-exec-kind=2 -o %t && %t | FileCheck %s
-// clang-format on
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <complex>
 #include <cudaq.h>

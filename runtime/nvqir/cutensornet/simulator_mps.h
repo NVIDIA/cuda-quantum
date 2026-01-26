@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -57,8 +57,28 @@ public:
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
+      std::vector<MPSTensor> copiedTensors;
+      copiedTensors.reserve(casted->getMpsTensors().size());
+      for (const auto &mpsTensor : casted->getMpsTensors()) {
+        std::vector<int64_t> extents = mpsTensor.extents;
+        const auto numElements =
+            std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+        const auto tensorSizeBytes =
+            sizeof(std::complex<ScalarType>) * numElements;
+        void *mpsTensorCopy{nullptr};
+        HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensorCopy, tensorSizeBytes));
+        HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensorCopy, mpsTensor.deviceData,
+                                     tensorSizeBytes, cudaMemcpyDefault));
+        copiedTensors.emplace_back(MPSTensor(mpsTensorCopy, extents));
+      }
+
       m_state = TensorNetState<ScalarType>::createFromMpsTensors(
-          casted->getMpsTensors(), scratchPad, m_cutnHandle, m_randomEngine);
+          copiedTensors, scratchPad, m_cutnHandle, m_randomEngine);
+      for (const auto &mpsTensor : copiedTensors) {
+        m_state->m_tempDevicePtrs.emplace_back(
+            mpsTensor.deviceData,
+            typename TensorNetState<ScalarType>::TempDevicePtrDeleter{});
+      }
     } else {
       // Expand an existing state: Append MPS tensors
       // Factor the existing state
@@ -278,7 +298,7 @@ public:
     std::vector<cudaq::spin_op_term> prods;
     termStrs.reserve(ham.num_terms());
     prods.reserve(ham.num_terms());
-    for (auto &&term : prods) {
+    for (auto &&term : ham) {
       termStrs.emplace_back(term.get_term_id());
       prods.push_back(std::move(term));
     }
@@ -322,6 +342,7 @@ public:
     results.reserve(terms.size());
 
     for (std::size_t i = 0; i < terms.size(); ++i) {
+      expVal += termExpVals[i];
       results.emplace_back(
           cudaq::ExecutionResult({}, termStrs[i], termExpVals[i].real()));
     }

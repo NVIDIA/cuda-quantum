@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake %cpp_std %s | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 #include "cudaq.h"

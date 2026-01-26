@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -31,8 +31,3 @@ target-arguments:
     type: string
     platform-arg: url 
     help-string: "Specify URL."
-  - key: machine
-    required: false
-    type: string
-    platform-arg: qpu-architecture 
-    help-string: "Specify the IQM QPU."

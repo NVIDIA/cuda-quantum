@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -29,9 +29,8 @@ std::unique_ptr<T> get(const std::string &name) {
   for (typename T::RegistryType::iterator it = T::RegistryType::begin(),
                                           ie = T::RegistryType::end();
        it != ie; ++it) {
-    if (name == it->getName().str()) {
+    if (name == it->getName().str())
       return it->instantiate();
-    }
   }
   return nullptr;
 }

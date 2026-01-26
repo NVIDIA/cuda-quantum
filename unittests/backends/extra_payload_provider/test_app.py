@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
 # Set the target
 cudaq.set_target('horizon',
-                 url='http://localhost:56686',
+                 url='http://localhost:62450',
                  extra_payload_provider='sunrise')
 
 

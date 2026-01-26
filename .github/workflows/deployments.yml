@@ -205,7 +205,7 @@ jobs:
         # There are currently no multi-platform manylinux images available.
         # See https://github.com/pypa/manylinux/issues/1306.
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -237,7 +237,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -268,7 +268,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -354,7 +354,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -402,7 +402,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/docker_images.yml
     secrets:
@@ -414,7 +414,7 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       ompidev_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       devdeps_image: ${{ fromJson(needs.ext_config.outputs.json).image_hash[format('{0}-cu{1}-ext', matrix.platform, matrix.cuda_version)] }}
-      build_docs: ${{ matrix.cuda_version == '11.8' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
+      build_docs: ${{ matrix.cuda_version == '12.6' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
 
   digest_config:
@@ -443,7 +443,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        cuda: ["12.6"]
+        cuda: ["12.6", "13.0"]
 
     environment: ghcr-deployment
 
@@ -666,7 +666,7 @@ jobs:
           STITCHED_JSON='${{ needs.aggregate_stitched_images.outputs.json }}'
           echo "$STITCHED_JSON" | jq .
 
-          for cuda in 12.6; do
+          for cuda in 12.6 13.0; do
             cuda_major="${cuda%%.*}"
             artifact_name="image_cu${cuda_major}_publishing"            
             info_file="$artifact_name.txt"
@@ -704,6 +704,14 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Upload image_cu13_publishing
+        uses: actions/upload-artifact@v4
+        with:
+          name: image_cu13_publishing
+          path: image_cu13_publishing.txt
+          retention-days: 30
+          if-no-files-found: error
+
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config]
@@ -711,7 +719,7 @@ jobs:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
         python_version: ['3.11', '3.12', '3.13']
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -730,7 +738,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        cuda_version: ["12.6"]
+        cuda_version: ["12.6", "13.0"]
       fail-fast: false
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:

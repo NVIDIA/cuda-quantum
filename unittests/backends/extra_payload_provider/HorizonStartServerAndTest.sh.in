@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,7 +13,7 @@ checkServerConnection() {
 import socket
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(("localhost", 56686))
+    s.connect(("localhost", 62450))
     s.close()
 except Exception:
     exit(1)

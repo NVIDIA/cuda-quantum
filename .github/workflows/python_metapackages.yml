@@ -58,9 +58,9 @@ jobs:
 
             echo "Creating README.md for cudaq package"
             package_name=cudaq
-            cuda_version_requirement="11.x (where x \>= 8) or 12.x"
+            cuda_version_requirement="12.x or 13.x"
             cuda_version_conda=12.4.0 # only used as example in the install script
-            deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."
+            deprecation_notice=""
             cat python/README.md.in > python/metapackages/README.md
             for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do
               sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/metapackages/README.md
@@ -201,9 +201,9 @@ jobs:
               set -e && check_package=cuda-quantum
             ;; 
             *) 
-              # Skip conflict test entirely on Python 3.13 (cuda-quantum==0.8.0 not available)
-              if [ "${{ matrix.python_version }}" = "3.13" ]; then
-                echo "::warning::Skipping conflict test on Python 3.13 (cuda-quantum==0.8.0 unavailable)."
+              # Skip conflict test entirely on Python 3.{13,12} (cuda-quantum==0.8.0 not available)
+              if [ "${{ matrix.python_version }}" = "3.12" ] || [ "${{ matrix.python_version }}" = "3.13" ]; then
+                echo "::warning::Skipping conflict test on Python 3.{12,13} (cuda-quantum==0.8.0 unavailable)."
                 test_conflicting="<skipped>"
                 check_package=cudaq
               else

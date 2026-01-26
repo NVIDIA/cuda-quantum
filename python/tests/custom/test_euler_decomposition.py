@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,7 +37,7 @@ def test_random_unitary_1():
         q = cudaq.qubit()
         op1(q)
 
-    check_state(matrix1, cudaq.get_state(kernel1))
+    check_state(matrix1, cudaq.StateMemoryView(cudaq.get_state(kernel1)))
 
     @cudaq.kernel
     def synth_kernel1():
@@ -48,7 +48,7 @@ def test_random_unitary_1():
         r1(-2.200142008639606, q)
         rz(2.200142008639606, q)
 
-    check_state(matrix1, cudaq.get_state(synth_kernel1))
+    check_state(matrix1, cudaq.StateMemoryView(cudaq.get_state(synth_kernel1)))
 
 
 def test_random_unitary_2():
@@ -61,7 +61,7 @@ def test_random_unitary_2():
         q = cudaq.qubit()
         op2(q)
 
-    check_state(matrix2, cudaq.get_state(kernel2))
+    check_state(matrix2, cudaq.StateMemoryView(cudaq.get_state(kernel2)))
 
     @cudaq.kernel
     def synth_kernel2():
@@ -72,7 +72,7 @@ def test_random_unitary_2():
         r1(2.9741842417155158, q)
         rz(-2.9741842417155158, q)
 
-    check_state(matrix2, cudaq.get_state(synth_kernel2))
+    check_state(matrix2, cudaq.StateMemoryView(cudaq.get_state(synth_kernel2)))
 
 
 def test_random_unitary_3():
@@ -85,7 +85,7 @@ def test_random_unitary_3():
         q = cudaq.qubit()
         op3(q)
 
-    check_state(matrix3, cudaq.get_state(kernel3))
+    check_state(matrix3, cudaq.StateMemoryView(cudaq.get_state(kernel3)))
 
     @cudaq.kernel
     def synth_kernel3():
@@ -96,7 +96,7 @@ def test_random_unitary_3():
         r1(-1.9777512475989565, q)
         rz(1.9777512475989565, q)
 
-    check_state(matrix3, cudaq.get_state(synth_kernel3))
+    check_state(matrix3, cudaq.StateMemoryView(cudaq.get_state(synth_kernel3)))
 
 
 # leave for gdb debugging

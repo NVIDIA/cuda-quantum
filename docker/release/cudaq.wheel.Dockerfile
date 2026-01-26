@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,27 +37,22 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
     bash /scripts/build_llvm.sh -c Release -v 
 
-# Patch the pyproject.toml file to change the CUDA version if needed
-RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=11.11 && \
-        cusparse_version=11.7 && \
-        sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
-        sed -i "s/-cuda12/-cuda11/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cusparse-cu[0-9]* ~= )[0-9\.]*/\1${cusparse_version}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
-    fi
+# Configure the build based on the CUDA version
+RUN cd /cuda-quantum && \
+    . scripts/configure_build.sh && \
+    case "${CUDA_VERSION%%.*}" in \
+      12) cp pyproject.toml.cu12 pyproject.toml || true ;; \
+      13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
+      *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
+    esac
 
 # Create the README
+# Note: conda channel 13.0.0 does not contain CUDA 13 (still 12.x), so we map to 13.0.2
 RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
     package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
     cuda_version_requirement="\>= ${CUDA_VERSION}" && \
     cuda_version_conda=${CUDA_VERSION}.0 && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."; \
-    fi && \
+    cuda_version_conda=${cuda_version_conda/13.0.0/13.0.2} && \
     for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do \
         sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
     done && \

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -181,7 +181,7 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 // block contains irreversible operations (measurements), and the blocks may not
 // overlap.
 // Reference:
-// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
+// https://github.com/qir-alliance/qir-spec/blob/684b17b/specification/profiles/Base_Profile.md#L196
 mlir::LogicalResult
 verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
@@ -195,7 +195,9 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
+          bool isOutputFunction =
+              (funcName == cudaq::opt::QIRRecordOutput ||
+               funcName == cudaq::opt::QIRArrayRecordOutput);
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";
@@ -336,12 +338,12 @@ mlir::LogicalResult verifyQubitAndResultRanges(llvm::Module *llvmModule) {
           cudaq::opt::qir0_1::RequiredQubitsAttrName, NotFound);
       if (required_num_qubits == NotFound)
         required_num_qubits = func.getFnAttributeAsParsedInteger(
-            cudaq::opt::qir0_2::RequiredQubitsAttrName, 0);
+            cudaq::opt::qir1_0::RequiredQubitsAttrName, 0);
       required_num_results = func.getFnAttributeAsParsedInteger(
           cudaq::opt::qir0_1::RequiredResultsAttrName, NotFound);
       if (required_num_results == NotFound)
         required_num_results = func.getFnAttributeAsParsedInteger(
-            cudaq::opt::qir0_2::RequiredResultsAttrName, 0);
+            cudaq::opt::qir1_0::RequiredResultsAttrName, 0);
       break; // no need to keep looking
     }
   }
@@ -487,9 +489,9 @@ mlir::LogicalResult qirProfileTranslationFunction(
 
   auto config = parseCodeGenTranslation(qirProfile);
   if (!config.isQIRProfile)
-    throw std::runtime_error(
-        fmt::format("Unexpected codegen profile while translating to QIR: {}",
-                    config.profile));
+    throw std::runtime_error(cudaq_fmt::format(
+        "Unexpected codegen profile while translating to QIR: {}",
+        config.profile));
 
   auto context = op->getContext();
   mlir::PassManager pm(context);
@@ -578,20 +580,20 @@ mlir::LogicalResult qirProfileTranslationFunction(
         llvm::Constant *intPrecisionValue =
             llvm::ConstantDataArray::getString(*llvmContext, "i64", false);
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  cudaq::opt::qir0_2::IntComputationsFlagName,
+                                  cudaq::opt::qir1_0::IntComputationsFlagName,
                                   intPrecisionValue);
       }
       if (config.floatComputations) {
         llvm::Constant *floatPrecisionValue =
             llvm::ConstantDataArray::getString(*llvmContext, "f64", false);
         llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                  cudaq::opt::qir0_2::FloatComputationsFlagName,
+                                  cudaq::opt::qir1_0::FloatComputationsFlagName,
                                   floatPrecisionValue);
       }
       auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
           llvm::Type::getIntNTy(*llvmContext, 2), llvm::APInt(2, 0, false));
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
-                                cudaq::opt::qir0_2::BackwardsBranchingFlagName,
+                                cudaq::opt::qir1_0::BackwardsBranchingFlagName,
                                 backwardsBranchingValue);
     }
   }
@@ -765,7 +767,7 @@ void insertSetupAndCleanupOperations(mlir::Operation *module) {
             cudaq::opt::qir0_1::RequiredQubitsAttrName))
       requiredQubits.strref().getAsInteger(10, num_qubits);
     else if (auto requiredQubits = func->getAttrOfType<mlir::StringAttr>(
-                 cudaq::opt::qir0_2::RequiredQubitsAttrName))
+                 cudaq::opt::qir1_0::RequiredQubitsAttrName))
       requiredQubits.strref().getAsInteger(10, num_qubits);
 
     // Further processing on funcOp if needed

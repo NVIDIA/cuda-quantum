@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,108 +13,7 @@ import textwrap
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc
-from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
-
-
-class FindDepKernelsVisitor(ast.NodeVisitor):
-
-    def __init__(self, ctx):
-        self.depKernels = {}
-        self.context = ctx
-        self.kernelName = ''
-
-    def visit_FunctionDef(self, node):
-        """
-        Here we will look at this Functions arguments, if 
-        there is a Callable, we will add any seen kernel/AST with the same 
-        signature to the dependent kernels map. This enables the creation 
-        of `ModuleOps` that contain all the functions necessary to inline and 
-        synthesize callable block arguments.
-        """
-        self.kernelName = node.name
-        for arg in node.args.args:
-            annotation = arg.annotation
-            if annotation == None:
-                raise RuntimeError(
-                    'cudaq.kernel functions must have argument type annotations.'
-                )
-            if isinstance(annotation, ast.Subscript) and hasattr(
-                    annotation.value,
-                    "id") and annotation.value.id == 'Callable':
-                if not hasattr(annotation, 'slice'):
-                    raise RuntimeError(
-                        'Callable type must have signature specified.')
-
-                # This is callable, let's add all in scope kernels with
-                # the same signature
-                callableTy = mlirTypeFromAnnotation(annotation, self.context)
-                for k, v in globalKernelRegistry.items():
-                    if str(v.type) == str(
-                            cc.CallableType.getFunctionType(callableTy)):
-                        self.depKernels[k] = globalAstRegistry[k]
-
-        self.generic_visit(node)
-
-    def visit_Call(self, node):
-        """
-        Here we look for function calls within this kernel. We will 
-        add these to dependent kernels dictionary. We will also look for 
-        kernels that are passed to control and adjoint.
-        """
-        if hasattr(node, 'func'):
-            if isinstance(node.func,
-                          ast.Name) and node.func.id in globalAstRegistry:
-                self.depKernels[node.func.id] = globalAstRegistry[node.func.id]
-            elif isinstance(node.func, ast.Attribute):
-                if hasattr(
-                        node.func.value, 'id'
-                ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
-                    return
-                # May need to somehow import a library kernel, find
-                # all module names in a mod1.mod2.mod3.function type call
-                moduleNames = []
-                value = node.func.value
-                while isinstance(value, ast.Attribute):
-                    moduleNames.append(value.attr)
-                    value = value.value
-                    if isinstance(value, ast.Name):
-                        moduleNames.append(value.id)
-                        break
-
-                if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
-                    return
-
-                if len(moduleNames):
-                    moduleNames.reverse()
-                    if cudaq_runtime.isRegisteredDeviceModule(
-                            '.'.join(moduleNames)):
-                        return
-
-                    # This will throw if the function / module is invalid
-                    try:
-                        m = importlib.import_module('.'.join(moduleNames))
-                    except:
-                        return
-
-                    getattr(m, node.func.attr)
-                    name = node.func.attr
-
-                    if name not in globalAstRegistry:
-                        raise RuntimeError(
-                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)}). Registry: {globalAstRegistry}"
-                        )
-
-                    self.depKernels[name] = globalAstRegistry[name]
-
-                elif hasattr(node.func,
-                             'attr') and node.func.attr in globalAstRegistry:
-                    self.depKernels[node.func.attr] = globalAstRegistry[
-                        node.func.attr]
-                elif node.func.value.id == 'cudaq' and node.func.attr in [
-                        'control', 'adjoint'
-                ] and node.args[0].id in globalAstRegistry:
-                    self.depKernels[node.args[0].id] = globalAstRegistry[
-                        node.args[0].id]
+from .utils import (globalAstRegistry, mlirTypeFromAnnotation)
 
 
 class HasReturnNodeVisitor(ast.NodeVisitor):

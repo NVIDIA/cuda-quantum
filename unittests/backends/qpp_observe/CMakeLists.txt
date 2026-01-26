@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -22,20 +22,15 @@ target_link_libraries(nvqir-qpp-observe-test
                       PUBLIC libqpp
                       PRIVATE ${QPP_TEST_DEPENDENCIES})
 
-add_executable(test_observe_backend QppObserveTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_observe_backend PRIVATE -Wl,--no-as-needed)
-endif()
-target_compile_definitions(test_observe_backend PRIVATE -DNVQIR_BACKEND_NAME=qpp_observe)
-target_include_directories(test_observe_backend PRIVATE ../..)
-target_link_libraries(test_observe_backend
-  PRIVATE fmt::fmt-header-only 
-  cudaq-common 
-  cudaq
-  nvqir 
+get_property(backend_unittest_libs DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS)
+add_backend_unittest_executable(test_observe_backend 
+  SOURCES QppObserveTester.cpp
+  BACKEND qpp_observe
+  
+  LINK_LIBS
+  ${backend_unittest_libs}
   nvqir-qpp-observe-test
-  cudaq-operator
-  cudaq-platform-default 
   cudaq-em-default
-  gtest_main)
+  )
+
 gtest_discover_tests(test_observe_backend)

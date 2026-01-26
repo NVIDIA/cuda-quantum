@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,7 +47,7 @@ static constexpr const char BackwardsBranchingFlagName[] =
     "backwards_branching";
 } // namespace qir0_1
 
-namespace qir0_2 {
+namespace qir1_0 {
 static constexpr const char RequiredQubitsAttrName[] = "required_num_qubits";
 static constexpr const char RequiredResultsAttrName[] = "required_num_results";
 
@@ -60,6 +60,6 @@ static constexpr const char MultipleTargetBranchingFlagName[] =
     "multiple_target_branching";
 static constexpr const char MultipleReturnPointsFlagName[] =
     "multiple_return_points";
-} // namespace qir0_2
+} // namespace qir1_0
 
 } // namespace cudaq::opt

@@ -1,63 +1,152 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import sys, os, numpy, platform, multiprocessing
-from ._packages import get_library_path
-from ._metadata import cuda_major
+import multiprocessing
+import os
+import sys
+import warnings
+from pathlib import Path
+from typing import Dict, List, Tuple
 
-# Set the multiprocessing start method to 'spawn' if not already set
+import numpy
+
+from ._metadata import cuda_major
+from ._packages import get_library_path
+
+# Set the multiprocessing start method to `forkserver` if not already set
 if multiprocessing.get_start_method(allow_none=True) is None:
     multiprocessing.set_start_method('forkserver')
 
+
+# ============================================================================ #
+# CUDA Library Path Configuration
+# ============================================================================ #
+def _configure_cuda_library_paths() -> None:
+    """    
+    Sets the `CUDAQ_DYNLIBS` environment variable with paths to required
+    CUDA libraries based on the detected CUDA version.
+    """
+    # Skip if already configured or CUDA not detected
+    if "CUDAQ_DYNLIBS" in os.environ or cuda_major is None:
+        return
+
+    # Library configuration: (package_name_template, library_filename_template)
+    # Common libraries
+    common_libs: Dict[str, Tuple[str, str]] = {
+        'cutensor': ('cutensor-cu{cuda_major}', 'libcutensor.so.2'),
+        'custatevec': ('custatevec-cu{cuda_major}', 'libcustatevec.so.1'),
+        'cutensornet': ('cutensornet-cu{cuda_major}', 'libcutensornet.so.2'),
+        'cudensitymat': ('cudensitymat-cu{cuda_major}', 'libcudensitymat.so.0'),
+    }
+
+    # CUDA 12 specific libraries
+    cuda_12_specific: Dict[str, Tuple[str, str]] = {
+        'curand': ('nvidia-curand-cu{cuda_major}', 'libcurand.so.10'),
+        'cudart':
+            ('nvidia-cuda_runtime-cu{cuda_major}', 'libcudart.so.{cuda_major}'),
+        'nvrtc':
+            ('nvidia-cuda_nvrtc-cu{cuda_major}', 'libnvrtc.so.{cuda_major}'),
+        'cublas': ('nvidia-cublas-cu{cuda_major}', 'libcublas.so.{cuda_major}'),
+        'cublaslt':
+            ('nvidia-cublas-cu{cuda_major}', 'libcublasLt.so.{cuda_major}'),
+        'cusolver': ('nvidia-cusolver-cu{cuda_major}', 'libcusolver.so.11'),
+        'cusolvermg': ('nvidia-cusolver-cu{cuda_major}', 'libcusolverMg.so.11'),
+    }
+
+    # CUDA 13 specific libraries
+    cuda_13_specific: Dict[str, Tuple[str, str]] = {
+        'curand': ('nvidia-curand', 'libcurand.so.10'),
+        'cudart': ('nvidia-cuda_runtime', 'libcudart.so.{cuda_major}'),
+        'nvrtc': ('nvidia-cuda_nvrtc', 'libnvrtc.so.{cuda_major}'),
+        'nvrtc_builtins':
+            ('nvidia-cuda_nvrtc', 'libnvrtc-builtins.so.{cuda_major}.0'),
+        'cublas': ('nvidia-cublas', 'libcublas.so.{cuda_major}'),
+        'cublaslt': ('nvidia-cublas', 'libcublasLt.so.{cuda_major}'),
+        'cusolver': ('nvidia-cusolver', 'libcusolver.so.12'),
+        'cusolvermg': ('nvidia-cusolver', 'libcusolverMg.so.12'),
+    }
+
+    # Load dependencies first
+    load_order: List[str] = [
+        'cudart', 'curand', 'nvrtc', 'nvrtc_builtins', 'cublaslt', 'cublas',
+        'cusolver', 'cusolvermg', 'cutensor', 'custatevec', 'cutensornet',
+        'cudensitymat'
+    ]
+
+    # Select library configuration based on CUDA version
+    if cuda_major == 12:
+        lib_config = {**common_libs, **cuda_12_specific}
+    elif cuda_major == 13:
+        lib_config = {**common_libs, **cuda_13_specific}
+    else:
+        warnings.warn(f"Unsupported CUDA version {cuda_major}.", RuntimeWarning)
+        return
+
+    # Colon-separated list of library paths for `LinkedLibraryHolder` to load
+    library_paths: List[str] = []
+
+    # Attempt to load each library
+    for lib_name in load_order:
+        if lib_name not in lib_config:
+            continue
+
+        package_template, lib_filename_template = lib_config[lib_name]
+
+        try:
+            # Resolve package and library names
+            package_name = package_template.format(cuda_major=cuda_major)
+            lib_filename = lib_filename_template.format(cuda_major=cuda_major)
+            # Get library directory and construct full path
+            lib_dir = get_library_path(package_name)
+            lib_path = os.path.join(lib_dir, lib_filename)
+            # Verify the library file exists
+            if not os.path.isfile(lib_path):
+                raise FileNotFoundError(f"Library file not found: {lib_path}")
+
+            library_paths.append(lib_path)
+
+        except Exception:
+            continue
+
+    os.environ["CUDAQ_DYNLIBS"] = ":".join(library_paths)
+
+
 # CUDAQ_DYNLIBS must be set before any other imports that would initialize
-# LinkedLibraryHolder.
-if not "CUDAQ_DYNLIBS" in os.environ and not cuda_major is None:
-    try:
-        custatevec_libs = get_library_path(f"custatevec-cu{cuda_major}")
-        custatevec_path = os.path.join(custatevec_libs, "libcustatevec.so.1")
+# `LinkedLibraryHolder`.
+try:
+    _configure_cuda_library_paths()
+except Exception:
+    import importlib.util
+    package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
+    if not package_spec is None and not package_spec.loader is None:
+        print("Could not find a suitable cuQuantum Python package.")
+    pass
 
-        cutensornet_libs = get_library_path(f"cutensornet-cu{cuda_major}")
-        cutensornet_path = os.path.join(cutensornet_libs, "libcutensornet.so.2")
-
-        cudensitymat_libs = get_library_path(f"cudensitymat-cu{cuda_major}")
-        cudensitymat_path = os.path.join(cudensitymat_libs,
-                                         "libcudensitymat.so.0")
-
-        cutensor_libs = get_library_path(f"cutensor-cu{cuda_major}")
-        cutensor_path = os.path.join(cutensor_libs, "libcutensor.so.2")
-
-        curand_libs = get_library_path(f"nvidia-curand-cu{cuda_major}")
-        curand_path = os.path.join(curand_libs, "libcurand.so.10")
-
-        cudart_libs = get_library_path(f"nvidia-cuda_runtime-cu{cuda_major}")
-        cudart_path = os.path.join(cudart_libs, f"libcudart.so.{cuda_major}")
-
-        cuda_nvrtc_libs = get_library_path(f"nvidia-cuda_nvrtc-cu{cuda_major}")
-        cuda_nvrtc_path = os.path.join(cuda_nvrtc_libs,
-                                       f"libnvrtc.so.{cuda_major}")
-
-        os.environ[
-            "CUDAQ_DYNLIBS"] = f"{custatevec_path}:{cutensornet_path}:{cudensitymat_path}:{cutensor_path}:{cudart_path}:{curand_path}:{cuda_nvrtc_path}"
-    except:
-        import importlib.util
-        package_spec = importlib.util.find_spec(f"cuda-quantum-cu{cuda_major}")
-        if not package_spec is None and not package_spec.loader is None:
-            print("Could not find a suitable cuQuantum Python package.")
-        pass
+# ============================================================================ #
+# Module Imports
+# ============================================================================ #
 
 from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
-from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
-from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
+from .kernel.kernel_builder import (make_kernel, QuakeValue, PyKernel)
+from .kernel.ast_bridge import (globalAstRegistry, globalRegisteredOperations)
 from .runtime.sample import sample
+from .runtime.sample import sample_async, AsyncSampleResult
 from .runtime.observe import observe
+from .runtime.observe import observe_async
+from .runtime.run import run
 from .runtime.run import run_async
-from .runtime.state import to_cupy
+from .runtime.translate import translate
+from .runtime.state import (get_state, get_state_async, to_cupy)
+from .runtime.draw import draw
+from .runtime.unitary import get_unitary
+from .runtime.resource_count import estimate_resources
+from .runtime.vqe import vqe  # Removed! Use VQE from CUDA-QX
 from .kernel.register_op import register_operation
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -81,6 +170,7 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
+StateMemoryView = cudaq_runtime.StateMemoryView
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
@@ -96,7 +186,8 @@ from .operators import spin
 from .operators import custom as operators
 from .operators.definitions import *
 from .operators.manipulation import OperatorArithmetics
-import cudaq.operators.expressions  # needs to be imported, since otherwise e.g. evaluate is not defined
+# needs to be imported, since otherwise e.g. evaluate is not defined
+import cudaq.operators.expressions
 from .operators.super_op import SuperOperator
 
 # Time evolution API
@@ -147,43 +238,32 @@ Depolarization1 = cudaq_runtime.Depolarization1
 Depolarization2 = cudaq_runtime.Depolarization2
 
 # Functions
-sample_async = cudaq_runtime.sample_async
-observe_async = cudaq_runtime.observe_async
-get_state = cudaq_runtime.get_state
-get_state_async = cudaq_runtime.get_state_async
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
+AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 EvolveResult = cudaq_runtime.EvolveResult
 AsyncEvolveResult = cudaq_runtime.AsyncEvolveResult
-AsyncSampleResult = cudaq_runtime.AsyncSampleResult
-AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
-vqe = cudaq_runtime.vqe
-draw = cudaq_runtime.draw
-get_unitary = cudaq_runtime.get_unitary
-run = cudaq_runtime.run
-estimate_resources = cudaq_runtime.estimate_resources
-translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
-
-# to be deprecated
-to_qir = cudaq_runtime.get_qir
 
 testing = cudaq_runtime.testing
 
 # target-specific
 orca = cudaq_runtime.orca
 
+# ============================================================================ #
+# Utility Functions
+# ============================================================================ #
+
 
 def synthesize(kernel, *args):
-    # Compile if necessary, no-op if already compiled
-    kernel.compile()
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
-                             kernelName=kernel.name)
+                             kernelName=kernel.name,
+                             decorator=kernel)
 
 
 def complex():
@@ -207,8 +287,7 @@ def amplitudes(array_data):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations
-    globalKernelRegistry.clear()
+    global globalAstRegistry, globalRegisteredOperations
     globalAstRegistry.clear()
     globalRegisteredOperations.clear()
 
@@ -218,6 +297,9 @@ from .domains import chemistry
 from .kernels import uccsd
 from .dbg import ast
 
+# ============================================================================ #
+# Command Line Argument Parsing
+# ============================================================================ #
 initKwargs = {}
 
 # Look for --target=<target> options

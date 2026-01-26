@@ -74,7 +74,6 @@ MyST
 NGC
 NVIDIA
 NVLink
-NVQC
 NVQIR
 OPX
 OQC
@@ -155,7 +154,8 @@ bernstein
 bitcode
 bitstring
 bitstrings
-bmatrix
+bitwidth
+bitwidths
 bool
 boolean
 boson
@@ -200,6 +200,8 @@ deallocations
 decrement
 decrementing
 dendrogram
+dependence
+dependences
 deserialize
 destructor
 detuning
@@ -236,10 +238,10 @@ extensibility
 extremal
 fermionic
 fermioniq
-fmt
 fourier
 frontend
 frontends
+functors
 grovers
 hadamard
 hamiltonian
@@ -320,7 +322,6 @@ selectable
 sexualized
 shifter
 shifters
-shors
 splitter
 splitters
 sqale
@@ -338,6 +339,7 @@ subexpression
 subexpressions
 subfolder
 submodule
+submodules
 subscriptable
 subscripted
 subtype
@@ -353,6 +355,7 @@ toolchain
 toolchains
 toolset
 transmon
+transpile
 trotterization
 uccsd
 unary
@@ -369,13 +372,11 @@ upvote
 variadic
 variational
 vazirani
-vdots
 vectorization
 verifier
 vertices
 vqe
 waveforms
 wavefunction
-wf
 workflow
 zener

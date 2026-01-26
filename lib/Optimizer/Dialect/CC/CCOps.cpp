@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1974,6 +1974,20 @@ void cudaq::cc::IfOp::build(OpBuilder &builder, OperationState &result,
   result.addTypes(resultTypes);
 }
 
+void cudaq::cc::IfOp::build(OpBuilder &builder, OperationState &result,
+                            TypeRange resultTypes, Value cond,
+                            ValueRange linearVals, RegionBuilderFn thenBuilder,
+                            RegionBuilderFn elseBuilder) {
+  auto *thenRegion = result.addRegion();
+  auto *elseRegion = result.addRegion();
+  thenBuilder(builder, result.location, *thenRegion);
+  if (elseBuilder)
+    elseBuilder(builder, result.location, *elseRegion);
+  result.addOperands(cond);
+  result.addOperands(linearVals);
+  result.addTypes(resultTypes);
+}
+
 LogicalResult cudaq::cc::IfOp::verify() {
   if (getNumResults() != 0 && getElseRegion().empty())
     return emitOpError("must have an else block if defining values");
@@ -2210,11 +2224,9 @@ void cudaq::cc::CreateLambdaOp::build(OpBuilder &builder,
 
 void cudaq::cc::CreateLambdaOp::print(OpAsmPrinter &p) {
   p << ' ';
-  bool hasArgs = getRegion().getNumArguments() != 0;
-  bool hasRes =
-      getType().cast<cudaq::cc::CallableType>().getSignature().getNumResults();
+  const bool hasArgs = getRegion().getNumArguments() != 0;
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/hasArgs,
-                /*printBlockTerminators=*/hasRes);
+                /*printBlockTerminators=*/true);
   p << " : " << getType();
   p.printOptionalAttrDict((*this)->getAttrs(), {"signature"});
 }
@@ -2229,8 +2241,36 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute("signature", TypeAttr::get(lambdaTy));
   result.addTypes(lambdaTy);
-  CreateLambdaOp::ensureTerminator(*body, parser.getBuilder(), result.location);
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// CallableFuncOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// FIXME: Same rewrite pattern as appears in LambdaLifting.cpp. Share it!
+struct CallableFuncOpPattern
+    : public OpRewritePattern<cudaq::cc::CallableFuncOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallableFuncOp callFunc,
+                                PatternRewriter &rewriter) const override {
+    auto instance = callFunc.getCallable()
+                        .getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!instance)
+      return failure();
+    rewriter.replaceOpWithNewOp<func::ConstantOp>(
+        callFunc, callFunc.getType(),
+        instance.getCallee().getRootReference().getValue());
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallableFuncOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<CallableFuncOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//

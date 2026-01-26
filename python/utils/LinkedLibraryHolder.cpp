@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -115,7 +115,7 @@ void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
     }
   }
   target.platformName = foundPlatformName.value_or("default");
-  target.simulatorName = foundSimulatorName.value_or("qpp");
+  target.simulatorName = foundSimulatorName.value_or("");
   target.precision = precision;
 }
 
@@ -172,7 +172,7 @@ void findAvailableTargets(
   }
 }
 
-LinkedLibraryHolder::LinkedLibraryHolder() {
+LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
   if (!cudaq::__internal__::canModifyTarget())
@@ -216,9 +216,16 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
   }
 
   // Load all the defaults
-  for (auto &p : libPaths)
-    libHandles.emplace(p.string(),
-                       dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW));
+  for (auto &p : libPaths) {
+    void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+    libHandles.emplace(p.string(), libHandle);
+
+    if (!libHandle) {
+      char *error_msg = dlerror();
+      CUDAQ_INFO("Failed to load '{}': ERROR '{}'", p.string(),
+                 (error_msg ? std::string(error_msg) : "unknown."));
+    }
+  }
 
   // directory_iterator ordering is unspecified, so sort it to make it
   // repeatable and consistent.
@@ -272,7 +279,6 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
         CUDAQ_INFO("Found simulator plugin {}.", simName);
         availableSimulators.push_back(simName);
       }
-
     } else if (fileName.find("cudaq-platform-") != std::string::npos) {
       // store all available platforms.
       // Extract and process the platform name
@@ -282,12 +288,10 @@ LinkedLibraryHolder::LinkedLibraryHolder() {
       // Remove the suffix from the library
       auto idx = platformName.find_last_of(".");
       platformName = platformName.substr(0, idx);
-
       auto iter = libHandles.find(path.string());
       if (iter == libHandles.end())
         libHandles.emplace(path.string(), dlopen(path.string().c_str(),
                                                  RTLD_GLOBAL | RTLD_NOW));
-
       // Load the plugin and get the CircuitSimulator.
       availablePlatforms.push_back(platformName);
       CUDAQ_INFO("Found platform plugin {}.", platformName);
@@ -422,8 +426,26 @@ void LinkedLibraryHolder::setTarget(
 
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
              target.simulatorName, target.platformName);
+  std::string simName = target.simulatorName;
+  if (simName.empty()) {
+    // This target doesn't have a simulator defined, e.g., hardware targets.
+    // We still need a simulator in case of local emulation.
+    auto &defaultTargetInfo = targets[defaultTarget];
+    simName = defaultTargetInfo.simulatorName;
 
-  __nvqir__setCircuitSimulator(getSimulator(target.simulatorName));
+    // The precision should match the underlying local simulator that we
+    // selected.
+    target.precision = defaultTargetInfo.precision;
+
+    // This is really a user error: e.g., using `CUDAQ_DEFAULT_SIMULATOR`
+    // environment variable (meant for simulator) to change the default target
+    // to some other targets that are not a simulator.
+    if (simName.empty())
+      throw std::runtime_error("Default target " + defaultTarget +
+                               " doesn't define a simulator. Please check your "
+                               "CUDAQ_DEFAULT_SIMULATOR environment variable.");
+  }
+  __nvqir__setCircuitSimulator(getSimulator(simName));
   auto *platform = getPlatform(target.platformName);
 
   // Pack the config into the backend string name
@@ -481,7 +503,7 @@ Resources *python::detail::getResourceCounts() {
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
-  if (holder) {
+  if (holder && cudaq::__internal__::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();
     const std::string codegenEmission =
         runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);

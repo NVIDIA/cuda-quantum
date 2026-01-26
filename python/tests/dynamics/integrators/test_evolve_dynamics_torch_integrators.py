@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -40,7 +40,8 @@ all_models = [
     TestBatchedCavityModelTimeDependentCollapseOp,
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
-    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326
+    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326,
+    TestMultiDegreeElemOp
 ]
 
 
@@ -48,6 +49,12 @@ all_models = [
 @pytest.mark.parametrize('model', all_models)
 def test_all(model, integrator):
     model().run_tests(integrator)
+
+
+def test_density_matrix_indexing():
+    # Note: for this test, we must use a fixed step integrator as this has zero dynamics;
+    # hence, an adaptive step integrator would fail to find the step size.
+    TestDensityMatrixIndexing().run_tests(CUDATorchDiffEqRK4Integrator)
 
 
 # leave for gdb debugging

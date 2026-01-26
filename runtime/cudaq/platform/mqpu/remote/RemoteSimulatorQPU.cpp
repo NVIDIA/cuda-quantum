@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,17 +25,6 @@ public:
   virtual ~RemoteSimulatorQPU() = default;
 };
 
-/// Implementation of QPU subtype that submits simulation request to NVCF.
-class NvcfSimulatorQPU : public cudaq::BaseNvcfSimulatorQPU {
-public:
-  NvcfSimulatorQPU() : BaseNvcfSimulatorQPU() {
-    m_mlirContext = cudaq::initializeMLIR();
-  }
-
-  NvcfSimulatorQPU(NvcfSimulatorQPU &&) = delete;
-  virtual ~NvcfSimulatorQPU() = default;
-};
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteSimulatorQPU, RemoteSimulatorQPU)
-CUDAQ_REGISTER_TYPE(cudaq::QPU, NvcfSimulatorQPU, NvcfSimulatorQPU)

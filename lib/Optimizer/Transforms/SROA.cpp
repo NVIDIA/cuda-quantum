@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -52,6 +52,8 @@ public:
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(user))
         if (castMatches(allocOp.getElementType(), cast.getResult().getType()))
           continue;
+      if (auto load = dyn_cast<cudaq::cc::LoadOp>(user))
+        continue;
       return failure();
     }
 
@@ -79,9 +81,31 @@ public:
       if (auto ptrOp = dyn_cast<cudaq::cc::ComputePtrOp>(user)) {
         auto pos = *ptrOp.getConstantIndex(0);
         updates.emplace_back(ptrOp, scalars[pos]);
-      } else {
-        auto castOp = cast<cudaq::cc::CastOp>(user);
+      } else if (auto castOp = dyn_cast<cudaq::cc::CastOp>(user)) {
         updates.emplace_back(castOp, scalars[0]);
+      } else {
+        OpBuilder::InsertionGuard guard(rewriter);
+        auto loadOp = cast<cudaq::cc::LoadOp>(user);
+        // Build the aggregate value.
+        rewriter.setInsertionPoint(loadOp);
+        auto loadTy = loadOp.getType();
+        auto loc = loadOp.getLoc();
+        Value result = rewriter.create<cudaq::cc::UndefOp>(loc, loadTy);
+        if (auto strTy = dyn_cast<cudaq::cc::StructType>(loadTy)) {
+          for (auto [i, mTy] : llvm::enumerate(strTy.getMembers())) {
+            Value loadEle = rewriter.create<cudaq::cc::LoadOp>(loc, scalars[i]);
+            result = rewriter.create<cudaq::cc::InsertValueOp>(
+                loc, loadTy, result, loadEle, i);
+          }
+        } else {
+          auto arrTy = cast<cudaq::cc::ArrayType>(loadTy);
+          for (cudaq::cc::ArrayType::SizeType i = 0; i < arrTy.getSize(); ++i) {
+            Value loadEle = rewriter.create<cudaq::cc::LoadOp>(loc, scalars[i]);
+            result = rewriter.create<cudaq::cc::InsertValueOp>(
+                loc, loadTy, result, loadEle, i);
+          }
+        }
+        updates.emplace_back(loadOp, result);
       }
     }
     for (auto [fromOp, toVal] : updates)

@@ -1,14 +1,20 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import cudaq, os, pytest, random, timeit
-from cudaq import spin
+import os
+import random
+import time
+import timeit
+
+import cudaq
 import numpy as np
+import pytest
+from cudaq import spin
 
 skipIfNoMQPU = pytest.mark.skipif(
     not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
@@ -18,6 +24,11 @@ skipIfNoMQPU = pytest.mark.skipif(
 @pytest.fixture(autouse=True)
 def do_something():
     cudaq.set_target('nvidia-mqpu')
+    try:
+        assert cudaq.get_target().num_qpus(
+        ) > 0, "No QPUs available after target set"
+    except Exception as e:
+        pytest.skip(f"MQPU setup failed: {str(e)}")
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
@@ -155,12 +166,6 @@ def testLargeProblem_kernel():
 
 
 def check_accuracy(entity):
-    target = cudaq.get_target()
-    numQpus = target.num_qpus()
-    if numQpus == 0:
-        pytest.skip("No QPUs available for target, skipping test")
-    else:
-        print(f"Target: {target}, NumQPUs: {numQpus}")
     # Define its spin Hamiltonian.
     hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
@@ -217,7 +222,7 @@ def check_get_state_async(entity):
     for handle in asyns_handles:
         angle += 0.2
         expected_state = [np.cos(angle / 2), -1j * np.sin(angle / 2)]
-        state = handle.get()
+        state = cudaq.StateMemoryView(handle.get())
         assert np.allclose(state, expected_state, atol=1e-3)
 
 

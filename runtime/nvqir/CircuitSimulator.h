@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,8 +11,10 @@
 #include "Gates.h"
 #include "QIRTypes.h"
 #include "common/Environment.h"
+#include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
+#include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/host_config.h"
@@ -505,8 +507,9 @@ protected:
 
   /// @brief Return the current multi-qubit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQubits) {
-    assert(numQubits < 64);
-    return 1ULL << numQubits;
+    if (numQubits < 64)
+      return 1ULL << numQubits;
+    throw std::runtime_error("number of qubits exceeds maximum (63)");
   }
 
   /// @brief Add a new qubit to the state representation.
@@ -950,9 +953,16 @@ public:
     nQubitsAllocated++;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!isInTracerMode())
+    if (!isInTracerMode()) {
       // Tell the subtype to grow the state representation
-      addQubitToState();
+      try {
+        addQubitToState();
+      } catch (...) {
+        nQubitsAllocated--;
+        stateDimension = previousStateDimension;
+        throw;
+      }
+    }
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -1007,9 +1017,16 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!isInTracerMode())
+    if (!isInTracerMode()) {
       // Tell the subtype to allocate more qubits
-      addQubitsToState(count, state);
+      try {
+        addQubitsToState(count, state);
+      } catch (...) {
+        nQubitsAllocated -= count;
+        stateDimension = previousStateDimension;
+        throw;
+      }
+    }
 
     // May be that the state grows enough that we
     // want to handle observation via sampling
@@ -1053,9 +1070,16 @@ public:
     nQubitsAllocated += count;
     stateDimension = calculateStateDim(nQubitsAllocated);
 
-    if (!isInTracerMode())
+    if (!isInTracerMode()) {
       // Tell the subtype to allocate more qubits
-      addQubitsToState(*state);
+      try {
+        addQubitsToState(*state);
+      } catch (...) {
+        nQubitsAllocated -= count;
+        stateDimension = previousStateDimension;
+        throw;
+      }
+    }
 
     // May be that the state grows enough that we
     // want to handle observation via sampling

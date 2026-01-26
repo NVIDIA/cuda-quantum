@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -31,7 +31,7 @@ static constexpr const char ReadResultBody[] =
     "__quantum__qis__read_result__body";
 }
 
-namespace qir0_2 {
+namespace qir1_0 {
 static constexpr const char ReadResult[] = "__quantum__rt__read_result";
 }
 
@@ -50,10 +50,6 @@ static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 static constexpr const char NVQIRGeneralizedInvokeAny[] =
     "generalizedInvokeWithRotationsControlsTargets";
-static constexpr const char NVQIRPackSingleQubitInArray[] =
-    "packSingleQubitInArray";
-static constexpr const char NVQIRReleasePackedQubitArray[] =
-    "releasePackedQubitArray";
 
 /// QIR Array function name strings
 static constexpr const char QIRArrayGetElementPtr1d[] =

@@ -149,7 +149,7 @@ CUDA
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
-The instructions are tested using version 11.8 and 12.6, but other CUDA 11 or 12 versions
+The instructions are tested using version 12.6 and 13.0, but other CUDA 12 or 13 versions
 should work, as long as the CUDA runtime version on the host system matches the 
 CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
@@ -255,8 +255,8 @@ Python-specific tools:
 
 .. note::
 
-  The wheel build by default is configured to depend on CUDA 12. To build a wheel for CUDA 11, 
-  you need to adjust the dependencies and project name in the `pyproject.toml` file. 
+  The wheel build by default is configured to depend on CUDA 13. To build a wheel for CUDA 12, 
+  you need to copy the `pyproject.toml.cu12` file as `pyproject.toml`. 
 
 From within the folder where you cloned the CUDA-Q repository, run the following
 command to build the CUDA-Q Python wheel:

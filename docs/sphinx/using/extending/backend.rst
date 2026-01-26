@@ -307,7 +307,7 @@ Create unit tests for your server helper:
     #!/bin/bash
     
     # Start the mock server
-    python3 -m utils.mock_qpu.<provider_name> @PORT@ &
+    python3 utils/start_mock_qpu.py <provider_name> &
     SERVER_PID=$!
     
     # Wait for server to start
@@ -374,7 +374,7 @@ And add the following to your ``targettests`` ``.cpp`` file:
 
 .. code-block:: cpp
 
-    // RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi
+    // RUN: if %provider_avail; then nvq++ --target provider %s -o %t.x; fi
 
 Mock Server
 -----------

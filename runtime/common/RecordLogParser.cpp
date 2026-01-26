@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,10 @@
  ******************************************************************************/
 
 #include "RecordLogParser.h"
+#include "FmtCore.h"
 #include "Logger.h"
 #include "Timing.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");
@@ -16,29 +18,50 @@ void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   std::vector<std::string> lines = cudaq::split(outputLog, '\n');
   if (lines.empty())
     return;
-  for (const auto &line : lines) {
+
+  // Collect log from a single shot and process it only if it is successful.
+  bool processingShot = false;
+  // Maintain the starting index of each shot's data
+  std::size_t shotStart = 0;
+
+  for (std::size_t idx = 0; idx < lines.size(); ++idx) {
+    const auto &line = lines[idx];
     std::vector<std::string> entries = cudaq::split(line, '\t');
     if (entries.empty())
       continue;
-    handleRecord(entries);
-  }
-}
 
-void cudaq::RecordLogParser::handleRecord(
-    const std::vector<std::string> &entries) {
-  const std::string &recordType = entries[0];
-  if (recordType == "HEADER")
-    handleHeader(entries);
-  else if (recordType == "METADATA")
-    handleMetadata(entries);
-  else if (recordType == "START")
-    handleStart(entries);
-  else if (recordType == "OUTPUT")
-    handleOutput(entries);
-  else if (recordType == "END")
-    handleEnd(entries);
-  else
-    throw std::runtime_error("Invalid record type: " + recordType);
+    const std::string &recordType = entries[0];
+    if (recordType == "HEADER")
+      handleHeader(entries);
+    else if (recordType == "METADATA")
+      handleMetadata(entries);
+    else if (recordType == "START") {
+      processingShot = true;
+      shotStart = 0;
+    } else if (recordType == "OUTPUT") {
+      if (processingShot)
+        shotStart = shotStart == 0 ? idx : shotStart;
+      else
+        handleOutput(entries);
+    } else if (recordType == "END") {
+      if (entries.size() < 2)
+        throw std::runtime_error("Missing shot status");
+      if (entries[1] == "0") {
+        if (processingShot) {
+          // Successful shot, process it
+          for (std::size_t j = shotStart; j < idx; ++j)
+            handleOutput(cudaq::split(lines[j], '\t'));
+        }
+      } else {
+        CUDAQ_DBG("Discarding shot data due to non-zero END status.");
+      }
+      processingShot = false;
+      shotStart = 0;
+      containerMeta.reset();
+    } else {
+      throw std::runtime_error("Invalid record type: " + recordType);
+    }
+  }
 }
 
 void cudaq::RecordLogParser::handleHeader(
@@ -60,23 +83,16 @@ void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
   if (entries.size() < 2 || entries.size() > 3)
     cudaq::info("Unexpected METADATA record: {}. Ignored.\n", entries);
-  metadata[entries[1]] = entries.size() == 3 ? entries[2] : "";
-}
-
-void cudaq::RecordLogParser::handleStart(
-    const std::vector<std::string> &entries) {
-  // Ignore start of a shot for now
-}
-
-void cudaq::RecordLogParser::handleEnd(
-    const std::vector<std::string> &entries) {
-  if (entries.size() < 2)
-    throw std::runtime_error("Missing shot status");
-  if ("0" != entries[1])
-    throw std::runtime_error("Cannot handle unsuccessful shot");
-
-  // Always reset the container metadata when finishing a shot
-  containerMeta.reset();
+  if (entries.size() == 3) {
+    if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
+        entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
+      metadata[ResultCountMetadataName] = entries[2];
+    } else {
+      metadata[entries[1]] = entries[2];
+    }
+  } else {
+    metadata[entries[1]] = "";
+  }
 }
 
 void cudaq::RecordLogParser::handleOutput(
@@ -88,6 +104,7 @@ void cudaq::RecordLogParser::handleOutput(
   const std::string &recType = entries[1];
   const std::string &recValue = entries[2];
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
+  cudaq::trim(recLabel);
   if (recType == "RESULT") {
     // Sample-type QIR output, where we have an array of `RESULT` per shot. For
     // example,
@@ -103,27 +120,59 @@ void cudaq::RecordLogParser::handleOutput(
         (containerMeta.m_type == ContainerType::ARRAY &&
          containerMeta.elementCount == 0);
     if (isUninitializedContainer) {
-      // Currently, our QIR for sampled kernel only has a sequence of RESULT
-      // records, not wrapped in an ARRAY. Hence, we treat it as an array of
-      // results.
+      // NOTE: This is a temporary workaround until all backends consistently
+      // use the new transformation pass that wraps result records inside an
+      // array record output. For now, we permit "naked" RESULT records, i.e.,
+      // if the QIR produced by a sampled kernel emits a sequence of RESULT
+      // records without enclosing them in an ARRAY, we interpret them
+      // collectively as an array of results.
+      // NOTE: This assumption prevents us from correctly supporting `run` with
+      // `qir-base` profile.
       containerMeta.m_type = ContainerType::ARRAY;
-      const auto it = metadata.find("required_num_results");
-      if (it != metadata.end()) {
-        containerMeta.elementCount = std::stoul(it->second);
-      } else {
-        cudaq::info("No required_num_results metadata found, defaulting to 1.");
-        containerMeta.elementCount = 1;
-      }
-
+      containerMeta.elementCount =
+          std::stoul(metadata[ResultCountMetadataName]);
       containerMeta.arrayType = "i1";
       preallocateArray();
     }
 
-    // Note: we expect the results are sequential in the same order that mz
-    // operations are called. This may include results in named registers
-    // (specified in kernel code) and other auto-generated register names.
-    processArrayEntry(recValue,
-                      fmt::format("[{}]", containerMeta.processedElements));
+    // Note: For ordered schema, we expect the results are sequential in the
+    // same order that mz operations are called. This may include results in
+    // named registers (specified in kernel code) and other auto-generated
+    // register names. If index cannot be extracted from the label, we fall back
+    // to using this mechanism.
+    auto idxLabel = std::to_string(containerMeta.processedElements);
+
+    // Get the index from the label, if feasible.
+    /// TODO: The `sample` API should be updated to not allow explicit
+    /// measurement operations in the kernel when targeting hardware backends.
+    // Until then, we handle both cases here - auto-generated labels like
+    // r00000, r00001, ... and named results like result%0, result%1, ...
+    if (!recLabel.empty()) {
+      std::size_t percentPos = recLabel.find('%');
+      if (percentPos != std::string::npos) {
+        idxLabel = recLabel.substr(percentPos + 1);
+      }
+      // This logic is fragile; for example user may have only one mz assigned
+      // to variable like r00001 and it will be interpreted as index 1, and
+      // cause `Array index out of bounds` error. The proper fix is to disallow
+      // explicit mz operations in sampled kernels. Also, `run` is appropriate
+      // for getting sub-register results.
+      else if (recLabel.size() == 6 && recLabel[0] == 'r') {
+        // check that the last 5 characters are all digits
+        bool allDigits = true;
+        for (std::size_t i = 1; i < 6; ++i) {
+          if (recLabel[i] < '0' || recLabel[i] > '9') {
+            allDigits = false;
+            break;
+          }
+        }
+        if (allDigits) {
+          idxLabel = recLabel.substr(1);
+        }
+      }
+    }
+
+    processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
     containerMeta.processedElements++;
     return;
   }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
@@ -97,6 +98,8 @@ int main(int argc, char **argv) {
   registerMLIRContextCLOptions();
   registerPassManagerCLOptions();
   registerTranslationCLOptions();
+  cudaq::registerAllCLOptions();
+  cudaq::registerAllPasses();
 
   llvm::cl::ParseCommandLineOptions(argc, argv,
                                     "quake mlir to llvm ir compiler\n");

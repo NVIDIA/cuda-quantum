@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,12 +7,10 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-
-// Compile and run with:
-// ```
-// RUN: nvq++ %cpp_std --target remote-mqpu                             %s -o %t && %t
-// RUN: nvq++ %cpp_std --target remote-mqpu --remote-mqpu-auto-launch 2 %s -o %t && %t
-// ```
+// clang-format off
+// RUN: nvq++ --target remote-mqpu                             %s -o %t && %t
+// RUN: nvq++ --target remote-mqpu --remote-mqpu-auto-launch 2 %s -o %t && %t
+// clang-format on
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>

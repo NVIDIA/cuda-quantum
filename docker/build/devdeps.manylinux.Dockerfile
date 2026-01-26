@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -95,7 +95,7 @@ RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
 
 # Install CUDA
 
-ARG cuda_version=11.8
+ARG cuda_version=12.6
 ENV CUDA_VERSION=${cuda_version}
 
 RUN arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \

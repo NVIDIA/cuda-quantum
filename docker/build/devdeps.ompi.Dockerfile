@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -81,12 +81,12 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
 ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
-# 5 - Install UCX version v1.16.0
+# 5 - Install UCX version v1.19.0
 
 ENV UCX_INSTALL_PREFIX=/usr/local/ucx
 RUN mkdir -p /var/tmp && cd /var/tmp \
     && git clone https://github.com/openucx/ucx.git ucx && cd /var/tmp/ucx \
-    && git checkout v1.16.0 \
+    && git checkout v1.19.0 \
     && ./autogen.sh \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
     &&  CC=gcc CFLAGS="$common_flags" \

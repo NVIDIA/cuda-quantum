@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RestClient.h"
+#include "FmtCore.h"
 #include "Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cpr/cpr.h>
@@ -114,10 +115,10 @@ void RestClient::put(const std::string_view remoteUrl,
                              r.error.message + ": " + r.text);
 }
 
-nlohmann::json
-RestClient::get(const std::string_view remoteUrl, const std::string_view path,
-                std::map<std::string, std::string> &headers, bool enableSsl,
-                const std::map<std::string, std::string> &cookies) {
+std::string RestClient::getRawText(
+    const std::string_view remoteUrl, const std::string_view path,
+    std::map<std::string, std::string> &headers, bool enableSsl,
+    const std::map<std::string, std::string> &cookies) {
   if (headers.empty())
     headers.insert(std::make_pair("Content-type", "application/json"));
 
@@ -136,7 +137,15 @@ RestClient::get(const std::string_view remoteUrl, const std::string_view path,
     throw std::runtime_error("HTTP GET Error - status code " +
                              std::to_string(r.status_code) + ": " +
                              r.error.message + ": " + r.text);
-  return nlohmann::json::parse(r.text);
+  return r.text;
+}
+
+nlohmann::json
+RestClient::get(const std::string_view remoteUrl, const std::string_view path,
+                std::map<std::string, std::string> &headers, bool enableSsl,
+                const std::map<std::string, std::string> &cookies) {
+  return nlohmann::json::parse(
+      getRawText(remoteUrl, path, headers, enableSsl, cookies));
 }
 
 void RestClient::del(const std::string_view remoteUrl,

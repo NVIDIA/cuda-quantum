@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 
@@ -494,6 +495,9 @@ public:
         return qubits.empty();
       return true;
     }();
+    if (!sampleSim)
+      throw std::runtime_error("Stim simulator state is not initialized. "
+                               "Cannot sample from uninitialized state.");
     assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);

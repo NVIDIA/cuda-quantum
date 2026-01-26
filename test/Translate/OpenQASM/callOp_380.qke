@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -31,5 +31,5 @@ module {
 
 // CHECK: qreg var0[1];
 // CHECK: nvqpp__mlirgen____nvqppBuilderKernel_367535629127 var0[0];
-// CHECK: creg var1[1];
-// CHECK: measure var0[0] -> var1[0];
+// CHECK: creg var[[OUT:.*]]{{\[}}1];
+// CHECK: measure var0[0] -> var[[OUT]]{{\[}}0];

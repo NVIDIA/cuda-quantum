@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -28,18 +28,26 @@ static Type getResultType(Type ty) {
   return ty;
 }
 
-/// Convert a name, value pair into a symbol name.
-static std::string getQubitSymbolTableName(StringRef qregName, Value idxVal) {
+/// Convert a name, value pair into a symbol name allocated in `allocator`.
+static llvm::StringRef
+createQubitSymbolTableName(StringRef qregName, Value idxVal,
+                           llvm::BumpPtrAllocator &allocator) {
   std::string name;
   if (auto idxIntVal = idxVal.getDefiningOp<arith::ConstantIntOp>())
-    return qregName.str() + "%" + std::to_string(idxIntVal.value());
-  if (auto idxIdxVal = idxVal.getDefiningOp<arith::ConstantIndexOp>())
-    return qregName.str() + "%" + std::to_string(idxIdxVal.value());
+    name = qregName.str() + "%" + std::to_string(idxIntVal.value());
+  else if (auto idxIdxVal = idxVal.getDefiningOp<arith::ConstantIndexOp>())
+    name = qregName.str() + "%" + std::to_string(idxIdxVal.value());
+  else {
+    // idxVal is a general value, like a loop idx
+    std::stringstream ss;
+    ss << qregName.str() << "%" << idxVal.getAsOpaquePointer();
+    name = ss.str();
+  }
 
-  // this is a general value, like a loop idx
-  std::stringstream ss;
-  ss << qregName.str() << "%" << idxVal.getAsOpaquePointer();
-  return ss.str();
+  // move `name` to heap memory allocated by the allocator
+  char *namePtr = allocator.Allocate<char>(name.size());
+  std::memcpy(namePtr, name.data(), name.size());
+  return llvm::StringRef(namePtr, name.size());
 }
 
 /// Helper to get the declaration of a decl-ref expression.
@@ -682,9 +690,12 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
         if (cxxExpr->getNumArgs() == 1)
           return true;
     }
-    if (isa<ComplexType>(castToTy) && isa<ComplexType>(peekValue().getType())) {
+    if (isa<ComplexType>(castToTy) && isa<ComplexType>(peekValue().getType()))
       return true;
-    }
+    if (isa<quake::StateType>(castToTy))
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(peekValue().getType()))
+        if (isa<quake::StateType>(ptrTy.getElementType()))
+          return pushValue(builder.create<cudaq::cc::LoadOp>(loc, popValue()));
     if (auto funcTy = peelPointerFromFunction(castToTy))
       if (auto fromTy = dyn_cast<cc::CallableType>(peekValue().getType())) {
         auto inputs = funcTy.getInputs();
@@ -1003,8 +1014,8 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // The following cases are λ expressions, quantum data, or a std::vector view.
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
-  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType>(
-          ty))
+  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType,
+          quake::StateType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -2494,8 +2505,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         reportClangError(x, mangler,
                          "internal error: expected a variable name");
       StringRef qregName = getNamedDecl(arg0)->getName();
-      auto name = getQubitSymbolTableName(qregName, idx_var);
-      char *varName = strdup(name.c_str());
+      auto name = createQubitSymbolTableName(qregName, idx_var, allocator);
 
       // If the name exists in the symbol table, return its stored value.
       if (symbolTable.count(name))
@@ -2510,7 +2520,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // NB: varName is built from the variable name *and* the index value. This
       // front-end optimization is likely unnecessary as the compiler can always
       // canonicalize and merge identical quake.extract_ref operations.
-      symbolTable.insert(StringRef(varName), address_qubit);
+      symbolTable.insert(name, address_qubit);
       return replaceTOSValue(address_qubit);
     }
     if (typeName == "vector") {
@@ -2689,6 +2699,11 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   }
 
   // List has 1 or more members.
+  if (size == 1 && isa<clang::MaterializeTemporaryExpr>(x->getInit(0)))
+    if (auto alloc = peekValue().getDefiningOp<cudaq::cc::AllocaOp>())
+      if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(initListTy))
+        if (alloc.getElementType() == arrTy.getElementType())
+          return true;
   auto last = lastValues(size);
   bool allRef = std::all_of(last.begin(), last.end(), [](auto v) {
     return isa<quake::RefType, quake::VeqType>(v.getType());
@@ -2916,6 +2931,32 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
             loc, quake::VeqType::getUnsized(builder.getContext()), sizeVal));
       }
 
+      if (ctorName == "state") {
+        // cudaq::state ctor can be materialized when using local simulators and
+        // converting raw data to state vectors. Use a runtime helper function
+        // to perform the conversion.
+        Value stdvec = popValue();
+        auto stateTy = cudaq::cc::PointerType::get(
+            quake::StateType::get(builder.getContext()));
+        if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(stdvec.getType())) {
+          auto dataTy = cudaq::cc::PointerType::get(stdvecTy.getElementType());
+          Value data =
+              builder.create<cudaq::cc::StdvecDataOp>(loc, dataTy, stdvec);
+          auto i64Ty = builder.getI64Type();
+          Value size =
+              builder.create<cudaq::cc::StdvecSizeOp>(loc, i64Ty, stdvec);
+          return pushValue(builder.create<quake::CreateStateOp>(
+              loc, stateTy, ValueRange{data, size}));
+        }
+        if (auto alloc = stdvec.getDefiningOp<cudaq::cc::AllocaOp>()) {
+          Value size = alloc.getSeqSize();
+          return pushValue(builder.create<quake::CreateStateOp>(
+              loc, stateTy, ValueRange{alloc, size}));
+        }
+        TODO_loc(loc, "unhandled state constructor");
+        return false;
+      }
+
       // lambda determines: is `t` a cudaq::state* ?
       auto isStateType = [&](Type t) {
         if (auto ptrTy = dyn_cast<cc::PointerType>(t))
@@ -2925,9 +2966,17 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
       if (ctorName == "qudit") {
         auto initials = popValue();
+        if (isa<quake::StateType>(initials.getType()))
+          if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
+            initials = load.getPtrvalue();
         if (isStateType(initials.getType())) {
-          TODO_x(loc, x, mangler, "qudit(state) ctor");
-          return false;
+          Value alloca = builder.create<quake::AllocaOp>(loc);
+          auto veq1Ty = quake::VeqType::get(builder.getContext(), 1);
+          Value initSt = builder.create<quake::InitializeStateOp>(
+              loc, veq1Ty, ValueRange{alloca, initials});
+          if (auto initOp = initials.getDefiningOp<quake::CreateStateOp>())
+            builder.create<quake::DeleteStateOp>(loc, initOp);
+          return pushValue(builder.create<quake::ExtractRefOp>(loc, initSt, 0));
         }
         bool ok = false;
         if (auto ptrTy = dyn_cast<cc::PointerType>(initials.getType()))
@@ -2953,10 +3002,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           return pushValue(builder.create<quake::AllocaOp>(
               loc, quake::VeqType::getUnsized(ctx), initials));
         }
-        if (isa<quake::StateType>(initials.getType())) {
+        if (isa<quake::StateType>(initials.getType()))
           if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
             initials = load.getPtrvalue();
-        }
         if (isStateType(initials.getType())) {
           Value state = initials;
           auto i64Ty = builder.getI64Type();
@@ -2964,46 +3012,16 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
               builder.create<quake::GetNumberOfQubitsOp>(loc, i64Ty, state);
           auto veqTy = quake::VeqType::getUnsized(ctx);
           Value alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
-          return pushValue(builder.create<quake::InitializeStateOp>(
-              loc, veqTy, alloc, state));
+          Value initSt = builder.create<quake::InitializeStateOp>(loc, veqTy,
+                                                                  alloc, state);
+          if (auto initOp = initials.getDefiningOp<quake::CreateStateOp>())
+            builder.create<quake::DeleteStateOp>(loc, initOp);
+          return pushValue(initSt);
         }
-        // Otherwise, it is the cudaq::qvector(std::vector<complex>) ctor.
-        Value numQubits;
-        Type initialsTy = initials.getType();
-        if (auto ptrTy = dyn_cast<cc::PointerType>(initialsTy)) {
-          if (auto arrTy = dyn_cast<cc::ArrayType>(ptrTy.getElementType())) {
-            if (arrTy.isUnknownSize()) {
-              if (auto allocOp = initials.getDefiningOp<cc::AllocaOp>())
-                if (auto size = allocOp.getSeqSize())
-                  numQubits =
-                      builder.create<math::CountTrailingZerosOp>(loc, size);
-            } else {
-              std::size_t arraySize = arrTy.getSize();
-              if (!std::has_single_bit(arraySize)) {
-                reportClangError(x, mangler,
-                                 "state vector must be a power of 2 in length");
-              }
-              numQubits = builder.create<arith::ConstantIntOp>(
-                  loc, std::countr_zero(arraySize), 64);
-            }
-          }
-        } else if (auto stdvecTy = dyn_cast<cc::StdvecType>(initialsTy)) {
-          Value vecLen = builder.create<cc::StdvecSizeOp>(
-              loc, builder.getI64Type(), initials);
-          numQubits = builder.create<math::CountTrailingZerosOp>(loc, vecLen);
-          auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
-          initials = builder.create<cc::StdvecDataOp>(loc, ptrTy, initials);
-        }
-        if (!numQubits) {
-          reportClangError(
-              x, mangler,
-              "internal error: could not determine the number of qubits");
-          return false;
-        }
-        auto veqTy = quake::VeqType::getUnsized(ctx);
-        auto alloc = builder.create<quake::AllocaOp>(loc, veqTy, numQubits);
-        return pushValue(builder.create<quake::InitializeStateOp>(
-            loc, veqTy, alloc, initials));
+        reportClangError(
+            x, mangler,
+            "internal error: could not determine the number of qubits");
+        return false;
       }
       if ((ctorName == "qspan" || ctorName == "qview") &&
           isa<quake::VeqType>(peekValue().getType())) {

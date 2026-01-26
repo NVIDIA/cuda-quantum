@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -81,6 +81,8 @@ inline mlir::Type getPointerType(mlir::Type ty) {
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 mlir::Type genArgumentBufferType(mlir::Type ty);
+
+bool isStlVectorBoolHostType(mlir::Type ty);
 
 /// Build an LLVM struct type with all the arguments and then all the results.
 /// If the type is a std::vector, then add an i64 to the struct for the
@@ -191,6 +193,9 @@ std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
 
 /// Return the floating point value if \p v is a floating-point constant.
 std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
+/// Is \p v defined by a `ConstantLike` `Operation`?
+bool isConstantOp(mlir::Value v);
 
 /// Create a temporary on the stack. The temporary is created such that it is
 /// \em{not} control dependent (other than on function entry).

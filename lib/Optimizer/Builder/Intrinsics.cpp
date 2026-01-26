@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -21,11 +21,22 @@ using namespace mlir;
 // Strings that are longer than this length will be hashed to MD5 names to avoid
 // unnecessarily long symbol names. (This is a hidden command line option, so
 // that hashing issues can be easily worked around.)
-static llvm::cl::opt<std::size_t> nameLengthHashSize(
-    "length-to-hash-string-literal",
-    llvm::cl::desc("string literals that exceed this length will use a hash "
-                   "value as their symbol name"),
-    llvm::cl::init(32));
+namespace {
+struct CLOptions {
+  llvm::cl::opt<std::size_t> nameLengthHashSize{
+      "length-to-hash-string-literal",
+      llvm::cl::desc("string literals that exceed this length will use a hash "
+                     "value as their symbol name"),
+      llvm::cl::init(32)};
+};
+} // namespace
+
+static llvm::ManagedStatic<CLOptions> clOptions;
+
+void cudaq::opt::builder::registerCUDAQBuilderCLOptions() {
+  // Initialize the command-line options lazily.
+  *clOptions;
+}
 
 static constexpr std::size_t DefaultPrerequisiteSize = 4;
 
@@ -242,7 +253,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
-
+    {cudaq::runtime::cleanupArrays, {}, R"#(
+  func.func private @__nvqpp_cleanup_arrays() -> ()
+)#"},
     {"__nvqpp_createDynamicResult",
      /* arguments:
           arg0: original buffer ptr
@@ -302,11 +315,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
-    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
-    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
 
     {cudaq::deleteCudaqState, {}, R"#(
@@ -427,7 +446,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__array_record_output(i64, !cc.ptr<i8>)
 )#"},
     {cudaq::opt::QIRBoolRecordOutput, {}, R"#(
-  func.func private @__quantum__rt__bool_record_output(i1, !cc.ptr<i8>)
+  func.func private @__quantum__rt__bool_record_output(i1 {llvm.zeroext}, !cc.ptr<i8>)
 )#"},
     {cudaq::opt::QIRDoubleRecordOutput, {}, R"#(
   func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
@@ -663,7 +682,7 @@ LLVM::GlobalOp IRBuilder::genCStringLiteral(Location loc, ModuleOp module,
 std::string IRBuilder::hashStringByContent(StringRef sref) {
   // For shorter names just use the string content in hex. (Consider replacing
   // this with a more compact, readable base-64 encoding.)
-  if (sref.size() <= nameLengthHashSize)
+  if (sref.size() <= clOptions->nameLengthHashSize)
     return llvm::toHex(sref);
 
   // Use an MD5 hash for long cstrings. This can produce collisions between

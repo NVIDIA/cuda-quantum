@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,7 +15,7 @@
 
 namespace cudaq {
 
-enum struct QirVersion { version_0_1, version_0_2 };
+enum struct QirVersion { version_0_1, version_1_0 };
 
 /// @brief `Codegen` configuration.
 /// Note: it is currently flattened to contain all possible options
@@ -52,7 +52,7 @@ struct CodeGenConfig {
 
 /// @brief Helper to parse `codegen` translation, with optional feature
 /// annotation.
-/// e.g., `qir-adaptive:0.2:int_computations,float_computations`.
+/// e.g., `qir-adaptive:1.0:int_computations,float_computations`.
 /// Handles errors and returns structured configuration.
 CodeGenConfig parseCodeGenTranslation(const std::string &codegenTranslation);
 } // namespace cudaq

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -68,7 +68,14 @@ public:
         // Substitutions are in a text file (command-line usage).
         return parseSourceFile<ModuleOp>(text, ctx);
       }();
-      assert(*substMod && "module must have been created");
+      if (!*substMod) {
+        // The substition module may be invalid because the arguments being
+        // provided are incorrect. This should not happen in C++ (as it is
+        // strongly typed), but it may happen in other front ends.
+        func.emitError("substitution module must have been created");
+        signalPassFailure();
+        return;
+      }
 
       // 2. Go through the Module and process each substitution.
       SmallVector<bool> processedArgs(func.getFunctionType().getNumInputs());
@@ -142,8 +149,11 @@ public:
       }
 
       // 4. Finish specializing func and erase any of func's arguments that were
-      // substituted.
-      func.eraseArguments(replacedArgs);
+      // substituted. Erasing the arguments changes the calling semantics and
+      // breaks all calls to `func`. This practice is unnecessary and highly
+      // discouraged.
+      if (changeSemantics)
+        func.eraseArguments(replacedArgs);
     }
   }
 };
@@ -154,11 +164,12 @@ public:
 // pipeline easier from within a tool (such as the JIT compiler).
 std::unique_ptr<mlir::Pass>
 cudaq::opt::createArgumentSynthesisPass(ArrayRef<StringRef> funcNames,
-                                        ArrayRef<StringRef> substitutions) {
+                                        ArrayRef<StringRef> substitutions,
+                                        bool changeSemantics) {
   SmallVector<std::string> pairs;
   if (funcNames.size() == substitutions.size())
     for (auto [name, text] : llvm::zip(funcNames, substitutions))
       pairs.emplace_back(name.str() + ":*" + text.str());
   return std::make_unique<ArgumentSynthesisPass>(
-      ArgumentSynthesisOptions{pairs});
+      ArgumentSynthesisOptions{pairs, changeSemantics});
 }

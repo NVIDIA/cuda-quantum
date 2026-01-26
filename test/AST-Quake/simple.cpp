@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,6 @@
 
 // Simple test to make sure the tool is built and has basic functionality.
 
-// REQUIRES: c++20
 // RUN: cudaq-quake --emit-llvm-file %s | cudaq-opt | FileCheck %s && FileCheck --check-prefix=LLVM %s < simple.ll
 
 #include <cudaq.h>

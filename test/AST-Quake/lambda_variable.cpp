@@ -1,16 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// The source code in this test uses concepts, a C++20 language feature, and 
-// hence is not expected to compile as C++17. The REQUIRES line below reflects this.
-
-// REQUIRES: c++20
-// RUN: cudaq-quake %cpp_std %s | FileCheck %s
+// RUN: cudaq-quake %s | FileCheck %s
 
 // Test lambdas that are created within kernels and passed to user-defined
 // kernels as an argument. Since the lambda is an argument, it is not possible

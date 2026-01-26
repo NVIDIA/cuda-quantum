@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -59,8 +59,26 @@ public:
     auto newStackSlot = casted.getValue().getDefiningOp<cudaq::cc::AllocaOp>();
     if (!newStackSlot)
       return failure();
-    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
-        newStackSlot, newStackSlot.getType(), analysis.copyFrom.getOperand(1));
+    auto source =
+        analysis.copyFrom.getOperand(1).getDefiningOp<cudaq::cc::CastOp>();
+    if (!source)
+      return failure();
+    auto globalConst =
+        source.getValue().getDefiningOp<cudaq::cc::AddressOfOp>();
+    if (globalConst) {
+      auto ip = rewriter.saveInsertionPoint();
+      rewriter.setInsertionPointAfter(analysis.copyFrom);
+      auto loaded = rewriter.create<cudaq::cc::LoadOp>(
+          analysis.copyFrom.getLoc(), globalConst);
+      rewriter.setInsertionPointAfter(analysis.copyTo);
+      rewriter.create<cudaq::cc::StoreOp>(analysis.copyTo.getLoc(), loaded,
+                                          newStackSlot);
+      rewriter.restoreInsertionPoint(ip);
+    } else {
+      rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
+          newStackSlot, newStackSlot.getType(),
+          analysis.copyFrom.getOperand(1));
+    }
     rewriter.eraseOp(analysis.copyFrom);
     rewriter.eraseOp(analysis.copyTo);
     rewriter.eraseOp(analysis.freeMem);

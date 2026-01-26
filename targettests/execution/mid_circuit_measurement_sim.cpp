@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // Simulators
-// RUN: nvq++ %cpp_std --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 
 #include "mid_circuit_measurement.inc"
 

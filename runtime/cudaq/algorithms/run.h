@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -45,7 +45,8 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
                            const std::string &kernel_name,
                            const std::string &original_name, std::size_t shots,
-                           std::size_t qpu_id = 0);
+                           std::size_t qpu_id = 0,
+                           /* mlir::Operation* */ void *opt_module = nullptr);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
@@ -98,15 +99,6 @@ void (*get_run_entry_point(qkernel<R(As...)>, const std::string &name))(As...) {
 
 } // namespace details
 
-#if CUDAQ_USE_STD20
-// Type checking helper.
-template <typename T>
-struct isVectorType : std::false_type {};
-
-template <typename T, typename A>
-struct isVectorType<std::vector<T, A>> : std::true_type {};
-#endif
-
 /// @brief Run a kernel \p shots number of times and return a `std::vector` of
 /// results.
 /// @tparam QuantumKernel Quantum kernel type (must return a non-void result)
@@ -116,12 +108,8 @@ struct isVectorType<std::vector<T, A>> : std::true_type {};
 /// @param ...args Kernel arguments
 /// @return A vector of results
 template <typename QuantumKernel, typename... ARGS>
-#if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                                std::decay_t<ARGS>...>> &&
-           !isVectorType<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                              std::decay_t<ARGS>...>>::value)
-#endif
+                                                std::decay_t<ARGS>...>>)
 std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
 run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
@@ -165,12 +153,8 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
 /// @param ...args Kernel arguments
 /// @return A vector of results
 template <typename QuantumKernel, typename... ARGS>
-#if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                                std::decay_t<ARGS>...>> &&
-           !isVectorType<std::invoke_result_t<std::decay_t<QuantumKernel>,
-                                              std::decay_t<ARGS>...>>::value)
-#endif
+                                                std::decay_t<ARGS>...>>)
 std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
 run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
@@ -223,10 +207,8 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 /// @param ...args Kernel arguments
 /// @return A handle (`std::future`) to a vector of results
 template <typename QuantumKernel, typename... ARGS>
-#if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
                                                 std::decay_t<ARGS>...>>)
-#endif
 std::future<std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>>
 run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
@@ -242,7 +224,6 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
       std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
   std::promise<std::vector<ResultTy>> promise;
   auto fut = promise.get_future();
-#if CUDAQ_USE_STD20
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), qpu_id, shots, &platform, &kernel,
        ... args = std::forward<ARGS>(args)]() mutable {
@@ -253,7 +234,7 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
           platform.set_exec_ctx(ctx.get());
@@ -275,48 +256,6 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         p.set_value(std::move(results));
 #endif
       });
-#else
-  QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), qpu_id, shots, &platform, &kernel,
-       args = std::make_tuple(std::forward<ARGS>(args)...)]() mutable {
-        if (shots == 0) {
-          p.set_value({});
-          return;
-        }
-#ifdef CUDAQ_LIBRARY_MODE
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
-        // Direct kernel invocation loop for library mode
-        std::vector<ResultTy> res;
-        res.reserve(shots);
-        for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(std::apply(
-              [&kernel](ARGS &&...args) {
-                return kernel(std::forward<ARGS>(args)...);
-              },
-              std::move(args)));
-          platform.reset_exec_ctx();
-        }
-        p.set_value(std::move(res));
-#else
-        const std::string kernelName{details::getKernelName(kernel)};
-        details::RunResultSpan span = details::runTheKernel(
-            [&]() mutable {
-              std::apply(
-                  [&kernel, kernelName](ARGS &&...args) {
-                    auto *runKernel = details::get_run_entry_point(
-                        qkernel{kernel}, kernelName);
-                    (*runKernel)(std::forward<ARGS>(args)...);
-                  },
-                  std::move(args));
-            },
-            platform, kernelName, kernelName, shots, qpu_id);
-        std::vector<ResultTy> results;
-        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
-        p.set_value(std::move(results));
-#endif
-      });
-#endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return fut;
 }
@@ -332,10 +271,8 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 /// @param ...args Kernel arguments
 /// @return A handle (`std::future`) to a vector of results
 template <typename QuantumKernel, typename... ARGS>
-#if CUDAQ_USE_STD20
   requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>,
                                                 std::decay_t<ARGS>...>>)
-#endif
 std::future<std::vector<
     std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>>
 run_async(std::size_t qpu_id, std::size_t shots,
@@ -355,7 +292,6 @@ run_async(std::size_t qpu_id, std::size_t shots,
       std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>;
   std::promise<std::vector<ResultTy>> promise;
   auto fut = promise.get_future();
-#if CUDAQ_USE_STD20
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), qpu_id, shots, &noise_model, &platform, &kernel,
        ... args = std::forward<ARGS>(args)]() mutable {
@@ -363,11 +299,10 @@ run_async(std::size_t qpu_id, std::size_t shots,
           p.set_value({});
           return;
         }
-        assert(platform.get_current_qpu() == qpu_id);
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
         std::vector<ResultTy> res;
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
@@ -393,53 +328,6 @@ run_async(std::size_t qpu_id, std::size_t shots,
         p.set_value(std::move(results));
 #endif
       });
-#else
-  QuantumTask wrapped = detail::make_copyable_function(
-      [p = std::move(promise), qpu_id, shots, &noise_model, &platform, &kernel,
-       args = std::make_tuple(std::forward<ARGS>(args)...)]() mutable {
-        if (shots == 0) {
-          p.set_value({});
-          return;
-        }
-        assert(platform.get_current_qpu() == qpu_id);
-#ifdef CUDAQ_LIBRARY_MODE
-        // Direct kernel invocation loop for library mode
-        platform.set_noise(&noise_model);
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
-        std::vector<ResultTy> res;
-        res.reserve(shots);
-        for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(std::apply(
-              [&kernel](ARGS &&...args) {
-                return kernel(std::forward<ARGS>(args)...);
-              },
-              std::move(args)));
-          platform.reset_exec_ctx();
-        }
-        platform.reset_noise();
-        p.set_value(std::move(res));
-#else
-        platform.set_noise(&noise_model);
-        const std::string kernelName{details::getKernelName(kernel)};
-        details::RunResultSpan span = details::runTheKernel(
-            [&]() mutable {
-              std::apply(
-                  [&kernel, kernelName](ARGS &&...args) {
-                    auto *runKernel = details::get_run_entry_point(
-                        qkernel{kernel}, kernelName);
-                    (*runKernel)(std::forward<ARGS>(args)...);
-                  },
-                  std::move(args));
-            },
-            platform, kernelName, kernelName, shots, qpu_id);
-        platform.reset_noise();
-        std::vector<ResultTy> results;
-        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
-        p.set_value(std::move(results));
-#endif
-      });
-#endif
   platform.enqueueAsyncTask(qpu_id, wrapped);
   return fut;
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -359,6 +359,9 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       if (!cudaq::cc::isDynamicType(eleTy))
         tySize = irb.getByteSizeOfType(loc, eleTy);
       if (!tySize) {
+        // TODO: we need to recursively create copies of all
+        // dynamic memory used within the type. See the
+        // implementation of `visit_Return` in the Python bridge.
         TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
         return false;
       }
