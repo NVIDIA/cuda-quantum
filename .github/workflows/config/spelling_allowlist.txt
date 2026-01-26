@@ -177,9 +177,9 @@ centroids
 codebase
 comparator
 comparators
-config
 composability
 composable
+config
 constructible
 controlled
 coprocessing
