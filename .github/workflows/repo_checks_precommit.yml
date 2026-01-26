@@ -39,6 +39,7 @@ jobs:
         uses: ./.github/actions/setup-precommit
         with:
           cache-key-suffix: formatting
+          # No extra tools needed - pre-commit provides clang-format/yapf
 
       - name: Run formatting checks
         run: |
@@ -68,12 +69,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1  # Shallow clone - runs on all files, no git diff needed
 
       - name: Setup pre-commit
         uses: ./.github/actions/setup-precommit
         with:
           cache-key-suffix: license
+          install-go: 'true'  # For license-eye
 
       - name: Run license header checks
         run: |
@@ -105,6 +107,7 @@ jobs:
         uses: ./.github/actions/setup-precommit
         with:
           cache-key-suffix: spelling
+          install-aspell: 'true'  # For spell checking
 
       - name: Run spell checks
         run: |
@@ -140,6 +143,7 @@ jobs:
         uses: ./.github/actions/setup-precommit
         with:
           cache-key-suffix: links
+          install-node: 'true'  # For markdown-link-check
 
       - name: Run link checks
         run: |

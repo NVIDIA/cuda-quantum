@@ -13,6 +13,15 @@ inputs:
   cache-key-suffix:
     description: 'Suffix for the pre-commit cache key (e.g., formatting, spelling)'
     required: true
+  install-aspell:
+    description: 'Install aspell for spellchecking'
+    default: 'false'
+  install-node:
+    description: 'Install Node.js and markdown-link-check'
+    default: 'false'
+  install-go:
+    description: 'Install Go and license-eye'
+    default: 'false'
 
 outputs:
   mode:
@@ -46,7 +55,8 @@ runs:
 
     # ========== Apt Packages (aspell for spellchecking) ==========
     # Note: clang-format is provided by pre-commit's mirrors-clang-format, no system install needed
-    - name: Install system dependencies
+    - name: Install system dependencies (aspell)
+      if: inputs.install-aspell == 'true'
       shell: bash
       run: |
         sudo apt-get update && sudo apt-get install -y --no-install-recommends \
@@ -55,11 +65,13 @@ runs:
 
     # ========== Node.js & npm packages ==========
     - name: Set up Node.js
+      if: inputs.install-node == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '20'
 
     - name: Cache npm packages
+      if: inputs.install-node == 'true'
       uses: actions/cache@v4
       with:
         path: ~/.npm
@@ -68,17 +80,20 @@ runs:
           npm-markdown-link-check-
 
     - name: Install markdown-link-check
+      if: inputs.install-node == 'true'
       shell: bash
       run: npm install -g markdown-link-check
 
     # ========== Go (for license-eye) ==========
     - name: Set up Go
+      if: inputs.install-go == 'true'
       uses: actions/setup-go@v5
       with:
         go-version: '1.21'
         cache: false
 
     - name: Cache Go modules
+      if: inputs.install-go == 'true'
       uses: actions/cache@v4
       with:
         path: |
