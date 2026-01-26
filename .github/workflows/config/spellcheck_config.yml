@@ -110,8 +110,8 @@ matrix:
 
 - name: html
   sources:
-  # Exclude third-party code (tpls/)
-  - '**/*.html|!tpls/**/*.html'
+  # Exclude third-party code (tpls/) and auto-generated templates
+  - '**/*.html|!tpls/**/*.html|!docs/sphinx/_templates/**/*.html'
   glob_flags: N|G|B
   expect_match: true
   aspell:
