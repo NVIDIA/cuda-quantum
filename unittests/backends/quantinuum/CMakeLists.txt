@@ -12,7 +12,7 @@ configure_file(QuantinuumStartServerAndTest.sh.in QuantinuumStartServerAndTest.s
 set(BACKEND_CONFIG "quantinuum emulate=false url=http://localhost:62440 credentials=FakeCppQuantinuum.config project=mock_project_id")
 
 add_backend_unittest_executable(test_quantinuum 
-  SOURCES QuantinuumTester.cpp QuantinuumNGTester.cpp
+  SOURCES QuantinuumTester.cpp
   BACKEND quantinuum
   BACKEND_CONFIG ${BACKEND_CONFIG}
 )
@@ -27,7 +27,16 @@ add_backend_unittest_executable(test_quantinuum_emulation
 )
 add_test(NAME quantinuum-emulation-tests COMMAND bash QuantinuumStartServerAndTest.sh test_quantinuum_emulation WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
- # Extra payload test
+# Machine=Helios-SC
+string(CONCAT BACKEND_CONFIG ${BACKEND_CONFIG} " machine=Helios-SC")
+add_backend_unittest_executable(test_quantinuum_ng
+  SOURCES QuantinuumNGTester.cpp
+  BACKEND quantinuum
+  BACKEND_CONFIG ${BACKEND_CONFIG}
+)
+add_test(NAME quantinuum-tests-ng COMMAND bash QuantinuumStartServerAndTest.sh test_quantinuum_ng WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+ # Machine=Helios-SC + extra payload test
 string(CONCAT BACKEND_CONFIG ${BACKEND_CONFIG} " extra_payload_provider=dummy")
 add_backend_unittest_executable(test_quantinuum_payload
   SOURCES QuantinuumPayloadTester.cpp
@@ -43,9 +52,10 @@ add_test(NAME quantinuum-tests-nvqpp COMMAND bash QuantinuumStartServerAndTestNv
 
 # Tests are sharing the same port
 set_tests_properties(
-  quantinuum-tests 
-  quantinuum-emulation-tests 
-  quantinuum-tests-payload 
+  quantinuum-tests
+  quantinuum-emulation-tests
+  quantinuum-tests-ng
+  quantinuum-tests-payload
   quantinuum-tests-nvqpp
   PROPERTIES RESOURCE_LOCK "quantinuum_port")
 

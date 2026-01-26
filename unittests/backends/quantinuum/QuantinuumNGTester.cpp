@@ -203,3 +203,9 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     EXPECT_EQ(counts.count("11111111"), numShots);
   }
 }
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  auto ret = RUN_ALL_TESTS();
+  return ret;
+}
