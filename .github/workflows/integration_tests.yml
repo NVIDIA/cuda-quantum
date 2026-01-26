@@ -383,6 +383,8 @@ jobs:
               ;;
             qibo)
               echo "### Setting up Qibo account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.QIBO_AUTH_TOKEN }}"
+              echo "QIBO_AUTH_TOKEN=${{ secrets.QIBO_AUTH_TOKEN }}" >> $GITHUB_ENV
               ;;
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
