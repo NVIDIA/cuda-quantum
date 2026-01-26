@@ -190,7 +190,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "qibo", "quantinuum"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -262,6 +262,9 @@ jobs:
                 ;;
               qci)
                 filelist="targettests/qci/*.cpp"
+                ;;
+              qibo)
+                filelist="targettests/qibo/*.cpp"
                 ;;
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
@@ -377,6 +380,9 @@ jobs:
               echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.QCI_AUTH_TOKEN }}"
               echo "QCI_AUTH_TOKEN=${{ secrets.QCI_AUTH_TOKEN }}" >> $GITHUB_ENV
+              ;;
+            qibo)
+              echo "### Setting up Qibo account" >> $GITHUB_STEP_SUMMARY
               ;;
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
@@ -580,6 +586,7 @@ jobs:
                   test_skip_sum=$((test_skip_sum+1))
                 fi
                 ;;
+
               pasqal)
                 if [[ "$filename" == *.cpp ]]; then
                   nvq++ --target pasqal --pasqal-machine $PASQAL_MACHINE_TARGET $filename
@@ -615,6 +622,24 @@ jobs:
 
               qci)
                 nvq++ -v $filename --target qci
+                test_status=$?
+                if [ $test_status -eq 0 ]; then
+                  ./a.out
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_err_sum=$((test_err_sum+1))
+                fi
+                ;;
+
+              qibo)
+                nvq++ -v $filename --target qibo
                 test_status=$?
                 if [ $test_status -eq 0 ]; then
                   ./a.out
