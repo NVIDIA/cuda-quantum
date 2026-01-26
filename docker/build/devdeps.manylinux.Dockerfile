@@ -48,7 +48,8 @@ ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
         gcc_version=`echo $toolchain | grep -o '[0-9]*'` && \
         if [ -z "$(which gcc 2> /dev/null | grep $gcc_version)" ]; then \
-            dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-$gcc_version && \
+            # Using releasever=8.9: boost packages missing from 8.10 mirrors for aarch64
+            dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9 gcc-toolset-$gcc_version && \
             enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
         fi && \
         CC="$(which gcc)" && CXX="$(which g++)"; \
