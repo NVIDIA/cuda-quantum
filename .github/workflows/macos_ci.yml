@@ -111,10 +111,10 @@ jobs:
           du -sh ~/.llvm-project || true
 
   # ============================================================================
-  # Build CUDA-Q (shared by test and installer jobs)
+  # Build and test CUDA-Q
   # ============================================================================
-  build:
-    name: Build (${{ matrix.runner }})
+  build_and_test:
+    name: Build & Test (${{ matrix.runner }})
     needs: [metadata, devdeps]
     strategy:
       matrix:
@@ -127,10 +127,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 180
     env:
-      # Minimum supported macOS version determined from CI testing (13.0 Ventura)
       MACOSX_DEPLOYMENT_TARGET: '13.0'
-    outputs:
-      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -166,83 +163,6 @@ jobs:
 
       - name: Build CUDA-Q
         run: bash scripts/build_cudaq.sh -v
-
-      - name: Determine version
-        id: version
-        run: |
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
-          else
-            cudaq_version=0.0.0
-          fi
-          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
-          echo "Build version: $cudaq_version"
-
-      - name: Upload build directory (for test job)
-        run: tar -cf build.tar build/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cudaq-build-tar-${{ matrix.arch }}
-          path: build.tar
-          retention-days: 1
-          if-no-files-found: error
-
-      - name: Upload install directory (for installer job)
-        run: tar -cf install.tar -C ~ .cudaq/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: cudaq-install-tar-${{ matrix.arch }}
-          path: install.tar
-          retention-days: 1
-          if-no-files-found: error
-
-  # ============================================================================
-  # Test CUDA-Q (runs in parallel with installer)
-  # ============================================================================
-  test:
-    name: Test (${{ matrix.runner }})
-    needs: [metadata, devdeps, build]
-    strategy:
-      matrix:
-        include:
-          - runner: macos-26
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x86_64
-      fail-fast: false
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    env:
-      MACOSX_DEPLOYMENT_TARGET: '13.0'
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Restore prerequisites cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.local
-            ~/.llvm-project
-          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
-          fail-on-cache-miss: true
-
-      - name: Download build directory
-        uses: actions/download-artifact@v4
-        with:
-          name: cudaq-build-tar-${{ matrix.arch }}
-      - run: tar -xf build.tar
-
-      - name: Install Python dependencies
-        run: pip install -r requirements-dev.txt
 
       - name: Run tests
         run: bash scripts/run_tests.sh -v
@@ -406,11 +326,10 @@ jobs:
 
   # ============================================================================
   # Build self-extracting installer for C++ SDK
-  # Uses pre-built CUDA-Q from build job (downloads build.tar, runs ninja install)
   # ============================================================================
   installer:
     name: Installer (${{ matrix.runner }})
-    needs: build
+    needs: [metadata, devdeps]
     strategy:
       matrix:
         include:
@@ -420,24 +339,65 @@ jobs:
             arch: x86_64
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 120
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    outputs:
+      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install makeself
-        run: brew install makeself
-
-      - name: Download install directory
-        uses: actions/download-artifact@v4
         with:
-          name: cudaq-install-tar-${{ matrix.arch }}
-      - run: tar -xf install.tar -C ~
+          submodules: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Restore prerequisites cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.local
+            ~/.llvm-project
+          key: ${{ matrix.runner }}-devdeps-v4-${{ needs.metadata.outputs.llvm_commit }}
+          fail-on-cache-miss: true
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          brew install makeself
+
+      - name: Build MLIR Python bindings
+        run: |
+          source scripts/set_env_defaults.sh
+          
+          # Incremental rebuild: add python-bindings to cached LLVM build
+          Python3_EXECUTABLE="$(which python3)" \
+          LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
+          LLVM_SOURCE="$HOME/.llvm-project" \
+          bash scripts/build_llvm.sh -c Release -v
+
+      - name: Build CUDA-Q
+        run: bash scripts/build_cudaq.sh -v
+
+      - name: Determine version
+        id: version
+        run: |
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if ${is_versioned}; then
+            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          else
+            cudaq_version=0.0.0
+          fi
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+          echo "Building installer version: $cudaq_version"
 
       - name: Build installer
         run: |
           source scripts/set_env_defaults.sh
-          bash scripts/build_installer.sh -v -V ${{ needs.build.outputs.cudaq_version }}
+          bash scripts/build_installer.sh -v -V ${{ steps.version.outputs.cudaq_version }}
           
           # List output
           ls -la out/
