@@ -368,11 +368,9 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
 
   // Helper to compute the state idx within the batch for distributed mode
   const auto getDistributedGlobalIdx = [](int localIdx, int batchSize) {
-    // MPI rank info is static during the program execution
-    static const auto mpiNumRanks =
+    const auto mpiNumRanks =
         dynamics::Context::getCurrentContext()->getNumRanks();
-    static const auto mpiRank =
-        dynamics::Context::getCurrentContext()->getRank();
+    const auto mpiRank = dynamics::Context::getCurrentContext()->getRank();
     const auto statesPerRank = batchSize / mpiNumRanks;
     return mpiRank * statesPerRank + localIdx;
   };
@@ -409,7 +407,7 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
             intermediateStates[i].emplace_back(states[i]);
           }
         } else {
-          for (int i = 0; i < states.size(); ++i) {
+          for (int i = 0; i < numLocalStates; ++i) {
             const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
             if (globalIdx < batchSize) {
               intermediateStates[globalIdx].emplace_back(states[i]);
@@ -426,7 +424,7 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
   if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     std::vector<evolve_result> results;
     // Note: In distributed mode, each rank only has local states.
-    // Hence, only return results only for the states this rank holds.
+    // Hence, return results only for the states this rank holds.
     for (int i = 0; i < batchSize; ++i) {
       // Skip if we don't have the data
       if (intermediateStates[i].empty())
@@ -444,32 +442,47 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
     // states held by this rank. The number of split states may be less than
     // batch_size.
     assert(states.size() <= batchSize);
-    const auto numLocalStates = states.size();
-    if (storeIntermediateResults ==
-        cudaq::IntermediateResultSave::ExpectationValue) {
-      std::vector<evolve_result> results;
 
+    // Helper to construct results based on distribution mode (distributed or
+    // non-distributed)
+    const auto constructResults =
+        [batchSize, getDistributedGlobalIdx](
+            const auto &states,
+            const auto &expVals) -> std::vector<evolve_result> {
+      const auto numLocalStates = states.size();
+      std::vector<evolve_result> results;
       if (numLocalStates == batchSize) {
         // Non-distributed mode: all states are local
         for (int i = 0; i < batchSize; ++i) {
           results.emplace_back(
-              evolve_result({cudaq::state(states[i])}, expectationVals[i]));
+              evolve_result({cudaq::state(states[i])}, expVals[i]));
         }
       } else {
         // Distributed mode: each rank contains only a subset of batch data.
-        for (int i = 0; i < states.size(); ++i) {
+        for (int i = 0; i < numLocalStates; ++i) {
           const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
           if (globalIdx < batchSize) {
-            results.emplace_back(evolve_result({cudaq::state(states[i])},
-                                               expectationVals[globalIdx]));
+            results.emplace_back(
+                evolve_result({cudaq::state(states[i])}, expVals[globalIdx]));
           }
         }
       }
 
       return results;
+    };
+
+    if (storeIntermediateResults ==
+        cudaq::IntermediateResultSave::ExpectationValue) {
+      // Construct results with only final states and all expectation values
+      // (including intermediate expectation values)
+      return constructResults(states, expectationVals);
     }
+
+    assert(storeIntermediateResults == cudaq::IntermediateResultSave::None);
     // Save option is None: only the final state and final expectation value (no
-    // intermediate expectation values) Compute final expectation values
+    // intermediate expectation values).
+
+    // Compute final expectation values
     std::vector<std::vector<double>> expVals(batchSize);
     for (auto &expectation : expectations) {
       expectation.prepare(cudmState->get_impl());
@@ -480,24 +493,8 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
         expVals[i].emplace_back(expVal[i].real());
       }
     }
-    std::vector<evolve_result> results;
-    if (numLocalStates == batchSize) {
-      // Non-distributed mode: all states are local
-      for (int i = 0; i < batchSize; ++i) {
-        results.emplace_back(
-            evolve_result(cudaq::state(states[i]), expVals[i]));
-      }
-    } else {
-      // Distributed mode: each rank contains only a subset of batch data.
-      for (int i = 0; i < states.size(); ++i) {
-        const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
-        if (globalIdx < batchSize) {
-          results.emplace_back(
-              evolve_result({cudaq::state(states[i])}, expVals[globalIdx]));
-        }
-      }
-    }
-    return results;
+    // Construct results with only final states and final expectation values.
+    return constructResults(states, expVals);
   }
 }
 

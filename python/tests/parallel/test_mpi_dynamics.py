@@ -338,7 +338,6 @@ def testMpiBatchedStatesInvalidBatchSize():
     """
     import cupy as cp
 
-    rank = cudaq.mpi.rank()
     num_ranks = cudaq.mpi.num_ranks()
 
     # Simple single-qubit Hamiltonian

@@ -25,7 +25,6 @@ TEST(DynamicsBatchingMpi, checkSaveModes) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
-  const auto rank = cudaq::mpi::rank();
   const auto num_ranks = cudaq::mpi::num_ranks();
 
   // Create 4 distinct initial states
@@ -140,8 +139,8 @@ TEST(DynamicsBatchingMpi, checkDifferentBatchSizes) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
-  const auto rank = cudaq::mpi::rank();
   const auto num_ranks = cudaq::mpi::num_ranks();
+  const auto rank = cudaq::mpi::rank();
 
   // Simple single-qubit Hamiltonian
   cudaq::dimension_map dimensions{{0, 2}};
@@ -261,7 +260,6 @@ TEST(DynamicsBatchingMpi, checkWithCollapseOperators) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
-  const auto rank = cudaq::mpi::rank();
   const auto num_ranks = cudaq::mpi::num_ranks();
 
   // Create 4 distinct initial states
@@ -376,7 +374,6 @@ TEST(DynamicsBatchingMpi, checkTwoQubits) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
-  const auto rank = cudaq::mpi::rank();
   const auto num_ranks = cudaq::mpi::num_ranks();
 
   // Create 4 distinct initial states
@@ -500,7 +497,6 @@ TEST(DynamicsBatchingMpi, checkInvalidBatchSize) {
   EXPECT_TRUE(cudaq::mpi::is_initialized());
   EXPECT_GT(cudaq::mpi::num_ranks(), 1);
 
-  const auto rank = cudaq::mpi::rank();
   const auto num_ranks = cudaq::mpi::num_ranks();
 
   // Create (num_ranks + 1) distinct initial states: this is not divisible by
