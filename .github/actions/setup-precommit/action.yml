@@ -1,0 +1,96 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: 'Setup Pre-commit'
+description: 'Setup all dependencies for pre-commit CI jobs (call after checkout)'
+
+inputs:
+  cache-key-suffix:
+    description: 'Suffix for the pre-commit cache key (e.g., formatting, spelling)'
+    required: true
+
+outputs:
+  mode:
+    description: 'Check mode: "pr" for pull requests, "all" for full checks'
+    value: ${{ steps.files.outputs.mode }}
+  changed-files:
+    description: 'Path to file containing list of changed files (only in PR mode)'
+    value: '/tmp/changed_files.txt'
+
+runs:
+  using: 'composite'
+  steps:
+    # ========== Python & Pre-commit ==========
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install pre-commit
+      shell: bash
+      run: pip install pre-commit
+
+    - name: Cache pre-commit environments
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pre-commit
+        key: pre-commit-${{ inputs.cache-key-suffix }}-${{ hashFiles('.pre-commit-config.yaml') }}-${{ runner.os }}
+        restore-keys: |
+          pre-commit-${{ inputs.cache-key-suffix }}-${{ hashFiles('.pre-commit-config.yaml') }}-
+          pre-commit-${{ inputs.cache-key-suffix }}-
+
+    # ========== Apt Packages (clang-format, aspell) ==========
+    - name: Cache apt packages
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: clang-format-16 aspell aspell-en
+        version: 1.0
+
+    - name: Link clang-format-16
+      shell: bash
+      run: sudo ln -sf /usr/bin/clang-format-16 /usr/bin/clang-format
+
+    # ========== Node.js & npm packages ==========
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Cache npm packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.npm
+        key: npm-markdown-link-check-${{ runner.os }}
+        restore-keys: |
+          npm-markdown-link-check-
+
+    - name: Install markdown-link-check
+      shell: bash
+      run: npm install -g markdown-link-check
+
+    # ========== Go (for license-eye) ==========
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+
+    # ========== File Detection ==========
+    - name: Determine files to check
+      id: files
+      shell: bash
+      run: |
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          base_ref="origin/${{ github.event.pull_request.base.ref }}"
+          changed_files=$(git diff --name-only --diff-filter=d ${base_ref}...HEAD)
+          echo "$changed_files" > /tmp/changed_files.txt
+          echo "mode=pr" >> $GITHUB_OUTPUT
+        else
+          echo "mode=all" >> $GITHUB_OUTPUT
+        fi
