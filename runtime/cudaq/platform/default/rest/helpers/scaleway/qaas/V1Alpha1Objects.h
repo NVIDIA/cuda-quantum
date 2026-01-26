@@ -11,8 +11,9 @@
 #include <string>
 #include <vector>
 
-namespace cudaq::qaas::v1alpha1 {
 using json = nlohmann::json;
+
+namespace cudaq::qaas::v1alpha1 {
 
 struct Platform {
   std::string id;

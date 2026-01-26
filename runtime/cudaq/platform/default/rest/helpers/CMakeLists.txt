@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -21,4 +21,6 @@ add_subdirectory(quantinuum)
 if (CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
   add_subdirectory(quantum_machines)
 endif()
-add_subdirectory(scaleway)
+if (CUDAQ_ENABLE_SCALEWAY_BACKEND)
+  add_subdirectory(scaleway)
+endif()

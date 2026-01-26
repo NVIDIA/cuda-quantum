@@ -1,6 +1,7 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
+ * Copyright 2026 Scaleway                                      *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -8,8 +9,8 @@
 #include "QuantumComputationModel.h"
 
 using json = nlohmann::json;
+using namespace cudaq::qio;
 
-namespace cudaq::qio {
 QuantumComputationModel::QuantumComputationModel(
     std::vector<QuantumProgram> programs)
     : m_programs(std::move(programs)) {}
@@ -24,4 +25,3 @@ json QuantumComputationModel::toJson() const {
       {"programs", programsJson},
   };
 }
-} // namespace cudaq::qio

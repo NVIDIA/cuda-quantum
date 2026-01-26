@@ -1,6 +1,7 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
+ * Copyright 2026 Scaleway                                      *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -8,8 +9,8 @@
 #include "QuantumProgram.h"
 
 using json = nlohmann::json;
+using namespace cudaq::qio;
 
-namespace cudaq::qio {
 QuantumProgram::QuantumProgram(const std::string &serialization,
                                QuantumProgramSerializationFormat serializationFormat,
                                CompressionFormat compressionFormat)
@@ -22,4 +23,3 @@ json QuantumProgram::toJson() const {
           {"serialization_format", m_serializationFormat},
           {"compression_format", m_compressionFormat}};
 }
-} // namespace cudaq::qio

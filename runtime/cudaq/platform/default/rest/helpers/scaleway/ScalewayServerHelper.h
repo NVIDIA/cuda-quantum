@@ -10,13 +10,10 @@
 
 #include "qaas/Qaas.h"
 #include "qio/Qio.h"
-
 #include "common/Logger.h"
 #include "common/ServerHelper.h"
 #include "common/RestClient.h"
-
 #include "nlohmann/json.hpp"
-
 #include <iostream>
 #include <map>
 #include <regex>

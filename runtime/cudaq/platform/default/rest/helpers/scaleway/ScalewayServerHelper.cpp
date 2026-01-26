@@ -1,16 +1,15 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
+ * Copyright 2026 Scaleway                                      *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
 #include "ScalewayServerHelper.h"
 
 using json = nlohmann::json;
-
-namespace cudaq {
+using namespace cudaq; 
 
 // Helper function to get a value from config or return a default
 std::string getValueOrDefault(const BackendConfig &config,
@@ -210,7 +209,5 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
 
   return m_sessionId;
 }
-
-} // namespace cudaq
 
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::ScalewayServerHelper, scaleway)

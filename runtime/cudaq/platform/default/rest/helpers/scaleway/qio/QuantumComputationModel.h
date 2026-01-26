@@ -6,9 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-#include <nlohmann/json.hpp>
-
 #include "QuantumProgram.h"
+#include <nlohmann/json.hpp>
 
 namespace cudaq::qio {
 class QuantumComputationModel {

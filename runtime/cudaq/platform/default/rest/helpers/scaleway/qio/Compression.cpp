@@ -1,6 +1,7 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
+ * Copyright 2026 Scaleway                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -8,7 +9,6 @@
 #include "Compression.h"
 #include "Base64.h"  
 
-namespace cudaq::qio::compression {
 std::string gzipCompress(const std::string &input) {
   z_stream zs{};
   if (deflateInit2(&zs, Z_BEST_COMPRESSION, Z_DEFLATED, 15 + 16, 8,
@@ -80,4 +80,3 @@ std::string base64Encode(const std::string &input) {
 std::string base64Decode(const std::string &input) {
   return base64::from_base64(input);
 }
-} // namespace cudaq::qio::compression

@@ -1,13 +1,15 @@
-/****************************************************************-*- C++ -*-****
+/*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
+ * Copyright 2026 Scaleway                                      *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "V1Alpha1Client.h"
 
-namespace cudaq::qaas::v1alpha1 {
+using namespace cudaq::qaas::v1alpha1;
+
 V1Alpha1Client::V1Alpha1Client(const std::string projectId,
                                 const std::string secretKey, std::string url,
                                 bool secure, bool logging) :
@@ -186,4 +188,3 @@ Model V1Alpha1Client::createModel(const std::string &payload) {
                              std::string(e.what()));
   }
 }
-} // namespace cudaq::qaas::v1alpha1
