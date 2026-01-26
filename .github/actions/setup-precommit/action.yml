@@ -107,9 +107,10 @@ runs:
       shell: bash
       run: |
         if [ "${{ github.event_name }}" == "pull_request" ]; then
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          base_ref="origin/${{ github.event.pull_request.base.ref }}"
-          changed_files=$(git diff --name-only --diff-filter=d ${base_ref}...HEAD)
+          # Fetch base commit (works with shallow clone)
+          git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
+          # Direct diff between base and HEAD (no merge-base needed)
+          changed_files=$(git diff --name-only --diff-filter=d ${{ github.event.pull_request.base.sha }} HEAD)
           echo "$changed_files" > /tmp/changed_files.txt
           echo "mode=pr" >> $GITHUB_OUTPUT
         else
