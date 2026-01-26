@@ -72,6 +72,10 @@ static constexpr const char llvmStackRestore[] = "llvm.stackrestore";
 
 static constexpr const char cudaqConvertToInteger[] =
     "__nvqpp_cudaqConvertToInteger";
+
+static constexpr const char cudaqConvertToBoolVector[] =
+    "__nvqpp_cudaq_to_bool_vector";
+
 /// Builder for lowering the clang AST to an IR for CUDA-Q. Lowering includes
 /// the transformation of both quantum and classical computation. Different
 /// features of the CUDA-Q programming model are lowered into different dialects

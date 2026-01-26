@@ -525,6 +525,16 @@ inline std::int64_t to_integer(const std::string &arg) {
   return std::stoull(bitString, nullptr, 2);
 }
 
+// Convert a vector of `measure_result` to a vector of Boolean values.
+inline std::vector<bool>
+to_bool_vector(const std::vector<measure_result> &results) {
+  std::vector<bool> out;
+  out.reserve(results.size());
+  for (const auto &r : results)
+    out.push_back(static_cast<bool>(r));
+  return out;
+}
+
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
 // `Args`, and returns `void`.
 template <typename Kernel, typename... Args>

@@ -169,6 +169,9 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::IndirectCallableType::get(fnTy));
     }
+    // Measurement result type.
+    if (name == "measure_result")
+      return pushType(quake::MeasureType::get(ctx));
     if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
       auto loc = toLocation(x);
       TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
@@ -817,9 +820,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
-    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
-      mz.setRegisterName(builder.getStringAttr(x->getName()));
+  if (auto mz = initValue.getDefiningOp<quake::MzOp>())
+    mz.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {
