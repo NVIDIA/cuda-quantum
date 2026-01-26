@@ -211,6 +211,7 @@ deserialize
 destructor
 detuning
 deutsch
+devcontainer
 dimensionality
 discoverable
 discretization
@@ -321,6 +322,7 @@ qumode
 qumodes
 reStructuredText
 reconfigurable
+rst
 runtime
 runtimes
 rvalue
@@ -386,6 +388,8 @@ vertices
 vqe
 waveforms
 wavefunction
+whitespace
 workflow
+yapf
 yml
 zener
