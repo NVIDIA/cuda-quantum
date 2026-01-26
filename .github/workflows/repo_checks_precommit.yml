@@ -81,7 +81,7 @@ jobs:
           EXIT_CODE=0
           for hook in $HOOKS; do
             echo "::group::Running hook: $hook"
-            pre-commit run $hook --all-files --hook-stage manual || EXIT_CODE=$?
+            pre-commit run $hook --all-files --hook-stage pre-push || EXIT_CODE=$?
             echo "::endgroup::"
           done
           exit $EXIT_CODE
@@ -107,18 +107,7 @@ jobs:
 
       - name: Run spell checks
         run: |
-          HOOKS="spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python"
-          EXIT_CODE=0
-          for hook in $HOOKS; do
-            echo "::group::Running hook: $hook"
-            if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
-              cat ${{ steps.setup.outputs.changed-files }} | xargs -r pre-commit run $hook --hook-stage manual --files || EXIT_CODE=$?
-            else
-              pre-commit run $hook --all-files --hook-stage manual --show-diff-on-failure || EXIT_CODE=$?
-            fi
-            echo "::endgroup::"
-          done
-          exit $EXIT_CODE
+          pre-commit run spellcheck --all-files --hook-stage pre-push
 
   # ==========================================================================
   # Job 4: Link Validation
@@ -142,7 +131,7 @@ jobs:
       - name: Run link checks
         run: |
           if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
-            cat ${{ steps.setup.outputs.changed-files }} | grep '\.md$' || true | xargs -r pre-commit run markdown-link-check --hook-stage manual --files
+            cat ${{ steps.setup.outputs.changed-files }} | grep '\.md$' || true | xargs -r pre-commit run markdown-link-check --hook-stage pre-push --files
           else
-            pre-commit run markdown-link-check --all-files --hook-stage manual
+            pre-commit run markdown-link-check --all-files --hook-stage pre-push
           fi

@@ -60,7 +60,7 @@ pip install pre-commit
 pre-commit install
 
 # Run all checks (same as CI)
-pre-commit run --all-files --hook-stage manual
+pre-commit run --all-files --hook-stage pre-push
 ```
 
 All pre-commit checks that run in CI can be run locally. This helps reduce
