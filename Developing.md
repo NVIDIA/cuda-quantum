@@ -173,7 +173,7 @@ pre-commit run
 pre-commit run --all-files
 
 # Run all hooks including slow ones (spell check, link validation)
-pre-commit run --all-files --hook-stage manual
+pre-commit run --all-files --hook-stage pre-push
 
 # Run a specific hook
 pre-commit run clang-format --all-files
