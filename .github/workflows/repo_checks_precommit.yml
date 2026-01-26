@@ -98,16 +98,20 @@ jobs:
         run: |
           if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
             cat /tmp/changed_files.txt | xargs -r pre-commit run \
-              clang-format yapf markdownlint-cli2 \
+              clang-format yapf markdownlint \
               check-added-large-files check-case-conflict check-merge-conflict check-symlinks \
-              check-yaml check-toml check-json end-of-file-fixer trailing-whitespace mixed-line-ending \
+              check-yaml check-toml check-json \
               --files
+              # TODO: Enable when hooks are enabled in .pre-commit-config.yaml
+              # end-of-file-fixer trailing-whitespace mixed-line-ending
           else
             pre-commit run --all-files \
-              clang-format yapf markdownlint-cli2 \
+              clang-format yapf markdownlint \
               check-added-large-files check-case-conflict check-merge-conflict check-symlinks \
-              check-yaml check-toml check-json end-of-file-fixer trailing-whitespace mixed-line-ending \
+              check-yaml check-toml check-json \
               --show-diff-on-failure
+              # TODO: Enable when hooks are enabled in .pre-commit-config.yaml
+              # end-of-file-fixer trailing-whitespace mixed-line-ending
           fi
 
       # Stage 2: License header checks
