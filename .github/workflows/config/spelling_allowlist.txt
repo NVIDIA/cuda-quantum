@@ -173,6 +173,7 @@ centroids
 codebase
 comparator
 comparators
+config
 composability
 composable
 constructible
@@ -301,6 +302,7 @@ preprocessor
 probability
 programmatically
 pybind
+pyspelling
 qaoa
 qed
 quantize
@@ -379,4 +381,5 @@ vqe
 waveforms
 wavefunction
 workflow
+yml
 zener
