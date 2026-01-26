@@ -93,47 +93,50 @@ jobs:
           fi
 
       # Stage 1: Formatting checks
+      # Note: pre-commit run only accepts one hook ID, so we loop through hooks
       - name: "Stage 1: Check code formatting"
         if: success() || failure()
         run: |
-          if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
-            cat /tmp/changed_files.txt | xargs -r pre-commit run \
-              clang-format yapf markdownlint \
-              check-added-large-files check-case-conflict check-merge-conflict check-symlinks \
-              check-yaml check-toml check-json \
-              --files
-              # TODO: Enable when hooks are enabled in .pre-commit-config.yaml
-              # end-of-file-fixer trailing-whitespace mixed-line-ending
-          else
-            pre-commit run --all-files \
-              clang-format yapf markdownlint \
-              check-added-large-files check-case-conflict check-merge-conflict check-symlinks \
-              check-yaml check-toml check-json \
-              --show-diff-on-failure
-              # TODO: Enable when hooks are enabled in .pre-commit-config.yaml
-              # end-of-file-fixer trailing-whitespace mixed-line-ending
-          fi
+          # TODO: Enable end-of-file-fixer, trailing-whitespace, mixed-line-ending when enabled in .pre-commit-config.yaml
+          HOOKS="clang-format yapf markdownlint-cli2 check-added-large-files check-case-conflict check-merge-conflict check-symlinks check-yaml check-toml check-json"
+          EXIT_CODE=0
+          for hook in $HOOKS; do
+            echo "Running hook: $hook"
+            if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
+              cat /tmp/changed_files.txt | xargs -r pre-commit run $hook --files || EXIT_CODE=$?
+            else
+              pre-commit run $hook --all-files --show-diff-on-failure || EXIT_CODE=$?
+            fi
+          done
+          exit $EXIT_CODE
 
       # Stage 2: License header checks
       - name: "Stage 2: Check license headers"
         if: success() || failure()
         run: |
-          pre-commit run license-headers spellcheck-allowlist-sorted --all-files --hook-stage manual
+          HOOKS="license-headers spellcheck-allowlist-sorted"
+          EXIT_CODE=0
+          for hook in $HOOKS; do
+            echo "Running hook: $hook"
+            pre-commit run $hook --all-files --hook-stage manual || EXIT_CODE=$?
+          done
+          exit $EXIT_CODE
 
       # Stage 3: Spell checking
       - name: "Stage 3: Check spelling"
         if: success() || failure()
         run: |
-          if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
-            cat /tmp/changed_files.txt | xargs -r pre-commit run \
-              spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python \
-              --hook-stage manual \
-              --files
-          else
-            pre-commit run --all-files --hook-stage manual \
-              spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python \
-              --show-diff-on-failure
-          fi
+          HOOKS="spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python"
+          EXIT_CODE=0
+          for hook in $HOOKS; do
+            echo "Running hook: $hook"
+            if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
+              cat /tmp/changed_files.txt | xargs -r pre-commit run $hook --hook-stage manual --files || EXIT_CODE=$?
+            else
+              pre-commit run $hook --all-files --hook-stage manual --show-diff-on-failure || EXIT_CODE=$?
+            fi
+          done
+          exit $EXIT_CODE
 
       # Stage 4: Link validation
       - name: "Stage 4: Check links"
