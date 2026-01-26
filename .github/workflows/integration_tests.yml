@@ -22,6 +22,7 @@ on:
           - iqm
           - oqc
           - pasqal
+          - qibo
           - quantinuum
           - nvqc
           - orca
@@ -829,6 +830,21 @@ jobs:
             echo "::error::${test_err_sum} tests failed. See step summary for a list of failures"
             exit 1
           fi
+
+      - name: Submit to qibo test server
+        if: (success() || failure()) && (inputs.target == 'qibo' || github.event_name == 'schedule')
+        run: |
+          echo "### Submit to <provider_name> server" >> $GITHUB_STEP_SUMMARY
+          # Set up any required dependencies
+          # Set up environment variables for authentication
+          export PROVIDER_API_KEY='${{ secrets.QIBO_API_KEY }}'
+
+          # Run the integration tests
+          python_tests="docs/sphinx/targets/python/qibo.py"
+          cpp_tests="docs/sphinx/targets/cpp/qibo.cpp"
+
+          # Execute tests (see other provider examples for implementation details)
+          # ...
 
       - name: Submit to ${{ inputs.target }}
         # The full set of tests used by this step is currently only supported on
