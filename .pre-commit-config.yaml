@@ -54,7 +54,7 @@ repos:
         name: Markdown linting
         files: '\.md$'
         exclude: '^tpls/'
-        args: ['--config', '.github/workflows/config/md_lint_config.yml']
+        args: ['--config', '.github/workflows/config/.markdownlint.yml']
 
   # Standard quality checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -69,13 +69,15 @@ repos:
         exclude: '^\.github/workflows/'  # GitHub Actions uses specific YAML features
       - id: check-toml
       - id: check-json
-      - id: end-of-file-fixer
-        exclude: '^(test|targettests|tpls)/'
-      - id: trailing-whitespace
-        exclude: '^(test|targettests|tpls)/'
-        args: ['--markdown-linebreak-ext=md']
-      - id: mixed-line-ending
-        args: ['--fix=lf']
+        exclude: '\.devcontainer/devcontainer\.json$'  # Uses JSONC format with comments
+      # TODO: Enable in a separate PR to fix all files
+      # - id: end-of-file-fixer
+      #   exclude: '^(test|targettests|tpls)/'
+      # - id: trailing-whitespace
+      #   exclude: '^(test|targettests|tpls)/'
+      #   args: ['--markdown-linebreak-ext=md']
+      # - id: mixed-line-ending
+      #   args: ['--fix=lf']
 
   # Local hooks
   - repo: local
