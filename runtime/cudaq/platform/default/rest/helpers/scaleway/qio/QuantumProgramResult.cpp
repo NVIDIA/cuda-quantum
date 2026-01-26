@@ -13,8 +13,8 @@
 using namespace cudaq::qio;
 
 QuantumProgramResult::QuantumProgramResult(std::string serialization,
-                      cudaq::qio::QuantumProgramResultSerializationFormat serializationFormat,
-                      cudaq::qio::CompressionFormat compressionFormat) :
+                      QuantumProgramResultSerializationFormat serializationFormat,
+                      CompressionFormat compressionFormat) :
     m_serialization(serialization),
     m_serializationFormat(serializationFormat),
     m_compressionFormat(compressionFormat) {}
