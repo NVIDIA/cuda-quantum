@@ -147,8 +147,8 @@ ancilla
 ansatz
 ansatzes
 archiver
-aspell
 arity
+aspell
 auxillary
 backend
 backends
@@ -173,11 +173,11 @@ canonicalizes
 centroid
 centroids
 codebase
-config
 comparator
 comparators
 composability
 composable
+config
 constructible
 controlled
 coprocessing
@@ -209,6 +209,7 @@ deserialize
 destructor
 detuning
 deutsch
+devcontainer
 dimensionality
 discoverable
 discretization
@@ -317,6 +318,7 @@ qumode
 qumodes
 reStructuredText
 reconfigurable
+rst
 runtime
 runtimes
 rvalue
@@ -382,6 +384,8 @@ vertices
 vqe
 waveforms
 wavefunction
+whitespace
 workflow
+yapf
 yml
 zener

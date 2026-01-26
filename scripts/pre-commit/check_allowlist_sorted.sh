@@ -20,12 +20,12 @@ for file in "$REPO_ROOT"/.github/workflows/config/spelling_allowlist*.txt; do
         continue
     fi
 
-    sorted_content=$(sort "$file")
+    sorted_content=$(LC_ALL=C sort "$file")
     current_content=$(cat "$file")
 
     if [ "$sorted_content" != "$current_content" ]; then
         echo "ERROR: Spelling allowlist is not sorted: $file" >&2
-        echo "Run: sort -o $file $file" >&2
+        echo "Run: LC_ALL=C sort -o $file $file" >&2
         EXIT_CODE=1
     else
         echo "OK: $(basename $file) is properly sorted"
