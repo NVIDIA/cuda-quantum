@@ -29,6 +29,7 @@ DGX
 DOI
 Deuteron
 Deutsch
+Devcontainer
 Doxygen
 Exponentiating
 FPGAs
@@ -147,6 +148,7 @@ ansatz
 ansatzes
 archiver
 arity
+aspell
 auxillary
 backend
 backends
