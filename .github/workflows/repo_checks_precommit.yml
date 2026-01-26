@@ -20,130 +20,129 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pre-commit-checks:
-    name: Pre-commit checks
+  # ==========================================================================
+  # Job 1: Code Formatting (clang-format, yapf, markdownlint, file quality)
+  # ==========================================================================
+  formatting:
+    name: Check code formatting
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup pre-commit
+        id: setup
+        uses: ./.github/actions/setup-precommit
         with:
-          python-version: '3.11'
+          cache-key-suffix: formatting
 
-      - name: Install system dependencies
-        run: |
-          # clang-format-16 for C++ formatting
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-          sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends \
-            clang-format-16 \
-            aspell \
-            aspell-en
-
-          # Link clang-format-16 as clang-format for pre-commit
-          sudo ln -sf /usr/bin/clang-format-16 /usr/bin/clang-format
-
-      - name: Install Go (for license-eye)
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Install Node.js (for markdown-link-check)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install markdown-link-check
-        run: npm install -g markdown-link-check
-
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Cache pre-commit environments
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}-${{ runner.os }}
-          restore-keys: |
-            pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}-
-            pre-commit-
-
-      - name: Determine files to check
-        id: files
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            git fetch origin ${{ github.event.pull_request.base.ref }}
-            base_ref="origin/${{ github.event.pull_request.base.ref }}"
-
-            # Get all changed files
-            changed_files=$(git diff --name-only --diff-filter=d ${base_ref}...HEAD)
-
-            # Save for use in subsequent steps
-            echo "$changed_files" > /tmp/changed_files.txt
-            echo "mode=pr" >> $GITHUB_OUTPUT
-          else
-            echo "mode=all" >> $GITHUB_OUTPUT
-          fi
-
-      # Stage 1: Formatting checks
-      # Note: pre-commit run only accepts one hook ID, so we loop through hooks
-      - name: "Stage 1: Check code formatting"
-        if: success() || failure()
+      - name: Run formatting checks
         run: |
           # TODO: Enable end-of-file-fixer, trailing-whitespace, mixed-line-ending when enabled in .pre-commit-config.yaml
           HOOKS="clang-format yapf markdownlint check-added-large-files check-case-conflict check-merge-conflict check-symlinks check-yaml check-toml check-json"
           EXIT_CODE=0
           for hook in $HOOKS; do
-            echo "Running hook: $hook"
-            if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
-              cat /tmp/changed_files.txt | xargs -r pre-commit run $hook --files || EXIT_CODE=$?
+            echo "::group::Running hook: $hook"
+            if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
+              cat ${{ steps.setup.outputs.changed-files }} | xargs -r pre-commit run $hook --files || EXIT_CODE=$?
             else
               pre-commit run $hook --all-files --show-diff-on-failure || EXIT_CODE=$?
             fi
+            echo "::endgroup::"
           done
           exit $EXIT_CODE
 
-      # Stage 2: License header checks
-      - name: "Stage 2: Check license headers"
-        if: success() || failure()
+  # ==========================================================================
+  # Job 2: License Headers
+  # ==========================================================================
+  license_headers:
+    name: Check license headers
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pre-commit
+        uses: ./.github/actions/setup-precommit
+        with:
+          cache-key-suffix: license
+
+      - name: Run license header checks
         run: |
           HOOKS="license-headers spellcheck-allowlist-sorted"
           EXIT_CODE=0
           for hook in $HOOKS; do
-            echo "Running hook: $hook"
+            echo "::group::Running hook: $hook"
             pre-commit run $hook --all-files --hook-stage manual || EXIT_CODE=$?
+            echo "::endgroup::"
           done
           exit $EXIT_CODE
 
-      # Stage 3: Spell checking
-      - name: "Stage 3: Check spelling"
-        if: success() || failure()
+  # ==========================================================================
+  # Job 3: Spell Checking
+  # ==========================================================================
+  spelling:
+    name: Check spelling
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pre-commit
+        id: setup
+        uses: ./.github/actions/setup-precommit
+        with:
+          cache-key-suffix: spelling
+
+      - name: Run spell checks
         run: |
           HOOKS="spellcheck-markdown spellcheck-rst spellcheck-cxx-headers spellcheck-cxx-examples spellcheck-python"
           EXIT_CODE=0
           for hook in $HOOKS; do
-            echo "Running hook: $hook"
-            if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
-              cat /tmp/changed_files.txt | xargs -r pre-commit run $hook --hook-stage manual --files || EXIT_CODE=$?
+            echo "::group::Running hook: $hook"
+            if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
+              cat ${{ steps.setup.outputs.changed-files }} | xargs -r pre-commit run $hook --hook-stage manual --files || EXIT_CODE=$?
             else
               pre-commit run $hook --all-files --hook-stage manual --show-diff-on-failure || EXIT_CODE=$?
             fi
+            echo "::endgroup::"
           done
           exit $EXIT_CODE
 
-      # Stage 4: Link validation
-      - name: "Stage 4: Check links"
-        if: success() || failure()
+  # ==========================================================================
+  # Job 4: Link Validation
+  # ==========================================================================
+  links:
+    name: Check links
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pre-commit
+        id: setup
+        uses: ./.github/actions/setup-precommit
+        with:
+          cache-key-suffix: links
+
+      - name: Run link checks
         run: |
-          if [ "${{ steps.files.outputs.mode }}" == "pr" ]; then
-            cat /tmp/changed_files.txt | grep '\.md$' | xargs -r pre-commit run markdown-link-check --hook-stage manual --files
+          if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
+            cat ${{ steps.setup.outputs.changed-files }} | grep '\.md$' || true | xargs -r pre-commit run markdown-link-check --hook-stage manual --files
           else
             pre-commit run markdown-link-check --all-files --hook-stage manual
           fi
