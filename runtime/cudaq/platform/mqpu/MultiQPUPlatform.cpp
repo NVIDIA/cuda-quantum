@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"

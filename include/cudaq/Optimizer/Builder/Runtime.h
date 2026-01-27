@@ -87,6 +87,9 @@ static constexpr const char callDeviceCallback[] =
     "__nvqpp__device_callback_run";
 static constexpr const char extractDevPtr[] =
     "__nvqpp__device_extract_device_ptr";
+
 // Garbage collection for arrays created during kernel execution.
 static constexpr const char cleanupArrays[] = "__nvqpp_cleanup_arrays";
+
+static constexpr const char pythonUniqueAttrName[] = "cc.python_uniqued";
 } // namespace cudaq::runtime

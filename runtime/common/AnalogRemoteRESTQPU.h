@@ -16,7 +16,7 @@ namespace cudaq {
 /// Provides common functionality and implementation.
 class AnalogRemoteRESTQPU : public BaseRemoteRESTQPU {
 protected:
-  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
+  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
     throw std::runtime_error("Not supported on this target.");
