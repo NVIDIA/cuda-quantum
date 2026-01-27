@@ -23,14 +23,14 @@ using json = nlohmann::json;
 
 namespace cudaq {
 std::string lowercaseArgument(std::string value) {
-  std::transform(
-    value.begin(), value.end(), value.begin(), [](unsigned char c){return std::tolower(c);}
-  );
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
   return value;
 }
 
-bool booleanArgument(const std::string& string_argument) {
-  return lowercaseArgument(string_argument) == "true";  // we should handle wrong string-boolean values
+bool booleanArgument(const std::string &string_argument) {
+  return lowercaseArgument(string_argument) ==
+         "true"; // we should handle wrong string-boolean values
 }
 
 /// @brief The QiboServerHelper class extends the ServerHelper class
@@ -73,9 +73,10 @@ public:
       this->setShots(std::stoul(config["shots"]));
   }
 
-  /// @brief Create and return the job payload given the compiled quantum circuit code
-  /// for submission
-  ServerJobPayload createJob(std::vector<KernelExecution> &circuitCodes) override {
+  /// @brief Create and return the job payload given the compiled quantum
+  /// circuit code for submission
+  ServerJobPayload
+  createJob(std::vector<KernelExecution> &circuitCodes) override {
     ServerMessage job;
 
     job["circuit"] = circuitCodes[0].code;
@@ -88,7 +89,7 @@ public:
     std::string path = "/api/jobs";
 
     return std::make_tuple(backendConfig["url"] + path, headers,
-                          std::vector<ServerMessage>{job});
+                           std::vector<ServerMessage>{job});
   }
 
   /// @brief Extract job id from the GET returned by the Qibo server.
@@ -110,7 +111,7 @@ public:
   }
 
   /// @brief Control the status of the job.
-  /// Return true if the job succeeds or fails. 
+  /// Return true if the job succeeds or fails.
   bool jobIsDone(ServerMessage &getJobResponse) override {
     if (!getJobResponse.contains("status"))
       return false;
@@ -125,7 +126,7 @@ public:
   /// reordering, normalization, etc.) to match CUDA-Q's expectations.
   /// This is the place to do that.
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
-                                     std::string &jobId) override {
+                                      std::string &jobId) override {
     CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
 
     // Extract measurement results from the response

@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CUDAQTestUtils.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include "CUDAQTestUtils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "gtest/gtest.h"
 #include <string>
@@ -21,21 +21,21 @@ std::string backendStringTemplate =
     "qibo;emulate;false;url;http://localhost:{};auth_token;{};";
 
 bool result_maps_are_matching(
-  const std::unordered_map<std::string, std::size_t>& results,
-  const std::unordered_map<std::string, std::size_t>& expected) {
-    for (const auto& [key, value] : expected) {
-        auto it = results.find(key);
-        if (it == results.end() || it->second != value) {
-            return false;
-        }
+    const std::unordered_map<std::string, std::size_t> &results,
+    const std::unordered_map<std::string, std::size_t> &expected) {
+  for (const auto &[key, value] : expected) {
+    auto it = results.find(key);
+    if (it == results.end() || it->second != value) {
+      return false;
     }
-    return true;
+  }
+  return true;
 }
 
 TEST(QiboTester, checkSimpleCircuitSync) {
   // Initialize the platform
-  auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token);
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, auth_token);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
 
@@ -50,17 +50,15 @@ TEST(QiboTester, checkSimpleCircuitSync) {
   counts.dump();
   // Check results
   EXPECT_EQ(counts.size(), 2);
-  std::unordered_map<std::string, std::size_t> expected = {
-    {"00", 500},
-    {"11", 500}
-  };
+  std::unordered_map<std::string, std::size_t> expected = {{"00", 500},
+                                                           {"11", 500}};
   EXPECT_TRUE(result_maps_are_matching(counts.to_map(), expected));
 }
 
 TEST(QiboTester, checkSimpleCircuitAsync) {
   // Initialize the platform
-  auto backendString = fmt::format(fmt::runtime(backendStringTemplate),
-                                   mockPort, auth_token);
+  auto backendString =
+      fmt::format(fmt::runtime(backendStringTemplate), mockPort, auth_token);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
 
@@ -75,9 +73,7 @@ TEST(QiboTester, checkSimpleCircuitAsync) {
   counts.dump();
   // Check results
   EXPECT_EQ(counts.size(), 2);
-  std::unordered_map<std::string, std::size_t> expected = {
-    {"00", 500},
-    {"11", 500}
-  };
+  std::unordered_map<std::string, std::size_t> expected = {{"00", 500},
+                                                           {"11", 500}};
   EXPECT_TRUE(result_maps_are_matching(counts.to_map(), expected));
 }

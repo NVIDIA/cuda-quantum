@@ -7,7 +7,6 @@
 #include <cudaq.h>
 #include <fstream>
 
-
 struct bell_state {
   auto operator()() __qpu__ {
     cudaq::qvector q(2);
