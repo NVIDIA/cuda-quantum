@@ -7,13 +7,8 @@
  ******************************************************************************/
 #pragma once
 #include <string>
-#include <stdexcept>
-#include <zlib.h>
 
 namespace cudaq::qio {
 std::string gzipCompress(const std::string &input);
 std::string gzipDecompress(const std::string &input);
-
-// std::string base64Encode(const std::string &input);
-// std::string base64Decode(const std::string &input);
-} // namespace cudaq::qio::compression
+} // namespace cudaq::qio

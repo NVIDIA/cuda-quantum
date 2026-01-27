@@ -6,10 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-
 #include "nlohmann/json.hpp"
 #include <string>
-#include <vector>
 
 using json = nlohmann::json;
 
@@ -84,8 +82,7 @@ struct Job {
   std::string created_at;
   std::string started_at;
   std::string updated_at;
-  std::string
-      status; // waiting, running, completed, error, cancelling, cancelled
+  std::string status;
   std::string progress_message;
   std::string job_duration;
   std::string result_distribution;

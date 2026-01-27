@@ -7,6 +7,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "QuantumProgram.h"
+#include "Base64.h"
+#include "Compression.h"
 
 using json = nlohmann::json;
 using namespace cudaq::qio;
@@ -14,9 +16,16 @@ using namespace cudaq::qio;
 QuantumProgram::QuantumProgram(const std::string &serialization,
                                QuantumProgramSerializationFormat serializationFormat,
                                CompressionFormat compressionFormat)
-    : m_serialization(serialization),
-      m_serializationFormat(serializationFormat),
-      m_compressionFormat(compressionFormat) {}
+    : m_serializationFormat(serializationFormat),
+      m_compressionFormat(compressionFormat) {
+        if (m_compressionFormat == CompressionFormat::ZLIB_BASE64_V1) {
+          std::string compressedSerialization =
+              gzipCompress(serialization);
+          m_serialization = encodeBase64(compressedSerialization);
+        } else if (m_compressionFormat == CompressionFormat::NONE) {
+          m_serialization = serialization;
+        }
+    }
 
 json QuantumProgram::toJson() const {
   return {{"serialization", m_serialization},

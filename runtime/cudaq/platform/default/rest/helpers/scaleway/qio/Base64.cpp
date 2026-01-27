@@ -7,7 +7,6 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "Base64.h"
-
 #include <algorithm>
 #include <array>
 #include <cassert>

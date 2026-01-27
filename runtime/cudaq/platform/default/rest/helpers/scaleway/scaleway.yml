@@ -20,7 +20,6 @@ config:
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
   # jit-high-level-pipeline: "expand-measurements"
-  # jit-mid-level-pipeline: "lower-to-cfg,scaleway-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(delay-measurements,regtomem),scaleway-gate-set-mapping"
   jit-mid-level-pipeline: "lower-to-cfg,decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,ExpPauliDecomposition},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
   # Tell the rest-qpu that we are generating QIR.
   codegen-emission: openqasm2
@@ -34,17 +33,17 @@ target-arguments:
     platform-arg: api-url
     help-string: "Scaleway API URL."
   - key: machine
-    required: true
+    required: false
     type: string
     platform-arg: qpu
     help-string: "Specify the target machine to run the job."
   - key: project-id
-    required: true
+    required: false
     type: string
     platform-arg: project-id
     help-string: "Your Scaleway project ID."
   - key: secret-key
-    required: true
+    required: false
     type: string
     platform-arg: secret-key
     help-string: "Your Scaleway secret key."

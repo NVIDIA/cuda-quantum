@@ -7,6 +7,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "Compression.h"
+#include <stdexcept>
+#include <zlib.h>
 
 std::string gzipCompress(const std::string &input)
 {

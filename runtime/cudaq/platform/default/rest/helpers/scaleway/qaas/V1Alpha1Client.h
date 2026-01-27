@@ -10,12 +10,9 @@
 #include "V1Alpha1Objects.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
-#include <iostream>
 #include <map>
-#include <stdexcept>
-#include <regex>
-#include <sstream>
-#include <thread>
+#include <vector>
+
 
 namespace cudaq::qaas::v1alpha1 {
 class V1Alpha1Client {
@@ -25,7 +22,7 @@ public:
                   const std::string url, bool secure = true, bool logging = false);
 
   Platform getPlatform(const std::string &platformId);
-  std::vector<Platform> listPlatforms(const std::string platformName);
+  std::vector<Platform> listPlatforms(const std::string platformName = "");
 
   Session createSession(const std::string &platformId, std::string name = "",
                         std::string deduplicationId = "",

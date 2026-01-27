@@ -7,6 +7,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "V1Alpha1Client.h"
+#include <stdexcept>
+#include <regex>
+#include <sstream>
+#include <iostream>
 
 using namespace cudaq::qaas::v1alpha1;
 

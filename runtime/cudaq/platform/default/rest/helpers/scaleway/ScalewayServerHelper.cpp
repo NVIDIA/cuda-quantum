@@ -21,9 +21,13 @@ using namespace cudaq;
 // Helper function to get a value from config or return a default
 std::string getValueOrDefault(const BackendConfig &config,
                               const std::string &key,
+                              const std::string &envKey,
                               const std::string &defaultValue) {
   auto it = config.find(key);
-  return (it != config.end()) ? it->second : defaultValue;
+  auto envValue = !envKey.empty() ? std::string(std::getenv(envKey.c_str())) : "";
+  auto providedValue = (it != config.end()) ? it->second : envValue;
+
+  return !providedValue.empty() ? providedValue : defaultValue;
 }
 
 std::string serializeParametersToQio(size_t nb_shots) {
@@ -46,17 +50,17 @@ std::string serializeKernelToQio(const std::string &code) {
 void ScalewayServerHelper::initialize(BackendConfig config) {
   backendConfig = config;
   m_qaasClient = std::make_unique<qaas::v1alpha1::V1Alpha1Client>(
-                      getValueOrDefault(config, "project_id", ""),
-                      getValueOrDefault(config, "secret_key", ""),
-                      getValueOrDefault(config, "url", ""));
+                      getValueOrDefault(config, "project_id", "SCW_PROJECT_ID", ""),
+                      getValueOrDefault(config, "secret_key", "SCW_SECRET_KEY", ""),
+                      getValueOrDefault(config, "url", "SCW_API_URL", ""));
 
-  m_targetPlatformName = getValueOrDefault(config, "machine", DEFAULT_PLATFORM_NAME);
-  m_sessionMaxDuration = getValueOrDefault(config, "max_duration", DEFAULT_MAX_DURATION);
-  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", DEFAULT_MAX_IDLE_DURATION);
-  m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "");
-  m_sessionName = getValueOrDefault(config, "name", "cudaq-session-" + std::to_string(std::rand()));
+  m_targetPlatformName = getValueOrDefault(config, "machine", "", DEFAULT_PLATFORM_NAME);
+  m_sessionMaxDuration = getValueOrDefault(config, "max_duration", "", DEFAULT_MAX_DURATION);
+  m_sessionMaxIdleDuration = getValueOrDefault(config, "max_idle_duration", "", DEFAULT_MAX_IDLE_DURATION);
+  m_sessionDeduplicationId = getValueOrDefault(config, "deduplication_id", "", "");
+  m_sessionName = getValueOrDefault(config, "name", "", "cudaq-session-" + std::to_string(std::rand()));
 
-  setShots(std::stoul(getValueOrDefault(config, "shots", "1000")));
+  setShots(std::stoul(getValueOrDefault(config, "shots", "", "1000")));
 }
 
 RestHeaders ScalewayServerHelper::getHeaders() {
