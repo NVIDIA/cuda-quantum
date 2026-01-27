@@ -43,9 +43,6 @@ private:
 // Dump and reset the performance metric
 void dumpPerfTrace(std::ostream &os = std::cout);
 
-// Returns the number of MPI ranks.
-int getNumRanks();
-
 // Wrapper for CUDA memory allocator.
 // This allows us to switch between stream-based/blocking allocation scheme and
 // to track performance metric for allocation.
