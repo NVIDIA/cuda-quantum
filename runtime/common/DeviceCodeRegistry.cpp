@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -196,12 +196,13 @@ std::string get_quake_by_name(const std::string &kernelName,
 }
 
 std::string get_quake_by_name(const std::string &kernelName) {
-  return get_quake_by_name(kernelName, true);
+  return get_quake_by_name(kernelName, /*throwException=*/true);
 }
 
 std::string get_quake_by_name(const std::string &kernelName,
                               std::optional<std::string> knownMangledArgs) {
-  return get_quake_by_name(kernelName, true, knownMangledArgs);
+  return get_quake_by_name(kernelName, /*throwException=*/true,
+                           knownMangledArgs);
 }
 
 bool kernelHasConditionalFeedback(const std::string &kernelName) {
