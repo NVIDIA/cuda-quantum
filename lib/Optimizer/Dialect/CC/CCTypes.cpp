@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -227,10 +227,6 @@ bool isDynamicallySizedType(Type ty) {
            isDynamicallySizedType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
-}
-
-CallableType CallableType::getNoSignature(MLIRContext *ctx) {
-  return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
 }
 
 void CCDialect::registerTypes() {

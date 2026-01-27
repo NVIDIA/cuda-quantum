@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "RecordLogParser.h"
+#include "FmtCore.h"
 #include "Logger.h"
 #include "Timing.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
@@ -119,9 +120,14 @@ void cudaq::RecordLogParser::handleOutput(
         (containerMeta.m_type == ContainerType::ARRAY &&
          containerMeta.elementCount == 0);
     if (isUninitializedContainer) {
-      // Currently, our QIR for sampled kernel only has a sequence of RESULT
-      // records, not wrapped in an ARRAY. Hence, we treat it as an array of
-      // results.
+      // NOTE: This is a temporary workaround until all backends consistently
+      // use the new transformation pass that wraps result records inside an
+      // array record output. For now, we permit "naked" RESULT records, i.e.,
+      // if the QIR produced by a sampled kernel emits a sequence of RESULT
+      // records without enclosing them in an ARRAY, we interpret them
+      // collectively as an array of results.
+      // NOTE: This assumption prevents us from correctly supporting `run` with
+      // `qir-base` profile.
       containerMeta.m_type = ContainerType::ARRAY;
       containerMeta.elementCount =
           std::stoul(metadata[ResultCountMetadataName]);

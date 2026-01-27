@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -129,6 +129,14 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
   ];
 
   let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
+}
+
+def QirInsertArrayRecord : Pass<"qir-insert-array-record", "mlir::ModuleOp"> {
+  let summary = "Analyze result recording calls and insert new instructions for QIR";
+  let description = [{
+    This pass runs after QIR prep and conversion passes, then inserts array 
+    recording instruction based on the number of result recording calls.
+  }];
 }
 
 def RemoveMeasurements : Pass<"remove-measurements"> {

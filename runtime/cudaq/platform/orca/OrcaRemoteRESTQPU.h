@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -120,16 +120,21 @@ public:
   /// specific target backend configuration file.
   void setTargetBackend(const std::string &backend) override;
 
+  [[nodiscard]] KernelThunkResultType
+  launchKernelCommon(const std::string &kernelName, KernelThunkType kernelFunc,
+                     void *args);
+
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
-  KernelThunkResultType
+  [[nodiscard]] KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override;
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error("launch kernel on raw args not implemented");
+               const std::vector<void *> &rawArgs) override {
+    return launchKernelCommon(kernelName, kernelFunc, args);
   }
+
+  void launchKernel(const std::string &kernelName,
+                    const std::vector<void *> &rawArgs) override;
 };
 } // namespace cudaq

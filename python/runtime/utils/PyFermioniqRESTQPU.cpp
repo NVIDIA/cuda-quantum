@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/ArgumentWrapper.h"
-#include "cudaq/Optimizer/InitAllDialects.h"
+#include "common/RuntimeMLIR.h"
 #include "cudaq/platform/fermioniq/FermioniqBaseQPU.h"
 
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -18,30 +18,9 @@ extern "C" void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 
 namespace cudaq {
 
-void registerToQIRTranslation();
-void registerToOpenQASMTranslation();
-void registerToIQMJsonTranslation();
-void registerLLVMDialectTranslation(MLIRContext *context);
-
-} // namespace cudaq
-
-namespace cudaq {
-
 class PyFermioniqRESTQPU : public cudaq::FermioniqBaseQPU {
-private:
-  /// Creates new context without mlir initialization.
-  MLIRContext *createContext() {
-    DialectRegistry registry;
-    cudaq::opt::registerCodeGenDialect(registry);
-    cudaq::registerAllDialects(registry);
-    auto context = new MLIRContext(registry);
-    context->loadAllAvailableDialects();
-    registerLLVMDialectTranslation(*context);
-    return context;
-  }
-
 protected:
-  std::tuple<ModuleOp, MLIRContext *, void *>
+  std::tuple<ModuleOp, std::unique_ptr<MLIRContext>, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
     auto [mod, ctx] = extractQuakeCodeAndContextImpl(kernelName);
@@ -50,27 +29,19 @@ protected:
       auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(data);
       updatedArgs = wrapper->rawArgs;
     }
-    return {mod, ctx, updatedArgs};
+    return std::make_tuple(mod, std::move(ctx), updatedArgs);
   }
 
-  std::tuple<ModuleOp, MLIRContext *>
+  std::tuple<ModuleOp, std::unique_ptr<MLIRContext>>
   extractQuakeCodeAndContextImpl(const std::string &kernelName) {
 
     CUDAQ_INFO("extract quake code\n");
 
-    MLIRContext *context = createContext();
-
-    static bool initOnce = [&] {
-      registerToQIRTranslation();
-      registerToOpenQASMTranslation();
-      registerToIQMJsonTranslation();
-      return true;
-    }();
-    (void)initOnce;
+    auto context = cudaq::getOwningMLIRContext();
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
-    auto m_module = parseSourceString<ModuleOp>(quakeCode, context);
+    auto m_module = parseSourceString<ModuleOp>(quakeCode, context.get());
     if (!m_module)
       throw std::runtime_error("module cannot be parsed");
 
@@ -79,7 +50,7 @@ protected:
     auto cloned = m_module->clone();
     PassManager pm(cloned.getContext());
 
-    pm.addPass(cudaq::opt::createLambdaLiftingPass());
+    pm.addPass(cudaq::opt::createLambdaLifting());
     cudaq::opt::addAggressiveInlining(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -103,10 +74,8 @@ protected:
     // The remote rest qpu workflow will need the module string in
     // the internal registry.
     __cudaq_deviceCodeHolderAdd(kernelName.c_str(), moduleStr.c_str());
-    return std::make_tuple(cloned, context);
+    return std::make_tuple(cloned, std::move(context));
   }
-
-  void cleanupContext(MLIRContext *context) override { delete context; }
 };
 } // namespace cudaq
 

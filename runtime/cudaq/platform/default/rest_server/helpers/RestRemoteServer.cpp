@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "common/JIT.h"
 #include "common/JsonConvert.h"
 #include "common/Logger.h"
@@ -177,7 +178,7 @@ public:
 
           return resultJs;
         });
-    m_mlirContext = cudaq::initializeMLIR();
+    m_mlirContext = cudaq::getOwningMLIRContext();
     m_hasMpi = cudaq::mpi::is_initialized();
   }
   // Start the server.

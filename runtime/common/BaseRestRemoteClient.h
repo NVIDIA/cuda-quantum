@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -85,17 +85,6 @@ protected:
   // Random number generator.
   std::mt19937 randEngine{std::random_device{}()};
 
-  static constexpr std::array<std::string_view, 1>
-      DISALLOWED_EXECUTION_CONTEXT = {"tracer"};
-
-  static constexpr bool isDisallowed(std::string_view context) {
-    return std::any_of(DISALLOWED_EXECUTION_CONTEXT.begin(),
-                       DISALLOWED_EXECUTION_CONTEXT.end(),
-                       [context](std::string_view disallowed) {
-                         return disallowed == context;
-                       });
-  }
-
   /// @brief Flag indicating whether we should enable MLIR printing before and
   /// after each pass. This is similar to `-mlir-print-ir-before-all` and
   /// `-mlir-print-ir-after-all` in `cudaq-opt`.
@@ -118,22 +107,23 @@ public:
     return cudaq::RestRequest::REST_PAYLOAD_VERSION;
   }
 
-  virtual mlir::ModuleOp
-  lowerKernel(mlir::MLIRContext &mlirContext, const std::string &name,
-              const void *args, std::uint64_t argsSize,
-              const std::size_t startingArgIdx,
-              const std::vector<void *> *rawArgs) override {
+  template <bool cloneAgain>
+  mlir::ModuleOp
+  lowerKernelCommon(mlir::MLIRContext &mlirContext, const std::string &name,
+                    const void *args, std::uint64_t argsSize,
+                    const std::size_t startingArgIdx,
+                    const std::vector<void *> *rawArgs, mlir::ModuleOp module) {
     enablePrintMLIREachPass = getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-
-    // Get the quake representation of the kernel
-    auto quakeCode = cudaq::get_quake_by_name(name);
-    auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
-    if (!module)
-      throw std::runtime_error("module cannot be parsed");
-
     // Extract the kernel name
-    auto func = module->lookupSymbol<mlir::func::FuncOp>(
+    auto func = module.lookupSymbol<mlir::func::FuncOp>(
         std::string("__nvqpp__mlirgen__") + name);
+
+    if (!func)
+      throw std::runtime_error("no kernel named " + name + " found in module");
+
+    // Merge other modules (e.g., if there are device kernel calls).
+    if (rawArgs && !rawArgs->empty())
+      cudaq::detail::mergeAllCallableClosures(module, name, *rawArgs);
 
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
@@ -144,21 +134,27 @@ public:
     // Add entry-point attribute if not already set.
     if (!func->hasAttr(cudaq::entryPointAttrName))
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
-    auto moduleOp = builder.create<mlir::ModuleOp>();
-    moduleOp->setAttrs((*module)->getAttrDictionary());
-    for (auto &op : *module) {
-      if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
-        // Add quantum kernels defined in the module.
-        if (funcOp->hasAttr(cudaq::kernelAttrName) ||
-            funcOp.getName().startswith("__nvqpp__mlirgen__") ||
-            funcOp.getBody().empty())
-          moduleOp.push_back(funcOp.clone());
+    mlir::ModuleOp moduleOp = [&]() {
+      if constexpr (cloneAgain) {
+        auto moduleOp = builder.create<mlir::ModuleOp>();
+        moduleOp->setAttrs(module->getAttrDictionary());
+        for (auto &op : module) {
+          if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
+            // Add quantum kernels defined in the module.
+            if (funcOp->hasAttr(cudaq::kernelAttrName) ||
+                funcOp.getName().startswith("__nvqpp__mlirgen__") ||
+                funcOp.getBody().empty())
+              moduleOp.push_back(funcOp.clone());
+          }
+          // Add globals defined in the module.
+          if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
+            moduleOp.push_back(globalOp.clone());
+        }
+        return moduleOp;
       }
-      // Add globals defined in the module.
-      if (auto globalOp = dyn_cast<cc::GlobalOp>(op))
-        moduleOp.push_back(globalOp.clone());
-    }
-
+      return module;
+    }();
+    std::string passName;
     if (rawArgs || args) {
       mlir::PassManager pm(&mlirContext);
       if (rawArgs && !rawArgs->empty()) {
@@ -185,14 +181,23 @@ public:
                                                       kernels.end()};
         mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
                                                      substs.end()};
+        passName = "argument";
         pm.addPass(opt::createArgumentSynthesisPass(kernelRefs, substRefs));
         pm.addPass(mlir::createCanonicalizerPass());
-        pm.addPass(opt::createDeleteStates());
-        pm.addNestedPass<mlir::func::FuncOp>(
-            opt::createReplaceStateWithKernel());
+        pm.addPass(
+            cudaq::opt::createLambdaLifting({.constantPropagation = true}));
+        // We must inline these lambda calls before apply specialization as it
+        // cannot perform control/adjoint specialization across function call
+        // boundary.
+        cudaq::opt::addAggressiveInlining(pm);
+        pm.addPass(cudaq::opt::createApplySpecialization(
+            {.constantPropagation = true}));
+        cudaq::opt::addAggressiveInlining(pm);
+        pm.addNestedPass<mlir::func::FuncOp>(mlir::createCanonicalizerPass());
         pm.addPass(mlir::createSymbolDCEPass());
       } else if (args) {
         CUDAQ_INFO("Run Quake Synth.\n");
+        passName = "quake";
         pm.addPass(opt::createQuakeSynthesizer(name, args, startingArgIdx));
       }
       pm.addPass(mlir::createCanonicalizerPass());
@@ -201,7 +206,8 @@ public:
         pm.enableIRPrinting();
       }
       if (failed(pm.run(moduleOp)))
-        throw std::runtime_error("Could not successfully apply quake-synth.");
+        throw std::runtime_error("Could not successfully apply " + passName +
+                                 " synth.");
     }
 
     // Note: do not run state preparation pass here since we are always
@@ -248,16 +254,50 @@ public:
     return moduleOp;
   }
 
+  virtual mlir::ModuleOp
+  lowerKernelInPlace(mlir::ModuleOp module, const std::string &name,
+                     const std::vector<void *> &rawArgs) override {
+    return lowerKernelCommon</*cloneAgain=*/false>(
+        *module.getContext(), name, nullptr, 0, 0, &rawArgs, module);
+  }
+
+  virtual mlir::ModuleOp
+  lowerKernel(mlir::MLIRContext &mlirContext, const std::string &name,
+              const void *args, std::uint64_t argsSize,
+              const std::size_t startingArgIdx,
+              const std::vector<void *> *rawArgs) override {
+
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(name);
+    auto module = parseSourceString<mlir::ModuleOp>(quakeCode, &mlirContext);
+    if (!module)
+      throw std::runtime_error("module cannot be parsed");
+
+    // FIXME: Why is this cloning the ModuleOp that was just created?
+    return lowerKernelCommon</*cloneAgain=*/true>(
+        mlirContext, name, args, argsSize, startingArgIdx, rawArgs, *module);
+  }
+
   std::string constructKernelPayload(mlir::MLIRContext &mlirContext,
                                      const std::string &name, const void *args,
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx,
-                                     const std::vector<void *> *rawArgs) {
+                                     const std::vector<void *> *rawArgs,
+                                     mlir::Operation *prefabMod) {
     ScopedTraceWithContext(cudaq::TIMING_JIT, "constructKernelPayload");
-    auto moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
-                                startingArgIdx, rawArgs);
+    mlir::ModuleOp moduleOp;
+    mlir::MLIRContext *ctx = nullptr;
+    if (prefabMod) {
+      ctx = prefabMod->getContext();
+      moduleOp = lowerKernelInPlace(mlir::cast<mlir::ModuleOp>(prefabMod), name,
+                                    *rawArgs);
+    } else {
+      ctx = &mlirContext;
+      moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
+                             startingArgIdx, rawArgs);
+    }
 
-    mlir::PassManager pm(&mlirContext);
+    mlir::PassManager pm(ctx);
     // For now, the server side expects full-QIR.
     opt::addAOTPipelineConvertToQIR(pm);
 
@@ -268,8 +308,7 @@ public:
     std::string mlirCode;
     llvm::raw_string_ostream outStr(mlirCode);
     mlir::OpPrintingFlags opf;
-    opf.enableDebugInfo(/*enable=*/true,
-                        /*pretty=*/false);
+    opf.enableDebugInfo(/*enable=*/true, /*pretty=*/false);
     moduleOp.print(outStr, opf);
     return llvm::encodeBase64(mlirCode);
   }
@@ -293,10 +332,10 @@ public:
     request.entryPoint = kernelName;
     request.passes = serverPasses;
     request.format = cudaq::CodeFormat::MLIR;
-    request.code =
-        constructKernelPayload(mlirContext, kernelName,
-                               /*kernelArgs=*/kernelArgs,
-                               /*argsSize=*/0, /*startingArgIdx=*/1, rawArgs);
+    request.code = constructKernelPayload(mlirContext, kernelName,
+                                          /*kernelArgs=*/kernelArgs,
+                                          /*argsSize=*/0, /*startingArgIdx=*/1,
+                                          rawArgs, {});
     request.simulator = backendSimName;
     // Remote server seed
     // Note: unlike local executions whereby a static instance of the simulator
@@ -320,7 +359,8 @@ public:
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), const void *kernelArgs,
-      std::uint64_t argsSize, const std::vector<void *> *rawArgs) {
+      std::uint64_t argsSize, const std::vector<void *> *rawArgs,
+      mlir::Operation *prefabMod) {
 
     cudaq::RestRequest request(io_context, version());
     request.entryPoint = kernelName;
@@ -348,11 +388,11 @@ public:
       stateIrPayload1.entryPoint = kernelName1;
       stateIrPayload1.ir =
           constructKernelPayload(mlirContext, kernelName1, nullptr, 0,
-                                 /*startingArgIdx=*/0, &args1);
+                                 /*startingArgIdx=*/0, &args1, {});
       stateIrPayload2.entryPoint = kernelName2;
       stateIrPayload2.ir =
           constructKernelPayload(mlirContext, kernelName2, nullptr, 0,
-                                 /*startingArgIdx=*/0, &args2);
+                                 /*startingArgIdx=*/0, &args2, {});
       // First kernel of the overlap calculation
       request.code = stateIrPayload1.ir;
       request.entryPoint = stateIrPayload1.entryPoint;
@@ -361,7 +401,7 @@ public:
     } else {
       request.code =
           constructKernelPayload(mlirContext, kernelName, kernelArgs, argsSize,
-                                 /*startingArgIdx=*/0, rawArgs);
+                                 /*startingArgIdx=*/0, rawArgs, prefabMod);
     }
     request.simulator = backendSimName;
     // Remote server seed
@@ -389,13 +429,8 @@ public:
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
-              std::string *optionalErrorMsg,
-              const std::vector<void *> *rawArgs) override {
-    if (isDisallowed(io_context.name))
-      throw std::runtime_error(
-          io_context.name +
-          " operation is not supported with cudaq target remote-mqpu!");
-
+              std::string *optionalErrorMsg, const std::vector<void *> *rawArgs,
+              mlir::Operation *prefabMod) override {
     cudaq::RestRequest request = [&]() {
       if (vqe_n_params > 0)
         return constructVQEJobRequest(mlirContext, io_context, backendSimName,
@@ -403,14 +438,13 @@ public:
                                       *vqe_optimizer, vqe_n_params, rawArgs);
       return constructJobRequest(mlirContext, io_context, backendSimName,
                                  kernelName, kernelFunc, kernelArgs, argsSize,
-                                 rawArgs);
+                                 rawArgs, prefabMod);
     }();
 
     if (request.code.empty()) {
       if (optionalErrorMsg)
         *optionalErrorMsg =
-            std::string(
-                "Failed to construct/retrieve kernel IR for kernel named ") +
+            "Failed to construct/retrieve kernel IR for kernel named " +
             kernelName;
       return false;
     }
@@ -432,9 +466,8 @@ public:
         if (resultJs.contains("status")) {
           errorMsg << "Failed to execute the kernel on the remote server: "
                    << resultJs["status"] << "\n";
-          if (resultJs.contains("errorMessage")) {
+          if (resultJs.contains("errorMessage"))
             errorMsg << "Error message: " << resultJs["errorMessage"] << "\n";
-          }
         } else {
           errorMsg << "Failed to execute the kernel on the remote server.\n";
           errorMsg << "Unexpected response from the REST server. Missing the "

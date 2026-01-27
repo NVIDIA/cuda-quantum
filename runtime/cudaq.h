@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/NoiseModel.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -30,24 +31,6 @@ std::string demangle_kernel(const char *);
 bool isLibraryMode(const std::string &);
 extern bool globalFalse;
 } // namespace __internal__
-
-/// @brief Given a string kernel name, return the corresponding Quake code
-/// This will throw if the kernel name is unknown to the quake code registry.
-std::string get_quake_by_name(const std::string &kernelName);
-
-/// @brief Given a string kernel name, return the corresponding Quake code.
-/// This overload allows one to specify the known mangled arguments string
-/// in order to disambiguate overloaded kernel names.
-/// This will throw if the kernel name is unknown to the quake code registry.
-std::string get_quake_by_name(const std::string &kernelName,
-                              std::optional<std::string> knownMangledArgs);
-
-/// @brief Given a string kernel name, return the corresponding Quake code.
-// If `throwException` is set, it will throw if the kernel name is unknown to
-// the quake code registry. Otherwise, return an empty string in that case.
-std::string
-get_quake_by_name(const std::string &kernelName, bool throwException,
-                  std::optional<std::string> knownMangledArgs = std::nullopt);
 
 // Simple test to see if the QuantumKernel template
 // type is a `cudaq::builder` with `operator()(Args...)`
@@ -205,22 +188,12 @@ bool kernelHasConditionalFeedback(const std::string &kernelName);
 /// @brief Provide a hook to set the target backend.
 void set_target_backend(const char *backend);
 
-/// @brief Utility function for setting the shots on the platform
-[[deprecated("Specify the number of shots in the using the overloaded sample() "
-             "and observe() functions")]] void
-set_shots(const std::size_t nShots);
-
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
 void set_noise(const cudaq::noise_model &model);
 
 /// @brief Remove an existing noise model from simulation.
 void unset_noise();
-
-/// @brief Utility function for clearing the shots
-[[deprecated("Specify the number of shots in the using the overloaded sample() "
-             "and observe() functions")]] void
-clear_shots(const std::size_t nShots);
 
 /// @brief Set a seed for any random number
 /// generators used in backend simulations.

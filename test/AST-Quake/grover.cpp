@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt -lambda-lifting -apply-op-specialization | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt -lambda-lifting=constant-prop=1 -apply-op-specialization | FileCheck %s
 // clang-format on
 
 #include <cmath>
@@ -71,31 +71,25 @@ int main(int argc, char *argv[]) {
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) attributes {"cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_5:.*]] = arith.subi %[[VAL_4]], %[[VAL_1]] : i64
 // CHECK:           %[[VAL_6:.*]] = quake.subveq %[[VAL_0]], 0, %[[VAL_5]] : (!quake.veq<?>, i64) -> !quake.veq<?>
 // CHECK:           %[[VAL_7:.*]] = quake.veq_size %[[VAL_0]] : (!quake.veq<?>) -> i64
 // CHECK:           %[[VAL_8:.*]] = arith.subi %[[VAL_7]], %[[VAL_2]] : i64
 // CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_8]]] : (!quake.veq<?>, i64) -> !quake.ref
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C0:[0-9]*]] %[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C0:[0-9]*]] %[[VAL_0]] : (!quake.veq<?>) -> ()
 // CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C1:[0-9]*]] %[[VAL_6]], %[[VAL_9]] : (!quake.veq<?>, !quake.ref) -> ()
-// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C0]] %[[VAL_0]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C0]] %[[VAL_0]] : (!quake.veq<?>) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__oracle(
 // CHECK-SAME:      %[[VAL_0:.*]]: i64, %[[VAL_1:.*]]: !quake.veq<?>) attributes {"cudaq-kernel"} {
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_4:.*]] = arith.constant false
-// CHECK:           %[[VAL_5:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_6:.*]] = arith.constant 1 : i32
 // CHECK:           %[[VAL_7:.*]] = cc.alloca i64
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_7]] : !cc.ptr<i64>
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C2:[0-9]*]] %[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]] : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> ()
-// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C3:[0-9]*]] %[[VAL_1]], %[[VAL_2]], %[[VAL_3]] : (!quake.veq<?>, i64, i64) -> ()
-// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C2]] %[[VAL_6]], %[[VAL_1]], %[[VAL_3]], %[[VAL_7]], %[[VAL_5]], %[[VAL_4]] : (i32, !quake.veq<?>, i64, !cc.ptr<i64>, i64, i1) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C2:[0-9]*]] %[[VAL_1]], %[[VAL_7]] : (!quake.veq<?>, !cc.ptr<i64>) -> ()
+// CHECK:           quake.apply @__nvqpp__lifted.lambda.[[C3:[0-9]*]] %[[VAL_1]] : (!quake.veq<?>) -> ()
+// CHECK:           quake.apply<adj> @__nvqpp__lifted.lambda.[[C2]] %[[VAL_1]], %[[VAL_7]] : (!quake.veq<?>, !cc.ptr<i64>) -> ()
 // CHECK:           return
 // CHECK:         }
 

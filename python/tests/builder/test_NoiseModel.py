@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -621,15 +621,16 @@ def test_apply_noise_custom():
     counts = cudaq.sample(test, noise_model=noise)
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
-    @cudaq.kernel
-    def testbad():
-        q = cudaq.qubit()
-        x(q)
-        # can pass as standard arguments
-        cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
-
     with pytest.raises(RuntimeError) as e:
-        testbad.compile()
+
+        @cudaq.kernel
+        def testbad():
+            q = cudaq.qubit()
+            x(q)
+            # can pass as standard arguments
+            cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
+
+        cudaq.sample(testbad)
 
     @cudaq.kernel
     def test():

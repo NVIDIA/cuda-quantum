@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,6 +47,8 @@
 #include "mlir/Tools/ParseUtilities.h"
 
 namespace cudaq {
+
+void initializeLangMLIR();
 
 bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
@@ -181,7 +183,7 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 // block contains irreversible operations (measurements), and the blocks may not
 // overlap.
 // Reference:
-// https://github.com/qir-alliance/qir-spec/blob/main/specification/under_development/profiles/Base_Profile.md?plain=1#L237
+// https://github.com/qir-alliance/qir-spec/blob/684b17b/specification/profiles/Base_Profile.md#L196
 mlir::LogicalResult
 verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
   bool irreversibleSeenYet = false;
@@ -195,7 +197,9 @@ verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
           auto funcName = calledFunc->getName();
           bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
           bool isReversible = !isIrreversible;
-          bool isOutputFunction = funcName == cudaq::opt::QIRRecordOutput;
+          bool isOutputFunction =
+              (funcName == cudaq::opt::QIRRecordOutput ||
+               funcName == cudaq::opt::QIRArrayRecordOutput);
           if (isReversible && !isOutputFunction && irreversibleSeenYet) {
             llvm::errs() << "error: reversible function " << funcName
                          << " came after irreversible function\n";
@@ -487,9 +491,9 @@ mlir::LogicalResult qirProfileTranslationFunction(
 
   auto config = parseCodeGenTranslation(qirProfile);
   if (!config.isQIRProfile)
-    throw std::runtime_error(
-        fmt::format("Unexpected codegen profile while translating to QIR: {}",
-                    config.profile));
+    throw std::runtime_error(cudaq_fmt::format(
+        "Unexpected codegen profile while translating to QIR: {}",
+        config.profile));
 
   auto context = op->getContext();
   mlir::PassManager pm(context);

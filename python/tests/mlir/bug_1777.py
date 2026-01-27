@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -28,49 +28,48 @@ def test_bug_1777():
 
     print(test)
     result = cudaq.sample(test)
+    print("Results!")
     print(result)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant false
-# CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i64
-# CHECK:           %[[VAL_3:.*]] = arith.constant true
-# CHECK:           %[[VAL_4:.*]] = arith.constant 2 : i64
-# CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<2>
-# CHECK:           %[[VAL_6:.*]] = cc.alloca i1
-# CHECK:           cc.store %[[VAL_3]], %[[VAL_6]] : !cc.ptr<i1>
-# CHECK:           %[[VAL_7:.*]] = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_2]]) -> (i64)) {
-# CHECK:             %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_4]] : i64
-# CHECK:             cc.condition %[[VAL_9]](%[[VAL_8]] : i64)
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test..
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant false
+# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_3:.*]] = arith.constant true
+# CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 2 : i64
+# CHECK-DAG:       %[[VAL_5:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.veq<2>
+# CHECK:           %[[VAL_7:.*]]:3 = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_2]], %[[VAL_9:.*]] = %[[VAL_5]], %[[VAL_10:.*]] = %[[VAL_3]]) -> (i64, i64, i1)) {
+# CHECK:             %[[VAL_11:.*]] = arith.cmpi slt, %[[VAL_8]], %[[VAL_4]] : i64
+# CHECK:             cc.condition %[[VAL_11]](%[[VAL_8]], %[[VAL_9]], %[[VAL_10]] : i64, i64, i1)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
-# CHECK:             %[[VAL_25:.*]] = cc.alloca i64
-# CHECK:             cc.store %[[VAL_10]], %[[VAL_25]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_26:.*]] = cc.load %[[VAL_25]] : !cc.ptr<i64>
-# CHECK:             %[[VAL_11:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_26]]] : (!quake.veq<2>, i64) -> !quake.ref
-# CHECK:             %[[VAL_12:.*]] = quake.mz %[[VAL_11]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:             %[[VAL_13:.*]] = quake.discriminate %[[VAL_12]] : (!quake.measure) -> i1
-# CHECK:             cc.store %[[VAL_13]], %[[VAL_6]] : !cc.ptr<i1>
-# CHECK:             %[[VAL_26:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
-# CHECK:             %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_26]], %[[VAL_0]] : i1
-# CHECK:             cc.if(%[[VAL_14]]) {
-# CHECK:               %[[VAL_15:.*]] = quake.mz %[[VAL_5]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_13:.*]]: i64, %[[VAL_14:.*]]: i1):
+# CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_12]]] : (!quake.veq<2>, i64) -> !quake.ref
+# CHECK:             %[[VAL_16:.*]] = quake.mz %[[VAL_15]] name "res" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_17:.*]] = quake.discriminate %[[VAL_16]] : (!quake.measure) -> i1
+# CHECK:             %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_0]] : i1
+# CHECK:             cc.if(%[[VAL_18]]) {
+# CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:             } else {
 # CHECK:             }
-# CHECK:             cc.continue %[[VAL_10]] : i64
+# CHECK:             cc.continue %[[VAL_12]], %[[VAL_12]], %[[VAL_17]] : i64, i64, i1
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_18:.*]]: i64):
-# CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i64
-# CHECK:             cc.continue %[[VAL_19]] : i64
+# CHECK:           ^bb0(%[[VAL_20:.*]]: i64, %[[VAL_21:.*]]: i64, %[[VAL_22:.*]]: i1):
+# CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_20]], %[[VAL_1]] : i64
+# CHECK:             cc.continue %[[VAL_23]], %[[VAL_21]], %[[VAL_22]] : i64, i64, i1
 # CHECK:           }
-# CHECK:           %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
-# CHECK:           %[[VAL_21:.*]] = arith.cmpi eq, %[[VAL_20]], %[[VAL_3]] : i1
-# CHECK:           cc.if(%[[VAL_21]]) {
-# CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:           %[[VAL_24:.*]] = arith.cmpi eq, %[[VAL_25:.*]]#2, %[[VAL_3]] : i1
+# CHECK:           cc.if(%[[VAL_24]]) {
+# CHECK:             %[[VAL_26:.*]] = quake.mz %[[VAL_6]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:           } else {
 # CHECK:           }
+# CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>
 # CHECK:           return
 # CHECK:         }
 
+# CHECK-LABEL: Results!
 # CHECK:         {
 # CHECK-DAG:         __global__ : { 00:1000 }
 # CHECK-DAG:          inner_mz : { 0000:1000 }

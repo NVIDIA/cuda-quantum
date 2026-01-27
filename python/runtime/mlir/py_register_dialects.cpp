@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -285,21 +285,27 @@ void registerCCDialectAndTypes(py::module &m) {
   mlir_type_subclass(
       ccMod, "CallableType",
       [](MlirType type) { return unwrap(type).isa<cudaq::cc::CallableType>(); })
-      .def_classmethod(
-          "get",
-          [](py::object cls, py::list inTypes, MlirContext context) {
-            SmallVector<Type> inTys;
-            for (auto &t : inTypes)
-              inTys.push_back(unwrap(t.cast<MlirType>()));
+      .def_classmethod("get",
+                       [](py::object cls, MlirContext context, py::list inTypes,
+                          py::list resTypes) {
+                         // Pybind builder: make the builder for this type look
+                         // like that of a FunctionType.
+                         SmallVector<Type> inTys;
+                         for (auto &t : inTypes)
+                           inTys.push_back(unwrap(t.cast<MlirType>()));
+                         SmallVector<Type> resTys;
+                         for (auto &t : resTypes)
+                           resTys.push_back(unwrap(t.cast<MlirType>()));
 
-            return wrap(cudaq::cc::CallableType::get(
-                unwrap(context),
-                FunctionType::get(unwrap(context), inTys, TypeRange{})));
-          },
-          py::arg("cls"), py::arg("inTypes"), py::arg("context") = py::none())
+                         auto *ctx = unwrap(context);
+                         return wrap(cudaq::cc::CallableType::get(
+                             ctx, FunctionType::get(ctx, inTys, resTys)));
+                       })
       .def_classmethod("getFunctionType", [](py::object cls, MlirType type) {
-        return wrap(
-            dyn_cast<cudaq::cc::CallableType>(unwrap(type)).getSignature());
+        auto callTy = dyn_cast<cudaq::cc::CallableType>(unwrap(type));
+        if (!callTy)
+          throw std::runtime_error("must be a cc.callable type!");
+        return wrap(callTy.getSignature());
       });
 
   mlir_type_subclass(

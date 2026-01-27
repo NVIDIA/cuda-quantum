@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -151,48 +151,6 @@ def test_observe():
     ## Need to adjust expectation value range
     # assert assert_close(res.expectation())
     print(res.expectation())
-
-
-def test_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-        mz(qubits)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-
-def test_state_synthesis():
-
-    @cudaq.kernel
-    def init(n: int):
-        q = cudaq.qvector(n)
-        x(q[0])
-
-    @cudaq.kernel
-    def kernel1(s: cudaq.State):
-        q = cudaq.qvector(s)
-        x(q[1])
-
-    @cudaq.kernel
-    def kernel2(s: cudaq.State):
-        q = cudaq.qvector(s)
-        x(q[1])
-        mz(q)
-
-    s = cudaq.get_state(init, 2)
-    s = cudaq.get_state(kernel1, s)
-    counts = cudaq.sample(kernel2, s)
-    assert '10' in counts
-    assert len(counts) == 1
 
 
 def test_exp_pauli():

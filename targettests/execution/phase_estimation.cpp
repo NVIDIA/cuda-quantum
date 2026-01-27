@@ -1,14 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && cat %basename_t.ir | FileCheck %s && rm -f %basename_t.ir
-// clang-format on
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && \
+// RUN: CUDAQ_DUMP_JIT_IR=1 %t &> %basename_t.ir && \
+// RUN: FileCheck %s < %basename_t.ir
+// RUN: rm -f %basename_t.ir
 
 #include <cudaq.h>
 #include <iostream>
@@ -18,9 +19,8 @@
 __qpu__ void iqft(cudaq::qview<> q) {
   int N = q.size();
   // Swap qubits
-  for (int i = 0; i < N / 2; ++i) {
+  for (int i = 0; i < N / 2; ++i)
     swap(q[i], q[N - i - 1]);
-  }
 
   for (int i = 0; i < N - 1; ++i) {
     h(q[i]);
@@ -35,14 +35,14 @@ __qpu__ void iqft(cudaq::qview<> q) {
   h(q[N - 1]);
 }
 
-// CUDA-Q kernel call operators can be templated on input CUDA-Q
-// kernel expressions. Here we define a general Phase Estimation algorithm that
-// is generic on the eigenstate preparation and unitary evolution steps.
+// CUDA-Q kernel call operators can be templated on input CUDA-Q kernel
+// expressions. Here we define a general Phase Estimation algorithm that is
+// generic on the eigenstate preparation and unitary evolution steps.
 struct qpe {
 
-  // Define the CUDA-Q call expression to take user-specified eigenstate
-  // and unitary evolution kernels, as well as the number of qubits in the
-  // counting register and in the eigenstate register.
+  // Define the CUDA-Q call expression to take user-specified eigenstate and
+  // unitary evolution kernels, as well as the number of qubits in the counting
+  // register and in the eigenstate register.
   template <typename StatePrep, typename Unitary>
   void operator()(const int nCountingQubits, StatePrep &&state_prep,
                   Unitary &&oracle) __qpu__ {
@@ -61,19 +61,15 @@ struct qpe {
     h(counting_qubits);
 
     // Perform `ctrl-U^j`
-    for (int i = 0; i < nCountingQubits; ++i) {
-      for (int j = 0; j < (1 << i); ++j) {
+    for (int i = 0; i < nCountingQubits; ++i)
+      for (int j = 0; j < (1 << i); ++j)
         cudaq::control(oracle, counting_qubits[i], state_register);
-      }
-    }
 
     // Apply inverse quantum Fourier transform
     iqft(counting_qubits);
 
     // Measure to gather sampling statistics
     mz(counting_qubits);
-
-    return;
   }
 };
 
@@ -85,6 +81,7 @@ int main() {
   int nQubits = 2;
   auto counts = cudaq::sample(
       qpe{}, nQubits, [](cudaq::qubit &q) __qpu__ { x(q); }, r1PiGate{});
+  return 0; // don't leave pass/fail status up to the phase of the moon
 }
 
 // CHECK-NOT: __quantum__qis__r1__body

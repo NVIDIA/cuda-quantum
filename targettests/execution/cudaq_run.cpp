@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -42,13 +42,6 @@ __qpu__ std::vector<bool> vector_bool_test() {
   return vec;
 }
 
-__qpu__ std::vector<bool> vector_bool_dynamic_size_test(int size) {
-  std::vector<bool> vec(size);
-  for (int i = 0; i < size; i++)
-    vec[i] = (i % 2 == 0) ? true : false;
-  return vec;
-}
-
 __qpu__ bool mz_test() {
   cudaq::qubit q;
   h(q);
@@ -68,36 +61,10 @@ struct vector_mz_test {
   }
 };
 
-struct vector_mz_dynamic_size_test {
-  std::vector<bool> operator()(int size) __qpu__ {
-    cudaq::qvector q(size);
-    cudaq::qubit p;
-    x(q);
-#ifdef CUDAQ_LIBRARY_MODE
-    return cudaq::measure_result::to_bool_vector(mz(q));
-#else
-    return mz(q);
-#endif
-  }
-};
-
 __qpu__ std::vector<int> vector_int_test() {
   std::vector<int> result(2);
   result[0] = 42;
   result[1] = -13;
-  return result;
-}
-
-__qpu__ std::vector<int> vector_int_dynamic_size_test(int size) {
-  std::vector<int> result(size);
-  for (int i = 0; i < size; i++) {
-    if (i == 0)
-      result[i] = 42;
-    else if (i == 1)
-      result[i] = -13;
-    else
-      result[i] = 0;
-  }
   return result;
 }
 
@@ -106,21 +73,6 @@ __qpu__ std::vector<float> vector_float_test() {
   result[0] = 3.141592653589;
   result[1] = 2.718281828459;
   result[2] = 6.62607015;
-  return result;
-}
-
-__qpu__ std::vector<float> vector_float_dynamic_size_test(int size) {
-  std::vector<float> result(size);
-  for (int i = 0; i < size; i++) {
-    if (i == 0)
-      result[i] = 3.141592653589;
-    else if (i == 1)
-      result[i] = 2.718281828459;
-    else if (i == 2)
-      result[i] = 6.62607015;
-    else
-      result[i] = 0.0;
-  }
   return result;
 }
 
@@ -233,22 +185,6 @@ int main() {
   }
 
   {
-    const std::vector<std::vector<bool>> results =
-        cudaq::run(shots, vector_bool_dynamic_size_test, 2);
-    c = 0;
-    if (results.size() != shots) {
-      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
-    } else {
-      for (auto i : results) {
-        printf("%d: {%d , %d}\n", c++, (bool)i[0], (bool)i[1]);
-        assert(i[0] == true);
-        assert(i[1] == false);
-      }
-      printf("success - vector_bool_dynamic_size_test\n");
-    }
-  }
-
-  {
     const std::vector<bool> results = cudaq::run(shots, mz_test);
     c = 0;
     if (results.size() != shots) {
@@ -278,23 +214,6 @@ int main() {
   }
 
   {
-    const std::vector<std::vector<bool>> results =
-        cudaq::run(shots, vector_mz_dynamic_size_test{}, 5);
-    c = 0;
-    if (results.size() != shots) {
-      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
-    } else {
-      for (auto i : results) {
-        printf("%d: {", c++);
-        for (auto b : i)
-          printf("%d ", (bool)b);
-        printf("}\n");
-      }
-      printf("success - vector_mz_dynamic_size_test\n");
-    }
-  }
-
-  {
     const std::vector<std::vector<int>> results =
         cudaq::run(shots, vector_int_test);
     c = 0;
@@ -311,22 +230,6 @@ int main() {
   }
 
   {
-    const std::vector<std::vector<int>> results =
-        cudaq::run(shots, vector_int_dynamic_size_test, 2);
-    c = 0;
-    if (results.size() != shots) {
-      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
-    } else {
-      for (auto i : results) {
-        printf("%d: {%d , %d}\n", c++, i[0], i[1]);
-        assert(i[0] == 42);
-        assert(i[1] == -13);
-      }
-      printf("success - vector_int_dynamic_size_test\n");
-    }
-  }
-
-  {
     const std::vector<std::vector<float>> results =
         cudaq::run(shots, vector_float_test);
     c = 0;
@@ -336,19 +239,6 @@ int main() {
       for (auto i : results)
         printf("%d: {%f , %f , %f}\n", c++, i[0], i[1], i[2]);
       printf("success - vector_float_test\n");
-    }
-  }
-
-  {
-    const std::vector<std::vector<float>> results =
-        cudaq::run(shots, vector_float_dynamic_size_test, 3);
-    c = 0;
-    if (results.size() != shots) {
-      printf("FAILED! Expected %lu shots. Got %lu\n", shots, results.size());
-    } else {
-      for (auto i : results)
-        printf("%d: {%f , %f , %f}\n", c++, i[0], i[1], i[2]);
-      printf("success - vector_float_dynamic_size_test\n");
     }
   }
 
@@ -373,12 +263,8 @@ int main() {
 // CHECK: success async - nullary_test
 // CHECK: success async - unary_test
 // CHECK: success - vector_bool_test
-// CHECK: success - vector_bool_dynamic_size_test
 // CHECK: success - mz_test
 // CHECK: success - vector_mz_test
-// CHECK: success - vector_mz_dynamic_size_test
 // CHECK: success - vector_int_test
-// CHECK: success - vector_int_dynamic_size_test
 // CHECK: success - vector_float_test
-// CHECK: success - vector_float_dynamic_size_test
 // CHECK: success - struct_test

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 # Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
@@ -32,7 +32,7 @@ EOF
 tmp_file=$(mktemp)
 @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_cortex_cli.py $tmp_file
 # Launch the fake server
-@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/__init__.py &
+@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py iqm &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -46,9 +46,9 @@ while ! checkServerConnection; do
 done
 # Run the tests
 if [ a${IQM_SERVER_URL} = a ]; then
-  IQM_TOKEN="good_access_token" IQM_TOKENS_FILE=$tmp_file ./test_iqm
+  IQM_TOKEN="good_access_token" IQM_TOKENS_FILE=$tmp_file ./$1
 else
-  ./test_iqm
+  ./$1
 fi
 # Did they fail?
 testsPassed=$?

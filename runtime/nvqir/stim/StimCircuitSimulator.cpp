@@ -1,11 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 
@@ -420,7 +421,10 @@ protected:
   }
 
   /// @brief Set the current state back to the |0> state.
-  void setToZeroState() override { return; }
+  void setToZeroState() override {
+    // We don't support re-using memory, so we just deallocate the state.
+    deallocateState();
+  }
 
   /// @brief Override the calculateStateDim because this is not a state vector
   /// simulator.

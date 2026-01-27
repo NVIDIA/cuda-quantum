@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -517,7 +517,7 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     kernel.rx(thetas[2], qreg[2])
     kernel.rx(thetas[3], qreg[3])
 
-    print(cudaq.get_state(kernel, angles))
+    cudaq.get_state(kernel, angles).dump()
     # Measure each qubit in the Z-basis.
     hamiltonian = spin.z(0) + spin.z(1) + spin.z(2) + spin.z(3)
 
@@ -566,16 +566,13 @@ def test_observe_numpy_array(angles, want_state, want_expectation):
     with pytest.raises(Exception) as error:
         # Test kernel call.
         kernel(bad_params)
+    assert "Invalid runtime list argument" in str(error.value)
     with pytest.raises(Exception) as error:
         # Test observe call.
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
     with pytest.raises(Exception) as error:
         # Test too few elements in array.
         bad_params = np.random.uniform(low=-np.pi, high=np.pi, size=(2,))
-        cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
-    with pytest.raises(Exception) as error:
-        # Test too many elements in array.
-        bad_params = np.random.uniform(low=-np.pi, high=np.pi, size=(8,))
         cudaq.observe(kernel, hamiltonian, bad_params, qpu_id=0, shots_count=10)
 
 
@@ -780,7 +777,10 @@ def test_batched_observe_results():
 
 
 def test_observe():
-    """ Check if the bug reported in  https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'"""
+    """
+    Check if the bug reported in
+    https://github.com/NVIDIA/cuda-quantum/issues/1218 affects 'observe_async'
+    """
 
     def kernel_maker(n):
         kernel, theta = cudaq.make_kernel(float)

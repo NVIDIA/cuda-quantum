@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 #include "Logger.h"
+#include "cudaq_fmt.h"
 #include <dlfcn.h>
 #include <mutex>
 #include <string_view>
@@ -21,8 +22,9 @@ namespace cudaq {
 template <typename PluginPointerType>
 PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
                                            const char *libName = nullptr) {
-  CUDAQ_INFO("Requesting {} plugin via symbol name {}.",
-             typeid(PluginPointerType).name(), symbolName);
+  CUDAQ_INFO("Requesting {} plugin via symbol name {} ({}).",
+             typeid(PluginPointerType).name(), symbolName,
+             libName ? libName : "null");
   std::mutex m;
   std::lock_guard<std::mutex> l(m);
   using GetPluginFunction = PluginPointerType *(*)();
@@ -30,8 +32,8 @@ PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
   GetPluginFunction fcn =
       (GetPluginFunction)(intptr_t)dlsym(handle, symbolName.data());
   if (!fcn)
-    throw std::runtime_error(
-        fmt::format("Could not load the requested plugin. \n{}\n", dlerror()));
+    throw std::runtime_error(cudaq_fmt::format(
+        "Could not load the requested plugin. \n{}\n", dlerror()));
 
   CUDAQ_INFO("Successfully loaded the plugin.");
   return fcn();

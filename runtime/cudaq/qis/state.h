@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,7 @@
 #pragma once
 
 #include "common/SimulationState.h"
-#include <memory>
-#include <variant>
-#include <vector>
+#include "cudaq/host_config.h"
 
 namespace cudaq {
 
@@ -26,18 +24,84 @@ class state {
 private:
   /// @brief Reference to the simulation data
   std::shared_ptr<SimulationState> internal;
-  template <std::size_t Levels>
+  template <std::size_t>
   friend class qvector;
+  template <std::size_t>
+  friend class qudit;
   friend class state_helper;
 
 public:
   /// @brief The constructor, takes the simulation data and owns it
-  explicit state(SimulationState *ptrToOwn)
-      : internal(std::shared_ptr<SimulationState>(ptrToOwn)) {}
+  explicit state(SimulationState *ptrToOwn);
   /// @brief Copy constructor (default)
   state(const state &other) = default;
+
+  /// Overloaded constructors.
+  /// These construct a `state` from a raw input state vector. The number of
+  /// qubits is determined by the size of the input vector. The user is
+  /// responsible for providing (and verifying) the element values. These values
+  /// must be correct for the simulator that is in use.
+  state(const std::vector<std::complex<double>> &vector) { initialize(vector); }
+  state(std::vector<std::complex<double>> &&vector) {
+    std::vector<std::complex<double>> v{std::move(vector)};
+    initialize(v);
+  }
+  state(const std::vector<std::complex<float>> &vector) { initialize(vector); }
+  state(std::vector<std::complex<float>> &&vector) {
+    std::vector<std::complex<float>> v{std::move(vector)};
+    initialize(v);
+  }
+  state(const std::vector<double> &vector) {
+    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
+  }
+  state(std::vector<double> &&vector) {
+    std::vector<double> v{std::move(vector)};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::vector<float> &vector) {
+    initialize(std::vector<cudaq::complex>{vector.begin(), vector.end()});
+  }
+  state(std::vector<float> &&vector) {
+    std::vector<float> v{std::move(vector)};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::initializer_list<std::complex<double>> &list) {
+    std::vector<std::complex<double>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<std::complex<double>> &&list) {
+    std::vector<std::complex<double>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::initializer_list<std::complex<float>> &list) {
+    std::vector<std::complex<float>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<std::complex<float>> &&list) {
+    std::vector<std::complex<float>> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::initializer_list<double> &list) {
+    std::vector<double> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<double> &&list) {
+    std::vector<double> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(const std::initializer_list<float> &list) {
+    std::vector<float> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+  state(std::initializer_list<float> &&list) {
+    std::vector<float> v{list.begin(), list.end()};
+    initialize(std::vector<cudaq::complex>{v.begin(), v.end()});
+  }
+
   /// @brief Copy assignment
   state &operator=(state &&other);
+  /// @brief Default destructor
+  ~state() = default;
 
   /// @brief Convenience function for extracting from a known vector.
   std::complex<double> operator[](std::size_t idx) const;
@@ -91,15 +155,21 @@ public:
 
   /// @brief Return the amplitude of the given computational basis state
   std::complex<double> amplitude(const std::vector<int> &basisState);
+
   /// @brief Return the amplitudes of the given list of computational basis
   /// states
   std::vector<std::complex<double>>
   amplitudes(const std::vector<std::vector<int>> &basisStates);
+
   /// @brief Create a new state from user-provided data.
   /// The data can be host or device data.
-  static state from_data(const state_data &data);
+  static state from_data(const state_data &data) {
+    return state{}.initialize(data);
+  }
 
-  ~state();
+private:
+  state() : internal{nullptr} {}
+  state &initialize(const state_data &data);
 };
 
 class state_helper {

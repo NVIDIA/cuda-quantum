@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,6 +15,7 @@
 #include "common/ThunkInterface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nvqpp_interface.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>
@@ -22,7 +23,10 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
+
+namespace mlir {
+class ModuleOp;
+}
 
 namespace cudaq {
 
@@ -77,24 +81,6 @@ public:
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
   virtual bool supports_task_distribution() const { return false; }
-
-  /// Getter for the shots. This will be deprecated once `set_shots` and
-  /// `clear_shots` are removed.
-  std::optional<int> get_shots() { return platformNumShots; }
-
-  /// Setter for the shots
-  [[deprecated("Specify the number of shots in the using the overloaded "
-               "sample() and observe() functions")]] virtual void
-  set_shots(int numShots) {
-    platformNumShots = numShots;
-  }
-
-  /// Reset shots
-  [[deprecated("Specify the number of shots in the using the overloaded "
-               "sample() and observe() functions")]] virtual void
-  clear_shots() {
-    platformNumShots = std::nullopt;
-  }
 
   /// Specify the execution context for the current thread.
   void set_exec_ctx(ExecutionContext *ctx);
@@ -173,6 +159,19 @@ public:
   void launchKernel(const std::string &kernelName, const std::vector<void *> &,
                     std::size_t qpu_id = 0);
 
+  // This method launches a kernel from a ModuleOp that has already been
+  // created.
+  [[nodiscard]] KernelThunkResultType
+  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs, mlir::Type resultTy,
+               std::size_t qpu_id);
+
+  [[nodiscard]] void *specializeModule(const std::string &kernelName,
+                                       mlir::ModuleOp module,
+                                       const std::vector<void *> &rawArgs,
+                                       mlir::Type resultTy, void *cachedEngine,
+                                       std::size_t qpu_id);
+
   /// List all available platforms
   static std::vector<std::string> list_platforms();
 
@@ -213,9 +212,6 @@ protected:
 
   /// Name of the platform.
   std::string platformName;
-
-  /// Optional number of shots.
-  std::optional<int> platformNumShots;
 
   /// Keep a per-thread pointer to the current execution context.
   // TODO: Remove this

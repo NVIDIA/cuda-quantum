@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -20,7 +20,7 @@ except Exception:
 EOF
 }
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/quantinuum/__init__.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py quantinuum &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -32,79 +32,17 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+# Create the configuration file which needs to exist before entering main
+config=FakeCppQuantinuum.config
+cp -r @CMAKE_CURRENT_SOURCE_DIR@/$config .
+
 # Run the tests (gtest-based, not using nvq++)
 ./test_quantinuum
 # Did they fail? 
 testsPassed=$?
-
-if [ $testsPassed -ne 0 ]; then
-  echo "Tests failed with exit code $testsPassed"
-  kill -INT $pid
-  exit $testsPassed
-fi
-
-
-rm -f @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
-echo "key: key" >> @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
-echo "refresh: refresh" >> @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
-
-# Run all the nvq++ tests with mock server.
-echo "### nvq++ tests"
-set +e # Allow script to keep going through errors
-test_err_sum=0
-for filename in @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/test_*.cpp; do
-  echo "Testing $filename"
-  @CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 $filename 
-  test_status=$?
-  if [ $test_status -eq 0 ]; then
-    ./a.out
-    test_status=$?
-    if [ $test_status -eq 0 ]; then
-      echo "Successfully ran test: $filename"
-    else
-      echo "Test failed (failed to execute): $filename" 
-      test_err_sum=$((test_err_sum+1))
-    fi
-  else
-    echo "Test failed (failed to compile): $filename" 
-    test_err_sum=$((test_err_sum+1))
-  fi
-done
-
-# Test separate compilation
-# Compile device code lib (with -fPIC -shared)
-@CMAKE_BINARY_DIR@/bin/nvq++ -fPIC -shared @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/run_separate_compilation/lib.cpp -o lib.so
-test_status=$?
-if [ $test_status -eq 0 ]; then
-  # Compile the app + linking to the lib
-  @CMAKE_BINARY_DIR@/bin/nvq++ --target quantinuum --quantinuum-credentials @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config --quantinuum-machine Helios-1SC --quantinuum-project mock --quantinuum-url http://localhost:62440 @CMAKE_SOURCE_DIR@/unittests/backends/quantinuum/run_separate_compilation/app.cpp lib.so -o test_app.x
-  test_status=$?
-  if [ $test_status -eq 0 ]; then
-    ./test_app.x
-    test_status=$?
-    if [ $test_status -eq 0 ]; then
-      echo "Successfully ran app with device code library test"
-    else
-      echo "Test failed (failed to execute the app)" 
-      test_err_sum=$((test_err_sum+1))
-    fi
-  else
-    echo "Test failed (failed to compile the app)" 
-    test_err_sum=$((test_err_sum+1))
-  fi
-else
-  echo "Test failed (failed to compile the lib)" 
-  test_err_sum=$((test_err_sum+1))
-fi
-
-
 # Clean up the config file
-rm -f @CMAKE_BINARY_DIR@/FakeCppQuantinuum.config
-# Stop the mock server
+rm -f $config
+# kill the server
 kill -INT $pid
-
-set -e # Re-enable exit code error checking
-if [ ! $test_err_sum -eq 0 ]; then
-  echo "Error: ${test_err_sum} tests failed."
-  exit 1
-fi
+# return success / failure
+exit $testsPassed

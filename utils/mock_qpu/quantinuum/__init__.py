@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,7 +10,7 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Header, Query
 from fastapi.responses import JSONResponse
 from typing import Union
-import uvicorn, uuid, base64, ctypes
+import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 
@@ -217,6 +217,9 @@ async def create_job(job: dict):
     engine.run_static_constructors()
     funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
+
+    # Clear any leftover log from previous jobs
+    cudaq.testing.getAndClearOutputLog()
 
     # Invoke the Kernel
     if is_ng_device:
@@ -429,11 +432,3 @@ async def create_decoder_config(job: dict):
             }
         }
     }
-
-
-def startServer(port):
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer(62440)

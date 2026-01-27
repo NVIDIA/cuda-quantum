@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #include "cudaq.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
@@ -212,26 +213,6 @@ void set_target_backend(const char *backend) {
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(std::string(backend));
 }
-
-// Ignore warnings about deprecations in platform.set_shots and
-// platform.clear_shots because the functions that are using them here
-// (cudaq::set_shots and cudaq::clear_shots are also deprecated and will be
-// removed at the same time.)
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-void set_shots(const std::size_t nShots) {
-  auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
-}
-void clear_shots(const std::size_t nShots) {
-  auto &platform = cudaq::get_platform();
-  platform.clear_shots();
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();

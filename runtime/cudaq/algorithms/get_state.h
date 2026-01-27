@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
@@ -18,7 +19,6 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/remote_state.h"
 #include "cudaq/qis/state.h"
-#include "cudaq/utils/registry.h"
 #include <complex>
 #include <vector>
 
@@ -186,8 +186,12 @@ async_state_result get_state_async(QuantumKernel &&kernel, Args &&...args) {
 
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *);
-state *__nvqpp_cudaq_state_createFromData_fp64(void *, std::size_t);
-state *__nvqpp_cudaq_state_createFromData_fp32(void *, std::size_t);
+state *__nvqpp_cudaq_state_createFromData_f64(double *, std::size_t);
+state *__nvqpp_cudaq_state_createFromData_f32(float *, std::size_t);
+state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *,
+                                                      std::size_t);
+state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *,
+                                                      std::size_t);
 void __nvqpp_cudaq_state_delete(state *);
 }
 

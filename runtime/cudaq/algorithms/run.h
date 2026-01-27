@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -45,7 +45,8 @@ RunResultSpan runTheKernel(std::function<void()> &&kernel,
                            quantum_platform &platform,
                            const std::string &kernel_name,
                            const std::string &original_name, std::size_t shots,
-                           std::size_t qpu_id = 0);
+                           std::size_t qpu_id = 0,
+                           /* mlir::Operation* */ void *opt_module = nullptr);
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a

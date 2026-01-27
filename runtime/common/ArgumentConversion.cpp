@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,13 +7,14 @@
  ******************************************************************************/
 
 #include "ArgumentConversion.h"
+#include "ArgumentWrapper.h"
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
 #include "cudaq/qis/pauli_word.h"
-#include "cudaq/utils/registry.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -100,6 +101,8 @@ static Value genConstant(OpBuilder &, cudaq::cc::StructType, void *, ModuleOp,
                          llvm::DataLayout &);
 static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *, ModuleOp,
                          llvm::DataLayout &);
+static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
+                         llvm::DataLayout &);
 
 /// Create callee.init_N that initializes the state
 ///
@@ -120,8 +123,10 @@ static Value genConstant(OpBuilder &, cudaq::cc::ArrayType, void *, ModuleOp,
 ///   return %arg0: !quake.veq<?>
 /// }
 // clang-format on
-static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
-                           func::FuncOp calleeFunc, StringRef initKernelName) {
+[[maybe_unused]] static void createInitFunc(OpBuilder &builder,
+                                            ModuleOp moduleOp,
+                                            func::FuncOp calleeFunc,
+                                            StringRef initKernelName) {
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(moduleOp.getBody());
 
@@ -243,9 +248,9 @@ static void createInitFunc(OpBuilder &builder, ModuleOp moduleOp,
 ///   return %arg0 : i64
 /// }
 // clang-format on
-static void createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
-                                func::FuncOp calleeFunc,
-                                StringRef numQubitsKernelName) {
+[[maybe_unused]] static void
+createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
+                    func::FuncOp calleeFunc, StringRef numQubitsKernelName) {
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToEnd(moduleOp.getBody());
 
@@ -339,199 +344,23 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
                          llvm::DataLayout &layout, StringRef kernelName,
                          ModuleOp substMod,
                          cudaq::opt::ArgumentConverter &converter) {
+  auto ctx = builder.getContext();
+  auto loc = builder.getUnknownLoc();
   auto simState =
       cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
-
-  // If the state has amplitude data, we materialize the data as a state
-  // vector and create a new state from it.
   if (simState->hasData()) {
-    // The call below might cause lazy execution of the state kernel.
-    // TODO: For lazy execution scenario on remote simulators, we have the
-    // kernel info available on the state as well, before we needed to run
-    // the state kernel and compute its data, which might cause significant
-    // data transfer). Investigate if it is more performant to use the other
-    // synthesis option in that case (see the next `if`).
-    auto numQubits = v->get_num_qubits();
-
-    // We currently only synthesize small states.
-    if (numQubits > 14) {
-      TODO("large (>14 qubit) cudaq::state* argument synthesis for simulators");
-      return {};
-    }
-
-    auto size = 1ULL << numQubits;
-    auto ctx = builder.getContext();
-    auto loc = builder.getUnknownLoc();
-    auto is64Bit =
-        v->get_precision() == cudaq::SimulationState::precision::fp64;
-    auto eleTy = is64Bit ? ComplexType::get(Float64Type::get(ctx))
-                         : ComplexType::get(Float32Type::get(ctx));
-    auto arrTy = cudaq::cc::ArrayType::get(ctx, eleTy, size);
-    static unsigned counter = 0;
-    auto ptrTy = cudaq::cc::PointerType::get(arrTy);
-
-    cudaq::IRBuilder irBuilder(ctx);
-    auto genConArray = [&]<typename T>() -> Value {
-      SmallVector<std::complex<T>> vec(size);
-      for (std::size_t i = 0; i < size; i++) {
-        vec[i] = (*v)({i}, 0);
-      }
-      std::string name =
-          kernelName.str() + ".rodata_synth_" + std::to_string(counter++);
-      irBuilder.genVectorOfConstants(loc, substMod, name, vec);
-      return builder.create<cudaq::cc::AddressOfOp>(loc, ptrTy, name);
-    };
-
-    auto buffer = is64Bit ? genConArray.template operator()<double>()
-                          : genConArray.template operator()<float>();
-
-    auto arrSize = builder.create<arith::ConstantIntOp>(loc, size, 64);
-    auto stateTy = quake::StateType::get(ctx);
-    auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
-
-    return builder.create<quake::CreateStateOp>(loc, statePtrTy, buffer,
-                                                arrSize);
-  }
-  // Otherwise (ie quantum hardware, where getting the amplitude data is not
-  // efficient) we aim at replacing states with calls to kernels (`callees`)
-  // that generated them. This is done in three stages:
-  //
-  // 1) (done here) Generate @callee.num_qubits_0 @callee.init_0` for the callee
-  //    function and its arguments stored in a state.
-
-  //    Create two functions:
-  //      - callee.num_qubits_N
-  //        Calculates the number of qubits needed for the veq allocation
-  //      - callee.init_N
-  //        Initializes the veq passed as a parameter
-  //
-  // 2) (done here) Replace the state with
-  //   `quake.get_state @callee.num_qubits_0 @callee.init_0`:
-  //
-  // clang-format off
-  // ```
-  // func.func @caller(%arg0: !cc.ptr<!quake.state>) {
-  //   %1 = quake.get_number_of_qubits %arg0: (!cc.ptr<!quake.state>) -> i64
-  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-  //   %3 = quake.init_state %2, %arg0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-  //   return
-  // }
-  //
-  // func.func private @callee(%arg0: i64) {
-  //   %0 = quake.alloca !quake.veq<?>[%arg0 : i64]
-  //   %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
-  //   quake.x %1 : (!quake.ref) -> ()
-  //   return
-  // }
-  //
-  // Call from the user host code:
-  // state = cudaq.get_state(callee, 2)
-  // counts = cudaq.sample(caller, state)
-  // ```
-  // clang-format on
-  //
-  // => after argument synthesis:
-  //
-  // clang-format off
-  // ```
-  // func.func @caller() {
-  //   %0 = quake.get_state @callee.num_qubits_0 @callee.init_state_0 : !cc.ptr<!quake.state>
-  //   %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
-  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-  //   %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-  //   return
-  // }
-  //
-  // func.func private @callee.num_qubits_0(%arg0: i64) -> i64 {
-  //   return %arg0 : i64
-  // }
-  //
-  // func.func private @callee.init_0(%arg0: i64, %arg1: !quake.veq<?>) {
-  //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
-  //   quake.x %1 : (f64, !quake.ref) -> ()
-  //   return
-  // }
-  // ```
-  // clang-format on
-  //
-  // 3) (done in ReplaceStateWithKernel) Replace the `quake.get_state` and ops
-  // that use its state with calls to the generated functions, synthesized with
-  // the arguments used to create the original state:
-  //
-  // After ReplaceStateWithKernel pass:
-  //
-  // clang-format off
-  // ```
-  // func.func @caller() {
-  //   %1 = call callee.num_qubits_0() : () -> i64
-  //   %2 = quake.alloca !quake.veq<?>[%1 : i64]
-  //   %3 = call @callee.init_0(%2): (!quake.veq<?>) -> !quake.veq<?>
-  // }
-  //
-  // func.func private @callee.num_qubits_0() -> i64 {
-  //   %cst = arith.constant 2 : i64
-  //   return %cst : i64
-  // }
-  //
-  // func.func private @callee.init_0(%arg0: !quake.veq<?>): !quake.veq<?> {
-  //   %cst = arith.constant 1.5707963267948966 : f64
-  //   %1 = quake.extract_ref %arg0[0] : (!quake.veq<2>) -> !quake.ref
-  //   quake.ry (%cst) %1 : (f64, !quake.ref) -> ()
-  //   return %arg0
-  // }
-  // ```
-  // clang-format on
-
-  if (simState->getKernelInfo().has_value()) {
-    auto [calleeName, calleeArgs] = simState->getKernelInfo().value();
-
-    std::string calleeKernelName =
-        cudaq::runtime::cudaqGenPrefixName + calleeName;
-
-    auto ctx = builder.getContext();
-    auto loc = builder.getUnknownLoc();
-
-    auto code = cudaq::get_quake_by_name(calleeName, /*throwException=*/false);
-    assert(!code.empty() && "Quake code not found for callee");
-    auto fromModule = parseSourceString<ModuleOp>(code, ctx);
-
-    auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
-    assert(calleeFunc && "callee func is missing");
-
-    // Use the state pointer as hash to look up the function name
-    // that was created using the same hash in StateAggregator.
-    auto hash = std::to_string(reinterpret_cast<std::size_t>(v));
-    auto initName = calleeName + ".init_" + hash;
-    auto numQubitsName = calleeName + ".num_qubits_" + hash;
-    auto initKernelName = cudaq::runtime::cudaqGenPrefixName + initName;
-    auto numQubitsKernelName =
-        cudaq::runtime::cudaqGenPrefixName + numQubitsName;
-
-    // Create `callee.init_N` and `callee.num_qubits_N` used to replace
-    // `quake.materialize_state` in ReplaceStateWithKernel pass
-    if (!converter.isRegisteredKernel(initName) ||
-        !converter.isRegisteredKernel(numQubitsName)) {
-      createInitFunc(builder, substMod, calleeFunc, initKernelName);
-      createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
-
-      // Convert arguments for `callee.init_N`.
-      auto registeredInitName = converter.registerKernel(initName);
-      converter.gen(registeredInitName, substMod, calleeArgs);
-
-      // Convert arguments for `callee.num_qubits_N`.
-      auto registeredNumQubitsName = converter.registerKernel(numQubitsName);
-      converter.gen(registeredNumQubitsName, substMod, calleeArgs);
-    }
-
-    // Create a substitution for the state pointer.
+    // Convert ptr to int
+    Value ptrInt =
+        genIntegerConstant(builder, reinterpret_cast<std::int64_t>(v), 64);
+    // Cast int value to state ptr
     auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
-    return builder.create<quake::MaterializeStateOp>(
-        loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
-        builder.getStringAttr(initKernelName));
+    Value statePtrVal =
+        builder.create<cudaq::cc::CastOp>(loc, statePtrTy, ptrInt);
+    return statePtrVal;
   }
 
-  TODO("cudaq::state* argument synthesis for quantum hardware for c functions");
-  return {};
+  throw std::runtime_error(
+      "cudaq::state* argument synthesis for quantum hardware is not supported");
 }
 
 static bool isSupportedRecursiveSpan(cudaq::cc::StdvecType ty) {
@@ -594,6 +423,9 @@ Value dispatchSubtype(OpBuilder &builder, Type ty, void *p, ModuleOp substMod,
       .Case([&](cudaq::cc::ArrayType ty) {
         return genConstant(builder, ty, p, substMod, layout);
       })
+      .Case([&](cudaq::cc::CallableType ty) {
+        return genConstant(builder, ty, p, substMod, layout);
+      })
       .Default({});
 }
 
@@ -626,7 +458,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
   std::function<Attribute(char *)> genAttr;
   if (auto innerTy = dyn_cast<cudaq::cc::StdvecType>(eleTy)) {
     stepBy = sizeof(VectorType);
-    genAttr = [&](char *p) -> Attribute {
+    genAttr = [&, innerTy](char *p) -> Attribute {
       return genRecursiveConstantArray(builder, innerTy, p, layout);
     };
   } else if (auto stringTy = dyn_cast<cudaq::cc::CharspanType>(eleTy)) {
@@ -773,6 +605,52 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
   return aggie;
 }
 
+Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
+                  ModuleOp substMod, llvm::DataLayout &layout) {
+  if (!p)
+    return {};
+  auto loc = builder.getUnknownLoc();
+  auto *closure =
+      reinterpret_cast<cudaq::runtime::CallableClosureArgument *>(p);
+  auto resTy = callTy.getSignature().getResults();
+  auto inpTys = callTy.getSignature().getInputs();
+  auto closureArgs = closure->getArgs();
+  unsigned liftedArity = inpTys.size() + closureArgs.size();
+  auto longName = cudaq::runtime::cudaqGenPrefixName + closure->getShortName();
+  auto calleeFn = closure->getModule().lookupSymbol<func::FuncOp>(longName);
+  assert(calleeFn && "function must be present");
+  auto calleeTy = calleeFn.getFunctionType();
+  auto calleeInpTys = calleeTy.getInputs();
+  bool hasLiftedArgs = closure->getStartLiftedPos().has_value();
+  unsigned liftedPos =
+      hasLiftedArgs ? *closure->getStartLiftedPos() : inpTys.size();
+  assert(liftedPos == inpTys.size() && "formal arity must be equal");
+  Value lamb = builder.create<cudaq::cc::CreateLambdaOp>(
+      loc, callTy, [&](OpBuilder &builder, Location loc) {
+        Block *entryBlock = builder.getInsertionBlock();
+        SmallVector<Value> args{entryBlock->getArguments().begin(),
+                                entryBlock->getArguments().end()};
+        if (hasLiftedArgs) {
+          for (unsigned i = liftedPos, j = 0; i < liftedArity; ++i, ++j) {
+            Value v = dispatchSubtype(builder, calleeInpTys[i], closureArgs[j],
+                                      substMod, layout);
+            assert(v && "lifted argument must be handled");
+            args.push_back(v);
+          }
+        }
+        auto result = builder.create<func::CallOp>(loc, resTy, longName, args);
+        builder.create<cudaq::cc::ReturnOp>(loc, result.getResults());
+      });
+  auto decl = substMod.lookupSymbol<func::FuncOp>(longName);
+  if (!decl) {
+    OpBuilder::InsertionGuard guard(builder);
+    builder.setInsertionPointToEnd(substMod.getBody());
+    auto fd = builder.create<func::FuncOp>(loc, longName, calleeTy);
+    fd.setPrivate();
+  }
+  return lamb;
+}
+
 Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
                   ModuleOp substMod, llvm::DataLayout &layout) {
   if (arrTy.isUnknownSize())
@@ -794,8 +672,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
-                  void *p, ModuleOp sourceMod, ModuleOp substMod,
-                  llvm::DataLayout &layout) {
+                  void *p, ModuleOp substMod, llvm::DataLayout &layout) {
   auto key = cudaq::registry::__cudaq_getLinkableKernelKey(p);
   auto *name = cudaq::registry::getLinkableKernelNameOrNull(key);
   if (!name)
@@ -838,13 +715,14 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
       builder.create<mlir::ModuleOp>(builder.getUnknownLoc());
   auto *kernelInfo = addKernelInfo(kernelName, substModule);
 
-  // We should look up the input type signature here.
+  // Find the kernel in the module.
   auto fun = sourceModule.lookupSymbol<func::FuncOp>(
       cudaq::runtime::cudaqGenPrefixName + kernelName.str());
   if (!fun)
     throw std::runtime_error("missing fun in argument conversion: " +
                              kernelName.str());
 
+  // Look up the kernel's type signature.
   FunctionType fromFuncTy = fun.getFunctionType();
   for (auto iter :
        llvm::enumerate(llvm::zip(fromFuncTy.getInputs(), arguments))) {
@@ -927,8 +805,10 @@ void cudaq::opt::ArgumentConverter::gen(StringRef kernelName,
               return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Case([&](cc::IndirectCallableType ty) {
-              return buildSubst(ty, argPtr, sourceModule, substModule,
-                                dataLayout);
+              return buildSubst(ty, argPtr, substModule, dataLayout);
+            })
+            .Case([&](cc::CallableType ty) {
+              return buildSubst(ty, argPtr, substModule, dataLayout);
             })
             .Default({});
     if (subst)
@@ -966,4 +846,78 @@ void cudaq::opt::ArgumentConverter::gen_drop_front(
     partialArgs.push_back(arg);
   }
   gen(partialArgs);
+}
+
+bool cudaq::detail::mergeAllCallableClosures(
+    ModuleOp intoModule, const std::string &shortName,
+    const std::vector<void *> &rawArgs, std::optional<unsigned> betaRedux) {
+  if (rawArgs.empty())
+    return false;
+  auto fullName = cudaq::runtime::cudaqGenPrefixName + shortName;
+  auto entryPoint = intoModule.lookupSymbol<func::FuncOp>(fullName);
+  if (!entryPoint)
+    throw std::runtime_error("entry point for " + shortName +
+                             " was not found in the module");
+
+  auto entryPointTy = entryPoint.getFunctionType();
+  auto arity = entryPointTy.getInputs().size();
+  auto coarity = entryPointTy.getResults().size();
+  // rawArgs may have a "bonus" argument for the result value(s).
+  if (!betaRedux && (arity + coarity != rawArgs.size()))
+    throw std::runtime_error("arity of kernel " + shortName + " (" +
+                             std::to_string(arity) +
+                             ") does not match number of arguments provided (" +
+                             std::to_string(rawArgs.size()) + ")");
+
+  // Scan the type signature and arguments. Determine if the type signature
+  // has any Callables and if the raw arguments have any `nullptr`s. If there
+  // are no Callable arguments, we have nothing to do. Otherwise, if we don't
+  // have a CallableClosureArgument for each Callable argument, then we can't
+  // generally proceed because the Callable is unknowable at this point. The
+  // exception is if the argument is never used in the kernel.
+  bool hasCallableArg = false;
+  unsigned offset = betaRedux ? *betaRedux : 0;
+  for (auto [i, ty] :
+       llvm::enumerate(entryPointTy.getInputs().drop_front(offset))) {
+    if (isa<cc::CallableType>(ty)) {
+      hasCallableArg = true;
+      if (!rawArgs[i]) {
+        Value arg = entryPoint.getBody().front().getArgument(i);
+        if (!arg.getUsers().empty()) {
+          throw std::runtime_error("argument " + std::to_string(i) +
+                                   " of kernel " + shortName +
+                                   " is a used callable, but no closure was "
+                                   "provided. The runtime cannot proceed.");
+        }
+      }
+    }
+  }
+  if (!hasCallableArg)
+    return false;
+
+  // OK, everything looks good, so let's merge the modules. This *only* merges
+  // modules. The closure argument substitutions are generated by the argument
+  // converter above.
+  for (auto [i, ty] :
+       llvm::enumerate(entryPointTy.getInputs().drop_front(offset))) {
+    if (isa<cc::CallableType>(ty)) {
+      auto &closure =
+          *reinterpret_cast<runtime::CallableClosureArgument *>(rawArgs[i]);
+      auto dup = intoModule.lookupSymbol<func::FuncOp>(
+          cudaq::runtime::cudaqGenPrefixName + closure.getShortName());
+      if (dup) {
+        // Skip the merge, if it was already performed.
+        if (!dup.getBody().empty())
+          continue;
+        // But erase any declaration so we can merge the definition cleanly.
+        dup.erase();
+      }
+      opt::factory::mergeModules(intoModule, closure.getModule());
+      // recursive step.
+      [[maybe_unused]] bool mergeResult = mergeAllCallableClosures(
+          intoModule, closure.getShortName(), closure.getArgs(),
+          closure.getStartLiftedPos());
+    }
+  }
+  return true;
 }

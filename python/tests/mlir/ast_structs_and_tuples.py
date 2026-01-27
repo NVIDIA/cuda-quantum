@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -30,7 +30,7 @@ def test_basic_struq():
     print(entry)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry()
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 # The struq type is erased in this example.
@@ -163,7 +163,8 @@ def test_tuple_assign_struq():
     print("result test10: " + str(cudaq.sample(test10)))
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
@@ -308,74 +309,71 @@ def test_tuple_assign_struct():
     print("result test13: " + str(test13()))
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
-# CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
-# CHECK:           %[[VAL_2:.*]] = cc.alloca i64
-# CHECK:           cc.store %[[VAL_1]], %[[VAL_2]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_3:.*]] = cc.alloca f64
-# CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<f64>
-# CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i64>
-# CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_3]] : !cc.ptr<f64>
-# CHECK:           %[[VAL_6:.*]] = cc.cast signed %[[VAL_4]] : (i64) -> f64
-# CHECK:           %[[VAL_7:.*]] = arith.addf %[[VAL_6]], %[[VAL_5]] : f64
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test1
+# CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-DAG:       %[[VAL_7:.*]] = arith.constant 3.000000e+00 : f64
 # CHECK:           return %[[VAL_7]] : f64
 # CHECK:         result test1: 3.0
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2() -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test2..
+# CHECK-SAME: () -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2.000000e+00 : f64
-# CHECK:           %[[VAL_2:.*]] = cc.undef !cc.struct<"tuple" {i64, f64}>
+# CHECK-DAG:       %[[VAL_2:.*]] = cc.undef !cc.struct<"tuple" {i64, f64}>
 # CHECK:           %[[VAL_3:.*]] = cc.insert_value %[[VAL_2]][0], %[[VAL_0]] : (!cc.struct<"tuple" {i64, f64}>, i64) -> !cc.struct<"tuple" {i64, f64}>
 # CHECK:           %[[VAL_4:.*]] = cc.insert_value %[[VAL_3]][1], %[[VAL_1]] : (!cc.struct<"tuple" {i64, f64}>, f64) -> !cc.struct<"tuple" {i64, f64}>
-# CHECK:           %[[VAL_5:.*]] = cc.alloca !cc.struct<"tuple" {i64, f64}>
-# CHECK:           cc.store %[[VAL_4]], %[[VAL_5]] : !cc.ptr<!cc.struct<"tuple" {i64, f64}>>
-# CHECK:         result test2: 4.0
+# CHECK:           %[[VAL_5:.*]] = cc.extract_value %[[VAL_4]][0] : (!cc.struct<"tuple" {i64, f64}>) -> i64
+# CHECK:           %[[VAL_6:.*]] = cc.extract_value %[[VAL_4]][1] : (!cc.struct<"tuple" {i64, f64}>) -> f64
+# CHECK:           %[[VAL_7:.*]] = cc.cast signed %[[VAL_5]] : (i64) -> f64
+# CHECK:           %[[VAL_8:.*]] = arith.addf %[[VAL_7]], %[[VAL_6]] : f64
+# CHECK:           return %[[VAL_8]] : f64
+# CHECK:         }
 
-# CHECK-LABEL:   result test3: 5.0
-# CHECK-LABEL:   result test4: 6.0
-# CHECK-LABEL:   result test5: 7.0
-# CHECK-LABEL:   result test6: 8.0
-# CHECK-LABEL:   result test7: 9.0
-# CHECK-LABEL:   result test8: 10.0
-# CHECK-LABEL:   result test9: 11.0
-# CHECK-LABEL:   result test10: 2.0
-# CHECK-LABEL:   result test11: 3.0
-# CHECK-LABEL:   result test12: 4.0
+# CHECK:   result test2: 4.0
+# CHECK:   result test3: 5.0
+# CHECK:   result test4: 6.0
+# CHECK:   result test5: 7.0
+# CHECK:   result test6: 8.0
+# CHECK:   result test7: 9.0
+# CHECK:   result test8: 10.0
+# CHECK:   result test9: 11.0
+# CHECK:   result test10: 2.0
+# CHECK:   result test11: 3.0
+# CHECK:   result test12: 4.0
 
 
 def test_tuple_assign_failures():
-
-    @cudaq.kernel
-    def test1() -> float:
-        v1, v2, v3 = ((1, 2), 3)
-        return v1 + v2 + v3
-
     try:
+
+        @cudaq.kernel
+        def test1() -> float:
+            v1, v2, v3 = ((1, 2), 3)
+            return v1 + v2 + v3
+
         print(test1)
     except Exception as e:
         print("Failure for test1:")
         print(e)
-
-    @cudaq.kernel
-    def test2():
-        q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit())
-        x(q1)
-        x.ctrl(q1, q2)
-        x.ctrl(q1, q3)
-
     try:
+
+        @cudaq.kernel
+        def test2():
+            q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit())
+            x(q1)
+            x.ctrl(q1, q2)
+            x.ctrl(q1, q3)
+
         print(test2)
     except Exception as e:
         print("Failure for test2:")
         print(e)
-
-    @cudaq.kernel
-    def test3():
-        v = cudaq.qubit(), 0.5
-        rz(v[1], v[0])
-
     try:
+
+        @cudaq.kernel
+        def test3():
+            v = cudaq.qubit(), 0.5
+            rz(v[1], v[0])
+
         print(test3)
     except Exception as e:
         print("Failure for test3:")
@@ -384,11 +382,11 @@ def test_tuple_assign_failures():
 
 # CHECK-LABEL:   Failure for test1:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> v1, v2, v3 = ((1, 2), 3))
+# CHECK-NEXT:    (offending source -> {{.*}}v1, v2, v3{{.*}} = ((1, 2), 3))
 
 # CHECK-LABEL:   Failure for test2:
 # CHECK:         shape mismatch in tuple deconstruction
-# CHECK-NEXT:    (offending source -> q1, q2, q3 = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit()))
+# CHECK-NEXT:    (offending source -> {{.*}}q1, q2, q3{{.*}} = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit()))
 
 # CHECK-LABEL:   Failure for test3:
 # CHECK:         hybrid quantum-classical data types and nested quantum structs are not allowed

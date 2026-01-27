@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -99,16 +99,25 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
     def compute_rhs(self, t, vec):
         t_scalar = t.item()
-        # `vec` is a torch tensor on GPU
-        # convert torch tensor to CuPy array without copying data
-        vec_cupy = cp.from_dlpack(vec)
-        temp_state = cudaq_runtime.State.from_data(vec_cupy)
-        temp_state = bindings.initializeState(temp_state, list(self.dimensions),
-                                              self.is_density_state,
+        # Note: this RHS compute is on the hot path of the integrator;
+        # hence, we minimize overhead as much as possible.
+        # In particular, avoid data conversion between different frameworks.
+        # For example, `dlpack` conversion between `torch` and `cupy` incurs non-trivial overhead (potentially involve CUDA runtime calls).
+        # Get device pointer of the input torch tensor
+        device_ptr = vec.data_ptr()
+        size = vec.numel()
+        # Wrap the device pointer as a `cudaq::state` (no copy)
+        temp_state = bindings.initializeState(device_ptr, size,
+                                              list(self.dimensions),
                                               self.batchSize)
-        result = self.stepper.compute(temp_state, t_scalar)
-        # convert result back to torch tensor without copying data
-        result_vec = torch.from_dlpack(to_cupy_array(result))
+        # Pre-allocate output tensor (torch tensor)
+        result_vec = torch.zeros_like(vec)
+        # Wrap the output tensor device pointer as a `cudaq::state` (no copy)
+        result_state = bindings.initializeState(result_vec.data_ptr(), size,
+                                                list(self.dimensions),
+                                                self.batchSize)
+        # Compute the RHS into the output state
+        self.stepper.compute_inplace(temp_state, t_scalar, result_state)
         return result_vec
 
     def __post_init__(self):

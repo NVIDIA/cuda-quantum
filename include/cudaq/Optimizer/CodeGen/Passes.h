@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -107,6 +107,14 @@ void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 
 /// Pipeline builder to convert Quake to IQM `Json`.
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
+
+/// This pipeline specifies some extra bonus passes that are needed to lower
+/// Python kernel decorators to `Open QASM` format. While this pipeline is
+/// almost exclusively Quake transformations, there is one pass
+/// (`createQaukeToCCPrep`) that uses patterns from here in `codegen`. Therefore
+/// this pipeline is defined in `codegen` to avoid circular dependences. (Note:
+/// this pipeline is not registered.)
+void createPipelineTransformsForPythonToOpenQASM(mlir::OpPassManager &pm);
 
 // declarative passes
 #define GEN_PASS_DECL

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -54,12 +54,14 @@ def test_visualization_bad_state():
 
 def test_visualization_invalid_state():
     with pytest.raises(Exception) as err:
-        two_qubit_state = cudaq.get_state(two_qubit_kernel)
+        two_qubit_state = cudaq.StateMemoryView(
+            cudaq.get_state(two_qubit_kernel))
         cudaq.add_to_bloch_sphere(two_qubit_state)
 
 
 def test_visualization_single_qubit_no_sphere():
-    single_qubit_state = cudaq.get_state(single_qubit_kernel)
+    single_qubit_state = cudaq.StateMemoryView(
+        cudaq.get_state(single_qubit_kernel))
     b = cudaq.add_to_bloch_sphere(single_qubit_state)
     assert isinstance(b, qutip.Bloch)
 
@@ -69,7 +71,8 @@ def test_visualization_single_qubit_shere():
     # generate a random density matrix with qutip and add to sphere
     sph.add_states(qutip.rand_dm(2))
 
-    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),
+    b = cudaq.add_to_bloch_sphere(cudaq.StateMemoryView(
+        cudaq.get_state(single_qubit_kernel)),
                                   existing_sphere=sph)
     assert isinstance(b, qutip.Bloch)
 
@@ -88,12 +91,14 @@ def test_visualization_bad_state_dm():
 
 def test_visualization_invalid_state_dm():
     with pytest.raises(Exception) as err:
-        two_qubit_state = cudaq.get_state(two_qubit_kernel)
+        two_qubit_state = cudaq.StateMemoryView(
+            cudaq.get_state(two_qubit_kernel))
         cudaq.add_to_bloch_sphere(two_qubit_state)
 
 
 def test_visualization_single_qubit_no_sphere_dm():
-    single_qubit_state = cudaq.get_state(single_qubit_kernel)
+    single_qubit_state = cudaq.StateMemoryView(
+        cudaq.get_state(single_qubit_kernel))
     b = cudaq.add_to_bloch_sphere(single_qubit_state)
     assert isinstance(b, qutip.Bloch)
 
@@ -103,7 +108,8 @@ def test_visualization_single_qubit_shere_dm():
     # generate a random density matrix with qutip and add to sphere
     sph.add_states(qutip.rand_dm(2))
 
-    b = cudaq.add_to_bloch_sphere(cudaq.get_state(single_qubit_kernel),
+    b = cudaq.add_to_bloch_sphere(cudaq.StateMemoryView(
+        cudaq.get_state(single_qubit_kernel)),
                                   existing_sphere=sph)
     assert isinstance(b, qutip.Bloch)
 

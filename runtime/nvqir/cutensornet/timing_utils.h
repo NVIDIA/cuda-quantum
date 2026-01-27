@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,24 +14,3 @@
 #else
 #define LOG_API_TIME()
 #endif
-
-namespace nvqir {
-template <typename ItTy>
-std::string containerToString(ItTy begin, ItTy end) {
-  fmt::basic_memory_buffer<char, 256> buffer;
-  fmt::format_to(std::back_inserter(buffer), "[");
-  for (ItTy itr = begin; itr != end; ++itr) {
-    fmt::format_to(std::back_inserter(buffer), "{}", *itr);
-    if (std::next(itr) != end) {
-      fmt::format_to(std::back_inserter(buffer), ",");
-    }
-  }
-  fmt::format_to(std::back_inserter(buffer), "]");
-  return fmt::to_string(buffer);
-}
-
-template <typename ContainerTy>
-static inline std::string containerToString(const ContainerTy &container) {
-  return containerToString(container.begin(), container.end());
-}
-} // namespace nvqir

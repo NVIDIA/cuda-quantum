@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,10 +7,12 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target infleqtion --emulate && %t | FileCheck %s
-// RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
-// RUN: if %braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %braket_avail; \
+// RUN: then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %qci_avail; \
+// RUN: then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -40,7 +42,8 @@ struct init_state {
 __qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   cudaq::adjoint(init_state{}, qubits, theta);
   x(qubits);
-  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4], qubits[5], qubits[6], qubits[7]);
+  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4],
+                 qubits[5], qubits[6], qubits[7]);
   x(qubits);
   init_state{}(qubits, theta);
 }
@@ -101,7 +104,7 @@ int main() {
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
   std::unordered_set<std::string> most_probable;

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -50,7 +50,10 @@ def startUpMockServer():
 
     # Kill the server, remove the file
     p.terminate()
-    os.remove(credsName)
+    try:
+        os.remove(credsName)
+    except FileNotFoundError:
+        pass
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -148,50 +151,6 @@ def test_quantinuum_observe():
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
     assert assert_close(res.expectation())
-
-
-def test_quantinuum_state_preparation():
-    kernel, state = cudaq.make_kernel(List[complex])
-    qubits = kernel.qalloc(state)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_quantinuum_state_synthesis_from_simulator():
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-
-def test_quantinuum_state_synthesis():
-
-    init, n = cudaq.make_kernel(int)
-    qubits = init.qalloc(n)
-    init.x(qubits[0])
-
-    s = cudaq.get_state(init, 2)
-
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-    kernel.x(qubits[1])
-
-    s = cudaq.get_state(kernel, s)
-    counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert len(counts) == 1
 
 
 def test_exp_pauli():

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -110,6 +110,8 @@ class qkernel;
 template <typename R, typename... As>
 class qkernel<R(As...)> {
 public:
+  using function_type = R(As...);
+
   qkernel() {}
   qkernel(std::nullptr_t) {}
   qkernel(const qkernel &) = default;
@@ -181,6 +183,13 @@ qkernel(R (*)(As...)) -> qkernel<R(As...)>;
 template <typename F, typename S = typename qkernel_deduction_guide_helper<
                           decltype(&F::operator())>::type>
 qkernel(F) -> qkernel<S>;
+
+template <typename A>
+struct is_qkernel_type : std::false_type {};
+template <typename A>
+struct is_qkernel_type<qkernel<A>> : std::true_type {};
+template <typename A>
+concept QKernelType = is_qkernel_type<A>::value;
 
 } // namespace cudaq
 

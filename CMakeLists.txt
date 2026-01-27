@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -150,6 +150,7 @@ option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
 option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Frontend." OFF)
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
+option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -402,6 +403,12 @@ list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
 include(AddCUDAQ)
 include(BuildHelpers)
+
+# Enable sanitizers if requested (must be done early to affect all targets)
+if(CUDAQ_ENABLE_SANITIZERS)
+  include(Sanitizers)
+  cudaq_enable_sanitizers()
+endif()
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE

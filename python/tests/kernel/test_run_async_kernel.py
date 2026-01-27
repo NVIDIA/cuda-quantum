@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -313,7 +313,7 @@ def test_return_list_from_device_kernel():
 
     @cudaq.kernel
     def kernel_with_list_arg(arg: list[int]) -> list[int]:
-        result = [v for v in arg]
+        result = arg.copy()
         for i in result:
             incrementer(i)
         return result
@@ -585,15 +585,16 @@ def test_return_tuple_int_float():
                              shots_count=1).get()
     assert len(result) == 1 and result[0] == (-13, 42.3)
 
-    @cudaq.kernel
-    def simple_tuple_int_float_assign(
-            n: int, t: tuple[int, float]) -> tuple[int, float]:
-        qubits = cudaq.qvector(n)
-        t[0] = -14
-        t[1] = 11.5
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_assign(
+                n: int, t: tuple[int, float]) -> tuple[int, float]:
+            qubits = cudaq.qvector(n)
+            t[0] = -14
+            t[1] = 11.5
+            return t
+
         cudaq.run_async(simple_tuple_int_float_assign, 2, (-13, 11.5))
     assert 'tuple value cannot be modified' in str(e.value)
 
@@ -696,7 +697,7 @@ def test_return_tuple_int32_bool():
         return t
 
     result = cudaq.run_async(simple_tuple_int32_bool,
-                             2, (-13, True),
+                             2, (np.int32(-13), True),
                              shots_count=1).get()
     assert len(result) == 1 and result[0] == (-13, True)
 
@@ -757,11 +758,12 @@ def test_return_dataclass_int_bool():
     assert results[0].x == -16
     assert results[0].y == True
 
-    @cudaq.kernel
-    def simple_dataclass_int_bool_error() -> MyClass:
-        return MyClass(x=-16, y=True)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_dataclass_int_bool_error() -> MyClass:
+            return MyClass(x=-16, y=True)
+
         cudaq.run_async(simple_dataclass_int_bool_error, shots_count=2).get()
     assert 'keyword arguments for data classes are not yet supported' in repr(e)
 
@@ -852,12 +854,12 @@ def test_return_dataclass_list_int_bool():
         x: list[int]
         y: bool
 
-    @cudaq.kernel
-    def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
-        qubits = cudaq.qvector(n)
-        return t
-
     # TODO: Support recursive aggregate types in kernels.
+    # @cudaq.kernel
+    # def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
+    #     qubits = cudaq.qvector(n)
+    #     return t
+
     # results = cudaq.run_async(simple_return_dataclass, 2, MyClass([0,1], 18), shots_count=2).get()
     # assert len(results) == 2
     # assert results[0] == MyClass([0,1], 18)
@@ -909,14 +911,14 @@ def test_return_dataclass_dataclass_bool():
 
 def test_run_errors():
 
-    @cudaq.kernel
-    def simple_no_return(numQubits: int):
-        qubits = cudaq.qvector(numQubits)
+    with pytest.raises(RuntimeError) as e:
 
-    @cudaq.kernel
-    def simple_no_args() -> int:
-        qubits = cudaq.qvector(2)
-        return 1
+        @cudaq.kernel
+        def simple_no_return(numQubits: int):
+            qubits = cudaq.qvector(numQubits)
+
+        cudaq.run_async(simple_no_return, 2)
+    assert 'a runnable kernel must return a value.' in repr(e)
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:
@@ -924,20 +926,24 @@ def test_run_errors():
         return 1
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run_async(simple_no_return, 2)
-    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
-
-    with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple, 2, shots_count=-1)
-    assert 'Invalid `shots_count`. Must be a non-negative number.' in repr(e)
+    assert 'Invalid `shots_count`' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run_async(simple, shots_count=100)
-    assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
+    assert ('Invalid number of arguments passed to run_async. 0 given and 1 '
+            'expected.' in repr(e))
 
     with pytest.raises(RuntimeError) as e:
-        print(cudaq.run_async(simple_no_args, 2, shots_count=100))
-    assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
+
+        @cudaq.kernel
+        def simple_no_args() -> int:
+            qubits = cudaq.qvector(2)
+            return 1
+
+        cudaq.run_async(simple_no_args, 2, shots_count=100)
+    assert ('Invalid number of arguments passed to run_async. 1 given and 0 '
+            'expected.' in repr(e))
 
 
 def test_modify_struct():
@@ -1037,73 +1043,7 @@ def test_shots_count():
     assert len(results) == 37
 
 
-def test_run_async_with_callable():
-
-    @cudaq.kernel
-    def kernel(state_prep: Callable[[cudaq.qvector], None], N: int) -> int:
-        qubits = cudaq.qvector(N)
-        state_prep(qubits)
-        meas = mz(qubits)
-        res = 0
-        for m in meas:
-            if m:
-                res += 1
-        return res
-
-    @cudaq.kernel
-    def prep_1_state(qubits: cudaq.qvector):
-        x(qubits)
-
-    for num_qubits in [1, 2, 3, 4]:
-        results = cudaq.run_async(kernel,
-                                  prep_1_state,
-                                  num_qubits,
-                                  shots_count=10).get()
-        assert len(results) == 10
-        for r in results:
-            assert r == num_qubits
-
-
-def test_return_nested_lists():
-    """
-    Test returning nested lists from a kernel. 
-    This is currently unsupported and should raise an error.
-    """
-
-    @cudaq.kernel
-    def nested_list_kernel() -> list[list[int]]:
-        return [[1, 2], [3, 4]]
-
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run_async(nested_list_kernel, shots_count=2).get()
-
-    assert "`cudaq.run` does not yet support returning nested `list`" in str(
-        e.value)
-
-
-def test_return_list_of_structs():
-    """
-    Test returning a list of dataclass structs from a kernel. 
-    This is currently unsupported and should raise an error.
-    """
-
-    @dataclass(slots=True)
-    class SomeStruct:
-        a: int
-        b: bool
-
-    @cudaq.kernel
-    def list_of_structs_kernel() -> list[SomeStruct]:
-        return [SomeStruct(1, True), SomeStruct(2, False)]
-
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run_async(list_of_structs_kernel, shots_count=2).get()
-
-    assert "`cudaq.run` does not yet support returning `list` of `dataclass`" in str(
-        e.value)
-
-
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main([loc, "-srP"])

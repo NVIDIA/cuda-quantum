@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -1456,8 +1456,7 @@ def cc_FuncToPtrOp : CCOp<"func_ptr", [Pure]> {
 //===----------------------------------------------------------------------===//
 
 def cc_CreateLambdaOp : CCOp<"create_lambda",
-        [AutomaticAllocationScope, RecursiveMemoryEffects,
-         SingleBlockImplicitTerminator<"cudaq::cc::ReturnOp">]> {
+        [AutomaticAllocationScope, RecursiveMemoryEffects]> {
   let summary = "Create a lambda expression as an abstract callable.";
   let description = [{
     A CreateLambdaOp creates a λ expression. A λ expression is a Callable
@@ -1479,7 +1478,7 @@ def cc_CreateLambdaOp : CCOp<"create_lambda",
   }];
 
   let results = (outs cc_CallableType:$signature);
-  let regions = (region SizedRegion<1>:$initRegion);
+  let regions = (region AnyRegion:$initRegion);
   let hasCustomAssemblyFormat = 1;
 
   let builders = [
@@ -1724,6 +1723,8 @@ def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
 
   let arguments = (ins cc_CallableType:$callable);
   let results = (outs FunctionType:$function);
+
+  let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
     $callable `:` functional-type(operands, results) attr-dict

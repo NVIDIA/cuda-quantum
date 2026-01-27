@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -193,6 +193,9 @@ std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
 
 /// Return the floating point value if \p v is a floating-point constant.
 std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
+/// Is \p v defined by a `ConstantLike` `Operation`?
+bool isConstantOp(mlir::Value v);
 
 /// Create a temporary on the stack. The temporary is created such that it is
 /// \em{not} control dependent (other than on function entry).

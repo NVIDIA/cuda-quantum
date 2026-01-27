@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -133,13 +133,20 @@ except Exception:
 
 from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
-from .kernel.kernel_builder import make_kernel, QuakeValue, PyKernel
-from .kernel.ast_bridge import globalAstRegistry, globalKernelRegistry, globalRegisteredOperations
-from .kernel.utils import globalKernelDecorators
+from .kernel.kernel_builder import (make_kernel, QuakeValue, PyKernel)
+from .kernel.ast_bridge import (globalAstRegistry, globalRegisteredOperations)
 from .runtime.sample import sample
+from .runtime.sample import sample_async, AsyncSampleResult
 from .runtime.observe import observe
+from .runtime.observe import observe_async
+from .runtime.run import run
 from .runtime.run import run_async
-from .runtime.state import to_cupy
+from .runtime.translate import translate
+from .runtime.state import (get_state, get_state_async, to_cupy)
+from .runtime.draw import draw
+from .runtime.unitary import get_unitary
+from .runtime.resource_count import estimate_resources
+from .runtime.vqe import vqe  # Removed! Use VQE from CUDA-QX
 from .kernel.register_op import register_operation
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -163,6 +170,7 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
+StateMemoryView = cudaq_runtime.StateMemoryView
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
@@ -178,7 +186,8 @@ from .operators import spin
 from .operators import custom as operators
 from .operators.definitions import *
 from .operators.manipulation import OperatorArithmetics
-import cudaq.operators.expressions  # needs to be imported, since otherwise e.g. evaluate is not defined
+# needs to be imported, since otherwise e.g. evaluate is not defined
+import cudaq.operators.expressions
 from .operators.super_op import SuperOperator
 
 # Time evolution API
@@ -229,46 +238,32 @@ Depolarization1 = cudaq_runtime.Depolarization1
 Depolarization2 = cudaq_runtime.Depolarization2
 
 # Functions
-sample_async = cudaq_runtime.sample_async
-observe_async = cudaq_runtime.observe_async
-get_state = cudaq_runtime.get_state
-get_state_async = cudaq_runtime.get_state_async
 SampleResult = cudaq_runtime.SampleResult
 ObserveResult = cudaq_runtime.ObserveResult
+AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 EvolveResult = cudaq_runtime.EvolveResult
 AsyncEvolveResult = cudaq_runtime.AsyncEvolveResult
-AsyncSampleResult = cudaq_runtime.AsyncSampleResult
-AsyncObserveResult = cudaq_runtime.AsyncObserveResult
 AsyncStateResult = cudaq_runtime.AsyncStateResult
-vqe = cudaq_runtime.vqe
-draw = cudaq_runtime.draw
-get_unitary = cudaq_runtime.get_unitary
-run = cudaq_runtime.run
-estimate_resources = cudaq_runtime.estimate_resources
-translate = cudaq_runtime.translate
 displaySVG = display_trace.displaySVG
 getSVGstring = display_trace.getSVGstring
 
 ComplexMatrix = cudaq_runtime.ComplexMatrix
-
-# to be deprecated
-to_qir = cudaq_runtime.get_qir
 
 testing = cudaq_runtime.testing
 
 # target-specific
 orca = cudaq_runtime.orca
 
-
 # ============================================================================ #
 # Utility Functions
 # ============================================================================ #
+
+
 def synthesize(kernel, *args):
-    # Compile if necessary, no-op if already compiled
-    kernel.compile()
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
-                             kernelName=kernel.name)
+                             kernelName=kernel.name,
+                             decorator=kernel)
 
 
 def complex():
@@ -292,16 +287,10 @@ def amplitudes(array_data):
 
 
 def __clearKernelRegistries():
-    global globalKernelRegistry, globalAstRegistry, globalRegisteredOperations
-    globalKernelRegistry.clear()
+    global globalAstRegistry, globalRegisteredOperations
     globalAstRegistry.clear()
     globalRegisteredOperations.clear()
 
-
-cudaq_runtime.register_set_target_callback(
-    lambda _:
-    [setattr(kernel, "module", None) for kernel in globalKernelDecorators],
-    "clearKernelDecoratorModules")
 
 # Expose chemistry domain functions
 from .domains import chemistry

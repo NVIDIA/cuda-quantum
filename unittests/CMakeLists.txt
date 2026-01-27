@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -37,6 +37,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/noise_tester.cpp
   integration/get_state_tester.cpp
   integration/measure_reset_tester.cpp
+  integration/mps_to_host_tester.cpp
   qir/NVQIRTester.cpp
   qis/QubitQISTester.cpp
   integration/kernels_tester.cpp
@@ -299,7 +300,8 @@ target_link_libraries(test_spin
   PRIVATE 
   cudaq
   cudaq-operator
-  gtest_main)
+  gtest_main
+  cudaq-platform-default)
 target_include_directories(test_spin PRIVATE operators)
 gtest_discover_tests(test_spin)
 
@@ -325,7 +327,8 @@ target_link_libraries(test_operators
   PRIVATE
   cudaq-operator
   cudaq
-  gtest_main)
+  gtest_main
+  cudaq-platform-default)
 gtest_discover_tests(test_operators)
 
 if (CUDA_FOUND)
@@ -365,44 +368,44 @@ if (CUDA_FOUND)
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+   target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
   endif()
   target_link_libraries(test_dynamics
-    PRIVATE
-    cudaq-operator
-    cudaq
-    nvqir-dynamics
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart
-    CUDA::cublas
-    ${CUTENSOR_LIB}
-    CUDA::cusparse
-    ${CUTENSORNET_LIB}
-    gtest_main
-    fmt::fmt-header-only)
+   PRIVATE
+   cudaq-operator
+   cudaq
+   nvqir-dynamics
+   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   CUDA::cudart
+   CUDA::cublas
+   ${CUTENSOR_LIB}
+   CUDA::cusparse
+   ${CUTENSORNET_LIB}
+   gtest_main
+   fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
 
   # Multi-QPU evolve_async test
   add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+   target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
   endif()
   target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_ANALOG_TARGET)
   target_link_libraries(test_evolve_async
-    PRIVATE
-    cudaq-operator
-    cudaq
-    cudaq-platform-mqpu
-    nvqir-dynamics
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart
-    CUDA::cublas
-    ${CUTENSOR_LIB}
-    CUDA::cusparse
-    ${CUTENSORNET_LIB}
-    gtest_main
-    fmt::fmt-header-only)
+   PRIVATE
+   cudaq-operator
+   cudaq
+   cudaq-platform-mqpu
+   nvqir-dynamics
+   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   CUDA::cudart
+   CUDA::cublas
+   ${CUTENSOR_LIB}
+   CUDA::cusparse
+   ${CUTENSORNET_LIB}
+   gtest_main
+   fmt::fmt-header-only)
   # Count the number of GPUs
   find_program(NVIDIA_SMI "nvidia-smi")
   if(NVIDIA_SMI)
@@ -410,6 +413,32 @@ if (CUDA_FOUND)
     # Only add this test if we have more than 1 GPU
     if (${NGPUS} GREATER_EQUAL 2)
       gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required")
+
+      # Multi-GPU batching test: this test needs MPI as well
+      if (MPI_CXX_FOUND)
+        add_executable(test_dynamics_mpi_batching mqpu/dynamics_mpi_batching_tester.cpp)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+          target_link_options(test_dynamics_mpi_batching PRIVATE -Wl,--no-as-needed)
+        endif()
+        target_compile_definitions(test_dynamics_mpi_batching PRIVATE -DCUDAQ_ANALOG_TARGET)
+        target_link_libraries(test_dynamics_mpi_batching
+          PRIVATE
+          cudaq-operator
+          cudaq
+          cudaq-platform-mqpu
+          nvqir-dynamics
+          ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+          CUDA::cudart
+          CUDA::cublas
+          ${CUTENSOR_LIB}
+          CUDA::cusparse
+          ${CUTENSORNET_LIB}
+          gtest_main
+          fmt::fmt-header-only)
+
+        add_test(NAME DynamicsMPIBatchingTest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_dynamics_mpi_batching)
+        set_tests_properties(DynamicsMPIBatchingTest PROPERTIES LABELS "gpu_required;mgpus_required")
+      endif()
     endif()
   endif()
 endif()

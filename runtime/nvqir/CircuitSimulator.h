@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,6 @@
 #pragma once
 
 #include "Gates.h"
-#include "QIRTypes.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
@@ -22,8 +21,9 @@
 #include <cstddef>
 #include <queue>
 #include <sstream>
+#include <stdexcept>
 #include <string>
-#include <variant>
+#include <utility>
 
 namespace nvqir {
 
@@ -237,7 +237,7 @@ public:
   allocateQubits(std::size_t count, const cudaq::SimulationState *state) = 0;
 
   /// @brief Deallocate the qubit with give unique index
-  virtual void deallocate(const std::size_t qubitIdx) = 0;
+  void deallocate(const std::size_t qubitIdx) { deallocateQubits({qubitIdx}); }
 
   /// @brief Deallocate all the provided qubits.
   virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
@@ -425,7 +425,8 @@ protected:
   /// @brief A tracker for qubit allocation
   cudaq::QuditIdTracker tracker;
 
-  /// @brief The number of qubits that have been allocated
+  /// @brief The number of qubits that have been allocated on the simulator.
+  /// Never decreases (unless reset to 0) and may be more than getNumQubits().
   std::size_t nQubitsAllocated = 0;
 
   /// @brief The dimension of the multi-qubit state.
@@ -450,18 +451,9 @@ protected:
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;
 
-  /// @brief Under certain execution contexts, we'll deallocate
-  /// before we are actually done with the execution task,
-  /// this vector keeps track of qubit ids that are to be
-  /// deallocated at a later time.
-  std::vector<std::size_t> deferredDeallocation;
-
   /// @brief Map bit register names to the qubits that make it up
   std::unordered_map<std::string, std::vector<std::size_t>>
       registerNameToMeasuredQubit;
-
-  /// @brief Keep track of the current number of qubits in batch mode
-  std::size_t batchModeCurrentNumQubits = 0;
 
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
@@ -505,10 +497,15 @@ protected:
     return static_cast<int>(executionContext->shots);
   }
 
+  /// @brief The number of qubits being currently simulated. May be less than
+  /// the total allocated capacity, as tracked by `nQubitsAllocated`.
+  std::size_t getNumQubits() { return tracker.numAllocated(); }
+
   /// @brief Return the current multi-qubit state dimension
   virtual std::size_t calculateStateDim(const std::size_t numQubits) {
-    assert(numQubits < 64);
-    return 1ULL << numQubits;
+    if (numQubits < 64)
+      return 1ULL << numQubits;
+    throw std::runtime_error("number of qubits exceeds maximum (63)");
   }
 
   /// @brief Add a new qubit to the state representation.
@@ -522,6 +519,8 @@ protected:
   /// @brief Reset the qubit state back to dim = 0.
   void deallocateState() {
     deallocateStateImpl();
+    auto empty = std::queue<GateApplicationTask>{};
+    std::swap(gateQueue, empty);
     nQubitsAllocated = 0;
     stateDimension = 0;
   }
@@ -932,44 +931,13 @@ public:
 
   /// @brief Allocate a single qubit, return the qubit as a logical index
   std::size_t allocateQubit() override {
-    // Get a new qubit index
-    auto newIdx = tracker.getNextIndex();
-    if (isInBatchMode()) {
-      batchModeCurrentNumQubits++;
-      // In batch mode, we might already have an allocated state that
-      // has been set to |0..0>. We can reuse it as is, if the next qubit
-      // index is smaller than number of qubits of this allocated state.
-      if (newIdx < nQubitsAllocated)
-        return newIdx;
-    }
+    auto qubits = allocateQubitsInternal(1, [this](std::size_t numAllocs) {
+      assert(numAllocs == 1);
+      addQubitToState();
+    });
 
-    CUDAQ_INFO("Allocating new qubit with idx {} (nQ={}, dim={})", newIdx,
-               nQubitsAllocated, stateDimension);
-
-    // Increment the number of qubits and set
-    // the new state dimension
-    previousStateDimension = stateDimension;
-    nQubitsAllocated++;
-    stateDimension = calculateStateDim(nQubitsAllocated);
-
-    if (!isInTracerMode()) {
-      // Tell the subtype to grow the state representation
-      try {
-        addQubitToState();
-      } catch (...) {
-        nQubitsAllocated--;
-        stateDimension = previousStateDimension;
-        throw;
-      }
-    }
-
-    // May be that the state grows enough that we
-    // want to handle observation via sampling
-    if (executionContext)
-      executionContext->canHandleObserve = canHandleObserve();
-
-    // return the new qubit index
-    return newIdx;
+    assert(qubits.size() == 1);
+    return qubits[0];
   }
 
   /// @brief Allocate `count` qubits.
@@ -993,46 +961,9 @@ public:
       }
     }
 
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
-
-    if (isInBatchMode()) {
-      // Store the current number of qubits requested
-      batchModeCurrentNumQubits += count;
-
-      // We have an allocated state, it has been set to |0>,
-      // we want to reuse it as is. If the state needs to grow, then
-      // we will ask the subtype to add more qubits.
-      if (qubits.back() < nQubitsAllocated)
-        count = 0;
-      else
-        count = qubits.back() + 1 - nQubitsAllocated;
-    }
-
-    CUDAQ_INFO("Allocating {} new qubits.", count);
-
-    previousStateDimension = stateDimension;
-    nQubitsAllocated += count;
-    stateDimension = calculateStateDim(nQubitsAllocated);
-
-    if (!isInTracerMode()) {
-      // Tell the subtype to allocate more qubits
-      try {
-        addQubitsToState(count, state);
-      } catch (...) {
-        nQubitsAllocated -= count;
-        stateDimension = previousStateDimension;
-        throw;
-      }
-    }
-
-    // May be that the state grows enough that we
-    // want to handle observation via sampling
-    if (executionContext)
-      executionContext->canHandleObserve = canHandleObserve();
-
-    return qubits;
+    return allocateQubitsInternal(count, [this, state](std::size_t numAllocs) {
+      addQubitsToState(numAllocs, state);
+    });
   }
 
   /// @brief Allocate `count` qubits in a specific state.
@@ -1046,102 +977,53 @@ public:
       throw std::invalid_argument("Dimension mismatch: the input state doesn't "
                                   "match the number of qubits");
 
-    std::vector<std::size_t> qubits;
-    for (std::size_t i = 0; i < count; i++)
-      qubits.emplace_back(tracker.getNextIndex());
-
-    if (isInBatchMode()) {
-      // Store the current number of qubits requested
-      batchModeCurrentNumQubits += count;
-
-      // We have an allocated state, it has been set to |0>,
-      // we want to reuse it as is. If the state needs to grow, then
-      // we will ask the subtype to add more qubits.
-      if (qubits.back() < nQubitsAllocated)
-        count = 0;
-      else
-        count = qubits.back() + 1 - nQubitsAllocated;
-    }
-
-    CUDAQ_INFO("Allocating {} new qubits.", count);
-
-    previousStateDimension = stateDimension;
-    nQubitsAllocated += count;
-    stateDimension = calculateStateDim(nQubitsAllocated);
-
-    if (!isInTracerMode()) {
-      // Tell the subtype to allocate more qubits
-      try {
-        addQubitsToState(*state);
-      } catch (...) {
-        nQubitsAllocated -= count;
-        stateDimension = previousStateDimension;
-        throw;
+    return allocateQubitsInternal(count, [this, state](std::size_t numAllocs) {
+      if (numAllocs != state->getNumQubits()) {
+        throw std::runtime_error(
+            "Specifying explicit simulation state with memory re-use is "
+            "currently not supported. See "
+            "https://github.com/NVIDIA/cuda-quantum/issues/3795.");
       }
-    }
-
-    // May be that the state grows enough that we
-    // want to handle observation via sampling
-    if (executionContext)
-      executionContext->canHandleObserve = canHandleObserve();
-
-    return qubits;
+      addQubitsToState(*state);
+    });
   }
 
-  /// @brief Deallocate the qubit with give index
-  void deallocate(const std::size_t qubitIdx) override {
-    if (executionContext && executionContext->name != "tracer") {
-      CUDAQ_INFO("Deferring qubit {} deallocation", qubitIdx);
-      deferredDeallocation.push_back(qubitIdx);
-      return;
-    }
-
-    CUDAQ_INFO("Deallocating qubit {}", qubitIdx);
-
-    // Reset the qubit
-    if (!isInTracerMode())
-      resetQubit(qubitIdx);
-
-    // Return the index to the tracker
-    tracker.returnIndex(qubitIdx);
-    --nQubitsAllocated;
-
-    // Reset the state if we've deallocated all qubits.
-    if (tracker.allDeallocated()) {
-      CUDAQ_INFO("Deallocated all qubits, reseting state vector.");
-      // all qubits deallocated,
-      deallocateState();
-      while (!gateQueue.empty())
-        gateQueue.pop();
-    }
-  }
-
-  /// @brief Deallocate all requested qubits. If the number of qubits
-  /// is equal to the number of allocated qubits, then clear the entire
-  /// state at once.
   void deallocateQubits(const std::vector<std::size_t> &qubits) override {
-    // Do nothing if there are no allocated qubits.
-    if (nQubitsAllocated == 0)
-      return;
-
     if (executionContext) {
-      for (auto &qubitIdx : qubits) {
-        CUDAQ_INFO("Deferring qubit {} deallocation", qubitIdx);
-        deferredDeallocation.push_back(qubitIdx);
+      // Avoid deallocation as we may need to access the state after the
+      // execution has completed.
+      // TODO: reduce the cases where this is needed.
+      CUDAQ_DBG("Execution context is set, skipping qubit deallocation");
+      return;
+    } else if (getNumQubits() == 0) {
+      CUDAQ_DBG("Already all qubits deallocated, skipping qubit deallocation");
+      return;
+    }
+
+    if (getNumQubits() < qubits.size())
+      throw std::runtime_error(
+          "Cannot deallocate more qubits than have been allocated.");
+
+    for (auto &q : qubits) {
+      CUDAQ_INFO("Deallocating qubit {}", q);
+      tracker.returnIndex(q);
+    }
+    if (isInTracerMode()) {
+      return;
+    }
+
+    if (getNumQubits() == 0) {
+      if (isInBatchMode() && !isLastBatch()) {
+        setToZeroState();
+        auto empty = std::queue<GateApplicationTask>{};
+        std::swap(gateQueue, empty);
+      } else {
+        deallocateState();
       }
-      return;
-    }
-
-    if (qubits.size() == tracker.numAllocated()) {
-      CUDAQ_INFO("Deallocate all qubits.");
-      deallocateState();
+    } else {
       for (auto &q : qubits)
-        tracker.returnIndex(q);
-      return;
+        resetQubit(q);
     }
-
-    for (auto &q : qubits)
-      deallocate(q);
   }
 
   /// @brief Reset the current execution context.
@@ -1150,26 +1032,23 @@ public:
     if (!executionContext)
       return;
 
+    // Flush the queue if there are any gates to apply
+    flushGateQueue();
+
     // Get the ExecutionContext name
     auto execContextName = executionContext->name;
 
     // If we are sampling...
-    if (execContextName.find("sample") != std::string::npos) {
+    if (execContextName == "sample") {
       // Sample the state over the specified number of shots
       if (sampleQubits.empty() && !executionContext->explicitMeasurements) {
-        if (isInBatchMode())
-          sampleQubits.resize(batchModeCurrentNumQubits);
-        else
-          sampleQubits.resize(nQubitsAllocated);
+        sampleQubits.resize(getNumQubits());
         if (sampleQubits.empty())
           throw std::runtime_error(
               "Sampling detected on a kernel with no qubits. Your kernel must "
               "have qubits to sample it.");
         std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
       }
-
-      // Flush the queue if there are any gates to apply
-      flushGateQueue();
 
       // Flush any queued up sampling tasks
       flushAnySamplingTasks(/*force this*/ true);
@@ -1216,43 +1095,36 @@ public:
 
     // Set the state data if requested.
     if (executionContext->name == "extract-state") {
-      flushGateQueue();
       executionContext->simulationState = getSimulationState();
+      // State is no longer valid, so clean up
+      deallocateState();
     }
 
     if (executionContext->name == "msm_size") {
-      flushGateQueue();
       executionContext->msm_dimensions = generateMSMSize();
     }
 
     if (executionContext->name == "msm") {
-      flushGateQueue();
       generateMSM();
     }
-
-    // Deallocate the deferred qubits, but do so
-    // without explicit qubit reset.
-    for (auto &deferred : deferredDeallocation)
-      tracker.returnIndex(deferred);
 
     bool shouldSetToZero = isInBatchMode() && !isLastBatch();
     executionContext = nullptr;
 
     // Reset the state if we've deallocated all qubits.
-    if (tracker.allDeallocated()) {
-      if (shouldSetToZero) {
-        CUDAQ_INFO("In batch mode currently, reset state to |0>");
-        // Do not deallocate the state, but reset it to |0>
-        setToZeroState();
-      } else {
-        CUDAQ_INFO("Deallocated all qubits, reseting state vector.");
-        // all qubits deallocated,
-        deallocateState();
-      }
+    if (shouldSetToZero) {
+      CUDAQ_INFO("In batch mode currently, resetting simulator state to |0>");
+      // Do not deallocate the state, but reset it to |0> to be reused
+      setToZeroState();
+      auto empty = std::queue<GateApplicationTask>{};
+      std::swap(gateQueue, empty);
+    } else {
+      CUDAQ_INFO("Deallocating simulator state.");
+      // all qubits deallocated,
+      deallocateState();
     }
 
-    batchModeCurrentNumQubits = 0;
-    deferredDeallocation.clear();
+    tracker = {};
   }
 
   /// @brief Set the execution context
@@ -1532,7 +1404,45 @@ public:
     }
   }
 
-}; // namespace nvqir
+private:
+  template <std::invocable<std::size_t> Callable>
+  std::vector<std::size_t> allocateQubitsInternal(std::size_t count,
+                                                  Callable &&allocateQubits) {
+    std::vector<std::size_t> qubits;
+    for (std::size_t i = 0; i < count; i++)
+      qubits.emplace_back(tracker.getNextIndex());
+
+    // We only need to allocate new qubits if the number of qubits
+    // requested is greater than the number of qubits already allocated.
+    if (getNumQubits() > nQubitsAllocated) {
+      auto numAllocs = getNumQubits() - nQubitsAllocated;
+
+      CUDAQ_INFO("Allocating {} new qubits.", numAllocs);
+
+      previousStateDimension = stateDimension;
+      nQubitsAllocated += numAllocs;
+      stateDimension = calculateStateDim(nQubitsAllocated);
+
+      if (!isInTracerMode()) {
+        // Tell the subtype to allocate more qubits
+        try {
+          allocateQubits(numAllocs);
+        } catch (...) {
+          nQubitsAllocated -= numAllocs;
+          stateDimension = previousStateDimension;
+          throw;
+        }
+      }
+
+      // May be that the state grows enough that we
+      // want to handle observation via sampling
+      if (executionContext)
+        executionContext->canHandleObserve = canHandleObserve();
+    }
+
+    return qubits;
+  }
+};
 } // namespace nvqir
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)

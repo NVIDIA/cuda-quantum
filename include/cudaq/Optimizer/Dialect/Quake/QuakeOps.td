@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -121,7 +121,7 @@ def quake_InitializeStateOp : QuakeOp<"init_state",
   }];
 
   let arguments = (ins
-    VeqType:$targets,
+    NonStruqRefType:$targets,
     AnyStateInitType:$state
   );
   let results = (outs VeqType);
@@ -1656,7 +1656,8 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
   let summary = "Create state from data";
   let description = [{
     This operation takes a pointer to state data and creates a quantum state,
-    where state data is a pointer to an array of float or complex numbers.
+    where state data is a pointer to an array of float or complex numbers
+    along with the its length (number of elements in the array).
     The operation can be optimized away in DeleteStates pass, or replaced
     by an intrinsic runtime call on simulators.
 

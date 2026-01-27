@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,21 +11,24 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
-add_library(${LIBRARY_NAME} 
-         SHARED cudaq.cpp 
-                target_control.cpp
-                algorithms/draw.cpp
-                algorithms/evolve.cpp
-                algorithms/schedule.cpp
-                platform/qpu_state.cpp
-                platform/quantum_platform.cpp
-                qis/execution_manager_c_api.cpp
-                qis/execution_manager.cpp
-                qis/remote_state.cpp
-                qis/state.cpp
-                utils/cudaq_utils.cpp
-                utils/matrix.cpp
-                distributed/mpi_plugin.cpp)
+add_library(${LIBRARY_NAME}
+  SHARED
+    cudaq.cpp
+    target_control.cpp
+    algorithms/draw.cpp
+    algorithms/evolve.cpp
+    algorithms/schedule.cpp
+    platform/qpu.cpp
+    platform/qpu_state.cpp
+    platform/quantum_platform.cpp
+    qis/execution_manager_c_api.cpp
+    qis/execution_manager.cpp
+    qis/remote_state.cpp
+    qis/state.cpp
+    utils/cudaq_utils.cpp
+    utils/matrix.cpp
+    distributed/mpi_plugin.cpp
+)
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
@@ -41,8 +44,19 @@ if (CUDA_FOUND)
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only CUDA::cudart_static CUDAQTargetConfigUtil)
+    PUBLIC
+      dl
+      cudaq-operator
+      cudaq-common
+      cudaq-nlopt
+      cudaq-ensmallen
+      MLIRIR
+    PRIVATE
+      nvqir
+      fmt::fmt-header-only
+      CUDA::cudart_static
+      CUDAQTargetConfigUtil
+  )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
 else()
@@ -53,8 +67,18 @@ else()
     PRIVATE .)
 
   target_link_libraries(${LIBRARY_NAME}
-    PUBLIC dl cudaq-operator cudaq-common cudaq-nlopt cudaq-ensmallen
-    PRIVATE nvqir fmt::fmt-header-only CUDAQTargetConfigUtil)
+    PUBLIC
+      dl
+      cudaq-operator
+      cudaq-common
+      cudaq-nlopt
+      cudaq-ensmallen
+      MLIRIR
+    PRIVATE
+      nvqir
+      fmt::fmt-header-only
+      CUDAQTargetConfigUtil
+  )
 endif()
 
 add_subdirectory(qis/managers)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -26,6 +26,7 @@
 # -v: Whether to print verbose output. Defaults to False.
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
+# -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
 # 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
@@ -55,6 +56,7 @@ verbose=false
 clean_build=true
 install_toolchain=""
 num_jobs=""
+enable_sanitizers=false
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
@@ -64,7 +66,7 @@ build_dir="$working_dir/build"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:i" opt; do
+while getopts ":c:t:j:vB:is" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -77,6 +79,8 @@ while getopts ":c:t:j:vB:i" opt; do
     B) build_dir="$OPTARG"
     ;;
     i) clean_build=false
+    ;;
+    s) enable_sanitizers=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -193,6 +197,13 @@ else
   echo "ccache not found. To speed up recompilation, consider installing ccache."
 fi
 
+# Configure sanitizer option for CMake
+SANITIZER_FLAGS=""
+if $enable_sanitizers; then
+  echo "Enabling Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)..."
+  SANITIZER_FLAGS="-DCUDAQ_ENABLE_SANITIZERS=ON"
+fi
+
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
@@ -205,6 +216,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
   ${CCACHE_FLAGS} \
+  ${SANITIZER_FLAGS} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
   ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \

@@ -1,5 +1,5 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
@@ -43,6 +43,7 @@ func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cud
       quake.h %arg0 : (!quake.ref) -> ()
       quake.y %arg0 : (!quake.ref) -> ()
     }
+    cc.return
   } : !cc.callable<(!quake.ref) -> ()>
   call @__nvqpp__mlirgen__test3_callee(%3, %1) : (!cc.callable<(!quake.ref) -> ()>, !quake.veq<?>) -> ()
   return
@@ -63,4 +64,3 @@ func.func @__nvqpp__mlirgen__test3_caller() attributes {"cudaq-entrypoint", "cud
 // CHECK-SAME:        %[[VAL_0:.*]]: !quake.ref) {{.*}}{
 // CHECK:           quake.h %[[VAL_0]] :
 // CHECK:           quake.y %[[VAL_0]] :
-

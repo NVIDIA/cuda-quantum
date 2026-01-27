@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -141,7 +141,6 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
                          quantum_platform &platform, int shots,
                          const std::string &kernelName,
                          std::size_t qpu_id = 0) {
-
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
                                 " is invalid (must be < " +
@@ -219,13 +218,12 @@ observe_result observe(QuantumKernel &&kernel, const spin_op &H,
                        Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto shots = platform.get_shots().value_or(-1);
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runObservation(
              [&kernel, &args...]() mutable {
                kernel(std::forward<Args>(args)...);
              },
-             H, platform, shots, kernelName)
+             H, platform, /*shots=*/-1, kernelName)
       .value();
 }
 
@@ -246,7 +244,6 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto shots = platform.get_shots().value_or(-1);
   auto kernelName = cudaq::getKernelName(kernel);
 
   // Convert all spin_ops to a single summed spin_op
@@ -259,7 +256,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel,
                     [&kernel, &args...]() mutable {
                       kernel(std::forward<Args>(args)...);
                     },
-                    op, platform, shots, kernelName)
+                    op, platform, /*shots=*/-1, kernelName)
                     .value();
 
   // Convert back to a vector of results
@@ -355,10 +352,9 @@ template <typename DistributionType, typename QuantumKernel, typename... Args>
   requires ObserveCallValid<QuantumKernel, Args...>
 observe_result observe(QuantumKernel &&kernel, const spin_op &H,
                        Args &&...args) {
-  auto &platform = cudaq::get_platform();
-  auto shots = platform.get_shots().value_or(-1);
-  return observe<DistributionType>(shots, std::forward<QuantumKernel>(kernel),
-                                   H, std::forward<Args>(args)...);
+  return observe<DistributionType>(/*shots=*/-1,
+                                   std::forward<QuantumKernel>(kernel), H,
+                                   std::forward<Args>(args)...);
 }
 /// \endcond
 
@@ -426,14 +422,13 @@ auto observe_async(const std::size_t qpu_id, QuantumKernel &&kernel,
                    const spin_op &H, Args &&...args) {
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto shots = platform.get_shots().value_or(-1);
   auto kernelName = cudaq::getKernelName(kernel);
 
   return details::runObservationAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
-      H, platform, shots, kernelName, qpu_id);
+      H, platform, /*shots=*/-1, kernelName, qpu_id);
 }
 
 /// \brief Asynchronously compute the expected value of `H` with respect to
@@ -483,14 +478,14 @@ std::vector<observe_result> observe(QuantumKernel &&kernel, const spin_op &H,
   details::BroadcastFunctorType<observe_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> observe_result {
-    auto shots = platform.get_shots().value_or(-1);
     auto kernelName = cudaq::getKernelName(kernel);
-    auto ret = details::runObservation(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   H, platform, shots, kernelName, qpuId, nullptr, counter, N)
-                   .value();
+    auto ret =
+        details::runObservation(
+            [&kernel, &singleIterParameters...]() mutable {
+              kernel(std::forward<Args>(singleIterParameters)...);
+            },
+            H, platform, /*shots=*/-1, kernelName, qpuId, nullptr, counter, N)
+            .value();
     return ret;
   };
 

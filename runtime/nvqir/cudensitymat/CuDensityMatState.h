@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -26,12 +26,19 @@ private:
   cudensitymatHandle_t cudmHandle = nullptr;
   std::vector<int64_t> hilbertSpaceDims;
   std::size_t batchSize = 1;
+  // The dimension of a single state in the batch (used for distributed mode).
+  // For non-batched states, this equals dimension.
+  // For batched states in distributed mode, dimension < batchSize *
+  // singleStateDimension.
+  std::size_t singleStateDimension = 0;
+  bool borrowedData = false;
 
 public:
   // Create a state with a size and data pointer.
   // Note: the underlying cudm state is not yet initialized as we don't know the
   // dimensions of sub-systems.
-  CuDensityMatState(std::size_t s, void *ptr);
+  // If `borrowed` is true, the state does not own the device data pointer.
+  CuDensityMatState(std::size_t s, void *ptr, bool borrowed = false);
 
   // Default constructor
   CuDensityMatState() {}

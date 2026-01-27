@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -85,47 +85,51 @@ def test_qubit_list():
 
 def test_list_creation_failures():
 
-    @cudaq.kernel
-    def kernel1():
-        q = cudaq.qubit()
-        l = [0.5, q]
-        rx(l[0], l[1])
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel1():
+            q = cudaq.qubit()
+            l = [0.5, q]
+            rx(l[0], l[1])
+
         cudaq.sample(kernel1)
     assert "non-homogenous list not allowed" in str(e.value)
 
-    @cudaq.kernel
-    def kernel2():
-        cs, q = cudaq.qvector(2), cudaq.qubit()
-        l = [cs, q]
-        x.ctrl(l[0], l[1])
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel2():
+            cs, q = cudaq.qvector(2), cudaq.qubit()
+            l = [cs, q]
+            x.ctrl(l[0], l[1])
+
         cudaq.sample(kernel2)
     assert "list must not contain a qvector or quantum struct" in str(e.value)
     assert "offending source -> [cs, q]" in str(e.value)
 
-    @cudaq.kernel
-    def kernel3():
-        t = cudaq.qvector(2), cudaq.qubit()
-        l = [t]
-        x.ctrl(l[0][0], l[0][1])
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel3():
+            t = cudaq.qvector(2), cudaq.qubit()
+            l = [t]
+            x.ctrl(l[0][0], l[0][1])
+
         cudaq.sample(kernel3)
     assert "list must not contain a qvector or quantum struct" in str(e.value)
     assert "offending source -> [t]" in str(e.value)
 
     # Unpack is currently only supported for qvectors:
 
-    @cudaq.kernel
-    def kernel4() -> int:
-        l1, l2 = [1, 2], [3, 4]
-        l = [*l1, *l2]
-        return len(l)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel4() -> int:
+            l1, l2 = [1, 2], [3, 4]
+            l = [*l1, *l2]
+            return len(l)
+
         cudaq.run(kernel4)
     assert "unpack operator `*` is only supported on qvectors" in str(e.value)
     assert "offending source -> [*l1, *l2]" in str(e.value)

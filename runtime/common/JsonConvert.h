@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,6 @@
 #pragma once
 #include "GPUInfo.h"
 #include "common/ExecutionContext.h"
-#include "common/FmtCore.h"
 #include "cudaq/Support/Version.h"
 #include "cudaq/gradients.h"
 #include "cudaq/optimizers.h"

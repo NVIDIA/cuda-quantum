@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -21,11 +21,22 @@ using namespace mlir;
 // Strings that are longer than this length will be hashed to MD5 names to avoid
 // unnecessarily long symbol names. (This is a hidden command line option, so
 // that hashing issues can be easily worked around.)
-static llvm::cl::opt<std::size_t> nameLengthHashSize(
-    "length-to-hash-string-literal",
-    llvm::cl::desc("string literals that exceed this length will use a hash "
-                   "value as their symbol name"),
-    llvm::cl::init(32));
+namespace {
+struct CLOptions {
+  llvm::cl::opt<std::size_t> nameLengthHashSize{
+      "length-to-hash-string-literal",
+      llvm::cl::desc("string literals that exceed this length will use a hash "
+                     "value as their symbol name"),
+      llvm::cl::init(32)};
+};
+} // namespace
+
+static llvm::ManagedStatic<CLOptions> clOptions;
+
+void cudaq::opt::builder::registerCUDAQBuilderCLOptions() {
+  // Initialize the command-line options lazily.
+  *clOptions;
+}
 
 static constexpr std::size_t DefaultPrerequisiteSize = 4;
 
@@ -304,11 +315,17 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
-    {cudaq::createCudaqStateFromDataFP32, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
-    {cudaq::createCudaqStateFromDataFP64, {}, R"#(
-  func.func private @__nvqpp_cudaq_state_createFromData_fp64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+    {cudaq::createCudaqStateFromDataComplexF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_complex_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF32, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f32(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
+)#"},
+    {cudaq::createCudaqStateFromDataF64, {}, R"#(
+  func.func private @__nvqpp_cudaq_state_createFromData_f64(%p : !cc.ptr<i8>, %s : i64) -> !cc.ptr<!quake.state>
 )#"},
 
     {cudaq::deleteCudaqState, {}, R"#(
@@ -370,90 +387,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // __nvqpp_initializer_list_to_vector_bool
     {cudaq::stdvecBoolCtorFromInitList, {}, R"#(
   func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64) -> ())#"},
-
-    // Compute the number of digits in base 10 of a non-negative i64 value.
-    // argument 0: the unsigned value
-    {"__nvqpp_internal_number_of_digits", {}, R"#(
-  func.func private @__nvqpp_internal_number_of_digits(%arg0: i64) -> i64 {
-    %c10_i64 = arith.constant 10 : i64
-    %c1_i64 = arith.constant 1 : i64
-    cf.br ^bb1(%arg0, %c1_i64 : i64, i64)
-  ^bb1(%0: i64, %1: i64):  // 2 preds: ^bb0, ^bb2
-    %2 = arith.cmpi uge, %0, %c10_i64 : i64
-    cf.cond_br %2, ^bb2(%0, %1 : i64, i64), ^bb3(%1 : i64)
-  ^bb2(%3: i64, %4: i64):  // pred: ^bb1
-    %5 = arith.divui %3, %c10_i64 : i64
-    %6 = arith.addi %4, %c1_i64 : i64
-    cf.br ^bb1(%5, %6 : i64, i64)
-  ^bb3(%7: i64):  // pred: ^bb1
-    return %7 : i64
-  } 
-  )#"},
-
-    // Convert a non-negative i64 value to a string base 10 for printing.
-    // argument 0: buffer from cc.alloca !cc.array<i8 x 32>
-    // argument 1: the unsigned value
-    {"__nvqpp_internal_tostring", {}, R"#(
-  func.func private @__nvqpp_internal_tostring(%arg0: !cc.ptr<!cc.array<i8 x ?>>, %arg1: i64) {
-    %c48_i64 = arith.constant 48 : i64
-    %c0_i8 = arith.constant 0 : i8
-    %c10_i64 = arith.constant 10 : i64
-    %c1_i32 = arith.constant 1 : i32
-    %c31_i32 = arith.constant 31 : i32
-    %false = arith.constant false
-    %c0_i64 = arith.constant 0 : i64
-    %c48_i8 = arith.constant 48 : i8
-    %c0_i32 = arith.constant 0 : i32
-    %0 = cc.cast %arg0 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-    cc.store %c48_i8, %0 : !cc.ptr<i8>
-    cf.br ^bb1(%c0_i32, %arg1 : i32, i64)
-  ^bb1(%1: i32, %2: i64):  // 2 preds: ^bb0, ^bb4
-    %3 = arith.cmpi ne, %2, %c0_i64 : i64
-    %4 = arith.cmpi eq, %3, %false : i1
-    cf.cond_br %4, ^bb3(%false : i1), ^bb2
-  ^bb2:  // pred: ^bb1
-    %5 = arith.cmpi slt, %1, %c31_i32 : i32
-    cf.br ^bb3(%5 : i1)
-  ^bb3(%6: i1):  // 2 preds: ^bb1, ^bb2
-    cf.cond_br %6, ^bb4(%1, %2 : i32, i64), ^bb5(%1 : i32)
-  ^bb4(%7: i32, %8: i64):  // pred: ^bb3
-    %9 = arith.addi %7, %c1_i32 : i32
-    %10 = cc.compute_ptr %arg0[%7] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
-    %11 = arith.remui %8, %c10_i64 : i64
-    %12 = arith.addi %11, %c48_i64 : i64
-    %13 = cc.cast %12 : (i64) -> i8
-    cc.store %13, %10 : !cc.ptr<i8>
-    %14 = arith.divui %8, %c10_i64 : i64
-    cf.br ^bb1(%9, %14 : i32, i64)
-  ^bb5(%15: i32):  // pred: ^bb3
-    %16 = arith.cmpi eq, %15, %c0_i32 : i32
-    cf.cond_br %16, ^bb6, ^bb7(%15 : i32)
-  ^bb6:  // pred: ^bb5
-    %17 = cc.compute_ptr %arg0[1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
-    cc.store %c0_i8, %17 : !cc.ptr<i8>
-    return
-  ^bb7(%18: i32):  // pred: ^bb5
-    %19 = cc.compute_ptr %arg0[%18] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
-    cc.store %c0_i8, %19 : !cc.ptr<i8>
-    %20 = arith.subi %18, %c1_i32 : i32
-    cf.br ^bb8(%20, %c0_i32 : i32, i32)
-  ^bb8(%21: i32, %22: i32):  // 2 preds: ^bb7, ^bb9
-    %23 = arith.cmpi slt, %22, %21 : i32
-    cf.cond_br %23, ^bb9(%21, %22 : i32, i32), ^bb10
-  ^bb9(%24: i32, %25: i32):  // pred: ^bb8
-    %26 = cc.compute_ptr %arg0[%25] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
-    %27 = cc.load %26 : !cc.ptr<i8>
-    %28 = cc.compute_ptr %arg0[%24] : (!cc.ptr<!cc.array<i8 x ?>>, i32) -> !cc.ptr<i8>
-    %29 = cc.load %28 : !cc.ptr<i8>
-    cc.store %29, %26 : !cc.ptr<i8>
-    %30 = arith.subi %24, %c1_i32 : i32
-    cc.store %27, %28 : !cc.ptr<i8>
-    %31 = arith.addi %25, %c1_i32 : i32
-    cf.br ^bb8(%30, %31 : i32, i32)
-  ^bb10:  // pred: ^bb8
-    return
-  }
-  )#"},
 
     // This helper function copies a buffer off the stack to the heap. This is
     // required when the data on the stack is about to go out of scope but is
@@ -749,7 +682,7 @@ LLVM::GlobalOp IRBuilder::genCStringLiteral(Location loc, ModuleOp module,
 std::string IRBuilder::hashStringByContent(StringRef sref) {
   // For shorter names just use the string content in hex. (Consider replacing
   // this with a more compact, readable base-64 encoding.)
-  if (sref.size() <= nameLengthHashSize)
+  if (sref.size() <= clOptions->nameLengthHashSize)
     return llvm::toHex(sref);
 
   // Use an MD5 hash for long cstrings. This can produce collisions between

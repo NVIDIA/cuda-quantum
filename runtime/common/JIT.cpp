@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "JIT.h"
+#include "ExecutionContext.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/ObjectCache.h"
 #include "llvm/ExecutionEngine/Orc/CompileUtils.h"
@@ -30,11 +31,11 @@
 
 #define DEBUG_TYPE "cudaq-qpud"
 
-namespace cudaq {
 std::unique_ptr<llvm::orc::LLJIT>
-invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
-                    void *args, std::uint64_t argsSize, std::size_t numTimes,
-                    std::function<void(std::size_t)> postExecCallback) {
+cudaq::invokeWrappedKernel(std::string_view irString,
+                           const std::string &entryPointFn, void *args,
+                           std::uint64_t argsSize, std::size_t numTimes,
+                           std::function<void(std::size_t)> postExecCallback) {
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
   // Parse bitcode
@@ -146,4 +147,3 @@ invokeWrappedKernel(std::string_view irString, const std::string &entryPointFn,
 
   return jit;
 }
-} // namespace cudaq

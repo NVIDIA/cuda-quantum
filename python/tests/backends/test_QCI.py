@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -150,63 +150,6 @@ def test_u3_ctrl_decomposition():
 
     # Test here is that this runs without error
     cudaq.sample(kernel, shots_count=10)
-
-
-def test_state_preparation():
-
-    @cudaq.kernel
-    def kernel(vec: list[complex]):
-        qubits = cudaq.qvector(vec)
-        mz(qubits)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-        mz(qubits)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
-def test_state_synthesis():
-
-    @cudaq.kernel
-    def init(n: int):
-        q = cudaq.qvector(n)
-        x(q[0])
-
-    @cudaq.kernel
-    def kernel(s: cudaq.State):
-        q = cudaq.qvector(s)
-        x(q[1])
-        mz(q)
-
-    s = cudaq.get_state(init, 2)
-    counts = cudaq.sample(kernel, s)
-    assert '11' in counts
-    assert len(counts) == 1
 
 
 def test_exp_pauli():

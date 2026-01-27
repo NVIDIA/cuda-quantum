@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -88,9 +88,9 @@ public:
         terms.push_back(termStr);
 
         auto coeff = term.evaluate_coefficient();
-        auto coeff_str =
-            fmt::format("{}{}{}j", coeff.real(), coeff.imag() < 0.0 ? "-" : "+",
-                        std::fabs(coeff.imag()));
+        auto coeff_str = cudaq_fmt::format("{}{}{}j", coeff.real(),
+                                           coeff.imag() < 0.0 ? "-" : "+",
+                                           std::fabs(coeff.imag()));
 
         terms.push_back(coeff_str);
 

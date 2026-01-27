@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,6 +13,10 @@
 
 #include "CUDAQTestUtils.h"
 #include "QppCircuitSimulator.cpp"
+#include "backends/QPPTester.h"
+
+using QppSimulator =
+    QppCircuitSimulatorTester<nvqir::QppCircuitSimulator<qpp::ket>>;
 
 #define _USE_MATH_DEFINES
 
@@ -38,18 +42,6 @@ qpp::ket getOneState(const int numQubits) {
   qpp::ket one_state = qpp::ket::Zero(state_dim);
   one_state(state_dim - 1) = 1.0;
   return one_state;
-}
-
-std::string getSampledBitString(QppCircuitSimulator<qpp::ket> &qppBackend,
-                                std::vector<std::size_t> &&qubits) {
-  std::cout << "sampling on the state vector backend.\n";
-  // Call `sample` and return the bitstring as the first element of the
-  // measurement count map.
-  cudaq::ExecutionContext ctx("sample", 1);
-  qppBackend.setExecutionContext(&ctx);
-  qppBackend.resetExecutionContext();
-  auto sampleResults = ctx.result;
-  return sampleResults.begin()->first;
 }
 
 // Helper function for comparing two complex state vectors up to a certain
@@ -82,7 +74,7 @@ CUDAQ_TEST(QPPTester, checkInitialState) {
   std::string want_bitstring;
   // Initialize QPP Backend with 2 qubits
   const int num_qubits = 2;
-  QppCircuitSimulator<qpp::ket> qppBackend;
+  QppSimulator qppBackend;
   auto q0 = qppBackend.allocateQubit();
   auto q1 = qppBackend.allocateQubit();
 
@@ -98,7 +90,7 @@ CUDAQ_TEST(QPPTester, checkInitialState) {
 
   // Confirm that the bitstring returned from `::sample`
   // is `00` by running 1 shot of simulation.
-  got_bitstring = getSampledBitString(qppBackend, {0, 1});
+  got_bitstring = qppBackend.getSampledBitString({0, 1});
   want_bitstring = std::string("00");
   EXPECT_EQ(want_bitstring, got_bitstring);
   qppBackend.deallocate(q0);
@@ -118,7 +110,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -128,7 +120,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // Confirm state vectors.
     EXPECT_EQ(want_state, got_state);
     // Confirm states from `::sample`.
@@ -143,7 +135,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getOneState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("11");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // Confirm state vectors.
     EXPECT_EQ(want_state, got_state);
     // Confirm states from `::sample`.
@@ -158,7 +150,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -176,7 +168,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -189,7 +181,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = qpp::kron(psi_q0, getZeroState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -202,7 +194,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = qpp::kron(psi_q0, psi_q1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("11");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
@@ -214,7 +206,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -232,7 +224,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -243,7 +235,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
 
@@ -251,7 +243,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qppBackend.z(q1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // State should still remain unaltered.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -268,7 +260,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qpp::ket want_state;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -312,7 +304,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -323,7 +315,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
 
@@ -331,7 +323,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qppBackend.s(q1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // State should still remain unaltered.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -350,7 +342,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -361,7 +353,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
 
@@ -369,7 +361,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qppBackend.t(q1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // State should still remain unaltered.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -388,7 +380,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -399,7 +391,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_state, got_state);
 
@@ -407,7 +399,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qppBackend.sdg(q1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // State should still remain unaltered.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -426,7 +418,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -437,7 +429,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     want_state = getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_state, got_state);
 
@@ -445,7 +437,7 @@ CUDAQ_TEST(QPPTester, checkSingleQGates) {
     qppBackend.tdg(q1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     // State should still remain unaltered.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -466,7 +458,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     const int num_qubits = 1;
     auto q0 = qppBackend.allocateQubit();
 
@@ -477,7 +469,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * im<> * getOneState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     // Confirm state from `::sample`.
@@ -492,7 +484,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -507,7 +499,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     const int num_qubits = 1;
     auto q0 = qppBackend.allocateQubit();
 
@@ -519,7 +511,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = getOneState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     // Confirm state from `::sample`.
@@ -533,7 +525,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -548,7 +540,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     const int num_qubits = 1;
     auto q0 = qppBackend.allocateQubit();
 
@@ -558,7 +550,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = getZeroState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     // Confirm state from `::sample`.
@@ -572,7 +564,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = std::exp(-0.5 * im<> * M_PI) * getZeroState(num_qubits);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -587,7 +579,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
 
     // Rotate q0 with U gate at (theta,phi,lam)=(2pi, 0,0).
@@ -596,7 +588,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * getZeroState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -614,7 +606,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * getOneState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -629,7 +621,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
 
     // Rotate q0 about Z with u1 gate.
@@ -639,7 +631,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = getZeroState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -654,7 +646,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state(1) = std::exp(im<> * M_PI);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -670,7 +662,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
 
     // Rotate q0 with U3 gate at (theta,phi,lam)=(2pi, 0,0).
@@ -679,7 +671,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * getZeroState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -697,7 +689,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     want_state = -1. * getOneState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     // Confirm state vectors.
     EXPECT_EQ_KETS(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -713,7 +705,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -727,7 +719,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     EXPECT_EQ(want_state, got_state);
     // check that the bitstring from `::sample` is still "00".
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -742,7 +734,7 @@ CUDAQ_TEST(QPPTester, checkParameterizedGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -785,7 +777,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -798,7 +790,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(want_state, got_state);
     // check that the bitstring from `::sample` is still "00".
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -813,7 +805,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -828,7 +820,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -841,7 +833,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("11");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -858,7 +850,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -871,7 +863,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(want_state, got_state);
     // check that the bitstring from `::sample` is still "00".
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -886,7 +878,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -901,7 +893,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("11");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -916,7 +908,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     // EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -933,7 +925,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -946,7 +938,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(want_state, got_state);
     // check that the bitstring from `::sample` is still "00".
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -961,7 +953,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -1002,7 +994,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
     const int num_qubits = 2;
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -1015,7 +1007,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     EXPECT_EQ(want_state, got_state);
     // check that the bitstring from `::sample` is still "00".
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -1030,7 +1022,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -1067,7 +1059,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -1078,7 +1070,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
     EXPECT_EQ(0, qppBackend.mz(q1));
@@ -1090,7 +1082,7 @@ CUDAQ_TEST(QPPTester, checkCtrlGates) {
     got_state = qppBackend.getStateVector();
     EXPECT_EQ(want_state, got_state);
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(got_bitstring, want_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
     EXPECT_EQ(1, qppBackend.mz(q1));
@@ -1108,7 +1100,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
 
     // Place q0 in the 1 state
@@ -1116,7 +1108,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = getOneState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
@@ -1126,7 +1118,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = getZeroState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -1139,7 +1131,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -1148,7 +1140,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     print_state(got_state);
     std::cout << got_bitstring << "\n";
     EXPECT_EQ(want_state, got_state);
@@ -1161,7 +1153,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = getZeroState(2);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("00");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -1175,7 +1167,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 1 qubit
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
 
     // Place q0 in the 1 state
@@ -1183,7 +1175,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = getOneState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("1");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(1, qppBackend.mz(q0));
@@ -1193,7 +1185,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = getZeroState(1);
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("0");
-    got_bitstring = getSampledBitString(qppBackend, {0});
+    got_bitstring = qppBackend.getSampledBitString({0});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));
@@ -1206,7 +1198,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     std::string got_bitstring;
     std::string want_bitstring;
     // Initialize QPP Backend with 2 qubits
-    QppCircuitSimulator<qpp::ket> qppBackend;
+    QppSimulator qppBackend;
     auto q0 = qppBackend.allocateQubit();
     auto q1 = qppBackend.allocateQubit();
 
@@ -1215,7 +1207,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = qpp::kron(getZeroState(1), getOneState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("10");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     std::cout << got_bitstring << "\n";
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
@@ -1229,7 +1221,7 @@ CUDAQ_TEST(QPPTester, checkReset) {
     want_state = qpp::kron(getOneState(1), getZeroState(1));
     got_state = qppBackend.getStateVector();
     want_bitstring = std::string("01");
-    got_bitstring = getSampledBitString(qppBackend, {0, 1});
+    got_bitstring = qppBackend.getSampledBitString({0, 1});
     EXPECT_EQ(want_state, got_state);
     EXPECT_EQ(want_bitstring, got_bitstring);
     EXPECT_EQ(0, qppBackend.mz(q0));

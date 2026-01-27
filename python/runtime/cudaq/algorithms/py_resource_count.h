@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,8 +10,6 @@
 
 #include <pybind11/pybind11.h>
 
-namespace py = pybind11;
-
 namespace cudaq {
-void bindCountResources(py::module &mod);
-} // namespace cudaq
+void bindCountResources(pybind11::module &mod);
+}

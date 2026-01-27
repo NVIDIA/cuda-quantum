@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -183,6 +183,11 @@ std::optional<double> factory::maybeValueOfFloatConstant(Value v) {
   if (matchPattern(v, m_ConstantFloat(&cst)))
     return {cst.convertToDouble()};
   return std::nullopt;
+}
+
+bool factory::isConstantOp(Value v) {
+  Attribute attr;
+  return matchPattern(v, m_Constant(&attr));
 }
 
 void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {

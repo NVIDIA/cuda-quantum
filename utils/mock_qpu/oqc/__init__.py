@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,7 +11,6 @@ import base64
 import ctypes
 import cudaq
 import uuid
-import uvicorn
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
@@ -194,11 +193,3 @@ async def qetQpu(authentication_token: str = Header(...)):
     }
 
     return JSONResponse(content=data)
-
-
-def startServer(port):
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer(62442)

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/BaseRemoteRESTQPU.h"
+#include "common/RuntimeMLIR.h"
 
 using namespace mlir;
 
@@ -28,22 +29,19 @@ namespace {
 /// backends as well as those that take OpenQASM2 as input.
 class RemoteRESTQPU : public cudaq::BaseRemoteRESTQPU {
 protected:
-  std::tuple<ModuleOp, MLIRContext *, void *>
+  std::tuple<ModuleOp, std::unique_ptr<MLIRContext>, void *>
   extractQuakeCodeAndContext(const std::string &kernelName,
                              void *data) override {
-    auto contextPtr = cudaq::initializeMLIR();
-    MLIRContext &context = *contextPtr.get();
+    auto context = cudaq::getOwningMLIRContext();
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(kernelName);
-    auto m_module = parseSourceString<ModuleOp>(quakeCode, &context);
+    auto m_module = parseSourceString<ModuleOp>(quakeCode, context.get());
     if (!m_module)
       throw std::runtime_error("module cannot be parsed");
 
-    return std::make_tuple(m_module.release(), contextPtr.release(), data);
+    return std::make_tuple(m_module.release(), std::move(context), data);
   }
-
-  void cleanupContext(MLIRContext *context) override { delete context; }
 
 public:
   /// @brief The constructor

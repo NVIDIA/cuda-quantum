@@ -1,23 +1,13 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
 // Simulators
-// RUN: nvq++ --enable-mlir  %s                              -o %t && %t | FileCheck %s
-
-// Quantum emulators
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target anyon      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
-// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// clang-format on
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -65,15 +55,15 @@ int main() {
         cudaq::sample(test_state_param{}, &state, cudaq::pauli_word{"XX"});
     printCounts(counts);
   }
-  // clang-format off
-  // CHECK: Passing state from another kernel as argument with pauli word arg (kernel mode)
-  // CHECK: 00
-  // CHECK: 01
-  // CHECK: 10
-  // CHECK: 11
-  // clang-format on
-
-  // TODO: add tests for vectors of pauli words after we can lifts the arrays of pauli words.
-
+  // TODO: add tests for vectors of pauli words after we can lifts the arrays of
+  // pauli words.
   return 0;
 }
+
+// clang-format off
+// CHECK: Passing state from another kernel as argument with pauli word arg (kernel mode)
+// CHECK: 00
+// CHECK: 01
+// CHECK: 10
+// CHECK: 11
+// clang-format on

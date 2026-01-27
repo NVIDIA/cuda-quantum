@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #include "BatchingUtils.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include <iostream>
 #include <map>
@@ -358,10 +359,6 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
       throw std::runtime_error(
           "Mismatch between degrees and modalities sizes.");
 
-    if (sub_degrees.size() != 1)
-      throw std::runtime_error(
-          "Elementary operator must act on a single degree.");
-
     for (size_t j = 0; j < sub_degrees.size(); j++) {
       std::size_t degree = sub_degrees[j];
       int modality = modalities[j];
@@ -525,8 +522,10 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
         m_deviceBuffers.emplace(staticCoefficients_d);
         std::vector<cudaq::scalar_operator> coeffs;
         coeffs.reserve(batchSize);
-        for (const auto &hamiltonian : ops) {
-          coeffs.emplace_back(hamiltonian[termIdx].get_coefficient());
+        // Fix: Use sorted batchedProductTerms instead of unsorted ops to get
+        // the correct coefficient for each term after sorting by degrees.
+        for (const auto &productTerms : batchedProductTerms) {
+          coeffs.emplace_back(productTerms[termIdx].get_coefficient());
         }
         cuDoubleComplex *totalCoefficients_d = static_cast<cuDoubleComplex *>(
             cudaq::dynamics::createArrayGpu(std::vector<std::complex<double>>(

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,10 +10,11 @@
 #include "common/Logger.h"
 #include "llvm/Support/Base64.h"
 
-namespace cudaq {
+using namespace cudaq;
+
 /// @brief This setTargetBackend override is in charge of reading the
 /// specific target backend configuration file.
-void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
+void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   CUDAQ_INFO("OrcaRemoteRESTQPU platform is targeting {} with qpu_id = {}.",
              backend, qpu_id);
 
@@ -58,11 +59,8 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   executor->setServerHelper(serverHelper.get());
 }
 
-/// @brief Launch the experiment.
-KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
-    const std::string &kernelName, KernelThunkType kernelFunc, void *args,
-    std::uint64_t voidStarSize, std::uint64_t resultOffset,
-    const std::vector<void *> &rawArgs) {
+KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
+    const std::string &kernelName, KernelThunkType kernelFunc, void *args) {
 
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);
@@ -75,13 +73,12 @@ KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
     throw std::runtime_error("Remote rest execution can only be performed "
                              "via cudaq::sample() or cudaq::observe().");
 
-  cudaq::orca::TBIParameters params =
-      *((struct cudaq::orca::TBIParameters *)args);
+  orca::TBIParameters params = *((struct orca::TBIParameters *)args);
   std::size_t shots = params.n_samples;
 
   ctx->shots = shots;
 
-  cudaq::details::future future;
+  details::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested
@@ -97,5 +94,9 @@ KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
   return {};
 }
 
-} // namespace cudaq
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::OrcaRemoteRESTQPU, orca)
+void cudaq::OrcaRemoteRESTQPU::launchKernel(const std::string &,
+                                            const std::vector<void *> &) {
+  throw std::runtime_error("launch kernel on raw args not implemented");
+}
+
+CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)

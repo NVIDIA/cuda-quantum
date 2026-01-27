@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,20 +13,23 @@
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
-#include "utils/cudaq_utils.h"
+#include "cudaq/qis/qubit_qis.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>
 
-/// This file defines the default, library mode, quantum platform.
-/// Its goal is to create a single QPU that is added to the quantum_platform
-/// which delegates kernel execution to the current Execution Manager.
+/// This file defines the default, library mode, quantum platform. Its goal is
+/// to create a single QPU that is added to the quantum_platform which delegates
+/// kernel execution to the current Execution Manager.
 
 namespace {
+
 /// The DefaultQPU models a simulated QPU by specifically
 /// targeting the QIS ExecutionManager.
 class DefaultQPU : public cudaq::QPU {
 public:
   DefaultQPU() = default;
+  virtual ~DefaultQPU() = default;
 
   void enqueue(cudaq::QuantumTask &task) override {
     execution_queue->enqueue(task);
@@ -63,9 +66,8 @@ public:
   }
 };
 
-/// The DefaultQuantumPlatform is a quantum_platform that
-/// provides a single simulated QPU, which delegates to the
-/// QIS ExecutionManager.
+/// The DefaultQuantumPlatform is a quantum_platform that provides a single
+/// simulated QPU, which delegates to the QIS ExecutionManager.
 class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
@@ -73,11 +75,11 @@ public:
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
   }
 
-  /// @brief Set the target backend. Here we have an opportunity
-  /// to know the -qpu QPU target we are running on. This function will
-  /// read in the qpu configuration file and search for the PLATFORM_QPU
-  /// variable, and if found, will change from the DefaultQPU to the QPU subtype
-  /// specified by that variable.
+  /// @brief Set the target backend. Here we have an opportunity to know the
+  /// -qpu QPU target we are running on. This function will read in the qpu
+  /// configuration file and search for the PLATFORM_QPU variable, and if found,
+  /// will change from the DefaultQPU to the QPU subtype specified by that
+  /// variable.
   void setTargetBackend(const std::string &backend) override {
     executionContext.set(nullptr);
     platformQPUs.clear();
@@ -97,8 +99,8 @@ public:
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string fileName = mutableBackend + std::string(".yml");
 
-    /// Once we know the backend, we should search for the config file
-    /// from there we can get the URL/PORT and the required MLIR pass pipeline.
+    /// Once we know the backend, we should search for the config file from
+    /// there we can get the URL/PORT and the required MLIR pass pipeline.
     auto configFilePath = platformPath / fileName;
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
 

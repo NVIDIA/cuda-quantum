@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -247,28 +247,9 @@ def test_additional_spin_ops():
 
 
 def check_state(entity):
-    state = cudaq.get_state(entity)
-    state.dump()
-    assert assert_close(state[0], 1.0 / np.sqrt(2))
-    assert assert_close(state[-1], 1.0 / np.sqrt(2))
-    assert assert_close(state.amplitude([0] * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    assert assert_close(state.amplitude([1] * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    # Access amplitudes by bit strings
-    assert assert_close(state.amplitude('0' * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    assert assert_close(state.amplitude('1' * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    # Amplitude batch access
-    basisStates = [[0] * state.num_qubits(), [1] * state.num_qubits()]
-    amplitudes = state.amplitudes(basisStates)
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
-    bitStrings = ['0' * state.num_qubits(), '0' * state.num_qubits()]
-    amplitudes = state.amplitudes(bitStrings)
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.get_state(entity)
+    assert "get_state is not supported" in repr(e)
 
 
 def test_state():
@@ -295,29 +276,13 @@ def test_state_kernel():
     check_state(kernel)
 
 
-def test_disallowed_execution_context():
-    print("In test_disallowed_execution_context...")
-
-    @cudaq.kernel
-    def simple_kernel():
-        qubits = cudaq.qvector(2)
-        h(qubits[0])
-        x.ctrl(qubits[0], qubits[1])
-        mz(qubits)
-
-    with pytest.raises(
-            RuntimeError,
-            match=
-            "tracer operation is not supported with cudaq target remote-mqpu!"):
-        cudaq.draw(simple_kernel)
-
-
 def check_overlap(entity_bell, entity_x):
-    state1 = cudaq.get_state(entity_bell)
-    state1.dump()
-    state2 = cudaq.get_state(entity_x)
-    state2.dump()
-    assert assert_close(state1.overlap(state2), 1.0 / np.sqrt(2))
+    with pytest.raises(RuntimeError) as e:
+        state1 = cudaq.StateMemoryView(cudaq.get_state(entity_bell))
+        state1.dump()
+        state2 = cudaq.StateMemoryView(cudaq.get_state(entity_x))
+        state2.dump()
+    assert "get_state is not supported" in repr(e)
 
 
 def test_overlap():
@@ -353,23 +318,25 @@ def test_overlap_kernel():
 
 
 def check_overlap_param(entity):
-    num_tests = 10
-    for i in range(num_tests):
-        angle1 = np.random.rand(
-        ) * 2.0 * np.pi  # random angle in [0, 2pi] range
-        state1 = cudaq.get_state(entity, angle1)
-        print("First angle =", angle1)
-        state1.dump()
-        angle2 = np.random.rand(
-        ) * 2.0 * np.pi  # random angle in [0, 2pi] range
-        print("Second angle =", angle2)
-        state2 = cudaq.get_state(entity, angle2)
-        state2.dump()
-        overlap = state1.overlap(state2)
-        expected = np.abs(
-            np.cos(angle1 / 2) * np.cos(angle2 / 2) +
-            np.sin(angle1 / 2) * np.sin(angle2 / 2))
-        assert assert_close(overlap, expected)
+    with pytest.raises(RuntimeError) as e:
+        num_tests = 10
+        for i in range(num_tests):
+            angle1 = (np.random.rand() * 2.0 * np.pi
+                     )  # random angle in [0, 2pi] range
+            state1 = cudaq.StateMemoryView(cudaq.get_state(entity, angle1))
+            print("First angle =", angle1)
+            state1.dump()
+            angle2 = (np.random.rand() * 2.0 * np.pi
+                     )  # random angle in [0, 2pi] range
+            print("Second angle =", angle2)
+            state2 = cudaq.StateMemoryView(cudaq.get_state(entity, angle2))
+            state2.dump()
+            overlap = state1.overlap(state2)
+            expected = np.abs(
+                np.cos(angle1 / 2) * np.cos(angle2 / 2) +
+                np.sin(angle1 / 2) * np.sin(angle2 / 2))
+            assert assert_close(overlap, expected)
+    assert "get_state is not supported" in repr(e)
 
 
 def test_overlap_param_kernel():
@@ -453,21 +420,6 @@ def test_capture_array():
     counts = cudaq.sample(kernel)
     assert len(counts) == 1
     assert "1" in counts
-
-
-def test_capture_state():
-    s = cudaq.State.from_data(np.array([1., 0], dtype=cudaq.complex()))
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(s)
-
-    with pytest.raises(
-            RuntimeError,
-            match=
-            "captured states are not supported on quantum hardware or remote simulators"
-    ):
-        counts = cudaq.sample(kernel)
 
 
 @cudaq.kernel

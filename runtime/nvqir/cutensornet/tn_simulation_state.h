@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -80,6 +80,9 @@ public:
   const std::vector<AppliedTensorOp> &getAppliedTensors() const {
     return m_state->m_tensorOps;
   }
+
+  template <typename ScalarTy>
+  friend class SimulatorTensorNet;
 
 protected:
   std::unique_ptr<TensorNetState<ScalarType>> m_state;

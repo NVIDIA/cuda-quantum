@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -38,7 +38,8 @@ def test_state_vector_simple():
     kernel.cx(qubits[0], qubits[1])
 
     # Get the quantum state, which should be a vector.
-    got_state = cudaq.get_state(kernel)
+    got_state_ = cudaq.get_state(kernel)
+    got_state = cudaq.StateMemoryView(got_state_)
 
     # Data type needs to be the same as the internal state vector
     want_state = np.array([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)],
@@ -62,15 +63,15 @@ def test_state_vector_simple():
 
     # Check overlaps.
     # Check the overlap overload with want numpy array.
-    assert np.isclose(got_state.overlap(want_state), 1.0)
+    assert np.isclose(got_state_.overlap(want_state), 1.0)
     # Check the overlap overload with itself.
-    assert np.isclose(got_state.overlap(got_state), 1.0)
+    assert np.isclose(got_state_.overlap(got_state), 1.0)
 
     # Can't use FP64 with FP32 data
     want_state_bad_datatype = np.array(
         [1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)], dtype=wrongDtype)
     with pytest.raises(Exception) as error:
-        got_state.overlap(want_state_bad_datatype)
+        got_state_.overlap(want_state_bad_datatype)
 
 
 def test_state_vector_integration():
@@ -115,7 +116,8 @@ def test_state_vector_integration():
     assert np.isclose(optimal_infidelity, 0.0, atol=1e-3)
 
     # Check the state from the kernel at the fixed parameters.
-    bell_state = cudaq.get_state(kernel, optimal_parameters)
+    bell_state = cudaq.StateMemoryView(
+        cudaq.get_state(kernel, optimal_parameters))
     print(bell_state)
     assert np.allclose(want_state, bell_state, atol=1e-3)
 
@@ -134,7 +136,8 @@ def test_state_density_matrix_simple():
     kernel.h(qubits[0])
     kernel.cx(qubits[0], qubits[1])
 
-    got_state = cudaq.get_state(kernel)
+    got_state_ = cudaq.get_state(kernel)
+    got_state = cudaq.StateMemoryView(cudaq.get_state(kernel))
     print(got_state)
 
     want_state = np.array([[0.5, 0.0, 0.0, 0.5], [0.0, 0.0, 0.0, 0.0],
@@ -153,9 +156,9 @@ def test_state_density_matrix_simple():
 
     # Check overlaps.
     # Check the overlap overload with want numpy array.
-    assert np.isclose(got_state.overlap(want_state), 1.0)
+    assert np.isclose(got_state_.overlap(want_state), 1.0)
     # Check the overlap overload with itself.
-    assert np.isclose(got_state.overlap(got_state), 1.0)
+    assert np.isclose(got_state_.overlap(got_state), 1.0)
 
     cudaq.reset_target()
 
@@ -198,7 +201,8 @@ def test_state_density_matrix_integration():
     assert np.isclose(optimal_infidelity, 0.0, atol=1e-3)
 
     # Check the state from the kernel at the fixed parameters.
-    bell_state = cudaq.get_state(kernel, optimal_parameters)
+    bell_state = cudaq.StateMemoryView(
+        cudaq.get_state(kernel, optimal_parameters))
     assert np.allclose(want_state, bell_state, atol=1e-3)
 
     cudaq.reset_target()
@@ -224,8 +228,9 @@ def test_state_vector_async():
     future = cudaq.get_state_async(kernel, np.pi, np.pi / 2.)
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=dtype)
-    state = future.get()
-    state.dump()
+    state_ = future.get()
+    state = cudaq.StateMemoryView(state_)
+    state_.dump()
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
     with pytest.raises(Exception) as error:

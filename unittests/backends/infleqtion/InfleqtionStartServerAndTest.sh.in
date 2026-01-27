@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -21,7 +21,7 @@ EOF
 }
 
 # Launch the fake server
-PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/infleqtion/__init__.py &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py infleqtion &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
@@ -33,6 +33,8 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+# Set the environment before entering main
+export SUPERSTAQ_API_KEY="00000000000000000000000000000000"
 # Run the tests
 ./test_infleqtion
 # Did they fail? 

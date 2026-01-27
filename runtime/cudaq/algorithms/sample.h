@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,6 +13,8 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+
+constexpr int DEFAULT_NUM_SHOTS = 1000;
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -183,7 +185,7 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 /// @param explicit_measurements whether or not to form the global register
 /// based on user-supplied measurement order.
 struct sample_options {
-  std::size_t shots = 1000;
+  std::size_t shots = DEFAULT_NUM_SHOTS;
   cudaq::noise_model noise;
   bool explicit_measurements = false;
 };
@@ -212,11 +214,11 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runSampling(
              [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-             kernelName, shots, /*explicitMeasurements=*/false)
+             kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+             /*explicitMeasurements=*/false)
       .value();
 }
 
@@ -312,16 +314,15 @@ async_sample_result sample_async(const std::size_t qpu_id,
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
   }
 
-  // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto shots = platform.get_shots().value_or(1000);
   auto kernelName = cudaq::getKernelName(kernel);
 
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
-      platform, kernelName, shots, /*explicitMeasurements=*/false, qpu_id);
+      platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+      /*explicitMeasurements=*/false, qpu_id);
 }
 
 /// @brief Sample the given kernel expression asynchronously and return
@@ -439,14 +440,13 @@ std::vector<sample_result> sample(QuantumKernel &&kernel,
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto shots = platform.get_shots().value_or(1000);
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*explicitMeasurements=*/false,
-                   qpuId, nullptr, counter, N)
+                   platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+                   /*explicitMeasurements=*/false, qpuId, nullptr, counter, N)
                    .value();
     return ret;
   };
@@ -558,14 +558,13 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto shots = platform.get_shots().value_or(1000);
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*explicitMeasurements=*/false,
-                   qpuId, nullptr, counter, N)
+                   platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+                   /*explicitMeasurements=*/false, qpuId, nullptr, counter, N)
                    .value();
     return ret;
   };

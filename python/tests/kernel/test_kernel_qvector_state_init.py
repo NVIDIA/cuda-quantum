@@ -1,12 +1,12 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-import pytest
 
+import pytest
 import cudaq
 import numpy as np
 
@@ -57,7 +57,7 @@ def test_kernel_float_params_f64():
 
     with pytest.raises(RuntimeError) as e:
         state = cudaq.State.from_data(f)
-    assert 'A numpy array with only floating point elements passed to state.from_data.' in repr(
+    assert 'A numpy array with only floating point elements passed to `state.from_data`.' in repr(
         e)
 
 
@@ -71,7 +71,7 @@ def test_kernel_float_params_f32():
 
     with pytest.raises(RuntimeError) as e:
         state = cudaq.State.from_data(f)
-    assert 'A numpy array with only floating point elements passed to state.from_data.' in repr(
+    assert 'A numpy array with only floating point elements passed to `state.from_data`.' in repr(
         e)
 
 
@@ -371,7 +371,7 @@ def test_init_from_other_kernel_state_f64():
         qubits = cudaq.qvector(initialState)
 
     state2 = cudaq.get_state(kernel, state)
-    state2.dump()
+    cudaq.StateMemoryView(state2).dump()
 
     counts = cudaq.sample(kernel, state)
     print(counts)
@@ -444,10 +444,11 @@ def test_invalid_arg_error_msg():
     c = np.array([1. / np.sqrt(2.) + 0j, 0., 0., 1. / np.sqrt(2.)],
                  dtype=complex)
 
-    @cudaq.kernel
-    def kernel(vec: cudaq.State):
-        q = cudaq.qvector(vec)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(vec: cudaq.State):
+            q = cudaq.qvector(vec)
+
         counts = cudaq.sample(kernel, c)
     assert 'Invalid runtime argument type.' in repr(e)

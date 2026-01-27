@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 # Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
@@ -14,7 +14,6 @@ from cmath import exp
 
 # Use IQM Client Tools to verify data structures
 import iqm.iqm_client as iqm_client
-import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 import numpy as np
@@ -471,11 +470,3 @@ async def get_jobs(job_id: str, request: Request):
     }
 
     return results
-
-
-def startServer(port):
-    uvicorn.run(app, port=port, host="0.0.0.0", log_level="debug")
-
-
-if __name__ == "__main__":
-    startServer(62443)

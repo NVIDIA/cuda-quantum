@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -116,6 +116,16 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
   }
   HANDLE_CUBLAS_ERROR(cublasCreate(&m_cublasHandle));
   m_opConverter = std::make_unique<CuDensityMatOpConverter>(m_cudmHandle);
+}
+
+bool Context::isDistributed() const { return getNumRanks() > 1; }
+
+int Context::getNumRanks() const {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
+}
+
+int Context::getRank() const {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::rank() : 0;
 }
 
 /// @brief Destroy the Context object and release resources.

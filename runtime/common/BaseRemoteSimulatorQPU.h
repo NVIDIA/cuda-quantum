@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
 #include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
@@ -29,18 +30,18 @@ namespace cudaq {
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
-class BaseRemoteSimulatorQPU : public cudaq::QPU {
+class BaseRemoteSimulatorQPU : public QPU {
 protected:
   std::string m_simName;
-  std::unordered_map<std::thread::id, cudaq::ExecutionContext *> m_contexts;
+  std::unordered_map<std::thread::id, ExecutionContext *> m_contexts;
   std::mutex m_contextMutex;
   std::unique_ptr<mlir::MLIRContext> m_mlirContext;
-  std::unique_ptr<cudaq::RemoteRuntimeClient> m_client;
+  std::unique_ptr<RemoteRuntimeClient> m_client;
   bool in_resource_estimation = false;
 
   /// @brief Return a pointer to the execution context for this thread. It will
   /// return `nullptr` if it was not found in `m_contexts`.
-  cudaq::ExecutionContext *getExecutionContextForMyThread() {
+  ExecutionContext *getExecutionContextForMyThread() {
     std::scoped_lock<std::mutex> lock(m_contextMutex);
     const auto iter = m_contexts.find(std::this_thread::get_id());
     if (iter == m_contexts.end())
@@ -50,8 +51,7 @@ protected:
 
 public:
   BaseRemoteSimulatorQPU()
-      : QPU(),
-        m_client(cudaq::registry::get<cudaq::RemoteRuntimeClient>("rest")) {}
+      : QPU(), m_client(registry::get<RemoteRuntimeClient>("rest")) {}
 
   BaseRemoteSimulatorQPU(BaseRemoteSimulatorQPU &&) = delete;
   virtual ~BaseRemoteSimulatorQPU() = default;
@@ -69,7 +69,7 @@ public:
   }
 
   virtual void setTargetBackend(const std::string &backend) override {
-    auto parts = cudaq::split(backend, ';');
+    auto parts = split(backend, ';');
     if (parts.size() % 2 != 0)
       throw std::invalid_argument("Unexpected backend configuration string. "
                                   "Expecting a ';'-separated key-value pairs.");
@@ -81,24 +81,22 @@ public:
     }
   }
 
-  void enqueue(cudaq::QuantumTask &task) override {
+  void enqueue(QuantumTask &task) override {
     CUDAQ_INFO("BaseRemoteSimulatorQPU: Enqueue Task on QPU {}", qpu_id);
     execution_queue->enqueue(task);
   }
 
   void launchVQE(const std::string &name, const void *kernelArgs,
-                 cudaq::gradient *gradient, const cudaq::spin_op &H,
-                 cudaq::optimizer &optimizer, const int n_params,
-                 const std::size_t shots) override {
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
+                 gradient *gradient, const spin_op &H, optimizer &optimizer,
+                 const int n_params, const std::size_t shots) override {
+    ExecutionContext *executionContextPtr = getExecutionContextForMyThread();
 
     if (executionContextPtr && executionContextPtr->name == "tracer")
       return;
 
     auto ctx = std::make_unique<ExecutionContext>("observe", shots);
     ctx->kernelName = name;
-    ctx->spin = cudaq::spin_op::canonicalize(H);
+    ctx->spin = spin_op::canonicalize(H);
     if (shots > 0)
       ctx->shots = shots;
 
@@ -113,8 +111,8 @@ public:
 
   void launchKernel(const std::string &name,
                     const std::vector<void *> &rawArgs) override {
-    [[maybe_unused]] auto dynamicResult =
-        launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs);
+    [[maybe_unused]] auto dynamicResult = launchKernelImpl(
+        name, nullptr, nullptr, 0, 0, &rawArgs, mlir::ModuleOp{});
   }
 
   KernelThunkResultType
@@ -123,14 +121,36 @@ public:
                const std::vector<void *> &rawArgs) override {
     // Remote simulation cannot deal with rawArgs. Drop them on the floor.
     return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
-                            nullptr);
+                            nullptr, mlir::ModuleOp{});
   }
 
-  [[nodiscard]] KernelThunkResultType
-  launchKernelImpl(const std::string &name, KernelThunkType kernelFunc,
-                   void *args, std::uint64_t voidStarSize,
-                   std::uint64_t resultOffset,
-                   const std::vector<void *> *rawArgs) {
+  KernelThunkResultType launchModule(const std::string &name,
+                                     mlir::ModuleOp module,
+                                     const std::vector<void *> &rawArgs,
+                                     mlir::Type resTy) override {
+    if (resTy) {
+      // Looks very much like launchKernel(string, vector<ptr>*).
+      return launchKernelImpl(name, nullptr, rawArgs.back(), 0, 0, &rawArgs,
+                              module);
+    }
+    // Looks very much like launchKernel(string, vector<ptr>*).
+    return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
+  }
+
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         void *cachedEngine) override {
+    CUDAQ_INFO("specializing remote simulator kernel via module ({})",
+               kernelName);
+    throw std::runtime_error(
+        "NYI: Remote simulator execution via Python/C++ interop.");
+    return nullptr;
+  }
+
+  [[nodiscard]] KernelThunkResultType launchKernelImpl(
+      const std::string &name, KernelThunkType kernelFunc, void *args,
+      std::uint64_t voidStarSize, std::uint64_t resultOffset,
+      const std::vector<void *> *rawArgs, mlir::ModuleOp prefabMod) {
     CUDAQ_INFO("BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                "(simulator = {})",
                name, qpu_id, m_simName);
@@ -140,31 +160,34 @@ public:
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
 
-    cudaq::ExecutionContext *executionContextPtr =
-        getExecutionContextForMyThread();
-
-    if (executionContextPtr && executionContextPtr->name == "tracer") {
-      return {};
-    }
+    ExecutionContext *executionContextPtr = getExecutionContextForMyThread();
 
     // Run resource estimation locally
     if (executionContextPtr && executionContextPtr->name == "resource-count") {
       in_resource_estimation = true;
-      cudaq::getExecutionManager()->setExecutionContext(executionContextPtr);
-      auto moduleOp = m_client->lowerKernel(*m_mlirContext, name, args,
-                                            voidStarSize, 0, rawArgs);
+      getExecutionManager()->setExecutionContext(executionContextPtr);
+      auto moduleOp = [&]() {
+        if (prefabMod) {
+          if (!rawArgs)
+            throw std::runtime_error(
+                "must provide launch arguments (got nullptr)");
+          detail::mergeAllCallableClosures(prefabMod, name, *rawArgs);
+          return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
+        }
+        return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
+                                     0, rawArgs);
+      }();
 
       auto *jit = createQIRJITEngine(moduleOp, "qir-adaptive");
 
       auto funcPtr =
-          jit->lookup(std::string(cudaq::runtime::cudaqGenPrefixName) + name);
-      if (!funcPtr) {
+          jit->lookup(std::string(runtime::cudaqGenPrefixName) + name);
+      if (!funcPtr)
         throw std::runtime_error(
             "cudaq::builder failed to get kernelReg function.");
-      }
       reinterpret_cast<void (*)()>(*funcPtr)();
       delete jit;
-      cudaq::getExecutionManager()->resetExecutionContext();
+      getExecutionManager()->resetExecutionContext();
       in_resource_estimation = false;
       return {};
     }
@@ -172,25 +195,25 @@ public:
     // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
     // was set before launching the kernel. Use a static variable per thread to
     // set up a single-shot execution context for this case.
-    static thread_local cudaq::ExecutionContext defaultContext("sample",
-                                                               /*shots=*/1);
+    static thread_local ExecutionContext defaultContext("sample",
+                                                        /*shots=*/1);
     // This is a kernel invocation outside the CUDA-Q APIs (sample/observe).
     const bool isDirectInvocation = !executionContextPtr;
-    cudaq::ExecutionContext &executionContext =
+    ExecutionContext &executionContext =
         executionContextPtr ? *executionContextPtr : defaultContext;
 
     // Populate the conditional feedback metadata if this is a direct
     // invocation (not otherwise populated by cudaq::sample)
     if (isDirectInvocation)
       executionContext.hasConditionalsOnMeasureResults =
-          cudaq::kernelHasConditionalFeedback(name);
+          kernelHasConditionalFeedback(name);
 
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
-        voidStarSize, &errorMsg, rawArgs);
+        voidStarSize, &errorMsg, rawArgs, prefabMod);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&

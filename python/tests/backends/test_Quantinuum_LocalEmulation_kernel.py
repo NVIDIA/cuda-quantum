@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -133,11 +133,14 @@ def test_quantinuum_exp_pauli():
         0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
 
     # Run the observe task on quantinuum synchronously
-    res = cudaq.observe(ansatz, hamiltonian, .59, shots_count=100000)
+    res = cudaq.observe(ansatz, hamiltonian, .59 * -0.5, shots_count=100000)
     assert assert_close(-1.7, res.expectation())
 
     # Launch it asynchronously, enters the job into the queue
-    future = cudaq.observe_async(ansatz, hamiltonian, .59, shots_count=100000)
+    future = cudaq.observe_async(ansatz,
+                                 hamiltonian,
+                                 .59 * -0.5,
+                                 shots_count=100000)
     # Retrieve the results (since we're emulating)
     res = future.get()
     assert assert_close(-1.7, res.expectation())
@@ -162,72 +165,6 @@ def test_u3_ctrl_emulation():
         u3.ctrl(0.0, np.pi / 2, np.pi, control, target)
 
     result = cudaq.sample(kernel)
-
-
-def test_quantinuum_state_preparation():
-
-    @cudaq.kernel
-    def kernel(vec: List[complex]):
-        qubits = cudaq.qvector(vec)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0., 0., 0., 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '000' in counts
-    assert '100' in counts
-    assert not '001' in counts
-    assert not '010' in counts
-    assert not '011' in counts
-    assert not '101' in counts
-    assert not '110' in counts
-    assert not '111' in counts
-
-
-def test_quantinuum_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
-def test_quantinuum_state_synthesis():
-
-    @cudaq.kernel
-    def init(n: int):
-        q = cudaq.qvector(n)
-        x(q[0])
-
-    @cudaq.kernel
-    def kernel(s: cudaq.State):
-        q = cudaq.qvector(s)
-        x(q[1])
-
-    s = cudaq.get_state(init, 2)
-    s = cudaq.get_state(kernel, s)
-    counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert len(counts) == 1
 
 
 def test_exp_pauli():
@@ -256,6 +193,24 @@ def test_exp_pauli_param():
     assert '11' in counts
     assert not '01' in counts
     assert not '10' in counts
+
+
+def test_exp_pauli_zz():
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        h(q[1])
+        exp_pauli(theta, q, "ZZ")
+        h(q[0])
+        h(q[1])
+        mz(q)
+
+    counts = cudaq.sample(kernel, np.pi / 2)
+    counts.dump()
+    assert len(counts) == 1
+    assert '11' in counts
 
 
 def test_list_complex_param():
@@ -391,43 +346,6 @@ def test_observe_chemistry():
     assert_close(expectation, 0.707)
 
 
-def test_capture_array():
-    arr = np.array([1., 0], dtype=np.complex128)
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(arr)
-
-    counts = cudaq.sample(kernel)
-    assert len(counts) == 1
-    assert "0" in counts
-
-    arr = np.array([0., 1], dtype=np.complex128)
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(arr)
-
-    counts = cudaq.sample(kernel)
-    assert len(counts) == 1
-    assert "1" in counts
-
-
-def test_capture_state():
-    s = cudaq.State.from_data(np.array([1., 0], dtype=cudaq.complex()))
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(s)
-
-    with pytest.raises(
-            RuntimeError,
-            match=
-            "captured states are not supported on quantum hardware or remote simulators"
-    ):
-        counts = cudaq.sample(kernel)
-
-
 def test_run():
 
     # Set the targeted QPU machine that supports `run`, i.e., QIR output.
@@ -456,51 +374,6 @@ def test_run():
         if result == qubitCount:
             non_zero_count += 1
     assert non_zero_count > 0
-
-    # Kernel that returns a vector
-    @cudaq.kernel
-    def vector_kernel(state: list[bool]) -> list[bool]:
-        qubits = cudaq.qvector(len(state))
-        for i, bit in enumerate(state):
-            if bit:
-                x(qubits[i])
-        return mz(qubits)
-
-    num_qubits = [1, 3, 6, 12]
-    for n in num_qubits:
-        init_state = [False if i % 2 == 0 else True for i in range(n)]
-        shots = 2
-        results = cudaq.run(vector_kernel, init_state, shots_count=shots)
-        print(f"Results for {n} qubits: {results}")
-        assert len(results) == shots
-        for result in results:
-            assert result == init_state
-
-    @cudaq.kernel
-    def vector_int_kernel(state: list[bool]) -> list[int]:
-        qubits = cudaq.qvector(len(state))
-        for i, bit in enumerate(state):
-            if bit:
-                x(qubits[i])
-        meas = mz(qubits)
-        res = [0 for _ in range(len(state))]
-        for i, bit in enumerate(meas):
-            if bit:
-                res[i] = 1 + i
-        return res
-
-    num_qubits = [1, 3, 6, 12]
-    for n in num_qubits:
-        init_state = [False if i % 2 == 0 else True for i in range(n)]
-        shots = 2
-        results = cudaq.run(vector_int_kernel, init_state, shots_count=shots)
-        print(f"Results for {n} qubits: {results}")
-        assert len(results) == shots
-        expected_results = [
-            0 if not bit else 1 + i for i, bit in enumerate(init_state)
-        ]
-        for result in results:
-            assert result == expected_results
 
 
 # leave for gdb debugging

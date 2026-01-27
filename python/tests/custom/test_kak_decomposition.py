@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -40,7 +40,7 @@ def test_random_unitary_1():
         op1(q[1], q[0])
 
     cudaq.get_state(kernel1).dump()
-    check_state(matrix1, cudaq.get_state(kernel1))
+    check_state(matrix1, cudaq.StateMemoryView(cudaq.get_state(kernel1)))
 
     @cudaq.kernel
     def synth_kernel1():
@@ -85,7 +85,7 @@ def test_random_unitary_1():
         r1(-1.2996367006005645, q[1])
         rz(1.2996367006005645, q[1])
 
-    check_state(matrix1, cudaq.get_state(synth_kernel1))
+    check_state(matrix1, cudaq.StateMemoryView(cudaq.get_state(synth_kernel1)))
 
 
 def test_random_unitary_2():
@@ -103,7 +103,7 @@ def test_random_unitary_2():
         q = cudaq.qvector(2)
         op2(q[1], q[0])
 
-    check_state(matrix2, cudaq.get_state(kernel2))
+    check_state(matrix2, cudaq.StateMemoryView(cudaq.get_state(kernel2)))
 
     @cudaq.kernel
     def synth_kernel2():
@@ -148,7 +148,7 @@ def test_random_unitary_2():
         r1(0.89327181859161264, q[1])
         rz(-0.89327181859161264, q[1])
 
-    check_state(matrix2, cudaq.get_state(synth_kernel2))
+    check_state(matrix2, cudaq.StateMemoryView(cudaq.get_state(synth_kernel2)))
 
 
 # leave for gdb debugging

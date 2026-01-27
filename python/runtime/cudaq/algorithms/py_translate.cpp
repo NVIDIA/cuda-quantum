@@ -1,111 +1,71 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "py_translate.h"
+#include "common/Logger.h"
+#include "common/Timing.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/algorithms/draw.h" // TODO  translate.h
+#include "cudaq/platform/default/python/QPU.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "../platform/py_alt_launch_kernel.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-#include <iostream>
-#include <pybind11/complex.h>
-#include <pybind11/stl.h>
 
-namespace cudaq {
+using namespace mlir;
+
 /// @brief Run `cudaq::translate` on the provided kernel.
-std::string pyTranslate(py::object &kernel, py::args args,
-                        const std::string &format) {
-
-  if (py::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-
-  auto name = kernel.attr("name").cast<std::string>();
-  auto module = kernel.attr("module").cast<MlirModule>();
-
-  llvm::StringRef format_ = format;
+static std::string translate_impl(const std::string &shortName,
+                                  MlirModule module, MlirType returnTy,
+                                  const std::string &format,
+                                  py::args runtimeArguments) {
+  StringRef format_ = format;
   auto formatPair = format_.split(':');
-  auto result =
-      llvm::StringSwitch<std::function<std::string()>>(formatPair.first)
-          .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
-                 [&]() {
-                   cudaq::OpaqueArguments args;
-                   return getQIR(name, module, args, format);
-                 })
-          .Case("openqasm2",
-                [&]() {
-                  if (py::hasattr(kernel, "arguments") &&
-                      py::len(kernel.attr("arguments")) > 0) {
-                    throw std::runtime_error("Cannot translate function with "
-                                             "arguments to OpenQASM 2.0.");
-                  }
-                  cudaq::OpaqueArguments args;
-                  return getASM(name, module, args);
-                })
-          .Default([&]() {
-            throw std::runtime_error("Invalid format to translate to: " +
-                                     format);
-            return "Failed to translate to " + format;
-          })();
+  auto mod = unwrap(module);
+  if (!mod->hasAttr(cudaq::runtime::pythonUniqueAttrName))
+    throw std::runtime_error("Module is malformed for python. Requires unique "
+                             "entry point attribute.");
+  auto shortNameAttr = cast<mlir::StringAttr>(
+      mod->getAttr(cudaq::runtime::pythonUniqueAttrName));
+  std::string shortName_ = shortNameAttr.getValue().str();
+  assert(shortName == shortName_ && "kernel names must match");
+  std::string longName = cudaq::runtime::cudaqGenPrefixName + shortName;
+  auto fn = mod.lookupSymbol<func::FuncOp>(longName);
+  if (!fn)
+    throw std::runtime_error(
+        "Module is malformed for python. Unique entry point cannot be found.");
+  auto opaques =
+      cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
-  return result;
+  return StringSwitch<std::function<std::string()>>(formatPair.first)
+      .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
+             [&]() {
+               return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
+                                                       format);
+             })
+      .Case("openqasm2",
+            [&]() {
+              // For translate to openqasm2, the user is required to (1)
+              // synthesize the arguments \e before calling translate and (2)
+              // provide no arguments in the translate call itself. Check the
+              // latter condition now.
+              if (!opaques.empty())
+                throw std::runtime_error("Translation to OpenQASM 2.0 requires "
+                                         "kernel to have 0 arguments.");
+              return cudaq::detail::lower_to_openqasm(shortName, mod, opaques);
+            })
+      .Default([&]() {
+        throw std::runtime_error("Invalid format to translate to: " + format);
+        return "Failed to translate to " + format;
+      })();
 }
 
 /// @brief Bind the translate cudaq function
-void bindPyTranslate(py::module &mod) {
-  mod.def(
-      "translate", &pyTranslate, py::arg("kernel"), py::kw_only(),
-      py::arg("format") = "qir:0.1",
-      R"#(Return a UTF-8 encoded string representing drawing of the execution
-path, i.e., the trace, of the provided `kernel`.
-
-Args:
-  format (str): format to translate to, <name[:version]>.
-     Available format names: `qir`, `qir-full`, `qir-base`, `qir-adaptive`,
-     `openqasm2`. QIR versions: `0.1` and `1.0`.
-  kernel (:class:`Kernel`): The :class:`Kernel` to translate.
-  *arguments (Optional[Any]): The concrete values to evaluate the kernel
-    function at. Leave empty if the kernel doesn't accept any arguments.
-  Note: Translating functions with arguments to OpenQASM 2.0 is not supported.
-
-Returns:
-  The UTF-8 encoded string of the circuit, without measurement operations.
-
-.. code-block:: python
-
-  # Example
-  import cudaq
-  @cudaq.kernel
-  def bell_pair():
-      q = cudaq.qvector(2)
-      h(q[0])
-      cx(q[0], q[1])
-      mz(q)
-  print(cudaq.translate(bell_pair, format="qir"))
-
-  # Output
-  ; ModuleID = 'LLVMDialectModule'
-  source_filename = 'LLVMDialectModule'
-
-  %Array = type opaque
-  %Result = type opaque
-  %Qubit = type opaque
-
-  ...
-  ...
-
-  define void @__nvqpp__mlirgen__function_variable_qreg._Z13variable_qregv() local_unnamed_addr {
-    %1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
-    ...
-    %8 = tail call %Result* @__quantum__qis__mz(%Qubit* %4)
-    %9 = tail call %Result* @__quantum__qis__mz(%Qubit* %7)
-    tail call void @__quantum__rt__qubit_release_array(%Array* %1)
-    ret void
-  })#");
+void cudaq::bindPyTranslate(py::module &mod) {
+  mod.def("translate_impl", translate_impl,
+          "See python documentation for translate.");
 }
-
-} // namespace cudaq

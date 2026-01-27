@@ -1,13 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Note: change |& to 2>&1| if running in bash
-// RUN: cudaq-quake %s |& FileCheck %s
 // RUN: cudaq-quake %s |& FileCheck %s
 
 #include <cudaq.h>

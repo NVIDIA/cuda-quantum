@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,7 +8,7 @@
 
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
-import uvicorn, uuid
+import uuid
 from pydantic import BaseModel
 import logging
 import copy
@@ -87,11 +87,3 @@ async def get_results(id: str):
     logging.info("In /v1/results/{}. returning job results: {}", id, response)
     assert response
     return response
-
-
-def start_server(port):
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    start_server(62448)

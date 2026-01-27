@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -23,6 +23,7 @@
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
+#include <cstdlib>
 #include <cxxabi.h>
 #include <regex>
 
@@ -307,12 +308,17 @@ public:
     // the call to the kernel code.
     SmallVector<Value> args;
     const std::int32_t offset = funcTy.getNumInputs();
-    for (auto inp : llvm::enumerate(funcTy.getInputs())) {
-      auto [a, t] = cudaq::opt::marshal::processInputValue(
-          loc, builder, trailingData, castOp, inp.value(), inp.index(),
-          structTy);
-      trailingData = t;
-      args.push_back(a);
+    if (positNullary) {
+      for (auto inp : funcOp.getFunctionType().getInputs())
+        args.push_back(builder.create<cudaq::cc::UndefOp>(loc, inp));
+    } else {
+      for (auto inp : llvm::enumerate(funcTy.getInputs())) {
+        auto [a, t] = cudaq::opt::marshal::processInputValue(
+            loc, builder, trailingData, castOp, inp.value(), inp.index(),
+            structTy);
+        trailingData = t;
+        args.push_back(a);
+      }
     }
     auto call = builder.create<cudaq::cc::NoInlineCallOp>(
         loc, funcTy.getResults(), funcOp.getName(), args);
@@ -530,6 +536,9 @@ public:
               loc, cudaq::cc::PointerType::get(blkArg2.getType()), cast2,
               ArrayRef<cudaq::cc::ComputePtrArg>{1});
           builder.create<cudaq::cc::StoreOp>(loc, blkArg2, part2);
+        } else if (isa<cudaq::cc::CallableType>(blkArg.getType())) {
+          // In C++, callables are already resolved. There is nothing to pass.
+          temp = builder.create<arith::ConstantIntOp>(loc, 0, 64);
         } else {
           temp = builder.create<cudaq::cc::AllocaOp>(loc, blkArg.getType());
           builder.create<cudaq::cc::StoreOp>(loc, blkArg, temp);
@@ -753,6 +762,7 @@ public:
                                             nullptr, nullptr);
     if (demangledPtr) {
       std::string demangledName(demangledPtr);
+      free(demangledPtr);
       demangledName =
           std::regex_replace(demangledName, std::regex("::operator()(.*)"), "");
       if (demangledName.find("$_") != std::string::npos) {
@@ -931,7 +941,11 @@ public:
           runKern->setAttr(cudaq::entryPointAttrName, unitAttr);
           runKern->setAttr(cudaq::kernelAttrName, unitAttr);
           runKern->setAttr("no_this", unitAttr);
-          runKern->setAttr(cudaq::runtime::enableCudaqRun, unitAttr);
+          SmallVector<Attribute> resultTys;
+          for (auto rt : epKern.getFunctionType().getResults())
+            resultTys.emplace_back(TypeAttr::get(rt));
+          auto arrAttr = ArrayAttr::get(ctx, resultTys);
+          runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
           OpBuilder::InsertionGuard guard(builder);
           Block *entry = runKern.addEntryBlock();
           builder.setInsertionPointToStart(entry);
@@ -1046,13 +1060,25 @@ public:
         func::FuncOp argsCreatorFunc;
 
         if (cudaq::opt::marshal::isCodegenPackedData(codegenKind)) {
+          auto thunkStructTy = structTy;
+          auto thunkFuncTy = funcTy;
+          if (positNullary) {
+            // The compiler posits that the entry-point kernel is nullary (no
+            // arguments) regardless of the signature. This is the case when it
+            // is known that all the arguments are (or will be) synthesized and
+            // the kernel is accordingly specialized in place.
+            thunkFuncTy =
+                FunctionType::get(ctx, ArrayRef<Type>{}, funcTy.getResults());
+            thunkStructTy =
+                cudaq::opt::factory::buildInvokeStructType(thunkFuncTy);
+          }
           // Generate the function that computes the return offset.
-          cudaq::opt::marshal::genReturnOffsetFunction(loc, builder, funcTy,
-                                                       structTy, classNameStr);
+          cudaq::opt::marshal::genReturnOffsetFunction(
+              loc, builder, thunkFuncTy, thunkStructTy, classNameStr);
 
           // Generate thunk, `<kernel>.thunk`, to call back to the MLIR code.
-          thunk = genThunkFunction(loc, builder, classNameStr, structTy, funcTy,
-                                   funcOp);
+          thunk = genThunkFunction(loc, builder, classNameStr, thunkStructTy,
+                                   thunkFuncTy, funcOp);
 
           // Generate the argsCreator function used by synthesis.
           if (startingArgIdx == 0) {

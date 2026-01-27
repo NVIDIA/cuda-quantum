@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -42,7 +42,12 @@ target_include_directories(${LIBRARY_NAME}
         ${CMAKE_SOURCE_DIR}/runtime)
 
 # Link privately to all dependencies
-target_link_libraries(${LIBRARY_NAME} PUBLIC cudaq-operator PRIVATE spdlog::spdlog)
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC
+    cudaq-operator
+  PRIVATE
+    spdlog::spdlog
+)
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
@@ -96,16 +101,17 @@ add_library(cudaq-mlir-runtime
     JIT.cpp
     Logger.cpp
     RuntimeMLIR.cpp
+    RuntimeCppMLIR.cpp
     RunTheKernel.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
 set_source_files_properties(
-    CodeGenConfig.cpp
-    Environment.cpp
-    JIT.cpp
-    Logger.cpp
-    RuntimeMLIR.cpp
+  CodeGenConfig.cpp
+  Environment.cpp
+  JIT.cpp
+  Logger.cpp
+  RuntimeMLIR.cpp
 )
 
 target_include_directories(cudaq-mlir-runtime
@@ -135,6 +141,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
     cudaq
-    spdlog::spdlog)
+    spdlog::spdlog
+)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)

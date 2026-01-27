@@ -1,22 +1,20 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_executable(test_quera JsonPayloadTester.cpp)
+add_backend_unittest_executable(test_quera 
+  SOURCES JsonPayloadTester.cpp
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_quera PRIVATE -Wl,--no-as-needed)
-endif()
-target_include_directories(test_quera PRIVATE ../..)
-target_link_libraries(test_quera PRIVATE 
-    fmt::fmt-header-only 
-    cudaq
-    cudaq-common 
-    gtest_main
-)
+  LINK_LIBS
+  fmt::fmt-header-only 
+  cudaq
+  cudaq-common 
+  gtest_main
+  cudaq-platform-default
+  )
 
 gtest_discover_tests(test_quera)

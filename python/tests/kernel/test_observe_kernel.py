@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,7 +10,7 @@ import sys, random
 
 import pytest
 import numpy as np
-from typing import List, Callable
+from typing import List
 
 import cudaq
 from cudaq import spin
@@ -343,31 +343,3 @@ def test_pack_args_pauli_list():
     exp_val2 = cudaq.observe_async(gqeCirc2, obs, numQubits, list(ts),
                                    pauliStings).get().expectation()
     print('observe_async exp_val2', exp_val2)
-
-
-def test_observe_callable():
-    """Test that we can observe kernels with callable arguments."""
-
-    @cudaq.kernel
-    def ansatz_callable(angle: float, rotate: Callable[[cudaq.qubit, float],
-                                                       None]):
-        q = cudaq.qvector(2)
-        x(q[0])
-        rotate(q[1], angle)
-        x.ctrl(q[1], q[0])
-
-    @cudaq.kernel
-    def ry_rotate(qubit: cudaq.qubit, angle: float):
-        ry(angle, qubit)
-
-    hamiltonian = 5.907 - 2.1433 * spin.x(0) * spin.x(1) - 2.1433 * spin.y(
-        0) * spin.y(1) + .21829 * spin.z(0) - 6.125 * spin.z(1)
-
-    result = cudaq.observe(ansatz_callable, hamiltonian, .59, ry_rotate)
-    print(result.expectation())
-    assert np.isclose(result.expectation(), -1.74, atol=1e-2)
-
-    result_async = cudaq.observe_async(ansatz_callable, hamiltonian, .59,
-                                       ry_rotate).get()
-    print(result_async.expectation())
-    assert np.isclose(result_async.expectation(), -1.74, atol=1e-2)

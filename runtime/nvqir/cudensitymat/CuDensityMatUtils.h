@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -42,9 +42,6 @@ private:
 
 // Dump and reset the performance metric
 void dumpPerfTrace(std::ostream &os = std::cout);
-
-// Returns the number of MPI ranks.
-int getNumRanks();
 
 // Wrapper for CUDA memory allocator.
 // This allows us to switch between stream-based/blocking allocation scheme and

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2025 NVIDIA Corporation & Affiliates.                          #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -191,60 +191,65 @@ def test_unsupported_calls():
     # If we add support for any of these, add the corresponding
     # tests above and remove the notes.
 
-    @cudaq.kernel
-    def cu3_gate():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        t, p, l = 0., 0., np.pi
-        cu3(t, p, l, ~c, q)
-        cu3(t, p, l, c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def cu3_gate():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            t, p, l = 0., 0., np.pi
+            cu3(t, p, l, ~c, q)
+            cu3(t, p, l, c, q)
+
         cudaq.sample(cu3_gate)
     assert "unhandled function call - cu3" in str(e.value)
 
-    @cudaq.kernel
-    def cswap_gate():
-        c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
-        x(q1)
-        cswap(~c, q1, q2)
-        cswap(c, q1, q2)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def cswap_gate():
+            c, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
+            x(q1)
+            cswap(~c, q1, q2)
+            cswap(c, q1, q2)
+
         cudaq.sample(cswap_gate)
     assert "unhandled function call - cswap" in str(e.value)
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
-    @cudaq.kernel
-    def control_registered_operation():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        cudaq.control(custom_x, ~c, q)
-        cudaq.control(custom_x, c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_registered_operation():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            cudaq.control(custom_x, ~c, q)
+            cudaq.control(custom_x, c, q)
+
         cudaq.sample(control_registered_operation)
     assert "calling cudaq.control or cudaq.adjoint on a globally registered operation is not supported" in str(
         e.value)
 
-    @cudaq.kernel
-    def control_rotation_gate():
-        c, q = cudaq.qubit(), cudaq.qubit()
-        cudaq.control(ry, ~c, np.pi, q)
-        cudaq.control(ry, c, np.pi, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_rotation_gate():
+            c, q = cudaq.qubit(), cudaq.qubit()
+            cudaq.control(ry, ~c, np.pi, q)
+            cudaq.control(ry, c, np.pi, q)
+
         cudaq.sample(control_rotation_gate)
     assert "calling cudaq.control or cudaq.adjoint on a built-in gate is not supported" in str(
         e.value)
 
-    @cudaq.kernel
-    def control_simple_gate():
-        c, q = cudaq.qvector(3), cudaq.qubit()
-        cx(~c, q)
-        x(c[0])
-        cx(c, q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def control_simple_gate():
+            c, q = cudaq.qvector(3), cudaq.qubit()
+            cx(~c, q)
+            x(c[0])
+            cx(c, q)
+
         cudaq.sample(control_simple_gate)
     assert "unary operator ~ is only supported for values of type qubit" in str(
         e.value)

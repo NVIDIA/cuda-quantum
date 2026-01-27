@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors.  #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors.  #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,17 +12,14 @@ import uuid
 from typing import Any, Optional, Union
 
 import cudaq
-import uvicorn
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import PlainTextResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
+from .. import get_backend_port
 
 # Define the REST Server App
 app = FastAPI()
-
-# Define the port for the mock QCI server
-port = 62449
 
 # In-memory storage
 createdJobs = {}
@@ -164,7 +161,9 @@ async def postJob(job: JobRequest,
 
 @app.get("/cudaq/v1/jobs/{job_id}")
 async def get_job_status(job_id: str):
-    global createdJobs, createdResults, port
+    global createdJobs, createdResults
+    port = get_backend_port("qci")
+
     if job_id not in createdJobs:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -200,12 +199,3 @@ async def get_job_results(job_id: str):
 
     return PlainTextResponse(content=jobResults[job_id],
                              media_type="text/tab-separated-values")
-
-
-def startServer(port=port):
-    """Start the mock QCI server"""
-    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer()
