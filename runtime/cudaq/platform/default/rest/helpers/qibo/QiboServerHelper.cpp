@@ -36,7 +36,7 @@ class QiboServerHelper : public ServerHelper {
 public:
   const std::string name() const override { return "qibo"; }
 
-  /// @brief Example implementation of authentication headers.
+  /// @brief Return POST/GET headers required for the Qibo server.
   RestHeaders getHeaders() override {
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
@@ -49,7 +49,7 @@ public:
     return headers;
   }
 
-  /// @brief Example implementation of backend initialization.
+  /// @brief Initialize the Qibo server with the provided configuration.
   void initialize(BackendConfig config) override {
     CUDAQ_INFO("Initializing Qibo Backend");
     backendConfig = config;
@@ -66,7 +66,8 @@ public:
       this->setShots(std::stoul(config["shots"]));
   }
 
-  /// @brief Example implementation of simple job creation.
+  /// @brief Create and return the job payload given the compiled quantum circuit code
+  /// for submission
   ServerJobPayload createJob(std::vector<KernelExecution> &circuitCodes) override {
     ServerMessage job;
 
@@ -83,7 +84,7 @@ public:
                           std::vector<ServerMessage>{job});
   }
 
-  /// @brief Example implementation of job ID tracking.
+  /// @brief Extract job id from the GET returned by the Qibo server.
   std::string extractJobId(ServerMessage &postResponse) override {
     if (!postResponse.contains("pid"))
       return "";
@@ -91,17 +92,18 @@ public:
     return postResponse.at("pid");
   }
 
-  /// @brief Example implementation of job ID tracking.
+  /// @brief Track job id on the Qibo server.
   std::string constructGetJobPath(ServerMessage &postResponse) override {
     return extractJobId(postResponse);
   }
 
-  /// @brief Example implementation of job ID tracking.
+  /// @brief Generate full url for tracking the job ID.
   std::string constructGetJobPath(std::string &jobId) override {
     return backendConfig["url"] + "/api/jobs/" + jobId;
   }
 
-  /// @brief Example implementation of job status checking.
+  /// @brief Control the status of the job.
+  /// Return true if the job succeeds or fails. 
   bool jobIsDone(ServerMessage &getJobResponse) override {
     if (!getJobResponse.contains("status"))
       return false;
