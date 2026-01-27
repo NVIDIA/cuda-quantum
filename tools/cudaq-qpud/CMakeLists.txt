@@ -29,11 +29,7 @@ if (${CMAKE_EXE_LINKER_FLAGS} MATCHES "^.*static-libstdc\\+\\+.*")
 endif()
 target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cudaq-mlir-runtime cudaq-platform-default)
 target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
-
 export_executable_symbols_for_plugins(${TOOL_NAME})
-
-# Note: We previously used add_lib_loading_macos_workaround here, but it causes
-# duplicate LLVM CommandLine option registration errors due to -force_load.
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
 install(FILES ${TOOL_NAME}.py DESTINATION bin)
