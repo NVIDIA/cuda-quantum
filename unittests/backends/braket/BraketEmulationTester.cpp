@@ -10,25 +10,26 @@
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
-#include <stdlib.h>
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
   return value < -1.1 && value > -2.3;
 }
 
-CUDAQ_TEST(InfleqtionTester, checkSampleSync) {
+CUDAQ_TEST(BraketTester, checkSampleSyncEmulate) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
+  kernel.x<cudaq::ctrl>(qubit[0], qubit[1]);
   kernel.mz(qubit[0]);
+  kernel.mz(qubit[1]);
 
   auto counts = cudaq::sample(kernel);
   counts.dump();
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(InfleqtionTester, checkSampleAsync) {
+CUDAQ_TEST(BraketTester, checkSampleAsyncEmulate) {
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -36,34 +37,26 @@ CUDAQ_TEST(InfleqtionTester, checkSampleAsync) {
 
   auto future = cudaq::sample_async(kernel);
   auto counts = future.get();
+  counts.dump();
   EXPECT_EQ(counts.size(), 2);
 }
 
-CUDAQ_TEST(InfleqtionTester, checkSampleAsyncLoadFromFile) {
-  auto kernel = cudaq::make_kernel();
+CUDAQ_TEST(BraketTester, checkObserveSyncEmulate) {
+  auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
-  kernel.h(qubit[0]);
-  kernel.mz(qubit[0]);
+  kernel.x(qubit[0]);
+  kernel.ry(theta, qubit[1]);
+  kernel.x<cudaq::ctrl>(qubit[1], qubit[0]);
 
-  // Can sample asynchronously and get a future
-  auto future = cudaq::sample_async(kernel);
+  cudaq::spin_op h =
+      5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) -
+      2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+      .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
+  auto result = cudaq::observe(100000, kernel, h, .59);
+  result.dump();
 
-  // Future can be persisted for later
-  {
-    std::ofstream out("saveMe.json");
-    out << future;
-  }
-
-  // Later you can come back and read it in
-  cudaq::async_result<cudaq::sample_result> readIn;
-  std::ifstream in("saveMe.json");
-  in >> readIn;
-
-  // Get the results of the read in future.
-  auto counts = readIn.get();
-  EXPECT_EQ(counts.size(), 2);
-
-  std::remove("saveMe.json");
+  printf("ENERGY: %lf\n", result.expectation());
+  EXPECT_TRUE(isValidExpVal(result.expectation()));
 }
 
 int main(int argc, char **argv) {

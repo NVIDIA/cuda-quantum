@@ -118,6 +118,16 @@ Context::Context(int deviceId) : m_deviceId(deviceId) {
   m_opConverter = std::make_unique<CuDensityMatOpConverter>(m_cudmHandle);
 }
 
+bool Context::isDistributed() const { return getNumRanks() > 1; }
+
+int Context::getNumRanks() const {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
+}
+
+int Context::getRank() const {
+  return cudaq::mpi::is_initialized() ? cudaq::mpi::rank() : 0;
+}
+
 /// @brief Destroy the Context object and release resources.
 Context::~Context() {
   m_opConverter.reset();
