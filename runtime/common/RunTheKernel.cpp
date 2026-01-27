@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "RuntimeMLIR.h"
 #include "common/ExecutionContext.h"
 #include "common/RecordLogParser.h"
 #include "cudaq.h"
@@ -33,17 +34,6 @@
 using namespace mlir;
 
 using LayoutInfoType = std::pair<std::size_t, std::vector<std::size_t>>;
-
-// Create a scratch context for parsing a kernel's MLIR content and cache it.
-static MLIRContext *scratchContext;
-static std::once_flag initializeContextOnce;
-
-static void initializeScratchContext() {
-  DialectRegistry registry;
-  cudaq::registerAllDialects(registry);
-  scratchContext = new MLIRContext(registry);
-  scratchContext->loadAllAvailableDialects();
-}
 
 static LayoutInfoType extractLayout(const std::string &kernelName,
                                     ModuleOp moduleOp) {
@@ -103,12 +93,8 @@ static LayoutInfoType extractLayout(const std::string &kernelName,
 
 static LayoutInfoType extractLayout(const std::string &kernelName,
                                     const std::string &quakeCode) {
-  std::call_once(initializeContextOnce, []() { initializeScratchContext(); });
-  if (!scratchContext)
-    throw std::runtime_error("scratch context initialization failed.");
-
-  auto moduleOp =
-      parseSourceString<ModuleOp>(StringRef(quakeCode), scratchContext);
+  auto moduleOp = parseSourceString<ModuleOp>(StringRef(quakeCode),
+                                              cudaq::getMLIRContext());
   if (!moduleOp)
     throw std::runtime_error("module cannot be parsed");
   return extractLayout(kernelName, *moduleOp);
