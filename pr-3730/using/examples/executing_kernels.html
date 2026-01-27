@@ -1579,7 +1579,7 @@ q1 : ─────┤ x ├
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compute the statevector of the kernel</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">qubit_count</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">dump</span><span class="p">()))</span>
 </pre></div>
 </div>
 </div>
@@ -1647,7 +1647,7 @@ q1 : ─────┤ x ├
 <span class="c1"># Get the state when ready</span>
 <span class="n">state</span> <span class="o">=</span> <span class="n">state_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Bell state vector:&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">dump</span><span class="p">()))</span>
 </pre></div>
 </div>
 </div>

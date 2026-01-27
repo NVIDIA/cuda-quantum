@@ -1275,7 +1275,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 </ul>
 <p>Storing the intermediate states allows us to probe entanglement and Trotter error at every segment boundary, exactly as in the reference study.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">ideal_simulation</span> <span class="p">(</span><span class="n">n_spins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">initial_state</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">,</span> <span class="n">r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">h_x_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_y_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">J_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
@@ -1304,7 +1304,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 
     <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
         <span class="n">psi_ideal</span> <span class="o">=</span> <span class="n">ideal_next_state</span><span class="p">(</span><span class="n">U</span><span class="p">,</span> <span class="n">psi_ideal</span><span class="p">)</span>
-        <span class="n">t_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">trotter_step_pf1</span><span class="p">,</span> <span class="n">t_state</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_b</span><span class="p">,</span> <span class="n">words_a</span><span class="p">,</span> <span class="n">words_b</span><span class="p">)</span>
+        <span class="n">t_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">trotter_step_pf1</span><span class="p">,</span> <span class="n">t_state</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">c_a</span><span class="p">,</span> <span class="n">c_b</span><span class="p">,</span> <span class="n">words_a</span><span class="p">,</span> <span class="n">words_b</span><span class="p">))</span>
 
         <span class="n">psi_t</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">t_state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">cp</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
 
@@ -1328,7 +1328,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 <h2>5. Reproducing the paper’s Figure 1a<a class="headerlink" href="#5.-Reproducing-the-paper’s-Figure-1a" title="Permalink to this heading">¶</a></h2>
 <p>We now evolve the <span class="math notranslate nohighlight">\(n=12\)</span> QIMF chain for <span class="math notranslate nohighlight">\(t=10\)</span> with <span class="math notranslate nohighlight">\(r=100\)</span> PF1 steps, exactly matching the parameters in the paper. At every segment we store the PF1 error <span class="math notranslate nohighlight">\(\epsilon(t)\)</span> and the entanglement entropy for contiguous subsystems of size 1 through 4.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Expect ~4 seconds on an NVIDIA A100 GPU (dense ideal evolution dominates runtime).</span>
@@ -1338,7 +1338,7 @@ CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum e50d28149779ca5a9c6757c8
 <span class="n">r</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># number of PF1 Trotter steps</span>
 
 <span class="c1"># initial state</span>
-<span class="n">initial_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">get_initial_state</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">initial_state</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">StateMemoryView</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">get_state</span><span class="p">(</span><span class="n">get_initial_state</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
 
 <span class="c1"># field strength and coupling strength</span>
 <span class="n">h_x_val</span><span class="p">,</span> <span class="n">h_y_val</span><span class="p">,</span> <span class="n">J_val</span> <span class="o">=</span> <span class="mf">0.8090</span><span class="p">,</span> <span class="mf">0.9045</span><span class="p">,</span> <span class="mi">1</span>
