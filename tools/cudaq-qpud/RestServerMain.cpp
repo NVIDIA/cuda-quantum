@@ -69,6 +69,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < argc; i++)
     extraArgv[i] = argv[i];
   extraArgv[argc] = "-fast-isel=0";
+
   llvm::cl::ParseCommandLineOptions(argc + 1, extraArgv.data(),
                                     "CUDA-Q REST server\n");
 #else
