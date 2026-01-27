@@ -98,9 +98,17 @@ public:
           loc, cudaq::opt::factory::getPointerType(resTy[0]), extract);
       rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleVal);
     } else {
-      auto tupleVal =
+      auto tuplePtr =
           rewriter.create<LLVM::BitcastOp>(loc, tuplePtrTy, extract);
-      rewriter.replaceOpWithNewOp<LLVM::LoadOp>(callable, tupleTy, tupleVal);
+      auto tupleVal = rewriter.create<LLVM::LoadOp>(loc, tupleTy, tuplePtr);
+      SmallVector<Value> exposedVals;
+      for (std::int64_t i = 0, N = resTy.size(); i < N; ++i) {
+        auto offset = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{i});
+        auto extract = rewriter.create<LLVM::ExtractValueOp>(
+            loc, tupleTy.getBody()[i], tupleVal, offset);
+        exposedVals.push_back(extract);
+      }
+      rewriter.replaceOp(callable, exposedVals);
     }
     return success();
   }

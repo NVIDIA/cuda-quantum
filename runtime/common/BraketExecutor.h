@@ -10,7 +10,6 @@
 
 #include "common/BraketServerHelper.h"
 #include "common/Executor.h"
-#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/SampleResult.h"
 #include "cudaq.h"

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "NoiseModel.h"
+#include "FmtCore.h"
 #include "Logger.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"

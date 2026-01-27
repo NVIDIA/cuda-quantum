@@ -300,7 +300,8 @@ target_link_libraries(test_spin
   PRIVATE 
   cudaq
   cudaq-operator
-  gtest_main)
+  gtest_main
+  cudaq-platform-default)
 target_include_directories(test_spin PRIVATE operators)
 gtest_discover_tests(test_spin)
 
@@ -326,7 +327,8 @@ target_link_libraries(test_operators
   PRIVATE
   cudaq-operator
   cudaq
-  gtest_main)
+  gtest_main
+  cudaq-platform-default)
 gtest_discover_tests(test_operators)
 
 if (CUDA_FOUND)
@@ -366,44 +368,44 @@ if (CUDA_FOUND)
   add_executable(test_dynamics main.cpp ${CUDAQ_DYNAMICS_TEST_SOURCES})
   target_compile_definitions(test_dynamics PRIVATE -DCUDAQ_ANALOG_TARGET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
+   target_link_options(test_dynamics PRIVATE -Wl,--no-as-needed)
   endif()
   target_link_libraries(test_dynamics
-    PRIVATE
-    cudaq-operator
-    cudaq
-    nvqir-dynamics
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart
-    CUDA::cublas
-    ${CUTENSOR_LIB}
-    CUDA::cusparse
-    ${CUTENSORNET_LIB}
-    gtest_main
-    fmt::fmt-header-only)
+   PRIVATE
+   cudaq-operator
+   cudaq
+   nvqir-dynamics
+   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   CUDA::cudart
+   CUDA::cublas
+   ${CUTENSOR_LIB}
+   CUDA::cusparse
+   ${CUTENSORNET_LIB}
+   gtest_main
+   fmt::fmt-header-only)
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
 
   # Multi-QPU evolve_async test
   add_executable(test_evolve_async mqpu/dynamics_async_tester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-    target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
+   target_link_options(test_evolve_async PRIVATE -Wl,--no-as-needed)
   endif()
   target_compile_definitions(test_evolve_async PRIVATE -DCUDAQ_ANALOG_TARGET)
   target_link_libraries(test_evolve_async
-    PRIVATE
-    cudaq-operator
-    cudaq
-    cudaq-platform-mqpu
-    nvqir-dynamics
-    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
-    CUDA::cudart
-    CUDA::cublas
-    ${CUTENSOR_LIB}
-    CUDA::cusparse
-    ${CUTENSORNET_LIB}
-    gtest_main
-    fmt::fmt-header-only)
+   PRIVATE
+   cudaq-operator
+   cudaq
+   cudaq-platform-mqpu
+   nvqir-dynamics
+   ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+   CUDA::cudart
+   CUDA::cublas
+   ${CUTENSOR_LIB}
+   CUDA::cusparse
+   ${CUTENSORNET_LIB}
+   gtest_main
+   fmt::fmt-header-only)
   # Count the number of GPUs
   find_program(NVIDIA_SMI "nvidia-smi")
   if(NVIDIA_SMI)
