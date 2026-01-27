@@ -14,446 +14,414 @@ using namespace cudaq;
 using namespace cudaq::ptsbe;
 
 // Create a simple trajectory for testing
-static KrausTrajectory makeTrajectory(std::size_t id, double prob, std::size_t errors = 0) {
-    std::vector<KrausSelection> selections;
-    for (std::size_t i = 0; i < errors; ++i) {
-        selections.push_back(KrausSelection(
-            i, {0}, "h", KrausOperatorIndex{1}, "Error"));
-    }
-    // num_shots=0, to be allocated
-    return KrausTrajectory(id, selections, prob, 0);
+static KrausTrajectory makeTrajectory(std::size_t id, double prob,
+                                      std::size_t errors = 0) {
+  std::vector<KrausSelection> selections;
+  for (std::size_t i = 0; i < errors; ++i) {
+    selections.push_back(
+        KrausSelection(i, {0}, "h", KrausOperatorIndex{1}, "Error"));
+  }
+  // num_shots=0, to be allocated
+  return KrausTrajectory(id, selections, prob, 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalBasic) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.5),
-        makeTrajectory(1, 0.3),
-        makeTrajectory(2, 0.2)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 1000, strategy);
-    
-    EXPECT_EQ(trajectories[0].num_shots, 500);
-    EXPECT_EQ(trajectories[1].num_shots, 300);
-    EXPECT_EQ(trajectories[2].num_shots, 200);
-    
-    std::size_t total = trajectories[0].num_shots + 
-                        trajectories[1].num_shots + 
-                        trajectories[2].num_shots;
-    EXPECT_EQ(total, 1000);
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.5), makeTrajectory(1, 0.3), makeTrajectory(2, 0.2)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 1000, strategy);
+
+  EXPECT_EQ(trajectories[0].num_shots, 500);
+  EXPECT_EQ(trajectories[1].num_shots, 300);
+  EXPECT_EQ(trajectories[2].num_shots, 200);
+
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
+                      trajectories[2].num_shots;
+  EXPECT_EQ(total, 1000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalWithRounding) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.333),
-        makeTrajectory(1, 0.333),
-        makeTrajectory(2, 0.334)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 1000, strategy);
-    
-    std::size_t total = trajectories[0].num_shots + 
-                        trajectories[1].num_shots + 
-                        trajectories[2].num_shots;
-    EXPECT_EQ(total, 1000);
-    
-    for (const auto& traj : trajectories) {
-        EXPECT_GE(traj.num_shots, 330);
-        EXPECT_LE(traj.num_shots, 337);
-    }
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.333),
+                                               makeTrajectory(1, 0.333),
+                                               makeTrajectory(2, 0.334)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 1000, strategy);
+
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
+                      trajectories[2].num_shots;
+  EXPECT_EQ(total, 1000);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_GE(traj.num_shots, 330);
+    EXPECT_LE(traj.num_shots, 337);
+  }
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalSingleTrajectory) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 1.0)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 5000, strategy);
-    
-    EXPECT_EQ(trajectories[0].num_shots, 5000);
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 1.0)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 5000, strategy);
+
+  EXPECT_EQ(trajectories[0].num_shots, 5000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, UniformBasic) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.8),
-        makeTrajectory(1, 0.1),
-        makeTrajectory(2, 0.1)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
-    allocateShots(trajectories, 3000, strategy);
-    
-    // All get equal shots (ignoring probability)
-    EXPECT_EQ(trajectories[0].num_shots, 1000);
-    EXPECT_EQ(trajectories[1].num_shots, 1000);
-    EXPECT_EQ(trajectories[2].num_shots, 1000);
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.8), makeTrajectory(1, 0.1), makeTrajectory(2, 0.1)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  allocateShots(trajectories, 3000, strategy);
+
+  // All get equal shots (ignoring probability)
+  EXPECT_EQ(trajectories[0].num_shots, 1000);
+  EXPECT_EQ(trajectories[1].num_shots, 1000);
+  EXPECT_EQ(trajectories[2].num_shots, 1000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, UniformWithRemainder) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.5),
-        makeTrajectory(1, 0.5)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
-    allocateShots(trajectories, 1001, strategy);
-    
-    // Total must equal 1001
-    std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots;
-    EXPECT_EQ(total, 1001);
-    
-    // Each should get approximately half
-    EXPECT_GE(trajectories[0].num_shots, 500);
-    EXPECT_GE(trajectories[1].num_shots, 500);
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                               makeTrajectory(1, 0.5)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  allocateShots(trajectories, 1001, strategy);
+
+  // Total must equal 1001
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots;
+  EXPECT_EQ(total, 1001);
+
+  // Each should get approximately half
+  EXPECT_GE(trajectories[0].num_shots, 500);
+  EXPECT_GE(trajectories[1].num_shots, 500);
 }
 
 CUDAQ_TEST(ShotAllocationTest, LowWeightBiasBasic) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.4, 0),  // No errors, prob=0.4
-        makeTrajectory(1, 0.3, 1),  // 1 error, prob=0.3
-        makeTrajectory(2, 0.3, 2)   // 2 errors, prob=0.3
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0);
-    allocateShots(trajectories, 1000, strategy);
-    
-    // Trajectory 0 (no errors) should get most shots
-    EXPECT_GT(trajectories[0].num_shots, trajectories[1].num_shots);
-    EXPECT_GT(trajectories[1].num_shots, trajectories[2].num_shots);
-    
-    std::size_t total = trajectories[0].num_shots + 
-                        trajectories[1].num_shots + 
-                        trajectories[2].num_shots;
-    EXPECT_EQ(total, 1000);
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.4, 0), // No errors, prob=0.4
+      makeTrajectory(1, 0.3, 1), // 1 error, prob=0.3
+      makeTrajectory(2, 0.3, 2)  // 2 errors, prob=0.3
+  };
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
+                                  2.0);
+  allocateShots(trajectories, 1000, strategy);
+
+  // Trajectory 0 (no errors) should get most shots
+  EXPECT_GT(trajectories[0].num_shots, trajectories[1].num_shots);
+  EXPECT_GT(trajectories[1].num_shots, trajectories[2].num_shots);
+
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
+                      trajectories[2].num_shots;
+  EXPECT_EQ(total, 1000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, LowWeightBiasStrength) {
-    std::vector<KrausTrajectory> trajectories1 = {
-        makeTrajectory(0, 0.5, 0),
-        makeTrajectory(1, 0.5, 3)
-    };
-    std::vector<KrausTrajectory> trajectories2 = trajectories1;
-    
-    // Weak bias (strength = 1.0)
-    ShotAllocationStrategy weak_bias(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 1.0);
-    allocateShots(trajectories1, 1000, weak_bias);
-    
-    // Strong bias (strength = 3.0)
-    ShotAllocationStrategy strong_bias(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 3.0);
-    allocateShots(trajectories2, 1000, strong_bias);
-    
-    // Strong bias should give even more shots to low-weight trajectory
-    EXPECT_GT(trajectories2[0].num_shots, trajectories1[0].num_shots);
-    EXPECT_LT(trajectories2[1].num_shots, trajectories1[1].num_shots);
+  std::vector<KrausTrajectory> trajectories1 = {makeTrajectory(0, 0.5, 0),
+                                                makeTrajectory(1, 0.5, 3)};
+  std::vector<KrausTrajectory> trajectories2 = trajectories1;
+
+  // Weak bias (strength = 1.0)
+  ShotAllocationStrategy weak_bias(
+      ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 1.0);
+  allocateShots(trajectories1, 1000, weak_bias);
+
+  // Strong bias (strength = 3.0)
+  ShotAllocationStrategy strong_bias(
+      ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 3.0);
+  allocateShots(trajectories2, 1000, strong_bias);
+
+  // Strong bias should give even more shots to low-weight trajectory
+  EXPECT_GT(trajectories2[0].num_shots, trajectories1[0].num_shots);
+  EXPECT_LT(trajectories2[1].num_shots, trajectories1[1].num_shots);
 }
 
 CUDAQ_TEST(ShotAllocationTest, HighWeightBiasBasic) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.4, 0),  // No errors, prob=0.4
-        makeTrajectory(1, 0.3, 1),  // 1 error, prob=0.3
-        makeTrajectory(2, 0.3, 2)   // 2 errors, prob=0.3
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0);
-    allocateShots(trajectories, 1000, strategy);
-    
-    // Trajectory 2 (most errors) should get most shots
-    EXPECT_LT(trajectories[0].num_shots, trajectories[1].num_shots);
-    EXPECT_LT(trajectories[1].num_shots, trajectories[2].num_shots);
-    
-    std::size_t total = trajectories[0].num_shots + 
-                        trajectories[1].num_shots + 
-                        trajectories[2].num_shots;
-    EXPECT_EQ(total, 1000);
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.4, 0), // No errors, prob=0.4
+      makeTrajectory(1, 0.3, 1), // 1 error, prob=0.3
+      makeTrajectory(2, 0.3, 2)  // 2 errors, prob=0.3
+  };
+
+  ShotAllocationStrategy strategy(
+      ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0);
+  allocateShots(trajectories, 1000, strategy);
+
+  // Trajectory 2 (most errors) should get most shots
+  EXPECT_LT(trajectories[0].num_shots, trajectories[1].num_shots);
+  EXPECT_LT(trajectories[1].num_shots, trajectories[2].num_shots);
+
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots +
+                      trajectories[2].num_shots;
+  EXPECT_EQ(total, 1000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, EmptyTrajectoryList) {
-    std::vector<KrausTrajectory> trajectories;
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    
-    EXPECT_ANY_THROW({
-        allocateShots(trajectories, 1000, strategy);
-    });
+  std::vector<KrausTrajectory> trajectories;
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+
+  EXPECT_ANY_THROW({ allocateShots(trajectories, 1000, strategy); });
 }
 
 CUDAQ_TEST(ShotAllocationTest, ZeroShotsRequested) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.5),
-        makeTrajectory(1, 0.5)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 0, strategy);
-    
-    for (const auto& traj : trajectories) {
-        EXPECT_EQ(traj.num_shots, 0);
-    }
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                               makeTrajectory(1, 0.5)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 0, strategy);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_EQ(traj.num_shots, 0);
+  }
 }
 
 CUDAQ_TEST(ShotAllocationTest, SingleShotDistribution) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.5),
-        makeTrajectory(1, 0.5)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 1, strategy);
-    
-    // One trajectory gets 1 shot, other gets 0
-    std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots;
-    EXPECT_EQ(total, 1);
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                               makeTrajectory(1, 0.5)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 1, strategy);
+
+  // One trajectory gets 1 shot, other gets 0
+  std::size_t total = trajectories[0].num_shots + trajectories[1].num_shots;
+  EXPECT_EQ(total, 1);
 }
 
 CUDAQ_TEST(ShotAllocationTest, LargeNumberOfTrajectories) {
-    std::vector<KrausTrajectory> trajectories;
-    for (std::size_t i = 0; i < 1000; ++i) {
-        trajectories.push_back(makeTrajectory(i, 0.001));
-    }
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 100000, strategy);
-    
-    std::size_t total = 0;
-    for (const auto& traj : trajectories) {
-        total += traj.num_shots;
-    }
-    EXPECT_EQ(total, 100000);
-    
-    // Check that no trajectory gets zero or an unreasonable amount
-    for (const auto& traj : trajectories) {
-        EXPECT_GE(traj.num_shots, 0);
-        EXPECT_LE(traj.num_shots, 200);
-    }
+  std::vector<KrausTrajectory> trajectories;
+  for (std::size_t i = 0; i < 1000; ++i) {
+    trajectories.push_back(makeTrajectory(i, 0.001));
+  }
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 100000, strategy);
+
+  std::size_t total = 0;
+  for (const auto &traj : trajectories) {
+    total += traj.num_shots;
+  }
+  EXPECT_EQ(total, 100000);
+
+  // Check that no trajectory gets zero or an unreasonable amount
+  for (const auto &traj : trajectories) {
+    EXPECT_GE(traj.num_shots, 0);
+    EXPECT_LE(traj.num_shots, 200);
+  }
 }
 
 CUDAQ_TEST(ShotAllocationTest, CompareProportionalVsUniform) {
-    std::vector<KrausTrajectory> traj_prop = {
-        makeTrajectory(0, 0.9),
-        makeTrajectory(1, 0.1)
-    };
-    std::vector<KrausTrajectory> traj_unif = traj_prop;
-    
-    ShotAllocationStrategy proportional(ShotAllocationStrategy::Type::PROPORTIONAL);
-    ShotAllocationStrategy uniform(ShotAllocationStrategy::Type::UNIFORM);
-    
-    allocateShots(traj_prop, 1000, proportional);
-    allocateShots(traj_unif, 1000, uniform);
-    
-    // Proportional: 900 / 100
-    EXPECT_EQ(traj_prop[0].num_shots, 900);
-    EXPECT_EQ(traj_prop[1].num_shots, 100);
-    
-    // Uniform: 500 / 500
-    EXPECT_EQ(traj_unif[0].num_shots, 500);
-    EXPECT_EQ(traj_unif[1].num_shots, 500);
+  std::vector<KrausTrajectory> traj_prop = {makeTrajectory(0, 0.9),
+                                            makeTrajectory(1, 0.1)};
+  std::vector<KrausTrajectory> traj_unif = traj_prop;
+
+  ShotAllocationStrategy proportional(
+      ShotAllocationStrategy::Type::PROPORTIONAL);
+  ShotAllocationStrategy uniform(ShotAllocationStrategy::Type::UNIFORM);
+
+  allocateShots(traj_prop, 1000, proportional);
+  allocateShots(traj_unif, 1000, uniform);
+
+  // Proportional: 900 / 100
+  EXPECT_EQ(traj_prop[0].num_shots, 900);
+  EXPECT_EQ(traj_prop[1].num_shots, 100);
+
+  // Uniform: 500 / 500
+  EXPECT_EQ(traj_unif[0].num_shots, 500);
+  EXPECT_EQ(traj_unif[1].num_shots, 500);
 }
 
 CUDAQ_TEST(ShotAllocationTest, CompareLowVsHighWeightBias) {
-    std::vector<KrausTrajectory> low_bias = {
-        makeTrajectory(0, 0.5, 0),  // No errors
-        makeTrajectory(1, 0.5, 3)   // 3 errors
-    };
-    std::vector<KrausTrajectory> high_bias = low_bias;
-    
-    ShotAllocationStrategy low_strategy(ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0);
-    ShotAllocationStrategy high_strategy(ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0);
-    
-    allocateShots(low_bias, 1000, low_strategy);
-    allocateShots(high_bias, 1000, high_strategy);
-    
-    // Low-weight bias: trajectory 0 gets more
-    EXPECT_GT(low_bias[0].num_shots, low_bias[1].num_shots);
-    
-    // High-weight bias: trajectory 1 gets more
-    EXPECT_LT(high_bias[0].num_shots, high_bias[1].num_shots);
-    
-    // Opposite directions
-    EXPECT_GT(low_bias[0].num_shots, high_bias[0].num_shots);
-    EXPECT_LT(low_bias[1].num_shots, high_bias[1].num_shots);
+  std::vector<KrausTrajectory> low_bias = {
+      makeTrajectory(0, 0.5, 0), // No errors
+      makeTrajectory(1, 0.5, 3)  // 3 errors
+  };
+  std::vector<KrausTrajectory> high_bias = low_bias;
+
+  ShotAllocationStrategy low_strategy(
+      ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0);
+  ShotAllocationStrategy high_strategy(
+      ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0);
+
+  allocateShots(low_bias, 1000, low_strategy);
+  allocateShots(high_bias, 1000, high_strategy);
+
+  // Low-weight bias: trajectory 0 gets more
+  EXPECT_GT(low_bias[0].num_shots, low_bias[1].num_shots);
+
+  // High-weight bias: trajectory 1 gets more
+  EXPECT_LT(high_bias[0].num_shots, high_bias[1].num_shots);
+
+  // Opposite directions
+  EXPECT_GT(low_bias[0].num_shots, high_bias[0].num_shots);
+  EXPECT_LT(low_bias[1].num_shots, high_bias[1].num_shots);
 }
 
 CUDAQ_TEST(ShotAllocationTest, CountErrorsHelper) {
-    // No errors
-    KrausTrajectory traj0 = makeTrajectory(0, 0.5, 0);
-    EXPECT_EQ(countErrors(traj0), 0);
-    
-    // 1 error
-    KrausTrajectory traj1 = makeTrajectory(1, 0.3, 1);
-    EXPECT_EQ(countErrors(traj1), 1);
-    
-    // 5 errors
-    KrausTrajectory traj5 = makeTrajectory(2, 0.1, 5);
-    EXPECT_EQ(countErrors(traj5), 5);
-    
-    // Some identity, some errors
-    std::vector<KrausSelection> mixed = {
-        KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),      // No error
-        KrausSelection(1, {0}, "x", KrausOperatorIndex{1}),             // Error
-        KrausSelection(2, {0, 1}, "cx", KrausOperatorIndex::IDENTITY),  // No error
-        KrausSelection(3, {1}, "h", KrausOperatorIndex{2})              // Error
-    };
-    KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
-    EXPECT_EQ(countErrors(traj_mixed), 2);
+  // No errors
+  KrausTrajectory traj0 = makeTrajectory(0, 0.5, 0);
+  EXPECT_EQ(countErrors(traj0), 0);
+
+  // 1 error
+  KrausTrajectory traj1 = makeTrajectory(1, 0.3, 1);
+  EXPECT_EQ(countErrors(traj1), 1);
+
+  // 5 errors
+  KrausTrajectory traj5 = makeTrajectory(2, 0.1, 5);
+  EXPECT_EQ(countErrors(traj5), 5);
+
+  // Some identity, some errors
+  std::vector<KrausSelection> mixed = {
+      KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),     // No error
+      KrausSelection(1, {0}, "x", KrausOperatorIndex{1}),            // Error
+      KrausSelection(2, {0, 1}, "cx", KrausOperatorIndex::IDENTITY), // No error
+      KrausSelection(3, {1}, "h", KrausOperatorIndex{2})             // Error
+  };
+  KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
+  EXPECT_EQ(countErrors(traj_mixed), 2);
 }
 
 CUDAQ_TEST(ShotAllocationTest, VerySmallProbabilities) {
-    std::vector<KrausTrajectory> trajectories;
-    for (std::size_t i = 0; i < 10; ++i) {
-        trajectories.push_back(makeTrajectory(i, 1e-6));
-    }
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 1000, strategy);
-    
-    std::size_t total = 0;
-    for (const auto& traj : trajectories) {
-        total += traj.num_shots;
-    }
-    EXPECT_EQ(total, 1000);
+  std::vector<KrausTrajectory> trajectories;
+  for (std::size_t i = 0; i < 10; ++i) {
+    trajectories.push_back(makeTrajectory(i, 1e-6));
+  }
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 1000, strategy);
+
+  std::size_t total = 0;
+  for (const auto &traj : trajectories) {
+    total += traj.num_shots;
+  }
+  EXPECT_EQ(total, 1000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, ExtremelyUnequalProbabilities) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.999),  // Dominant trajectory
-        makeTrajectory(1, 0.001)   // Rare trajectory
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 10000, strategy);
-    
-    EXPECT_GE(trajectories[0].num_shots, 9980);
-    EXPECT_LE(trajectories[1].num_shots, 20);
-    
-    EXPECT_EQ(trajectories[0].num_shots + trajectories[1].num_shots, 10000);
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.999), // Dominant trajectory
+      makeTrajectory(1, 0.001)  // Rare trajectory
+  };
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 10000, strategy);
+
+  EXPECT_GE(trajectories[0].num_shots, 9980);
+  EXPECT_LE(trajectories[1].num_shots, 20);
+
+  EXPECT_EQ(trajectories[0].num_shots + trajectories[1].num_shots, 10000);
 }
 
 CUDAQ_TEST(ShotAllocationTest, ManyTrajectoriesFewShots) {
-    std::vector<KrausTrajectory> trajectories;
-    for (std::size_t i = 0; i < 100; ++i) {
-        trajectories.push_back(makeTrajectory(i, 0.01));
+  std::vector<KrausTrajectory> trajectories;
+  for (std::size_t i = 0; i < 100; ++i) {
+    trajectories.push_back(makeTrajectory(i, 0.01));
+  }
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  allocateShots(trajectories, 50, strategy);
+
+  std::size_t total = 0;
+  for (const auto &traj : trajectories) {
+    total += traj.num_shots;
+  }
+  EXPECT_EQ(total, 50);
+
+  std::size_t zero_shot_count = 0;
+  for (const auto &traj : trajectories) {
+    if (traj.num_shots == 0) {
+      zero_shot_count++;
     }
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
-    allocateShots(trajectories, 50, strategy);
-    
-    std::size_t total = 0;
-    for (const auto& traj : trajectories) {
-        total += traj.num_shots;
-    }
-    EXPECT_EQ(total, 50);
-    
-    std::size_t zero_shot_count = 0;
-    for (const auto& traj : trajectories) {
-        if (traj.num_shots == 0) {
-            zero_shot_count++;
-        }
-    }
-    EXPECT_GT(zero_shot_count, 0);
+  }
+  EXPECT_GT(zero_shot_count, 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, TotalShotsInvariant) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.4, 0),
-        makeTrajectory(1, 0.3, 1),
-        makeTrajectory(2, 0.2, 2),
-        makeTrajectory(3, 0.1, 3)
-    };
-    
-    std::vector<ShotAllocationStrategy::Type> strategies = {
-        ShotAllocationStrategy::Type::PROPORTIONAL,
-        ShotAllocationStrategy::Type::UNIFORM,
-        ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
-        ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS
-    };
-    
-    for (auto strat_type : strategies) {
-        auto traj_copy = trajectories;
-        ShotAllocationStrategy strategy(strat_type, 2.0);
-        allocateShots(traj_copy, 1000, strategy);
-        
-        std::size_t total = 0;
-        for (const auto& traj : traj_copy) {
-            total += traj.num_shots;
-        }
-        
-        EXPECT_EQ(total, 1000) << "Strategy type failed to preserve total shots";
+  std::vector<KrausTrajectory> trajectories = {
+      makeTrajectory(0, 0.4, 0), makeTrajectory(1, 0.3, 1),
+      makeTrajectory(2, 0.2, 2), makeTrajectory(3, 0.1, 3)};
+
+  std::vector<ShotAllocationStrategy::Type> strategies = {
+      ShotAllocationStrategy::Type::PROPORTIONAL,
+      ShotAllocationStrategy::Type::UNIFORM,
+      ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS,
+      ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS};
+
+  for (auto strat_type : strategies) {
+    auto traj_copy = trajectories;
+    ShotAllocationStrategy strategy(strat_type, 2.0);
+    allocateShots(traj_copy, 1000, strategy);
+
+    std::size_t total = 0;
+    for (const auto &traj : traj_copy) {
+      total += traj.num_shots;
     }
+
+    EXPECT_EQ(total, 1000) << "Strategy type failed to preserve total shots";
+  }
 }
 
 CUDAQ_TEST(ShotAllocationTest, NonNegativeShots) {
-    std::vector<KrausTrajectory> trajectories = {
-        makeTrajectory(0, 0.5),
-        makeTrajectory(1, 0.5)
-    };
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 1000, strategy);
-    
-    for (const auto& traj : trajectories) {
-        // Always non-negative
-        EXPECT_GE(traj.num_shots, 0);
-    }
+  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                               makeTrajectory(1, 0.5)};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 1000, strategy);
+
+  for (const auto &traj : trajectories) {
+    // Always non-negative
+    EXPECT_GE(traj.num_shots, 0);
+  }
 }
 
 CUDAQ_TEST(ShotAllocationTest, SpanWithArray) {
-    std::array<KrausTrajectory, 3> trajectories = {{
-        makeTrajectory(0, 0.5),
-        makeTrajectory(1, 0.3),
-        makeTrajectory(2, 0.2)
-    }};
-    
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-    allocateShots(trajectories, 1000, strategy);
-    
-    EXPECT_EQ(trajectories[0].num_shots, 500);
-    EXPECT_EQ(trajectories[1].num_shots, 300);
-    EXPECT_EQ(trajectories[2].num_shots, 200);
+  std::array<KrausTrajectory, 3> trajectories = {
+      {makeTrajectory(0, 0.5), makeTrajectory(1, 0.3), makeTrajectory(2, 0.2)}};
+
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
+  allocateShots(trajectories, 1000, strategy);
+
+  EXPECT_EQ(trajectories[0].num_shots, 500);
+  EXPECT_EQ(trajectories[1].num_shots, 300);
+  EXPECT_EQ(trajectories[2].num_shots, 200);
 }
 
 CUDAQ_TEST(ShotAllocationTest, SpanWithSubrange) {
-    std::vector<KrausTrajectory> all_trajectories = {
-        makeTrajectory(0, 0.25),
-        makeTrajectory(1, 0.25),
-        makeTrajectory(2, 0.25),
-        makeTrajectory(3, 0.25)
-    };
-    
-    std::span<KrausTrajectory> first_two(all_trajectories.data(), 2);
-    ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
-    allocateShots(first_two, 600, strategy);
-    
-    EXPECT_EQ(all_trajectories[0].num_shots, 300);
-    EXPECT_EQ(all_trajectories[1].num_shots, 300);
-    EXPECT_EQ(all_trajectories[2].num_shots, 0);
-    EXPECT_EQ(all_trajectories[3].num_shots, 0);
+  std::vector<KrausTrajectory> all_trajectories = {
+      makeTrajectory(0, 0.25), makeTrajectory(1, 0.25), makeTrajectory(2, 0.25),
+      makeTrajectory(3, 0.25)};
+
+  std::span<KrausTrajectory> first_two(all_trajectories.data(), 2);
+  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::UNIFORM);
+  allocateShots(first_two, 600, strategy);
+
+  EXPECT_EQ(all_trajectories[0].num_shots, 300);
+  EXPECT_EQ(all_trajectories[1].num_shots, 300);
+  EXPECT_EQ(all_trajectories[2].num_shots, 0);
+  EXPECT_EQ(all_trajectories[3].num_shots, 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsMultiple) {
-    std::vector<KrausSelection> with_errors = {
-        KrausSelection(0, {0}, "h", KrausOperatorIndex{1}),
-        KrausSelection(1, {0}, "x", KrausOperatorIndex::IDENTITY),
-        KrausSelection(2, {0}, "y", KrausOperatorIndex{2})
-    };
-    KrausTrajectory traj(1, with_errors, 0.5, 100);
-    
-    EXPECT_EQ(countErrors(traj), 2);
+  std::vector<KrausSelection> with_errors = {
+      KrausSelection(0, {0}, "h", KrausOperatorIndex{1}),
+      KrausSelection(1, {0}, "x", KrausOperatorIndex::IDENTITY),
+      KrausSelection(2, {0}, "y", KrausOperatorIndex{2})};
+  KrausTrajectory traj(1, with_errors, 0.5, 100);
+
+  EXPECT_EQ(countErrors(traj), 2);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsEmpty) {
-    KrausTrajectory empty_traj(0, {}, 1.0, 100);
-    EXPECT_EQ(countErrors(empty_traj), 0);
+  KrausTrajectory empty_traj(0, {}, 1.0, 100);
+  EXPECT_EQ(countErrors(empty_traj), 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
-    std::vector<KrausSelection> no_errors = {
-        KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),
-        KrausSelection(1, {0}, "x", KrausOperatorIndex::IDENTITY),
-        KrausSelection(2, {0}, "y", KrausOperatorIndex::IDENTITY)
-    };
-    KrausTrajectory traj(0, no_errors, 1.0, 100);
-    
-    EXPECT_EQ(countErrors(traj), 0);
+  std::vector<KrausSelection> no_errors = {
+      KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),
+      KrausSelection(1, {0}, "x", KrausOperatorIndex::IDENTITY),
+      KrausSelection(2, {0}, "y", KrausOperatorIndex::IDENTITY)};
+  KrausTrajectory traj(0, no_errors, 1.0, 100);
+
+  EXPECT_EQ(countErrors(traj), 0);
 }
