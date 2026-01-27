@@ -9,7 +9,6 @@
 import os, pytest
 import numpy as np
 import cudaq
-from conftest import skip_macos_arm64_jit_exception
 
 
 @pytest.fixture(autouse=True)
@@ -187,7 +186,6 @@ def test_cudaq_control():
     # or on a built-in gate is not supported at the time of writing this
 
 
-@skip_macos_arm64_jit_exception
 def test_unsupported_calls():
 
     # If we add support for any of these, add the corresponding
