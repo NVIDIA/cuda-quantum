@@ -85,6 +85,7 @@ nlohmann::json ServerHelper::getTypedConfigValue(const std::string &key) const {
   default:
     return value;
   }
+  __builtin_unreachable();
 }
 } // namespace cudaq
 
