@@ -28,6 +28,7 @@ add_library(${LIBRARY_NAME}
     utils/cudaq_utils.cpp
     utils/matrix.cpp
     distributed/mpi_plugin.cpp
+    ptsbe/ShotAllocationStrategy.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
@@ -87,6 +88,7 @@ add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
 add_subdirectory(operators)
+add_subdirectory(ptsbe)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 
