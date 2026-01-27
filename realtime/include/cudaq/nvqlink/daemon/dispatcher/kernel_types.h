@@ -8,21 +8,19 @@
 
 #pragma once
 
-#include <cuda_runtime.h>
 #include <cooperative_groups.h>
+#include <cuda_runtime.h>
 
 namespace cudaq::realtime {
 
 /// @brief Regular kernel synchronization using __syncthreads().
 ///
 /// Use this for single-block kernels or when only block-level synchronization
-/// is needed. Suitable for simple decode handlers that don't require 
+/// is needed. Suitable for simple decode handlers that don't require
 /// grid-wide coordination.
 struct RegularKernel {
   /// @brief Synchronize threads within a block.
-  __device__ static void sync() { 
-    __syncthreads(); 
-  }
+  __device__ static void sync() { __syncthreads(); }
 };
 
 /// @brief Cooperative kernel synchronization using grid.sync().
@@ -31,9 +29,7 @@ struct RegularKernel {
 /// such as complex decoders with data dependencies across blocks.
 /// Requires kernel to be launched with cudaLaunchCooperativeKernel.
 struct CooperativeKernel {
-  __device__ static void sync() { 
-    cooperative_groups::this_grid().sync(); 
-  }
+  __device__ static void sync() { cooperative_groups::this_grid().sync(); }
 };
 
 } // namespace cudaq::realtime

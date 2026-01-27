@@ -55,6 +55,7 @@ if(CMAKE_CUDA_COMPILER)
     GTest::gtest_main 
     CUDA::cudart
     cudaq-realtime
+    cudaq-realtime-dispatch
   )
   
   add_dependencies(NVQLINKUnitTests test_dispatch_kernel)

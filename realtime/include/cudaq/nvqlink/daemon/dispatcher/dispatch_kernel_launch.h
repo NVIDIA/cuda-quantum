@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include <cuda_runtime.h>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <cuda_runtime.h>
 
 namespace cudaq::nvqlink {
 
@@ -21,16 +21,16 @@ namespace cudaq::nvqlink {
 /// @brief RPC request header - wire format for function dispatch.
 /// Must be wire-compatible with cuda-quantum RPC protocol.
 struct __attribute__((packed)) RPCHeader {
-  std::uint32_t magic;        ///< Magic value to validate message framing
-  std::uint32_t function_id;  ///< Hash of function name (FNV-1a)
-  std::uint32_t arg_len;      ///< Length of argument data in bytes
+  std::uint32_t magic;       ///< Magic value to validate message framing
+  std::uint32_t function_id; ///< Hash of function name (FNV-1a)
+  std::uint32_t arg_len;     ///< Length of argument data in bytes
 };
 
 /// @brief RPC response header - returned to caller.
 struct __attribute__((packed)) RPCResponse {
-  std::uint32_t magic;        ///< Magic value to validate message framing
-  std::int32_t status;        ///< Return status (0 = success)
-  std::uint32_t result_len;   ///< Length of result data in bytes
+  std::uint32_t magic;      ///< Magic value to validate message framing
+  std::int32_t status;      ///< Return status (0 = success)
+  std::uint32_t result_len; ///< Length of result data in bytes
 };
 
 //==============================================================================
@@ -44,7 +44,7 @@ struct __attribute__((packed)) RPCResponse {
 /// @param result_len Output: actual result length
 /// @return Status code (0 = success)
 using DeviceRPCFunction = int (*)(void *buffer, std::uint32_t arg_len,
-                                  std::uint32_t max_result_len, 
+                                  std::uint32_t max_result_len,
                                   std::uint32_t *result_len);
 
 //==============================================================================
@@ -54,7 +54,7 @@ using DeviceRPCFunction = int (*)(void *buffer, std::uint32_t arg_len,
 /// @brief Compute FNV-1a hash of a string (for function_id).
 /// @param str Null-terminated string to hash
 /// @return 32-bit hash value
-constexpr std::uint32_t fnv1a_hash(const char* str) {
+constexpr std::uint32_t fnv1a_hash(const char *str) {
   std::uint32_t hash = 2166136261u;
   while (*str) {
     hash ^= static_cast<std::uint32_t>(*str++);

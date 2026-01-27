@@ -9,9 +9,8 @@
 # ==============================================================================
 # Shared library for external consumers (libcudaq-realtime.so)
 # ==============================================================================
-# This shared library exports a C-compatible host API for wiring dispatchers.
-# The GPU dispatch kernel itself is header-only (dispatch_kernel.cuh) and must
-# be compiled into the consumer's TU alongside the decoder device code.
+# This shared library exports a C-compatible host API for wiring dispatchers
+# and includes the GPU dispatch kernel device code.
 
 if(CUDA_FOUND)
   set(CUDAQ_REALTIME_SOURCES
@@ -42,5 +41,24 @@ if(CUDA_FOUND)
   install(TARGETS cudaq-realtime
     COMPONENT realtime-lib
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )
+
+  add_library(cudaq-realtime-dispatch STATIC dispatcher/dispatch_kernel.cu)
+
+  target_include_directories(cudaq-realtime-dispatch
+    PUBLIC
+      $<BUILD_INTERFACE:${CUDAQ_NVQLINK_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:include>
+  )
+
+  target_link_libraries(cudaq-realtime-dispatch
+    PUBLIC
+      CUDA::cudart
+  )
+
+  set_target_properties(cudaq-realtime-dispatch PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    POSITION_INDEPENDENT_CODE ON
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
 endif()

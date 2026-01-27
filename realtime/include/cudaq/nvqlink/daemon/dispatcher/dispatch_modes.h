@@ -27,7 +27,8 @@ struct DeviceCallMode {
   /// @param ctx Handler context (matrices, dimensions, etc.)
   /// @param args Additional arguments
   template <typename HandlerFunc, typename ContextType, typename... Args>
-  __device__ static void dispatch(HandlerFunc handler, ContextType& ctx, Args... args) {
+  __device__ static void dispatch(HandlerFunc handler, ContextType &ctx,
+                                  Args... args) {
     handler(ctx, args...);
   }
 };
@@ -46,17 +47,17 @@ struct GraphLaunchMode {
   /// @tparam ContextType Context structure type (must have graph_exec member)
   /// @param ctx Handler context containing the graph executable
   template <typename ContextType>
-  __device__ static void dispatch(ContextType& ctx) {
-    // Device graph launch requires CUDA 12.0+ and appropriate context setup
-    // The graph_exec must be a cudaGraphExec_t captured at initialization
-    #if __CUDA_ARCH__ >= 900
+  __device__ static void dispatch(ContextType &ctx) {
+// Device graph launch requires CUDA 12.0+ and appropriate context setup
+// The graph_exec must be a cudaGraphExec_t captured at initialization
+#if __CUDA_ARCH__ >= 900
     // cudaGraphLaunch is available from device code on Hopper+
     // Note: This is a placeholder - actual implementation requires
     // the graph_exec to be properly set up in the context
     if (ctx.graph_exec != nullptr) {
       cudaGraphLaunch(ctx.graph_exec, ctx.stream);
     }
-    #endif
+#endif
   }
 };
 
