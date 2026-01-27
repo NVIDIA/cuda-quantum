@@ -67,7 +67,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_qubit_qis.cpp
-    ../runtime/cudaq/operators/py_helpers.cpp
+    ../runtime/cudaq/operators/py_helpers.cpp  
     ../runtime/cudaq/operators/py_matrix.cpp
     ../runtime/cudaq/operators/py_scalar_op.cpp
     ../runtime/cudaq/operators/py_spin_op.cpp
@@ -143,11 +143,6 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
-# Note: We previously used add_lib_loading_macos_workaround here, but it causes
-# duplicate LLVM CommandLine option registration errors due to -force_load.
-# The explicit llvm::InitializeNativeTarget() calls in CUDAQuantumExtension.cpp
-# handle the necessary target initialization on macOS.
-
 ################################################################################
 # Instantiation of Python module
 ################################################################################
@@ -175,17 +170,11 @@ endif()
 
 if (NOT SKBUILD)
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../lib/plugins")
 else()
   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
 
-
-
-# Note: We previously used add_lib_loading_macos_workaround here, but it causes
-# duplicate LLVM CommandLine option registration errors due to -force_load.
-# The explicit llvm::InitializeNativeTarget() calls in CUDAQuantumExtension.cpp
-# handle the necessary target initialization on macOS.
