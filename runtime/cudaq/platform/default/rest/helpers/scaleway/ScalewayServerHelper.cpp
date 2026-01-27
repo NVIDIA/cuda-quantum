@@ -12,7 +12,6 @@
 #include "nlohmann/json.hpp"
 #include <iostream>
 #include <map>
-#include <regex>
 #include <sstream>
 
 using json = nlohmann::json;
@@ -48,7 +47,10 @@ std::string serializeKernelToQio(const std::string &code) {
 }
 
 void ScalewayServerHelper::initialize(BackendConfig config) {
+  CUDAQ_INFO("Initializing Scaleway Server Helper");
+
   backendConfig = config;
+
   m_qaasClient = std::make_unique<qaas::v1alpha1::V1Alpha1Client>(
                       getValueOrDefault(config, "project_id", "SCW_PROJECT_ID", ""),
                       getValueOrDefault(config, "secret_key", "SCW_SECRET_KEY", ""),
@@ -75,11 +77,22 @@ ServerJobPayload ScalewayServerHelper::createJob(
   std::vector<ServerMessage> tasks;
   auto headers = m_qaasClient->getHeaders();
 
+  CUDAQ_INFO("Creating job for Scaleway, "
+             "targeting platform {}",
+             m_targetPlatformName);
+
   for (auto &circuitCode : circuitCodes) {
     ServerMessage taskRequest;
+    CUDAQ_INFO("Job name {}", circuitCode.name);
+
     std::string qioPayload = serializeKernelToQio(circuitCode.code);
+    CUDAQ_INFO("Attached payload {}", qioPayload);
+    
     std::string qioParams = serializeParametersToQio(shots);
+    CUDAQ_INFO("Attached parameters {}", qioParams);
+
     qaas::v1alpha1::Model model = m_qaasClient->createModel(qioPayload);
+    CUDAQ_INFO("Created model {}", model.id);
 
     taskRequest["model_id"] = model.id;
     taskRequest["session_id"] = m_sessionId;
@@ -88,10 +101,6 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
     tasks.push_back(taskRequest);
   }
-
-  CUDAQ_INFO("Created job payload for Scaleway, "
-             "targeting platform {}",
-             m_targetPlatformName);
 
   return std::make_tuple(m_qaasClient->getJobsUrl(), headers, tasks);
 }
@@ -122,7 +131,7 @@ std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
 }
 
 bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  std::string status = getJobResponse.value("status", "unknown");
+  std::string status = getJobResponse.value("status", "unknown_status");
 
   if (status == "error") {
     std::string err = getJobResponse.contains("result")
@@ -138,6 +147,8 @@ bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
 cudaq::sample_result
 ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
                                      std::string &jobId) {
+  CUDAQ_INFO("Post-processing results for job {}", jobId);
+
   auto jobResults = m_qaasClient->listJobResults(jobId);
 
   if (jobResults.empty()) {
@@ -145,7 +156,6 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   }
 
   auto firstResult = jobResults[0];
-
   std::string rawPayload;
 
   if (firstResult.has_inline_result()) {
@@ -158,6 +168,8 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
         "invalid: empty 'result' and 'url' fields to get result.");
   }
 
+  CUDAQ_INFO("Get raw results for job {}: {}", jobId, rawPayload);
+
   try {
     qio::QuantumProgramResult qioResult =
         qio::QuantumProgramResult::fromJson(rawPayload);
@@ -168,17 +180,22 @@ ScalewayServerHelper::processResults(ServerMessage &postJobResponse,
   } catch (const std::exception &e) {
     throw std::runtime_error(
         "Error while parsing result: " + std::string(e.what()) +
-        " | payload: " + rawPayload);
+        ", payload: " + rawPayload);
   }
 }
 
 std::string ScalewayServerHelper::ensureSessionIsActive() {
+  CUDAQ_INFO("Check for active session");
+
   if (!m_sessionId.empty()) {
+    CUDAQ_INFO("Alive session id: {}", m_sessionId);
+
     try {
       qaas::v1alpha1::Session session = m_qaasClient->getSession(m_sessionId);
       auto status = session.status;
 
       if (status == "error" || status == "stopped" || status == "stopping") {
+        CUDAQ_INFO("Dead session id {} with status {}", m_sessionId, status);
         m_sessionId = "";
       } else {
         return m_sessionId;
@@ -189,6 +206,8 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
   }
 
   if (m_sessionId.empty()) {
+    CUDAQ_INFO("Searching platform with name {}", m_targetPlatformName);
+
     auto platforms = m_qaasClient->listPlatforms(m_targetPlatformName);
 
     if (platforms.empty()) {
@@ -198,8 +217,8 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
 
     auto platform = platforms[0];
 
-    CUDAQ_INFO("Creating session on Scaleway platform {} (id={})",
-               platform.name, platform.id);
+    CUDAQ_INFO("Creating session on platform {} (id={})", 
+      platform.name, platform.id);
 
     auto session = m_qaasClient->createSession(
         platform.id, m_sessionName,
@@ -215,6 +234,8 @@ std::string ScalewayServerHelper::ensureSessionIsActive() {
 
     m_sessionId = session.id;
   }
+
+  CUDAQ_INFO("Active session with id: {}", m_sessionId);
 
   return m_sessionId;
 }

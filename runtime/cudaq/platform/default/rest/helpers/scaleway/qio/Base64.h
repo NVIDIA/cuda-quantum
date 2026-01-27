@@ -11,8 +11,6 @@
 #include <string_view>
 
 namespace cudaq::qio {
-
 std::string encodeBase64(std::string_view input);
 std::string decodeBase64(std::string_view input);
-
 } // namespace cudaq::qio

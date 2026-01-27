@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iostream>
 
+using json = nlohmann::json;
 using namespace cudaq::qaas::v1alpha1;
 
 V1Alpha1Client::V1Alpha1Client(const std::string projectId,
@@ -81,7 +82,7 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
                                       std::string maxIdleDuration,
                                       std::string parameters) {
   auto headers = getHeaders();
-  nlohmann::json payload;
+  json payload;
 
   payload["project_id"] = m_projectId;
   payload["platform_id"] = platformId;
@@ -98,7 +99,7 @@ Session V1Alpha1Client::createSession(const std::string &platformId,
 
   if (!parameters.empty()) {
     try {
-      payload["parameters"] = nlohmann::json::parse(parameters);
+      payload["parameters"] = json::parse(parameters);
     } catch (...) {
       payload["parameters"] = parameters;
     }
@@ -130,7 +131,7 @@ Session V1Alpha1Client::getSession(const std::string &sessionId) {
 Job V1Alpha1Client::createJob(const std::string &sessionId,
                               const std::string &modelId, std::string name) {
   auto headers = getHeaders();
-  nlohmann::json payload;
+  json payload;
 
   payload["session_id"] = sessionId;
   payload["model_id"] = modelId;
@@ -178,7 +179,7 @@ V1Alpha1Client::listJobResults(const std::string &jobId) {
 
 Model V1Alpha1Client::createModel(const std::string &payload) {
   auto headers = getHeaders();
-  nlohmann::json reqBody;
+  json reqBody;
 
   reqBody["project_id"] = m_projectId;
   reqBody["payload"] = payload;

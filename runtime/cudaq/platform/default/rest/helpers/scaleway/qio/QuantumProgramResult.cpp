@@ -10,6 +10,7 @@
 #include "Compression.h"
 #include "Base64.h"
 
+using json = nlohmann::json;
 using namespace cudaq::qio;
 
 QuantumProgramResult::QuantumProgramResult(std::string serialization,
@@ -20,7 +21,7 @@ QuantumProgramResult::QuantumProgramResult(std::string serialization,
     m_compressionFormat(compressionFormat) {}
 
 QuantumProgramResult
-QuantumProgramResult::fromJson(nlohmann::json j) {
+QuantumProgramResult::fromJson(json j) {
   return QuantumProgramResult(
       j.value("serialization", ""),
       j.value("serialization_format",
@@ -49,7 +50,7 @@ cudaq::sample_result QuantumProgramResult::toCudaqSampleResult() {
                              "format for conversion to cudaq::sample_result");
   }
 
-  auto resultJson = nlohmann::json::parse(uncompressedSerialization);
+  auto resultJson = json::parse(uncompressedSerialization);
 
   cudaq::sample_result sampleResult;
   auto serialization = resultJson.get<std::vector<std::size_t>>();

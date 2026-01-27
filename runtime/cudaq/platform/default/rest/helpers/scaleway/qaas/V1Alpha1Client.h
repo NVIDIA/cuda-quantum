@@ -6,13 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #pragma once
-
 #include "V1Alpha1Objects.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
 #include <map>
 #include <vector>
-
 
 namespace cudaq::qaas::v1alpha1 {
 class V1Alpha1Client {

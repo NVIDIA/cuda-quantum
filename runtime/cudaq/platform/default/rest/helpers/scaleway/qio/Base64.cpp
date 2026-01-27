@@ -571,7 +571,7 @@ inline OutputBuffer encode_into(std::string_view data) {
   return encode_into<OutputBuffer>(std::begin(data), std::end(data));
 }
 
-inline std::string cudaq::qio::encodeBase64(std::string_view data) {
+std::string cudaq::qio::encodeBase64(std::string_view data) {
   return encode_into<std::string>(std::begin(data), std::end(data));
 }
 
@@ -701,6 +701,6 @@ inline OutputBuffer decode_into(InputIterator begin, InputIterator end) {
   return decode_into<OutputBuffer>(data);
 }
 
-inline std::string cudaq::qio::decodeBase64(std::string_view data) {
+std::string cudaq::qio::decodeBase64(std::string_view data) {
   return decode_into<std::string>(data);
 }

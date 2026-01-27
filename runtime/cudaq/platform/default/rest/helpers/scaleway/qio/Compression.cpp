@@ -10,8 +10,9 @@
 #include <stdexcept>
 #include <zlib.h>
 
-std::string gzipCompress(const std::string &input)
-{
+using namespace cudaq::qio;
+
+std::string cudaq::qio::gzipCompress(const std::string &input) {
     if (input.empty())
         return {};
 
@@ -22,8 +23,7 @@ std::string gzipCompress(const std::string &input)
             Z_DEFLATED,
             15 + 16,        // 15 = window bits, +16 = gzip
             8,
-            Z_DEFAULT_STRATEGY) != Z_OK)
-    {
+            Z_DEFAULT_STRATEGY) != Z_OK) {
         throw std::runtime_error("deflateInit2 failed");
     }
 
@@ -42,7 +42,6 @@ std::string gzipCompress(const std::string &input)
 
         if (output.size() < zs.total_out)
             output.append(buffer, zs.total_out - output.size());
-
     } while (ret == Z_OK);
 
     deflateEnd(&zs);
@@ -54,14 +53,12 @@ std::string gzipCompress(const std::string &input)
 }
 
 
-std::string gzipDecompress(const std::string &input)
-{
+std::string cudaq::qio::gzipDecompress(const std::string &input) {
     if (input.empty())
         return {};
 
     z_stream zs{};
-    if (inflateInit2(&zs, 15 + 16) != Z_OK) // +16 = gzip
-    {
+    if (inflateInit2(&zs, 15 + 16) != Z_OK) {
         throw std::runtime_error("inflateInit2 failed");
     }
 
@@ -80,7 +77,6 @@ std::string gzipDecompress(const std::string &input)
 
         if (output.size() < zs.total_out)
             output.append(buffer, zs.total_out - output.size());
-
     } while (ret == Z_OK);
 
     inflateEnd(&zs);
