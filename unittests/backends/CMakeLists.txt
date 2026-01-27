@@ -70,6 +70,7 @@ function(add_backend_unittest_executable target)
   if(ARG_BACKEND_CONFIG)
     string(REPLACE [[=]] [[\\;]] ARG_BACKEND_CONFIG "${ARG_BACKEND_CONFIG}")
     string(REPLACE [[ ]] [[\\;]] ARG_BACKEND_CONFIG "${ARG_BACKEND_CONFIG}")
+    target_sources(${target} PRIVATE ${CMAKE_BINARY_DIR}/targets/backendConfig.cpp)
     target_compile_definitions(${target} PRIVATE NVQPP_TARGET_BACKEND_CONFIG="${ARG_BACKEND_CONFIG}")
   endif()
 
