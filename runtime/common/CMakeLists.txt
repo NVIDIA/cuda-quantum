@@ -62,7 +62,12 @@ if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  # --start-group is a GNU ld flag for circular dependencies; Apple's ld doesn't support it
+  if(APPLE)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr ZLIB::ZLIB)
+  else()
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  endif()
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
   # Override the global flat_namespace for this library. cudaq-common doesn't need
   # LLVM symbol sharing, and flat_namespace causes issues with statically-linked
