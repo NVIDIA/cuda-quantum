@@ -396,15 +396,6 @@ class PyKernelDecorator(object):
                                  module=newMod,
                                  decorator=self)
 
-    def extract_c_function_pointer(self, name=None):
-        """
-        Return the C function pointer for the function with given name, or with
-        the name of this kernel if not provided.
-        """
-        return cudaq_runtime.jitAndGetFunctionPointer(
-            self.qkeModule,
-            nvqppPrefix + self.uniqName if name is None else name)
-
     def __str__(self):
         """
         Return the MLIR Module string representation for this kernel.
