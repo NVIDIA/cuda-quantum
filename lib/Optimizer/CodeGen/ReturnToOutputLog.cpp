@@ -146,9 +146,29 @@ public:
               Value rawBuffer = vecInit.getBuffer();
               auto eleTy = vecTy.getElementType();
               Type buffEleTy = eleTy;
-              // For `std::vector<bool>`, we store as `i8`, not `i1`.
-              if (eleTy == rewriter.getI1Type())
-                buffEleTy = rewriter.getI8Type();
+              bool needsTruncation = false;
+              // `std::vector<bool>` may use `i8` storage instead of `i1` for
+              // alignment. Check the actual buffer allocation type and adapt
+              // pointer arithmetic accordingly. If `i8` storage, load as `i8`
+              // then truncate to `i1` so values are logged correctly.
+              if (eleTy == rewriter.getI1Type()) {
+                // Check if buffer comes from `AllocaOp`
+                if (auto allocaOp =
+                        rawBuffer.getDefiningOp<cudaq::cc::AllocaOp>()) {
+                  if (allocaOp.getElementType() == rewriter.getI8Type()) {
+                    buffEleTy = rewriter.getI8Type();
+                    needsTruncation = true;
+                  }
+                }
+                // Check the buffer's pointer type directly
+                else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(
+                             rawBuffer.getType())) {
+                  if (ptrTy.getElementType() == rewriter.getI8Type()) {
+                    buffEleTy = rewriter.getI8Type();
+                    needsTruncation = true;
+                  }
+                }
+              }
               auto buffTy = cudaq::cc::PointerType::get(buffEleTy);
               auto ptrArrTy = cudaq::cc::PointerType::get(
                   cudaq::cc::ArrayType::get(buffEleTy));
@@ -160,8 +180,7 @@ public:
                 auto v = rewriter.create<cudaq::cc::ComputePtrOp>(
                     loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
-                // Truncate `i8` to `i1` for `std::vector<bool>`
-                if (eleTy == rewriter.getI1Type())
+                if (needsTruncation)
                   w = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, w);
                 genOutputLog(loc, rewriter, w, offset);
               }
