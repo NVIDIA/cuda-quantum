@@ -39,7 +39,7 @@ n=0
 while ! checkServerConnection; do
   sleep 1
   n=$((n+1))
-  if [ "$n" -eq "20" ]; then
+  if [ "$n" -eq "60" ]; then
     kill -INT $pid
     exit 99
   fi

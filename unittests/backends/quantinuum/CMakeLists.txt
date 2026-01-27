@@ -75,3 +75,4 @@ add_backend_unittest_executable(test_quantinuum_util
   gtest_main
 )
 gtest_discover_tests(test_quantinuum_util)
+# initialization which can cause server startup timeouts on resource-constrained systems.

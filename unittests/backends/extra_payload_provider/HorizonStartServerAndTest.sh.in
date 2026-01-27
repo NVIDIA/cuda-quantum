@@ -27,7 +27,7 @@ n=0
 while ! checkServerConnection; do
   sleep 1
   n=$((n+1))
-  if [ "$n" -eq "20" ]; then
+  if [ "$n" -eq "60" ]; then
     echo "Failed to start the server after 20 seconds"
     # kill the server
     kill -INT $pid
