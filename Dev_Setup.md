@@ -159,9 +159,10 @@ your environment manually.
 
 4. **OpenMP** (for multi-threaded CPU simulation):
 
-   If you build with `./scripts/build_cudaq.sh -p` (which we recommend), OpenMP (`libomp`) is built
-   automatically as part of LLVM. However, if you're building without the `-p`
-   flag, you'll need OpenMP installed separately to enable (follow any brew specific instructions):
+   If you build with `./scripts/build_cudaq.sh -p` (which we recommend),
+   OpenMP (`libomp`) is built automatically as part of LLVM. However, if
+   you're building without the `-p` flag, you'll need OpenMP installed
+   separately (follow any brew specific instructions):
 
    ```bash
    brew install libomp
