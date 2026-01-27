@@ -145,9 +145,13 @@ public:
               std::string preStr = prefix ? prefix->str() : std::string{};
               Value rawBuffer = vecInit.getBuffer();
               auto eleTy = vecTy.getElementType();
-              auto buffTy = cudaq::cc::PointerType::get(eleTy);
-              auto ptrArrTy =
-                  cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+              Type buffEleTy = eleTy;
+              // For `std::vector<bool>`, we store as `i8`, not `i1`.
+              if (eleTy == rewriter.getI1Type())
+                buffEleTy = rewriter.getI8Type();
+              auto buffTy = cudaq::cc::PointerType::get(buffEleTy);
+              auto ptrArrTy = cudaq::cc::PointerType::get(
+                  cudaq::cc::ArrayType::get(buffEleTy));
               Value buffer =
                   rewriter.create<cudaq::cc::CastOp>(loc, ptrArrTy, rawBuffer);
               for (std::int32_t i = 0; i < sz; ++i) {
@@ -156,6 +160,9 @@ public:
                 auto v = rewriter.create<cudaq::cc::ComputePtrOp>(
                     loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
+                // Truncate `i8` to `i1` for `std::vector<bool>`
+                if (eleTy == rewriter.getI1Type())
+                  w = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, w);
                 genOutputLog(loc, rewriter, w, offset);
               }
             }
