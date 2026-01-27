@@ -15,7 +15,7 @@
 namespace cudaq {
 
 /// @brief The ScalewayServerHelper class extends the ServerHelper class to
-/// handle interactions with the Amazon Scaleway server for submitting and
+/// handle interactions with the Scaleway QaaS service for submitting and
 /// retrieving quantum computation jobs.
 class ScalewayServerHelper : public ServerHelper {
   inline static const std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";

@@ -93,11 +93,10 @@ ServerJobPayload ScalewayServerHelper::createJob(
 
 std::string
 ScalewayServerHelper::extractJobId(ServerMessage &postResponse) {
-  auto j = json::parse(postResponse);
-  if (j.contains("id"))
-    return j["id"].get<std::string>();
-  if (j.contains("job_id"))
-    return j["job_id"].get<std::string>();
+  if (postResponse.contains("id"))
+    return postResponse["id"].get<std::string>();
+  if (postResponse.contains("job_id"))
+    return postResponse["job_id"].get<std::string>();
   throw std::runtime_error("Job submission failed");
 }
 
@@ -118,12 +117,11 @@ std::chrono::microseconds ScalewayServerHelper::nextResultPollingInterval(
 }
 
 bool ScalewayServerHelper::jobIsDone(ServerMessage &getJobResponse) {
-  auto j = json::parse(getJobResponse);
-  std::string status = j.value("status", "unknown");
+  std::string status = getJobResponse.value("status", "unknown");
 
   if (status == "error") {
-    std::string err = j.contains("result")
-                          ? j["result"].value("error_message", "Unknown error")
+    std::string err = getJobResponse.contains("result")
+                          ? getJobResponse["result"].value("error_message", "Unknown error")
                           : "Unknown";
     throw std::runtime_error("Scaleway Job Error: " + err);
   }
