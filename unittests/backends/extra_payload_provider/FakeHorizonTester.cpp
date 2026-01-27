@@ -8,18 +8,10 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/ExtraPayloadProvider.h"
-#include "common/FmtCore.h"
 #include "cudaq/algorithm.h"
-#include <fstream>
 #include <gtest/gtest.h>
-#include <regex>
 
 CUDAQ_TEST(ExtraPayloadProviderTester, checkNoProvier) {
-  auto &platform = cudaq::get_platform();
-  // This target backend string is parsed by nvq++ driver
-  platform.setTargetBackend(
-      "horizon;emulate;false;extra_payload_provider;sunrise"); // disable
-                                                               // emulate
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -43,11 +35,6 @@ public:
 CUDAQ_TEST(ExtraPayloadProviderTester, checkWrongProvider) {
   // Register a wrong provider
   cudaq::registerExtraPayloadProvider(std::make_unique<DummyProvider>());
-  auto &platform = cudaq::get_platform();
-  // This target backend string is parsed by nvq++ driver
-  platform.setTargetBackend(
-      "horizon;emulate;false;extra_payload_provider;sunrise"); // disable
-                                                               // emulate
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);
@@ -71,11 +58,6 @@ public:
 
 CUDAQ_TEST(ExtraPayloadProviderTester, checkProvider) {
   cudaq::registerExtraPayloadProvider(std::make_unique<SunriseProvider>());
-  auto &platform = cudaq::get_platform();
-  // This target backend string is parsed by nvq++ driver
-  platform.setTargetBackend(
-      "horizon;emulate;false;extra_payload_provider;sunrise"); // disable
-                                                               // emulate
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);

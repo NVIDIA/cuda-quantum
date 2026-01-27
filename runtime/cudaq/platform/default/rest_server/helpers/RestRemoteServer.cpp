@@ -178,7 +178,7 @@ public:
 
           return resultJs;
         });
-    m_mlirContext = cudaq::initializeMLIR();
+    m_mlirContext = cudaq::getOwningMLIRContext();
     m_hasMpi = cudaq::mpi::is_initialized();
   }
   // Start the server.

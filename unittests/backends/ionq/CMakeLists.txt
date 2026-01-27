@@ -8,8 +8,10 @@
 
 add_backend_unittest_executable(test_ionq 
   SOURCES IonQTester.cpp
-  BACKEND ionq)
+  BACKEND ionq
+  BACKEND_CONFIG "ionq emulate=false url=http://localhost:62441"
+)
 
 
-configure_file("IonQStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/ionq/IonQStartServerAndTest.sh" @ONLY)
-add_test(NAME ionq-tests COMMAND bash IonQStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/ionq/)
+configure_file(IonQStartServerAndTest.sh.in IonQStartServerAndTest.sh @ONLY)
+add_test(NAME ionq-tests COMMAND bash IonQStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

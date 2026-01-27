@@ -90,20 +90,10 @@ cudaq::TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
 
 #include "RuntimeMLIRCommonImpl.h"
 
-static std::once_flag mlir_init_flag;
-
-std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
-  // One-time initialization of LLVM/MLIR components
-  std::call_once(mlir_init_flag, []() {
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    cudaq::registerAllCLOptions();
-    cudaq::registerAllPasses();
-    registerToQIRTranslation();
-    registerToOpenQASMTranslation();
-    registerToIQMJsonTranslation();
-  });
-
+namespace {
+std::once_flag mlir_init_flag;
+MLIRContext *mlirContext;
+std::unique_ptr<MLIRContext> createMLIRContext() {
   // Per-context initialization
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
@@ -112,6 +102,31 @@ std::unique_ptr<MLIRContext> cudaq::initializeMLIR() {
   context->loadAllAvailableDialects();
   registerLLVMDialectTranslation(*context);
   return context;
+}
+} // namespace
+
+void cudaq::initializeMLIR() {
+  // One-time initialization of LLVM/MLIR components
+  std::call_once(mlir_init_flag, []() {
+    cudaq::initializeLangMLIR();
+    registerToQIRTranslation();
+    registerToOpenQASMTranslation();
+    registerToIQMJsonTranslation();
+
+    mlirContext = createMLIRContext().release();
+  });
+}
+
+MLIRContext *cudaq::getMLIRContext() {
+  // One-time initialization of LLVM/MLIR components
+  cudaq::initializeMLIR();
+  return mlirContext;
+}
+
+std::unique_ptr<MLIRContext> cudaq::getOwningMLIRContext() {
+  // One-time initialization of LLVM/MLIR components
+  cudaq::initializeMLIR();
+  return createMLIRContext();
 }
 
 std::optional<std::string>

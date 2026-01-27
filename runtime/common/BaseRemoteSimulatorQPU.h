@@ -137,6 +137,16 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         void *cachedEngine) override {
+    CUDAQ_INFO("specializing remote simulator kernel via module ({})",
+               kernelName);
+    throw std::runtime_error(
+        "NYI: Remote simulator execution via Python/C++ interop.");
+    return nullptr;
+  }
+
   [[nodiscard]] KernelThunkResultType launchKernelImpl(
       const std::string &name, KernelThunkType kernelFunc, void *args,
       std::uint64_t voidStarSize, std::uint64_t resultOffset,
