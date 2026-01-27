@@ -143,20 +143,23 @@ if $is_macos; then
     fi
     source "$venv_dir/bin/activate"
     
-    # Install the wheel from local directory
+    # Install the wheel first
     if [ -n "${extra_packages}" ]; then
         wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
         if [ -n "$wheel_file" ]; then
             echo "Installing wheel: $wheel_file"
-            # Use --force-reinstall to ensure new wheel is installed even if version unchanged
-            pip install --force-reinstall --no-deps "$wheel_file" -v
+            pip install --force-reinstall "$wheel_file"
         else
             echo "No wheel found in ${extra_packages}, installing from PyPI"
-            pip install --upgrade cudaq==${cudaq_version} -v
+            pip install --upgrade cudaq==${cudaq_version}
         fi
     else
-        pip install --upgrade cudaq==${cudaq_version} -v
+        pip install --upgrade cudaq==${cudaq_version}
     fi
+    
+    # Install test/dev dependencies (pytest, etc.)
+    echo "Installing dev/test dependencies..."
+    pip install -r "$this_file_dir/../requirements-dev.txt"
 else
     # Linux: full conda setup with CUDA and MPI
     conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' "$readme_file" | grep . | sed '/^```/d')" 
