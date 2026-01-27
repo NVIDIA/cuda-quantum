@@ -8,74 +8,83 @@
  ******************************************************************************/
 #include "Compression.h"
 
-std::string gzipCompress(const std::string &input) {
-  z_stream zs{};
-  if (deflateInit2(&zs, Z_BEST_COMPRESSION, Z_DEFLATED, 15 + 16, 8,
-                   Z_DEFAULT_STRATEGY) != Z_OK)
-    throw std::runtime_error("deflateInit failed");
+std::string gzipCompress(const std::string &input)
+{
+    if (input.empty())
+        return {};
 
-  zs.next_in = (Bytef *)input.data();
-  zs.avail_in = input.size();
-
-  char outbuffer[32768];
-  std::string out;
-
-  int ret;
-  do {
-    zs.next_out = reinterpret_cast<Bytef *>(outbuffer);
-    zs.avail_out = sizeof(outbuffer);
-
-    ret = deflate(&zs, Z_FINISH);
-    out.append(outbuffer, sizeof(outbuffer) - zs.avail_out);
-  } while (ret == Z_OK);
-
-  deflateEnd(&zs);
-  return out;
-}
-
-std::string gzipDecompress(const std::string &input) {
-  z_stream zs{};
-  zs.zalloc = Z_NULL;
-  zs.zfree = Z_NULL;
-  zs.opaque = Z_NULL;
-
-  zs.next_in = (Bytef *)input.data();
-  zs.avail_in = input.size();
-
-  if (inflateInit2(&zs, 15 + 32) != Z_OK) {
-    throw std::runtime_error("qio: gzipDecompress inflateInit failed");
-  }
-
-  char outbuffer[32768];
-  std::string out;
-  int ret;
-
-  do {
-    zs.next_out = reinterpret_cast<Bytef *>(outbuffer);
-    zs.avail_out = sizeof(outbuffer);
-
-    ret = inflate(&zs, Z_NO_FLUSH);
-
-    if (out.size() < zs.total_out) {
-      out.append(outbuffer, zs.total_out - out.size());
+    z_stream zs{};
+    if (deflateInit2(
+            &zs,
+            Z_BEST_COMPRESSION,
+            Z_DEFLATED,
+            15 + 16,        // 15 = window bits, +16 = gzip
+            8,
+            Z_DEFAULT_STRATEGY) != Z_OK)
+    {
+        throw std::runtime_error("deflateInit2 failed");
     }
 
-  } while (ret == Z_OK);
+    zs.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(input.data()));
+    zs.avail_in = static_cast<uInt>(input.size());
 
-  inflateEnd(&zs);
+    std::string output;
+    char buffer[32768];
 
-  if (ret != Z_STREAM_END) {
-    throw std::runtime_error(
-        "qio: gzipDecompress failed (error code: " + std::to_string(ret) + ")");
-  }
+    int ret;
+    do {
+        zs.next_out = reinterpret_cast<Bytef *>(buffer);
+        zs.avail_out = sizeof(buffer);
 
-  return out;
+        ret = deflate(&zs, Z_FINISH);
+
+        if (output.size() < zs.total_out)
+            output.append(buffer, zs.total_out - output.size());
+
+    } while (ret == Z_OK);
+
+    deflateEnd(&zs);
+
+    if (ret != Z_STREAM_END)
+        throw std::runtime_error("deflate failed");
+
+    return output;
 }
 
-// std::string base64Encode(const std::string &input) {
-//   return base64::to_base64(input);
-// }
 
-// std::string base64Decode(const std::string &input) {
-//   return base64::from_base64(input);
-// }
+std::string gzipDecompress(const std::string &input)
+{
+    if (input.empty())
+        return {};
+
+    z_stream zs{};
+    if (inflateInit2(&zs, 15 + 16) != Z_OK) // +16 = gzip
+    {
+        throw std::runtime_error("inflateInit2 failed");
+    }
+
+    zs.next_in = reinterpret_cast<Bytef *>(const_cast<char *>(input.data()));
+    zs.avail_in = static_cast<uInt>(input.size());
+
+    std::string output;
+    char buffer[32768];
+
+    int ret;
+    do {
+        zs.next_out = reinterpret_cast<Bytef *>(buffer);
+        zs.avail_out = sizeof(buffer);
+
+        ret = inflate(&zs, 0);
+
+        if (output.size() < zs.total_out)
+            output.append(buffer, zs.total_out - output.size());
+
+    } while (ret == Z_OK);
+
+    inflateEnd(&zs);
+
+    if (ret != Z_STREAM_END)
+        throw std::runtime_error("inflate failed");
+
+    return output;
+}

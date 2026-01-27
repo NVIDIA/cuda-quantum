@@ -9,6 +9,7 @@
 #include "ScalewayServerHelper.h"
 #include "common/Logger.h"
 #include "common/RestClient.h"
+#include "nlohmann/json.hpp"
 #include <iostream>
 #include <map>
 #include <regex>

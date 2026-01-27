@@ -10,13 +10,12 @@
 #include "qaas/Qaas.h"
 #include "qio/Qio.h"
 #include "common/ServerHelper.h"
-#include "nlohmann/json.hpp"
 
 namespace cudaq {
 
 /// @brief The ScalewayServerHelper class extends the ServerHelper class to
-/// handle interactions with the Scaleway QaaS service for submitting and
-/// retrieving quantum computation jobs.
+/// handle interactions with the Scaleway QaaS service to create QPU session and
+/// for submitting and retrieving quantum computation jobs.
 class ScalewayServerHelper : public ServerHelper {
   inline static const std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";
   inline static const std::string DEFAULT_MAX_DURATION = "59m";
