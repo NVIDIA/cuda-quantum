@@ -456,6 +456,7 @@ target_link_libraries(test_qudit
   cudaq
   cudaq-platform-default
   cudaq-em-qudit
+  nvqir-qpp
   gtest_main)
 gtest_discover_tests(test_qudit DISCOVERY_TIMEOUT 120)
 
@@ -554,7 +555,9 @@ if (CUDAQ_ENABLE_PYTHON)
   endif()
   target_compile_definitions(test_domains PRIVATE -DNVQIR_BACKEND_NAME=qpp -DCUDAQ_SIMULATION_SCALAR_FP64)
   target_include_directories(test_domains PRIVATE .)
-  set_property(TARGET test_domains PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python")
+  # Embedded Python links to system framework, not venv, so needs explicit sitelib.
+  set_property(TARGET test_domains PROPERTY ENVIRONMENT
+    "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}")
   target_link_libraries(test_domains
     PRIVATE
     cudaq
@@ -565,5 +568,5 @@ if (CUDAQ_ENABLE_PYTHON)
     cudaq-pyscf
     gtest_main)
   gtest_discover_tests(test_domains
-    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python" DISCOVERY_TIMEOUT 120)
+    TEST_SUFFIX _Sampling PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/python:${Python_SITELIB}" DISCOVERY_TIMEOUT 120)
 endif()
