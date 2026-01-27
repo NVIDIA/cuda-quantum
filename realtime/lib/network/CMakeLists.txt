@@ -8,7 +8,6 @@
 
 set(NVQLINK_NETWORK_SOURCES
   memory/buffer.cpp
-  memory/memory_pool.cpp
   serialization/input_stream.cpp
   serialization/output_stream.cpp
 )
