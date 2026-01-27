@@ -196,21 +196,15 @@ public:
 // Function declaration, implemented by the macro expansion below
 ExecutionManager *getRegisteredExecutionManager();
 
-// Function declarations for explicit execution manager override
-// (implemented in execution_manager.cpp)
+// Function declaration, implemented elsewhere
 ExecutionManager *getExecutionManagerInternal();
-void setExecutionManagerInternal(ExecutionManager *em);
-void resetExecutionManagerInternal();
 
-/// @brief Get the execution manager instance.
-///
-/// Returns the explicitly set manager if one was set via
-/// setExecutionManagerInternal(), otherwise returns the default registered
-/// manager via getRegisteredExecutionManager().
+// Get the execution manager instance.
 inline ExecutionManager *getExecutionManager() {
   ExecutionManager *em = getExecutionManagerInternal();
-  if (em)
+  if (em) {
     return em;
+  }
   return getRegisteredExecutionManager();
 }
 
