@@ -13,7 +13,6 @@
 set(LIBRARY_NAME cudaq-utils)
 
 add_library(${LIBRARY_NAME} SHARED
-  matrix.cpp
   cudaq_utils.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
