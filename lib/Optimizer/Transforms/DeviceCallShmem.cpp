@@ -13,17 +13,17 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_REPLACEDEVICECALL
+#define GEN_PASS_DEF_DEVICECALLSHMEM
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;
 
-#define DEBUG_TYPE "replace-device-call"
+#define DEBUG_TYPE "device-call-shmem"
 
 namespace {
 
-class ReplaceDeviceCallPattern
+class DeviceCallShmemPattern
     : public OpRewritePattern<cudaq::cc::DeviceCallOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -172,17 +172,17 @@ public:
 //===----------------------------------------------------------------------===//
 // Pass implementation
 //===----------------------------------------------------------------------===//
-class ReplaceDeviceCallPass
-    : public cudaq::opt::impl::ReplaceDeviceCallBase<ReplaceDeviceCallPass> {
+class DeviceCallShmemPass
+    : public cudaq::opt::impl::DeviceCallShmemBase<DeviceCallShmemPass> {
 
 public:
-  using ReplaceDeviceCallBase::ReplaceDeviceCallBase;
+  using DeviceCallShmemBase::DeviceCallShmemBase;
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
     auto ctx = funcOp.getContext();
 
     RewritePatternSet patterns(ctx);
-    patterns.insert<ReplaceDeviceCallPattern>(ctx);
+    patterns.insert<DeviceCallShmemPattern>(ctx);
 
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::cc::CCDialect, func::FuncDialect,

@@ -1123,16 +1123,12 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
-def ReplaceDeviceCall : Pass<"replace-device-call", "mlir::func::FuncOp"> {
+def DeviceCallShmem : Pass<"device-call-shmem", "mlir::func::FuncOp"> {
   let summary = "Replace cudaq::device_call with a dispatch hook.";
 
   let description = [{
-    Replace cudaq::device_call with a call to dispatch callback hook. The function name can be customized.
+    Replace cudaq::device_call with a call to dispatch callback hook assuming a shared memory model.
   }];
-  
-  let options = [
-    Option<"callback", "callback", "std::string", /*default=*/"\"__nvqlink_device_call_dispatch\"", "The name of the dispatch callback function.">
-  ];
 }
 
 def SROA : Pass<"cc-sroa"> {
