@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "TrajectoryMetadata.h"
+#include "KrausTrajectory.h"
 #include <cstddef>
 #include <vector>
 
@@ -21,33 +21,25 @@ struct GateApplicationTask;
 namespace cudaq::ptsbe {
 
 /// @brief Complete result from PreTrajectorySamplingEngine
-/// Contains task lists for execution and metadata for annotation
 template <typename ScalarType>
 struct PTSBEResult {
   /// @brief Task lists - one complete trajectory per inner vector
-  /// Each GateApplicationTask is either a gate or a deterministic noise
-  /// operation (Kraus op) Task lists contain only unitary operations - noise
-  /// channels are pre-sampled
+  /// Each inner vector contains GateApplicationTasks (original gates + noise operations)
   std::vector<std::vector<nvqir::GateApplicationTask<ScalarType>>> task_lists;
 
-  /// @brief Metadata for each trajectory
-  /// Index i in metadata corresponds to task_lists[i]
-  std::vector<TrajectoryMetadata> metadata;
+  /// @brief Trajectory metadata
+  std::vector<cudaq::KrausTrajectory> trajectories;
 
-  /// @brief Shots allocated to each trajectory
-  std::vector<std::size_t> shots_per_trajectory;
-
-  /// @brief Qubits to measure
+  /// @brief Qubits to measure (same for all trajectories)
   std::vector<std::size_t> measure_qubits;
 
   /// @brief Default constructor
   PTSBEResult() = default;
 
   /// @brief Check if result is valid
-  /// @return true if all vectors have matching sizes and are non-empty
+  /// @return true if task_lists and trajectories have matching sizes and are non-empty
   [[nodiscard]] constexpr bool isValid() const {
-    return task_lists.size() == metadata.size() &&
-           task_lists.size() == shots_per_trajectory.size() &&
+    return task_lists.size() == trajectories.size() &&
            !task_lists.empty();
   }
 

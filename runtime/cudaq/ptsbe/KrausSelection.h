@@ -39,9 +39,6 @@ struct KrausSelection {
   /// @brief Which Kraus operator from the noise channel was selected
   KrausOperatorIndex kraus_operator_index = KrausOperatorIndex::IDENTITY;
 
-  /// @brief Description like "X error on qubit 3"
-  std::string description;
-
   /// @brief Default constructor
   KrausSelection() = default;
 
@@ -50,12 +47,10 @@ struct KrausSelection {
   /// @param qbits Qubits affected by this noise operation
   /// @param op Gate operation name (e.g., "h", "x", `"cx"`)
   /// @param idx Selected Kraus operator index from noise channel
-  /// @param desc description
   KrausSelection(std::size_t location, std::vector<std::size_t> qbits,
-                 std::string op, KrausOperatorIndex idx, std::string desc = "")
+                 std::string op, KrausOperatorIndex idx)
       : circuit_location(location), qubits(std::move(qbits)),
-        op_name(std::move(op)), kraus_operator_index(idx),
-        description(std::move(desc)) {}
+        op_name(std::move(op)), kraus_operator_index(idx) {}
 
   /// @brief Equality comparison for testing
   /// @param other KrausSelection to compare with
