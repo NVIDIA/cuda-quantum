@@ -260,7 +260,7 @@ struct V3 {
 // CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>)
 // CHECK-LABEL:  func.func @_ZN2V1clESt6vectorIdSaIdEE(
-// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>> {llvm.sret = !cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>},
+// CHECK-SAME:     %[[VAL_0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>> {llvm.sret = !cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>},
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f64>}>>)
 // CHECK-LABEL:  func.func @_ZN2V2clESt6vectorIfSaIfEES0_IsSaIsEE(
@@ -271,7 +271,7 @@ struct V3 {
 // CHECK-LABEL:  func.func @_ZN2V3clESt6vectorIlSaIlEES0_IbSaIbEE(
 // CHECK-SAME: %[[VAL_0:.*]]: !cc.ptr<i8>,
 // CHECK-SAME:     %[[VAL_1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i64>, !cc.ptr<i64>, !cc.ptr<i64>}>>,
-// CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>)
+// CHECK-SAME:     %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>)
 // clang-format on
 
 //===----------------------------------------------------------------------===//

@@ -23,6 +23,9 @@ target_include_directories(quantum_lib
     ${pybind11_INCLUDE_DIRS}
 )
 
+# Dependencies: quantum_lib uses nvq++ as its compiler, so we need the full
+# toolchain built first. fixup-linkage is a post-build step that adjusts
+# library paths on macOS (rpath fixups for relocatable installs).
 add_dependencies(quantum_lib
-  nvq++ cudaq-opt cudaq-quake cudaq-translate
+  nvq++ cudaq-opt cudaq-quake cudaq-translate cudaq-target-conf fixup-linkage
 )

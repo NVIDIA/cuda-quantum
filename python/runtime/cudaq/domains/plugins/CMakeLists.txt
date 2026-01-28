@@ -16,8 +16,11 @@ if (SKBUILD)
     PRIVATE
       pybind11::pybind11 Python::Module
       cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
-  target_link_options(cudaq-pyscf
-    PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
+  # Apple's linker (ld64) doesn't support --unresolved-symbols flag
+  if (NOT APPLE)
+    target_link_options(cudaq-pyscf
+      PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
+  endif()
 else()
   if (NOT Python_FOUND)
     message(FATAL_ERROR "find_package(Python) not run?")

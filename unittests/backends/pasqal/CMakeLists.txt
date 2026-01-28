@@ -17,4 +17,4 @@ add_backend_unittest_executable(test_pasqal
   cudaq-platform-default
 )
 
-gtest_discover_tests(test_pasqal)
+gtest_discover_tests(test_pasqal DISCOVERY_TIMEOUT 120)

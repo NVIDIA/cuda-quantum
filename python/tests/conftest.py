@@ -5,20 +5,15 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+"""
+Shared pytest fixtures and markers for CUDA-Q Python tests.
+"""
 
-add_executable(test_record RecordParserTester.cpp)
+import sys
+import platform
+import pytest
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_record PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
-target_include_directories(test_record PRIVATE ..)
-target_link_libraries(test_record
-  PRIVATE
-    fmt::fmt-header-only
-    cudaq
-    fmt::fmt-header-only
-    cudaq-common
-    gtest_main
-    cudaq-platform-default)
-
-gtest_discover_tests(test_record DISCOVERY_TIMEOUT 120)
+# Decorator for tests that fail on macOS ARM64 due to JIT exception handling bug.
+skip_macos_arm64_jit_exception = pytest.mark.skipif(
+    sys.platform == 'darwin' and platform.machine() == 'arm64',
+    reason="JIT exception handling broken on macOS ARM64 (llvm-project#49036)")

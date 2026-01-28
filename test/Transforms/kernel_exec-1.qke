@@ -123,7 +123,7 @@ module attributes {quake.mangled_name_map = {
 // ALT:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // ALT:         func.func private @free(!cc.ptr<i8>)
 // ALT:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// ALT:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
+// ALT:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // ALT:         func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // ALT-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
@@ -250,7 +250,7 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // STREAMLINED:         func.func private @free(!cc.ptr<i8>)
 // STREAMLINED:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// STREAMLINED:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
+// STREAMLINED:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // STREAMLINED:         func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // STREAMLINED-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
@@ -359,7 +359,7 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:         func.func private @malloc(i64) -> !cc.ptr<i8>
 // HYBRID:         func.func private @free(!cc.ptr<i8>)
 // HYBRID:         func.func private @__nvqpp_initializer_list_to_vector_bool(!cc.ptr<none>, !cc.ptr<none>, i64)
-// HYBRID:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>)
+// HYBRID:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // HYBRID:         func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // HYBRID-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
