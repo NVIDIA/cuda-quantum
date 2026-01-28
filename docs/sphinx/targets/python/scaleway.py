@@ -12,13 +12,22 @@ import cudaq
 # Scaleway costs apply.
 cudaq.set_target("scaleway")
 
-# The default device is SV1, state vector simulator. Users may choose any of
+# The default device is EMU-CUDAQ-H100, a state vector simulator running on an H100 GPU. Users may choose any of
 # the available devices by supplying its name with the `machine` parameter.
 # For example,
 # ```
 # cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100")
 # ```
-
+# To ensure we keep the same QPU session between runs, we can also specify the `deduplication_id` parameter.
+# For example,
+# ```
+# cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", deduplication_id="my_unique_id_1234")
+# ```
+# Users may also specify QPU session duration limits with the `max_duration` and `max_idle_duration` parameters.
+# For example,
+# ```
+# cudaq.set_target("scaleway", machine="EMU-CUDAQ-H100", max_duration="30m", max_idle_duration="5m")
+# ```
 
 # Create the kernel we'd like to execute
 @cudaq.kernel
@@ -43,6 +52,6 @@ print(async_counts)
 # Option B:
 # By using the synchronous `cudaq.sample`, the execution of
 # any remaining classical code in the file will occur only
-# after the job has been returned from Scaleway.
+# after the job has been returned from Scaleway QaaS.
 counts = cudaq.sample(kernel)
 print(counts)

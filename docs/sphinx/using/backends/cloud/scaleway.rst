@@ -53,13 +53,6 @@ To execute kernels on a specific Scaleway quantum device, pass the
 where <offer_name> refers to a Scaleway simulator or QPU available in your
 project.
 
-To emulate the target locally without submitting a job to the Scaleway cloud,
-use the --emulate flag:
-
-.. code:: bash
-
-    nvq++ --emulate --target scaleway src.cpp
-
 Submission from Python
 ``````````````````````
 
@@ -71,7 +64,7 @@ The target backend for quantum kernel execution can be selected using the
    import cudaq
    cudaq.set_target("scaleway")
 
-By default, kernels are executed on a Scaleway quantum simulator.
+By default, kernels are executed on a Scaleway quantum emulator.
 
 To select a specific Scaleway device, set the ``machine`` parameter:
 

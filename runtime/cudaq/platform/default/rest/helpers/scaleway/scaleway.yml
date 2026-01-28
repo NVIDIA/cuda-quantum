@@ -30,20 +30,35 @@ target-arguments:
   - key: api-url
     required: false
     type: string
-    platform-arg: api-url
+    platform-arg: api_url
     help-string: "Scaleway API URL."
   - key: machine
     required: false
     type: string
-    platform-arg: qpu
+    platform-arg: machine
     help-string: "Specify the target machine to run the job."
   - key: project-id
     required: false
     type: string
-    platform-arg: project-id
+    platform-arg: project_id
     help-string: "Your Scaleway project ID."
   - key: secret-key
     required: false
     type: string
-    platform-arg: secret-key
+    platform-arg: secret_key
     help-string: "Your Scaleway secret key."
+  - key: deduplication-id
+    required: false
+    type: string
+    platform-arg: deduplication_id
+    help-string: "Temporal deduplication string to identify QPU sessions and keep the same session between runs or clients."
+  - key: max-duration
+    required: false
+    type: string
+    platform-arg: max_duration
+    help-string: "Maximum duration of the QPU session before being terminated."
+  - key: max-idle-duration
+    required: false
+    type: string
+    platform-arg: max_idle_duration
+    help-string: "Maximum idle duration of the QPU session after any activity."

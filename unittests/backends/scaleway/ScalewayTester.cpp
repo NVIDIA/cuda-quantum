@@ -1,14 +1,8 @@
-<<<<<<< HEAD
 
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2025 IQM Quantum Computers                                        *
-=======
-/*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
- * All rights reserved.                                                        *
->>>>>>> 15800b4234 (feat(scaleway): add test structure)
+ * Copyright 2025 Scaleway                                                     *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
