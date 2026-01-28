@@ -4384,75 +4384,72 @@ pr-3805
 ## E {#E}
 
 +-----------------------------------+-----------------------------------+
-| -   [ElementaryOperator (in       | -   [evaluate_coefficient()       |
-|     module                        |     (cudaq.                       |
-|     cudaq.operators)]             | operators.boson.BosonOperatorTerm |
-| (api/languages/python_api.html#cu |     m                             |
-| daq.operators.ElementaryOperator) | ethod)](api/languages/python_api. |
-| -   [empty()                      | html#cudaq.operators.boson.BosonO |
-|     (cu                           | peratorTerm.evaluate_coefficient) |
-| daq.operators.boson.BosonOperator |     -   [(cudaq.oper              |
-|     static                        | ators.fermion.FermionOperatorTerm |
-|     method)](api/la               |         metho                     |
-| nguages/python_api.html#cudaq.ope | d)](api/languages/python_api.html |
-| rators.boson.BosonOperator.empty) | #cudaq.operators.fermion.FermionO |
+| -   [ElementaryOperator (in       | -   [evaluate()                   |
+|     module                        |                                   |
+|     cudaq.operators)]             |   (cudaq.operators.ScalarOperator |
+| (api/languages/python_api.html#cu |     method)](api/                 |
+| daq.operators.ElementaryOperator) | languages/python_api.html#cudaq.o |
+| -   [empty()                      | perators.ScalarOperator.evaluate) |
+|     (cu                           | -   [evaluate_coefficient()       |
+| daq.operators.boson.BosonOperator |     (cudaq.                       |
+|     static                        | operators.boson.BosonOperatorTerm |
+|     method)](api/la               |     m                             |
+| nguages/python_api.html#cudaq.ope | ethod)](api/languages/python_api. |
+| rators.boson.BosonOperator.empty) | html#cudaq.operators.boson.BosonO |
 |     -   [(cudaq.                  | peratorTerm.evaluate_coefficient) |
-| operators.fermion.FermionOperator |     -   [(c                       |
-|         static                    | udaq.operators.MatrixOperatorTerm |
-|         method)](api/langua       |                                   |
-| ges/python_api.html#cudaq.operato |     method)](api/languages/python |
-| rs.fermion.FermionOperator.empty) | _api.html#cudaq.operators.MatrixO |
+| operators.fermion.FermionOperator |     -   [(cudaq.oper              |
+|         static                    | ators.fermion.FermionOperatorTerm |
+|         method)](api/langua       |         metho                     |
+| ges/python_api.html#cudaq.operato | d)](api/languages/python_api.html |
+| rs.fermion.FermionOperator.empty) | #cudaq.operators.fermion.FermionO |
 |     -                             | peratorTerm.evaluate_coefficient) |
-|  [(cudaq.operators.MatrixOperator |     -   [(cuda                    |
-|         static                    | q.operators.spin.SpinOperatorTerm |
+|  [(cudaq.operators.MatrixOperator |     -   [(c                       |
+|         static                    | udaq.operators.MatrixOperatorTerm |
 |         method)](a                |                                   |
-| pi/languages/python_api.html#cuda |  method)](api/languages/python_ap |
-| q.operators.MatrixOperator.empty) | i.html#cudaq.operators.spin.SpinO |
+| pi/languages/python_api.html#cuda |     method)](api/languages/python |
+| q.operators.MatrixOperator.empty) | _api.html#cudaq.operators.MatrixO |
 |     -   [(                        | peratorTerm.evaluate_coefficient) |
-| cudaq.operators.spin.SpinOperator | -   [evolve() (in module          |
-|         static                    |     cudaq)](api/langua            |
-|         method)](api/             | ges/python_api.html#cudaq.evolve) |
-| languages/python_api.html#cudaq.o | -   [evolve_async() (in module    |
-| perators.spin.SpinOperator.empty) |     cudaq)](api/languages/py      |
-|     -   [(in module               | thon_api.html#cudaq.evolve_async) |
-|                                   | -   [EvolveResult (class in       |
-|     cudaq.boson)](api/languages/p |     cudaq)](api/languages/py      |
-| ython_api.html#cudaq.boson.empty) | thon_api.html#cudaq.EvolveResult) |
-|     -   [(in module               | -   [expectation()                |
-|                                   |     (cudaq.ObserveResult          |
-| cudaq.fermion)](api/languages/pyt |     metho                         |
-| hon_api.html#cudaq.fermion.empty) | d)](api/languages/python_api.html |
-|     -   [(in module               | #cudaq.ObserveResult.expectation) |
-|         cudaq.operators.cu        |     -   [(cudaq.SampleResult      |
-| stom)](api/languages/python_api.h |         meth                      |
-| tml#cudaq.operators.custom.empty) | od)](api/languages/python_api.htm |
-|     -   [(in module               | l#cudaq.SampleResult.expectation) |
-|                                   | -   [expectation_values()         |
-|       cudaq.spin)](api/languages/ |     (cudaq.EvolveResult           |
-| python_api.html#cudaq.spin.empty) |     method)](ap                   |
-| -   [empty_op()                   | i/languages/python_api.html#cudaq |
-|     (                             | .EvolveResult.expectation_values) |
-| cudaq.operators.spin.SpinOperator | -   [expectation_z()              |
-|     static                        |     (cudaq.SampleResult           |
-|     method)](api/lan              |     method                        |
-| guages/python_api.html#cudaq.oper | )](api/languages/python_api.html# |
-| ators.spin.SpinOperator.empty_op) | cudaq.SampleResult.expectation_z) |
-| -   [enable_return_to_log()       | -   [expected_dimensions          |
-|     (cudaq.PyKernelDecorator      |     (cuda                         |
-|     method)](api/langu            | q.operators.MatrixOperatorElement |
-| ages/python_api.html#cudaq.PyKern |                                   |
-| elDecorator.enable_return_to_log) | property)](api/languages/python_a |
-| -   [estimate_resources() (in     | pi.html#cudaq.operators.MatrixOpe |
-|     module                        | ratorElement.expected_dimensions) |
-|                                   | -   [extract_c_function_pointer() |
-|    cudaq)](api/languages/python_a |     (cudaq.PyKernelDecorator      |
-| pi.html#cudaq.estimate_resources) |     method)](api/languages/p      |
-| -   [evaluate()                   | ython_api.html#cudaq.PyKernelDeco |
-|                                   | rator.extract_c_function_pointer) |
-|   (cudaq.operators.ScalarOperator |                                   |
-|     method)](api/                 |                                   |
-| languages/python_api.html#cudaq.o |                                   |
-| perators.ScalarOperator.evaluate) |                                   |
+| cudaq.operators.spin.SpinOperator |     -   [(cuda                    |
+|         static                    | q.operators.spin.SpinOperatorTerm |
+|         method)](api/             |                                   |
+| languages/python_api.html#cudaq.o |  method)](api/languages/python_ap |
+| perators.spin.SpinOperator.empty) | i.html#cudaq.operators.spin.SpinO |
+|     -   [(in module               | peratorTerm.evaluate_coefficient) |
+|                                   | -   [evolve() (in module          |
+|     cudaq.boson)](api/languages/p |     cudaq)](api/langua            |
+| ython_api.html#cudaq.boson.empty) | ges/python_api.html#cudaq.evolve) |
+|     -   [(in module               | -   [evolve_async() (in module    |
+|                                   |     cudaq)](api/languages/py      |
+| cudaq.fermion)](api/languages/pyt | thon_api.html#cudaq.evolve_async) |
+| hon_api.html#cudaq.fermion.empty) | -   [EvolveResult (class in       |
+|     -   [(in module               |     cudaq)](api/languages/py      |
+|         cudaq.operators.cu        | thon_api.html#cudaq.EvolveResult) |
+| stom)](api/languages/python_api.h | -   [expectation()                |
+| tml#cudaq.operators.custom.empty) |     (cudaq.ObserveResult          |
+|     -   [(in module               |     metho                         |
+|                                   | d)](api/languages/python_api.html |
+|       cudaq.spin)](api/languages/ | #cudaq.ObserveResult.expectation) |
+| python_api.html#cudaq.spin.empty) |     -   [(cudaq.SampleResult      |
+| -   [empty_op()                   |         meth                      |
+|     (                             | od)](api/languages/python_api.htm |
+| cudaq.operators.spin.SpinOperator | l#cudaq.SampleResult.expectation) |
+|     static                        | -   [expectation_values()         |
+|     method)](api/lan              |     (cudaq.EvolveResult           |
+| guages/python_api.html#cudaq.oper |     method)](ap                   |
+| ators.spin.SpinOperator.empty_op) | i/languages/python_api.html#cudaq |
+| -   [enable_return_to_log()       | .EvolveResult.expectation_values) |
+|     (cudaq.PyKernelDecorator      | -   [expectation_z()              |
+|     method)](api/langu            |     (cudaq.SampleResult           |
+| ages/python_api.html#cudaq.PyKern |     method                        |
+| elDecorator.enable_return_to_log) | )](api/languages/python_api.html# |
+| -   [estimate_resources() (in     | cudaq.SampleResult.expectation_z) |
+|     module                        | -   [expected_dimensions          |
+|                                   |     (cuda                         |
+|    cudaq)](api/languages/python_a | q.operators.MatrixOperatorElement |
+| pi.html#cudaq.estimate_resources) |                                   |
+|                                   | property)](api/languages/python_a |
+|                                   | pi.html#cudaq.operators.MatrixOpe |
+|                                   | ratorElement.expected_dimensions) |
 +-----------------------------------+-----------------------------------+
 
 ## F {#F}
