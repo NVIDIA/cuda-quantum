@@ -126,9 +126,6 @@ set_source_files_properties(
 )
 
 target_include_directories(cudaq-mlir-runtime
-  PUBLIC
-    $<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
-    $<BUILD_INTERFACE:${MLIR_INCLUDE_DIRS}>
   PRIVATE .
     ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
     ${CMAKE_SOURCE_DIR}/tpls/fmt/include
@@ -137,7 +134,6 @@ target_include_directories(cudaq-mlir-runtime
 target_link_libraries(cudaq-mlir-runtime
   PUBLIC
     nvqir
-  PRIVATE
     CCDialect
     QuakeDialect
     OptCodeGen
@@ -146,6 +142,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRIR
     MLIRParser
     MLIRPass
+    MLIRTranslateLib
     MLIRSupport
     MLIROptLib
     MLIRExecutionEngine
@@ -153,17 +150,9 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
-    LLVMCodeGen
+  PRIVATE
     cudaq
     spdlog::spdlog
 )
-
-# macOS Two-Level Namespace: Force-load LLVM CodeGen libraries to ensure
-# static initializers (TargetRegistry, PassRegistry) run in this library's
-# context. Without this, LLVM targets aren't registered and JIT fails.
-# This library centralizes LLVM/MLIR symbols for the runtime layer.
-# Other libraries (like Python extensions) should NOT use this workaround -
-# they should link against this library instead.
-add_lib_loading_macos_workaround(cudaq-mlir-runtime TRUE)
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)
