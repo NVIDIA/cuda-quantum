@@ -1,20 +1,15 @@
-add_executable(test_qibo QiboTester.cpp)
-target_include_directories(test_qibo PRIVATE ../..)
-target_link_libraries(test_qibo
-  PRIVATE fmt::fmt-header-only 
-  PRIVATE
-  cudaq-common
-  cudaq-builder
-  cudaq-mlir-runtime
-  cudaq-rest-qpu
-  cudaq-operator
-  cudaq-platform-default 
-  cudaq
-  gtest_main
-)
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/QiboStartServerAndTest.sh.in
-              ${CMAKE_CURRENT_BINARY_DIR}/QiboStartServerAndTest.sh @ONLY)
+add_backend_unittest_executable(test_qibo 
+  SOURCES QiboTester.cpp
+  BACKEND qibo
+  )
 
-add_test(NAME QiboTester COMMAND ${CMAKE_CURRENT_BINARY_DIR}/QiboStartServerAndTest.sh)
-set_tests_properties(QiboTester PROPERTIES TIMEOUT 120)
+configure_file("QiboStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/qibo/QiboStartServerAndTest.sh" @ONLY)
+add_test(NAME qibo-tests COMMAND bash QiboStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/qibo/)
