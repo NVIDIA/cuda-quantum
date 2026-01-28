@@ -11,7 +11,7 @@
 
 using namespace cudaq;
 
-// Create a simple trajectory for testing
+// A simple trajectory for testing
 static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t errors = 0) {
   std::vector<KrausSelection> selections;

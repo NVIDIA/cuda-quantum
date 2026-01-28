@@ -13,7 +13,7 @@
 using namespace cudaq;
 using namespace cudaq::ptsbe;
 
-// Create a simple trajectory for testing
+// A simple trajectory for testing
 static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t errors = 0) {
   std::vector<KrausSelection> selections;
@@ -259,15 +259,15 @@ CUDAQ_TEST(ShotAllocationTest, CompareLowVsHighWeightBias) {
 CUDAQ_TEST(ShotAllocationTest, CountErrorsHelper) {
   // No errors
   KrausTrajectory traj0 = makeTrajectory(0, 0.5, 0);
-  EXPECT_EQ(countErrors(traj0), 0);
+  EXPECT_EQ(traj0.countErrors(), 0);
 
   // 1 error
   KrausTrajectory traj1 = makeTrajectory(1, 0.3, 1);
-  EXPECT_EQ(countErrors(traj1), 1);
+  EXPECT_EQ(traj1.countErrors(), 1);
 
   // 5 errors
   KrausTrajectory traj5 = makeTrajectory(2, 0.1, 5);
-  EXPECT_EQ(countErrors(traj5), 5);
+  EXPECT_EQ(traj5.countErrors(), 5);
 
   // Some identity, some errors
   std::vector<KrausSelection> mixed = {
@@ -277,7 +277,7 @@ CUDAQ_TEST(ShotAllocationTest, CountErrorsHelper) {
       KrausSelection(3, {1}, "h", KrausOperatorType{2})             // Error
   };
   KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
-  EXPECT_EQ(countErrors(traj_mixed), 2);
+  EXPECT_EQ(traj_mixed.countErrors(), 2);
 }
 
 CUDAQ_TEST(ShotAllocationTest, VerySmallProbabilities) {
@@ -407,12 +407,12 @@ CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsMultiple) {
       KrausSelection(2, {0}, "y", KrausOperatorType{2})};
   KrausTrajectory traj(1, with_errors, 0.5, 100);
 
-  EXPECT_EQ(countErrors(traj), 2);
+  EXPECT_EQ(traj.countErrors(), 2);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsEmpty) {
   KrausTrajectory empty_traj(0, {}, 1.0, 100);
-  EXPECT_EQ(countErrors(empty_traj), 0);
+  EXPECT_EQ(empty_traj.countErrors(), 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
@@ -422,5 +422,5 @@ CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
       KrausSelection(2, {0}, "y", KrausOperatorType::IDENTITY)};
   KrausTrajectory traj(0, no_errors, 1.0, 100);
 
-  EXPECT_EQ(countErrors(traj), 0);
+  EXPECT_EQ(traj.countErrors(), 0);
 }

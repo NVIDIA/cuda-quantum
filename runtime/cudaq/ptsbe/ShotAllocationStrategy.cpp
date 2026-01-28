@@ -67,7 +67,7 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
     weights.reserve(trajectories.size());
 
     for (const auto &traj : trajectories) {
-      std::size_t error_count = countErrors(traj);
+      std::size_t error_count = traj.countErrors();
       // weight = (1 + error_count)^(-bias_strength) * probability
       // Lower error_count → higher weight
       double weight = std::pow(1.0 + error_count, -strategy.bias_strength) *
@@ -94,7 +94,7 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
     weights.reserve(trajectories.size());
 
     for (const auto &traj : trajectories) {
-      std::size_t error_count = countErrors(traj);
+      std::size_t error_count = traj.countErrors();
       // weight = (1 + error_count)^(+bias_strength) * probability
       // Higher error_count → higher weight
       double weight = std::pow(1.0 + error_count, strategy.bias_strength) *
