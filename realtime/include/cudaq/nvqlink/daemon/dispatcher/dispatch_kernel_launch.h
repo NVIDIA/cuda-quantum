@@ -67,4 +67,39 @@ constexpr std::uint32_t fnv1a_hash(const char *str) {
 constexpr std::uint32_t RPC_MAGIC_REQUEST = 0x43555152;  // 'CUQR'
 constexpr std::uint32_t RPC_MAGIC_RESPONSE = 0x43555153; // 'CUQS'
 
+//==============================================================================
+// Schema-Driven Type System
+//==============================================================================
+
+/// @brief Standardized payload type identifiers for RPC arguments/results.
+enum PayloadTypeID : std::uint8_t {
+  TYPE_UINT8 = 0x10,
+  TYPE_INT32 = 0x11,
+  TYPE_INT64 = 0x12,
+  TYPE_FLOAT32 = 0x13,
+  TYPE_FLOAT64 = 0x14,
+  TYPE_ARRAY_UINT8 = 0x20,
+  TYPE_ARRAY_INT32 = 0x21,
+  TYPE_ARRAY_FLOAT32 = 0x22,
+  TYPE_ARRAY_FLOAT64 = 0x23,
+  TYPE_BIT_PACKED = 0x30
+};
+
+/// @brief Type descriptor for a single argument or result.
+struct __attribute__((packed)) cudaq_type_desc_t {
+  std::uint8_t type_id;       ///< PayloadTypeID value
+  std::uint8_t reserved[3];   ///< Padding for alignment
+  std::uint32_t size_bytes;   ///< Total size in bytes
+  std::uint32_t num_elements; ///< Number of elements (for arrays)
+};
+
+/// @brief Handler schema describing argument and result types.
+struct __attribute__((packed)) cudaq_handler_schema_t {
+  std::uint8_t num_args;         ///< Number of arguments
+  std::uint8_t num_results;      ///< Number of results
+  std::uint16_t reserved;        ///< Padding for alignment
+  cudaq_type_desc_t args[8];     ///< Argument type descriptors (max 8)
+  cudaq_type_desc_t results[4];  ///< Result type descriptors (max 4)
+};
+
 } // namespace cudaq::nvqlink

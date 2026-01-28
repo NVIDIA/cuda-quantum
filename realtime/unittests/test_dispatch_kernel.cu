@@ -61,10 +61,31 @@ __device__ int rpc_increment_handler(void* buffer, std::uint32_t arg_len,
   return 0;
 }
 
-__global__ void init_rpc_function_table(void** table, std::uint32_t* ids) {
+__global__ void init_rpc_function_table(cudaq_function_entry_t* entries) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    table[0] = reinterpret_cast<void*>(&rpc_increment_handler);
-    ids[0] = RPC_INCREMENT_FUNCTION_ID;
+    entries[0].handler.device_fn_ptr = reinterpret_cast<void*>(&rpc_increment_handler);
+    entries[0].function_id = RPC_INCREMENT_FUNCTION_ID;
+    entries[0].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+    entries[0].reserved[0] = 0;
+    entries[0].reserved[1] = 0;
+    entries[0].reserved[2] = 0;
+    
+    // Schema: 1 array argument (uint8), 1 array result (uint8)
+    entries[0].schema.num_args = 1;
+    entries[0].schema.num_results = 1;
+    entries[0].schema.reserved = 0;
+    entries[0].schema.args[0].type_id = CUDAQ_TYPE_ARRAY_UINT8;
+    entries[0].schema.args[0].reserved[0] = 0;
+    entries[0].schema.args[0].reserved[1] = 0;
+    entries[0].schema.args[0].reserved[2] = 0;
+    entries[0].schema.args[0].size_bytes = 0;  // Variable size
+    entries[0].schema.args[0].num_elements = 0; // Variable size
+    entries[0].schema.results[0].type_id = CUDAQ_TYPE_ARRAY_UINT8;
+    entries[0].schema.results[0].reserved[0] = 0;
+    entries[0].schema.results[0].reserved[1] = 0;
+    entries[0].schema.results[0].reserved[2] = 0;
+    entries[0].schema.results[0].size_bytes = 0;  // Variable size
+    entries[0].schema.results[0].num_elements = 0; // Variable size
   }
 }
 
@@ -124,8 +145,7 @@ void free_ring_buffer(volatile uint64_t* host_flags,
 extern "C" void launch_dispatch_kernel_wrapper(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
-    void** function_table,
-    std::uint32_t* function_ids,
+    cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
@@ -133,8 +153,8 @@ extern "C" void launch_dispatch_kernel_wrapper(
     std::uint32_t num_blocks,
     std::uint32_t threads_per_block,
     cudaStream_t stream) {
-  cudaq::nvqlink::launch_dispatch_kernel_regular_inline(
-      rx_flags, tx_flags, function_table, function_ids, func_count,
+  cudaq_launch_dispatch_kernel_regular(
+      rx_flags, tx_flags, function_table, func_count,
       shutdown_flag, stats, num_slots, num_blocks, threads_per_block, stream);
 }
 
@@ -283,9 +303,8 @@ protected:
     CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
     CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
 
-    CUDA_CHECK(cudaMalloc(&d_function_table_, sizeof(void*)));
-    CUDA_CHECK(cudaMalloc(&d_function_ids_, sizeof(std::uint32_t)));
-    init_rpc_function_table<<<1, 1>>>(d_function_table_, d_function_ids_);
+    CUDA_CHECK(cudaMalloc(&d_function_entries_, sizeof(cudaq_function_entry_t)));
+    init_rpc_function_table<<<1, 1>>>(d_function_entries_);
     CUDA_CHECK(cudaDeviceSynchronize());
     func_count_ = 1;
 
@@ -307,8 +326,7 @@ protected:
     ASSERT_EQ(cudaq_dispatcher_set_ringbuffer(dispatcher_, &ringbuffer), CUDAQ_OK);
 
     cudaq_function_table_t table{};
-    table.device_function_ptrs = d_function_table_;
-    table.function_ids = d_function_ids_;
+    table.entries = d_function_entries_;
     table.count = func_count_;
     ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table), CUDAQ_OK);
 
@@ -342,10 +360,8 @@ protected:
       cudaFreeHost(const_cast<int*>(shutdown_flag_));
     if (d_stats_)
       cudaFree(d_stats_);
-    if (d_function_table_)
-      cudaFree(d_function_table_);
-    if (d_function_ids_)
-      cudaFree(d_function_ids_);
+    if (d_function_entries_)
+      cudaFree(d_function_entries_);
   }
 
   void write_rpc_request(std::size_t slot,
@@ -401,8 +417,7 @@ protected:
   volatile int* d_shutdown_flag_ = nullptr;
   uint64_t* d_stats_ = nullptr;
 
-  void** d_function_table_ = nullptr;
-  std::uint32_t* d_function_ids_ = nullptr;
+  cudaq_function_entry_t* d_function_entries_ = nullptr;
   std::size_t func_count_ = 0;
 
   cudaq_dispatch_manager_t* manager_ = nullptr;

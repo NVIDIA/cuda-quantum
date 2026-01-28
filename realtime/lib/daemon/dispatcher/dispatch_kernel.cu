@@ -4,6 +4,7 @@
 // This source code and the accompanying materials are made available under
 // the terms of the Apache License 2.0 which accompanies this distribution.
 
+#include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatch_kernel.cuh"
 #include "cudaq/nvqlink/daemon/dispatcher/dispatch_modes.h"
@@ -18,15 +19,14 @@ namespace cudaq::nvqlink {
 // Dispatch Kernel Implementation (compiled into libcudaq-realtime.so)
 //==============================================================================
 
-/// @brief Lookup function in table by function_id.
-__device__ inline DeviceRPCFunction dispatch_lookup_function(
+/// @brief Lookup function entry in table by function_id.
+__device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
     std::uint32_t function_id,
-    void** function_table,
-    std::uint32_t* function_ids,
-    std::size_t func_count) {
-  for (std::size_t i = 0; i < func_count; ++i) {
-    if (function_ids[i] == function_id) {
-      return reinterpret_cast<DeviceRPCFunction>(function_table[i]);
+    cudaq_function_entry_t* entries,
+    std::size_t entry_count) {
+  for (std::size_t i = 0; i < entry_count; ++i) {
+    if (entries[i].function_id == function_id) {
+      return &entries[i];
     }
   }
   return nullptr;
@@ -37,8 +37,7 @@ template <typename KernelType, typename DispatchMode>
 __global__ void dispatch_kernel(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
-    void** function_table,
-    std::uint32_t* function_ids,
+    cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
@@ -63,9 +62,11 @@ __global__ void dispatch_kernel(
         std::uint32_t arg_len = header->arg_len;
         void* arg_buffer = static_cast<void*>(header + 1);
 
-        DeviceRPCFunction func = dispatch_lookup_function(
-            function_id, function_table, function_ids, func_count);
-        if (func != nullptr) {
+        const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+            function_id, function_table, func_count);
+        if (entry != nullptr && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
+          DeviceRPCFunction func = 
+              reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
           std::uint32_t result_len = 0;
           std::uint32_t max_result_len = 1024;
           int status = func(arg_buffer, arg_len, max_result_len, &result_len);
@@ -103,8 +104,7 @@ __global__ void dispatch_kernel(
 extern "C" void cudaq_launch_dispatch_kernel_regular(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
-    void** function_table,
-    std::uint32_t* function_ids,
+    cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
@@ -115,15 +115,14 @@ extern "C" void cudaq_launch_dispatch_kernel_regular(
   cudaq::nvqlink::dispatch_kernel<cudaq::realtime::RegularKernel,
                                   cudaq::realtime::DeviceCallMode>
       <<<num_blocks, threads_per_block, 0, stream>>>(
-          rx_flags, tx_flags, function_table, function_ids,
-          func_count, shutdown_flag, stats, num_slots);
+          rx_flags, tx_flags, function_table, func_count,
+          shutdown_flag, stats, num_slots);
 }
 
 extern "C" void cudaq_launch_dispatch_kernel_cooperative(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
-    void** function_table,
-    std::uint32_t* function_ids,
+    cudaq_function_entry_t* function_table,
     std::size_t func_count,
     volatile int* shutdown_flag,
     std::uint64_t* stats,
@@ -135,7 +134,6 @@ extern "C" void cudaq_launch_dispatch_kernel_cooperative(
       const_cast<std::uint64_t**>(&rx_flags),
       const_cast<std::uint64_t**>(&tx_flags),
       &function_table,
-      &function_ids,
       &func_count,
       const_cast<int**>(&shutdown_flag),
       &stats,
