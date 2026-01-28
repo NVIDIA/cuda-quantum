@@ -59,7 +59,7 @@ countErrors(const cudaq::KrausTrajectory &trajectory) {
   namespace views = std::views;
   return std::ranges::count_if(
       trajectory.kraus_selections, [](const auto &sel) {
-        return sel.kraus_operator_index != cudaq::KrausOperatorIndex::IDENTITY;
+        return sel.kraus_operator_index != cudaq::KrausOperatorType::IDENTITY;
       });
 }
 

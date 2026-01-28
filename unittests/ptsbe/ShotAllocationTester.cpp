@@ -18,7 +18,7 @@ static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t errors = 0) {
   std::vector<KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
-    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorIndex{1}));
+    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorType{1}));
   }
   // num_shots=0, to be allocated
   return KrausTrajectory(id, selections, prob, 0);
@@ -271,10 +271,10 @@ CUDAQ_TEST(ShotAllocationTest, CountErrorsHelper) {
 
   // Some identity, some errors
   std::vector<KrausSelection> mixed = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),     // No error
-      KrausSelection(1, {0}, "x", KrausOperatorIndex{1}),            // Error
-      KrausSelection(2, {0, 1}, "cx", KrausOperatorIndex::IDENTITY), // No error
-      KrausSelection(3, {1}, "h", KrausOperatorIndex{2})             // Error
+      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),     // No error
+      KrausSelection(1, {0}, "x", KrausOperatorType{1}),            // Error
+      KrausSelection(2, {0, 1}, "cx", KrausOperatorType::IDENTITY), // No error
+      KrausSelection(3, {1}, "h", KrausOperatorType{2})             // Error
   };
   KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
   EXPECT_EQ(countErrors(traj_mixed), 2);
@@ -402,9 +402,9 @@ CUDAQ_TEST(ShotAllocationTest, SpanWithSubrange) {
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsMultiple) {
   std::vector<KrausSelection> with_errors = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex{1}),
-      KrausSelection(1, {0}, "x", KrausOperatorIndex::IDENTITY),
-      KrausSelection(2, {0}, "y", KrausOperatorIndex{2})};
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0}, "x", KrausOperatorType::IDENTITY),
+      KrausSelection(2, {0}, "y", KrausOperatorType{2})};
   KrausTrajectory traj(1, with_errors, 0.5, 100);
 
   EXPECT_EQ(countErrors(traj), 2);
@@ -417,9 +417,9 @@ CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsEmpty) {
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
   std::vector<KrausSelection> no_errors = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),
-      KrausSelection(1, {0}, "x", KrausOperatorIndex::IDENTITY),
-      KrausSelection(2, {0}, "y", KrausOperatorIndex::IDENTITY)};
+      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),
+      KrausSelection(1, {0}, "x", KrausOperatorType::IDENTITY),
+      KrausSelection(2, {0}, "y", KrausOperatorType::IDENTITY)};
   KrausTrajectory traj(0, no_errors, 1.0, 100);
 
   EXPECT_EQ(countErrors(traj), 0);
