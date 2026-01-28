@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
 
@@ -420,7 +421,10 @@ protected:
   }
 
   /// @brief Set the current state back to the |0> state.
-  void setToZeroState() override { return; }
+  void setToZeroState() override {
+    // We don't support re-using memory, so we just deallocate the state.
+    deallocateState();
+  }
 
   /// @brief Override the calculateStateDim because this is not a state vector
   /// simulator.

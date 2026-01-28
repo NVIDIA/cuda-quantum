@@ -190,8 +190,6 @@ couplers
 cuQuantum
 cuTensor
 cudaq
-dataclass
-dataclasses
 dataflow
 ddots
 deallocate
@@ -202,6 +200,8 @@ deallocations
 decrement
 decrementing
 dendrogram
+dependence
+dependences
 deserialize
 destructor
 detuning

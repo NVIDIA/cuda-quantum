@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "tensornet_utils.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 
 std::vector<double> randomValues(uint64_t num_samples, double max_value,

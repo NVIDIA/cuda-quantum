@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "common/JIT.h"
 #include "common/JsonConvert.h"
 #include "common/Logger.h"
@@ -177,7 +178,7 @@ public:
 
           return resultJs;
         });
-    m_mlirContext = cudaq::initializeMLIR();
+    m_mlirContext = cudaq::getOwningMLIRContext();
     m_hasMpi = cudaq::mpi::is_initialized();
   }
   // Start the server.

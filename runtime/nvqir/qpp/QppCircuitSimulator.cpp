@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/Gates.h"
 
@@ -401,11 +402,6 @@ public:
     return std::is_same_v<StateType, qpp::ket>;
   }
 
-  /// @brief Primarily used for testing.
-  auto getStateVector() {
-    flushGateQueue();
-    return state;
-  }
   std::string name() const override { return "qpp"; }
   NVQIR_SIMULATOR_CLONE_IMPL(QppCircuitSimulator<StateType>)
 };

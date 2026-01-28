@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"
@@ -101,6 +102,7 @@ public:
     return "";
   }
 
+private:
   void setTargetBackend(const std::string &description) override {
     executionContext.set(nullptr);
 
