@@ -147,6 +147,22 @@ public:
               auto eleTy = vecTy.getElementType();
               Type buffEleTy = eleTy;
               bool needsTruncation = false;
+              // Temporary debug output to help diagnose CI issues.
+              llvm::errs() << "<--- START ReturnToOutputLog DEBUG --->\n";
+              llvm::errs() << "vecTy: " << vecTy << "\n";
+              llvm::errs() << "eleTy: " << eleTy << "\n";
+              llvm::errs() << "rawBuffer type: " << rawBuffer.getType() << "\n";
+              if (auto defOp = rawBuffer.getDefiningOp()) {
+                llvm::errs()
+                    << "rawBuffer definingOp: " << defOp->getName() << "\n";
+                if (auto allocaOp = dyn_cast<cudaq::cc::AllocaOp>(defOp)) {
+                  llvm::errs()
+                      << "AllocaOp elementType: " << allocaOp.getElementType()
+                      << "\n";
+                }
+              }
+              llvm::errs() << "<--- END ReturnToOutputLog DEBUG --->\n";
+
               // `std::vector<bool>` uses `i8` storage instead of `i1`.
               // Load as `i8` then truncate to `i1` so that the Boolean values
               // are logged correctly.
