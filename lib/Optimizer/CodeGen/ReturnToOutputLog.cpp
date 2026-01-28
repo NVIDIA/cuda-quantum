@@ -147,27 +147,12 @@ public:
               auto eleTy = vecTy.getElementType();
               Type buffEleTy = eleTy;
               bool needsTruncation = false;
-              // `std::vector<bool>` may use `i8` storage instead of `i1` for
-              // alignment. Check the actual buffer allocation type and adapt
-              // pointer arithmetic accordingly. If `i8` storage, load as `i8`
-              // then truncate to `i1` so values are logged correctly.
+              // `std::vector<bool>` uses `i8` storage instead of `i1`.
+              // Load as `i8` then truncate to `i1` so that the Boolean values
+              // are logged correctly.
               if (eleTy == rewriter.getI1Type()) {
-                // Check if buffer comes from `AllocaOp`
-                if (auto allocaOp =
-                        rawBuffer.getDefiningOp<cudaq::cc::AllocaOp>()) {
-                  if (allocaOp.getElementType() == rewriter.getI8Type()) {
-                    buffEleTy = rewriter.getI8Type();
-                    needsTruncation = true;
-                  }
-                }
-                // Check the buffer's pointer type directly
-                else if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(
-                             rawBuffer.getType())) {
-                  if (ptrTy.getElementType() == rewriter.getI8Type()) {
-                    buffEleTy = rewriter.getI8Type();
-                    needsTruncation = true;
-                  }
-                }
+                buffEleTy = rewriter.getI8Type();
+                needsTruncation = true;
               }
               auto buffTy = cudaq::cc::PointerType::get(buffEleTy);
               auto ptrArrTy = cudaq::cc::PointerType::get(
