@@ -2789,11 +2789,9 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   if (isa<quake::StruqType>(eleTy))
     return pushValue(builder.create<quake::MakeStruqOp>(loc, eleTy, last));
 
-  // Use `i8` for `std::vector<bool>` storage
-  Type allocTy = (eleTy == builder.getI1Type()) ? builder.getI8Type() : eleTy;
   Value alloca = (numEles > 1)
-                     ? builder.create<cc::AllocaOp>(loc, allocTy, arrSize)
-                     : builder.create<cc::AllocaOp>(loc, allocTy);
+                     ? builder.create<cc::AllocaOp>(loc, eleTy, arrSize)
+                     : builder.create<cc::AllocaOp>(loc, eleTy);
 
   // Store the values in the allocated memory
   for (auto iter : llvm::enumerate(last)) {

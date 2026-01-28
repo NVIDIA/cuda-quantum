@@ -151,8 +151,17 @@ public:
               // Load as `i8` then truncate to `i1` so that the Boolean values
               // are logged correctly.
               if (eleTy == rewriter.getI1Type()) {
+                // Default to `i8` storage.
                 buffEleTy = rewriter.getI8Type();
                 needsTruncation = true;
+                // Use `i1` if explicitly confirmed via `cc.alloca`.
+                if (auto allocaOp =
+                        rawBuffer.getDefiningOp<cudaq::cc::AllocaOp>()) {
+                  if (allocaOp.getElementType() == rewriter.getI1Type()) {
+                    buffEleTy = rewriter.getI1Type();
+                    needsTruncation = false;
+                  }
+                }
               }
               auto buffTy = cudaq::cc::PointerType::get(buffEleTy);
               auto ptrArrTy = cudaq::cc::PointerType::get(
