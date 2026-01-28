@@ -29,7 +29,8 @@ struct KrausTrajectory {
   std::size_t trajectory_id = 0;
 
   /// @brief Complete specification of which Kraus operators to apply at each
-  /// noise point This tracks only the injected noise operators
+  /// noise point. This vector must be ordered by circuit_location in ascending
+  /// order. This tracks only the injected noise operators.
   std::vector<KrausSelection> kraus_selections;
 
   /// @brief Computed probability of this trajectory occurring
@@ -73,6 +74,15 @@ struct KrausTrajectory {
     return std::ranges::count_if(kraus_selections, [](const auto &sel) {
       return sel.kraus_operator_index != KrausOperatorType::IDENTITY;
     });
+  }
+
+  /// @brief Verify that kraus_selections are ordered by circuit_location
+  /// @return true if selections are properly ordered (or empty)
+  [[nodiscard]] bool isOrdered() const {
+    return std::ranges::is_sorted(
+        kraus_selections, [](const auto &a, const auto &b) {
+          return a.circuit_location < b.circuit_location;
+        });
   }
 };
 
