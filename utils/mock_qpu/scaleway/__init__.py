@@ -73,7 +73,6 @@ countJobGetRequests = 0
 llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
-
 target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
