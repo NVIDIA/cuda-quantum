@@ -142,11 +142,6 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources.Core
 )
 
-# Note: We previously used add_lib_loading_macos_workaround here, but it causes
-# duplicate LLVM CommandLine option registration errors due to -force_load.
-# The explicit llvm::InitializeNativeTarget() calls in CUDAQuantumExtension.cpp
-# handle the necessary target initialization on macOS.
-
 ################################################################################
 # Instantiation of Python module
 ################################################################################
@@ -190,10 +185,3 @@ else()
   set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
     APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib;${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
-
-
-
-# Note: We previously used add_lib_loading_macos_workaround here, but it causes
-# duplicate LLVM CommandLine option registration errors due to -force_load.
-# The explicit llvm::InitializeNativeTarget() calls in CUDAQuantumExtension.cpp
-# handle the necessary target initialization on macOS.
