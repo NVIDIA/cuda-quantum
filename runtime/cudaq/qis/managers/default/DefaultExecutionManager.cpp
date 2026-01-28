@@ -114,6 +114,7 @@ protected:
   }
 
   void deallocateQudit(const cudaq::QuditInfo &q) override {
+    CUDAQ_INFO("Deallocating qubit {}", q.id);
 
     // Before trying to deallocate, make sure the qudit hasn't
     // been requested but not allocated.
@@ -142,15 +143,22 @@ protected:
     simulator()->deallocateQubits(local);
   }
 
-  void handleExecutionContextChanged() override {
+  void beginExecution() override {
+    BasicExecutionManager::beginExecution();
     requestedAllocations.clear();
-    simulator()->setExecutionContext(executionContext);
   }
 
-  void handleExecutionContextEnded() override {
+  void configureExecutionContext(ExecutionContext &ctx) override {
+    BasicExecutionManager::configureExecutionContext(ctx);
+    simulator()->configureExecutionContext(ctx);
+  }
+
+  void finalizeExecutionContext(ExecutionContext &ctx) override {
+    BasicExecutionManager::finalizeExecutionContext(ctx);
+
     if (!requestedAllocations.empty()) {
       CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
-                 "at handleExecutionContextEnded.",
+                 "at finalizeExecutionContext.",
                  requestedAllocations.size());
       // If there are pending allocations, flush them to the simulator.
       // Making sure the simulator's state is consistent with the number of
@@ -158,7 +166,13 @@ protected:
       simulator()->allocateQubits(requestedAllocations.size());
       requestedAllocations.clear();
     }
-    simulator()->resetExecutionContext();
+    simulator()->finalizeExecutionContext(ctx);
+  }
+
+  void endExecution() override {
+    BasicExecutionManager::endExecution();
+    // Note: this needs to run after the above, which deallocates the qubits.
+    simulator()->endExecution();
   }
 
   void executeInstruction(const Instruction &instruction) override {
