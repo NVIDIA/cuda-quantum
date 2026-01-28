@@ -138,3 +138,31 @@ CUDAQ_TEST(KrausTrajectoryTest, ConstexprEquality) {
 
   EXPECT_TRUE(traj1 == traj2);
 }
+
+CUDAQ_TEST(KrausTrajectoryTest, OrderingValidation) {
+  // Ordered trajectory
+  std::vector<KrausSelection> ordered = {
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0}),
+      KrausSelection(2, {1}, "x", KrausOperatorType{1})};
+  KrausTrajectory traj_ordered(1, ordered, 0.5, 100);
+  EXPECT_TRUE(traj_ordered.isOrdered());
+
+  // Unordered trajectory (circuit_location out of order)
+  std::vector<KrausSelection> unordered = {
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(2, {1}, "x", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0})};
+  KrausTrajectory traj_unordered(2, unordered, 0.5, 100);
+  EXPECT_FALSE(traj_unordered.isOrdered());
+
+  // Empty trajectory
+  KrausTrajectory traj_empty(3, {}, 1.0, 0);
+  EXPECT_TRUE(traj_empty.isOrdered());
+
+  // Single element
+  std::vector<KrausSelection> single = {
+      KrausSelection(5, {0}, "h", KrausOperatorType{1})};
+  KrausTrajectory traj_single(4, single, 0.5, 100);
+  EXPECT_TRUE(traj_single.isOrdered());
+}
