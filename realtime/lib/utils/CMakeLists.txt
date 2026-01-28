@@ -6,6 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Fetch spdlog from its GitHub repository
+FetchContent_Declare(
+  spdlog
+  GIT_REPOSITORY https://github.com/gabime/spdlog.git
+  GIT_TAG        v1.15.0           # Update the tag to the version you want
+)
+FetchContent_MakeAvailable(spdlog)
+
 # Build utils library with conditional instrumentation based on backend selection
 set(NVQLINK_UTILS_SOURCES
   logger.cpp

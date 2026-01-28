@@ -12,7 +12,6 @@ set(NVQLINK_DAEMON_SOURCES
   dispatcher/cpu_dispatcher.cpp
   dispatcher/dispatcher_factory.cpp
   registry/function_registry.cpp
-  registry/rpc_builder.cpp
 )
 
 # Add CUDA/GPU sources if CUDA is available

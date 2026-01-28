@@ -8,7 +8,6 @@
 
 #include "test_utils/loopback_channel.h"
 #include "cudaq/nvqlink/daemon/daemon.h"
-#include "cudaq/nvqlink/daemon/registry/rpc_builder.h"
 #include "cudaq/nvqlink/network/serialization/input_stream.h"
 #include "cudaq/nvqlink/network/serialization/output_stream.h"
 

@@ -11,7 +11,6 @@
 #include "cudaq/nvqlink/daemon/daemon.h"
 #include "cudaq/nvqlink/daemon/registry/function_traits.h"
 #include "cudaq/nvqlink/daemon/registry/function_wrapper.h"
-#include "cudaq/nvqlink/network/config.h"
 #include "cudaq/nvqlink/network/channels/roce/roce_channel.h"
 #include "cudaq/nvqlink/network/steering/verbs_flow_switch.h"
 
@@ -29,6 +28,19 @@ using namespace cudaq::nvqlink;
 static volatile bool running = true;
 
 static void signal_handler(int) { running = false; }
+
+/// Channel configuration (Layer 1 - Hardware abstraction)
+/// Each channel is 1:1 with a queue
+struct ChannelConfig {
+  std::string nic_device; // PCIe address or device name
+  uint32_t queue_id;      // Single queue (1:1 with channel)
+
+  // Buffer pool settings
+  size_t pool_size_bytes{64 * 1024 * 1024}; // 64MB default
+  size_t buffer_size_bytes{2048};           // 2KB default
+  size_t headroom_bytes{256};
+  size_t tailroom_bytes{64};
+};
 
 static void print_network_config(const ChannelConfig &cfg) {
   // Get network interface info
