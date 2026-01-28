@@ -125,22 +125,33 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
   if (allocated < total_shots && !trajectories.empty()) {
     // Distribute remaining shots evenly among trajectories
     std::size_t remaining = total_shots - allocated;
-    std::size_t idx = 0;
-    while (remaining > 0 && idx < trajectories.size()) {
-      trajectories[idx].num_shots++;
-      remaining--;
-      idx++;
+    std::size_t num_trajectories = trajectories.size();
+    std::size_t shots_per_traj =
+        (remaining + num_trajectories - 1) / num_trajectories;
+
+    for (auto &traj : trajectories) {
+      if (remaining == 0)
+        break;
+
+      std::size_t shots_to_add = std::min(shots_per_traj, remaining);
+      traj.num_shots += shots_to_add;
+      remaining -= shots_to_add;
     }
   } else if (allocated > total_shots && !trajectories.empty()) {
     // Remove excess shots, distributing the removals
     std::size_t excess = allocated - total_shots;
-    std::size_t idx = 0;
-    while (excess > 0 && idx < trajectories.size()) {
-      if (trajectories[idx].num_shots > 0) {
-        trajectories[idx].num_shots--;
-        excess--;
-      }
-      idx++;
+    std::size_t num_trajectories = trajectories.size();
+    std::size_t shots_per_traj =
+        (excess + num_trajectories - 1) / num_trajectories;
+
+    for (auto &traj : trajectories) {
+      if (excess == 0)
+        break;
+
+      std::size_t shots_to_remove =
+          std::min({shots_per_traj, excess, traj.num_shots});
+      traj.num_shots -= shots_to_remove;
+      excess -= shots_to_remove;
     }
   }
 }
