@@ -18,8 +18,7 @@ static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t errors = 0) {
   std::vector<KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
-    selections.push_back(
-        KrausSelection(i, {0}, "h", KrausOperatorIndex{1}, "Error"));
+    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorIndex{1}));
   }
   // num_shots=0, to be allocated
   return KrausTrajectory(id, selections, prob, 0);

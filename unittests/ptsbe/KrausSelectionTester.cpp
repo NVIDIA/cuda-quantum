@@ -20,11 +20,10 @@ CUDAQ_TEST(KrausSelectionTest, DefaultConstruction) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, ParameterizedConstruction) {
-  KrausSelection selection(5,                     // circuit_location
-                           {0, 1},                // qubits
-                           "cx",                  // op_name
-                           KrausOperatorIndex{2}, // kraus_operator_index
-                           "X error on qubit 0"   // description
+  KrausSelection selection(5,                    // circuit_location
+                           {0, 1},               // qubits
+                           "cx",                 // op_name
+                           KrausOperatorIndex{2} // kraus_operator_index
   );
 
   EXPECT_EQ(selection.circuit_location, 5);
@@ -33,7 +32,6 @@ CUDAQ_TEST(KrausSelectionTest, ParameterizedConstruction) {
   EXPECT_EQ(selection.qubits[1], 1);
   EXPECT_EQ(selection.op_name, "cx");
   EXPECT_EQ(static_cast<std::size_t>(selection.kraus_operator_index), 2);
-  EXPECT_EQ(selection.description, "X error on qubit 0");
 }
 
 CUDAQ_TEST(KrausSelectionTest, Equality) {
@@ -55,11 +53,11 @@ CUDAQ_TEST(KrausSelectionTest, KrausOperatorIndexIdentity) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, SingleQubitNoise) {
-  KrausSelection h_noise(0,                     // circuit_location
-                         {0},                   // Single qubit
-                         "h",                   // op_name
-                         KrausOperatorIndex{1}, // X error
-                         "X on q0 after H");
+  KrausSelection h_noise(0,                    // circuit_location
+                         {0},                  // Single qubit
+                         "h",                  // op_name
+                         KrausOperatorIndex{1} // X error
+  );
 
   EXPECT_EQ(h_noise.qubits.size(), 1);
   EXPECT_EQ(h_noise.qubits[0], 0);
@@ -67,11 +65,11 @@ CUDAQ_TEST(KrausSelectionTest, SingleQubitNoise) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, TwoQubitNoise) {
-  KrausSelection cx_noise(5,                     // circuit_location
-                          {0, 1},                // Both qubits affected
-                          "cx",                  // op_name
-                          KrausOperatorIndex{7}, // IX error
-                          "IX error on CX(q0, q1)");
+  KrausSelection cx_noise(5,                    // circuit_location
+                          {0, 1},               // Both qubits affected
+                          "cx",                 // op_name
+                          KrausOperatorIndex{7} // IX error
+  );
 
   EXPECT_EQ(cx_noise.qubits.size(), 2);
   EXPECT_EQ(cx_noise.qubits[0], 0);
@@ -80,7 +78,7 @@ CUDAQ_TEST(KrausSelectionTest, TwoQubitNoise) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, CopySemantics) {
-  KrausSelection original(1, {0, 1}, "cx", KrausOperatorIndex{3}, "Test");
+  KrausSelection original(1, {0, 1}, "cx", KrausOperatorIndex{3});
 
   KrausSelection copied = original;
   EXPECT_TRUE(copied == original);
@@ -92,7 +90,7 @@ CUDAQ_TEST(KrausSelectionTest, CopySemantics) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, MoveSemantics) {
-  KrausSelection original(1, {0, 1, 2}, "ccx", KrausOperatorIndex{5}, "Test");
+  KrausSelection original(1, {0, 1, 2}, "ccx", KrausOperatorIndex{5});
 
   KrausSelection moved = std::move(original);
   EXPECT_EQ(moved.circuit_location, 1);

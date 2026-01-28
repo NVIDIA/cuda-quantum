@@ -54,7 +54,7 @@ struct KrausSelection {
 
   /// @brief Equality comparison for testing
   /// @param other KrausSelection to compare with
-  /// @return true if all fields except description are equal
+  /// @return true if all fields are equal
   constexpr bool operator==(const KrausSelection &other) const {
     return circuit_location == other.circuit_location &&
            qubits == other.qubits && op_name == other.op_name &&

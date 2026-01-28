@@ -24,7 +24,8 @@ namespace cudaq::ptsbe {
 template <typename ScalarType>
 struct PTSBEResult {
   /// @brief Task lists - one complete trajectory per inner vector
-  /// Each inner vector contains GateApplicationTasks (original gates + noise operations)
+  /// Each inner vector contains GateApplicationTasks (original gates + noise
+  /// operations)
   std::vector<std::vector<nvqir::GateApplicationTask<ScalarType>>> task_lists;
 
   /// @brief Trajectory metadata
@@ -37,10 +38,10 @@ struct PTSBEResult {
   PTSBEResult() = default;
 
   /// @brief Check if result is valid
-  /// @return true if task_lists and trajectories have matching sizes and are non-empty
+  /// @return true if task_lists and trajectories have matching sizes and are
+  /// non-empty
   [[nodiscard]] constexpr bool isValid() const {
-    return task_lists.size() == trajectories.size() &&
-           !task_lists.empty();
+    return task_lists.size() == trajectories.size() && !task_lists.empty();
   }
 
   /// @brief Get number of trajectories

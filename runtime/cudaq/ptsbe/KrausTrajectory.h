@@ -24,8 +24,8 @@ struct KrausTrajectory {
   /// @brief Unique identifier for this trajectory
   std::size_t trajectory_id = 0;
 
-  /// @brief Complete specification of which Kraus operators to apply at each noise point
-  /// This tracks only the injected noise operators
+  /// @brief Complete specification of which Kraus operators to apply at each
+  /// noise point This tracks only the injected noise operators
   std::vector<KrausSelection> kraus_selections;
 
   /// @brief Computed probability of this trajectory occurring
