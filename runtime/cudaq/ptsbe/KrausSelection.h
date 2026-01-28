@@ -17,7 +17,7 @@ namespace cudaq {
 /// @brief Type-safe index for Kraus operators in a noise channel
 /// IDENTITY (0) represents no error, indices 1+ represent actual error
 /// operators
-enum class KrausOperatorIndex : std::size_t {
+enum class KrausOperatorType : std::size_t {
   IDENTITY = 0,
   // Values 1+ represent actual error operators from the noise channel
 };
@@ -37,7 +37,7 @@ struct KrausSelection {
   std::string op_name;
 
   /// @brief Which Kraus operator from the noise channel was selected
-  KrausOperatorIndex kraus_operator_index = KrausOperatorIndex::IDENTITY;
+  KrausOperatorType kraus_operator_index = KrausOperatorType::IDENTITY;
 
   /// @brief Default constructor
   KrausSelection() = default;
@@ -48,7 +48,7 @@ struct KrausSelection {
   /// @param op Gate operation name (e.g., "h", "x", `"cx"`)
   /// @param idx Selected Kraus operator index from noise channel
   KrausSelection(std::size_t location, std::vector<std::size_t> qbits,
-                 std::string op, KrausOperatorIndex idx)
+                 std::string op, KrausOperatorType idx)
       : circuit_location(location), qubits(std::move(qbits)),
         op_name(std::move(op)), kraus_operator_index(idx) {}
 

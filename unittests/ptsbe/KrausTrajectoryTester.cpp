@@ -16,7 +16,7 @@ static KrausTrajectory makeTrajectory(std::size_t id, double prob,
                                       std::size_t errors = 0) {
   std::vector<KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
-    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorIndex{1}));
+    selections.push_back(KrausSelection(i, {0}, "h", KrausOperatorType{1}));
   }
   return KrausTrajectory(id, selections, prob, 0);
 }
@@ -32,8 +32,8 @@ CUDAQ_TEST(KrausTrajectoryTest, DefaultConstruction) {
 
 CUDAQ_TEST(KrausTrajectoryTest, ParameterizedConstruction) {
   std::vector<KrausSelection> selections = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorIndex{0})};
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0})};
 
   KrausTrajectory traj(42,         // trajectory_id
                        selections, // kraus_selections
@@ -49,7 +49,7 @@ CUDAQ_TEST(KrausTrajectoryTest, ParameterizedConstruction) {
 
 CUDAQ_TEST(KrausTrajectoryTest, Equality) {
   std::vector<KrausSelection> sels = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex{1})};
+      KrausSelection(0, {0}, "h", KrausOperatorType{1})};
 
   KrausTrajectory traj1(1, sels, 0.5, 100);
   KrausTrajectory traj2(1, sels, 0.5, 100);
@@ -84,9 +84,9 @@ CUDAQ_TEST(KrausTrajectoryTest, EmptyTrajectory) {
 
 CUDAQ_TEST(KrausTrajectoryTest, MultipleErrors) {
   std::vector<KrausSelection> sels = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex{1}),
-      KrausSelection(1, {0}, "x", KrausOperatorIndex{1}),
-      KrausSelection(2, {0, 1}, "cx", KrausOperatorIndex{5})};
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0}, "x", KrausOperatorType{1}),
+      KrausSelection(2, {0, 1}, "cx", KrausOperatorType{5})};
 
   KrausTrajectory traj(1, sels, 0.001, 10);
 
@@ -96,7 +96,7 @@ CUDAQ_TEST(KrausTrajectoryTest, MultipleErrors) {
 
 CUDAQ_TEST(KrausTrajectoryTest, MoveSemantics) {
   std::vector<KrausSelection> sels = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex{1})};
+      KrausSelection(0, {0}, "h", KrausOperatorType{1})};
   KrausTrajectory original(42, sels, 0.5, 100);
 
   KrausTrajectory moved = std::move(original);
@@ -111,14 +111,14 @@ CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
 
   // Trajectory 1: Identity errors (no errors)
   std::vector<KrausSelection> sels1 = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex::IDENTITY),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorIndex::IDENTITY)};
+      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
   KrausTrajectory traj1(0, sels1, 0.85, 850);
 
   // Trajectory 2: X error on H, no error on CX
   std::vector<KrausSelection> sels2 = {
-      KrausSelection(0, {0}, "h", KrausOperatorIndex{1}),
-      KrausSelection(1, {0, 1}, "cx", KrausOperatorIndex::IDENTITY)};
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
   KrausTrajectory traj2(1, sels2, 0.10, 100);
 
   EXPECT_EQ(traj1.kraus_selections.size(), 2);
@@ -129,7 +129,7 @@ CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, ConstexprEquality) {
-  KrausSelection sel(0, {0}, "h", KrausOperatorIndex{1});
+  KrausSelection sel(0, {0}, "h", KrausOperatorType{1});
   std::vector<KrausSelection> sels1 = {sel};
   std::vector<KrausSelection> sels2 = {sel};
 
