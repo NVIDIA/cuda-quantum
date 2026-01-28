@@ -22,8 +22,8 @@
 
 if [ "$(uname)" = "Darwin" ]; then
   # macOS: user-local installations (no sudo required)
-  mkdir -p $HOME/.local/bin
-  mkdir -p $HOME/.local/share/lib
+  mkdir -p "$HOME/.local/bin"
+  mkdir -p "$HOME/.local/share/lib"
   export PATH="$PATH:$HOME/.local/bin"
   export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$HOME/.local/share/lib"
   export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.local/llvm}

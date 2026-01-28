@@ -80,7 +80,7 @@ set -- "${args_before_sep[@]}"
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
-this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 build_dir="$working_dir/build"
 
@@ -214,7 +214,7 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
 fi
 
 # Determine OpenMP flags (check for .so on Linux, .dylib on macOS)
-OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so' -o -name 'libomp.dylib' 2>/dev/null | head -1)
+OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" \( -name 'libomp.so' -o -name 'libomp.dylib' \) 2>/dev/null | head -1)
 if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
   omp_header_dir=$(find "$LLVM_INSTALL_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
   # Apple Clang requires -Xpreprocessor -fopenmp; LLVM Clang/GCC use -fopenmp directly
