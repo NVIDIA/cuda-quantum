@@ -51,16 +51,4 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
                    std::size_t total_shots,
                    const ShotAllocationStrategy &strategy);
 
-/// @brief Count non-identity errors in a trajectory (error weight)
-/// @param trajectory The trajectory to analyze
-/// @return Number of non-identity Kraus operators (error count)
-[[nodiscard]] constexpr std::size_t
-countErrors(const cudaq::KrausTrajectory &trajectory) {
-  namespace views = std::views;
-  return std::ranges::count_if(
-      trajectory.kraus_selections, [](const auto &sel) {
-        return sel.kraus_operator_index != cudaq::KrausOperatorType::IDENTITY;
-      });
-}
-
 } // namespace cudaq::ptsbe

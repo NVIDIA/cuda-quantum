@@ -20,10 +20,10 @@ CUDAQ_TEST(KrausSelectionTest, DefaultConstruction) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, ParameterizedConstruction) {
-  KrausSelection selection(5,                    // circuit_location
-                           {0, 1},               // qubits
-                           "cx",                 // op_name
-                           KrausOperatorType{2}  // kraus_operator_index
+  KrausSelection selection(5,                   // circuit_location
+                           {0, 1},              // qubits
+                           "cx",                // op_name
+                           KrausOperatorType{2} // kraus_operator_index
   );
 
   EXPECT_EQ(selection.circuit_location, 5);
@@ -53,10 +53,10 @@ CUDAQ_TEST(KrausSelectionTest, KrausOperatorTypeIdentity) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, SingleQubitNoise) {
-  KrausSelection h_noise(0,                    // circuit_location
-                         {0},                  // Single qubit
-                         "h",                  // op_name
-                         KrausOperatorType{1}  // X error
+  KrausSelection h_noise(0,                   // circuit_location
+                         {0},                 // Single qubit
+                         "h",                 // op_name
+                         KrausOperatorType{1} // X error
   );
 
   EXPECT_EQ(h_noise.qubits.size(), 1);
@@ -65,10 +65,10 @@ CUDAQ_TEST(KrausSelectionTest, SingleQubitNoise) {
 }
 
 CUDAQ_TEST(KrausSelectionTest, TwoQubitNoise) {
-  KrausSelection cx_noise(5,                    // circuit_location
-                          {0, 1},               // Both qubits affected
-                          "cx",                 // op_name
-                          KrausOperatorType{7}  // IX error
+  KrausSelection cx_noise(5,                   // circuit_location
+                          {0, 1},              // Both qubits affected
+                          "cx",                // op_name
+                          KrausOperatorType{7} // IX error
   );
 
   EXPECT_EQ(cx_noise.qubits.size(), 2);

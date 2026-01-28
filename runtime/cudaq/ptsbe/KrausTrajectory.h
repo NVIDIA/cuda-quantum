@@ -9,10 +9,12 @@
 #pragma once
 
 #include "KrausSelection.h"
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <map>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -63,6 +65,14 @@ struct KrausTrajectory {
            kraus_selections == other.kraus_selections &&
            std::abs(probability - other.probability) < PROBABILITY_EPSILON &&
            num_shots == other.num_shots;
+  }
+
+  /// @brief Count non-identity errors in this trajectory (error weight)
+  /// @return Number of non-identity Kraus operators (error count)
+  [[nodiscard]] constexpr std::size_t countErrors() const {
+    return std::ranges::count_if(kraus_selections, [](const auto &sel) {
+      return sel.kraus_operator_index != KrausOperatorType::IDENTITY;
+    });
   }
 };
 
