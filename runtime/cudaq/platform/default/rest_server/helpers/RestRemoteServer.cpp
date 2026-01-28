@@ -369,25 +369,7 @@ public:
       }
     } else {
       platform.set_exec_ctx(&io_context);
-      if (io_context.name == "sample" &&
-          io_context.hasConditionalsOnMeasureResults) {
-        // Need to run simulation shot-by-shot
-        cudaq::sample_result counts;
-        invokeMlirKernel(io_context, m_mlirContext, ir, requestInfo.passes,
-                         std::string(kernelName), io_context.shots,
-                         [&](std::size_t i) {
-                           // Reset the context and get the single
-                           // measure result, add it to the
-                           // sample_result and clear the context
-                           // result
-                           platform.reset_exec_ctx();
-                           counts += io_context.result;
-                           io_context.result.clear();
-                           if (i != (io_context.shots - 1))
-                             platform.set_exec_ctx(&io_context);
-                         });
-        io_context.result = counts;
-      } else if (io_context.name == "run") {
+      if (io_context.name == "run") {
         // Handle cudaq::run: it should be executed in a context-free manner;
         // the output log is accumulated in the simulator output log.
         platform.reset_exec_ctx();

@@ -217,8 +217,7 @@ CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(rz)
 CUDAQ_DETAILS_ONEPARAM_QIS_DECLARATION(r1)
 
 #define CUDAQ_DETAILS_MEASURE_DECLARATION(NAME)                                \
-  QuakeValue NAME(mlir::ImplicitLocOpBuilder &builder, QuakeValue &target,     \
-                  const std::string &regName = std::string{});
+  QuakeValue NAME(mlir::ImplicitLocOpBuilder &builder, QuakeValue &target);
 
 CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
@@ -637,18 +636,8 @@ public:
   QuakeValue NAME(QuakeValue qubitOrQvec) {                                    \
     return details::NAME(*opBuilder, qubitOrQvec);                             \
   }                                                                            \
-  auto NAME(QuakeValue qubit, const std::string &regName) {                    \
-    return details::NAME(*opBuilder, qubit, regName);                          \
-  }                                                                            \
-  auto NAME(QuakeValue qubit, const std::string &&regName) {                   \
-    return NAME(qubit, regName);                                               \
-  }                                                                            \
-  template <                                                                   \
-      typename... QubitValues,                                                 \
-      typename = typename std::enable_if_t<                                    \
-          sizeof...(QubitValues) >= 2 &&                                       \
-          !std::is_same_v<decltype(std::get<1>(std::tuple<QubitValues...>())), \
-                          std::string>>>                                       \
+  template <typename... QubitValues,                                           \
+            typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>> \
   auto NAME(QubitValues... args) {                                             \
     std::vector<QuakeValue> values{args...}, results;                          \
     for (auto &value : values)                                                 \

@@ -274,47 +274,6 @@ def test_sample_result_single_register_list_param(qubit_count, shots_count):
         result = cudaq.sample(kernel, 0.0)
 
 
-@pytest.mark.skip(
-    reason=
-    "Mid-circuit measurements not currently supported without the use of `c_if`."
-)
-@pytest.mark.parametrize("qubit_count", [1, 5, 9])
-@pytest.mark.parametrize("shots_count", [10, 100, 1000])
-def test_sample_result_multiple_registers(qubit_count, shots_count):
-    """
-    Tests the `SampleResult` data-type on a simple circuit
-    of varying sizes. The circuit provides a `register_name`
-    on the measurements in this case.
-    """
-    kernel = cudaq.make_kernel()
-    qreg = kernel.qalloc(qubit_count)
-    # Place every qubit in the 1-state.
-    kernel.x(qreg)
-    # Name the measurement register.
-    kernel.mz(qreg, register_name="test_measurement")
-
-    # Get the QPU result from a call to `sample`.
-    # Check at a varying number of shots.
-    sample_result = cudaq.sample(kernel, shots_count=shots_count)
-
-    # Check for correctness on each member function of `SampleResult`
-    want_bitstring = "1" * qubit_count
-    # `::dump()`
-    sample_result.dump()
-    # `__str__`
-    print(str(sample_result))
-    # `__iter__`
-    for sub_counts in sample_result:
-        # Should just be the `want_bitstring`
-        assert sub_counts == want_bitstring
-    # `__getitem__`
-    # The `want_bitstring` should have `shots_count` observations.
-    assert sample_result[want_bitstring] == shots_count
-
-    # TODO: once mid-circuit measurements are supported, finish out
-    # the rest of this test.
-
-
 @pytest.mark.parametrize("shots_count", [10, 100])
 def test_sample_result_observe(shots_count):
     """
