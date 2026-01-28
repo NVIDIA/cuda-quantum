@@ -12700,19 +12700,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a237421abcf74b7ac220aa84f6fccc3d2 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[setTargetBackend]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[name]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform16setTargetBackendERKNSt6stringE "Permalink to this definition"){.headerlink}\
-
-    :   Set the target backend, by default do nothing, let subclasses
-        override.
-
-        Parameters[:]{.colon}
-
-        :   **name** --
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1quantum__platform_1af1694e06135ecdfab51f20ecc87f7ee8 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Called by the runtime to notify that a new random seed value is
