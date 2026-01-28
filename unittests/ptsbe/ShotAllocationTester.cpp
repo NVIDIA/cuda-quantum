@@ -168,11 +168,9 @@ CUDAQ_TEST(ShotAllocationTest, ZeroShotsRequested) {
                                                makeTrajectory(1, 0.5)};
 
   ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-  allocateShots(trajectories, 0, strategy);
 
-  for (const auto &traj : trajectories) {
-    EXPECT_EQ(traj.num_shots, 0);
-  }
+  // Zero shots should throw an exception
+  EXPECT_THROW(allocateShots(trajectories, 0, strategy), std::invalid_argument);
 }
 
 CUDAQ_TEST(ShotAllocationTest, SingleShotDistribution) {
