@@ -95,16 +95,6 @@ cd build
 cmake .. && ninja install
 ```
 
-### macOS-Specific Workarounds
-
-The build system automatically applies workarounds for macOS's two-level
-namespace linking model:
-
-- **`-Wl,-flat_namespace`**: Enables Linux-like global symbol sharing
-- **`-Wl,-force_load`**: Ensures LLVM static initializers are included
-
-These are handled automatically and require no manual configuration.
-
 ### OpenMP Support on macOS
 
 Since CUDA/GPU acceleration is unavailable on macOS, OpenMP is built by default
@@ -120,14 +110,6 @@ export LLVM_PROJECTS='clang;lld;mlir;python-bindings'
 
 ### macOS Limitations
 
-Tests with large stack allocations may fail or be skipped.
-
-- **Two-level namespace**: macOS binds symbols to specific libraries by default
-, which breaks LLVM/MLIR's static initializer patterns. We use the
-`flat_namespace` linker option as a workaround to enable global symbol sharing,
- but this can cause collisions with system libraries (e.g., OpenSSL). When
- adding new dependencies, you may need `-Wl,-force_load` or two-level namespace
- linking for specific targets. See `cmake/BuildHelpers.cmake` for examples.
 - **JIT exception handling on macOS M-series**: C++ exceptions thrown from JIT-compiled
   code cannot be caught on macOS ARM64 (Apple Silicon). This is a known upstream
   LLVM bug ([llvm-project#49036](https://github.com/llvm/llvm-project/issues/49036))
