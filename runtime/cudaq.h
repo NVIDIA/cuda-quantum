@@ -30,6 +30,14 @@ namespace __internal__ {
 std::string demangle_kernel(const char *);
 bool isLibraryMode(const std::string &);
 extern bool globalFalse;
+class TargetSetter {
+public:
+  TargetSetter(const char *backend);
+};
+
+#ifdef NVQPP_TARGET_BACKEND_CONFIG
+inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
+#endif
 } // namespace __internal__
 
 // Simple test to see if the QuantumKernel template
@@ -184,9 +192,6 @@ typedef std::size_t (*KernelArgsCreator)(void **, void **);
 KernelArgsCreator getArgsCreator(const std::string &kernelName);
 
 bool kernelHasConditionalFeedback(const std::string &kernelName);
-
-/// @brief Provide a hook to set the target backend.
-void set_target_backend(const char *backend);
 
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.

@@ -644,7 +644,6 @@ COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
-OBJS_TO_MERGE=""
 if [ -n "${TARGET_CONFIG}" ]; then
 	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
 	GEN_TARGET_BACKEND=false
@@ -666,10 +665,7 @@ if [ -n "${TARGET_CONFIG}" ]; then
 			TARGET_CONFIG="${TARGET_CONFIG};mapping_file;${MAPPING_FILE}"
 		fi
 		TARGET_CONFIG="${TARGET_CONFIG}${PLATFORM_EXTRA_ARGS}"
-		OUTFILENAME=$(mktemp nvqppGenTargetBackend.XXXXXX.o)
-		run ${CXX} ${CPPSTD} -DNVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"" -o $OUTFILENAME -c -x c++ ${install_dir}/targets/backendConfig.cpp
-		OBJS_TO_MERGE="${OUTFILENAME}"
-		TMPFILES="${TMPFILES} ${OUTFILENAME}"
+	    PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_TARGET_BACKEND_CONFIG="\"${TARGET_CONFIG}\"""   
 	fi
 fi
 
@@ -835,15 +831,11 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o ${OBJS_TO_MERGE} -o ${file}.o
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
 if ${DO_LINK}; then
-	if ${LIBRARY_MODE}; then
-		OBJS="${OBJS} ${OBJS_TO_MERGE}" 
-	fi
-
 	# If the default C++ standard lib is LLVM's libc++ (injected by clang++ automatically), 
 	# we put it in front of CUDA-Q libs when compiling the application executable.
 	# Some CUDA-Q libs may contain partial C++ standard library implementation (due to static linking).
