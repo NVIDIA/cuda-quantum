@@ -58,6 +58,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   pm.addPass(
       cudaq::opt::createApplySpecialization({.constantPropagation = true}));
   cudaq::opt::addAggressiveInlining(pm);
+  pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   if (resultTy) {
     // If we're expecting a result, then we want to call the .thunk function so
