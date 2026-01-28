@@ -19,7 +19,6 @@ set(PTSBE_SOURCES
 install(FILES
     KrausSelection.h
     KrausTrajectory.h
-    TrajectoryMetadata.h
     PTSBEResult.h
     ShotAllocationStrategy.h
     DESTINATION include/cudaq/ptsbe
