@@ -124,13 +124,24 @@ static bool isFunctionCallable(Type t) {
   return false;
 }
 
+static bool isMeasureResultType(Type t) { return isa<quake::MeasureType>(t); }
+
+static bool isMeasureResultSequenceType(Type t) {
+  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t)) {
+    auto eleTy = vec.getElementType();
+    return isMeasureResultType(eleTy) || isMeasureResultSequenceType(eleTy);
+  }
+  return isMeasureResultType(t);
+}
+
 /// Return true if and only if \p t is a (simple) arithmetic type, an arithmetic
 /// sequence type (possibly dynamic in length), or a static product type of
 /// arithmetic types. Note that this means a product type with a dynamic
 /// sequence of arithmetic types is \em disallowed.
 static bool isKernelResultType(Type t) {
   return isArithmeticType(t) || isArithmeticSequenceType(t) ||
-         isStaticArithmeticProductType(t);
+         isStaticArithmeticProductType(t) || isMeasureResultType(t) ||
+         isMeasureResultSequenceType(t);
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly

@@ -38,7 +38,7 @@ struct t1 {
 struct VectorBoolReturn {
    std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(4);
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 
@@ -59,7 +59,7 @@ struct VectorBoolReturn {
 struct VectorBoolResult {
    std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(4);
-    std::vector<bool> vec = mz(q);
+    std::vector<bool> vec = cudaq::to_bool_vector(mz(q));
     return vec;
   }
 };
