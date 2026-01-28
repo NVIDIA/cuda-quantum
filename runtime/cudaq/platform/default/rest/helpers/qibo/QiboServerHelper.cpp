@@ -34,9 +34,8 @@ bool booleanArgument(const std::string &string_argument) {
 }
 
 // Retrieve an environment variable
-std::string getEnvVar(const std::string &key,
-                                       const std::string &defaultVal,
-                                       const bool isRequired) {
+std::string getEnvVar(const std::string &key, const std::string &defaultVal,
+                      const bool isRequired) {
   const char *env_var = std::getenv(key.c_str());
   // If the variable is not set, either return the default or throw an
   // exception
