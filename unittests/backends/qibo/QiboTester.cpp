@@ -7,18 +7,10 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/Logger.h"
-#include "common/RestClient.h"
-#include "common/ServerHelper.h"
-#include "cudaq/platform/quantum_platform.h"
+#include "cudaq/algorithm.h"
 #include "gtest/gtest.h"
-#include <string>
-#include <unordered_map>
 
-std::string mockPort = "62450";
-std::string auth_token = "api_key";
-std::string backendStringTemplate =
-    "qibo;emulate;false;url;http://localhost:{};auth_token;{};";
+std::string backendString = "qibo;";
 
 bool result_maps_are_matching(
     const std::unordered_map<std::string, std::size_t> &results,
@@ -34,8 +26,6 @@ bool result_maps_are_matching(
 
 TEST(QiboTester, checkSimpleCircuitSync) {
   // Initialize the platform
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, auth_token);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
 
@@ -57,8 +47,6 @@ TEST(QiboTester, checkSimpleCircuitSync) {
 
 TEST(QiboTester, checkSimpleCircuitAsync) {
   // Initialize the platform
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, auth_token);
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(backendString);
 
@@ -76,4 +64,12 @@ TEST(QiboTester, checkSimpleCircuitAsync) {
   std::unordered_map<std::string, std::size_t> expected = {{"00", 500},
                                                            {"11", 500}};
   EXPECT_TRUE(result_maps_are_matching(counts.to_map(), expected));
+}
+
+int main(int argc, char **argv) {
+  setenv("QIBO_API_TOKEN", "api_key", 0);
+  setenv("QIBO_API_URL", "http://localhost:62450", 0);
+  ::testing::InitGoogleTest(&argc, argv);
+  auto ret = RUN_ALL_TESTS();
+  return ret;
 }
