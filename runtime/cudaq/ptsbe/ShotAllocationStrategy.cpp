@@ -55,8 +55,11 @@ void allocateShots(std::span<cudaq::KrausTrajectory> trajectories,
   case ShotAllocationStrategy::Type::UNIFORM: {
     // Equal shots per trajectory
     std::size_t shots_per_traj = total_shots / trajectories.size();
-    for (auto &traj : trajectories) {
-      traj.num_shots = shots_per_traj;
+    std::size_t remainder = total_shots % trajectories.size();
+
+    for (std::size_t i = 0; i < trajectories.size(); ++i) {
+      // Base allocation to all, plus 1 extra to first 'remainder' trajectories
+      trajectories[i].num_shots = shots_per_traj + (i < remainder ? 1 : 0);
     }
     break;
   }
