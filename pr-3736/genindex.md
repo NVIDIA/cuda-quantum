@@ -1846,18 +1846,22 @@ pr-3736
 ## B {#B}
 
 +-----------------------------------+-----------------------------------+
-| -   [BaseIntegrator (class in     | -   [BosonOperatorElement (class  |
-|                                   |     in                            |
-| cudaq.dynamics.integrator)](api/l |                                   |
-| anguages/python_api.html#cudaq.dy |   cudaq.operators.boson)](api/lan |
-| namics.integrator.BaseIntegrator) | guages/python_api.html#cudaq.oper |
-| -   [BitFlipChannel (class in     | ators.boson.BosonOperatorElement) |
-|     cudaq)](api/languages/pyth    | -   [BosonOperatorTerm (class in  |
-| on_api.html#cudaq.BitFlipChannel) |     cudaq.operators.boson)](api/  |
-| -   [BosonOperator (class in      | languages/python_api.html#cudaq.o |
-|     cudaq.operators.boson)](      | perators.boson.BosonOperatorTerm) |
-| api/languages/python_api.html#cud | -   [broadcast() (in module       |
-| aq.operators.boson.BosonOperator) |     cudaq.mpi)](api/languages/pyt |
+| -   [BaseIntegrator (class in     | -   [BosonOperator (class in      |
+|                                   |     cudaq.operators.boson)](      |
+| cudaq.dynamics.integrator)](api/l | api/languages/python_api.html#cud |
+| anguages/python_api.html#cudaq.dy | aq.operators.boson.BosonOperator) |
+| namics.integrator.BaseIntegrator) | -   [BosonOperatorElement (class  |
+| -   [beta_reduction()             |     in                            |
+|     (cudaq.PyKernelDecorator      |                                   |
+|     method)](api                  |   cudaq.operators.boson)](api/lan |
+| /languages/python_api.html#cudaq. | guages/python_api.html#cudaq.oper |
+| PyKernelDecorator.beta_reduction) | ators.boson.BosonOperatorElement) |
+| -   [BitFlipChannel (class in     | -   [BosonOperatorTerm (class in  |
+|     cudaq)](api/languages/pyth    |     cudaq.operators.boson)](api/  |
+| on_api.html#cudaq.BitFlipChannel) | languages/python_api.html#cudaq.o |
+|                                   | perators.boson.BosonOperatorTerm) |
+|                                   | -   [broadcast() (in module       |
+|                                   |     cudaq.mpi)](api/languages/pyt |
 |                                   | hon_api.html#cudaq.mpi.broadcast) |
 +-----------------------------------+-----------------------------------+
 
