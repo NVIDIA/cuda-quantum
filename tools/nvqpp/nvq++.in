@@ -853,7 +853,13 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
+	# On macOS, use -nostdlib to prevent implicit -lc++ linking
+	NOSTDLIB_FLAG=""
+	if ${CUDAQ_IS_APPLE}; then
+		NOSTDLIB_FLAG="-nostdlib"
+	fi
+
+	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 

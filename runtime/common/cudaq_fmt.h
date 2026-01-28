@@ -66,18 +66,15 @@ void print_packed(const std::string_view message,
 // Please store large types (like vectors, strings) as reference_wrappers
 //
 struct fmt_arg {
-  // Note: On macOS ARM64, unsigned long is distinct from unsigned long long
-  // (both 64-bit), so we need both types for cross-platform compatibility.
   using storage_t = std::variant<
-      bool, char, uint32_t, int32_t, uint64_t, int64_t, unsigned long, long,
-      float, double, std::complex<float>, std::complex<double>,
-      std::string_view, const char *, char *, void *, std::chrono::milliseconds,
+      bool, char, uint32_t, int32_t, uint64_t, int64_t, float, double,
+      std::complex<float>, std::complex<double>, std::string_view, const char *,
+      char *, void *, std::chrono::milliseconds,
       std::chrono::system_clock::time_point,
       std::reference_wrapper<const std::vector<int32_t>>,
       std::reference_wrapper<const std::string>,
       std::reference_wrapper<const std::vector<uint32_t>>,
       std::reference_wrapper<const std::vector<uint64_t>>,
-      std::reference_wrapper<const std::vector<unsigned long>>,
       std::reference_wrapper<const std::vector<float>>,
       std::reference_wrapper<const std::vector<double>>,
       std::reference_wrapper<const std::vector<std::string>>,
@@ -89,6 +86,25 @@ struct fmt_arg {
   template <typename T>
     requires details::variant_alternative<T, storage_t>
   fmt_arg(const T &v) : value(std::cref(v)) {}
+
+  // On macOS, unsigned long and long are distinct types from uint64_t/int64_t
+  // (both 64-bit but different type identities). These constructors convert
+  // to canonical fixed-width types. Constraints ensure they only exist when
+  // the types are actually distinct (disabled on Linux where they're aliases).
+
+  template <typename T>
+    requires(std::same_as<T, unsigned long> && !std::same_as<T, uint64_t>)
+  fmt_arg(T v) : value(static_cast<uint64_t>(v)) {}
+
+  template <typename T>
+    requires(std::same_as<T, long> && !std::same_as<T, int64_t>)
+  fmt_arg(T v) : value(static_cast<int64_t>(v)) {}
+
+  template <typename T>
+    requires(std::same_as<T, std::vector<unsigned long>> &&
+             !std::same_as<unsigned long, uint64_t>)
+  fmt_arg(const T &v)
+      : value(std::cref(reinterpret_cast<const std::vector<uint64_t> &>(v))) {}
 };
 
 //
