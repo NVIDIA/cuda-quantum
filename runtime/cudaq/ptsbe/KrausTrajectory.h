@@ -18,6 +18,8 @@
 
 namespace cudaq {
 
+inline constexpr double PROBABILITY_EPSILON = 1e-9;
+
 /// @brief Represents one complete path through the space of possible noise
 /// realizations
 struct KrausTrajectory {
@@ -59,7 +61,7 @@ struct KrausTrajectory {
   constexpr bool operator==(const KrausTrajectory &other) const {
     return trajectory_id == other.trajectory_id &&
            kraus_selections == other.kraus_selections &&
-           std::abs(probability - other.probability) < 1e-9 &&
+           std::abs(probability - other.probability) < PROBABILITY_EPSILON &&
            num_shots == other.num_shots;
   }
 };
