@@ -145,9 +145,43 @@ public:
               std::string preStr = prefix ? prefix->str() : std::string{};
               Value rawBuffer = vecInit.getBuffer();
               auto eleTy = vecTy.getElementType();
-              auto buffTy = cudaq::cc::PointerType::get(eleTy);
-              auto ptrArrTy =
-                  cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+              Type buffEleTy = eleTy;
+              bool needsTruncation = false;
+              // Temporary debug output to help diagnose CI issues.
+              llvm::errs() << "<--- START ReturnToOutputLog DEBUG --->\n";
+              llvm::errs() << "vecTy: " << vecTy << "\n";
+              llvm::errs() << "eleTy: " << eleTy << "\n";
+              llvm::errs() << "rawBuffer type: " << rawBuffer.getType() << "\n";
+              if (auto defOp = rawBuffer.getDefiningOp()) {
+                llvm::errs()
+                    << "rawBuffer definingOp: " << defOp->getName() << "\n";
+                if (auto allocaOp = dyn_cast<cudaq::cc::AllocaOp>(defOp)) {
+                  llvm::errs()
+                      << "AllocaOp elementType: " << allocaOp.getElementType()
+                      << "\n";
+                }
+              }
+              llvm::errs() << "<--- END ReturnToOutputLog DEBUG --->\n";
+
+              // `std::vector<bool>` uses `i8` storage instead of `i1`.
+              // Load as `i8` then truncate to `i1` so that the Boolean values
+              // are logged correctly.
+              if (eleTy == rewriter.getI1Type()) {
+                // Default to `i8` storage.
+                buffEleTy = rewriter.getI8Type();
+                needsTruncation = true;
+                // Use `i1` if explicitly confirmed via `cc.alloca`.
+                if (auto allocaOp =
+                        rawBuffer.getDefiningOp<cudaq::cc::AllocaOp>()) {
+                  if (allocaOp.getElementType() == rewriter.getI1Type()) {
+                    buffEleTy = rewriter.getI1Type();
+                    needsTruncation = false;
+                  }
+                }
+              }
+              auto buffTy = cudaq::cc::PointerType::get(buffEleTy);
+              auto ptrArrTy = cudaq::cc::PointerType::get(
+                  cudaq::cc::ArrayType::get(buffEleTy));
               Value buffer =
                   rewriter.create<cudaq::cc::CastOp>(loc, ptrArrTy, rawBuffer);
               for (std::int32_t i = 0; i < sz; ++i) {
@@ -156,6 +190,8 @@ public:
                 auto v = rewriter.create<cudaq::cc::ComputePtrOp>(
                     loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
+                if (needsTruncation)
+                  w = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, w);
                 genOutputLog(loc, rewriter, w, offset);
               }
             }
