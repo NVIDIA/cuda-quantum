@@ -1083,4 +1083,55 @@ CUDAQ_TEST(NoiseTest, checkNoiseMatrixRepresentation) {
   }
   cudaq::unset_noise(); // clear for subsequent tests
 }
+
+// Test that AppliedTensorOp with noise channels is correctly handled
+// when state is cloned or used to initialize new qubits.
+#if defined(CUDAQ_BACKEND_TENSORNET) && !defined(CUDAQ_BACKEND_TENSORNET_MPS)
+CUDAQ_TEST(NoiseTest, checkNoiseChannelStateReconstruction) {
+  // Create a simple circuit with noise
+  auto bellCircuit = []() __qpu__ {
+    cudaq::qvector q(2);
+    h(q[0]);
+    x<cudaq::ctrl>(q[0], q[1]);
+  };
+
+  // Set up noise model with unitary mixture (supported by tensornet)
+  cudaq::noise_model noise;
+  noise.add_channel<cudaq::types::h>({0}, cudaq::depolarization_channel(0.1));
+  cudaq::set_noise(noise);
+
+  // Sample with noise - this creates AppliedTensorOp with noise channels
+  auto counts = cudaq::sample(100, bellCircuit);
+  // Verify noisy sampling works
+  EXPECT_TRUE(counts.size() >= 1);
+
+  // Get the state after noisy execution
+  auto state = cudaq::get_state(bellCircuit);
+  EXPECT_EQ(state.get_num_qubits(), 2);
+
+  // Now use this state to initialize new qubits
+  // This triggers addQubitsToState / createFromOpTensors which previously
+  // had a bug reading uninitialized isUnitary from noise channel ops
+  struct extendState {
+    void operator()(cudaq::state &s) __qpu__ {
+      cudaq::qvector q(s);
+      cudaq::qubit extra;
+      h(extra);
+    }
+  };
+
+  // This should not crash - previously it would crash with
+  // CUTENSORNET_STATUS_INVALID_VALUE due to reading uninitialized isUnitary
+  extendState kernel;
+  auto extendedCounts = cudaq::sample(100, kernel, state);
+  EXPECT_TRUE(extendedCounts.size() >= 1);
+  // Extended state should have 3 qubits worth of bitstrings
+  for (auto &[bitstring, count] : extendedCounts) {
+    EXPECT_EQ(bitstring.size(), 3);
+  }
+
+  cudaq::unset_noise();
+}
+#endif
+
 #endif
