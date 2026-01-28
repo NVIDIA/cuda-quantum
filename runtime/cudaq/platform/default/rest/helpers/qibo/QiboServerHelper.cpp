@@ -33,6 +33,22 @@ bool booleanArgument(const std::string &string_argument) {
          "true"; // we should handle wrong string-boolean values
 }
 
+// Retrieve an environment variable
+std::string getEnvVar(const std::string &key,
+                                       const std::string &defaultVal,
+                                       const bool isRequired) {
+  const char *env_var = std::getenv(key.c_str());
+  // If the variable is not set, either return the default or throw an
+  // exception
+  if (env_var == nullptr) {
+    if (isRequired)
+      throw std::runtime_error(key + " environment variable is not set.");
+    else
+      return defaultVal;
+  }
+  return std::string(env_var);
+}
+
 /// @brief The QiboServerHelper class extends the ServerHelper class
 /// to handle interactions with the Qibo server for submitting and
 /// retrieving quantum computation jobs.
@@ -48,7 +64,7 @@ public:
     RestHeaders headers;
     headers["Content-Type"] = "application/json";
 
-    // Add authentication headers if needed
+    headers["x-api-token"] = getEnvVar("QIBO_API_TOKEN", "", true);
     if (backendConfig.count("api_key"))
       headers["x-api-token"] = backendConfig["api_key"];
     headers["x-qibo-client-version"] = backendConfig["version"];
@@ -62,7 +78,10 @@ public:
     backendConfig = config;
 
     if (!backendConfig.count("url"))
-      backendConfig["url"] = DEFAULT_URL;
+      backendConfig["url"] = getEnvVar("QIBO_API_URL", DEFAULT_URL, false);
+    auto qibo_url = backendConfig["url"];
+    // append a trailing slash to complete the path later
+    backendConfig["url"] = qibo_url.ends_with("/") ? qibo_url : qibo_url + "/";
     if (!backendConfig.count("version"))
       backendConfig["version"] = DEFAULT_VERSION;
     if (!backendConfig.count("verbatim"))
@@ -86,7 +105,7 @@ public:
     job["verbatim"] = booleanArgument(backendConfig["verbatim"]);
 
     RestHeaders headers = getHeaders();
-    std::string path = "/api/jobs";
+    std::string path = "api/jobs";
 
     return std::make_tuple(backendConfig["url"] + path, headers,
                            std::vector<ServerMessage>{job});
@@ -107,7 +126,7 @@ public:
 
   /// @brief Generate full url for tracking the job ID.
   std::string constructGetJobPath(std::string &jobId) override {
-    return backendConfig["url"] + "/api/jobs/" + jobId;
+    return backendConfig["url"] + "api/jobs/" + jobId;
   }
 
   /// @brief Control the status of the job.
