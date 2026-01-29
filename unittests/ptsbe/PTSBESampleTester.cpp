@@ -6,7 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// PTSBE sample tests use the tracer context which behaves identically across
+// all backends. Run only on qpp to avoid redundant test execution.
+#if !defined(CUDAQ_BACKEND_DM) && !defined(CUDAQ_BACKEND_STIM) &&              \
+    !defined(CUDAQ_BACKEND_TENSORNET) &&                                       \
+    !defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
+
 #include "CUDAQTestUtils.h"
+#include "cudaq/algorithms/sample.h"
 #include "cudaq/ptsbe/PTSBESample.h"
 
 using namespace cudaq::ptsbe;
@@ -191,3 +198,76 @@ CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesAndDispatches) {
 
   EXPECT_THROW(dispatchPTSBE(batch), std::runtime_error);
 }
+
+// ============================================================================
+// T044: CORE sample() INTEGRATION TESTS
+// These tests verify the end-to-end integration with cudaq::sample()
+// ============================================================================
+
+// Test that cudaq::sample() with use_ptsbe=true dispatches to PTSBE path
+// and includes diagnostic information in the error message
+CUDAQ_TEST(PTSBESampleTest, CoreSampleWithUsePTSBEDispatchesToPTSBE) {
+  cudaq::sample_options options;
+  options.shots = 1000;
+  options.use_ptsbe = true;
+
+  // PTSBE dispatch should throw with diagnostic info showing successful capture
+  try {
+    cudaq::sample(options, bellKernel);
+    FAIL() << "Expected exception not thrown";
+  } catch (const std::runtime_error &e) {
+    std::string msg = e.what();
+    // Verify we got through PTSBE path with diagnostic info
+    EXPECT_TRUE(msg.find("PTSBE dispatch successful") != std::string::npos);
+    EXPECT_TRUE(msg.find("2 instructions") != std::string::npos);
+    EXPECT_TRUE(msg.find("2 measure qubits") != std::string::npos);
+  }
+}
+
+// Test that use_ptsbe=false uses normal sample path (no exception)
+CUDAQ_TEST(PTSBESampleTest, CoreSampleWithoutUsePTSBEUsesNormalPath) {
+  cudaq::sample_options options;
+  options.shots = 100;
+  options.use_ptsbe = false;
+
+  // Normal path should succeed without throwing
+  auto result = cudaq::sample(options, bellKernel);
+  EXPECT_GT(result.size(), 0);
+}
+
+// Test PTSBE dispatch with GHZ kernel to verify larger circuit capture
+CUDAQ_TEST(PTSBESampleTest, CoreSamplePTSBECapturesGHZCircuit) {
+  cudaq::sample_options options;
+  options.shots = 1000;
+  options.use_ptsbe = true;
+
+  try {
+    cudaq::sample(options, ghzKernel);
+    FAIL() << "Expected exception not thrown";
+  } catch (const std::runtime_error &e) {
+    std::string msg = e.what();
+    // GHZ has 3 gates (h, cx, cx) and 3 qubits
+    EXPECT_TRUE(msg.find("3 instructions") != std::string::npos);
+    EXPECT_TRUE(msg.find("3 measure qubits") != std::string::npos);
+  }
+}
+
+// Test PTSBE dispatch with parameterized kernel
+CUDAQ_TEST(PTSBESampleTest, CoreSamplePTSBEHandlesKernelArgs) {
+  cudaq::sample_options options;
+  options.shots = 1000;
+  options.use_ptsbe = true;
+
+  try {
+    cudaq::sample(options, rotationKernel, 1.57);
+    FAIL() << "Expected exception not thrown";
+  } catch (const std::runtime_error &e) {
+    std::string msg = e.what();
+    // rotationKernel has 2 gates (rx, ry) and 2 qubits
+    EXPECT_TRUE(msg.find("2 instructions") != std::string::npos);
+    EXPECT_TRUE(msg.find("2 measure qubits") != std::string::npos);
+  }
+}
+
+#endif // !CUDAQ_BACKEND_DM && !CUDAQ_BACKEND_STIM && !CUDAQ_BACKEND_TENSORNET
+       // && !CUDAQ_BACKEND_CUSTATEVEC_FP32

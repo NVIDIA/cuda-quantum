@@ -6,6 +6,21 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+/// @file PTSBESample.h
+/// @brief PTSBE sample integration for CORE cudaq::sample() flow
+///
+/// Provides PTSBE (Pre-Trajectory Sampling with Batch Execution)
+/// integration for the CORE sample API.
+///
+/// Usage:
+///   auto result = cudaq::ptsbe::sampleWithPTSBE(kernel, shots, args...);
+///
+/// Limitations:
+/// - PTSBE does not support mid-circuit measurements (MCM)
+/// - Dynamic circuits with conditional logic are rejected
+/// - Supports only unitary mixture noise
+///
+
 #pragma once
 
 #include "PTSBEInterface.h"
@@ -15,10 +30,28 @@
 
 namespace cudaq::ptsbe {
 
+/// @brief Check if execution context has mid-circuit measurements
+///
+/// Mid-circuit measurements are detected via registerNames populated during
+/// kernel tracing. When a measurement result is passed to conditional logic,
+/// the tracer adds register names to track the conditional dependency.
+///
+/// @param ctx ExecutionContext populated after kernel tracing
+/// @return true if registerNames is non-empty (MCM detected)
+/// @return false if no mid-circuit measurements found
+///
 inline bool hasMidCircuitMeasurements(const ExecutionContext &ctx) {
   return !ctx.registerNames.empty();
 }
 
+/// @brief Throw if mid-circuit measurements are detected
+///
+/// @param ctx ExecutionContext populated after kernel tracing
+/// @throws std::runtime_error if MCM detected with descriptive message
+///
+/// PTSBE requires static circuits because trajectory generation assumes
+/// a deterministic gate sequence. Dynamic circuits with measurement-dependent
+/// control flow cannot be pre-sampled.
 inline void throwIfMidCircuitMeasurements(const ExecutionContext &ctx) {
   if (hasMidCircuitMeasurements(ctx)) {
     throw std::runtime_error(
@@ -28,6 +61,13 @@ inline void throwIfMidCircuitMeasurements(const ExecutionContext &ctx) {
   }
 }
 
+/// @brief Extract measurement qubits from kernel trace
+///
+/// For PTSBE POC, assumes terminal measurements on all qubits in the circuit.
+/// Future work may extract explicit measurement operations from the trace.
+///
+/// @param trace Captured kernel trace
+/// @return Vector of qubit indices [0, 1, ..., numQudits-1]
 inline std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
   std::vector<std::size_t> qubits;
   auto numQudits = trace.getNumQudits();
@@ -38,30 +78,84 @@ inline std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
   return qubits;
 }
 
+/// @brief Dispatch PTSBatch to simulator for execution
+///
+/// Entry point for PTSBE execution after batch construction.
+/// Currently a stub that throws "not implemented" as full trajectory
+/// generation and simulator dispatch is future work.
+///
+/// @param batch PTSBatch with kernel_trace and measure_qubits
+/// @return Aggregated sample_result (future implementation)
+/// @throws std::runtime_error Always, until full implementation
+///
+/// Future implementation will:
+/// 1. Generate trajectories via PreTrajectorySamplingEngine
+/// 2. Call executePTSBE with simulator and batch
+/// 3. Return aggregated results
 inline sample_result dispatchPTSBE(const PTSBatch &batch) {
+  // Count instructions for diagnostic output
+  std::size_t instruction_count = 0;
+  for (const auto &inst : batch.kernel_trace) {
+    (void)inst;
+    ++instruction_count;
+  }
+
   throw std::runtime_error(
-      "dispatchPTSBE: Not implemented. "
-      "Full implementation requires simulator access and trajectory generation.");
+      "PTSBE dispatch successful but execution not implemented. "
+      "Captured: " +
+      std::to_string(instruction_count) + " instructions, " +
+      std::to_string(batch.measure_qubits.size()) + " measure qubits, " +
+      std::to_string(batch.trajectories.size()) + " trajectories. "
+      "Full trajectory generation requires future implementation.");
 }
 
-template <typename QuantumKernel, typename... Args>
-sample_result sampleWithPTSBE(QuantumKernel &&kernel, std::size_t shots,
-                               Args &&...args) {
+/// @brief Run PTSBE sampling (internal API matching runSampling pattern)
+///
+/// Internal function called from cudaq::sample() when use_ptsbe=true.
+/// Matches the signature pattern of details::runSampling for consistency.
+///
+/// @tparam KernelFunctor Wrapped kernel functor type
+/// @param wrappedKernel Functor that invokes the quantum kernel
+/// @param platform Reference to the quantum platform
+/// @param kernelName Name of the kernel (for diagnostics)
+/// @param shots Number of shots for trajectory allocation
+/// @return Aggregated sample_result from all trajectories
+/// @throws std::runtime_error if MCM detected or execution not implemented
+template <typename KernelFunctor>
+sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
+                                quantum_platform &platform,
+                                const std::string &kernelName,
+                                std::size_t shots) {
+  // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext trace_ctx("tracer");
-  auto &platform = get_platform();
   platform.set_exec_ctx(&trace_ctx);
-  kernel(std::forward<Args>(args)...);
+  wrappedKernel();
   platform.reset_exec_ctx();
 
+  // Stage 1: Check for mid-circuit measurements
   throwIfMidCircuitMeasurements(trace_ctx);
 
+  // Stage 2: Construct PTSBatch from trace
   PTSBatch batch;
   batch.kernel_trace = std::move(trace_ctx.kernelTrace);
   batch.measure_qubits = extractMeasureQubits(batch.kernel_trace);
 
+  // Stage 3: Dispatch to executePTSBE
   return dispatchPTSBE(batch);
 }
 
+/// @brief Capture kernel trace and construct PTSBatch (for testing)
+///
+/// Helper function that captures trace and builds PTSBatch without dispatching.
+/// Used by tests to verify trace capture and batch construction independently
+/// of execution.
+///
+/// @tparam QuantumKernel Quantum kernel type
+/// @tparam Args Kernel argument types
+/// @param kernel Quantum kernel to trace
+/// @param args Kernel arguments
+/// @return PTSBatch with kernel_trace, empty trajectories, and measure_qubits
+/// @throws std::runtime_error if MCM detected
 template <typename QuantumKernel, typename... Args>
 PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   ExecutionContext trace_ctx("tracer");
@@ -76,6 +170,26 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
   batch.kernel_trace = std::move(trace_ctx.kernelTrace);
   batch.measure_qubits = extractMeasureQubits(batch.kernel_trace);
   return batch;
+}
+
+/// @brief PTSBE sample implementation (convenience wrapper for testing)
+///
+/// Simplified interface for testing. Wraps the kernel and calls runSamplingPTSBE.
+///
+/// @tparam QuantumKernel Quantum kernel type (lambda or functor)
+/// @tparam Args Kernel argument types
+/// @param kernel Quantum kernel to sample
+/// @param shots Number of shots (passed to trajectory generation)
+/// @param args Kernel arguments
+/// @return Aggregated sample_result from all trajectories
+/// @throws std::runtime_error if MCM detected or execution not implemented
+template <typename QuantumKernel, typename... Args>
+sample_result sampleWithPTSBE(QuantumKernel &&kernel, std::size_t shots,
+                               Args &&...args) {
+  auto &platform = get_platform();
+  return runSamplingPTSBE(
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      "test_kernel", shots);
 }
 
 } // namespace cudaq::ptsbe

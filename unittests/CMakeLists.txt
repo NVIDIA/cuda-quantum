@@ -44,11 +44,6 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
   common/ExecutionContextThreadTester.cpp
-  # PTSBE tests
-  ptsbe/KrausSelectionTester.cpp
-  ptsbe/KrausTrajectoryTester.cpp
-  ptsbe/ShotAllocationTester.cpp
-  ptsbe/PTSBEInterfaceTester.cpp
   ptsbe/PTSBESampleTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
@@ -494,6 +489,25 @@ target_link_libraries(test_utils
   nvqir-qpp fmt::fmt-header-only
   gtest_main)
 gtest_discover_tests(test_utils DISCOVERY_TIMEOUT 120)
+
+add_executable(test_ptsbe main.cpp
+  ptsbe/KrausSelectionTester.cpp
+  ptsbe/KrausTrajectoryTester.cpp
+  ptsbe/ShotAllocationTester.cpp
+  ptsbe/PTSBEInterfaceTester.cpp)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_ptsbe PRIVATE -Wl,--no-as-needed)
+endif()
+target_include_directories(test_ptsbe PRIVATE .)
+target_link_libraries(test_ptsbe
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  nvqir
+  nvqir-qpp
+  fmt::fmt-header-only
+  gtest_main)
+gtest_discover_tests(test_ptsbe)
 
 # Test for thread-local execution context storage
 add_executable(test_exec_ctx_thread main.cpp common/ExecutionContextThreadTester.cpp)
