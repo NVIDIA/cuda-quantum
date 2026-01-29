@@ -128,6 +128,59 @@ def test_adjoint():
     assert len(counts) == 1
     assert '101' in counts
 
+def test_adjoint_error(capfd):
+    """Tests that taking a currently unsupported adjoint results in a nice error"""
+
+    # TODO: Fails due to dynamic scoping causing `i` to be reassigned in
+    # the second loop, instead of a fresh variable, so it is threaded
+    # through the loops by `memtoreg` causing `ApplyOpSpecialization` to
+    # fail because it cannot currently support multiple loop arguments
+    # (the first argument going through the range, the second being `i`)
+    @cudaq.kernel
+    def test_kernel_adjoint_loop(q: cudaq.qview, num_qubits: int):
+        for i in range(0,num_qubits):
+            x(q[i])
+        for i in range(0,num_qubits):
+            h(q[i])
+
+    @cudaq.kernel
+    def test_caller():
+        num_qubits = 3
+        q = cudaq.qvector(num_qubits)
+        cudaq.adjoint(test_kernel_adjoint_loop, q, num_qubits)
+
+    # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
+    with pytest.raises(RuntimeError):
+        counts = cudaq.sample(test_caller)
+    captured = capfd.readouterr().err
+    print(captured)
+    assert "ApplyOpSpecialization does not currently support loops with multiple arguments" in captured
+
+    # TODO: `k` is threaded through the loops by `memtoreg` causing
+    # `ApplyOpSpecialization` to fail because it cannot currently
+    # support multiple loop arguments
+    @cudaq.kernel
+    def test_kernel_adjoint_two_loops(q: cudaq.qview, num_qubits: int):
+        k = 0
+        for i in range(0,num_qubits):
+            x(q[i])
+            k += 1
+        for j in range(0,num_qubits):
+            h(q[j])
+            k += 1
+
+    @cudaq.kernel
+    def test_caller():
+        num_qubits = 3
+        q = cudaq.qvector(num_qubits)
+        cudaq.adjoint(test_kernel_adjoint_two_loops, q, num_qubits)
+
+    # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops
+    with pytest.raises(RuntimeError):
+        counts = cudaq.sample(test_caller)
+    captured = capfd.readouterr().err
+    print(captured)
+    assert "ApplyOpSpecialization does not currently support loops with multiple arguments" in captured
 
 def test_control():
     """Test that we can control on kernel functions."""
