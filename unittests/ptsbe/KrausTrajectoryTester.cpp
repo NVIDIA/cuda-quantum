@@ -43,7 +43,7 @@ CUDAQ_TEST(KrausTrajectoryTest, ParameterizedConstruction) {
 
   EXPECT_EQ(traj.trajectory_id, 42);
   EXPECT_EQ(traj.kraus_selections.size(), 2);
-  EXPECT_NEAR(traj.probability, 0.123, 1e-9);
+  EXPECT_NEAR(traj.probability, 0.123, PROBABILITY_EPSILON);
   EXPECT_EQ(traj.num_shots, 1000);
 }
 
@@ -78,7 +78,7 @@ CUDAQ_TEST(KrausTrajectoryTest, EmptyTrajectory) {
 
   EXPECT_EQ(traj.trajectory_id, 0);
   EXPECT_TRUE(traj.kraus_selections.empty());
-  EXPECT_NEAR(traj.probability, 1.0, 1e-9);
+  EXPECT_NEAR(traj.probability, 1.0, PROBABILITY_EPSILON);
   EXPECT_EQ(traj.num_shots, 1000);
 }
 
@@ -91,7 +91,7 @@ CUDAQ_TEST(KrausTrajectoryTest, MultipleErrors) {
   KrausTrajectory traj(1, sels, 0.001, 10);
 
   EXPECT_EQ(traj.kraus_selections.size(), 3);
-  EXPECT_NEAR(traj.probability, 0.001, 1e-9);
+  EXPECT_NEAR(traj.probability, 0.001, PROBABILITY_EPSILON);
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, MoveSemantics) {
@@ -102,7 +102,7 @@ CUDAQ_TEST(KrausTrajectoryTest, MoveSemantics) {
   KrausTrajectory moved = std::move(original);
   EXPECT_EQ(moved.trajectory_id, 42);
   EXPECT_EQ(moved.kraus_selections.size(), 1);
-  EXPECT_NEAR(moved.probability, 0.5, 1e-9);
+  EXPECT_NEAR(moved.probability, 0.5, PROBABILITY_EPSILON);
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
@@ -125,7 +125,7 @@ CUDAQ_TEST(KrausTrajectoryTest, CompleteScenario) {
   EXPECT_EQ(traj2.kraus_selections.size(), 2);
 
   double total_prob = traj1.probability + traj2.probability;
-  EXPECT_NEAR(total_prob, 0.95, 1e-9);
+  EXPECT_NEAR(total_prob, 0.95, PROBABILITY_EPSILON);
 }
 
 CUDAQ_TEST(KrausTrajectoryTest, ConstexprEquality) {
@@ -165,4 +165,67 @@ CUDAQ_TEST(KrausTrajectoryTest, OrderingValidation) {
       KrausSelection(5, {0}, "h", KrausOperatorType{1})};
   KrausTrajectory traj_single(4, single, 0.5, 100);
   EXPECT_TRUE(traj_single.isOrdered());
+}
+
+CUDAQ_TEST(KrausTrajectoryTest, BuilderPattern) {
+  std::vector<KrausSelection> selections = {
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{0})};
+
+  auto traj = KrausTrajectory::builder()
+                  .setId(42)
+                  .setSelections(selections)
+                  .setProbability(0.123)
+                  .build();
+
+  EXPECT_EQ(traj.trajectory_id, 42);
+  EXPECT_EQ(traj.kraus_selections.size(), 2);
+  EXPECT_NEAR(traj.probability, 0.123, PROBABILITY_EPSILON);
+
+  EXPECT_EQ(traj.num_shots, 0);
+  EXPECT_FALSE(traj.measurement_counts.has_value());
+
+  EXPECT_THROW(
+      {
+        auto invalid = KrausTrajectory::builder()
+                           .setId(1)
+                           .setSelections(selections)
+                           .setProbability(1.5)
+                           .build();
+      },
+      std::logic_error);
+
+  EXPECT_THROW(
+      {
+        auto invalid = KrausTrajectory::builder()
+                           .setId(1)
+                           .setSelections(selections)
+                           .setProbability(-0.1)
+                           .build();
+      },
+      std::logic_error);
+}
+
+CUDAQ_TEST(KrausTrajectoryTest, CountErrors) {
+  std::vector<KrausSelection> no_errors = {
+      KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
+  KrausTrajectory traj_no_errors(0, no_errors, 1.0, 0);
+  EXPECT_EQ(traj_no_errors.countErrors(), 0);
+
+  std::vector<KrausSelection> single_error = {
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType::IDENTITY)};
+  KrausTrajectory traj_single_error(1, single_error, 0.1, 0);
+  EXPECT_EQ(traj_single_error.countErrors(), 1);
+
+  std::vector<KrausSelection> multiple_errors = {
+      KrausSelection(0, {0}, "h", KrausOperatorType{1}),
+      KrausSelection(1, {0, 1}, "cx", KrausOperatorType{2}),
+      KrausSelection(2, {1}, "x", KrausOperatorType{3})};
+  KrausTrajectory traj_multiple_errors(2, multiple_errors, 0.001, 0);
+  EXPECT_EQ(traj_multiple_errors.countErrors(), 3);
+
+  KrausTrajectory traj_empty(3, {}, 1.0, 0);
+  EXPECT_EQ(traj_empty.countErrors(), 0);
 }

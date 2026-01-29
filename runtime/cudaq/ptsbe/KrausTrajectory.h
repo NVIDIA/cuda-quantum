@@ -15,6 +15,7 @@
 #include <map>
 #include <optional>
 #include <ranges>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -22,8 +23,12 @@ namespace cudaq {
 
 inline constexpr double PROBABILITY_EPSILON = 1e-9;
 
-/// @brief Represents one complete path through the space of possible noise
-/// realizations
+// Forward declaration
+class KrausTrajectoryBuilder;
+
+/// @brief Trajectory lifecycle container for PTSBE execution
+/// This struct represents one complete path through the space of possible noise
+/// realizations and serves as a container across three execution phases
 struct KrausTrajectory {
   /// @brief Unique identifier for this trajectory
   std::size_t trajectory_id = 0;
@@ -52,10 +57,15 @@ struct KrausTrajectory {
   /// point
   /// @param prob Computed probability of this trajectory occurring
   /// @param shots Number of measurement shots allocated to this trajectory
+  /// (default: 0)
   KrausTrajectory(std::size_t id, std::vector<KrausSelection> selections,
-                  double prob, std::size_t shots)
+                  double prob, std::size_t shots = 0)
       : trajectory_id(id), kraus_selections(std::move(selections)),
         probability(prob), num_shots(shots) {}
+
+  /// @brief Create a KrausTrajectoryBuilder
+  /// @return KrausTrajectoryBuilder
+  [[nodiscard]] static KrausTrajectoryBuilder builder();
 
   /// @brief Equality comparison for testing
   /// @param other KrausTrajectory to compare with
@@ -85,5 +95,56 @@ struct KrausTrajectory {
         });
   }
 };
+
+/// @brief Builder for Phase 1 trajectory construction
+class KrausTrajectoryBuilder {
+private:
+  std::size_t id_ = 0;
+  std::vector<KrausSelection> selections_;
+  double probability_ = 0.0;
+
+public:
+  /// @brief Set the trajectory identifier
+  /// @param id Unique identifier for this trajectory
+  /// @return Reference to this builder for chaining
+  KrausTrajectoryBuilder &setId(std::size_t id) {
+    id_ = id;
+    return *this;
+  }
+
+  /// @brief Set the Kraus operator selections
+  /// @param selections Complete specification of noise operators
+  /// @return Reference to this builder for chaining
+  KrausTrajectoryBuilder &
+  setSelections(std::vector<KrausSelection> selections) {
+    selections_ = std::move(selections);
+    return *this;
+  }
+
+  /// @brief Set the trajectory probability
+  /// @param prob Computed probability of this trajectory occurring
+  /// @return Reference to this builder for chaining
+  KrausTrajectoryBuilder &setProbability(double prob) {
+    probability_ = prob;
+    return *this;
+  }
+
+  /// @brief Build the KrausTrajectory
+  /// @return Constructed KrausTrajectory with num_shots = 0
+  /// @throws std::logic_error if probability is invalid
+  [[nodiscard]] KrausTrajectory build() const {
+    // Validate probability
+    if (probability_ < 0.0 || probability_ > 1.0) {
+      throw std::logic_error("Trajectory probability must be in range [0, 1]");
+    }
+
+    return KrausTrajectory(id_, std::vector<KrausSelection>(selections_),
+                           probability_, 0);
+  }
+};
+
+inline KrausTrajectoryBuilder KrausTrajectory::builder() {
+  return KrausTrajectoryBuilder();
+}
 
 } // namespace cudaq
