@@ -293,6 +293,7 @@ Data Types
 
 Optimizers
 -----------------
+.. |:spellcheck-disable:| replace:: \
 
 .. py:method:: optimize(dimensions: int, function) -> tuple[float, list[float]]
    :noindex:
@@ -337,6 +338,8 @@ Optimizers
 .. autoclass:: cudaq.optimizers::SPSA
     :members:
     :exclude-members: optimize, requires_gradients
+
+.. |:spellcheck-enable:| replace:: \
 
 Gradients
 -----------------
