@@ -510,7 +510,7 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
   size_t expectedStateVectorSize =
       calculate_state_vector_size(hilbertSpaceDims);
   const int64_t totalDistributedDimension =
-      cudaq::dynamics::getNumRanks() * dimension;
+      dynamics::Context::getCurrentContext()->getNumRanks() * dimension;
   if (dimension != batchSize * expectedDensityMatrixSize &&
       dimension != batchSize * expectedStateVectorSize &&
       totalDistributedDimension != batchSize * expectedDensityMatrixSize &&

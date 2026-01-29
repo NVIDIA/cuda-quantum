@@ -661,8 +661,7 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                const std::vector<void *> &rawArgs, Type resultTy) {
   auto clone = mod.clone();
-  auto res =
-      cudaq::streamlinedLaunchModule(name.c_str(), clone, rawArgs, resultTy);
+  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs, resultTy);
   clone.erase();
   return res;
 }
@@ -902,6 +901,31 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
+// NB: `cachedEngine` is actually of type `mlir::ExecutionEngine**`.
+static void *marshal_and_retain_module(const std::string &name,
+                                       MlirModule module, MlirType returnType,
+                                       void *cachedEngine,
+                                       py::args runtimeArgs) {
+  ScopedTraceWithContext("marshal_and_retain_module", name);
+  if (!cachedEngine)
+    throw std::runtime_error(
+        "Must have a storage location to retain the ExecutionEngine provided");
+  auto kernelFunc = cudaq::getKernelFuncOp(module, name);
+  auto mod = unwrap(module);
+  Type retTy = unwrap(returnType);
+  auto args =
+      cudaq::marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
+  // Append space for a result, as needed, to the vector of arguments.
+  auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
+  Type resTy = isa<NoneType>(retTy) ? Type{} : retTy;
+  auto clone = mod.clone();
+  // Returns the pointer to the JITted LLVM code for the entry point function.
+  void *funcPtr = cudaq::streamlinedSpecializeModule(name, clone, rawArgs,
+                                                     resTy, cachedEngine);
+  clone.erase();
+  return funcPtr;
+}
+
 static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   auto module = kernel.attr("qkeModule").cast<MlirModule>();
   auto mod = unwrap(module);
@@ -1099,6 +1123,12 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
   mod.def("marshal_and_launch_module", cudaq::marshal_and_launch_module,
           "Launch a kernel. Marshaling of arguments and unmarshalling of "
           "results is performed.");
+  mod.def("marshal_and_retain_module", marshal_and_retain_module,
+          "Marshaling of arguments and unmarshalling of results is performed. "
+          "The kernel undergoes argument synthesis and final code generation. "
+          "The kernel is NOT executed, but rather cached to a location managed "
+          "by the calling code. This allows the calling code to invoke the "
+          "entry point with a regular C++ call.");
 
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "

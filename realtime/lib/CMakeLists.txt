@@ -15,6 +15,3 @@ install(DIRECTORY ${CUDAQ_NVQLINK_INCLUDE_DIR}/cudaq
 )
 
 add_subdirectory(daemon)
-
-# FIXME:
-# add_subdirectory(plugins)

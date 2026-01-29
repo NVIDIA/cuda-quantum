@@ -413,6 +413,32 @@ if (CUDA_FOUND)
     # Only add this test if we have more than 1 GPU
     if (${NGPUS} GREATER_EQUAL 2)
       gtest_discover_tests(test_evolve_async PROPERTIES LABELS "gpu_required;mgpus_required")
+
+      # Multi-GPU batching test: this test needs MPI as well
+      if (MPI_CXX_FOUND)
+        add_executable(test_dynamics_mpi_batching mqpu/dynamics_mpi_batching_tester.cpp)
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+          target_link_options(test_dynamics_mpi_batching PRIVATE -Wl,--no-as-needed)
+        endif()
+        target_compile_definitions(test_dynamics_mpi_batching PRIVATE -DCUDAQ_ANALOG_TARGET)
+        target_link_libraries(test_dynamics_mpi_batching
+          PRIVATE
+          cudaq-operator
+          cudaq
+          cudaq-platform-mqpu
+          nvqir-dynamics
+          ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
+          CUDA::cudart
+          CUDA::cublas
+          ${CUTENSOR_LIB}
+          CUDA::cusparse
+          ${CUTENSORNET_LIB}
+          gtest_main
+          fmt::fmt-header-only)
+
+        add_test(NAME DynamicsMPIBatchingTest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_dynamics_mpi_batching)
+        set_tests_properties(DynamicsMPIBatchingTest PROPERTIES LABELS "gpu_required;mgpus_required")
+      endif()
     endif()
   endif()
 endif()

@@ -199,6 +199,11 @@ std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
+
+TargetSetter::TargetSetter(const char *backend) {
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(std::string(backend));
+}
 } // namespace cudaq::__internal__
 
 //===----------------------------------------------------------------------===//
@@ -208,11 +213,6 @@ void setRandomSeed(std::size_t);
 }
 
 namespace cudaq {
-
-void set_target_backend(const char *backend) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(std::string(backend));
-}
 
 void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();

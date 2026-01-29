@@ -212,6 +212,17 @@ KernelThunkResultType quantum_platform::launchModule(
   return qpu->launchModule(kernelName, module, rawArgs, resTy);
 }
 
+void *quantum_platform::specializeModule(const std::string &kernelName,
+                                         mlir::ModuleOp module,
+                                         const std::vector<void *> &rawArgs,
+                                         mlir::Type resTy, void *cachedEngine,
+                                         std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
+  return qpu->specializeModule(kernelName, module, rawArgs, resTy,
+                               cachedEngine);
+}
+
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
   for (auto &qpu : platformQPUs)
@@ -256,11 +267,12 @@ cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
 const RuntimeTarget *quantum_platform::get_runtime_target() const {
   return runtimeTarget.get();
 }
+} // namespace cudaq
 
-KernelThunkResultType altLaunchKernel(const char *kernelName,
-                                      KernelThunkType kernelFunc,
-                                      void *kernelArgs, std::uint64_t argsSize,
-                                      std::uint64_t resultOffset) {
+cudaq::KernelThunkResultType
+cudaq::altLaunchKernel(const char *kernelName,
+                       cudaq::KernelThunkType kernelFunc, void *kernelArgs,
+                       std::uint64_t argsSize, std::uint64_t resultOffset) {
   ScopedTraceWithContext("altLaunchKernel", kernelName, argsSize);
   auto &platform = *getQuantumPlatformInternal();
   std::string kernName = kernelName;
@@ -269,9 +281,9 @@ KernelThunkResultType altLaunchKernel(const char *kernelName,
                                resultOffset, {}, qpu_id);
 }
 
-KernelThunkResultType
-streamlinedLaunchKernel(const char *kernelName,
-                        const std::vector<void *> &rawArgs) {
+cudaq::KernelThunkResultType
+cudaq::streamlinedLaunchKernel(const char *kernelName,
+                               const std::vector<void *> &rawArgs) {
   std::size_t argsSize = rawArgs.size();
   ScopedTraceWithContext("streamlinedLaunchKernel", kernelName, argsSize);
   auto &platform = *getQuantumPlatformInternal();
@@ -283,29 +295,44 @@ streamlinedLaunchKernel(const char *kernelName,
   return {};
 }
 
-KernelThunkResultType
-streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp module,
-                        const std::vector<void *> &rawArgs,
-                        mlir::Type resultTy) {
+// FIXME: make this an inline function in nvqpp_interface.h. Requires ModuleOp
+// definition be available in that .h file though.
+cudaq::KernelThunkResultType
+cudaq::streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp moduleOp,
+                               const std::vector<void *> &rawArgs,
+                               mlir::Type resTy) {
+  std::string name = kernelName;
+  return streamlinedLaunchModule(name, moduleOp, rawArgs, resTy);
+}
+
+cudaq::KernelThunkResultType cudaq::streamlinedLaunchModule(
+    const std::string &kernelName, mlir::ModuleOp moduleOp,
+    const std::vector<void *> &rawArgs, mlir::Type resTy) {
   ScopedTraceWithContext("streamlinedLaunchModule", kernelName, rawArgs.size());
 
   auto &platform = *getQuantumPlatformInternal();
-  std::string kernName = kernelName;
   std::size_t qpu_id = platform.get_current_qpu();
-  return platform.launchModule(kernelName, module, rawArgs, resultTy, qpu_id);
+  return platform.launchModule(kernelName, moduleOp, rawArgs, resTy, qpu_id);
 }
 
-KernelThunkResultType
-streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
-                        const std::vector<void *> &rawArgs, mlir::Type resTy) {
-  return streamlinedLaunchModule(kernelName.c_str(), moduleOp, rawArgs, resTy);
+void *cudaq::streamlinedSpecializeModule(const std::string &kernelName,
+                                         mlir::ModuleOp moduleOp,
+                                         const std::vector<void *> &rawArgs,
+                                         mlir::Type resTy, void *cachedEngine) {
+  ScopedTraceWithContext("streamlinedSpecializeModule", kernelName,
+                         rawArgs.size());
+
+  auto &platform = *getQuantumPlatformInternal();
+  auto qpu_id = platform.get_current_qpu();
+  return platform.specializeModule(kernelName, moduleOp, rawArgs, resTy,
+                                   cachedEngine, qpu_id);
 }
 
-KernelThunkResultType hybridLaunchKernel(const char *kernelName,
-                                         KernelThunkType kernel, void *args,
-                                         std::uint64_t argsSize,
-                                         std::uint64_t resultOffset,
-                                         const std::vector<void *> &rawArgs) {
+cudaq::KernelThunkResultType
+cudaq::hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
+                          void *args, std::uint64_t argsSize,
+                          std::uint64_t resultOffset,
+                          const std::vector<void *> &rawArgs) {
   ScopedTraceWithContext("hybridLaunchKernel", kernelName);
   auto &platform = *getQuantumPlatformInternal();
   const std::string kernName = kernelName;
@@ -319,8 +346,10 @@ KernelThunkResultType hybridLaunchKernel(const char *kernelName,
                                rawArgs, qpu_id);
 }
 
-// Per-thread execution context storage implementation.
-// Temporary - will be removed when executionContext is eliminated.
+namespace cudaq {
+
+// Per-thread execution context storage implementation. Temporary - will be
+// removed when executionContext is eliminated.
 struct detail::PerThreadExecCtx::Impl {
   mutable std::shared_mutex mutex;
   std::unordered_map<std::size_t, ExecutionContext *> contexts;

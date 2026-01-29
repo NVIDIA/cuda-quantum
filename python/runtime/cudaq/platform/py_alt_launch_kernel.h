@@ -54,6 +54,7 @@ py::object marshal_and_launch_module(const std::string &kernelName,
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod, mlir::Type retTy,
                                           OpaqueArguments &args);
+
 OpaqueArguments
 marshal_arguments_for_module_launch(mlir::ModuleOp mod, py::args runtimeArgs,
                                     mlir::func::FuncOp kernelFunc);

@@ -34,6 +34,11 @@ class QPU;
 class gradient;
 class optimizer;
 struct RuntimeTarget;
+class LinkedLibraryHolder;
+
+namespace __internal__ {
+class TargetSetter;
+}
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -164,7 +169,13 @@ public:
   [[nodiscard]] KernelThunkResultType
   launchModule(const std::string &kernelName, mlir::ModuleOp module,
                const std::vector<void *> &rawArgs, mlir::Type resultTy,
-               std::size_t qpu_id = 0);
+               std::size_t qpu_id);
+
+  [[nodiscard]] void *specializeModule(const std::string &kernelName,
+                                       mlir::ModuleOp module,
+                                       const std::vector<void *> &rawArgs,
+                                       mlir::Type resultTy, void *cachedEngine,
+                                       std::size_t qpu_id);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -174,11 +185,6 @@ public:
         abi::__cxa_demangle(mangled, nullptr, nullptr, nullptr), std::free};
     return {ptr.get()};
   }
-
-  /// @brief Set the target backend, by default do nothing, let subclasses
-  /// override
-  /// @param name
-  virtual void setTargetBackend(const std::string &name) {}
 
   /// @brief Called by the runtime to notify that a new random seed value is
   /// set.
@@ -195,6 +201,13 @@ public:
   void setLogStream(std::ostream &logStream);
 
 protected:
+  friend class cudaq::LinkedLibraryHolder;
+  friend class cudaq::__internal__::TargetSetter;
+  /// @brief Set the target backend, by default do nothing, let subclasses
+  /// override
+  /// @param name
+  virtual void setTargetBackend(const std::string &name) {}
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
