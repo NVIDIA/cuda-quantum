@@ -147,14 +147,25 @@ protected:
     delete jit;
   }
 
-  virtual std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
+  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
+  extractQuakeCodeAndContext(const std::string &kernelName, void *data) {
+    auto context = cudaq::getOwningMLIRContext();
+
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(kernelName);
+    auto m_module = parseSourceString<mlir::ModuleOp>(quakeCode, context.get());
+    if (!m_module)
+      throw std::runtime_error("module cannot be parsed");
+
+    return std::make_tuple(m_module.release(), std::move(context), data);
+  }
 
 public:
   /// @brief The constructor
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+    cudaq::initializeMLIR();
   }
 
   BaseRemoteRESTQPU(BaseRemoteRESTQPU &&) = delete;
