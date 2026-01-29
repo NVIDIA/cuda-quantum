@@ -5268,6 +5268,9 @@ def compile_to_mlir(uniqueId, astModule,
     except:
         raise RuntimeError(f"could not compile code for '{bridge.name}'.")
 
+    # Eagerly delete the pass manager to avoid potential issues where the garbage collector delays the deletion to the very end, possibly causing context issues.
+    del pm
+
     bridge.module.operation.attributes.__setitem__(
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
