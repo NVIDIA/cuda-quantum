@@ -176,6 +176,9 @@ def test_cpp_kernel_from_python_2():
 
 
 def test_callbacks():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qnum: int):
@@ -188,6 +191,9 @@ def test_callbacks():
 
 @pytest.mark.skip(reason="temporarily disabled")
 def test_callbacks_b():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qnum: int):
@@ -199,6 +205,9 @@ def test_callbacks_b():
 
 
 def test_callback_with_capture():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def captured_qernel(s: int):
@@ -217,6 +226,9 @@ def test_callback_with_capture():
 
 
 def test_callback_with_capture_quantum():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qs: cudaq.qview):
@@ -228,6 +240,9 @@ def test_callback_with_capture_quantum():
 
 
 def test_callback_with_capture_quantum_and_classical():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qs: cudaq.qview, i: int):
