@@ -12,7 +12,6 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <future>
 #include <pybind11/complex.h>
 #include <pybind11/functional.h>
@@ -85,6 +84,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
             clean_launch_module(name, mod, retTy, opaques);
       },
       platform, name, name, shots_count, qpu_id, mod.getOperation());
+
   return results;
 }
 
@@ -123,15 +123,6 @@ static std::vector<py::object> pyRun(const std::string &shortName,
 
   if (noise_model.has_value())
     platform.reset_noise();
-
-  if (auto *execCtx = cudaq::get_platform().get_exec_ctx();
-      execCtx && execCtx->jitEng) {
-    // Cleanup the kernel caching.
-    auto *p = reinterpret_cast<mlir::ExecutionEngine *>(execCtx->jitEng);
-    delete p;
-    execCtx->jitEng = nullptr;
-    execCtx->allowJitEngineCaching = false;
-  }
 
   return results;
 }

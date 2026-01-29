@@ -464,7 +464,6 @@ public:
                                            mlir::MLIRContext *,
                                            mlir::func::FuncOp);
 
-  template <bool destroyContext>
   std::vector<cudaq::KernelExecution>
   lowerQuakeCodePart2(const std::string &kernelName, void *kernelArgs,
                       const std::vector<void *> &rawArgs,
