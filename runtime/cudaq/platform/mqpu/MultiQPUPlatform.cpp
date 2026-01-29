@@ -102,6 +102,7 @@ public:
     return "";
   }
 
+private:
   void setTargetBackend(const std::string &description) override {
     executionContext.set(nullptr);
 
