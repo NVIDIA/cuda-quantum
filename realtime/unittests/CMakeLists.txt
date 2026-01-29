@@ -51,11 +51,18 @@ if(CMAKE_CUDA_COMPILER)
     ${CUDAQ_NVQLINK_INCLUDE_DIR}
   )
   
+  # Find CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED
+  )
+  
   target_link_libraries(test_dispatch_kernel PRIVATE 
     GTest::gtest_main 
     CUDA::cudart
     cudaq-realtime
     cudaq-realtime-dispatch
+    ${CUDADEVRT_LIBRARY}
   )
   
   add_dependencies(NVQLINKUnitTests test_dispatch_kernel)

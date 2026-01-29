@@ -127,6 +127,68 @@ void cudaq_launch_dispatch_kernel_cooperative(
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
+// Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
+// These functions are only available when compiled for sm_90 or higher
+#if defined(__CUDACC__) || defined(CUDA_VERSION)
+
+// Legacy functions - launch dispatch kernel as regular kernel
+// WARNING: Device-side cudaGraphLaunch() will NOT work with these functions
+// because the dispatch kernel is not running inside a graph execution context.
+// Use cudaq_create_dispatch_graph_* functions instead for device-side graph launch.
+void cudaq_launch_dispatch_kernel_with_graph_regular(
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
+    size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
+    cudaStream_t stream);
+
+void cudaq_launch_dispatch_kernel_with_graph_cooperative(
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
+    size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
+    cudaStream_t stream);
+
+//==============================================================================
+// Graph-Based Dispatch API (Proper Device-Side Graph Launch Support)
+//==============================================================================
+//
+// These functions properly support device-side cudaGraphLaunch() by wrapping
+// the dispatch kernel in a graph that is instantiated with
+// cudaGraphInstantiateFlagDeviceLaunch.
+//
+// Usage:
+//   1. Call cudaq_create_dispatch_graph_regular() to create the graph context
+//   2. Call cudaq_launch_dispatch_graph() to launch the dispatch kernel
+//   3. When done, call cudaq_destroy_dispatch_graph() to cleanup
+//
+// The dispatch kernel running inside this graph CAN call cudaGraphLaunch()
+// to launch child graphs using cudaStreamGraphFireAndForget or other modes.
+
+// Opaque handle for graph-based dispatch context
+typedef struct cudaq_dispatch_graph_context cudaq_dispatch_graph_context;
+
+// Create a graph-based dispatch context for the regular kernel type.
+// This creates a graph containing the dispatch kernel, instantiates it with
+// cudaGraphInstantiateFlagDeviceLaunch, and uploads it to the device.
+// Returns cudaSuccess on success, or an error code on failure.
+cudaError_t cudaq_create_dispatch_graph_regular(
+    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
+    size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
+    cudaStream_t stream, cudaq_dispatch_graph_context **out_context);
+
+// Launch the dispatch graph. The dispatch kernel inside this graph can call
+// cudaGraphLaunch() to launch child graphs from device code.
+cudaError_t cudaq_launch_dispatch_graph(cudaq_dispatch_graph_context *context,
+                                        cudaStream_t stream);
+
+// Destroy the dispatch graph context and release all resources.
+cudaError_t cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
+
+#endif
+
 // Manager lifecycle
 cudaq_status_t
 cudaq_dispatch_manager_create(cudaq_dispatch_manager_t **out_mgr);

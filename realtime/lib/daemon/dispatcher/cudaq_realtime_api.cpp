@@ -8,6 +8,7 @@
 
 #include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
 
+#include <cstdio>
 #include <new>
 
 struct cudaq_dispatch_manager_t {
@@ -160,8 +161,12 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
       dispatcher->config.num_slots, dispatcher->config.num_blocks,
       dispatcher->config.threads_per_block, dispatcher->stream);
 
-  if (cudaGetLastError() != cudaSuccess)
+  cudaError_t err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    fprintf(stderr, "CUDA error in dispatcher launch: %s (%d)\n",
+            cudaGetErrorString(err), err);
     return CUDAQ_ERR_CUDA;
+  }
 
   dispatcher->running = true;
   return CUDAQ_OK;

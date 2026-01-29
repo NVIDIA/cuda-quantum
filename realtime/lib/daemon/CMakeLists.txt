@@ -51,9 +51,16 @@ if(CUDA_FOUND)
       $<INSTALL_INTERFACE:include>
   )
 
+  # Link CUDA device runtime library (required for device-side API calls like cudaGraphLaunch)
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED
+  )
+  
   target_link_libraries(cudaq-realtime-dispatch
     PUBLIC
       CUDA::cudart
+      ${CUDADEVRT_LIBRARY}
   )
 
   set_target_properties(cudaq-realtime-dispatch PROPERTIES

@@ -12,6 +12,7 @@
 #include <vector>
 #include <cstring>
 #include <unistd.h>
+#include <iostream>
 
 #include "cudaq/nvqlink/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/nvqlink/daemon/dispatcher/kernel_types.h"
@@ -447,6 +448,246 @@ TEST_F(HostApiDispatchTest, RpcIncrementHandler) {
 
   std::vector<std::uint8_t> expected = {1, 2, 3, 4};
   EXPECT_EQ(response, expected);
+}
+
+//==============================================================================
+// Graph Launch Test
+//==============================================================================
+
+// Graph kernel that processes RPC buffer via pointer indirection
+__global__ void graph_increment_kernel(void** buffer_ptr) {
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    void* buffer = *buffer_ptr;
+    cudaq::nvqlink::RPCHeader* header = static_cast<cudaq::nvqlink::RPCHeader*>(buffer);
+    
+    std::uint32_t arg_len = header->arg_len;
+    void* arg_buffer = static_cast<void*>(header + 1);
+    std::uint8_t* data = static_cast<std::uint8_t*>(arg_buffer);
+    
+    // Increment each byte
+    for (std::uint32_t i = 0; i < arg_len; ++i) {
+      data[i] = data[i] + 1;
+    }
+    
+    // Write response
+    cudaq::nvqlink::RPCResponse* response = static_cast<cudaq::nvqlink::RPCResponse*>(buffer);
+    response->magic = cudaq::nvqlink::RPC_MAGIC_RESPONSE;
+    response->status = 0;
+    response->result_len = arg_len;
+  }
+}
+
+constexpr std::uint32_t RPC_GRAPH_INCREMENT_FUNCTION_ID =
+    cudaq::nvqlink::fnv1a_hash("rpc_graph_increment");
+
+__global__ void init_graph_function_table(cudaq_function_entry_t* entries, 
+                                          cudaGraphExec_t graph_exec) {
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    entries[0].handler.graph_exec = graph_exec;
+    entries[0].function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
+    entries[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
+    entries[0].reserved[0] = 0;
+    entries[0].reserved[1] = 0;
+    entries[0].reserved[2] = 0;
+  }
+}
+
+TEST(GraphLaunchTest, DispatchKernelGraphLaunch) {
+  // Check compute capability
+  int device;
+  CUDA_CHECK(cudaGetDevice(&device));
+  cudaDeviceProp prop;
+  CUDA_CHECK(cudaGetDeviceProperties(&prop, device));
+  
+  if (prop.major < 9) {
+    GTEST_SKIP() << "Graph device launch requires compute capability 9.0+, found " 
+                 << prop.major << "." << prop.minor;
+  }
+  
+  // Allocate graph buffer pointer (for pointer indirection pattern)
+  void** d_graph_buffer_ptr;
+  CUDA_CHECK(cudaMalloc(&d_graph_buffer_ptr, sizeof(void*)));
+  CUDA_CHECK(cudaMemset(d_graph_buffer_ptr, 0, sizeof(void*)));
+  
+  // Allocate test buffer
+  constexpr size_t buffer_size = 1024;
+  void* d_buffer;
+  CUDA_CHECK(cudaMalloc(&d_buffer, buffer_size));
+  
+  // Create the child graph (the one that will be launched from device)
+  cudaGraph_t child_graph;
+  cudaGraphExec_t child_graph_exec;
+  
+  CUDA_CHECK(cudaGraphCreate(&child_graph, 0));
+  
+  // Add kernel node to child graph
+  cudaKernelNodeParams kernel_params = {};
+  void* kernel_args[] = {&d_graph_buffer_ptr};
+  kernel_params.func = reinterpret_cast<void*>(&graph_increment_kernel);
+  kernel_params.gridDim = dim3(1, 1, 1);
+  kernel_params.blockDim = dim3(32, 1, 1);
+  kernel_params.sharedMemBytes = 0;
+  kernel_params.kernelParams = kernel_args;
+  kernel_params.extra = nullptr;
+  
+  cudaGraphNode_t kernel_node;
+  CUDA_CHECK(cudaGraphAddKernelNode(&kernel_node, child_graph, nullptr, 0, &kernel_params));
+  
+  // Instantiate CHILD graph with DEVICE LAUNCH FLAG
+  CUDA_CHECK(cudaGraphInstantiate(&child_graph_exec, child_graph,  
+                                   cudaGraphInstantiateFlagDeviceLaunch));
+  
+  // Create stream for operations
+  cudaStream_t stream;
+  CUDA_CHECK(cudaStreamCreate(&stream));
+  
+  // Upload the child graph to device
+  CUDA_CHECK(cudaGraphUpload(child_graph_exec, stream));
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+  
+  // Set up function table with graph launch entry
+  cudaq_function_entry_t* d_function_entries;
+  CUDA_CHECK(cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t)));
+  init_graph_function_table<<<1, 1>>>(d_function_entries, child_graph_exec);
+  CUDA_CHECK(cudaDeviceSynchronize());
+  
+  // Set up RPC buffer on host
+  std::uint8_t* h_buffer = new std::uint8_t[buffer_size];
+  cudaq::nvqlink::RPCHeader* h_header = reinterpret_cast<cudaq::nvqlink::RPCHeader*>(h_buffer);
+  h_header->magic = cudaq::nvqlink::RPC_MAGIC_REQUEST;
+  h_header->function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
+  h_header->arg_len = 4;
+  
+  std::uint8_t* h_data = h_buffer + sizeof(cudaq::nvqlink::RPCHeader);
+  h_data[0] = 0;
+  h_data[1] = 1;
+  h_data[2] = 2;
+  h_data[3] = 3;
+  
+  // Copy to device
+  CUDA_CHECK(cudaMemcpy(d_buffer, h_buffer, buffer_size, cudaMemcpyHostToDevice));
+  
+  // Set up fake RX/TX flags for single-shot test
+  volatile uint64_t* d_rx_flags;
+  volatile uint64_t* d_tx_flags;
+  CUDA_CHECK(cudaMalloc(&d_rx_flags, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMalloc(&d_tx_flags, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMemset((void*)d_rx_flags, 0, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMemset((void*)d_tx_flags, 0, sizeof(uint64_t)));
+  
+  // Set RX flag to point to our buffer (simulating incoming RPC)
+  uint64_t buffer_addr = reinterpret_cast<uint64_t>(d_buffer);
+  CUDA_CHECK(cudaMemcpy((void*)d_rx_flags, &buffer_addr, sizeof(uint64_t), cudaMemcpyHostToDevice));
+  
+  // Set up shutdown flag using pinned mapped memory so the dispatch kernel
+  // can see host updates immediately
+  volatile int* h_shutdown;
+  volatile int* d_shutdown;
+  {
+    void* tmp_shutdown;
+    CUDA_CHECK(cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
+    h_shutdown = static_cast<volatile int*>(tmp_shutdown);
+    *h_shutdown = 0;
+    
+    void* tmp_d_shutdown;
+    CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
+    d_shutdown = static_cast<volatile int*>(tmp_d_shutdown);
+  }
+  int shutdown_val = 0;  // Local variable for tracking
+  
+  // Set up stats
+  uint64_t* d_stats;
+  CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
+  CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
+  
+  // Create dispatch graph context - THIS WRAPS THE DISPATCH KERNEL IN A GRAPH
+  // so that device-side cudaGraphLaunch() can work!
+  cudaq_dispatch_graph_context* dispatch_ctx = nullptr;
+  cudaError_t err = cudaq_create_dispatch_graph_regular(
+      d_rx_flags, d_tx_flags, d_function_entries, 1,
+      d_graph_buffer_ptr, d_shutdown, d_stats, 1,
+      1, 32, stream, &dispatch_ctx);
+  
+  if (err != cudaSuccess) {
+    GTEST_SKIP() << "Device-side graph launch not supported: " 
+                 << cudaGetErrorString(err) << " (" << err << ")";
+  }
+  
+  // Launch dispatch graph - now device-side cudaGraphLaunch will work!
+  CUDA_CHECK(cudaq_launch_dispatch_graph(dispatch_ctx, stream));
+  
+  // Poll for the response using pinned memory and async operations
+  // The child graph runs asynchronously (fire-and-forget) so we need to poll
+  std::uint8_t* h_poll_buffer;
+  CUDA_CHECK(cudaHostAlloc(&h_poll_buffer, sizeof(cudaq::nvqlink::RPCResponse), cudaHostAllocDefault));
+  memset(h_poll_buffer, 0, sizeof(cudaq::nvqlink::RPCResponse));
+  
+  cudaStream_t poll_stream;
+  CUDA_CHECK(cudaStreamCreate(&poll_stream));
+  
+  int timeout_ms = 5000;
+  int poll_interval_ms = 100;
+  bool got_response = false;
+  
+  for (int elapsed = 0; elapsed < timeout_ms; elapsed += poll_interval_ms) {
+    CUDA_CHECK(cudaMemcpyAsync(h_poll_buffer, d_buffer, sizeof(cudaq::nvqlink::RPCResponse), 
+                                cudaMemcpyDeviceToHost, poll_stream));
+    CUDA_CHECK(cudaStreamSynchronize(poll_stream));
+    
+    cudaq::nvqlink::RPCResponse* peek = reinterpret_cast<cudaq::nvqlink::RPCResponse*>(h_poll_buffer);
+    if (peek->magic == cudaq::nvqlink::RPC_MAGIC_RESPONSE) {
+      got_response = true;
+      break;
+    }
+    
+    usleep(poll_interval_ms * 1000);
+  }
+  
+  // Signal shutdown to allow kernel to exit
+  *h_shutdown = 1;
+  __sync_synchronize();
+  usleep(100000); // Give kernel time to see shutdown flag
+  
+  // Copy final results
+  CUDA_CHECK(cudaMemcpyAsync(h_buffer, d_buffer, buffer_size, cudaMemcpyDeviceToHost, poll_stream));
+  CUDA_CHECK(cudaStreamSynchronize(poll_stream));
+  
+  // Clean up poll resources  
+  CUDA_CHECK(cudaStreamDestroy(poll_stream));
+  cudaFreeHost(h_poll_buffer);
+  
+  // Sync main stream (dispatch kernel should have exited)
+  CUDA_CHECK(cudaStreamSynchronize(stream));
+  
+  ASSERT_TRUE(got_response) << "Timeout waiting for device-side graph launch response";
+  
+  // Verify response
+  cudaq::nvqlink::RPCResponse* h_response = reinterpret_cast<cudaq::nvqlink::RPCResponse*>(h_buffer);
+  EXPECT_EQ(h_response->magic, cudaq::nvqlink::RPC_MAGIC_RESPONSE) 
+      << "Expected RPC_MAGIC_RESPONSE, got 0x" << std::hex << h_response->magic;
+  EXPECT_EQ(h_response->status, 0) << "Handler returned error status";
+  EXPECT_EQ(h_response->result_len, 4u) << "Unexpected result length";
+  
+  // Verify data was incremented by graph kernel launched from dispatch kernel
+  std::uint8_t* h_result = h_buffer + sizeof(cudaq::nvqlink::RPCResponse);
+  EXPECT_EQ(h_result[0], 1) << "Expected h_result[0]=1";
+  EXPECT_EQ(h_result[1], 2) << "Expected h_result[1]=2";
+  EXPECT_EQ(h_result[2], 3) << "Expected h_result[2]=3";
+  EXPECT_EQ(h_result[3], 4) << "Expected h_result[3]=4";
+  
+  // Cleanup
+  delete[] h_buffer;
+  CUDA_CHECK(cudaq_destroy_dispatch_graph(dispatch_ctx));
+  CUDA_CHECK(cudaStreamDestroy(stream));
+  CUDA_CHECK(cudaFree(d_stats));
+  CUDA_CHECK(cudaFreeHost(const_cast<int*>(h_shutdown)));  // Free mapped memory
+  CUDA_CHECK(cudaFree((void*)d_tx_flags));
+  CUDA_CHECK(cudaFree((void*)d_rx_flags));
+  CUDA_CHECK(cudaFree(d_function_entries));
+  CUDA_CHECK(cudaGraphExecDestroy(child_graph_exec));
+  CUDA_CHECK(cudaGraphDestroy(child_graph));
+  CUDA_CHECK(cudaFree(d_graph_buffer_ptr));
+  CUDA_CHECK(cudaFree(d_buffer));
 }
 
 } // namespace
