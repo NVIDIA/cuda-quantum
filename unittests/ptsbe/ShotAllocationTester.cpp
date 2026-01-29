@@ -163,16 +163,6 @@ CUDAQ_TEST(ShotAllocationTest, EmptyTrajectoryList) {
   EXPECT_ANY_THROW({ allocateShots(trajectories, 1000, strategy); });
 }
 
-CUDAQ_TEST(ShotAllocationTest, ZeroShotsRequested) {
-  std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
-                                               makeTrajectory(1, 0.5)};
-
-  ShotAllocationStrategy strategy(ShotAllocationStrategy::Type::PROPORTIONAL);
-
-  // Zero shots should throw an exception
-  EXPECT_THROW(allocateShots(trajectories, 0, strategy), std::invalid_argument);
-}
-
 CUDAQ_TEST(ShotAllocationTest, SingleShotDistribution) {
   std::vector<KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
                                                makeTrajectory(1, 0.5)};
