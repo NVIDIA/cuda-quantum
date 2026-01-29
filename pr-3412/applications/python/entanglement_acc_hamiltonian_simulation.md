@@ -2160,7 +2160,7 @@ study.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [ ]:
 :::
 :::
 
@@ -2192,7 +2192,7 @@ study.
 
         for step in range(1, r + 1):
             psi_ideal = ideal_next_state(U, psi_ideal)
-            t_state = cudaq.get_state(trotter_step_pf1, t_state, dt, c_a, c_b, words_a, words_b)
+            t_state = cudaq.StateMemoryView(cudaq.get_state(trotter_step_pf1, t_state, dt, c_a, c_b, words_a, words_b))
 
             psi_t = cp.asarray(t_state, dtype=cp.complex128)
 
@@ -2226,7 +2226,7 @@ entanglement entropy for contiguous subsystems of size 1 through 4.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [11]:
+    [ ]:
 :::
 :::
 
@@ -2239,7 +2239,7 @@ entanglement entropy for contiguous subsystems of size 1 through 4.
     r = 100  # number of PF1 Trotter steps
 
     # initial state
-    initial_state = cudaq.get_state(get_initial_state, n)
+    initial_state = cudaq.StateMemoryView(cudaq.get_state(get_initial_state, n))
 
     # field strength and coupling strength
     h_x_val, h_y_val, J_val = 0.8090, 0.9045, 1

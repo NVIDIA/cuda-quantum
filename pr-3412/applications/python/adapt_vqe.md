@@ -1777,7 +1777,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![4f8307dc19514b0f94107887cfaea9b8](../../_images/adapt-vqe.png){.no-scaled-link
+![116c242eed8e474fa79ee19c36f6d3c0](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>
@@ -1789,7 +1789,7 @@ style="width: 800px;"}
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     # Requires pyscf to be installed
     %pip install pyscf
@@ -1821,7 +1821,7 @@ style="width: 800px;"}
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     import cudaq
 
@@ -1851,7 +1851,7 @@ molecular orbitals.
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     import numpy as np
     from qchem.classical_pyscf import get_mol_hamiltonian
@@ -1898,7 +1898,7 @@ Convert fermionic Hamiltonian to qubit Hamiltonian.
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     from qchem.hamiltonian import jordan_wigner_fermion
 
@@ -1953,7 +1953,7 @@ X_j Y_k Y_l − X_i Y_j Y_k Y_l) \\prod\_{p=i+1}\^{j-1} Zp
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     from qchem.operator_pool import get_uccsd_pool
 
@@ -2008,7 +2008,7 @@ X_j Y_k Y_l − X_i Y_j Y_k Y_l) \\prod\_{p=i+1}\^{j-1} Zp
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     def commutator(pools, ham):
         com_op = []
@@ -2050,11 +2050,11 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [ ]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     # Get the initial state (reference state).
 
@@ -2066,7 +2066,7 @@ Reference state here is Haretree Fock
         for i in range(nelectrons):
             x(qubits[i])
 
-    state = cudaq.get_state(initial_state, n_qubits, nelectrons)
+    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, n_qubits, nelectrons))
     print(state)
 :::
 :::
@@ -2094,7 +2094,7 @@ Reference state here is Haretree Fock
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     ###################################
     # Quantum kernels
@@ -2139,11 +2139,11 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [16]:
+    [ ]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     from scipy.optimize import minimize
 
@@ -2317,8 +2317,8 @@ Reference state here is Haretree Fock
                 E_prev=result_vqe.fun
 
                 # Prepare a trial state with the current ansatz.
-                state=cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
-                                coef_single, pool_double, coef_double)
+                state=cudaq.StateMemoryView(cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
+                                coef_single, pool_double, coef_double))
 
     # When using mpi
     #cudaq.mpi.finalize()

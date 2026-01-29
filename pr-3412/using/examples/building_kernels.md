@@ -1834,7 +1834,7 @@ Python
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
-        q = cudaq.qubit(vec)
+        q = cudaq.qvector(vec)
 :::
 :::
 :::
