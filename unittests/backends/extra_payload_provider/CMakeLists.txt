@@ -38,3 +38,4 @@ add_backend_unittest_executable(test_fake_extra_payload_provider
 configure_file(HorizonStartServerAndTest.sh.in HorizonStartServerAndTest.sh @ONLY)
 add_test(NAME extra-payload-provider-tests COMMAND bash HorizonStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
+# initialization which can cause server startup timeouts on resource-constrained systems.

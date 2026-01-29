@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
@@ -418,8 +419,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     // __nvqpp_vector_bool_to_initializer_list
+    // The array size is factory::stdVecBoolPaddingSize to match the host
+    // std::vector<bool> layout. The {PADDING_SIZE} placeholder is replaced
+    // at load time.
     {cudaq::stdvecBoolUnpackToInitList, {}, R"#(
-  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x 32>}>>, !cc.ptr<!cc.ptr<i8>>) -> ()
+  func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {PADDING_SIZE}>}>>, !cc.ptr<!cc.ptr<i8>>) -> ()
 )#"},
 
     {"__nvqpp_zeroDynamicResult", {}, R"#(
@@ -716,6 +720,18 @@ LogicalResult IRBuilder::loadIntrinsic(ModuleOp module, StringRef intrinName) {
       return failure();
   }
   // Now load the requested code.
+  // For stdvecBoolUnpackToInitList, replace the {PADDING_SIZE} placeholder
+  // with the actual padding size for the host's std::vector<bool>.
+  if (intrinName == cudaq::stdvecBoolUnpackToInitList) {
+    std::string code = iter->code.str();
+    const std::string placeholder = "{PADDING_SIZE}";
+    auto pos = code.find(placeholder);
+    code.replace(pos, placeholder.size(),
+                 std::to_string(opt::factory::stdVecBoolPaddingSize));
+    return parseSourceString(
+        code, module.getBody(),
+        ParserConfig{module.getContext(), /*verifyAfterParse=*/false});
+  }
   return parseSourceString(
       iter->code, module.getBody(),
       ParserConfig{module.getContext(), /*verifyAfterParse=*/false});

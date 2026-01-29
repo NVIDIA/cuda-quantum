@@ -30,15 +30,6 @@ set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-common)
 # So override that here.
 target_compile_options(libstim PRIVATE -Wno-all)
 
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map "
-{
-  global:
-    *;
-  local:
-    *4stim*;
-};
-")
-
 target_include_directories(${LIBRARY_NAME}
     PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -48,8 +39,27 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PRIVATE ${STIM_DEPENDENCIES})
 
-target_link_options(${LIBRARY_NAME} PRIVATE 
-  "-Wl,--version-script,${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map")
+# Hide stim namespace symbols (*4stim* matches mangled C++ symbols where "4stim" is the
+# namespace with its length prefix) to avoid conflicts when users import both cudaq and
+# stim in Python with different Stim versions. Apple's ld uses different syntax than GNU ld.
+if(APPLE)
+  # Apple: list symbols to hide (everything else exported by default)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map "*4stim*\n")
+  target_link_options(${LIBRARY_NAME} PRIVATE
+    "-Wl,-unexported_symbols_list,${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map")
+else()
+  # GNU ld: global=export all, local=hide matching (same effect as Apple's unexported list)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map "
+{
+  global:
+    *;
+  local:
+    *4stim*;
+};
+")
+  target_link_options(${LIBRARY_NAME} PRIVATE
+    "-Wl,--version-script,${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map")
+endif()
 
 # Add a post-build check to verify that no unwanted Stim symbols are exported.
 # This is important to allow users to import both `cudaq` and `stim` into the same

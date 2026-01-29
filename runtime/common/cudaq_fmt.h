@@ -86,6 +86,25 @@ struct fmt_arg {
   template <typename T>
     requires details::variant_alternative<T, storage_t>
   fmt_arg(const T &v) : value(std::cref(v)) {}
+
+  // On macOS, unsigned long and long are distinct types from uint64_t/int64_t
+  // (both 64-bit but different type identities). These constructors convert
+  // to canonical fixed-width types. Constraints ensure they only exist when
+  // the types are actually distinct (disabled on Linux where they're aliases).
+
+  template <typename T>
+    requires(std::same_as<T, unsigned long> && !std::same_as<T, uint64_t>)
+  fmt_arg(T v) : value(static_cast<uint64_t>(v)) {}
+
+  template <typename T>
+    requires(std::same_as<T, long> && !std::same_as<T, int64_t>)
+  fmt_arg(T v) : value(static_cast<int64_t>(v)) {}
+
+  template <typename T>
+    requires(std::same_as<T, std::vector<unsigned long>> &&
+             !std::same_as<unsigned long, uint64_t>)
+  fmt_arg(const T &v)
+      : value(std::cref(reinterpret_cast<const std::vector<uint64_t> &>(v))) {}
 };
 
 //

@@ -18,6 +18,8 @@
 # CUDAQ_INSTALL_PREFIX=/path/for/installing/cudaq LLVM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
+# -or-
+# bash scripts/build_cudaq.sh -- -DCUDAQ_LIT_JOBS=2 
 #
 # Options:
 # -c <build_configuration>: The build configuration to use. Defaults to Release.
@@ -27,6 +29,8 @@
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
 # -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
+# -p: Install prerequisites before building.
+# --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
@@ -54,19 +58,35 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 clean_build=true
+install_prereqs=false
 install_toolchain=""
 num_jobs=""
 enable_sanitizers=false
+extra_cmake_args=""
+
+# Extract extra cmake args after -- separator
+args_before_sep=()
+found_sep=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    found_sep=true
+  elif $found_sep; then
+    extra_cmake_args="$extra_cmake_args $arg"
+  else
+    args_before_sep+=("$arg")
+  fi
+done
+set -- "${args_before_sep[@]}"
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 build_dir="$working_dir/build"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:is" opt; do
+while getopts ":c:t:j:vB:isp" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -81,6 +101,8 @@ while getopts ":c:t:j:vB:is" opt; do
     i) clean_build=false
     ;;
     s) enable_sanitizers=true
+    ;;
+    p) install_prereqs=true
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -98,17 +120,32 @@ if $clean_build; then
 fi
 mkdir -p logs && rm -rf logs/*
 
-if [ -n "$install_toolchain" ]; then
-  echo "Installing pre-requisites..."
+# Install prerequisites (opt-in with -p or -t)
+# When installing prerequisites, we also set default install prefix env vars
+# so CMake knows where to find them. Without -p/-t, CMake uses standard discovery.
+if $install_prereqs || [ -n "$install_toolchain" ]; then
+  # Set defaults for where prerequisites will be installed
+  source "$this_file_dir/set_env_defaults.sh"
+  
+  echo "Installing prerequisites..."
+  # Save and clear positional parameters to avoid passing them to sourced script
+  saved_args=("$@")
+  if [ -n "$install_toolchain" ]; then
+    set -- -t "$install_toolchain"
+  else
+    set --
+  fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain"
+    source "$this_file_dir/install_prerequisites.sh" "$@"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain" \
+    source "$this_file_dir/install_prerequisites.sh" "$@" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi
+  # Restore positional parameters
+  set -- "${saved_args[@]}"
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo -e "\e[01;31mError: Failed to install prerequisites.\e[0m" >&2
@@ -149,7 +186,8 @@ else
 fi
 
 # Determine linker and linker flags
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+# On macOS, always use the system linker (Apple's ld) as -fuse-ld=lld doesn't work with Apple clang
+if [ "$(uname)" != "Darwin" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
   LINKER_TO_USE="lld"
@@ -159,7 +197,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
-  echo "No lld linker detected. Using the system linker."
+  echo "Using the system linker."
   LINKER_FLAG_LIST=""
 fi
 
@@ -175,11 +213,17 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   fi
 fi
 
-# Determine OpenMP flags
-if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
-  OMP_LIBRARY=${OMP_LIBRARY:-libomp}
-  OpenMP_libomp_LIBRARY=${OMP_LIBRARY#lib}
-  OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
+# Determine OpenMP flags (check for .so on Linux, .dylib on macOS)
+OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" \( -name 'libomp.so' -o -name 'libomp.dylib' \) 2>/dev/null | head -1)
+if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
+  omp_header_dir=$(find "$LLVM_INSTALL_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
+  # Apple Clang requires -Xpreprocessor -fopenmp; LLVM Clang/GCC use -fopenmp directly
+  # Use -idirafter to add omp.h path AFTER system headers (avoids conflicts with clang's stdint.h)
+  if ${CXX:-c++} --version 2>&1 | grep -q "Apple clang"; then
+    OpenMP_FLAGS="${OpenMP_FLAGS:--Xpreprocessor -fopenmp -idirafter $omp_header_dir}"
+  else
+    OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
+  fi
 fi
 
 # Check for ccache and configure compiler launcher
@@ -211,22 +255,28 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
-  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
-  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
-  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
   ${CCACHE_FLAGS} \
   ${SANITIZER_FLAGS} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_C_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_CXX_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_omp_LIBRARY='"$OpenMP_libomp_LIBRARY_PATH"'} \
   ${OpenMP_FLAGS:+"-DOpenMP_C_FLAGS='"$OpenMP_FLAGS"'"} \
   ${OpenMP_FLAGS:+"-DOpenMP_CXX_FLAGS='"$OpenMP_FLAGS"'"} \
   -DCUDAQ_REQUIRE_OPENMP=${CUDAQ_REQUIRE_OPENMP:-FALSE} \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  $extra_cmake_args"
+
+# Add CUDA-specific flags only on non-macOS systems
+if [ "$(uname)" != "Darwin" ]; then
+  cmake_args="$cmake_args \
+  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
+  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
+  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"'"
+fi
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 
@@ -234,10 +284,10 @@ cmake_args="-G Ninja '"$repo_root"' \
 # the set host compiler is not officially supported. We hence don't set that variable 
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  echo $cmake_args | xargs cmake
+  echo "$cmake_args" | xargs cmake
   status=$?
 else
-  echo $cmake_args | xargs cmake \
+  echo "$cmake_args" | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
   status=$?
 fi
