@@ -26,7 +26,7 @@ inline constexpr double PROBABILITY_EPSILON = 1e-9;
 // Forward declaration
 class KrausTrajectoryBuilder;
 
-/// @brief Trajectory lifecycle container for PTSBE execution
+/// @brief Trajectory container for PTSBE execution
 /// This struct represents one complete path through the space of possible noise
 /// realizations and serves as a container across three execution phases
 struct KrausTrajectory {
