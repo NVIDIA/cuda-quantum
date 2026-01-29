@@ -24,5 +24,3 @@ install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
         DESTINATION include/nvqpp)
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
         DESTINATION bin)
-install(FILES backendConfig.cpp DESTINATION targets/)
-file(COPY backendConfig.cpp DESTINATION ${CMAKE_BINARY_DIR}/targets/)

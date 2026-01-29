@@ -75,6 +75,7 @@ public:
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
   }
 
+private:
   /// @brief Set the target backend. Here we have an opportunity to know the
   /// -qpu QPU target we are running on. This function will read in the qpu
   /// configuration file and search for the PLATFORM_QPU variable, and if found,
