@@ -1012,31 +1012,37 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     auto entryPoint = cudaq::make_kernel();
     auto qubit = entryPoint.qalloc();
     entryPoint.x(qubit);
-    entryPoint.mz(qubit);
+    entryPoint.mz(qubit, "c0");
     printf("%s\n", entryPoint.to_quake().c_str());
 
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 1); // includes synthetic global
+    EXPECT_EQ(counts.register_names().size(), 2); // includes synthetic global
     EXPECT_EQ(counts.register_names()[0], "__global__");
+    EXPECT_EQ(counts.register_names()[1], "c0");
   }
 
   {
     auto entryPoint = cudaq::make_kernel();
     auto qubit = entryPoint.qalloc();
     entryPoint.x(qubit);
-    entryPoint.mz(qubit);
+    entryPoint.mz(qubit, "c0");
     entryPoint.x(qubit);
-    entryPoint.mz(qubit);
+    entryPoint.mz(qubit, "c1");
 
     printf("%s\n", entryPoint.to_quake().c_str());
 
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 1); // includes synthetic global
+    EXPECT_EQ(counts.register_names().size(), 3); // includes synthetic global
     auto regNames = counts.register_names();
-    EXPECT_EQ(regNames[0], "__global__");
-    EXPECT_EQ(counts.count("0", "__global__"), 1000);
+    EXPECT_TRUE(std::find(regNames.begin(), regNames.end(), "c0") !=
+                regNames.end());
+    EXPECT_TRUE(std::find(regNames.begin(), regNames.end(), "c1") !=
+                regNames.end());
+
+    EXPECT_EQ(counts.count("0", "c1"), 1000);
+    EXPECT_EQ(counts.count("1", "c0"), 1000);
   }
 
   {
@@ -1044,17 +1050,17 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     auto entryPoint = cudaq::make_kernel();
     auto q = entryPoint.qalloc(2);
     entryPoint.x(q[0]);
-    entryPoint.mz(q[0]);
-    entryPoint.mz(q[1]);
+    entryPoint.mz(q[0], "hello");
+    entryPoint.mz(q[1], "hello2");
 
     printf("%s\n", entryPoint.to_quake().c_str());
     auto counts = cudaq::sample(entryPoint);
     counts.dump();
 
-    EXPECT_EQ(counts.count("10"), 1000);
-    EXPECT_EQ(counts.count("00"), 0);
-    EXPECT_EQ(counts.count("11"), 0);
-    EXPECT_EQ(counts.count("00"), 0);
+    EXPECT_EQ(counts.count("1", "hello"), 1000);
+    EXPECT_EQ(counts.count("0", "hello"), 0);
+    EXPECT_EQ(counts.count("1", "hello2"), 0);
+    EXPECT_EQ(counts.count("0", "hello2"), 1000);
   }
 
   {
@@ -1062,7 +1068,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     auto entryPoint = cudaq::make_kernel();
     auto q = entryPoint.qalloc(2);
     entryPoint.h(q[0]);
-    auto mres = entryPoint.mz(q[0]);
+    auto mres = entryPoint.mz(q[0], "res0");
     EXPECT_ANY_THROW(entryPoint.c_if(mres, [&]() { entryPoint.x(q[1]); }););
   }
 }
@@ -1530,14 +1536,23 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
   auto kernel = cudaq::make_kernel<>();
   auto q = kernel.qalloc(4);
   kernel.h(q);
-  kernel.mz(q);
+  kernel.mz(q, "midCircuit");
   kernel.reset(q);
   kernel.h(q);
   auto counts = cudaq::sample(kernel);
+  auto countsMidCircuit = counts.to_map("midCircuit");
   auto countsFinal = counts.to_map();
 
   // Verify that all possible outcomes were indeed reported.
+  EXPECT_EQ(countsMidCircuit.size(), 16);
   EXPECT_EQ(countsFinal.size(), 16);
+
+  // The results should *not* be identical to each other.
+  bool match = true;
+  for (auto &[k, v] : countsMidCircuit)
+    if (countsFinal[k] != countsMidCircuit[k])
+      match = false;
+  EXPECT_EQ(match, false);
 }
 
 CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {

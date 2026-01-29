@@ -34,12 +34,12 @@ int main() {
 
   
   counts1.dump();
-  // CHECK: { 1:5 }
+  // CHECK: m1 : { 1:5 }
   gateCounts.dump();
   // CHECK: Total # of gates: 1, total # of qubits: 1
   // CHECK: x :  1
   counts2.dump();
-  // CHECK: { 1:10 }
+  // CHECK: m1 : { 1:10 }
 
   return 0;
 }

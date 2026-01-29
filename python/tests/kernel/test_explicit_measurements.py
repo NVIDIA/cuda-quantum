@@ -122,7 +122,7 @@ def test_named_measurement():
 
     counts = cudaq.sample(kernel)
     assert '__global__' in counts.register_names
-    assert 'val' not in counts.register_names
+    assert 'val' in counts.register_names
 
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert '__global__' in counts.register_names

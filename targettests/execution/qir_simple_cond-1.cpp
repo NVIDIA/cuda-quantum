@@ -10,6 +10,7 @@
 // RUN: nvq++ --target stim --enable-mlir %s -o %t && %t | FileCheck %s
 /// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/3708
 // SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t
 // clang-format on
 
 #include <cudaq.h>

@@ -12,4 +12,6 @@ and the test tries to use more.
 - test/NVQPP/graph_coloring-1.cpp
 - test/NVQPP/graph_coloring.cpp
 - test/NVQPP/sudoku_2x2-1.cpp
+- test/NVQPP/sudoku_2x2-bit_names.cpp
+- test/NVQPP/sudoku_2x2-reg_name.cpp
 - test/NVQPP/sudoku_2x2.cpp

@@ -182,21 +182,21 @@ def exp_pauli(theta, qubits, pauliWord):
     raise_error
 
 
-def mz(*args):
+def mz(*args, register_name=''):
     """
     Measure the qubit along the z-axis.
     """
     raise_error
 
 
-def my(*args):
+def my(*args, register_name=''):
     """
     Measure the qubit along the y-axis.
     """
     raise_error
 
 
-def mx(*args):
+def mx(*args, register_name=''):
     """
     Measure the qubit along the x-axis.
     """

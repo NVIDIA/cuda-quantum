@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++                               %s -o %t && %t | FileCheck %s
+// RUN: nvq++ -DNO_ADAPTIVE --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++               --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++                                             %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %s --enable-mlir -o %t
 // clang-format on
 
@@ -51,6 +51,15 @@ int main() {
   // CHECK: { 10:1000 }
 
   // Check that duplicate measurements don't get duplicated in global bitstring
+#ifndef NO_ADAPTIVE
+  auto test3 = []() __qpu__ {
+    cudaq::qubit a, b;
+    x(a);
+    auto ma1 = mz(a); // 1st measurement of qubit a
+    auto ma2 = mz(a); // 2nd measurement of qubit a
+    auto mb = mz(b);
+  };
+#else
   auto test3 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
@@ -58,7 +67,7 @@ int main() {
     // auto ma2 = mz(a); // 2nd measurement of qubit a
     auto mb = mz(b);
   };
-
+#endif
   SAMPLE_AND_PRINT_GLOBAL_REG(test3);
   // CHECK: test3:
   // CHECK: { 10:1000 }

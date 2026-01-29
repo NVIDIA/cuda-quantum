@@ -764,7 +764,8 @@ void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
 }
 
 template <typename QuakeMeasureOp>
-QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value) {
+QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
+                        const std::string &regName) {
   auto type = value.getType();
   if (!isa<quake::RefType, quake::VeqType>(type))
     throw std::runtime_error("Invalid parameter passed to mz.");
@@ -775,6 +776,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value) {
   // the default. This is a workaround to clear out the empty string so we don't
   // build broken IR.
   StringAttr strAttr;
+  if (!regName.empty())
+    strAttr = builder.getStringAttr(regName);
 
   Type resTy = builder.getI1Type();
   Type measTy = quake::MeasureType::get(builder.getContext());
@@ -795,16 +798,19 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value) {
   return QuakeValue(builder, bits);
 }
 
-QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
-  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue());
+QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
+              const std::string &regName) {
+  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
-  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue());
+QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
+              const std::string &regName) {
+  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
-QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec) {
-  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue());
+QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
+              const std::string &regName) {
+  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
 }
 
 void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {

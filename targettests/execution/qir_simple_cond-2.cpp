@@ -8,6 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir %s -o %t
 // XFAIL: *
 // ^^^^^ This is caused by this error: invalid instruction found:   %2 = xor i1 %0, true
 //       This error is reasonable given the current version of the Adaptive

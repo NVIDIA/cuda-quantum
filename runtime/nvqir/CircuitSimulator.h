@@ -451,6 +451,10 @@ protected:
   /// @brief Vector storing register names that are bit vectors
   std::vector<std::string> vectorRegisters;
 
+  /// @brief Map bit register names to the qubits that make it up
+  std::unordered_map<std::string, std::vector<std::size_t>>
+      registerNameToMeasuredQubit;
+
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
@@ -543,6 +547,7 @@ protected:
   bool handleBasicSampling(const std::size_t qubitIdx,
                            const std::string &regName) {
     if (executionContext && executionContext->name == "sample") {
+
       // Handle duplicate measurements in explicit measurements mode
       if (executionContext->explicitMeasurements) {
         auto iter =
@@ -552,8 +557,31 @@ protected:
       }
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
+
+      // If we're using explicit measurements (an optimized sampling mode), then
+      // don't populate registerNameToMeasuredQubit.
+      if (executionContext->explicitMeasurements)
+        return true;
+
+      auto processForRegName = [&](const std::string &regStr) {
+        // Insert the sample qubit into the register name map
+        auto iter = registerNameToMeasuredQubit.find(regStr);
+        if (iter == registerNameToMeasuredQubit.end())
+          registerNameToMeasuredQubit.emplace(
+              regStr, std::vector<std::size_t>{qubitIdx});
+        else if (std::find(iter->second.begin(), iter->second.end(),
+                           qubitIdx) == iter->second.end())
+          iter->second.push_back(qubitIdx);
+      };
+
+      // Insert into global register and named register (if it exists)
+      processForRegName(cudaq::GlobalRegisterName);
+      if (!regName.empty())
+        processForRegName(regName);
+
       return true;
     }
+
     return false;
   }
 
@@ -667,10 +695,42 @@ protected:
     // Ask the subtype to sample the current state
     auto execResult = sample(sampleQubits, getNumShotsToExec());
 
-    executionContext->result.append(execResult,
-                                    executionContext->explicitMeasurements);
+    if (registerNameToMeasuredQubit.empty()) {
+      executionContext->result.append(execResult,
+                                      executionContext->explicitMeasurements);
+    } else {
+
+      for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
+        // Measurements are sorted according to qubit allocation order
+        std::sort(qubits.begin(), qubits.end());
+        auto last = std::unique(qubits.begin(), qubits.end());
+        qubits.erase(last, qubits.end());
+
+        // Find the position of the qubits we have in the result bit string
+        // Create a map of qubit to bit string location
+        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
+        for (std::size_t i = 0; i < qubits.size(); i++) {
+          auto iter =
+              std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
+          auto idx = std::distance(sampleQubits.begin(), iter);
+          qubitLocMap.insert({qubits[i], idx});
+        }
+
+        cudaq::ExecutionResult tmp(regName);
+        for (auto &[bits, count] : execResult.counts) {
+          std::string b = "";
+          b.reserve(qubits.size());
+          for (auto &qb : qubits)
+            b += bits[qubitLocMap[qb]];
+          tmp.appendResult(b, count);
+        }
+
+        executionContext->result.append(tmp);
+      }
+    }
 
     sampleQubits.clear();
+    registerNameToMeasuredQubit.clear();
   }
 
   /// @brief Add a new gate application task to the queue

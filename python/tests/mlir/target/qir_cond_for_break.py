@@ -30,3 +30,5 @@ cudaq.set_random_seed(13)
 
 results = cudaq.run(kernel, nIter, shots_count=nShots)
 assert all(results)
+
+cudaq.reset_target()

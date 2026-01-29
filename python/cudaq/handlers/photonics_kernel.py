@@ -207,7 +207,7 @@ def beam_splitter(q: PyQudit, r: PyQudit, theta: float):
                                             [[q.level, q.id], [r.level, r.id]])
 
 
-def mz(qudits: PyQudit | List[PyQudit]):
+def mz(qudits: PyQudit | List[PyQudit], register_name=''):
     """
     Measure a single qudit or list of qudits.
 
@@ -223,9 +223,13 @@ def mz(qudits: PyQudit | List[PyQudit]):
     """
     _check_args(qudits)
     if isinstance(qudits, PyQudit):
-        return cudaq_runtime.photonics.measure(qudits.level, qudits.id)
+        return cudaq_runtime.photonics.measure(qudits.level, qudits.id,
+                                               register_name)
     if isinstance(qudits, List):
-        return [cudaq_runtime.photonics.measure(q.level, q.id) for q in qudits]
+        return [
+            cudaq_runtime.photonics.measure(q.level, q.id, register_name)
+            for q in qudits
+        ]
 
 
 class PhotonicsHandler(object):
