@@ -33,6 +33,8 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+# Set the environment before entering main
+export SUPERSTAQ_API_KEY="00000000000000000000000000000000"
 # Run the tests
 ./test_infleqtion
 # Did they fail? 

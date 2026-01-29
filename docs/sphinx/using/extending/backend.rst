@@ -286,18 +286,16 @@ Create unit tests for your server helper:
 .. code-block:: cmake
 
     # CMakeLists.txt
-    add_executable(ProviderNameTester ProviderNameTester.cpp)
-    target_link_libraries(ProviderNameTester
-      PRIVATE
-      cudaq-common
-      cudaq
-      gtest_main
+    add_backend_unittest_executable(ProviderNameTester 
+      SOURCES ProviderNameTester.cpp
+      BACKEND ProviderName
+      BACKEND_CONFIG "<provider_name> url=http://localhost:<PORT>"
     )
     
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ProviderNameStartServerAndTest.sh.in
-                  ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh @ONLY)
+    configure_file(ProviderNameStartServerAndTest.sh.in
+                   ProviderNameStartServerAndTest.sh @ONLY)
     
-    add_test(NAME ProviderNameTester COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh)
+    add_test(NAME ProviderNameTester COMMAND bash ProviderNameStartServerAndTest.sh)
     set_tests_properties(ProviderNameTester PROPERTIES TIMEOUT 120)
 
 3. Create a shell script to start the mock server and run tests:
@@ -335,14 +333,6 @@ Create unit tests for your server helper:
     #include "gtest/gtest.h"
     
     TEST(ProviderNameTester, checkSimpleCircuit) {
-      // Initialize the platform
-      auto platform = cudaq::get_platform();
-      platform->setTargetBackend("<provider_name>");
-      
-      // Set configuration
-      platform->setBackendParameter("url", "http://localhost:PORT");
-      platform->setBackendParameter("api_key", "test_key");
-      
       // Create a simple circuit
       auto kernel = cudaq::make_kernel();
       auto qubits = kernel.qalloc(2);

@@ -48,10 +48,15 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+# Create the configuration file which needs to exist before entering main
+config=FakeCppBraket.config
+cp @CMAKE_CURRENT_SOURCE_DIR@/$config .
 # Run the tests
-./test_braket
+./$1
 # Did they fail? 
 testsPassed=$?
+# Clean up the config file
+rm -f $config
 # kill the server
 kill -INT $pid
 # return success / failure
