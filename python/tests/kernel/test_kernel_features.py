@@ -128,6 +128,7 @@ def test_adjoint():
     assert len(counts) == 1
     assert '101' in counts
 
+
 def test_adjoint_error(capfd):
     """Tests that taking a currently unsupported adjoint results in a nice error"""
 
@@ -138,9 +139,9 @@ def test_adjoint_error(capfd):
     # (the first argument going through the range, the second being `i`)
     @cudaq.kernel
     def test_kernel_adjoint_loop(q: cudaq.qview, num_qubits: int):
-        for i in range(0,num_qubits):
+        for i in range(0, num_qubits):
             x(q[i])
-        for i in range(0,num_qubits):
+        for i in range(0, num_qubits):
             h(q[i])
 
     @cudaq.kernel
@@ -162,10 +163,10 @@ def test_adjoint_error(capfd):
     @cudaq.kernel
     def test_kernel_adjoint_two_loops(q: cudaq.qview, num_qubits: int):
         k = 0
-        for i in range(0,num_qubits):
+        for i in range(0, num_qubits):
             x(q[i])
             k += 1
-        for j in range(0,num_qubits):
+        for j in range(0, num_qubits):
             h(q[j])
             k += 1
 
@@ -181,6 +182,7 @@ def test_adjoint_error(capfd):
     captured = capfd.readouterr().err
     print(captured)
     assert "ApplyOpSpecialization does not currently support loops with multiple arguments" in captured
+
 
 def test_control():
     """Test that we can control on kernel functions."""
