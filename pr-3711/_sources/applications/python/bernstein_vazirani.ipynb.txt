@@ -9,11 +9,11 @@
     "\n",
     "The Bernstein-Vazirani (BV) algorithm demonstrates an exponential speedup over classical methods for the particular task: \n",
     "\n",
-    "Suppose we have an oracle that implements the function $f: \\{0,1\\}^n \\longrightarrow \\{0,1\\}$. \n",
+    "Suppose we have an oracle that implements the function $f\\colon \\{0,1\\}^n \\longrightarrow \\{0,1\\}$. \n",
     "\n",
     "$f(x)$ is promised to be the dot product between $x$ and a secret $n$-bit binary string $s$:\n",
     "\n",
-    "$f(x) = x \\cdot s (mod \\space 2) =  (x_1s_1 + x_2s_2 + ... + x_ns_n) (mod \\space 2)$.\n",
+    "$f(x) = x \\cdot s \\pmod{2} =  (x_1s_1 + x_2s_2 + \\ldots + x_ns_n) \\pmod{2}$.\n",
     "\n",
     "Our goal is to find the secret string $s$.\n",
     "\n",
@@ -25,11 +25,11 @@
     "\n",
     "Let us strategically query the function to determine $s$. \n",
     "\n",
-    "$1^{st}$ query: $f(001) = 001 \\cdot s (mod \\space 2) = (0 \\cdot 1 + 0 \\cdot 0 + 1 \\cdot 1)(mod \\space 2) = 1 (mod \\space 2) = 1$\n",
+    "1st query: $f(001) = 001 \\cdot s \\pmod2 = (0 \\cdot 1 + 0 \\cdot 0 + 1 \\cdot 1)\\pmod2 = 1 \\pmod2 = 1$\n",
     "\n",
-    "$2^{nd}$ query: $f(010) = 010 \\cdot s (mod \\space 2) = (0 \\cdot 1 + 1 \\cdot 0 + 0 \\cdot 1)(mod \\space 2) = 0 (mod \\space 2) = 0$\n",
+    "2nd query: $f(010) = 010 \\cdot s \\pmod2 = (0 \\cdot 1 + 1 \\cdot 0 + 0 \\cdot 1)\\pmod2 = 0 \\pmod2 = 0$\n",
     "\n",
-    "$3^{rd}$ query: $f(100) = 100 \\cdot s (mod \\space 2) = (1 \\cdot 1 + 0 \\cdot 0 + 0 \\cdot 1)(mod \\space 2) = 1 (mod \\space 2) = 1$\n",
+    "3rd query: $f(100) = 100 \\cdot s \\pmod2 = (1 \\cdot 1 + 0 \\cdot 0 + 0 \\cdot 1)\\pmod2 = 1 \\pmod2 = 1$\n",
     "\n",
     "\n",
     "\n",
@@ -38,13 +38,13 @@
     "\n",
     "Why did we query $f(001)$ and not $f(011)$?\n",
     "\n",
-    "For $f(001) = (x_1s_1 + x_2s_2 + x_3s_3) (mod \\space 2) = (0 + 0 + x_3s_3) (mod \\space 2) = (x_3s_3) (mod \\space 2) = 1 \\cdot s_3 (mod \\space 2) = s_3 (mod \\space 2) = 1$\n",
+    "For $f(001) = (x_1s_1 + x_2s_2 + x_3s_3) \\pmod2 = (0 + 0 + x_3s_3) \\pmod2 = (x_3s_3) \\pmod2 = 1 \\cdot s_3 \\pmod2 = s_3 \\pmod2 = 1$\n",
     "\n",
-    "We have now isolated $s_3$ and know that $s_3 (mod \\space 2) = 1$. $s_3$ can only be 0 or 1 and in this case it has to be $1$ since $0 (mod \\space 2) = 0$. \n",
+    "We have now isolated $s_3$ and know that $s_3 \\pmod2 = 1$. $s_3$ can only be 0 or 1 and in this case it has to be $1$ since $0 \\pmod2 = 0$. \n",
     "\n",
-    "For $f(011) = (x_2s_2 + x_3s_3) (mod \\space 2)$, we will be left with $s_2$ and $s_3$ each of which will be more difficult to isolate via a combination of linear equations. Hence why we have to strategically query the function. \n",
+    "For $f(011) = (x_2s_2 + x_3s_3) \\pmod2$, we will be left with $s_2$ and $s_3$ each of which will be more difficult to isolate via a combination of linear equations. Hence why we have to strategically query the function. \n",
     "\n",
-    "In the classical case, we see that the secret string $s$ can be calculated in 3 queries. More generally speaking, it would take $n$ queries to generate enough information to determine $s$"
+    "In the classical case, we see that the secret string $s$ can be calculated in 3 queries. More generally speaking, it would take $n$ queries to generate enough information to determine $s$."
    ]
   },
   {
@@ -63,12 +63,12 @@
     "\n",
     "Next, the oracle, $U_f$, performs maps $\\ket{x}$ to $(-1)^{f(x)}\\ket{x}$ resulting in:\n",
     "\n",
-    "$$ U_f \\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} \\ket{x} = \\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} (-1)^{f(x)}\\ket{x} =\\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} (-1)^{a*x}\\ket{x} $$\n",
+    "$$ U_f \\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} \\ket{x} = \\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} (-1)^{f(x)}\\ket{x} =\\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} (-1)^{s\\cdot x}\\ket{x} $$\n",
     "\n",
     "Applying Hadamard gates again returns the following state:\n",
-    "$$ H \\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} (-1)^{a*x}\\ket{x}  =  \\frac{1}{\\sqrt{2^n}}\\sum_{x,y}^{n-1} (-1)^{a*x} (-1)^{y*x} \\ket{y}  = \\frac{1}{\\sqrt{2^n}}\\sum_{y}^{n-1} \\sum_{x}^{n-1} (-1)^{(a \\oplus y)*x}\\ket{y} $$\n",
+    "$$ H \\frac{1}{\\sqrt{2^n}}\\sum_x^{n-1} (-1)^{s\\cdot x}\\ket{x}  =  \\frac{1}{\\sqrt{2^n}}\\sum_{x,y}^{n-1} (-1)^{s\\cdot x} (-1)^{y\\cdot x} \\ket{y}  = \\frac{1}{\\sqrt{2^n}}\\sum_{y}^{n-1} \\sum_{x}^{n-1} (-1)^{(s \\oplus y)\\cdot x}\\ket{y} $$\n",
     "\n",
-    "In the case of $a \\neq y$, the entire term becomes zero. In the case of $a = y$, the state $\\ket{a}$ is returned with an amplitude of 1.  This means there is a 100% chance of the measurement result being the hidden bitstring $a$ with only one call to the oracle!\n"
+    "In the case of $s \\neq y$, the entire term becomes zero. In the case of $s = y$, the state $\\ket{s}$ is returned with an amplitude of 1.  This means there is a 100% chance of the measurement result being the hidden bitstring $s$ with only one call to the oracle!\n"
    ]
   },
   {
@@ -89,10 +89,10 @@
    "outputs": [],
    "source": [
     "import cudaq\n",
-    "from typing import List\n",
+    "import numpy as np\n",
     "\n",
-    "cudaq.set_target('qpp-cpu')\n",
-    "#cudaq.set_target('nvidia')  # GPU backend which enables scaling to large problem sizes"
+    "cudaq.set_target(\"qpp-cpu\")  # CPU backend\n",
+    "# cudaq.set_target(\"nvidia\")  # GPU backend which enables scaling to large problem sizes"
    ]
   },
   {
@@ -100,13 +100,24 @@
    "execution_count": 2,
    "id": "d72225e6",
    "metadata": {},
-   "outputs": [],
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Your secret string is [1 1 1 1 0]\n"
+     ]
+    }
+   ],
    "source": [
     "qubit_count = 5  # Set to around 30 qubits if you have GPU access\n",
     "\n",
-    "secret_string = [1, 1, 0, 1,\n",
-    "                 0]  # Change the secret string to whatever you prefer\n",
+    "random_generator = np.random.default_rng(seed=15)\n",
+    "secret_string = random_generator.integers(\n",
+    "    2, size=qubit_count\n",
+    ")  # Change the secret string to whatever you prefer\n",
     "\n",
+    "print(\"Your secret string is\", secret_string)\n",
     "assert qubit_count == len(secret_string)"
    ]
   },
@@ -126,8 +137,7 @@
    "outputs": [],
    "source": [
     "@cudaq.kernel\n",
-    "def oracle(register: cudaq.qview, auxiliary_qubit: cudaq.qubit,\n",
-    "           secret_string: List[int]):\n",
+    "def oracle(register: cudaq.qview, auxiliary_qubit: cudaq.qubit, secret_string: list[int]):\n",
     "\n",
     "    for index, bit in enumerate(secret_string):\n",
     "        if bit == 1:\n",
@@ -152,29 +162,31 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "     ╭───╮          ╭───╮          \n",
-      "q0 : ┤ h ├───────●──┤ h ├──────────\n",
-      "     ├───┤       │  ╰───╯╭───╮     \n",
-      "q1 : ┤ h ├───────┼────●──┤ h ├─────\n",
-      "     ├───┤       │    │  ├───┤     \n",
-      "q2 : ┤ h ├───────┼────┼──┤ h ├─────\n",
-      "     ├───┤       │    │  ╰───╯╭───╮\n",
-      "q3 : ┤ h ├───────┼────┼────●──┤ h ├\n",
-      "     ├───┤       │    │    │  ├───┤\n",
-      "q4 : ┤ h ├───────┼────┼────┼──┤ h ├\n",
-      "     ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯\n",
-      "q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├─────\n",
-      "     ╰───╯╰───╯╰───╯╰───╯╰───╯     \n",
+      "     ╭───╮          ╭───╮               \n",
+      "q0 : ┤ h ├───────●──┤ h ├───────────────\n",
+      "     ├───┤       │  ╰───╯╭───╮          \n",
+      "q1 : ┤ h ├───────┼────●──┤ h ├──────────\n",
+      "     ├───┤       │    │  ╰───╯╭───╮     \n",
+      "q2 : ┤ h ├───────┼────┼────●──┤ h ├─────\n",
+      "     ├───┤       │    │    │  ╰───╯╭───╮\n",
+      "q3 : ┤ h ├───────┼────┼────┼────●──┤ h ├\n",
+      "     ├───┤       │    │    │    │  ├───┤\n",
+      "q4 : ┤ h ├───────┼────┼────┼────┼──┤ h ├\n",
+      "     ├───┤╭───╮╭─┴─╮╭─┴─╮╭─┴─╮╭─┴─╮╰───╯\n",
+      "q5 : ┤ x ├┤ h ├┤ x ├┤ x ├┤ x ├┤ x ├─────\n",
+      "     ╰───╯╰───╯╰───╯╰───╯╰───╯╰───╯     \n",
       "\n",
-      "secret bitstring = [1, 1, 0, 1, 0]\n",
-      "measured state = 11010\n",
+      "Sample result: { 11110:1000 }\n",
+      "\n",
+      "secret bitstring = [1 1 1 1 0]\n",
+      "measured state = 11110\n",
       "Were we successful? True\n"
      ]
     }
    ],
    "source": [
     "@cudaq.kernel\n",
-    "def bernstein_vazirani(secret_string: List[int]):\n",
+    "def bernstein_vazirani(secret_string: list[int]):\n",
     "\n",
     "    qubits = cudaq.qvector(len(secret_string))  # register of size n\n",
     "    auxiliary_qubit = cudaq.qubit()  # auxiliary qubit\n",
@@ -197,12 +209,12 @@
     "\n",
     "print(cudaq.draw(bernstein_vazirani, secret_string))\n",
     "result = cudaq.sample(bernstein_vazirani, secret_string)\n",
+    "print(\"Sample result:\", result)\n",
     "\n",
     "print(f\"secret bitstring = {secret_string}\")\n",
     "print(f\"measured state = {result.most_probable()}\")\n",
-    "print(\n",
-    "    f\"Were we successful? {''.join([str(i) for i in secret_string]) == result.most_probable()}\"\n",
-    ")"
+    "is_success = \"\".join(str(i) for i in secret_string) == result.most_probable()\n",
+    "print(f\"Were we successful?\", is_success)"
    ]
   },
   {
@@ -215,7 +227,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum 176f1e7df8a58c2dc3d6b1b47bf7f63b4b8d3b63)\n"
+      "CUDA-Q Version amd64-cu13-0.13.0 (https://github.com/NVIDIA/cuda-quantum b66c5bb7fd8c08e5014e2f03e97e7b0e92691650)\n"
      ]
     }
    ],
@@ -240,7 +252,7 @@
    "name": "python",
    "nbconvert_exporter": "python",
    "pygments_lexer": "ipython3",
-   "version": "3.10.12"
+   "version": "3.12.3"
   }
  },
  "nbformat": 4,

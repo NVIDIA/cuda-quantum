@@ -3344,6 +3344,21 @@ Not all integrators are capable of handling distributed state. Errors
 will be raised if parallel execution is activated but the selected
 integrator does not support distributed state.
 :::
+
+::: {.admonition .note}
+Note
+
+When running batched simulations in a multi-GPU multi-node environment,
+the batch size will be automatically divided by the number of MPI
+processes. Hence, the batch size needs to be divisible by the number of
+processes. For example, if the original batch size is 8 and there are 4
+MPI processes, then each process (GPU) will simulate a batch size of 2.
+Errors will be raised if the batch size is not divisible by the number
+of processes.
+
+Each process will return its own set of results. The user is responsible
+for gathering the results from all processes if needed.
+:::
 :::
 
 ::: {#examples .section}
@@ -3371,7 +3386,7 @@ aria-hidden="true"}](cudaqx/cudaqx.html "CUDA-QX"){.btn .btn-neutral
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

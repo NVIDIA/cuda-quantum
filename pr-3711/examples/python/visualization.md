@@ -1842,9 +1842,8 @@ if QuTiP is not installed.
         import qutip
 
     except ImportError:
-        print("Tools not found, installing. Please restart your kernel after this is done.")
-        !{sys.executable} -m pip install qutip\>=5 matplotlib\>=3.5
-        print("\nNew libraries have been installed. Please restart your kernel!")
+        print("Tools not found, please install and restart your kernel after this is done.")
+        #!{sys.executable} -m pip install qutip\>5 matplotlib\>=3.5
 :::
 :::
 :::
@@ -2193,7 +2192,7 @@ aria-hidden="true"}](../../using/examples/executing_kernels.html "Executing Kern
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

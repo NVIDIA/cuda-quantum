@@ -1834,7 +1834,7 @@ Python
 
     @cudaq.kernel
     def kernel(vec: list[complex]):
-        q = cudaq.qubit(vec)
+        q = cudaq.qvector(vec)
 :::
 :::
 :::
@@ -2375,7 +2375,7 @@ aria-hidden="true"}](quantum_operations.html "Quantum Computing 101"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

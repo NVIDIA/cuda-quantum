@@ -1768,7 +1768,7 @@ mutual polarization.
 
 <div>
 
-![6232625fe4a24371b3243b4974022195](../../_images/qm-mm-pe.png){.no-scaled-link
+![d27b0acc38fb49d6a998cd0523ae9785](../../_images/qm-mm-pe.png){.no-scaled-link
 style="width: 600px;"}
 
 </div>
@@ -2518,7 +2518,7 @@ aria-hidden="true"}](skqd.html "Sample-Based Krylov Quantum Diagonalization (SKQ
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

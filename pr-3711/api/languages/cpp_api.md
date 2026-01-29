@@ -7852,19 +7852,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qvector_1a1207f490dab570c43527a9563d29d57a .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[vector]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[validate]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb "Permalink to this definition"){.headerlink}\
-
-    :   Construct a [`qvector`{.docutils .literal .notranslate}]{.pre}
-        from an input state vector. The number of qubits is determined
-        by the size of the input vector. If [`validate`{.docutils
-        .literal .notranslate}]{.pre} is set, it will check the norm of
-        input state vector.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1qvector_1a0fd2545386af75c0d1aed18c8b3b50ef .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq7qvector7qvectorERK5state "cudaq::qvector::qvector::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[state]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERK5state "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1qvector_1a0fd2545386af75c0d1aed18c8b3b50ef .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq7qvector7qvectorERK5state "cudaq::qvector::qvector::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[state]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERK5state "Permalink to this definition"){.headerlink}\
 
     :   Construct a [`qvector`{.docutils .literal .notranslate}]{.pre}
         from a pre-existing [`state`{.docutils .literal
@@ -8630,6 +8618,19 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         Note: Measurement Syndrome Matrix is defined in
         [https://arxiv.org/pdf/2407.13826](https://arxiv.org/pdf/2407.13826){.reference
         .external}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1ExecutionContext_1ad0e38446b94bb1511fecabc7c9c309f2 .target}[[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[[jitEng]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext6jitEngE "Permalink to this definition"){.headerlink}\
+
+    :   For performance, a launcher may cache the JIT execution engine
+        and use it for multiple discrete calls. This is actually a
+        pointer to a [`mlir::ExecutionEngine`{.docutils .literal
+        .notranslate}]{.pre} object, but we hide that because of
+        problems with the structure and organization of the runtime
+        libraries.
     :::
 
 ```{=html}
@@ -8936,7 +8937,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     []{#classcudaq_1_1sample__result_1ae8f611495ea923027a4008a4da8019a8 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_result13sample_resultEv "Permalink to this definition"){.headerlink}\
 
-    :   Nullary constructor.
+    :   Default constructor.
 
     ```{=html}
     <!-- -->
@@ -8950,19 +8951,20 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1sample__result_1a3435574a1e7adc5b540aa13649e4c202 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultER15ExecutionResult "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1sample__result_1ac8def1c0cafe2c57b03011aa3bfd4491 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultERK15ExecutionResult "Permalink to this definition"){.headerlink}\
 
     :   The constructor, sets the **global** sample result.
 
         Parameters[:]{.colon}
 
-        :   **result** --
+        :   **result** -- - is copied and the copy inserted into the
+            map.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#classcudaq_1_1sample__result_1a85b8eb7d587ab955167da8757b9e2337 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[results]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultERNSt6vectorI15ExecutionResultEE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1sample__result_1a086134e41ddbda75528ae177c06ff0f8 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[results]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultERKNSt6vectorI15ExecutionResultEE "Permalink to this definition"){.headerlink}\
 
     :   The constructor, appends all provided
         [[[`ExecutionResult`{.docutils .literal
@@ -8974,7 +8976,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1sample__result_1adbab6e399339691a0c26c97fc0f5157f .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[double]{.pre}]{.kt}[ ]{.w}[[preComputedExp]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[results]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultEdRNSt6vectorI15ExecutionResultEE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1sample__result_1ab8c063b978cefc340b6137a54f6431e5 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[double]{.pre}]{.kt}[ ]{.w}[[preComputedExp]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[results]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result13sample_resultEdRKNSt6vectorI15ExecutionResultEE "Permalink to this definition"){.headerlink}\
 
     :   The constructor, takes a precomputed expectation value and
         stores it with the [`__global__`{.docutils .literal
@@ -8987,17 +8989,9 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1sample__result_1aad55e0428d631c36fcbe34b2a815c68a .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result "cudaq::sample_result::sample_result"){.reference .internal}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_result13sample_resultERK13sample_result "Permalink to this definition"){.headerlink}\
-
-    :   Copy Constructor.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1sample__result_1abed8fbedf514fe7f5459cd8450c37681 .target}[[[sample_result]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_result13sample_resultERR13sample_result "cudaq::sample_result::sample_result"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_result13sample_resultERR13sample_result "Permalink to this definition"){.headerlink}\
 
-    :   Move constructor.
+    :   Constructors.
 
     ```{=html}
     <!-- -->
@@ -9005,7 +8999,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     []{#classcudaq_1_1sample__result_1ac6ec0e75b434dd181fdb8ee9c65174ea .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[counts]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_resultaSERR13sample_result "Permalink to this definition"){.headerlink}\
 
-    :   Move assignment constructor.
+    :   Assignment operators.
 
     ```{=html}
     <!-- -->
@@ -9031,7 +9025,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1sample__result_1a1e1a403d48abcda8be41425e62cb3c7d .target}[[void]{.pre}]{.kt}[ ]{.w}[[[append]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[concatenate]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result6appendER15ExecutionResultb "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1sample__result_1abc44450c355f10f9e68082ba03d13c05 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[append]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[concatenate]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result6appendERK15ExecutionResultb "Permalink to this definition"){.headerlink}\
 
     :   Add another [[[`ExecutionResult`{.docutils .literal
         .notranslate}]{.pre}]{.std
@@ -9056,24 +9050,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     :   Return all register names. Can be used in tandem with
         sample_result::to_map(regName : string) to retrieve the counts
         for each register.
-
-        Returns[:]{.colon}
-
-        :   
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1sample__result_1a52cf610ecb81c7f9e89ffa919b726c98 .target}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[counts]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq13sample_resultaSER13sample_result "Permalink to this definition"){.headerlink}\
-
-    :   Set this [[sample_result]{.std
-        .std-ref}](#classcudaq_1_1sample__result){.reference .internal}
-        equal to the provided one.
-
-        Parameters[:]{.colon}
-
-        :   **counts** --
 
         Returns[:]{.colon}
 
@@ -9763,7 +9739,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#SimulationState_8h_1a4cec83b0c73799f1df02d25e49270ae2 .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[state_data]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[variant]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[[TensorStateData]{.pre}]{.n}](#_CPPv4N5cudaq15TensorStateDataE "cudaq::TensorStateData"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq10state_dataE "Permalink to this definition"){.headerlink}\
+[]{#SimulationState_8h_1a06cbe8d8dc9db60ca382ae4130d4f9cd .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[state_data]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[variant]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[[complex_matrix]{.pre}]{.n}](#_CPPv4N5cudaq14complex_matrixE "cudaq::complex_matrix"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[TensorStateData]{.pre}]{.n}](#_CPPv4N5cudaq15TensorStateDataE "cudaq::TensorStateData"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq10state_dataE "Permalink to this definition"){.headerlink}\
 
 :   state_data is a variant type encoding different forms of user state
     vector data we support.
@@ -11653,7 +11629,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#classcudaq_1_1state_1ae07a132f3563b069e3e2acd494ec4eec .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ptrToOwn]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state5stateEP15SimulationState "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1state_1ae07a132f3563b069e3e2acd494ec4eec .target}[[explicit]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[ptrToOwn]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state5stateEP15SimulationState "Permalink to this definition"){.headerlink}\
 
     :   The constructor, takes the simulation data and owns it.
 
@@ -11669,9 +11645,30 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1state_1ada02a38f3cd1b45d6e557dc05d8272a3 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[vector]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state5stateERKNSt6vectorINSt7complexIdEEEE "Permalink to this definition"){.headerlink}\
+
+    :   Overloaded constructors. These construct a [`state`{.docutils
+        .literal .notranslate}]{.pre} from a raw input state vector. The
+        number of qubits is determined by the size of the input vector.
+        The user is responsible for providing (and verifying) the
+        element values. These values must be correct for the simulator
+        that is in use.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1state_1acbe39e2bb1d4d4180dd4055be938eeff .target}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5stateaSERR5state "Permalink to this definition"){.headerlink}\
 
     :   Copy assignment.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1state_1acf612f065fb4c3fb3496ec7deb3ae5c8 .target}[[[\~state]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq5stateD0Ev "Permalink to this definition"){.headerlink}\
+
+    :   Default destructor.
 
     ```{=html}
     <!-- -->
@@ -11806,7 +11803,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Static Functions
 
-    []{#classcudaq_1_1state_1a2e9b7d521f974822246d180d43160d2e .target}[[static]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[from_data]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state_data]{.pre}]{.n}](#_CPPv4N5cudaq10state_dataE "cudaq::state_data"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state9from_dataERK10state_data "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1state_1a2e9b7d521f974822246d180d43160d2e .target}[[static]{.pre}]{.k}[ ]{.w}[[inline]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq5stateE "cudaq::state"){.reference .internal}[ ]{.w}[[[from_data]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state_data]{.pre}]{.n}](#_CPPv4N5cudaq10state_dataE "cudaq::state_data"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq5state9from_dataERK10state_data "Permalink to this definition"){.headerlink}\
 
     :   Create a new state from user-provided data. The data can be host
         or device data.
@@ -12703,19 +12700,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a237421abcf74b7ac220aa84f6fccc3d2 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[setTargetBackend]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[name]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform16setTargetBackendERKNSt6stringE "Permalink to this definition"){.headerlink}\
-
-    :   Set the target backend, by default do nothing, let subclasses
-        override.
-
-        Parameters[:]{.colon}
-
-        :   **name** --
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1quantum__platform_1af1694e06135ecdfab51f20ecc87f7ee8 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Called by the runtime to notify that a new random seed value is
@@ -13240,7 +13224,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

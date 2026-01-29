@@ -1857,16 +1857,16 @@ The state vectors can be accessed using the [`get_state`{.docutils
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [ ]:
 :::
 :::
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    psi_state = cudaq.get_state(psi, qubit_num)
+    psi_state = cudaq.StateMemoryView(cudaq.get_state(psi, qubit_num))
     print('Psi state: ', psi_state)
 
-    phi_state = cudaq.get_state(phi, qubit_num)
+    phi_state = cudaq.StateMemoryView(cudaq.get_state(phi, qubit_num))
     print('Phi state: ', phi_state)
 :::
 :::
@@ -2287,7 +2287,7 @@ aria-hidden="true"}](logical_aim_sqale.html "Anderson Impurity Model ground stat
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

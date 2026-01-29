@@ -1811,7 +1811,7 @@ aria-hidden="true"}](cuda_gpu.html "Using CUDA and CUDA-Q in a Project"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

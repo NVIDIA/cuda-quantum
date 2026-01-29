@@ -2658,7 +2658,7 @@ aria-hidden="true"}](dynamics_intro_2.html "Introduction to CUDA-Q Dynamics (Tim
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a

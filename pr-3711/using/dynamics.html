@@ -2156,6 +2156,13 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 <p>Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated
 but the selected integrator does not support distributed state.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When running batched simulations in a multi-GPU multi-node environment, the batch size will be automatically divided by the number of MPI processes.
+Hence, the batch size needs to be divisible by the number of processes. For example, if the original batch size is 8 and there are 4 MPI processes,
+then each process (GPU) will simulate a batch size of 2. Errors will be raised if the batch size is not divisible by the number of processes.</p>
+<p>Each process will return its own set of results. The user is responsible for gathering the results from all processes if needed.</p>
+</div>
 </section>
 <section id="examples">
 <h2>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">¶</a></h2>
@@ -2174,7 +2181,7 @@ but the selected integrator does not support distributed state.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

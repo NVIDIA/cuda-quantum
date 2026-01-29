@@ -1893,7 +1893,7 @@ circuit diagram above:
     print(cudaq.draw(quantum_fourier_transform, input_state))
 
     # Print the statevector to the specified precision
-    statevector = np.array(cudaq.get_state(quantum_fourier_transform, input_state))
+    statevector = np.array(cudaq.StateMemoryView(cudaq.get_state(quantum_fourier_transform, input_state)))
     print(np.round(statevector, precision))
 :::
 :::
@@ -1983,7 +1983,7 @@ the Inverse Quantum Fourier Transform.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [3]:
 :::
 :::
 
@@ -2018,7 +2018,7 @@ above.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [4]:
 :::
 :::
 
@@ -2053,7 +2053,7 @@ above.
     print(cudaq.draw(verification_example, input_state))
 
     # Print the statevector to the specified precision
-    statevector = np.array(cudaq.get_state(verification_example, input_state))
+    statevector = np.array(cudaq.StateMemoryView(cudaq.get_state(verification_example, input_state)))
     print(np.round(statevector, precision))  # The result should be the input state
 :::
 :::
@@ -2065,25 +2065,25 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-         ╭───╮╭───╮╭─────────╮╭──────────╮                                      »
-    q0 : ┤ x ├┤ h ├┤ r1(1.5) ├┤ r1(0.75) ├──────────────────────────────────────»
-         ╰───╯╰───╯╰────┬────╯╰────┬─────╯╭───╮╭─────────╮          ╭──────────╮»
-    q1 : ───────────────●──────────┼──────┤ h ├┤ r1(1.5) ├──────────┤ r1(-1.5) ├»
-         ╭───╮                     │      ╰───╯╰────┬────╯╭───╮╭───╮╰────┬─────╯»
-    q2 : ┤ x ├─────────────────────●────────────────●─────┤ h ├┤ h ├─────●──────»
-         ╰───╯                                            ╰───╯╰───╯            »
+         ╭───╮╭───╮╭───────────╮╭────────────╮                            »
+    q0 : ┤ x ├┤ h ├┤ r1(1.571) ├┤ r1(0.7854) ├────────────────────────────»
+         ╰───╯╰───╯╰─────┬─────╯╰─────┬──────╯╭───╮╭───────────╮          »
+    q1 : ────────────────●────────────┼───────┤ h ├┤ r1(1.571) ├──────────»
+         ╭───╮                        │       ╰───╯╰─────┬─────╯╭───╮╭───╮»
+    q2 : ┤ x ├────────────────────────●──────────────────●──────┤ h ├┤ h ├»
+         ╰───╯                                                  ╰───╯╰───╯»
 
     ################################################################################
 
-         ╭───────────╮╭──────────╮╭───╮
-    ─────┤ r1(-0.75) ├┤ r1(-1.5) ├┤ h ├
-    ╭───╮╰─────┬─────╯╰────┬─────╯╰───╯
-    ┤ h ├──────┼───────────●───────────
-    ╰───╯      │
-    ───────────●───────────────────────
+                       ╭─────────────╮╭────────────╮╭───╮
+    ───────────────────┤ r1(-0.7854) ├┤ r1(-1.571) ├┤ h ├
+    ╭────────────╮╭───╮╰──────┬──────╯╰─────┬──────╯╰───╯
+    ┤ r1(-1.571) ├┤ h ├───────┼─────────────●────────────
+    ╰─────┬──────╯╰───╯       │
+    ──────●───────────────────●──────────────────────────
 
 
-    [0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.-0.j 0.-0.j 0.+0.j]
+    [0.+0.j 0.+0.j 0.+0.j 0.+0.j 0.+0.j 1.+0.j 0.+0.j 0.+0.j]
 :::
 :::
 :::
@@ -2091,7 +2091,7 @@ above.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [5]:
 :::
 :::
 
@@ -2108,7 +2108,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version latest (https://github.com/NVIDIA/cuda-quantum a726804916fd397408cbf595ce6fe5f33dcd8b4c)
+    CUDA-Q Version  (https://github.com/NVIDIA/cuda-quantum b378892ace29eb2098416e7cf189744b71f32039)
 :::
 :::
 :::
@@ -2129,7 +2129,7 @@ aria-hidden="true"}](quantum_teleportation.html "Quantum Teleporation"){.btn
 ------------------------------------------------------------------------
 
 ::: {role="contentinfo"}
-© Copyright 2025, NVIDIA Corporation & Affiliates.
+© Copyright 2026, NVIDIA Corporation & Affiliates.
 :::
 
 Built with [Sphinx](https://www.sphinx-doc.org/) using a
