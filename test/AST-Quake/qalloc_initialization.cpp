@@ -183,18 +183,18 @@ struct RockyRoad {
 // CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 4 : i64
 // CHECK-DAG:       %[[CST_ZERO:.*]] = arith.constant 0.000000e+00 : f{{[0-9]+}}
 // CHECK-DAG:       %[[CST_ONE:.*]] = arith.constant 1.000000e+00 : f{{[0-9]+}}
-// CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[CST_ZERO]], %[[VAL_9]] : !cc.ptr<f64>
+// CHECK-DAG:       %[[VAL_9:.*]] = cc.alloca f{{[0-9]+}}
+// CHECK:           cc.store %[[CST_ZERO]], %[[VAL_9]] : !cc.ptr<f{{[0-9]+}}>
 // CHECK:           %[[VAL_10:.*]] = call @_ZNS{{.*}}(%[[CST_ONE]]) : (f{{[0-9]+}}) -> complex<f64>
 // CHECK:           %[[VAL_11:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_12:.*]] = call @_Z{{.*}}(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
-// CHECK:           %[[VAL_13:.*]] = cc.alloca f64
-// CHECK:           cc.store %[[CST_ONE]], %[[VAL_13]] : !cc.ptr<f64>
+// CHECK:           %[[VAL_12:.*]] = call @_Z{{.*}}(%[[VAL_9]], %[[VAL_11]]) : (!cc.ptr<f{{[0-9]+}}>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_13:.*]] = cc.alloca f{{[0-9]+}}
+// CHECK:           cc.store %[[CST_ONE]], %[[VAL_13]] : !cc.ptr<f{{[0-9]+}}>
 // CHECK:           %[[VAL_14:.*]] = call @_ZNS{{.*}}(%[[CST_ZERO]]) : (f{{[0-9]+}}) -> complex<f64>
 // CHECK:           %[[VAL_15:.*]] = cc.alloca complex<f64>
 // CHECK:           cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<complex<f64>>
-// CHECK:           %[[VAL_16:.*]] = call @_Z{{.*}}(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f64>, !cc.ptr<complex<f64>>) -> complex<f64>
+// CHECK:           %[[VAL_16:.*]] = call @_Z{{.*}}(%[[VAL_13]], %[[VAL_15]]) : (!cc.ptr<f{{[0-9]+}}>, !cc.ptr<complex<f64>>) -> complex<f64>
 // CHECK:           %[[VAL_17:.*]] = cc.alloca !cc.array<complex<f64> x 4>
 // CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<!cc.array<complex<f64> x ?>>
 // CHECK:           %[[VAL_19:.*]] = cc.cast %[[VAL_17]] : (!cc.ptr<!cc.array<complex<f64> x 4>>) -> !cc.ptr<complex<f64>>
