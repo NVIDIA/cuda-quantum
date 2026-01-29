@@ -879,8 +879,9 @@ mlir::ExecutionEngine *createQIRJITEngine(mlir::ModuleOp &moduleOp,
     pm.enableTiming(timingScope);         // do this right before pm.run
     if (failed(pm.run(module))) {
       engine.eraseHandler(handlerId);
-      throw std::runtime_error(
-          "[createQIRJITEngine] Lowering to QIR for remote emulation failed.\n" + error_msg);
+      throw std::runtime_error("[createQIRJITEngine] Lowering to QIR for "
+                               "remote emulation failed.\n" +
+                               error_msg);
     }
     timingScope.stop();
     engine.eraseHandler(handlerId);
