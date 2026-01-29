@@ -692,8 +692,8 @@ public:
   /// For each Op in \p invertedOps, visit them in reverse order and move each
   /// to just in front of \p term (the end of the function). This reversal of
   /// the order of quantum operations is done recursively.
-  static void reverseTheOpsInTheBlock(Location loc, Operation *term,
-                                      SmallVector<Operation *> &&invertedOps) {
+  void reverseTheOpsInTheBlock(Location loc, Operation *term,
+                               SmallVector<Operation *> &&invertedOps) {
     OpBuilder builder(term);
     for (auto *op : llvm::reverse(invertedOps)) {
       auto invert = [&](Region &reg) {
@@ -714,6 +714,14 @@ public:
         continue;
       }
       if (auto loopOp = dyn_cast<cudaq::cc::LoopOp>(op)) {
+        if (loopOp.getNumOperands() > 1) {
+          loopOp.emitError(
+              "ApplyOpSpecialization does not currently support loops with "
+              "multiple arguments. This happens as a result of some existing "
+              "value being assigned to in a loop.");
+          signalPassFailure();
+          continue;
+        }
         LLVM_DEBUG(llvm::dbgs() << "moving loop: " << loopOp << ".\n");
         auto newLoopOp = cloneReversedLoop(builder, loopOp);
         LLVM_DEBUG(llvm::dbgs() << "  to: " << newLoopOp << ".\n");
