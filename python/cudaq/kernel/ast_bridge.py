@@ -934,8 +934,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __createStructWithKnownValues(self, mlirVals, name=None):
         structTy = mlirTryCreateStructType([item.type for item in mlirVals],
-                                            name=name,
-                                            context=self.ctx)
+                                           name=name,
+                                           context=self.ctx)
         if structTy is None:
             self.emitFatalError(
                 "Hybrid quantum-classical data types and nested "
@@ -950,8 +950,7 @@ class PyASTBridge(ast.NodeVisitor):
             for idx, element in enumerate(mlirVals):
                 result = cc.InsertValueOp(
                     structTy, result, element,
-                    DenseI64ArrayAttr.get([idx],
-                                        context=self.ctx)).result
+                    DenseI64ArrayAttr.get([idx], context=self.ctx)).result
         return result
 
     def getStructMemberIdx(self, memberName, structTy):
@@ -1690,14 +1689,15 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Module(self, node):
         return super().generic_visit(node)
-    
+
     def generic_visit(self, node):
         # This overload is here to ensure that Python expressions that are
         # not implemented by the bridge are not silently ignored but instead
         # cause a comprehensive error that this expression is not currently
         # supported.
-        self.emitFatalError("CUDA-Q does not currently support " +
-                            f"{type(node).__name__} expressions", node)
+        self.emitFatalError(
+            "CUDA-Q does not currently support " +
+            f"{type(node).__name__} expressions", node)
 
     def visit(self, node):
         self.debug_msg(lambda: f'[Visit {type(node).__name__}]', node)
@@ -1949,9 +1949,9 @@ class PyASTBridge(ast.NodeVisitor):
             # to preserve their origin from discriminate.
             # This should be revised when we introduce the proper
             # type distinction.
-            measurementResult = (hasattr(val, 'owner') and 
-                                hasattr(val.owner, 'name') and 
-                                val.owner.name == 'quake.discriminate')
+            measurementResult = (hasattr(val, 'owner') and
+                                 hasattr(val.owner, 'name') and
+                                 val.owner.name == 'quake.discriminate')
             # FIXME: Consider storing vectors and callables as pointers like
             # other variables.
             storeAsVal = (containerFuncArg or measurementResult or
@@ -3092,7 +3092,8 @@ class PyASTBridge(ast.NodeVisitor):
                 ctorArgs = convertArguments(structTys, ctorArgs)
                 for idx, arg in enumerate(ctorArgs):
                     self.__validate_container_entry(arg, node.args[idx])
-                struct = self.__createStructWithKnownValues(ctorArgs, name=node.func.id)
+                struct = self.__createStructWithKnownValues(ctorArgs,
+                                                            name=node.func.id)
                 self.pushValue(struct)
                 return
 
@@ -5219,7 +5220,7 @@ class PyASTBridge(ast.NodeVisitor):
         """
 
         notAssignableErr = ("augment-assign target variable is not defined " +
-                           "or cannot be assigned to.")
+                            "or cannot be assigned to.")
         # NOTE: `AugAssign` must fail if the target is a variable
         # defined in a parent scope. This behavior is different
         # for standard assignments to variables, where a new

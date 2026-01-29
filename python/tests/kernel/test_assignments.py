@@ -1228,15 +1228,18 @@ def test_var_capture():
     # so anything captured must be defined at kernel
     # declaration time.
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def test1() -> list[bool]:
             q = cudaq.qvector(3)
             if captured_bool:
                 x(q)
             return mz(q)
+
     assert "Invalid variable name requested" in str(e.value)
 
     captured_bool = False
+
     @cudaq.kernel
     def test1() -> list[bool]:
         q = cudaq.qvector(3)
@@ -1292,7 +1295,7 @@ def test_var_capture_updates():
         return n
 
     assert kernel2b(True) == 6
-    # NOTE: 
+    # NOTE:
     # kernel2b(False) will still return the local variable,
     # which is uninitialized if the cond is False
 
@@ -1314,12 +1317,15 @@ def test_var_capture_updates():
     ls = [1, 2, 3]
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel4() -> list[int]:
             vals = ls
             vals[0] = 5
             return vals
-    assert "lists passed as or contained in function arguments cannot be assigned to to a local variable" in str(e.value)
+
+    assert "lists passed as or contained in function arguments cannot be assigned to to a local variable" in str(
+        e.value)
 
     @cudaq.kernel
     def kernel4() -> list[int]:
@@ -1330,12 +1336,15 @@ def test_var_capture_updates():
     assert kernel4() == [5, 2, 3] and ls == [1, 2, 3]
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel5() -> list[int]:
             # `ls` is treated like any other function argument
             ls[0] = 5
             return ls
-    assert "return value must not contain a list that is a function argument or an item in a function argument" in str(e.value)
+
+    assert "return value must not contain a list that is a function argument or an item in a function argument" in str(
+        e.value)
 
     @cudaq.kernel
     def kernel5() -> list[int]:
@@ -1361,6 +1370,7 @@ def test_var_capture_updates():
     mtp = MyTuple(1, 5)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def kernel7():
             mtp.first = 2
@@ -1383,10 +1393,12 @@ def test_inner_functions():
     def test1(first: bool, second: bool) -> tuple[bool, bool]:
         i = first
         q = cudaq.qubit()
+
         def fct():
             i = second
             if i:
                 x(q)
+
         fct()
         return i, mz(q)
 
@@ -1398,9 +1410,11 @@ def test_inner_functions():
     @cudaq.kernel
     def test2(cond: bool) -> list[bool]:
         q = cudaq.qvector(2)
+
         def fct():
             if cond:
                 x(q)
+
         fct()
         return mz(q)
 
@@ -1410,12 +1424,15 @@ def test_inner_functions():
     assert all(res == [False, False] for res in out)
 
     captured_bool = False
+
     @cudaq.kernel
     def test3() -> list[bool]:
         q = cudaq.qvector(3)
+
         def fct():
             if captured_bool:
                 x(q)
+
         fct()
         return mz(q)
 
@@ -1429,8 +1446,10 @@ def test_inner_functions():
     def test4a():
         q = cudaq.qubit()
         angle = numpy.pi
+
         def apply_ry():
             ry(angle, q)
+
         apply_ry()
 
     out = cudaq.sample(test4a)
@@ -1439,21 +1458,27 @@ def test_inner_functions():
     # Python allows this but we don't support it
     # see also test_var_capture.
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def test4b():
+
             def apply_ry():
                 ry(angle, q)
+
             q = cudaq.qubit()
             angle = numpy.pi
             apply_ry()
+
     assert "Invalid variable name requested" in str(e.value)
     assert "(offending source -> angle)" in str(e.value)
 
     @cudaq.kernel
     def test5() -> int:
         ls = [0]
+
         def fct():
             ls[0] = 5
+
         fct()
         return ls[0]
 
@@ -1462,32 +1487,44 @@ def test_inner_functions():
     @cudaq.kernel
     def test6() -> int:
         ls = [0]
+
         def fct():
             ls[0] += 6
+
         fct()
         return ls[0]
 
     assert test6() == 6
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def test7() -> int:
             i = 0
+
             def fct():
                 i += 1
+
             fct()
             return i
-    assert "augment-assign target variable is not defined or cannot be assigned to" in str(e.value)
+
+    assert "augment-assign target variable is not defined or cannot be assigned to" in str(
+        e.value)
 
     with pytest.raises(RuntimeError) as e:
+
         @cudaq.kernel
         def test8() -> list[int]:
             ls = [0]
+
             def fct():
                 ls += [1]
+
             fct()
             return ls
-    assert "augment-assign target variable is not defined or cannot be assigned to" in str(e.value)
+
+    assert "augment-assign target variable is not defined or cannot be assigned to" in str(
+        e.value)
 
     @dataclass(slots=True)
     class BasicTuple:
@@ -1497,8 +1534,10 @@ def test_inner_functions():
     @cudaq.kernel
     def test9(cond: bool) -> BasicTuple:
         t = BasicTuple(1, 0.5)
+
         def fct():
             t.first = 2
+
         if cond:
             fct()
         return t
@@ -1509,8 +1548,10 @@ def test_inner_functions():
     @cudaq.kernel
     def test10() -> BasicTuple:
         t = BasicTuple(1, 0.5)
+
         def fct():
             t.second += 2
+
         fct()
         return t
 
@@ -1525,8 +1566,10 @@ def test_inner_functions():
     def test11() -> tuple[int, int]:
         ls = [0]
         t = ListTuple(ls, [0.])
+
         def fct():
             ls[0] = 4
+
         fct()
         return ls[0], t.first[0]
 
@@ -1536,8 +1579,10 @@ def test_inner_functions():
     def test12() -> tuple[float, float]:
         ls = [0.]
         t = ListTuple([0], ls)
+
         def fct():
             t.second[0] = 4.
+
         fct()
         return ls[0], t.second[0]
 

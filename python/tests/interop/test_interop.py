@@ -68,7 +68,7 @@ def testSynthTwoArgs():
 
 def test_cpp_kernel_from_python_0():
     pytest.importorskip('cudaq_test_cpp_algo')
-    
+
     from cudaq_test_cpp_algo import qstd
 
     @cudaq.kernel
@@ -102,12 +102,13 @@ def test_cpp_kernel_from_python_0():
         counts = cudaq.sample(callQftAndAnother, True)
         assert len(counts) == 1 and '0000' in counts
 
-    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(
+        e.value)
 
 
 def test_cpp_kernel_from_python_1():
     pytest.importorskip('cudaq_test_cpp_algo')
-    
+
     import cudaq_test_cpp_algo
 
     @cudaq.kernel
@@ -141,7 +142,8 @@ def test_cpp_kernel_from_python_1():
         counts = cudaq.sample(callQftAndAnother, True)
         assert len(counts) == 1 and '0000' in counts
 
-    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(
+        e.value)
 
 
 def test_cpp_kernel_from_python_2():
@@ -172,7 +174,8 @@ def test_cpp_kernel_from_python_2():
         counts = cudaq.sample(callQftAndAnother, True)
         assert len(counts) > 1
 
-    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(e.value)
+    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(
+        e.value)
 
 
 def test_callbacks():

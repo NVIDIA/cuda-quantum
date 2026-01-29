@@ -13,12 +13,16 @@ import cudaq
 
 def test_unprocessed_ast():
 
-    node_visitors = inspect.getmembers(sys.modules['ast'], lambda v: inspect.isclass(v) and issubclass(v, ast.NodeVisitor))
+    node_visitors = inspect.getmembers(
+        sys.modules['ast'],
+        lambda v: inspect.isclass(v) and issubclass(v, ast.NodeVisitor))
     dummy_bridge = cudaq.PyASTBridge(None)
 
     unsupported_nodes = set()
     for _, cls in node_visitors:
-        fcts = inspect.getmembers(cls, lambda v: inspect.isroutine(v) and v.__name__.startswith("visit_"))
+        fcts = inspect.getmembers(
+            cls,
+            lambda v: inspect.isroutine(v) and v.__name__.startswith("visit_"))
         for fct_name, _ in fcts:
             node_name = fct_name[6:]
             try:
@@ -36,7 +40,8 @@ def test_unprocessed_ast():
         print(f"visit_{node_name}")
         with pytest.raises(RuntimeError) as e:
             dummy_bridge.visit(node)
-        assert f"CUDA-Q does not currently support {node_name} expressions" in str(e.value)
+        assert f"CUDA-Q does not currently support {node_name} expressions" in str(
+            e.value)
 
     # We will never override all nodes, and this is to check
     # that the test indeed tests something.

@@ -301,6 +301,7 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
 
     name = name or "tuple"
+
     def isQuantumType(ty):
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
             ty) or quake.StruqType.isinstance(ty)
