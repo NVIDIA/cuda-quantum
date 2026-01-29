@@ -19,6 +19,7 @@
 #include "common/Resources.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
+#include "common/cudaq_fmt.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -146,15 +147,25 @@ protected:
     delete jit;
   }
 
-  virtual std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data) = 0;
-  virtual void cleanupContext(mlir::MLIRContext *context) { return; }
+  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
+  extractQuakeCodeAndContext(const std::string &kernelName, void *data) {
+    auto context = cudaq::getOwningMLIRContext();
+
+    // Get the quake representation of the kernel
+    auto quakeCode = cudaq::get_quake_by_name(kernelName);
+    auto m_module = parseSourceString<mlir::ModuleOp>(quakeCode, context.get());
+    if (!m_module)
+      throw std::runtime_error("module cannot be parsed");
+
+    return std::make_tuple(m_module.release(), std::move(context), data);
+  }
 
 public:
   /// @brief The constructor
   BaseRemoteRESTQPU() : QPU() {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+    cudaq::initializeMLIR();
   }
 
   BaseRemoteRESTQPU(BaseRemoteRESTQPU &&) = delete;
@@ -448,16 +459,10 @@ public:
     return output_names;
   }
 
-  /// If this is not destroying the context, then \p module must have been
-  /// created elsewhere and available for update in-place.
-  template <bool destroyContext>
-  mlir::ModuleOp
-  lowerQuakeCodeBuildModule(const std::string &, mlir::ModuleOp module,
-                            mlir::MLIRContext *, mlir::func::FuncOp) {
-    static_assert(!destroyContext &&
-                  "destroyContext case defined as specialization below");
-    return module;
-  }
+  mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
+                                           mlir::ModuleOp module,
+                                           mlir::MLIRContext *,
+                                           mlir::func::FuncOp);
 
   template <bool destroyContext>
   std::vector<cudaq::KernelExecution>
@@ -469,8 +474,8 @@ public:
     auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
         std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
-    auto moduleOp = lowerQuakeCodeBuildModule<destroyContext>(
-        kernelName, m_module, contextPtr, origFn);
+    auto moduleOp =
+        lowerQuakeCodeBuildModule(kernelName, m_module, contextPtr, origFn);
 
     // Lambda to apply a specific pipeline to the given ModuleOp
     auto runPassPipeline = [&](const std::string &pipeline,
@@ -727,9 +732,6 @@ public:
       codes.emplace_back(name, codeStr, j, mapping_reorder_idx);
     }
 
-    if constexpr (destroyContext) {
-      cleanupContext(contextPtr);
-    }
     return codes;
   }
 
@@ -743,8 +745,8 @@ public:
 
     auto [m_module, contextPtr, updatedArgs] =
         extractQuakeCodeAndContext(kernelName, kernelArgs);
-    return lowerQuakeCodePart2</*destroyContext=*/true>(
-        kernelName, kernelArgs, rawArgs, m_module, contextPtr, updatedArgs);
+    return lowerQuakeCodePart2(kernelName, kernelArgs, rawArgs, m_module,
+                               contextPtr.get(), updatedArgs);
   }
 
   std::vector<cudaq::KernelExecution>
@@ -769,8 +771,8 @@ public:
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(const std::string &kernelName, mlir::ModuleOp module,
                  const std::vector<void *> &rawArgs) {
-    return lowerQuakeCodePart2</*destroyContext=*/false>(
-        kernelName, nullptr, rawArgs, module, module.getContext(), nullptr);
+    return lowerQuakeCodePart2(kernelName, nullptr, rawArgs, module,
+                               module.getContext(), nullptr);
   }
 
   void launchKernel(const std::string &kernelName,
@@ -832,6 +834,15 @@ public:
     completeLaunchKernel(kernelName,
                          lowerQuakeCode(kernelName, module, rawArgs));
     return {};
+  }
+
+  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
+                         const std::vector<void *> &rawArgs, mlir::Type resTy,
+                         void *cachedEngine) override {
+    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
+    throw std::runtime_error(
+        "NYI: Remote rest execution via Python/C++ interop.");
+    return nullptr;
   }
 
   void completeLaunchKernel(const std::string &kernelName,
@@ -997,9 +1008,7 @@ public:
   }
 };
 
-template <>
-inline mlir::ModuleOp
-BaseRemoteRESTQPU::lowerQuakeCodeBuildModule</*destroyContext=*/true>(
+inline mlir::ModuleOp BaseRemoteRESTQPU::lowerQuakeCodeBuildModule(
     const std::string &kernelName, mlir::ModuleOp m_module,
     mlir::MLIRContext *contextPtr, mlir::func::FuncOp func) {
   llvm::SmallVector<mlir::func::FuncOp> newFuncOpsWithDefinitions;

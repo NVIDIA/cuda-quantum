@@ -484,7 +484,7 @@ TensorNetState<ScalarType>::contractStateVectorInternal(
   std::complex<ScalarType> stateNorm{0.0, 0.0};
   if (!in_projectedModeValues.empty() &&
       in_projectedModeValues.size() != projectedModes.size())
-    throw std::invalid_argument(fmt::format(
+    throw std::invalid_argument(cudaq_fmt::format(
         "The number of projected modes ({}) must equal the number of "
         "projected values ({}).",
         projectedModes.size(), in_projectedModeValues.size()));
@@ -952,6 +952,11 @@ TensorNetState<ScalarType>::computeExpVals(
     }
   }
 
+  // Clean up cutensornet resources
+  HANDLE_CUTN_ERROR(cutensornetDestroyExpectation(tensorNetworkExpectation));
+  HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
+  HANDLE_CUTN_ERROR(cutensornetDestroyNetworkOperator(cutnNetworkOperator));
+
   free(pauliMats_h);
   HANDLE_CUDA_ERROR(cudaFree(pauliMats_d));
 
@@ -1072,12 +1077,27 @@ TensorNetState<ScalarType>::createFromOpTensors(
   LOG_API_TIME();
   auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
                                                 randomEngine);
-  for (const auto &op : opTensors)
-    if (op.isUnitary)
+  for (const auto &op : opTensors) {
+    // Check for noise channel first (noise channel ops have deviceData ==
+    // nullptr and noiseChannel.has_value() == true)
+    if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        state->applyGeneralChannel(op.targetQubitIds,
+                                   op.noiseChannel->tensorData);
+      } else {
+        state->applyUnitaryChannel(op.targetQubitIds,
+                                   op.noiseChannel->tensorData,
+                                   op.noiseChannel->probabilities);
+      }
+    } else if (op.isUnitary) {
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
                        op.isAdjoint);
-    else
+    } else {
       state->applyQubitProjector(op.deviceData, op.targetQubitIds);
+    }
+  }
 
   return state;
 }

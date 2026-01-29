@@ -32,8 +32,7 @@ private:
 
 public:
   /// @brief The constructor, takes the simulation data and owns it
-  explicit state(SimulationState *ptrToOwn)
-      : internal(std::shared_ptr<SimulationState>{ptrToOwn}) {}
+  explicit state(SimulationState *ptrToOwn);
   /// @brief Copy constructor (default)
   state(const state &other) = default;
 
@@ -101,6 +100,8 @@ public:
 
   /// @brief Copy assignment
   state &operator=(state &&other);
+  /// @brief Default destructor
+  ~state() = default;
 
   /// @brief Convenience function for extracting from a known vector.
   std::complex<double> operator[](std::size_t idx) const;
@@ -165,8 +166,6 @@ public:
   static state from_data(const state_data &data) {
     return state{}.initialize(data);
   }
-
-  ~state();
 
 private:
   state() : internal{nullptr} {}

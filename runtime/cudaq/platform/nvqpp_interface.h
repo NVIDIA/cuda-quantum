@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -67,5 +67,11 @@ streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp moduleOp,
 streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
                         const std::vector<void *> &rawArgs,
                         mlir::Type resultTy);
+
+[[nodiscard]] void *
+streamlinedSpecializeModule(const std::string &kernelName,
+                            mlir::ModuleOp moduleOp,
+                            const std::vector<void *> &rawArgs,
+                            mlir::Type resultTy, void *cachedEngine);
 
 } // namespace cudaq

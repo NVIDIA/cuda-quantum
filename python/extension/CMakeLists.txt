@@ -79,14 +79,14 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
-    ../runtime/utils/PyRemoteRESTQPU.cpp
-    ../runtime/utils/PyFermioniqRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/ArgumentConversion.cpp
     ../../runtime/common/CodeGenConfig.cpp
     ../../runtime/common/RunTheKernel.cpp
+    ../../runtime/common/RuntimeMLIR.cpp
+    ../../runtime/common/RuntimePyMLIR.cpp
     ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
@@ -96,6 +96,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
     ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
+    ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
 
   EMBED_CAPI_LINK_LIBS

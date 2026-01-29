@@ -417,6 +417,23 @@ def test_exp_pauli():
     assert np.isclose(want_exp, -1.13, atol=1e-2)
 
 
+def test_exp_pauli_zz():
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        h(q[1])
+        exp_pauli(theta, q, "ZZ")
+        h(q[0])
+        h(q[1])
+        mz(q)
+
+    counts = cudaq.sample(kernel, np.pi / 2)
+    assert len(counts) == 1
+    assert '11' in counts
+
+
 @pytest.mark.parametrize('target', ['default', 'stim'])
 def test_dynamic_circuit(target):
     """Test that we correctly sample circuits with 

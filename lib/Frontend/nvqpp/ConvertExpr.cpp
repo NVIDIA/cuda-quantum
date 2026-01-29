@@ -28,18 +28,26 @@ static Type getResultType(Type ty) {
   return ty;
 }
 
-/// Convert a name, value pair into a symbol name.
-static std::string getQubitSymbolTableName(StringRef qregName, Value idxVal) {
+/// Convert a name, value pair into a symbol name allocated in `allocator`.
+static llvm::StringRef
+createQubitSymbolTableName(StringRef qregName, Value idxVal,
+                           llvm::BumpPtrAllocator &allocator) {
   std::string name;
   if (auto idxIntVal = idxVal.getDefiningOp<arith::ConstantIntOp>())
-    return qregName.str() + "%" + std::to_string(idxIntVal.value());
-  if (auto idxIdxVal = idxVal.getDefiningOp<arith::ConstantIndexOp>())
-    return qregName.str() + "%" + std::to_string(idxIdxVal.value());
+    name = qregName.str() + "%" + std::to_string(idxIntVal.value());
+  else if (auto idxIdxVal = idxVal.getDefiningOp<arith::ConstantIndexOp>())
+    name = qregName.str() + "%" + std::to_string(idxIdxVal.value());
+  else {
+    // idxVal is a general value, like a loop idx
+    std::stringstream ss;
+    ss << qregName.str() << "%" << idxVal.getAsOpaquePointer();
+    name = ss.str();
+  }
 
-  // this is a general value, like a loop idx
-  std::stringstream ss;
-  ss << qregName.str() << "%" << idxVal.getAsOpaquePointer();
-  return ss.str();
+  // move `name` to heap memory allocated by the allocator
+  char *namePtr = allocator.Allocate<char>(name.size());
+  std::memcpy(namePtr, name.data(), name.size());
+  return llvm::StringRef(namePtr, name.size());
 }
 
 /// Helper to get the declaration of a decl-ref expression.
@@ -2497,8 +2505,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         reportClangError(x, mangler,
                          "internal error: expected a variable name");
       StringRef qregName = getNamedDecl(arg0)->getName();
-      auto name = getQubitSymbolTableName(qregName, idx_var);
-      char *varName = strdup(name.c_str());
+      auto name = createQubitSymbolTableName(qregName, idx_var, allocator);
 
       // If the name exists in the symbol table, return its stored value.
       if (symbolTable.count(name))
@@ -2513,7 +2520,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // NB: varName is built from the variable name *and* the index value. This
       // front-end optimization is likely unnecessary as the compiler can always
       // canonicalize and merge identical quake.extract_ref operations.
-      symbolTable.insert(StringRef(varName), address_qubit);
+      symbolTable.insert(name, address_qubit);
       return replaceTOSValue(address_qubit);
     }
     if (typeName == "vector") {

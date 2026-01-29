@@ -23,6 +23,7 @@
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Transforms/Passes.h"
+#include <cstdlib>
 #include <cxxabi.h>
 #include <regex>
 
@@ -761,6 +762,7 @@ public:
                                             nullptr, nullptr);
     if (demangledPtr) {
       std::string demangledName(demangledPtr);
+      free(demangledPtr);
       demangledName =
           std::regex_replace(demangledName, std::regex("::operator()(.*)"), "");
       if (demangledName.find("$_") != std::string::npos) {

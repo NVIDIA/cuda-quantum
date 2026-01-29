@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "CodeGenConfig.h"
+#include "FmtCore.h"
 #include "Logger.h"
+#include <stdexcept>
 
 namespace {
 

@@ -79,7 +79,6 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
-
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
@@ -98,10 +97,11 @@ static std::vector<py::object> pyReadResults(details::RunResultSpan results,
 }
 
 /// @brief Run `cudaq::run` on the provided kernel.
-static std::vector<py::object>
-run_impl(const std::string &shortName, MlirModule module, MlirType returnTy,
-         std::size_t shots_count, std::optional<noise_model> noise_model,
-         std::size_t qpu_id, py::args runtimeArgs) {
+static std::vector<py::object> pyRun(const std::string &shortName,
+                                     MlirModule module, MlirType returnTy,
+                                     std::size_t shots_count,
+                                     std::optional<noise_model> noise_model,
+                                     std::size_t qpu_id, py::args runtimeArgs) {
   if (shots_count == 0)
     return {};
 
@@ -117,11 +117,6 @@ run_impl(const std::string &shortName, MlirModule module, MlirType returnTy,
   auto retTy = unwrap(returnTy);
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
-
-  // Enable kernel caching over this launch.
-  if (auto *execCtx = cudaq::get_platform().get_exec_ctx())
-    execCtx->allowJitEngineCaching = true;
-
   auto span = pyRunTheKernel(shortName, platform, mod, retTy, shots_count,
                              qpu_id, opaques);
   auto results = pyReadResults(span, mod, shots_count, shortName);
@@ -254,7 +249,7 @@ static async_run_result run_async_impl(const std::string &shortName,
 
 /// @brief Bind the run cudaq function.
 void cudaq::bindPyRun(py::module &mod) {
-  mod.def("run_impl", run_impl,
+  mod.def("run_impl", pyRun,
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`).

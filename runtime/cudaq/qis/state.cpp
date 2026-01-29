@@ -8,25 +8,36 @@
 
 #include "state.h"
 #include "common/EigenDense.h"
-#include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "cudaq/simulators.h"
 #include <iostream>
 
-namespace cudaq {
+namespace {
+/// Create a shared pointer that calls destroyState at destruction.
+std::shared_ptr<cudaq::SimulationState>
+makeSharedSimulationState(cudaq::SimulationState *ptrToOwn) {
+  return std::shared_ptr<cudaq::SimulationState>(
+      ptrToOwn, [](cudaq::SimulationState *ptr) {
+        ptr->destroyState();
+        delete ptr;
+      });
+}
+} // namespace
 
-std::mutex deleteStateMutex;
+namespace cudaq {
 
 state &state::initialize(const state_data &data) {
   auto *simulator = cudaq::get_simulator();
   if (!simulator)
     throw std::runtime_error(
         "[state::from_data] Could not find valid simulator backend.");
-  std::shared_ptr<SimulationState> newPtr{
-      simulator->createStateFromData(data).release()};
+  std::shared_ptr<SimulationState> newPtr =
+      makeSharedSimulationState(simulator->createStateFromData(data).release());
   std::swap(internal, newPtr);
   return *this;
 }
+
+state::state(SimulationState *ptrToOwn)
+    : internal(makeSharedSimulationState(ptrToOwn)) {}
 
 SimulationState::precision state::get_precision() const {
   return internal->getPrecision();
@@ -112,17 +123,6 @@ state &state::operator=(state &&other) {
   // Copy and swap idiom
   std::swap(internal, other.internal);
   return *this;
-}
-
-state::~state() {
-  // Make sure destroying the state is thread safe.
-  std::lock_guard<std::mutex> lock(deleteStateMutex);
-
-  // Current use count is 1, so the
-  // shared_ptr is about to go out of scope,
-  // there are no users. Delete the state data.
-  if (internal && internal.use_count() == 1)
-    internal->destroyState();
 }
 
 extern "C" {

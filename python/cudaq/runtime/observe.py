@@ -21,12 +21,12 @@ def isValidObserveKernel(kernel):
                                                    decorator.qkeModule)
 
 
-def __broadcastObserve(kernel, spin_operator, *args, shots_count=0):
+def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
     for i, a in enumerate(argSet):
-        ctx = cudaq_runtime.ExecutionContext('observe', shots_count)
+        ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.setSpinOperator(spin_operator)
@@ -55,7 +55,8 @@ def observe(kernel,
             shots_count=0,
             noise_model=None,
             num_trajectories=None,
-            execution=None):
+            execution=None,
+            qpu_id=0):
     """
     Compute the expected value of the `spin_operator` with respect to the
     `kernel`. If the input `spin_operator` is a list of `SpinOperator` then
@@ -85,6 +86,7 @@ def observe(kernel,
       `num_trajectories` (Optional[int]): The optional number of trajectories
         for noisy simulation. Only valid if a noise model is provided.
         `Keyword` only.
+      `qpu_id` (Optional[int]): The id of the QPU. Defaults to 0. Key-word only.
 
     Returns:
       :class:`ObserveResult`: A data-type containing the expectation value of
@@ -145,7 +147,8 @@ def observe(kernel,
         results = __broadcastObserve(kernel,
                                      localOp,
                                      *args,
-                                     shots_count=shots_count)
+                                     shots_count=shots_count,
+                                     qpu_id=qpu_id)
 
         if isinstance(spin_operator, list):
             results = [[
@@ -155,9 +158,9 @@ def observe(kernel,
                        for p in results]
     else:
         if shots_count > 0:
-            ctx = cudaq_runtime.ExecutionContext('observe', shots_count)
+            ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
         else:
-            ctx = cudaq_runtime.ExecutionContext('observe')
+            ctx = cudaq_runtime.ExecutionContext('observe', 0, qpu_id)
         ctx.setSpinOperator(localOp)
         ctx.allowJitEngineCaching = True
         if num_trajectories is not None:

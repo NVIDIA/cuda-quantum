@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "kernel_builder.h"
+#include "common/FmtCore.h"
 #include "common/Logger.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -127,7 +128,7 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
 
 MLIRContext *initializeContext() {
   CUDAQ_INFO("Initializing the MLIR infrastructure.");
-  return cudaq::initializeMLIR().release();
+  return cudaq::getOwningMLIRContext().release();
 }
 void deleteContext(MLIRContext *context) { delete context; }
 void deleteJitEngine(ExecutionEngine *jit) { delete jit; }

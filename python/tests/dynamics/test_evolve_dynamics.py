@@ -38,7 +38,7 @@ all_models = [
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
     TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326,
-    TestMultiDegreeElemOp
+    TestMultiDegreeElemOp, TestDensityMatrixIndexing
 ]
 
 
@@ -152,6 +152,15 @@ def test_batching_bugs():
 
     for evolution_result in evolution_results:
         assert len(evolution_result.intermediate_states()) == len(steps)
+
+
+def test_precision_info():
+    """
+    Test that the target info is correct: double precision for dynamics
+    """
+    target = cudaq.get_target()
+    assert target.name == "dynamics"
+    assert target.get_precision() == cudaq.SimulationPrecision.fp64
 
 
 # leave for gdb debugging

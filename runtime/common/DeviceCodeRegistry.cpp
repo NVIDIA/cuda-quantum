@@ -112,6 +112,12 @@ const char *cudaq::registry::__cudaq_getLinkableKernelName(std::intptr_t key) {
 
 void *
 cudaq::registry::__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
+  if (key & 1) {
+    // This is a python kernel decorator. The key is the function address | 1.
+    // Python kernel decorators are never initialized via .init sections and are
+    // not part of the C++ runtime.
+    return reinterpret_cast<void *>(key ^ 1);
+  }
   auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
   if (iter != linkableKernelRegistry.end())
     return iter->second.second;
