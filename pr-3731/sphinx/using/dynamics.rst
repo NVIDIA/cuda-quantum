@@ -599,6 +599,13 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
     Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated 
     but the selected integrator does not support distributed state. 
 
+.. note::
+    When running batched simulations in a multi-GPU multi-node environment, the batch size will be automatically divided by the number of MPI processes.
+    Hence, the batch size needs to be divisible by the number of processes. For example, if the original batch size is 8 and there are 4 MPI processes, 
+    then each process (GPU) will simulate a batch size of 2. Errors will be raised if the batch size is not divisible by the number of processes.
+
+    Each process will return its own set of results. The user is responsible for gathering the results from all processes if needed.
+
 Examples
 ^^^^^^^^^^^^^
 The :ref:`Dynamics Examples <dynamics_examples>` section of the docs contains a number of excellent dynamics examples demonstrating how to simulate basic physics models, specific qubit modalities, and utilize multi-GPU multi-Node capabilities.
