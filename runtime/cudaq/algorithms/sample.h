@@ -43,13 +43,13 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
 
-  auto hasConditionalFeebdback =
+  auto hasConditionalFeedback =
       cudaq::kernelHasConditionalFeedback(kernelName);
   if (explicitMeasurements) {
     if (!platform.supports_explicit_measurements())
       throw std::runtime_error("The sampling option `explicit_measurements` is "
                                "not supported on this target.");
-    if (hasConditionalFeebdback)
+    if (hasConditionalFeedback)
       throw std::runtime_error(
           "The sampling option `explicit_measurements` is not supported on a "
           "kernel with conditional logic on a measurement result.");
@@ -59,7 +59,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   ctx->kernelName = kernelName;
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
-  ctx->hasConditionalsOnMeasureResults = hasConditionalFeebdback;
+  ctx->hasConditionalsOnMeasureResults = hasConditionalFeedback;
   ctx->explicitMeasurements = explicitMeasurements;
 
 #ifdef CUDAQ_LIBRARY_MODE
@@ -288,8 +288,8 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   platform.set_noise(&options.noise);
 
   sample_result ret;
-  // PTSBE dispatch: if use_ptsbe is enabled and running on a simulator,
-  // dispatch to runSamplingPTSBE for trajectory-based noisy simulation.
+  // TODO: Only have added PTSBE to this core sample method right now.
+  // If we agree on the approach I will add to others.
   if (options.use_ptsbe && platform.is_simulator()) {
     ret = ptsbe::runSamplingPTSBE(
         [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,

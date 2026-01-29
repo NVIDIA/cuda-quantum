@@ -12,59 +12,37 @@
 using namespace cudaq;
 using namespace cudaq::ptsbe;
 
-// ============================================================================
-// MOCK SIMULATORS FOR CONCEPT DETECTION TESTING
-// ============================================================================
-
 namespace {
 
-/// @brief Mock simulator with correct sampleWithPTSBE signature
-/// @details This simulator satisfies PTSBECapable concept
 struct MockPTSBESimulator {
   mutable bool sampleWithPTSBE_called = false;
-  mutable PTSBatch last_batch;
 
   std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
     sampleWithPTSBE_called = true;
-    last_batch = batch;
     return {};
   }
 };
 
-/// @brief Mock simulator without sampleWithPTSBE method
-/// @details This simulator does NOT satisfy PTSBECapable concept
 struct NonPTSBESimulator {
-  void someOtherMethod() {}
-  void execute(const PTSBatch &) {} // Different method, not sampleWithPTSBE
+  void execute(const PTSBatch &) {}
 };
 
-/// @brief Mock simulator with wrong return type (T020a edge case)
-/// @details Has sampleWithPTSBE but returns wrong type
 struct WrongReturnTypeSimulator {
-  // Returns single result instead of vector
   cudaq::sample_result sampleWithPTSBE(const PTSBatch &batch) {
     return cudaq::sample_result{};
   }
 };
 
-/// @brief Mock simulator with wrong parameter type (T020a edge case)
-/// @details Has sampleWithPTSBE but takes wrong parameter
 struct WrongParameterSimulator {
-  // Takes int instead of PTSBatch
   std::vector<cudaq::sample_result> sampleWithPTSBE(int shots) { return {}; }
 };
 
-/// @brief Mock simulator with non-const parameter (T020a edge case)
-/// @details Has sampleWithPTSBE but takes non-const reference
 struct NonConstParameterSimulator {
-  // Takes non-const reference
   std::vector<cudaq::sample_result> sampleWithPTSBE(PTSBatch &batch) {
     return {};
   }
 };
 
-/// @brief Mock simulator with const method (should still work)
-/// @details Has const sampleWithPTSBE method
 struct ConstMethodSimulator {
   std::vector<cudaq::sample_result>
   sampleWithPTSBE(const PTSBatch &batch) const {
@@ -72,58 +50,12 @@ struct ConstMethodSimulator {
   }
 };
 
-// ============================================================================
-// COMPILE-TIME CONCEPT DETECTION (T017)
-// ============================================================================
-
-// Primary concept detection tests
-static_assert(PTSBECapable<MockPTSBESimulator>,
-              "MockPTSBESimulator with correct sampleWithPTSBE must satisfy "
-              "PTSBECapable");
-
-static_assert(!PTSBECapable<NonPTSBESimulator>,
-              "Simulator without sampleWithPTSBE must NOT satisfy PTSBECapable");
-
-// Edge case: Wrong return type (returns single result, not vector)
-static_assert(!PTSBECapable<WrongReturnTypeSimulator>,
-              "Simulator with wrong return type must NOT satisfy PTSBECapable");
-
-// Edge case: Wrong parameter type
-static_assert(!PTSBECapable<WrongParameterSimulator>,
-              "Simulator with wrong parameter type must NOT satisfy "
-              "PTSBECapable");
-
-// Edge case: Non-const parameter (concept requires const PTSBatch&)
-static_assert(!PTSBECapable<NonConstParameterSimulator>,
-              "Simulator with non-const parameter must NOT satisfy "
-              "PTSBECapable");
-
-// Edge case: Const method should still work
-static_assert(PTSBECapable<ConstMethodSimulator>,
-              "Simulator with const sampleWithPTSBE should satisfy "
-              "PTSBECapable");
-
-// ============================================================================
-// COMPILE-TIME DISPATCH VERIFICATION (T018)
-// ============================================================================
-
-/// @brief Helper template to test if constexpr dispatch at compile-time
-template <typename Simulator>
-constexpr bool dispatchesToOptimizedPath() {
-  if constexpr (PTSBECapable<Simulator>) {
-    return true; // Would call sampleWithPTSBE
-  } else {
-    return false; // Would use fallback
-  }
-}
-
-// Compile-time dispatch verification
-static_assert(dispatchesToOptimizedPath<MockPTSBESimulator>(),
-              "MockPTSBESimulator must dispatch to optimized path");
-static_assert(!dispatchesToOptimizedPath<NonPTSBESimulator>(),
-              "NonPTSBESimulator must dispatch to fallback path");
-static_assert(!dispatchesToOptimizedPath<WrongReturnTypeSimulator>(),
-              "WrongReturnTypeSimulator must dispatch to fallback path");
+static_assert(PTSBECapable<MockPTSBESimulator>);
+static_assert(!PTSBECapable<NonPTSBESimulator>);
+static_assert(!PTSBECapable<WrongReturnTypeSimulator>);
+static_assert(!PTSBECapable<WrongParameterSimulator>);
+static_assert(!PTSBECapable<NonConstParameterSimulator>);
+static_assert(PTSBECapable<ConstMethodSimulator>);
 
 } // namespace
 
@@ -221,10 +153,6 @@ CUDAQ_TEST(PTSBEInterfaceTest, CleanTrajectory) {
   EXPECT_EQ(traj.num_shots, 500);
 }
 
-// ============================================================================
-// USER STORY 2: CONCEPT DETECTION RUNTIME TESTS (T019-T020)
-// ============================================================================
-
 /// Test: Runtime dispatch calls sampleWithPTSBE for PTSBECapable simulators
 CUDAQ_TEST(PTSBEInterfaceTest, RuntimeDispatchCallsMock) {
   auto testDispatch = []<typename Sim>(Sim &sim, const PTSBatch &batch) {
@@ -246,7 +174,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, RuntimeDispatchCallsMock) {
   EXPECT_TRUE(ptsbe_sim.sampleWithPTSBE_called);
 }
 
-/// Test: Concept correctly rejects wrong signatures (T020a edge cases)
+/// Test: Concept correctly rejects wrong signatures
 CUDAQ_TEST(PTSBEInterfaceTest, ConceptRejectsWrongSignatures) {
   EXPECT_FALSE(PTSBECapable<WrongReturnTypeSimulator>);
   EXPECT_FALSE(PTSBECapable<WrongParameterSimulator>);

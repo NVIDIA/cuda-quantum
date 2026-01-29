@@ -44,23 +44,25 @@ auto ghzKernel = []() __qpu__ {
 
 auto emptyKernel = []() __qpu__ {};
 
-// MCM kernel tests require nvq++ compiler for proper registerNames population.
-// See targettests/ptsbe/ for LIT tests that verify MCM detection with nvq++.
+auto separatedMeasureKernel = []() __qpu__ {
+  cudaq::qvector q(4);
+  h(q[0]);
+  x(q[2]);
+  // Measure non-contiguous qubits: 0 and 2 (skip 1 and 3)
+  mz(q[0]);
+  mz(q[2]);
+};
 
 } // namespace
 
 // ============================================================================
-// T030: TRACE CAPTURE TESTS
+// TRACE CAPTURE TESTS
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchCapturesBellCircuit) {
   auto batch = capturePTSBatch(bellKernel);
-
-  std::size_t count = 0;
-  for (const auto &inst : batch.kernel_trace) {
-    (void)inst;
-    ++count;
-  }
+  auto count = std::distance(batch.kernel_trace.begin(),
+                             batch.kernel_trace.end());
   EXPECT_EQ(count, 2);
 }
 
@@ -83,17 +85,13 @@ CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesKernelArgs) {
 
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesEmptyKernel) {
   auto batch = capturePTSBatch(emptyKernel);
-
-  std::size_t count = 0;
-  for (const auto &inst : batch.kernel_trace) {
-    (void)inst;
-    ++count;
-  }
+  auto count = std::distance(batch.kernel_trace.begin(),
+                             batch.kernel_trace.end());
   EXPECT_EQ(count, 0);
 }
 
 // ============================================================================
-// T031: MCM DETECTION TESTS
+// MCM DETECTION TESTS
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, NoMCMWithEmptyRegisterNames) {
@@ -118,11 +116,8 @@ CUDAQ_TEST(PTSBESampleTest, NoThrowForValidContext) {
   EXPECT_NO_THROW(throwIfMidCircuitMeasurements(ctx));
 }
 
-// MCM kernel tests require nvq++ compiler for proper registerNames population.
-// See targettests/ptsbe/ for LIT tests that verify MCM detection with nvq++.
-
 // ============================================================================
-// T032: PTSBATCH CONSTRUCTION TESTS
+// PTSBATCH CONSTRUCTION TESTS
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchHasCorrectMeasureQubits) {
@@ -134,12 +129,8 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchHasCorrectMeasureQubits) {
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchFromGHZHas3Qubits) {
   auto batch = capturePTSBatch(ghzKernel);
-
-  std::size_t count = 0;
-  for (const auto &inst : batch.kernel_trace) {
-    (void)inst;
-    ++count;
-  }
+  auto count = std::distance(batch.kernel_trace.begin(),
+                             batch.kernel_trace.end());
   EXPECT_EQ(count, 3);
   EXPECT_EQ(batch.measure_qubits.size(), 3);
 }
@@ -147,6 +138,13 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchFromGHZHas3Qubits) {
 CUDAQ_TEST(PTSBESampleTest, PTSBatchTrajectoriesEmptyForPOC) {
   auto batch = capturePTSBatch(bellKernel);
   EXPECT_TRUE(batch.trajectories.empty());
+}
+
+CUDAQ_TEST(PTSBESampleTest, PTSBatchSeparatedMeasureQubits) {
+  auto batch = capturePTSBatch(separatedMeasureKernel);
+  EXPECT_EQ(batch.measure_qubits.size(), 2);
+  EXPECT_EQ(batch.measure_qubits[0], 0);
+  EXPECT_EQ(batch.measure_qubits[1], 2);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
@@ -164,7 +162,7 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
 }
 
 // ============================================================================
-// T033: DISPATCH TESTS
+// DISPATCH TESTS
 // ============================================================================
 
 CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEThrowsNotImplemented) {
@@ -187,12 +185,8 @@ CUDAQ_TEST(PTSBESampleTest, DispatchErrorMentionsNotImplemented) {
 
 CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesAndDispatches) {
   auto batch = capturePTSBatch(bellKernel);
-
-  std::size_t count = 0;
-  for (const auto &inst : batch.kernel_trace) {
-    (void)inst;
-    ++count;
-  }
+  auto count = std::distance(batch.kernel_trace.begin(),
+                             batch.kernel_trace.end());
   EXPECT_GT(count, 0);
   EXPECT_FALSE(batch.measure_qubits.empty());
 
@@ -200,8 +194,7 @@ CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesAndDispatches) {
 }
 
 // ============================================================================
-// T044: CORE sample() INTEGRATION TESTS
-// These tests verify the end-to-end integration with cudaq::sample()
+// CORE sample() INTEGRATION TESTS
 // ============================================================================
 
 // Test that cudaq::sample() with use_ptsbe=true dispatches to PTSBE path

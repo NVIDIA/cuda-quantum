@@ -9,7 +9,9 @@
 // PTSBE sample intercept POC test. Verifies that sampleWithPTSBE can capture
 // trace from kernel and construct PTSBatch. Full execution is not implemented.
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+
+// CHECK: PASS: PTSBatch captured
 
 #include <cudaq.h>
 #include <cudaq/ptsbe/PTSBESample.h>

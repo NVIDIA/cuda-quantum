@@ -27,10 +27,17 @@ struct PTSBatch {
   std::vector<cudaq::KrausTrajectory> trajectories;
 
   /// @brief Qubits to measure (terminal measurements)
+  /// NOTE: This currently only applies to kernels that are terminal measurement only
+  /// which is a limitation of the current PTSBE implementation.
   std::vector<std::size_t> measure_qubits;
 };
 
-/// @brief Concept for simulators supporting optimized PTSBE execution
+/// @brief Concept for simulators supporting a customized PTSBE implementation
+///
+/// Enables compile-time detection of simulator PTSBE support with zero runtime
+/// overhead. Simulators opting into PTSBE should implement sampleWithPTSBE
+/// returning per-trajectory results. We use a concept to avoid exposing
+/// the simulator base class to PTSBE.
 template <typename SimulatorType>
 concept PTSBECapable =
     requires(SimulatorType &sim, const PTSBatch &batch) {
@@ -63,7 +70,7 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   throw std::runtime_error("convertToSimulatorTask: Not implemented");
 }
 
-/// @brief Merge kernel trace with trajectory noise
+/// @brief Merge kernel trace with trajectory noise to produce task list to execute on simulator
 ///
 /// @param kernel_trace Base kernel circuit
 /// @param trajectory Sampled trajectory with noise

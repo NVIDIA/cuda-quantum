@@ -28,30 +28,65 @@
 #include "cudaq/platform.h"
 #include <stdexcept>
 
+namespace cudaq {
+// Forward declaration from cudaq.h
+bool kernelHasConditionalFeedback(const std::string &kernelName);
+} // namespace cudaq
+
 namespace cudaq::ptsbe {
 
-/// @brief Check if execution context has mid-circuit measurements
+/// @brief Check if kernel has conditional feedback (dynamic circuit)
 ///
-/// Mid-circuit measurements are detected via registerNames populated during
-/// kernel tracing. When a measurement result is passed to conditional logic,
-/// the tracer adds register names to track the conditional dependency.
+/// PTSBE requires static circuits where the gate sequence is deterministic.
+/// Dynamic circuits with measurement-dependent control flow cannot be
+/// pre-trajectory sampled because the gate sequence depends on runtime
+/// measurement outcomes.
 ///
+/// Detection uses two mechanisms:
+/// 1. MLIR-compiled kernels: Check registered quake code for
+///    qubitMeasurementFeedback attribute
+/// 2. Library mode: Check registerNames populated during tracing when
+///    __nvqpp__MeasureResultBoolConversion is called
+///
+/// @param kernelName Name of the kernel (for MLIR lookup)
+/// @param ctx ExecutionContext populated after tracing (for library mode)
+/// @return true if conditional feedback detected
+///
+inline bool hasConditionalFeedback(const std::string &kernelName,
+                                   const ExecutionContext &ctx) {
+  // Check MLIR-compiled kernel metadata first
+  if (cudaq::kernelHasConditionalFeedback(kernelName))
+    return true;
+
+  // Fallback: check library mode detection via registerNames
+  return !ctx.registerNames.empty();
+}
+
+/// @brief Validate kernel eligibility for PTSBE execution
+///
+/// Checks all constraints required for PTSBE trajectory-based simulation:
+/// - No conditional feedback on measurement results (dynamic circuits) or mid-circuit measurements
+///
+/// @param kernelName Name of the kernel being validated
 /// @param ctx ExecutionContext populated after kernel tracing
-/// @return true if registerNames is non-empty (MCM detected)
-/// @return false if no mid-circuit measurements found
+/// @throws std::runtime_error if kernel is not eligible for PTSBE
 ///
+inline void validatePTSBEEligibility(const std::string &kernelName,
+                                     const ExecutionContext &ctx) {
+  if (hasConditionalFeedback(kernelName, ctx)) {
+    throw std::runtime_error(
+        "PTSBE does not support dynamic circuits. "
+        "Circuits with conditional logic based on measurement outcomes "
+        "cannot currently be pre-trajectory sampled. The gate sequence must be "
+        "deterministic for trajectory generation.");
+  }
+}
+
+// Legacy API for backward compatibility with existing tests
 inline bool hasMidCircuitMeasurements(const ExecutionContext &ctx) {
   return !ctx.registerNames.empty();
 }
 
-/// @brief Throw if mid-circuit measurements are detected
-///
-/// @param ctx ExecutionContext populated after kernel tracing
-/// @throws std::runtime_error if MCM detected with descriptive message
-///
-/// PTSBE requires static circuits because trajectory generation assumes
-/// a deterministic gate sequence. Dynamic circuits with measurement-dependent
-/// control flow cannot be pre-sampled.
 inline void throwIfMidCircuitMeasurements(const ExecutionContext &ctx) {
   if (hasMidCircuitMeasurements(ctx)) {
     throw std::runtime_error(
@@ -117,10 +152,10 @@ inline sample_result dispatchPTSBE(const PTSBatch &batch) {
 /// @tparam KernelFunctor Wrapped kernel functor type
 /// @param wrappedKernel Functor that invokes the quantum kernel
 /// @param platform Reference to the quantum platform
-/// @param kernelName Name of the kernel (for diagnostics)
+/// @param kernelName Name of the kernel (for diagnostics and MCM detection)
 /// @param shots Number of shots for trajectory allocation
 /// @return Aggregated sample_result from all trajectories
-/// @throws std::runtime_error if MCM detected or execution not implemented
+/// @throws std::runtime_error if dynamic circuit detected or not implemented
 template <typename KernelFunctor>
 sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
                                 quantum_platform &platform,
@@ -132,8 +167,8 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
   wrappedKernel();
   platform.reset_exec_ctx();
 
-  // Stage 1: Check for mid-circuit measurements
-  throwIfMidCircuitMeasurements(trace_ctx);
+  // Stage 1: Validate kernel eligibility (no dynamic circuits)
+  validatePTSBEEligibility(kernelName, trace_ctx);
 
   // Stage 2: Construct PTSBatch from trace
   PTSBatch batch;
@@ -182,14 +217,15 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 /// @param shots Number of shots (passed to trajectory generation)
 /// @param args Kernel arguments
 /// @return Aggregated sample_result from all trajectories
-/// @throws std::runtime_error if MCM detected or execution not implemented
+/// @throws std::runtime_error if dynamic circuit detected or not implemented
 template <typename QuantumKernel, typename... Args>
 sample_result sampleWithPTSBE(QuantumKernel &&kernel, std::size_t shots,
                                Args &&...args) {
   auto &platform = get_platform();
+  auto kernelName = cudaq::getKernelName(kernel);
   return runSamplingPTSBE(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-      "test_kernel", shots);
+      kernelName, shots);
 }
 
 } // namespace cudaq::ptsbe

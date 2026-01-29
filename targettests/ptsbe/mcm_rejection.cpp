@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// PTSBE does not support mid-circuit measurements. This test verifies that
+// PTSBE does not support dynamic circuits. This test verifies that
 // sampleWithPTSBE rejects kernels with conditional feedback on measure results.
-//
-// Pending implementation of MCM detection.
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+
+// CHECK: PASS: Dynamic circuit rejected
 
 #include <cudaq.h>
 #include <cudaq/ptsbe/PTSBESample.h>
@@ -32,18 +32,18 @@ struct mcmKernel {
 int main() {
   mcmKernel kernel;
 
-  // sampleWithPTSBE should throw for MCM circuits with a specific error
+  // sampleWithPTSBE should throw for dynamic circuits with a specific error
   try {
     cudaq::ptsbe::sampleWithPTSBE(kernel, 1000);
-    printf("FAIL: Expected exception for MCM kernel\n");
+    printf("FAIL: Expected exception for dynamic circuit kernel\n");
     return 1;
   } catch (const std::runtime_error &e) {
-    // Verify the error is from MCM detection, not dispatchPTSBE
-    if (std::strstr(e.what(), "mid-circuit measurements") != nullptr) {
-      printf("PASS: MCM kernel rejected with correct error: %s\n", e.what());
+    // Verify the error is from dynamic circuit detection, not dispatchPTSBE
+    if (std::strstr(e.what(), "dynamic circuits") != nullptr) {
+      printf("PASS: Dynamic circuit rejected with correct error: %s\n", e.what());
       return 0;
     } else {
-      printf("FAIL: Wrong error (expected MCM rejection): %s\n", e.what());
+      printf("FAIL: Wrong error (expected dynamic circuit rejection): %s\n", e.what());
       return 1;
     }
   }
