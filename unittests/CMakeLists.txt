@@ -48,6 +48,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   ptsbe/KrausSelectionTester.cpp
   ptsbe/KrausTrajectoryTester.cpp
   ptsbe/ShotAllocationTester.cpp
+  ptsbe/PTSBEInterfaceTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
 )

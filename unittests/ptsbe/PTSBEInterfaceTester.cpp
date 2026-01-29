@@ -8,8 +8,6 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/ptsbe/PTSBEInterface.h"
-#include "cudaq/ptsbe/KrausSelection.h"
-#include "common/Trace.h"
 
 using namespace cudaq;
 using namespace cudaq::ptsbe;
@@ -17,7 +15,7 @@ using namespace cudaq::ptsbe;
 // Compile-time concept validation (if this compiles, concepts work)
 namespace {
 struct MockPTSBESimulator {
-  std::vector<cudaq::ExecutionResult> sampleWithPTSBE(const PTSBatch &batch) {
+  std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
     return {};
   }
 };
@@ -38,7 +36,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, PTSBatchWithTrajectories) {
   PTSBatch batch;
 
   for (size_t i = 0; i < 5; ++i) {
-    PTSBatch::TrajectoryTasks traj;
+    KrausTrajectory traj;
     traj.trajectory_id = i;
     traj.num_shots = (i + 1) * 200;
     batch.trajectories.push_back(traj);
@@ -53,21 +51,21 @@ CUDAQ_TEST(PTSBEInterfaceTest, PTSBatchWithTrajectories) {
 
 /// Test: Trajectory with KrausSelection noise insertions
 CUDAQ_TEST(PTSBEInterfaceTest, TrajectoryWithNoise) {
-  PTSBatch::TrajectoryTasks traj;
+  KrausTrajectory traj;
   traj.trajectory_id = 0;
   traj.num_shots = 1000;
 
   // Add noise selections
-  traj.noise_insertions.push_back(
+  traj.kraus_selections.push_back(
       KrausSelection(0, {0}, "h", KrausOperatorType::IDENTITY));
-  traj.noise_insertions.push_back(
+  traj.kraus_selections.push_back(
       KrausSelection(1, {0, 1}, "cx", static_cast<KrausOperatorType>(2)));
-  traj.noise_insertions.push_back(
+  traj.kraus_selections.push_back(
       KrausSelection(2, {1}, "x", static_cast<KrausOperatorType>(1)));
 
-  EXPECT_EQ(traj.noise_insertions.size(), 3);
-  EXPECT_EQ(traj.noise_insertions[1].qubits.size(), 2);
-  EXPECT_EQ(traj.noise_insertions[2].op_name, "x");
+  EXPECT_EQ(traj.kraus_selections.size(), 3);
+  EXPECT_EQ(traj.kraus_selections[1].qubits.size(), 2);
+  EXPECT_EQ(traj.kraus_selections[2].op_name, "x");
 }
 
 /// Test: Shot allocation across multiple trajectories
@@ -78,7 +76,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, ShotAllocation) {
   std::vector<size_t> shot_counts = {500, 300, 150, 50};
 
   for (size_t i = 0; i < shot_counts.size(); ++i) {
-    PTSBatch::TrajectoryTasks traj;
+    KrausTrajectory traj;
     traj.trajectory_id = i;
     traj.num_shots = shot_counts[i];
     batch.trajectories.push_back(traj);
@@ -95,12 +93,12 @@ CUDAQ_TEST(PTSBEInterfaceTest, ShotAllocation) {
 CUDAQ_TEST(PTSBEInterfaceTest, ZeroShotTrajectory) {
   PTSBatch batch;
 
-  PTSBatch::TrajectoryTasks zero_traj;
+  KrausTrajectory zero_traj;
   zero_traj.trajectory_id = 0;
   zero_traj.num_shots = 0;
   batch.trajectories.push_back(zero_traj);
 
-  PTSBatch::TrajectoryTasks normal_traj;
+  KrausTrajectory normal_traj;
   normal_traj.trajectory_id = 1;
   normal_traj.num_shots = 1000;
   batch.trajectories.push_back(normal_traj);
@@ -119,10 +117,10 @@ CUDAQ_TEST(PTSBEInterfaceTest, EmptyBatch) {
 
 /// Test: Clean trajectory without noise
 CUDAQ_TEST(PTSBEInterfaceTest, CleanTrajectory) {
-  PTSBatch::TrajectoryTasks traj;
+  KrausTrajectory traj;
   traj.trajectory_id = 0;
   traj.num_shots = 500;
 
-  EXPECT_TRUE(traj.noise_insertions.empty());
+  EXPECT_TRUE(traj.kraus_selections.empty());
   EXPECT_EQ(traj.num_shots, 500);
 }
