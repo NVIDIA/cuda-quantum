@@ -61,13 +61,39 @@ executePTSBE(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
 /// @brief Convert Trace instruction to simulator task
 ///
-/// @param inst Trace instruction
-/// @return Simulator task with matrix and parameters
-/// @throws std::runtime_error Not yet implemented
+/// Looks up gate matrix from nvqir::Gates.h registry and constructs
+/// a GateApplicationTask with typed parameters and qubit indices.
+///
+/// @tparam ScalarType Simulator scalar type (float or double)
+/// @param inst Trace instruction containing gate name, params, controls, targets
+/// @return GateApplicationTask with computed unitary matrix
+/// @throws std::runtime_error if gate name is not recognized
 template <typename ScalarType>
-nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
+typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
 convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
-  throw std::runtime_error("convertToSimulatorTask: Not implemented");
+  // Convert parameters to ScalarType
+  std::vector<ScalarType> typedParams;
+  typedParams.reserve(inst.params.size());
+  for (auto p : inst.params)
+    typedParams.push_back(static_cast<ScalarType>(p));
+
+  // Look up gate matrix from registry (throws for unknown gates)
+  auto gateName = nvqir::getGateNameFromString(inst.name);
+  auto matrix = nvqir::getGateByName<ScalarType>(gateName, typedParams);
+
+  // Extract qubit IDs from QuditInfo
+  std::vector<std::size_t> controls;
+  controls.reserve(inst.controls.size());
+  for (const auto &q : inst.controls)
+    controls.push_back(q.id);
+
+  std::vector<std::size_t> targets;
+  targets.reserve(inst.targets.size());
+  for (const auto &q : inst.targets)
+    targets.push_back(q.id);
+
+  return typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask(
+      inst.name, matrix, controls, targets, typedParams);
 }
 
 /// @brief Convert entire kernel trace to simulator task list
