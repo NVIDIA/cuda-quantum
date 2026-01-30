@@ -12,7 +12,6 @@ set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_DEFAULTPLATFORM_SRC
   DefaultQuantumPlatform.cpp
-  ../common/QuantumExecutionQueue.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_DEFAULTPLATFORM_SRC})
