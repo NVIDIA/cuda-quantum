@@ -48,6 +48,7 @@ Hadamard
 Hadamards
 Hamiltonian
 Hamiltonians
+Homebrew
 IQM
 InfiniBand
 Infleqtion
@@ -133,6 +134,7 @@ UCCSD
 VQE
 Vazirani
 WSL
+Xcode
 Zener
 accessor
 acknowledgement
@@ -265,6 +267,7 @@ iterable
 iteratively
 kets
 krylov
+libunwind
 linker
 linkers
 logarithmically
@@ -272,6 +275,7 @@ lookup
 lookups
 lossy
 lvalue
+macOS
 makefiles
 merchantability
 mps
