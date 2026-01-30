@@ -16,7 +16,7 @@ found in our complete :doc:`Installation Guide <install/install>`.
 
 .. note::
 
-    CUDA-Q is supported on Linux and macOS. On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q. GPU-accelerated simulation is not available on macOS.
+    CUDA-Q is currently supported on Linux only. On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
 
 Install CUDA-Q
 ----------------------------

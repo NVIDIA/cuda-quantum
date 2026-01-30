@@ -1901,7 +1901,7 @@ bitstring sample probabilities.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [ ]:
 :::
 :::
 
@@ -1923,7 +1923,7 @@ bitstring sample probabilities.
         # Gets noiseless probability distribution
         cudaq.set_target("nvidia")
         clean_result = np.array(
-            cudaq.get_state(qv, n, circuit_params, layer_permutations))
+            cudaq.StateMemoryView(cudaq.get_state(qv, n, circuit_params, layer_permutations)))
 
         # Performs noisy sampling
         cudaq.set_target("density-matrix-cpu")

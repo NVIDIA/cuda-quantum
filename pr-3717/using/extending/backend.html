@@ -1272,18 +1272,16 @@
 <li><p>Implement the test files:</p></li>
 </ol>
 <div class="highlight-cmake notranslate"><div class="highlight"><pre><span></span><span class="c"># CMakeLists.txt</span>
-<span class="nb">add_executable</span><span class="p">(</span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">ProviderNameTester.cpp</span><span class="p">)</span>
-<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">ProviderNameTester</span>
-<span class="w">  </span><span class="s">PRIVATE</span>
-<span class="w">  </span><span class="s">cudaq-common</span>
-<span class="w">  </span><span class="s">cudaq</span>
-<span class="w">  </span><span class="s">gtest_main</span>
+<span class="nb">add_backend_unittest_executable</span><span class="p">(</span><span class="s">ProviderNameTester</span>
+<span class="w">  </span><span class="s">SOURCES</span><span class="w"> </span><span class="s">ProviderNameTester.cpp</span>
+<span class="w">  </span><span class="s">BACKEND</span><span class="w"> </span><span class="s">ProviderName</span>
+<span class="w">  </span><span class="s">BACKEND_CONFIG</span><span class="w"> </span><span class="s2">&quot;&lt;provider_name&gt; url=http://localhost:&lt;PORT&gt;&quot;</span>
 <span class="p">)</span>
 
-<span class="nb">configure_file</span><span class="p">(</span><span class="o">${</span><span class="nv">CMAKE_CURRENT_SOURCE_DIR</span><span class="o">}</span><span class="s">/ProviderNameStartServerAndTest.sh.in</span>
-<span class="w">              </span><span class="o">${</span><span class="nv">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="s">/ProviderNameStartServerAndTest.sh</span><span class="w"> </span><span class="s">@ONLY</span><span class="p">)</span>
+<span class="nb">configure_file</span><span class="p">(</span><span class="s">ProviderNameStartServerAndTest.sh.in</span>
+<span class="w">               </span><span class="s">ProviderNameStartServerAndTest.sh</span><span class="w"> </span><span class="s">@ONLY</span><span class="p">)</span>
 
-<span class="nb">add_test</span><span class="p">(</span><span class="s">NAME</span><span class="w"> </span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">COMMAND</span><span class="w"> </span><span class="o">${</span><span class="nv">CMAKE_CURRENT_BINARY_DIR</span><span class="o">}</span><span class="s">/ProviderNameStartServerAndTest.sh</span><span class="p">)</span>
+<span class="nb">add_test</span><span class="p">(</span><span class="s">NAME</span><span class="w"> </span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">COMMAND</span><span class="w"> </span><span class="s">bash</span><span class="w"> </span><span class="s">ProviderNameStartServerAndTest.sh</span><span class="p">)</span>
 <span class="nb">set_tests_properties</span><span class="p">(</span><span class="s">ProviderNameTester</span><span class="w"> </span><span class="s">PROPERTIES</span><span class="w"> </span><span class="s">TIMEOUT</span><span class="w"> </span><span class="s">120</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1293,7 +1291,7 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 
 <span class="c1"># Start the mock server</span>
-python3<span class="w"> </span>-m<span class="w"> </span>utils.mock_qpu.&lt;provider_name&gt;<span class="w"> </span>@PORT@<span class="w"> </span><span class="p">&amp;</span>
+python3<span class="w"> </span>utils/start_mock_qpu.py<span class="w"> </span>&lt;provider_name&gt;<span class="w"> </span><span class="p">&amp;</span>
 <span class="nv">SERVER_PID</span><span class="o">=</span><span class="nv">$!</span>
 
 <span class="c1"># Wait for server to start</span>
@@ -1321,14 +1319,6 @@ sleep<span class="w"> </span><span class="m">2</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;gtest/gtest.h&quot;</span>
 
 <span class="n">TEST</span><span class="p">(</span><span class="n">ProviderNameTester</span><span class="p">,</span><span class="w"> </span><span class="n">checkSimpleCircuit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Initialize the platform</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">platform</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">get_platform</span><span class="p">();</span>
-<span class="w">  </span><span class="n">platform</span><span class="o">-&gt;</span><span class="n">setTargetBackend</span><span class="p">(</span><span class="s">&quot;&lt;provider_name&gt;&quot;</span><span class="p">);</span>
-
-<span class="w">  </span><span class="c1">// Set configuration</span>
-<span class="w">  </span><span class="n">platform</span><span class="o">-&gt;</span><span class="n">setBackendParameter</span><span class="p">(</span><span class="s">&quot;url&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;http://localhost:PORT&quot;</span><span class="p">);</span>
-<span class="w">  </span><span class="n">platform</span><span class="o">-&gt;</span><span class="n">setBackendParameter</span><span class="p">(</span><span class="s">&quot;api_key&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;test_key&quot;</span><span class="p">);</span>
-
 <span class="w">  </span><span class="c1">// Create a simple circuit</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">kernel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">make_kernel</span><span class="p">();</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kernel</span><span class="p">.</span><span class="n">qalloc</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>

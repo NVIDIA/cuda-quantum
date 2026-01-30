@@ -2116,41 +2116,13 @@ the respective [GitHub
 Release](https://github.com/NVIDIA/cuda-quantum/releases){.reference
 .external}.
 
-Wheels are distributed for Linux and macOS operating systems. On macOS,
-only CPU-based simulation is available (GPU acceleration requires Linux
-with an NVIDIA GPU). If your platform is not [[officially
-supported]{.std .std-ref}](#dependencies-and-compatibility){.reference
-.internal} and [`pip`{.code .docutils .literal .notranslate}]{.pre} does
-not find a compatible wheel to install, you can build your own wheel
-from source following the instructions here: [[Installation from
+At this time, wheels are distributed for Linux operating systems only.
+If your platform is not [[officially supported]{.std
+.std-ref}](#dependencies-and-compatibility){.reference .internal} and
+[`pip`{.code .docutils .literal .notranslate}]{.pre} does not find a
+compatible wheel to install, you can build your own wheel from source
+following the instructions here: [[Installation from
 Source]{.doc}](data_center_install.html){.reference .internal}.
-
-::: {.admonition .note}
-Note
-
-**macOS Runtime Limitations**
-
--   **Large qubit allocations**: macOS has a smaller default stack size
-    (8MB). Allocating large arrays in cudaq kernels may cause stack
-    overflow errors.
-
--   **Thread limits**: macOS has lower per-process thread limits
-    (\~1392-2088) compared to Linux. Workflows creating many quantum
-    kernels simultaneously may exhaust this limit. Workarounds include
-    reducing the number of kernels alive at once, increasing limits via
-    [`ulimit`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-    .literal .notranslate}[`-n`{.docutils .literal
-    .notranslate}]{.pre}` `{.docutils .literal
-    .notranslate}[`<procs>`{.docutils .literal .notranslate}]{.pre}, or
-    enabling server performance mode. If this occurs, reduce concurrency
-    or raise limits via [`ulimit`{.docutils .literal
-    .notranslate}]{.pre}` `{.docutils .literal
-    .notranslate}[`-u`{.docutils .literal .notranslate}]{.pre} and
-    [`launchctl`{.docutils .literal .notranslate}]{.pre}` `{.docutils
-    .literal .notranslate}[`limit`{.docutils .literal
-    .notranslate}]{.pre}` `{.docutils .literal
-    .notranslate}[`maxthreads`{.docutils .literal .notranslate}]{.pre}.
-:::
 
 To build the CUDA-Q Python API for the purpose of contributing to our
 [GitHub repository](https://github.com/NVIDIA/cuda-quantum){.reference
@@ -3087,13 +3059,12 @@ The following table summarizes the required components.
 +--------------------------+--------------------------------------------+
 | CPU architectures        | x86_64, ARM64                              |
 +--------------------------+--------------------------------------------+
-| Operating systems        | Linux, macOS (CPU-only), Windows via       |
-|                          | Windows Subsystem for Linux 2 (WSL2)       |
+| Operating systems        | Linux, Windows via Windows Subsystem for   |
+|                          | Linux 2 (WSL2)                             |
 +--------------------------+--------------------------------------------+
 | Tested Distributions     | CentOS 8; Debian 11, 12; Fedora 41;        |
 |                          | OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9;  |
-|                          | Rocky 8, 9; Ubuntu 22.04, 24.04; macOS 15  |
-|                          | (Sequoia)                                  |
+|                          | Rocky 8, 9; Ubuntu 22.04, 24.04            |
 +--------------------------+--------------------------------------------+
 | Python versions          | 3.10+                                      |
 +--------------------------+--------------------------------------------+
