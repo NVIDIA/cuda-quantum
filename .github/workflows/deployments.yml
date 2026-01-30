@@ -362,7 +362,7 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      dockerfile: build/devdeps.ext.Dockerfile
+      dockerfile: build/devcontainer.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
