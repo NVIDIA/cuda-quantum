@@ -61,15 +61,15 @@ auto separatedMeasureKernel = []() __qpu__ {
 
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchCapturesBellCircuit) {
   auto batch = capturePTSBatch(bellKernel);
-  auto count = std::distance(batch.kernel_trace.begin(),
-                             batch.kernel_trace.end());
+  auto count = std::distance(batch.kernelTrace.begin(),
+                             batch.kernelTrace.end());
   EXPECT_EQ(count, 2);
 }
 
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchPreservesGateNames) {
   auto batch = capturePTSBatch(bellKernel);
 
-  auto it = batch.kernel_trace.begin();
+  auto it = batch.kernelTrace.begin();
   EXPECT_EQ(it->name, "h");
   ++it;
   EXPECT_EQ(it->name, "x");
@@ -78,15 +78,15 @@ CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchPreservesGateNames) {
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesKernelArgs) {
   auto batch = capturePTSBatch(rotationKernel, 1.57);
 
-  auto it = batch.kernel_trace.begin();
+  auto it = batch.kernelTrace.begin();
   EXPECT_EQ(it->name, "rx");
   EXPECT_NEAR(it->params[0], 1.57, 0.01);
 }
 
 CUDAQ_TEST(PTSBESampleTest, CapturePTSBatchHandlesEmptyKernel) {
   auto batch = capturePTSBatch(emptyKernel);
-  auto count = std::distance(batch.kernel_trace.begin(),
-                             batch.kernel_trace.end());
+  auto count = std::distance(batch.kernelTrace.begin(),
+                             batch.kernelTrace.end());
   EXPECT_EQ(count, 0);
 }
 
@@ -122,17 +122,17 @@ CUDAQ_TEST(PTSBESampleTest, NoThrowForValidContext) {
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchHasCorrectMeasureQubits) {
   auto batch = capturePTSBatch(bellKernel);
-  EXPECT_EQ(batch.measure_qubits.size(), 2);
-  EXPECT_EQ(batch.measure_qubits[0], 0);
-  EXPECT_EQ(batch.measure_qubits[1], 1);
+  EXPECT_EQ(batch.measureQubits.size(), 2);
+  EXPECT_EQ(batch.measureQubits[0], 0);
+  EXPECT_EQ(batch.measureQubits[1], 1);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchFromGHZHas3Qubits) {
   auto batch = capturePTSBatch(ghzKernel);
-  auto count = std::distance(batch.kernel_trace.begin(),
-                             batch.kernel_trace.end());
+  auto count = std::distance(batch.kernelTrace.begin(),
+                             batch.kernelTrace.end());
   EXPECT_EQ(count, 3);
-  EXPECT_EQ(batch.measure_qubits.size(), 3);
+  EXPECT_EQ(batch.measureQubits.size(), 3);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchTrajectoriesEmptyForPOC) {
@@ -142,15 +142,15 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchTrajectoriesEmptyForPOC) {
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchSeparatedMeasureQubits) {
   auto batch = capturePTSBatch(separatedMeasureKernel);
-  EXPECT_EQ(batch.measure_qubits.size(), 2);
-  EXPECT_EQ(batch.measure_qubits[0], 0);
-  EXPECT_EQ(batch.measure_qubits[1], 2);
+  EXPECT_EQ(batch.measureQubits.size(), 2);
+  EXPECT_EQ(batch.measureQubits[0], 0);
+  EXPECT_EQ(batch.measureQubits[1], 2);
 }
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchQubitInfoPreserved) {
   auto batch = capturePTSBatch(bellKernel);
 
-  auto it = batch.kernel_trace.begin();
+  auto it = batch.kernelTrace.begin();
   EXPECT_EQ(it->targets.size(), 1);
   EXPECT_EQ(it->targets[0].id, 0);
 
@@ -171,7 +171,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithPTSBEThrowsNotImplemented) {
 
 CUDAQ_TEST(PTSBESampleTest, DispatchErrorMentionsNotImplemented) {
   PTSBatch batch;
-  batch.measure_qubits = {0, 1};
+  batch.measureQubits = {0, 1};
 
   try {
     dispatchPTSBE(batch);
@@ -185,10 +185,10 @@ CUDAQ_TEST(PTSBESampleTest, DispatchErrorMentionsNotImplemented) {
 
 CUDAQ_TEST(PTSBESampleTest, FullInterceptFlowCapturesAndDispatches) {
   auto batch = capturePTSBatch(bellKernel);
-  auto count = std::distance(batch.kernel_trace.begin(),
-                             batch.kernel_trace.end());
+  auto count = std::distance(batch.kernelTrace.begin(),
+                             batch.kernelTrace.end());
   EXPECT_GT(count, 0);
-  EXPECT_FALSE(batch.measure_qubits.empty());
+  EXPECT_FALSE(batch.measureQubits.empty());
 
   EXPECT_THROW(dispatchPTSBE(batch), std::runtime_error);
 }

@@ -21,7 +21,7 @@ namespace cudaq::ptsbe {
 /// @brief Batch specification for PTSBE execution
 struct PTSBatch {
   /// @brief Captured kernel circuit
-  cudaq::Trace kernel_trace;
+  cudaq::Trace kernelTrace;
 
   /// @brief Sampled noise trajectories
   std::vector<cudaq::KrausTrajectory> trajectories;
@@ -29,7 +29,7 @@ struct PTSBatch {
   /// @brief Qubits to measure (terminal measurements)
   /// NOTE: This currently only applies to kernels that are terminal measurement only
   /// which is a limitation of the current PTSBE implementation.
-  std::vector<std::size_t> measure_qubits;
+  std::vector<std::size_t> measureQubits;
 };
 
 /// @brief Concept for simulators supporting a customized PTSBE implementation
@@ -72,13 +72,13 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
 
 /// @brief Merge kernel trace with trajectory noise to produce task list to execute on simulator
 ///
-/// @param kernel_trace Base kernel circuit
+/// @param kernelTrace Base kernel circuit
 /// @param trajectory Sampled trajectory with noise
 /// @return Complete task list for simulator
 /// @throws std::runtime_error Not yet implemented
 template <typename ScalarType>
 std::vector<typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-mergeAndConvert(const cudaq::Trace &kernel_trace,
+mergeAndConvert(const cudaq::Trace &kernelTrace,
                 const cudaq::KrausTrajectory &trajectory) {
   throw std::runtime_error("mergeAndConvert: Not implemented");
 }

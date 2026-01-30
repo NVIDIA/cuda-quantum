@@ -102,12 +102,12 @@ inline void throwIfMidCircuitMeasurements(const ExecutionContext &ctx) {
 /// Future work may extract explicit measurement operations from the trace.
 ///
 /// @param trace Captured kernel trace
-/// @return Vector of qubit indices [0, 1, ..., numQudits-1]
+/// @return Vector of qubit indices [0, 1, ..., numQubits-1]
 inline std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
   std::vector<std::size_t> qubits;
-  auto numQudits = trace.getNumQudits();
-  qubits.reserve(numQudits);
-  for (std::size_t i = 0; i < numQudits; ++i) {
+  auto numQubits = trace.getNumQudits();
+  qubits.reserve(numQubits);
+  for (std::size_t i = 0; i < numQubits; ++i) {
     qubits.push_back(i);
   }
   return qubits;
@@ -119,7 +119,7 @@ inline std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
 /// Currently a stub that throws "not implemented" as full trajectory
 /// generation and simulator dispatch is future work.
 ///
-/// @param batch PTSBatch with kernel_trace and measure_qubits
+/// @param batch PTSBatch with kernelTrace and measureQubits
 /// @return Aggregated sample_result (future implementation)
 /// @throws std::runtime_error Always, until full implementation
 ///
@@ -129,17 +129,17 @@ inline std::vector<std::size_t> extractMeasureQubits(const Trace &trace) {
 /// 3. Return aggregated results
 inline sample_result dispatchPTSBE(const PTSBatch &batch) {
   // Count instructions for diagnostic output
-  std::size_t instruction_count = 0;
-  for (const auto &inst : batch.kernel_trace) {
+  std::size_t instructionCount = 0;
+  for (const auto &inst : batch.kernelTrace) {
     (void)inst;
-    ++instruction_count;
+    ++instructionCount;
   }
 
   throw std::runtime_error(
       "PTSBE dispatch successful but execution not implemented. "
       "Captured: " +
-      std::to_string(instruction_count) + " instructions, " +
-      std::to_string(batch.measure_qubits.size()) + " measure qubits, " +
+      std::to_string(instructionCount) + " instructions, " +
+      std::to_string(batch.measureQubits.size()) + " measure qubits, " +
       std::to_string(batch.trajectories.size()) + " trajectories. "
       "Full trajectory generation requires future implementation.");
 }
@@ -162,18 +162,18 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
                                 const std::string &kernelName,
                                 std::size_t shots) {
   // Stage 0: Capture trace via ExecutionContext("tracer")
-  ExecutionContext trace_ctx("tracer");
-  platform.set_exec_ctx(&trace_ctx);
+  ExecutionContext traceCtx("tracer");
+  platform.set_exec_ctx(&traceCtx);
   wrappedKernel();
   platform.reset_exec_ctx();
 
   // Stage 1: Validate kernel eligibility (no dynamic circuits)
-  validatePTSBEEligibility(kernelName, trace_ctx);
+  validatePTSBEEligibility(kernelName, traceCtx);
 
   // Stage 2: Construct PTSBatch from trace
   PTSBatch batch;
-  batch.kernel_trace = std::move(trace_ctx.kernelTrace);
-  batch.measure_qubits = extractMeasureQubits(batch.kernel_trace);
+  batch.kernelTrace = std::move(traceCtx.kernelTrace);
+  batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
 
   // Stage 3: Dispatch to executePTSBE
   return dispatchPTSBE(batch);
@@ -189,21 +189,21 @@ sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
 /// @tparam Args Kernel argument types
 /// @param kernel Quantum kernel to trace
 /// @param args Kernel arguments
-/// @return PTSBatch with kernel_trace, empty trajectories, and measure_qubits
+/// @return PTSBatch with kernelTrace, empty trajectories, and measureQubits
 /// @throws std::runtime_error if MCM detected
 template <typename QuantumKernel, typename... Args>
 PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
-  ExecutionContext trace_ctx("tracer");
+  ExecutionContext traceCtx("tracer");
   auto &platform = get_platform();
-  platform.set_exec_ctx(&trace_ctx);
+  platform.set_exec_ctx(&traceCtx);
   kernel(std::forward<Args>(args)...);
   platform.reset_exec_ctx();
 
-  throwIfMidCircuitMeasurements(trace_ctx);
+  throwIfMidCircuitMeasurements(traceCtx);
 
   PTSBatch batch;
-  batch.kernel_trace = std::move(trace_ctx.kernelTrace);
-  batch.measure_qubits = extractMeasureQubits(batch.kernel_trace);
+  batch.kernelTrace = std::move(traceCtx.kernelTrace);
+  batch.measureQubits = extractMeasureQubits(batch.kernelTrace);
   return batch;
 }
 
