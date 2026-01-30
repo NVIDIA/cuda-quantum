@@ -51,13 +51,6 @@ public:
 
   virtual bool hasData() const override { return data != nullptr; }
 
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
-  getKernelInfo() const override {
-    if (!hasData())
-      return std::make_pair(kernelName, args);
-    throw std::runtime_error("Not implemented");
-  }
-
   virtual Tensor getTensor(std::size_t tensorIdx = 0) const override {
     throw std::runtime_error("Not implemented");
   }

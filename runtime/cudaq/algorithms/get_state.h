@@ -130,6 +130,8 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   // Store kernel name and arguments for quantum states.
   return state(
       new QPUState(details::getKernelName(std::forward<QuantumKernel>(kernel)),
+                   cudaq::get_quake_by_name(details::getKernelName(
+                       std::forward<QuantumKernel>(kernel))),
                    std::forward<Args>(args)...));
 
 #elif defined(CUDAQ_QUANTUM_DEVICE)
@@ -137,6 +139,8 @@ auto get_state(QuantumKernel &&kernel, Args &&...args) {
   if constexpr (has_name<QuantumKernel>::value)
     return state(new QPUState(
         details::getKernelName(std::forward<QuantumKernel>(kernel)),
+        cudaq::get_quake_by_name(
+            details::getKernelName(std::forward<QuantumKernel>(kernel))),
         std::forward<Args>(args)...));
 
   throw std::runtime_error(
