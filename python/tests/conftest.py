@@ -13,7 +13,20 @@ import sys
 import platform
 import pytest
 
-# Decorator for tests that fail on macOS ARM64 due to JIT exception handling bug.
-skip_macos_arm64_jit_exception = pytest.mark.skipif(
-    sys.platform == 'darwin' and platform.machine() == 'arm64',
-    reason="JIT exception handling broken on macOS ARM64 (llvm-project#49036)")
+
+def pytest_configure(config):
+    """Register custom markers."""
+    config.addinivalue_line(
+        "markers",
+        "skip_macos_arm64_jit: skip on macOS ARM64 due to JIT exception handling bug (llvm-project#49036)"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Apply skip marker to tests marked with skip_macos_arm64_jit on macOS ARM64."""
+    if sys.platform == 'darwin' and platform.machine() == 'arm64':
+        skip_marker = pytest.mark.skip(
+            reason="JIT exception handling broken on macOS ARM64 (llvm-project#49036)")
+        for item in items:
+            if item.get_closest_marker('skip_macos_arm64_jit'):
+                item.add_marker(skip_marker)

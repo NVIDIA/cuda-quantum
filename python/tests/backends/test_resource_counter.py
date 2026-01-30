@@ -8,7 +8,6 @@
 
 import cudaq
 import pytest
-from conftest import skip_macos_arm64_jit_exception
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -175,7 +174,7 @@ def test_choice_function_2():
     assert counts3.count("00") + counts3.count("11") == 10
 
 
-@skip_macos_arm64_jit_exception
+@pytest.mark.skip_macos_arm64_jit
 def test_sample_in_choice():
 
     @cudaq.kernel

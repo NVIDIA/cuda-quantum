@@ -13,8 +13,6 @@ import pytest
 import cudaq
 import numpy as np
 
-from conftest import skip_macos_arm64_jit_exception
-
 
 @pytest.fixture(scope="session", autouse=True)
 def setTarget():
@@ -79,7 +77,7 @@ def test_stim_all_mz_types():
     assert (len(counts) > 1)
 
 
-@skip_macos_arm64_jit_exception
+@pytest.mark.skip_macos_arm64_jit
 def test_stim_state_preparation():
 
     @cudaq.kernel
@@ -92,7 +90,7 @@ def test_stim_state_preparation():
         cudaq.sample(kernel, state)
 
 
-@skip_macos_arm64_jit_exception
+@pytest.mark.skip_macos_arm64_jit
 def test_stim_state_preparation_builder():
     kernel, state = cudaq.make_kernel(List[complex])
     qubits = kernel.qalloc(state)
