@@ -27,7 +27,7 @@ if(CUDA_FOUND)
 
   target_link_libraries(cudaq-realtime 
     PUBLIC 
-      CUDA::cudart
+      CUDA::cudart_static
   )
 
   target_compile_definitions(cudaq-realtime PUBLIC NVQLINK_HAVE_CUDA)
@@ -59,7 +59,7 @@ if(CUDA_FOUND)
   
   target_link_libraries(cudaq-realtime-dispatch
     PUBLIC
-      CUDA::cudart
+      CUDA::cudart_static
       ${CUDADEVRT_LIBRARY}
   )
 
