@@ -10,6 +10,7 @@
 // XFAIL: *
 // TODO: this currently should fail due to ApplyOpSpecialization not handling
 // loops with multiple arguments, remove XFAIL when this is resolved.
+// See: https://github.com/NVIDIA/cuda-quantum/issues/3818
 
 #include <cudaq.h>
 
