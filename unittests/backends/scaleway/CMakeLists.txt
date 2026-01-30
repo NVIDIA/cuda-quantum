@@ -6,21 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_subdirectory(anyon)
-if (AWSSDK_ROOT)
-  add_subdirectory(braket)
-endif()
-add_subdirectory(infleqtion)
-add_subdirectory(ionq)
-add_subdirectory(iqm)
-add_subdirectory(oqc)
-if (CUDAQ_ENABLE_QCI_BACKEND)
-  add_subdirectory(qci)
-endif()
-add_subdirectory(quantinuum)
-if (CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
-  add_subdirectory(quantum_machines)
-endif()
-if (CUDAQ_ENABLE_SCALEWAY_BACKEND)
-  add_subdirectory(scaleway)
-endif()
+add_backend_unittest_executable(test_scaleway 
+  SOURCES ScalewayTester.cpp
+  BACKEND scaleway)
+
+configure_file("ScalewayStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/scaleway/ScalewayStartServerAndTest.sh" @ONLY)
+add_test(NAME scaleway-tests COMMAND bash ScalewayStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/scaleway/)

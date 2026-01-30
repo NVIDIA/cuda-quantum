@@ -2,7 +2,7 @@
 	"name": "cuda-quantum-dev",
 	"build": {
 		"dockerfile": "../docker/build/cudaq.dev.Dockerfile",
-		"args": { 
+		"args": {
 			"destination": "workspaces/host"
 		}
 	},
@@ -16,8 +16,8 @@
 	// Be mindful of security implications when you do. See also 
 	// - https://github.com/rr-debugger/rr/wiki/Docker
 	// - https://www.cybereason.com/blog/container-escape-all-you-need-is-cap-capabilities
-	// "capAdd": ["SYS_PTRACE"],
-	// "securityOpt": [ "seccomp=unconfined" ],
+	"capAdd": ["SYS_PTRACE"],
+	"securityOpt": [ "seccomp=unconfined" ],
 	"customizations": {
 		"vscode": {
 		    "extensions": [
