@@ -77,7 +77,7 @@ def kernel3() -> list[bool]:
     data = cudaq.qvector(2)
     aux = cudaq.qvector(2)
     bits = mz(aux)
-    # Now, this should has some effects
+    # Now, this should have some effects
     if not bits[0]:
         x(data[0])
 

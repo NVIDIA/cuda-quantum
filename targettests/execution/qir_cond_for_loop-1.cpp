@@ -21,9 +21,8 @@ struct kernel {
     std::vector<int> allResults(n_iter + 1); // q0 results + q1 result
     for (int i = 0; i < n_iter; i++) {
       h(q0);
-      auto q0result = mz(q0);
-      allResults[i] = q0result;
-      if (q0result)
+      allResults[i] = mz(q0);
+      if (allResults[i])
         x(q1); // toggle q1 on every q0 coin toss that lands heads
     }
     allResults[n_iter] = mz(q1); // the measured q1 should contain the parity
@@ -40,20 +39,16 @@ int main() {
 
   auto results = cudaq::run(/*shots=*/nShots, kernel{}, nIter);
 
-  std::size_t q1result_0 = 0, q1result_1 = 0;
-  for (auto r : results) {
-    if (r[nIter] == 0)
-      q1result_0++;
-    else
-      q1result_1++;
-  }
+  std::size_t q1result_0 = std::ranges::count_if(
+      results, [nIter](const auto &r) { return r[nIter] == 0; });
+  std::size_t q1result_1 = results.size() - q1result_0;
 
   if (q1result_0 + q1result_1 != nShots) {
     std::cout << "q1result_0 (" << q1result_0 << ") + q1result_1 ("
               << q1result_1 << ") != nShots (" << nShots << ")\n";
     return 1;
   }
-  
+
   if (q1result_0 < static_cast<int>(0.3 * nShots) ||
       q1result_0 > static_cast<int>(0.7 * nShots)) {
     std::cout << "q1result_0 (" << q1result_0

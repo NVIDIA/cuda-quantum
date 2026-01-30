@@ -34,11 +34,7 @@ int main() {
   auto results = cudaq::run(/*shots=*/nShots, kernel{}, nIter);
 
   // Count the maximum number of iterations it took across all shots
-  int nIterRan = 0;
-  for (auto r : results) {
-    if (r > nIterRan)
-      nIterRan = r;
-  }
+  int nIterRan = results.empty() ? 0 : *std::ranges::max_element(results);
 
   int ret = 0; // return status
 

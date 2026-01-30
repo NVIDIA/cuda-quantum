@@ -12,6 +12,8 @@
 // clang-format on
 
 #include <cudaq.h>
+
+#include <algorithm>
 #include <iostream>
 
 struct kernel {
@@ -42,11 +44,7 @@ int main() {
   auto results = cudaq::run(/*shots=*/nShots, kernel{}, nIter);
 
   // Find the maximum number of iterations it took
-  int nIterRan = 0;
-  for (auto r : results) {
-    if (r > nIterRan)
-      nIterRan = r;
-  }
+  int nIterRan = *std::ranges::max_element(results);
 
   int ret = 0; // return status
 

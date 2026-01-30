@@ -50,12 +50,9 @@ int main() {
   auto &platform = cudaq::get_platform();
 
   auto results = cudaq::run(/*shots*/ nShots, kernel{});
-  std::size_t nOnes = 0;
+
   // Count the number of times we measured "1"
-  for (auto r : results) {
-    if (r)
-      nOnes++;
-  }
+  std::size_t nOnes = std::ranges::count(results, true);
 
 #ifndef SYNTAX_CHECK
   // Will fail if not equal to number of shots
