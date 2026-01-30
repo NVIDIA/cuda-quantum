@@ -13,6 +13,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/ptsbe/PTSBESample.h"
 
 constexpr int DEFAULT_NUM_SHOTS = 1000;
 
@@ -42,13 +43,12 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
 
-  auto hasConditionalFeebdback =
-      cudaq::kernelHasConditionalFeedback(kernelName);
+  auto hasConditionalFeedback = cudaq::kernelHasConditionalFeedback(kernelName);
   if (explicitMeasurements) {
     if (!platform.supports_explicit_measurements())
       throw std::runtime_error("The sampling option `explicit_measurements` is "
                                "not supported on this target.");
-    if (hasConditionalFeebdback)
+    if (hasConditionalFeedback)
       throw std::runtime_error(
           "The sampling option `explicit_measurements` is not supported on a "
           "kernel with conditional logic on a measurement result.");
@@ -58,7 +58,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   ctx->kernelName = kernelName;
   ctx->batchIteration = batchIteration;
   ctx->totalIterations = totalBatchIters;
-  ctx->hasConditionalsOnMeasureResults = hasConditionalFeebdback;
+  ctx->hasConditionalsOnMeasureResults = hasConditionalFeedback;
   ctx->explicitMeasurements = explicitMeasurements;
 
 #ifdef CUDAQ_LIBRARY_MODE
@@ -184,10 +184,13 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 /// @param noise noise model to use for the sample operation
 /// @param explicit_measurements whether or not to form the global register
 /// based on user-supplied measurement order.
+/// @param use_ptsbe enable PTSBE (Pre-Trajectory Sampling with Batch Execution)
+/// for trajectory-based noisy simulation. Requires noise model to be set.
 struct sample_options {
   std::size_t shots = DEFAULT_NUM_SHOTS;
   cudaq::noise_model noise;
   bool explicit_measurements = false;
+  bool use_ptsbe = false;
 };
 
 /// @overload
@@ -282,10 +285,27 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto shots = options.shots;
   auto kernelName = cudaq::getKernelName(kernel);
   platform.set_noise(&options.noise);
-  auto ret = details::runSampling(
-                 [&]() mutable { kernel(std::forward<Args>(args)...); },
-                 platform, kernelName, shots, options.explicit_measurements)
-                 .value();
+
+  sample_result ret;
+  // TODO: Only have added PTSBE to this core sample method right now.
+  // If we agree on the approach I will add to others.
+  if (options.use_ptsbe) {
+    if (options.noise.empty())
+      throw std::runtime_error(
+          "PTSBE requires a noise model to be set. Please provide a noise "
+          "model in sample_options.");
+    if (!platform.is_simulator())
+      throw std::runtime_error("PTSBE is only supported on simulators.");
+    ret = ptsbe::runSamplingPTSBE(
+        [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+        kernelName, shots);
+  } else {
+    ret = details::runSampling(
+              [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+              kernelName, shots, options.explicit_measurements)
+              .value();
+  }
+
   platform.reset_noise();
   return ret;
 }
