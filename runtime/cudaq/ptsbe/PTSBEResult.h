@@ -26,28 +26,28 @@ struct PTSBEResult {
   /// @brief Task lists - one complete trajectory per inner vector
   /// Each inner vector contains GateApplicationTasks (original gates + noise
   /// operations)
-  std::vector<std::vector<nvqir::GateApplicationTask<ScalarType>>> task_lists;
+  std::vector<std::vector<nvqir::GateApplicationTask<ScalarType>>> taskLists;
 
   /// @brief Trajectory metadata
   std::vector<cudaq::KrausTrajectory> trajectories;
 
   /// @brief Qubits to measure (same for all trajectories)
-  std::vector<std::size_t> measure_qubits;
+  std::vector<std::size_t> measureQubits;
 
   /// @brief Default constructor
   PTSBEResult() = default;
 
   /// @brief Check if result is valid
-  /// @return true if task_lists and trajectories have matching sizes and are
+  /// @return true if taskLists and trajectories have matching sizes and are
   /// non-empty
   [[nodiscard]] constexpr bool isValid() const {
-    return task_lists.size() == trajectories.size() && !task_lists.empty();
+    return taskLists.size() == trajectories.size() && !taskLists.empty();
   }
 
   /// @brief Get number of trajectories
   /// @return Number of trajectories in this result
   [[nodiscard]] constexpr std::size_t numTrajectories() const {
-    return task_lists.size();
+    return taskLists.size();
   }
 };
 
