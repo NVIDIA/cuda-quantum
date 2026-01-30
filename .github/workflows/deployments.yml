@@ -461,7 +461,7 @@ jobs:
           registry=$(echo "$image" | cut -d'@' -f1)
 
           # Retrieve image tag from EXT_JSON, just look at amd64 and filter it out
-          key="amd64-cu${cuda}-dev-image"
+          key="amd64-cu${cuda}-ext"
           image_tag=$(echo "$EXT_JSON" | jq -r --arg k "$key" '.image_tag[$k]')
 
           # Remove 'amd64-' from the whole string
