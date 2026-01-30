@@ -20,8 +20,7 @@ except Exception:
 EOF
 }
 
-# We'll need the requests and llvm module
-@Python_EXECUTABLE@ -m pip install requests llvmlite --user 
+@Python_EXECUTABLE@ -m pip install requests llvmlite
 # Launch the fake server
 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py oqc &
 # we'll need the process id to kill it
@@ -30,7 +29,7 @@ n=0
 while ! checkServerConnection; do
   sleep 1
   n=$((n+1))
-  if [ "$n" -eq "20" ]; then
+  if [ "$n" -eq "60" ]; then
     kill -INT $pid
     exit 99
   fi

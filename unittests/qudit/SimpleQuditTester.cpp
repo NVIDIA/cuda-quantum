@@ -9,6 +9,19 @@
 #include <gtest/gtest.h>
 
 #include "cudaq.h"
+#include "cudaq/qis/execution_manager.h"
+
+extern "C" {
+cudaq::ExecutionManager *getRegisteredExecutionManager_simple();
+}
+
+class SimpleQuditTester : public ::testing::Test {
+protected:
+  void SetUp() override {
+    cudaq::setExecutionManagerInternal(getRegisteredExecutionManager_simple());
+  }
+  void TearDown() override { cudaq::resetExecutionManagerInternal(); }
+};
 
 /// This following functions form a primitive default
 /// instruction set for this simple qudit execution manager.
@@ -33,7 +46,7 @@ std::vector<int> mz(cudaq::qvector<3> &q) {
   return ret;
 }
 
-TEST(SimpleQuditTester, checkSimple) {
+TEST_F(SimpleQuditTester, checkSimple) {
 
   struct test {
     auto operator()() __qpu__ {
