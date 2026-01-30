@@ -179,6 +179,7 @@ comparator
 comparators
 composability
 composable
+conda
 config
 constructible
 controlled
@@ -282,6 +283,7 @@ lvalue
 macOS
 makefiles
 merchantability
+miniconda
 mps
 multithreaded
 mutex
@@ -289,6 +291,7 @@ namespace
 namespaces
 natively
 normalization
+npm
 nullary
 observables
 optimizer

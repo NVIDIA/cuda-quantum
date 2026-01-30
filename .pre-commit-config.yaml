@@ -24,7 +24,7 @@ default_language_version:
 default_stages: [pre-commit, pre-push]
 
 # Third-party directories to exclude globally
-exclude: '^tpls/|^test/|^targettests/'
+exclude: '^tpls/'
 
 repos:
   # Formatting hooks
@@ -44,7 +44,7 @@ repos:
       - id: yapf
         name: Python formatting (yapf Google style)
         types: [python]
-        exclude: '^(test|targettests|tpls|docs/sphinx/conf\.py)$'
+        exclude: '^(test|targettests|tpls)/|^docs/sphinx/conf\.py$'
         args: ['--style', 'google', '--in-place']
 
   - repo: https://github.com/igorshubovych/markdownlint-cli

@@ -32,6 +32,7 @@ header:
     - 'test/README.txt'
     - 'runtime/cudaq/platform/default/rest/helpers/anyon/*.txt'
     - 'targettests/Target/IQM/*.txt'
+    - 'unittests/backends/iqm/*.txt'
     - 'build'
     - 'examples'
     - 'tpls'
