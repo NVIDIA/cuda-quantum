@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1010,15 +1020,37 @@
              
   <section id="Optimizers-and-Gradients">
 <h1>Optimizers and Gradients<a class="headerlink" href="#Optimizers-and-Gradients" title="Permalink to this heading">¶</a></h1>
-<p>Many quantum algorithms require the optimization of quantum circuit parameters with respect to an expectation value. CUDA-Q has a number of tools available for optimization techniques. This example will demonstrate how to optimize the variational parameters of a circuit using:</p>
+<p>Many quantum algorithms require the optimization of quantum circuit parameters with respect to an expectation value. CUDA-Q provides a comprehensive suite of optimization tools for hybrid quantum-classical algorithms like VQE (Variational Quantum Eigensolver).</p>
+<p>This notebook will demonstrate:</p>
 <ol class="arabic simple">
-<li><p>Built in CUDA-Q optimizers and gradients</p></li>
-<li><p>A Third-Party Optimizer</p></li>
-<li><p>A Parallel parameter shift gradient.</p></li>
+<li><p><strong>Built-in CUDA-Q Optimizers</strong>: Adam, SGD, SPSA, COBYLA, NelderMead, LBFGS, and GradientDescent</p></li>
+<li><p><strong>Optimizer Parameters</strong>: Detailed configuration options with defaults and tuning guidance</p></li>
+<li><p><strong>Gradient Strategies</strong>: CentralDifference, ForwardDifference, and ParameterShift</p></li>
+<li><p><strong>Third-Party Optimizers</strong>: Integration with SciPy</p></li>
+<li><p><strong>Parallel Parameter Shift</strong>: Multi-GPU gradient computation</p></li>
 </ol>
-<p>First, the kernel and Hamiltonian and specified below.</p>
+<section id="CUDA-Q-Optimizer-Overview">
+<h2>CUDA-Q Optimizer Overview<a class="headerlink" href="#CUDA-Q-Optimizer-Overview" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q includes the following optimizers:</p>
+<section id="Gradient-Free-Optimizers-(no-gradients-required):">
+<h3>Gradient-Free Optimizers (no gradients required):<a class="headerlink" href="#Gradient-Free-Optimizers-(no-gradients-required):" title="Permalink to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>COBYLA</strong>: Constrained Optimization BY Linear Approximations</p></li>
+<li><p><strong>NelderMead</strong>: Simplex-based derivative-free optimizer</p></li>
+<li><p><strong>SPSA</strong>: Simultaneous Perturbation Stochastic Approximation (excellent for noisy functions)</p></li>
+</ul>
+</section>
+<section id="Gradient-Based-Optimizers-(require-gradients):">
+<h3>Gradient-Based Optimizers (require gradients):<a class="headerlink" href="#Gradient-Based-Optimizers-(require-gradients):" title="Permalink to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Adam</strong>: Adaptive Moment Estimation with momentum (recommended for most cases)</p></li>
+<li><p><strong>SGD</strong>: Stochastic Gradient Descent</p></li>
+<li><p><strong>LBFGS</strong>: Limited-memory BFGS quasi-Newton method</p></li>
+<li><p><strong>GradientDescent</strong>: Basic gradient descent</p></li>
+</ul>
+<p>First, let’s set up the kernel and Hamiltonian that we’ll use throughout the examples.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1030,51 +1062,70 @@
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">angles</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
-
     <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
     <span class="n">x</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">ry</span><span class="p">(</span><span class="n">angles</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-<span class="n">initial_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">initial_params</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<section id="Built-in-CUDA-Q-Optimizers-and-Gradients">
-<h2>Built in CUDA-Q Optimizers and Gradients<a class="headerlink" href="#Built-in-CUDA-Q-Optimizers-and-Gradients" title="Permalink to this heading">¶</a></h2>
-<p>The optimizer and gradient are specified first from a built in CUDA-Q optimizer and gradient technique. An objective function is defined next which uses a lambda expression to evaluate the cost (a CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> expectation value). The gradient is calculated using the <code class="docutils literal notranslate"><span class="pre">compute</span></code> method.</p>
+</section>
+</section>
+<section id="1.-Built-in-CUDA-Q-Optimizers-and-Gradients">
+<h2>1. Built-in CUDA-Q Optimizers and Gradients<a class="headerlink" href="#1.-Built-in-CUDA-Q-Optimizers-and-Gradients" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q provides several optimizers with configurable parameters. Let’s explore the most commonly used optimizers: <strong>Adam</strong>, <strong>SGD</strong>, and <strong>SPSA</strong>.</p>
+<section id="1.1-Adam-Optimizer-with-Parameter-Configuration">
+<h3>1.1 Adam Optimizer with Parameter Configuration<a class="headerlink" href="#1.1-Adam-Optimizer-with-Parameter-Configuration" title="Permalink to this heading">¶</a></h3>
+<p><strong>Adam (Adaptive Moment Estimation)</strong> combines momentum and adaptive learning rates for efficient optimization. It’s particularly effective for problems with noisy gradients.</p>
+<p><strong>Configurable Parameters:</strong> - <code class="docutils literal notranslate"><span class="pre">step_size</span></code> (default: 0.01): Learning rate for parameter updates - <code class="docutils literal notranslate"><span class="pre">beta1</span></code> (default: 0.9): Exponential decay rate for first moment (momentum) - <code class="docutils literal notranslate"><span class="pre">beta2</span></code> (default: 0.999): Exponential decay rate for second moment (adaptive learning) - <code class="docutils literal notranslate"><span class="pre">epsilon</span></code> (default: 1e-8): Small constant for numerical stability - <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> (default: 1): Number of samples per batch - <code class="docutils literal notranslate"><span class="pre">f_tol</span></code> (default: 1e-4): Convergence tolerance - <code class="docutils literal notranslate"><span class="pre">max_iterations</span></code>: Maximum number of iterations -
+<code class="docutils literal notranslate"><span class="pre">initial_parameters</span></code>: Starting parameter values</p>
+<p>The optimizer and gradient are specified below. An objective function is defined which uses a lambda expression to evaluate the cost (a CUDA-Q <code class="docutils literal notranslate"><span class="pre">observe</span></code> expectation value). The gradient is calculated using the <code class="docutils literal notranslate"><span class="pre">compute</span></code> method.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">()</span>
-<span class="n">gradient</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">gradients</span><span class="o">.</span><span class="n">CentralDifference</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Configure Adam optimizer with custom parameters</span>
+<span class="n">optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">Adam</span><span class="p">()</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="mf">0.1</span>                      <span class="c1"># Learning rate</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">beta1</span> <span class="o">=</span> <span class="mf">0.9</span>                          <span class="c1"># First moment decay</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">beta2</span> <span class="o">=</span> <span class="mf">0.999</span>                        <span class="c1"># Second moment decay</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-8</span>                       <span class="c1"># Numerical stability</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">max_iterations</span> <span class="o">=</span> <span class="mi">100</span>                 <span class="c1"># Maximum iterations</span>
+<span class="n">optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">initial_params</span>  <span class="c1"># Set initial parameters</span>
 
+<span class="c1"># Use CentralDifference gradient strategy</span>
+<span class="n">gradient</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">gradients</span><span class="o">.</span><span class="n">CentralDifference</span><span class="p">()</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span>
                        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
                        <span class="n">gradient_strategy</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span>
                        <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Objective function for gradient-based optimizers.</span>
+<span class="sd">    Returns: (cost, gradient_vector)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
-        <span class="n">get_result</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">parameter_vector</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
 
-        <span class="n">cost</span> <span class="o">=</span> <span class="n">get_result</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
+    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">gradient_strategy</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="n">get_result</span><span class="p">,</span> <span class="n">cost</span><span class="p">)</span>
 
-        <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">gradient_strategy</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="n">get_result</span><span class="p">,</span> <span class="n">cost</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>
+    <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>
 </pre></div>
 </div>
 </div>
-<p>Finally, the optimizer is called to return the optimal cost and parameters.</p>
+<p>Now run the optimizer to find the optimal energy and parameters. Adam will use adaptive learning rates for each parameter.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">energy</span><span class="p">,</span> <span class="n">parameter</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;optimal theta 0 = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">16</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== Adam Optimizer Results ===&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimized &lt;H&gt; = </span><span class="si">{</span><span class="n">energy</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">parameter</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1084,16 +1135,102 @@
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 
-minimized &lt;H&gt; = -1.748382901613712
-optimal theta 0 = 0.58409164053813
+=== Adam Optimizer Results ===
+Minimized &lt;H&gt; = -1.744713
+Optimal parameters: [-5.721116]
 </pre></div></div>
 </div>
 </section>
-<section id="Third-Party-Optimizers">
-<h2>Third-Party Optimizers<a class="headerlink" href="#Third-Party-Optimizers" title="Permalink to this heading">¶</a></h2>
-<p>The same procedure can be accomplised using any third-party such as SciPy. In this case, a simple cost fucntion is defined and provided as an input for the standard SciPy <code class="docutils literal notranslate"><span class="pre">minimize</span></code> function.</p>
+<section id="1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">
+<h3>1.2 SGD (Stochastic Gradient Descent) Optimizer<a class="headerlink" href="#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer" title="Permalink to this heading">¶</a></h3>
+<p><strong>SGD</strong> is a fundamental optimization algorithm that updates parameters by taking steps proportional to the negative gradient.</p>
+<p><strong>Configurable Parameters:</strong> - <code class="docutils literal notranslate"><span class="pre">step_size</span></code> (default: 0.01): Learning rate for parameter updates - <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> (default: 1): Number of samples per batch - <code class="docutils literal notranslate"><span class="pre">f_tol</span></code> (default: 1e-4): Convergence tolerance - <code class="docutils literal notranslate"><span class="pre">max_iterations</span></code>: Maximum number of iterations - <code class="docutils literal notranslate"><span class="pre">initial_parameters</span></code>: Starting parameter values</p>
+<p>SGD is simpler than Adam and can be effective when you understand your problem well enough to tune the learning rate appropriately.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Configure SGD optimizer</span>
+<span class="n">sgd_optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">SGD</span><span class="p">()</span>
+<span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="mf">0.05</span>       <span class="c1"># Learning rate</span>
+<span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="mi">1</span>         <span class="c1"># Stochastic mode</span>
+<span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">max_iterations</span> <span class="o">=</span> <span class="mi">100</span>   <span class="c1"># Maximum iterations</span>
+<span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">f_tol</span> <span class="o">=</span> <span class="mf">1e-6</span>           <span class="c1"># Convergence tolerance</span>
+<span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">initial_params</span>
+
+<span class="c1"># Run optimization</span>
+<span class="n">sgd_energy</span><span class="p">,</span> <span class="n">sgd_params</span> <span class="o">=</span> <span class="n">sgd_optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">objective_function</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== SGD Optimizer Results ===&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimized &lt;H&gt; = </span><span class="si">{</span><span class="n">sgd_energy</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">sgd_params</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+=== SGD Optimizer Results ===
+Minimized &lt;H&gt; = -1.748865
+Optimal parameters: [-5.688733]
+</pre></div></div>
+</div>
+</section>
+<section id="1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">
+<h3>1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)<a class="headerlink" href="#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)" title="Permalink to this heading">¶</a></h3>
+<p><strong>SPSA</strong> is a gradient-free stochastic optimization algorithm that is particularly useful for noisy objective functions (like quantum hardware with shot noise). It approximates gradients using simultaneous perturbations and requires only <strong>2 function evaluations per iteration</strong> regardless of problem dimension.</p>
+<p><strong>Configurable Parameters:</strong> - <code class="docutils literal notranslate"><span class="pre">step_size</span></code> (default: 0.3): Evaluation step size for gradient approximation - <code class="docutils literal notranslate"><span class="pre">gamma</span></code> (default: 0.101): Scaling exponent for step size schedule - <code class="docutils literal notranslate"><span class="pre">max_iterations</span></code>: Maximum number of iterations - <code class="docutils literal notranslate"><span class="pre">initial_parameters</span></code>: Starting parameter values</p>
+<p><strong>Key Advantage</strong>: SPSA does <strong>not</strong> require gradients, making it ideal for noisy functions and quantum hardware.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Configure SPSA optimizer</span>
+<span class="n">spsa_optimizer</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">optimizers</span><span class="o">.</span><span class="n">SPSA</span><span class="p">()</span>
+<span class="n">spsa_optimizer</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="mf">0.3</span>       <span class="c1"># Evaluation step size</span>
+<span class="n">spsa_optimizer</span><span class="o">.</span><span class="n">gamma</span> <span class="o">=</span> <span class="mf">0.101</span>         <span class="c1"># Scaling exponent</span>
+<span class="n">spsa_optimizer</span><span class="o">.</span><span class="n">max_iterations</span> <span class="o">=</span> <span class="mi">100</span>  <span class="c1"># Maximum iterations</span>
+<span class="n">spsa_optimizer</span><span class="o">.</span><span class="n">initial_parameters</span> <span class="o">=</span> <span class="n">initial_params</span>
+
+<span class="c1"># Define gradient-free objective function</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">spsa_objective</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Objective function for gradient-free optimizers like SPSA.</span>
+<span class="sd">    Returns: cost only (no gradient)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
+
+<span class="c1"># Run optimization</span>
+<span class="n">spsa_energy</span><span class="p">,</span> <span class="n">spsa_params</span> <span class="o">=</span> <span class="n">spsa_optimizer</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">function</span><span class="o">=</span><span class="n">spsa_objective</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== SPSA Optimizer Results ===&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimized &lt;H&gt; = </span><span class="si">{</span><span class="nb">round</span><span class="p">(</span><span class="n">spsa_energy</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">spsa_params</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+=== SPSA Optimizer Results ===
+Minimized &lt;H&gt; = -1.748668
+Optimal parameters: [-5.681724]
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="2.-Third-Party-Optimizers">
+<h2>2. Third-Party Optimizers<a class="headerlink" href="#2.-Third-Party-Optimizers" title="Permalink to this heading">¶</a></h2>
+<p>CUDA-Q optimizers can work alongside third-party optimization libraries like SciPy. This provides flexibility to use familiar optimization tools while leveraging CUDA-Q’s quantum simulation capabilities.</p>
+<p>The same VQE procedure can be accomplished using SciPy. In this case, a simple cost function is defined and provided as input to the standard SciPy <code class="docutils literal notranslate"><span class="pre">minimize</span></code> function.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimize</span>
@@ -1117,22 +1254,22 @@ optimal theta 0 = 0.58409164053813
  message: Optimization terminated successfully.
  success: True
   status: 1
-     fun: -1.7488646919931474
-       x: [ 5.944e-01  1.288e+00]
-    nfev: 33
+     fun: -1.748865011330396
+       x: [ 5.943e-01]
+    nfev: 26
    maxcv: 0.0
 </pre></div></div>
 </div>
 </section>
-<section id="Parallel-Parameter-Shift-Gradients">
-<h2>Parallel Parameter Shift Gradients<a class="headerlink" href="#Parallel-Parameter-Shift-Gradients" title="Permalink to this heading">¶</a></h2>
+<section id="3.-Parallel-Parameter-Shift-Gradients">
+<h2>3. Parallel Parameter Shift Gradients<a class="headerlink" href="#3.-Parallel-Parameter-Shift-Gradients" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">mqpu</span></code> backend allows for parallel computation of parameter shift gradients using multiple simulated QPUs. Gradients computed this way can be used in any of the previously discussed optimization procedures. Below is an example demonstrating how parallel gradient evaluation can be used for a VQE procedure.</p>
 <p>The parameter shift procedure computes two expectations values for each parameter shifted forwards and backwards. These are used to estimate the gradient contribution for that parameter.</p>
 <p>The following code defines a function that takes a kernel, a Hamiltonian (spin operator), and the circuit parameters and produces a parameter shift gradient with shift <code class="docutils literal notranslate"><span class="pre">epsilon</span></code>. The first step of the function builds <code class="docutils literal notranslate"><span class="pre">xplus</span></code> and <code class="docutils literal notranslate"><span class="pre">xminus</span></code> , arrays consisting of the shifted parameters.</p>
 <p>Next, a for loop iterates over all of the parameters and uses the <code class="docutils literal notranslate"><span class="pre">cudaq.observe_async</span></code> to compute the expectation value. This command also takes <code class="docutils literal notranslate"><span class="pre">qpu_id</span></code> as an in out which specifies the GPU that will be used to simulate the ith QPU. In the example below, four GPUs (simulated QPUs) are available so the gradient is batched over four devices.</p>
 <p>The results are saved in the <code class="docutils literal notranslate"><span class="pre">g_plus</span></code> and <code class="docutils literal notranslate"><span class="pre">g_minus</span></code> lists, the elements of which are accessed with commands like <code class="docutils literal notranslate"><span class="pre">g_plus[1].expectation()</span></code> to compute the finite differences and construct the final gradient.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w">  </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -1144,7 +1281,7 @@ optimal theta 0 = 0.58409164053813
 
 <span class="k">def</span><span class="w"> </span><span class="nf">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
 
-    <span class="c1">#Prepare an array of parameters corresponding to the plus and minus shifts</span>
+    <span class="c1"># Prepare an array of parameters corresponding to the plus and minus shifts</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span><span class="mi">1</span><span class="p">))</span>
     <span class="n">xplus</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span>
     <span class="n">xminus</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">)</span>
@@ -1164,57 +1301,50 @@ optimal theta 0 = 0.58409164053813
         <span class="n">g_minus</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">xminus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">qpu_counter</span><span class="o">%</span><span class="k">num_qpus</span>))
         <span class="n">qpu_counter</span> <span class="o">+=</span> <span class="mi">1</span>
 
-    <span class="c1">#use the expectation values to compute the gradient</span>
+    <span class="c1"># Use the expectation values to compute the gradient</span>
     <span class="n">gradient</span> <span class="o">=</span> <span class="p">[(</span><span class="n">g_plus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span> <span class="o">-</span> <span class="n">g_minus</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span><span class="o">.</span><span class="n">expectation</span><span class="p">())</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">epsilon</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">g_minus</span><span class="p">))]</span>
 
     <span class="k">return</span> <span class="n">gradient</span>
 <br/></pre></div>
 </div>
 </div>
-<p>This function can be used in a VQE procedure as presented below. First, the gradient is computed using the initial parameters, then the standard VQE construction is used, but the <code class="docutils literal notranslate"><span class="pre">batched_gradient_function</span></code> is used to evaluate the gradient at each step. This objective function will return the cost and gradient at each step and can be used with any SciPy optimizer that uses a gradient.</p>
+<p>This function can be used in a VQE procedure as presented below. The <code class="docutils literal notranslate"><span class="pre">batched_gradient_function</span></code> is used to evaluate the gradient at each optimization step. This objective function returns the cost and gradient at the current parameter values and can be used with any SciPy optimizer that uses gradients (like L-BFGS-B).</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">gradient</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">objective_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span>
                        <span class="n">hamiltonian</span><span class="o">=</span><span class="n">hamiltonian</span><span class="p">,</span>
-                       <span class="n">gradient</span><span class="o">=</span><span class="n">gradient</span><span class="p">,</span>
-                       <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">):</span>
+                       <span class="n">kernel</span><span class="o">=</span><span class="n">kernel</span><span class="p">,</span>
+                       <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Objective function for VQE with parallel parameter shift gradients.</span>
+<span class="sd">    Computes both cost and gradient at the current parameter values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute cost at current parameters</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
 
-    <span class="n">cost</span><span class="o">=</span><span class="n">cudaq</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span><span class="n">hamiltonian</span><span class="p">,</span><span class="n">parameter_vector</span><span class="p">)</span><span class="o">.</span><span class="n">expectation</span><span class="p">()</span>
-
-
-    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
+    <span class="c1"># Compute gradient at current parameters using parallel parameter shift</span>
+    <span class="n">gradient_vector</span> <span class="o">=</span> <span class="n">batched_gradient_function</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">parameter_vector</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">cost</span><span class="p">,</span> <span class="n">gradient_vector</span>
 <br/></pre></div>
 </div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">result_vqe</span><span class="o">=</span><span class="n">minimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span><span class="n">initial_params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">})</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Run VQE optimization with parallel parameter shift gradients</span>
+<span class="n">result_vqe</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">objective_function</span><span class="p">,</span> <span class="n">initial_params</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">,</span> <span class="n">jac</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;maxiter&#39;</span><span class="p">:</span> <span class="mi">50</span><span class="p">})</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== VQE with Parallel Parameter Shift Gradients ===&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimized energy: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">fun</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimal parameters: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of iterations: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">nit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Success: </span><span class="si">{</span><span class="n">result_vqe</span><span class="o">.</span><span class="n">success</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
- message: Optimization terminated successfully.
- success: True
-  status: 1
-     fun: -1.7488646919931474
-       x: [ 5.944e-01  1.288e+00]
-    nfev: 33
-   maxcv: 0.0
-</pre></div></div>
 </div>
 </section>
 </section>
