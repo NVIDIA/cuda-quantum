@@ -217,8 +217,8 @@ static bool hasStdVectorBool(Type ty) {
 
 // The host-side type of a `std::vector<bool>` is distinct from the transient
 // type for a `std::vector<bool>`. The former is a unique data type with a size
-// of 40 bytes. The latter is identical to `std::vector<char>` (which has a size
-// of 24 bytes).
+// of 40 bytes on libstdc++ (Linux) or 24 bytes on libc++ (macOS). The latter
+// is identical to `std::vector<char>` (which has a size of 24 bytes).
 static Type convertToTransientType(Type ty, ModuleOp mod) {
   if (isStdVectorBool(ty)) {
     auto *ctx = ty.getContext();

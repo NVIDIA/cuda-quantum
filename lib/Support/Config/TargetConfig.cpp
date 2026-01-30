@@ -119,16 +119,24 @@ static std::string processSimBackendConfig(
   }
 
   if (!configValue.SimulationBackend.values.empty()) {
+    // Use platform-appropriate shared library extension
+#ifdef __APPLE__
+    constexpr const char *libExt = ".dylib";
+#else
+    constexpr const char *libExt = ".so";
+#endif
     output << "if [ -f \"${install_dir}/lib/libnvqir-"
-           << configValue.SimulationBackend.values.front() << ".so\" ]; then\n";
+           << configValue.SimulationBackend.values.front() << libExt
+           << "\" ]; then\n";
     output << "  NVQIR_SIMULATION_BACKEND=\""
            << configValue.SimulationBackend.values.front() << "\"\n";
     // If there are more than one simulator libs, create the `else` paths to
-    // check their .so files.
+    // check their library files.
     for (std::size_t i = 1; i < configValue.SimulationBackend.values.size();
          ++i) {
       output << "elif [ -f \"${install_dir}/lib/libnvqir-"
-             << configValue.SimulationBackend.values[i] << ".so\" ]; then\n";
+             << configValue.SimulationBackend.values[i] << libExt
+             << "\" ]; then\n";
       output << "  NVQIR_SIMULATION_BACKEND=\""
              << configValue.SimulationBackend.values[i] << "\"\n";
     }

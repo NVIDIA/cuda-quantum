@@ -113,7 +113,7 @@ struct TypeMangler {
 };
 
 template <typename... Args>
-std::string getMangledArgsString() {
+inline std::string getMangledArgsString() {
   std::string result;
   (result += ... += TypeMangler<Args>::mangle());
 
@@ -131,7 +131,7 @@ std::string getMangledArgsString() {
 }
 
 template <>
-std::string getMangledArgsString<>() {
+inline std::string getMangledArgsString<>() {
   return {};
 }
 

@@ -1077,12 +1077,27 @@ TensorNetState<ScalarType>::createFromOpTensors(
   LOG_API_TIME();
   auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
                                                 randomEngine);
-  for (const auto &op : opTensors)
-    if (op.isUnitary)
+  for (const auto &op : opTensors) {
+    // Check for noise channel first (noise channel ops have deviceData ==
+    // nullptr and noiseChannel.has_value() == true)
+    if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        state->applyGeneralChannel(op.targetQubitIds,
+                                   op.noiseChannel->tensorData);
+      } else {
+        state->applyUnitaryChannel(op.targetQubitIds,
+                                   op.noiseChannel->tensorData,
+                                   op.noiseChannel->probabilities);
+      }
+    } else if (op.isUnitary) {
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
                        op.isAdjoint);
-    else
+    } else {
       state->applyQubitProjector(op.deviceData, op.targetQubitIds);
+    }
+  }
 
   return state;
 }

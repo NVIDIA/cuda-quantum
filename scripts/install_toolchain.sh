@@ -11,6 +11,17 @@
 # This script installs the specified C/C++ toolchain, 
 # and exports the CC and CXX environment variables.
 #
+# Note: This script is not supported on macOS. On macOS, use the system
+# Apple Clang compiler which is installed with Xcode Command Line Tools.
+
+# Check for macOS - this script is not supported on Darwin
+if [ "$(uname)" = "Darwin" ]; then
+    echo "Error: install_toolchain.sh is not supported on macOS." >&2
+    echo "On macOS, use the system Apple Clang compiler (installed with Xcode Command Line Tools)." >&2
+    echo "Run 'xcode-select --install' if needed." >&2
+    (return 1 2>/dev/null) && return 1 || exit 1
+fi
+
 # Usage:
 #   source scripts/install_toolchain.sh -t <toolchain>
 # -or-

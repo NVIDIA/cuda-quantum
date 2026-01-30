@@ -34,6 +34,11 @@ class QPU;
 class gradient;
 class optimizer;
 struct RuntimeTarget;
+class LinkedLibraryHolder;
+
+namespace __internal__ {
+class TargetSetter;
+}
 
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
@@ -181,11 +186,6 @@ public:
     return {ptr.get()};
   }
 
-  /// @brief Set the target backend, by default do nothing, let subclasses
-  /// override
-  /// @param name
-  virtual void setTargetBackend(const std::string &name) {}
-
   /// @brief Called by the runtime to notify that a new random seed value is
   /// set.
   virtual void onRandomSeedSet(std::size_t seed);
@@ -201,6 +201,13 @@ public:
   void setLogStream(std::ostream &logStream);
 
 protected:
+  friend class cudaq::LinkedLibraryHolder;
+  friend class cudaq::__internal__::TargetSetter;
+  /// @brief Set the target backend, by default do nothing, let subclasses
+  /// override
+  /// @param name
+  virtual void setTargetBackend(const std::string &name) {}
+
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 

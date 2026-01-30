@@ -8,7 +8,7 @@
 
 set(LIBRARY_NAME cudaq-em-default)
 
-add_library(${LIBRARY_NAME} SHARED DefaultExecutionManager.cpp ../../execution_manager.cpp)
+add_library(${LIBRARY_NAME} SHARED DefaultExecutionManager.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 target_include_directories(${LIBRARY_NAME} 
     PUBLIC 
@@ -17,7 +17,7 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .)
 
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-operator PRIVATE nvqir cudaq-common fmt::fmt-header-only LLVMSupport)
+  PUBLIC cudaq-operator PRIVATE cudaq nvqir cudaq-common fmt::fmt-header-only LLVMSupport)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-em-default-targets DESTINATION lib)
 
