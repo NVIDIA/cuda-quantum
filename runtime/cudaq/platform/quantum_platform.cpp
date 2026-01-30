@@ -11,6 +11,7 @@
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
+#include "mlir/IR/BuiltinOps.h"
 #include <iostream>
 #include <shared_mutex>
 #include <string>
