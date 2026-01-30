@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin.so --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir --opt-plugin %cudaq_lib_dir/CustomPassPlugin%cudaq_plugin_ext --opt-pass 'func.func(cudaq-custom-pass)'  %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
