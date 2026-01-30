@@ -20,6 +20,11 @@ on:
         description: The platforms to build the Docker images for. A semicolon separated list creates a separate list for each platform, whereas a comma separate list creates a multi-platform build.
         required: false
         default: default
+      devcontainer_only:
+        type: boolean
+        description: Build and push only the dev container image.
+        required: false
+        default: false
       create_release:
         type: string
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
@@ -291,7 +296,7 @@ jobs:
   dispatch:
     name: Dispatch deployments
     needs: [metadata, devdeps, wheeldeps, openmpi]
-    if: github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -308,6 +313,7 @@ jobs:
               inputs: {
                 platforms: 'linux/arm64 linux/amd64',
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
+                devcontainer_only: ${{ github.event_name == 'schedule' }}
               },
             })
 
@@ -336,6 +342,7 @@ jobs:
 
   coverage:
     name: Update code coverage
+    if: ${{ ! inputs.devcontainer_only }}
     needs: [metadata, config]
     strategy:
       matrix:
@@ -485,6 +492,7 @@ jobs:
   docker_images:
     name: Create Docker images
     needs: [metadata, config, ext_config]
+    if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -763,6 +771,7 @@ jobs:
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config]
+    if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -783,6 +792,7 @@ jobs:
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config]
+    if: ${{ ! inputs.devcontainer_only }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
