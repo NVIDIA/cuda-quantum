@@ -10,7 +10,7 @@
 
 namespace {
 /// @brief Thread-local storage for the current execution context.
-thread_local cudaq::ExecutionContext *currentExecutionContext;
+thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;
 } // namespace
 
 namespace nvqir {
@@ -26,10 +26,8 @@ bool isInTracerMode() {
 }
 
 bool isInBatchMode() {
-  if (!currentExecutionContext)
-    return false;
-
-  return currentExecutionContext->totalIterations != 0;
+  return currentExecutionContext &&
+         currentExecutionContext->totalIterations != 0;
 }
 
 bool isLastBatch() {
