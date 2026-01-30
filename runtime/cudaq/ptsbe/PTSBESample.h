@@ -65,7 +65,8 @@ inline bool hasConditionalFeedback(const std::string &kernelName,
 /// @brief Validate kernel eligibility for PTSBE execution
 ///
 /// Checks all constraints required for PTSBE trajectory-based simulation:
-/// - No conditional feedback on measurement results (dynamic circuits) or mid-circuit measurements
+/// - No conditional feedback on measurement results (dynamic circuits) or
+/// mid-circuit measurements
 ///
 /// @param kernelName Name of the kernel being validated
 /// @param ctx ExecutionContext populated after kernel tracing
@@ -140,7 +141,8 @@ inline sample_result dispatchPTSBE(const PTSBatch &batch) {
       "Captured: " +
       std::to_string(instructionCount) + " instructions, " +
       std::to_string(batch.measureQubits.size()) + " measure qubits, " +
-      std::to_string(batch.trajectories.size()) + " trajectories. "
+      std::to_string(batch.trajectories.size()) +
+      " trajectories. "
       "Full trajectory generation requires future implementation.");
 }
 
@@ -157,10 +159,9 @@ inline sample_result dispatchPTSBE(const PTSBatch &batch) {
 /// @return Aggregated sample_result from all trajectories
 /// @throws std::runtime_error if dynamic circuit detected or not implemented
 template <typename KernelFunctor>
-sample_result runSamplingPTSBE(KernelFunctor &&wrappedKernel,
-                                quantum_platform &platform,
-                                const std::string &kernelName,
-                                std::size_t shots) {
+sample_result
+runSamplingPTSBE(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                 const std::string &kernelName, std::size_t shots) {
   // Stage 0: Capture trace via ExecutionContext("tracer")
   ExecutionContext traceCtx("tracer");
   platform.set_exec_ctx(&traceCtx);
@@ -209,7 +210,8 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 
 /// @brief PTSBE sample implementation (convenience wrapper for testing)
 ///
-/// Simplified interface for testing. Wraps the kernel and calls runSamplingPTSBE.
+/// Simplified interface for testing. Wraps the kernel and calls
+/// runSamplingPTSBE.
 ///
 /// @tparam QuantumKernel Quantum kernel type (lambda or functor)
 /// @tparam Args Kernel argument types
@@ -220,7 +222,7 @@ PTSBatch capturePTSBatch(QuantumKernel &&kernel, Args &&...args) {
 /// @throws std::runtime_error if dynamic circuit detected or not implemented
 template <typename QuantumKernel, typename... Args>
 sample_result sampleWithPTSBE(QuantumKernel &&kernel, std::size_t shots,
-                               Args &&...args) {
+                              Args &&...args) {
   auto &platform = get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   return runSamplingPTSBE(

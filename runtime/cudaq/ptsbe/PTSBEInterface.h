@@ -27,8 +27,8 @@ struct PTSBatch {
   std::vector<cudaq::KrausTrajectory> trajectories;
 
   /// @brief Qubits to measure (terminal measurements)
-  /// NOTE: This currently only applies to kernels that are terminal measurement only
-  /// which is a limitation of the current PTSBE implementation.
+  /// NOTE: This currently only applies to kernels that are terminal measurement
+  /// only which is a limitation of the current PTSBE implementation.
   std::vector<std::size_t> measureQubits;
 };
 
@@ -39,12 +39,11 @@ struct PTSBatch {
 /// returning per-trajectory results. We use a concept to avoid exposing
 /// the simulator base class to PTSBE.
 template <typename SimulatorType>
-concept PTSBECapable =
-    requires(SimulatorType &sim, const PTSBatch &batch) {
-      {
-        sim.sampleWithPTSBE(batch)
-      } -> std::same_as<std::vector<cudaq::sample_result>>;
-    };
+concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
+  {
+    sim.sampleWithPTSBE(batch)
+  } -> std::same_as<std::vector<cudaq::sample_result>>;
+};
 
 /// @brief Execute PTSBE batch with compile-time dispatch
 ///
@@ -70,14 +69,16 @@ convertToSimulatorTask(const cudaq::Trace::Instruction &inst) {
   throw std::runtime_error("convertToSimulatorTask: Not implemented");
 }
 
-/// @brief Merge kernel trace with trajectory noise to produce task list to execute on simulator
+/// @brief Merge kernel trace with trajectory noise to produce task list to
+/// execute on simulator
 ///
 /// @param kernelTrace Base kernel circuit
 /// @param trajectory Sampled trajectory with noise
 /// @return Complete task list for simulator
 /// @throws std::runtime_error Not yet implemented
 template <typename ScalarType>
-std::vector<typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
+std::vector<
+    typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
 mergeAndConvert(const cudaq::Trace &kernelTrace,
                 const cudaq::KrausTrajectory &trajectory) {
   throw std::runtime_error("mergeAndConvert: Not implemented");

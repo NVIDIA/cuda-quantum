@@ -43,8 +43,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
             std::size_t qpu_id = 0, details::future *futureResult = nullptr,
             std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
 
-  auto hasConditionalFeedback =
-      cudaq::kernelHasConditionalFeedback(kernelName);
+  auto hasConditionalFeedback = cudaq::kernelHasConditionalFeedback(kernelName);
   if (explicitMeasurements) {
     if (!platform.supports_explicit_measurements())
       throw std::runtime_error("The sampling option `explicit_measurements` is "
