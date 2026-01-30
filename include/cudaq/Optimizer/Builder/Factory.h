@@ -44,6 +44,12 @@ namespace factory {
 constexpr const char targetTripleAttrName[] = "llvm.triple";
 constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
 
+/// Padding size for std::vector<bool> host type representation.
+/// `libc++` (macOS) uses 24-byte layout, `libstdc++` (Linux) uses 40-byte
+/// layout. The padding is `sizeof(std::vector<bool>)` - `sizeof(void*)`.
+constexpr std::size_t stdVecBoolPaddingSize =
+    sizeof(std::vector<bool>) - sizeof(void *);
+
 //===----------------------------------------------------------------------===//
 // Type builders
 //===----------------------------------------------------------------------===//

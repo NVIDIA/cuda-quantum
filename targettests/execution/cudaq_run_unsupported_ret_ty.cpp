@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t && CUDAQ_LOG_LEVEL=debug %t |& FileCheck %s -check-prefix=FAIL -dump-input=always
+// RUN: nvq++ %s -o %t && CUDAQ_LOG_LEVEL=debug %t 2>&1 | FileCheck %s -check-prefix=FAIL -dump-input=always
 // clang-format on
 
 #include <cudaq.h>

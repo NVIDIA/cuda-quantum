@@ -172,7 +172,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/build/devdeps.ext.Dockerfile
+          file: ./docker/build/devcontainer.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
             base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04

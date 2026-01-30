@@ -153,14 +153,12 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget ca-certifi
     && apt-get remove -y wget ca-certificates \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
+COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
-        lit==18.1.4 pytest==8.3.0 numpy==1.26.4 requests==2.31.0 \
-        fastapi==0.111.0 uvicorn==0.29.0 pydantic==2.7.1 llvmlite==0.42.0 \
-        pyspelling==2.10 pymdown-extensions==10.8.1 yapf \
-        scipy==1.11.4 openfermionpyscf==0.5 h5py==3.12.1 \
+        -r /cuda-quantum/requirements-dev.txt \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA-Q documentation generation.

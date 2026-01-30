@@ -14,7 +14,7 @@
 
 #include "common/EigenSparse.h"
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 #include "helpers.h"
 
 #include "cudaq/boson_op.h"

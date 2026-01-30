@@ -32,6 +32,8 @@ on:
       - completed
     # PR merged workflow runs after merge into certain branches an on pull_request_target;
     # there should hence be no need for additional branch filtering here.
+  schedule:
+    - cron: "0 14 * * *"
   push:
     branches:
       - 'releases/*'
@@ -100,8 +102,8 @@ jobs:
       - name: Determine build info
         id: build_info
         run: |
-          if ${{ github.event_name == 'workflow_dispatch' }}; then 
-            defaults="${{ (inputs.update_registry_cache && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
+          if ${{ github.event_name == 'workflow_dispatch' }}; then
+            defaults="${{ ((inputs.update_registry_cache || github.event_name == 'schedule') && 'linux/arm64 linux/amd64') || 'linux/amd64,linux/arm64' }}"
             requested_platforms=`echo "${{ inputs.platforms }}" | tr + , | sed "s#default#$defaults#g"`
           else
             requested_platforms="linux/arm64 linux/amd64"
@@ -289,7 +291,7 @@ jobs:
   dispatch:
     name: Dispatch deployments
     needs: [metadata, devdeps, wheeldeps, openmpi]
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
     runs-on: ubuntu-latest
 
     steps:
@@ -362,7 +364,7 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
-      dockerfile: build/devdeps.ext.Dockerfile
+      dockerfile: build/devcontainer.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc11
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
