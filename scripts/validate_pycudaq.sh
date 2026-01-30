@@ -386,7 +386,7 @@ fi
 kill %1 && wait %1 2> /dev/null
 if [ -n "$server2_devices" ]; then
     kill %2 && wait %2 2> /dev/null
-    fi
+fi
 fi
 
 if [ ! $status_sum -eq 0 ]; then
