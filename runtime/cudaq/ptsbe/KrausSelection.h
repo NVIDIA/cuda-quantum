@@ -17,6 +17,9 @@ namespace cudaq {
 /// @brief Type-safe index for Kraus operators in a noise channel
 /// IDENTITY (0) represents no error, indices 1+ represent actual error
 /// operators
+///
+/// TODO: Expand this enum to include named error types for standard noise
+/// channels.
 enum class KrausOperatorType : std::size_t {
   IDENTITY = 0,
   // Values 1+ represent actual error operators from the noise channel
