@@ -11,12 +11,12 @@
 # Unified wheel build script for Linux and macOS.
 #
 # Usage:
-#   bash scripts/build_wheel.sh              # macOS only (uses cu13)
+#   bash scripts/build_wheel.sh              # macOS only (CPU only)
 #   bash scripts/build_wheel.sh -c 12        # Linux: build cu12 wheel
 #   bash scripts/build_wheel.sh -c 13        # Linux: build cu13 wheel
 #
 # Options:
-#   -c <cuda_version>: CUDA variant, 12 or 13 (Linux only; macOS always uses cu13)
+#   -c <cuda_version>: CUDA variant, 12 or 13 (Linux only)
 #   -o <output_dir>: Output directory for wheels (default: dist)
 #   -a <assets_dir>: Directory containing external simulator assets (default: assets)
 #   -t: Run validation tests after build
@@ -119,7 +119,9 @@ fi
 
 # Determine CUDA variant
 if [ "$platform" = "Darwin" ]; then
-  # macOS: always use cu13 (CPU-only, CUDA deps excluded via env markers)
+  # macOS: CPU-only build. Uses cu13 pyproject but CUDA deps are excluded
+  # via sys_platform markers in pyproject.toml.cu13. The cu13 variant is
+  # the default fallback when no CUDA is detected (applies to Linux too).
   cuda_variant="13"
   echo "macOS: building cu$cuda_variant wheel (CPU-only)"
 else

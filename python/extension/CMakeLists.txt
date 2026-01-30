@@ -162,26 +162,19 @@ add_mlir_python_modules(CUDAQuantumPythonModules
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
-set(_origin_prefix "\$ORIGIN")
+## macOS uses @loader_path instead of $ORIGIN for RPATH.
 if(APPLE)
   set(_origin_prefix "@loader_path")
+else()
+  set(_origin_prefix "$ORIGIN")
 endif()
 
 if (NOT SKBUILD)
-  # macOS uses semicolons for CMake list separator and @loader_path instead of $ORIGIN
-  if(APPLE)
-    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH};@loader_path/../../lib;@loader_path/../../lib/plugins")
-  else()
-    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-  endif()
+  list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../../lib" "${_origin_prefix}/../../lib/plugins")
   set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib;${_origin_prefix}/../../../lib/plugins")
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib" "${_origin_prefix}/../../../lib/plugins")
 else()
-  if(APPLE)
-    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH};@loader_path/../cuda_quantum.libs")
-  else()
-    SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
-  endif()
+  list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../cuda_quantum.libs")
   set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib;${_origin_prefix}/../../../cuda_quantum.libs")
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib" "${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
