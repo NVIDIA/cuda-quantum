@@ -109,7 +109,36 @@ template <typename ScalarType>
 std::vector<
     typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
 convertTrace(const cudaq::Trace &trace) {
-  throw std::runtime_error("convertTrace: Not implemented");
+  using TaskType =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+  std::vector<TaskType> tasks;
+  tasks.reserve(trace.getNumInstructions());
+  for (const auto &inst : trace)
+    tasks.push_back(convertToSimulatorTask<ScalarType>(inst));
+  return tasks;
+}
+
+/// @brief Convert a KrausSelection to a GateApplicationTask
+///
+/// @tparam ScalarType Simulator scalar type
+/// @param sel KrausSelection specifying the noise operation
+/// @return GateApplicationTask ready for simulator execution
+///
+/// TODO: Currently uses op_name string lookup as a workaround. When
+/// KrausOperatorType is expanded to include named error types (X_ERROR,
+/// Y_ERROR, Z_ERROR, etc.), this should map directly from enum to gate.
+template <typename ScalarType>
+typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask
+krausSelectionToTask(const cudaq::KrausSelection &sel) {
+  using TaskType =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+
+  std::string gateName =
+      (sel.kraus_operator_index == KrausOperatorType::IDENTITY) ? "id"
+                                                                : sel.op_name;
+  auto gateEnum = nvqir::getGateNameFromString(gateName);
+  auto matrix = nvqir::getGateByName<ScalarType>(gateEnum, {});
+  return TaskType(gateName, matrix, {}, sel.qubits, {});
 }
 
 /// @brief Merge base tasks with trajectory noise insertions
@@ -125,27 +154,59 @@ convertTrace(const cudaq::Trace &trace) {
 template <typename ScalarType>
 std::vector<
     typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-mergeWithNoise(
+mergeTasksWithTrajectory(
     const std::vector<
         typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
         &baseTasks,
     const cudaq::KrausTrajectory &trajectory) {
-  throw std::runtime_error("mergeWithNoise: Not implemented");
+  using TaskType =
+      typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
+
+  const auto &selections = trajectory.kraus_selections;
+
+  std::vector<TaskType> merged;
+  merged.reserve(baseTasks.size() + selections.size());
+
+  // Linear merge: iterate through base tasks, inserting noise after each gate
+  std::size_t noiseIdx = 0;
+  for (std::size_t gateIdx = 0; gateIdx < baseTasks.size(); ++gateIdx) {
+    merged.push_back(baseTasks[gateIdx]);
+
+    // Insert all noise for this gate location
+    while (noiseIdx < selections.size() &&
+           selections[noiseIdx].circuit_location == gateIdx) {
+      merged.push_back(krausSelectionToTask<ScalarType>(selections[noiseIdx]));
+      ++noiseIdx;
+    }
+  }
+
+  // Validate: any remaining noise has invalid circuit_location
+  if (noiseIdx < selections.size()) {
+    throw std::runtime_error(
+        "Invalid circuit_location: " +
+        std::to_string(selections[noiseIdx].circuit_location) +
+        " >= " + std::to_string(baseTasks.size()));
+  }
+
+  return merged;
 }
 
 /// @brief Merge kernel trace with trajectory noise to produce task list to
 /// execute on simulator
 ///
+/// Convenience function that converts trace to tasks, then merges with noise.
+///
 /// @param kernelTrace Base kernel circuit
 /// @param trajectory Sampled trajectory with noise
 /// @return Complete task list for simulator
-/// @throws std::runtime_error Not yet implemented
+/// @throws std::runtime_error if gate name not recognized or invalid location
 template <typename ScalarType>
 std::vector<
     typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
 mergeAndConvert(const cudaq::Trace &kernelTrace,
                 const cudaq::KrausTrajectory &trajectory) {
-  throw std::runtime_error("mergeAndConvert: Not implemented");
+  auto baseTasks = convertTrace<ScalarType>(kernelTrace);
+  return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory);
 }
 
 } // namespace cudaq::ptsbe
