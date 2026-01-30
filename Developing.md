@@ -116,7 +116,7 @@ npm install -g markdown-link-check
 
 #### Installation (One-time Setup)
 
-> **Devcontainer Users:** If you're developing in the VS Code devcontainer,
+> **Devcontainer Users:** If you're developing in the VS Code `devcontainer`,
 > pre-commit and all required dependencies (Node.js, Go, `aspell`) are
 > pre-installed. You only need to run `pre-commit install` to enable the hooks.
 

@@ -72,6 +72,7 @@ MPS
 MSB
 Mandel
 Max-Cut
+Miniconda
 MyST
 NGC
 NVIDIA
@@ -178,7 +179,6 @@ comparator
 comparators
 composability
 composable
-conda
 constructible
 controlled
 coprocessing
@@ -210,7 +210,6 @@ deserialize
 destructor
 detuning
 deutsch
-devcontainer
 dimensionality
 discoverable
 discretization
@@ -281,7 +280,6 @@ lvalue
 macOS
 makefiles
 merchantability
-miniconda
 mps
 multithreaded
 mutex
@@ -289,7 +287,6 @@ namespace
 namespaces
 natively
 normalization
-npm
 nullary
 observables
 optimizer
