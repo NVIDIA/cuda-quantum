@@ -289,7 +289,13 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   sample_result ret;
   // TODO: Only have added PTSBE to this core sample method right now.
   // If we agree on the approach I will add to others.
-  if (options.use_ptsbe && platform.is_simulator()) {
+  if (options.use_ptsbe) {
+    if (options.noise.empty())
+      throw std::runtime_error(
+          "PTSBE requires a noise model to be set. Please provide a noise "
+          "model in sample_options.");
+    if (!platform.is_simulator())
+      throw std::runtime_error("PTSBE is only supported on simulators.");
     ret = ptsbe::runSamplingPTSBE(
         [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
         kernelName, shots);
