@@ -39,8 +39,8 @@ add_llvm_executable(cudaq-lsp-server
   ${LIBS}
 )
 
-target_link_libraries(cudaq-lsp-server 
-  PRIVATE 
+target_link_libraries(cudaq-lsp-server
+  PRIVATE
   ${LIBS}
 )
 

@@ -17,7 +17,7 @@
 #include <vector>
 
 #include "callback.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 namespace cudaq {
 
