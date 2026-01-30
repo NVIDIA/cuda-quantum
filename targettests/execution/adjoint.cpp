@@ -29,13 +29,12 @@ auto __qpu__ one_loop(cudaq::qview<> qubits, unsigned long num_qubits) {
 // same initial order even after the loops are reversed, causing invalid IR.
 auto __qpu__ two_loops(cudaq::qview<> qubits, unsigned long num_qubits) {
   unsigned long j = 0;
-  for (unsigned long i = 0; i < num_qubits/2; i++) {
+  for (unsigned long i = 0; i < 4; i++) {
     x<cudaq::ctrl>(qubits[i], qubits[j]);
     j++;
   }
-  for (unsigned long i = num_qubits/2; i < num_qubits; i++) {
+  for (unsigned long i = 4; i < num_qubits; i++) {
     x<cudaq::ctrl>(qubits[i], qubits[j]);
-    j++;
   }
 }
 

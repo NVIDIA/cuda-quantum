@@ -155,7 +155,7 @@ def test_adjoint_error(capfd):
         counts = cudaq.sample(test_caller)
     captured = capfd.readouterr().err
     print(captured)
-    assert "ApplyOpSpecialization does not currently support loops with multiple arguments" in captured
+    assert "ApplyOpSpecialization does not currently support loops returning values other than the iteration variable" in captured
 
     # TODO: `k` is threaded through the loops by `memtoreg` causing
     # `ApplyOpSpecialization` to fail because it cannot currently
@@ -181,7 +181,7 @@ def test_adjoint_error(capfd):
         counts = cudaq.sample(test_caller)
     captured = capfd.readouterr().err
     print(captured)
-    assert "ApplyOpSpecialization does not currently support loops with multiple arguments" in captured
+    assert "ApplyOpSpecialization does not currently support loops returning values other than the iteration variable" in captured
 
 
 def test_control():
