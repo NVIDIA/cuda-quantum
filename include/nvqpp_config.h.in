@@ -18,6 +18,13 @@
 #endif
 
 // This is used by cudaq-quake as a backup search location
-// for required cudaq headers. We will search this install 
-// directory first 
+// for required cudaq headers. We will search this install
+// directory first
 #define FALLBACK_CUDAQ_INCLUDE_DIR "@CMAKE_SOURCE_DIR@/runtime"
+
+// C++ standard library header paths for cudaq-quake (determined at configure time)
+// If LLVM was built with libc++, these paths point to LLVM's headers
+#define CUDAQ_LIBCXX_PATH "@CUDAQ_LIBCXX_PATH@"
+#define CUDAQ_LIBCXX_TARGET_PATH "@CUDAQ_LIBCXX_TARGET_PATH@"
+// If LLVM doesn't have libc++ and we're on macOS, use the SDK sysroot
+#define CUDAQ_SYSROOT_PATH "@CUDAQ_SYSROOT_PATH@"

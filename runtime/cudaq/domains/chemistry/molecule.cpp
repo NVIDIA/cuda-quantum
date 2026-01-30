@@ -10,6 +10,24 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 #include <xtensor/xadapt.hpp>
+
+// Workaround for clang 17-18 template ambiguity with svector's
+// rebind_container. See: https://github.com/llvm/llvm-project/issues/91504 This
+// explicit specialization resolves the ambiguity between the generic
+// rebind_container<X, C<T, N>> in xutils.hpp and the specific
+// rebind_container<X, svector<T, N, A, B>> in xstorage.hpp.
+// TODO: Remove this workaround when xtensor fixes or when
+// minimum supported clang version is >= 19.
+#if defined(__clang__) && __clang_major__ >= 17 && __clang_major__ <= 18
+namespace xt {
+template <>
+struct rebind_container<
+    long, svector<unsigned long, 4, std::allocator<unsigned long>, true>> {
+  using type = svector<long, 4, std::allocator<long>, true>;
+};
+} // namespace xt
+#endif
+
 #include <xtensor/xio.hpp>
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::MoleculePackageDriver::RegistryType)

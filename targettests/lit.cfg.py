@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os, sys
+import platform
 import subprocess
 import shutil
 import bisect
@@ -53,6 +54,10 @@ config.test_source_root = os.path.dirname(__file__)
 
 # The root path where tests should be run.
 config.test_exec_root = os.path.join(config.cudaq_obj_root, 'targettests')
+
+# Add platform-specific features for architecture detection
+if platform.system() == 'Darwin' and platform.machine() == 'arm64':
+    config.available_features.add('darwin-arm64')
 
 # Propagate some variables from the host environment.
 llvm_config.with_system_environment(['HOME', 'INCLUDE', 'LIB', 'TMP', 'TEMP'])
