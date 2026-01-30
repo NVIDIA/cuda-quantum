@@ -1123,6 +1123,14 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
 }
 
+def DeviceCallShmem : Pass<"device-call-shmem", "mlir::func::FuncOp"> {
+  let summary = "Replace cudaq::device_call with a dispatch hook.";
+
+  let description = [{
+    Replace cudaq::device_call with a call to dispatch callback hook assuming a shared memory model.
+  }];
+}
+
 def SROA : Pass<"cc-sroa"> {
   let summary = "Scalar replacement of aggregates.";
   let description = [{
