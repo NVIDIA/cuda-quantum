@@ -26,7 +26,8 @@ def pytest_collection_modifyitems(config, items):
     """Apply skip marker to tests marked with skip_macos_arm64_jit on macOS ARM64."""
     if sys.platform == 'darwin' and platform.machine() == 'arm64':
         skip_marker = pytest.mark.skip(
-            reason="JIT exception handling broken on macOS ARM64 (llvm-project#49036)")
+            reason=
+            "JIT exception handling broken on macOS ARM64 (llvm-project#49036)")
         for item in items:
             if item.get_closest_marker('skip_macos_arm64_jit'):
                 item.add_marker(skip_marker)
