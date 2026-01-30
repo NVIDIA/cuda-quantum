@@ -374,7 +374,6 @@ if (CUDA_FOUND)
    PRIVATE
    cudaq-operator
    cudaq
-   cudaq-platform-default
    nvqir-dynamics
    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
    CUDA::cudart
