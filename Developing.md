@@ -96,48 +96,22 @@ locally that run in CI, catching issues before you push.
 Most formatting and linting checks work out-of-the-box with pre-commit. However,
 some checks require system dependencies:
 
-**Required for spell checking:**
+- **aspell**: for spell checking
+- **node/npm**: for link validation
+- **go**: for license header validation (the license-eye tool will be auto-installed)
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install aspell aspell-en
+sudo apt-get install aspell aspell-en nodejs npm golang
 
 # macOS
-brew install aspell
+brew install aspell node go
 
 # Fedora/RHEL
-sudo dnf install aspell aspell-en
-```
+sudo dnf install aspell aspell-en nodejs npm golang
 
-**Required for link validation:**
-
-```bash
-# Step 1: Install Node.js and npm (if not already installed)
-# Ubuntu/Debian
-sudo apt-get install nodejs npm
-
-# macOS
-brew install node
-
-# Fedora/RHEL
-sudo dnf install nodejs npm
-
-# Step 2: Install markdown-link-check globally
+# All platforms: Install markdown-link-check globally
 npm install -g markdown-link-check
-```
-
-**Required for license header validation:**
-
-```bash
-# Install Go (the license-eye tool will be auto-installed by the hook)
-# Ubuntu/Debian
-sudo apt-get install golang
-
-# macOS
-brew install go
-
-# Fedora/RHEL
-sudo dnf install golang
 ```
 
 #### Installation (One-time Setup)
