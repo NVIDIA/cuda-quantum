@@ -150,7 +150,6 @@ ansatz
 ansatzes
 archiver
 arity
-aspell
 auxillary
 backend
 backends
@@ -180,7 +179,6 @@ comparators
 composability
 composable
 conda
-config
 constructible
 controlled
 coprocessing
@@ -312,7 +310,6 @@ preprocessor
 probability
 programmatically
 pybind
-pyspelling
 qaoa
 qed
 quantize
@@ -325,7 +322,6 @@ qumode
 qumodes
 reStructuredText
 reconfigurable
-rst
 runtime
 runtimes
 rvalue
@@ -393,6 +389,4 @@ waveforms
 wavefunction
 whitespace
 workflow
-yapf
-yml
 zener

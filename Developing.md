@@ -96,9 +96,9 @@ locally that run in CI, catching issues before you push.
 Most formatting and linting checks work out-of-the-box with pre-commit. However,
 some checks require system dependencies:
 
-- **aspell**: for spell checking
-- **node/npm**: for link validation
-- **go**: for license header validation (the license-eye tool will be auto-installed)
+- **`aspell`**: for spell checking
+- **`node`/`npm`**: for link validation
+- **`go`**: for license header validation (the `license-eye` tool will be auto-installed)
 
 ```bash
 # Ubuntu/Debian
@@ -117,7 +117,7 @@ npm install -g markdown-link-check
 #### Installation (One-time Setup)
 
 > **Devcontainer Users:** If you're developing in the VS Code devcontainer,
-> pre-commit and all required dependencies (Node.js, Go, aspell) are
+> pre-commit and all required dependencies (Node.js, Go, `aspell`) are
 > pre-installed. You only need to run `pre-commit install` to enable the hooks.
 
 ```bash
@@ -165,7 +165,7 @@ git commit --no-verify  # Skip pre-commit hooks
 **Fast checks (run on commit):**
 
 - C++ formatting (clang-format-16)
-- Python formatting (yapf with Google style)
+- Python formatting (`yapf` with Google style)
 - Markdown linting
 - Trailing whitespace, end-of-file fixes
 - Large files, merge conflicts
@@ -173,7 +173,7 @@ git commit --no-verify  # Skip pre-commit hooks
 **All checks (run on push):**
 
 - License header validation
-- Spell checking (markdown, rst, C++, Python)
+- Spell checking (Markdown, `.rst`, C++, Python)
 - Link validation in markdown files
 
 #### Troubleshooting
@@ -185,7 +185,7 @@ required changes. Fix the issue and try committing again.
 **Tool not found:**
 If a hook complains about a missing tool:
 
-1. Check if it's a system dependency (aspell, markdown-link-check, Go) -
+1. Check if it's a system dependency (`aspell`, `markdown-link-check`, Go) -
    see Prerequisites section above
 2. For pre-commit-managed tools, run:
 

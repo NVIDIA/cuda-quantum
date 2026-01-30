@@ -17,7 +17,7 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .github/workflows/config/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.markdown:
       markdown_extensions:
@@ -61,7 +61,7 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .github/workflows/config/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.context:
       context_visible_first: true
@@ -119,7 +119,7 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .github/workflows/config/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.html:
       comments: false
@@ -146,8 +146,8 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .github/workflows/config/spelling_allowlist.txt
-    - .github/workflows/config/spelling_allowlist_cxx.txt
+    - .github/pre-commit/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist_cxx.txt
   pipeline:
   - pyspelling.filters.url:
   - pyspelling.filters.context:
@@ -219,7 +219,7 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .github/workflows/config/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.url:
   - pyspelling.filters.context:
@@ -271,7 +271,7 @@ matrix:
     d: en_US
   dictionary:
     wordlists:
-    - .github/workflows/config/spelling_allowlist.txt
+    - .github/pre-commit/spelling_allowlist.txt
   pipeline:
   - pyspelling.filters.url:
   - pyspelling.filters.python:

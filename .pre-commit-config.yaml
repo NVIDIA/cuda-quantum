@@ -54,7 +54,7 @@ repos:
         name: Markdown linting
         files: '\.md$'
         exclude: '^tpls/'
-        args: ['--config', '.github/workflows/config/md_lint_config.yml']
+        args: ['--config', '.github/pre-commit/md_lint_config.yml']
 
   # Standard quality checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -93,14 +93,14 @@ repos:
         name: Spell check - Verify allowlists are sorted
         entry: bash scripts/pre-commit/check_allowlist_sorted.sh
         language: system
-        files: '^\.github/workflows/config/spelling_allowlist.*\.txt$'
+        files: '^\.github/pre-commit/spelling_allowlist.*\.txt$'
         pass_filenames: false
         stages: [pre-commit, pre-push]
 
       # Spell checking (runs on push)
       - id: spellcheck
         name: Spell check (pyspelling)
-        entry: pyspelling -c .github/workflows/config/spellcheck_config.yml
+        entry: pyspelling -c .github/pre-commit/spellcheck_config.yml
         language: python
         pass_filenames: false
         stages: [pre-push]

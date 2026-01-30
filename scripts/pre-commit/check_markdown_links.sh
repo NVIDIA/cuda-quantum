@@ -14,7 +14,7 @@
 set -e
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
-CONFIG_FILE="$REPO_ROOT/.github/workflows/config/md_link_check_config.json"
+CONFIG_FILE="$REPO_ROOT/.github/pre-commit/md_link_check_config.json"
 
 # Check if markdown-link-check is installed
 if ! command -v markdown-link-check &> /dev/null; then

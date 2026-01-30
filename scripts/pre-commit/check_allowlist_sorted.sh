@@ -15,7 +15,7 @@ set -e
 REPO_ROOT=$(git rev-parse --show-toplevel)
 EXIT_CODE=0
 
-for file in "$REPO_ROOT"/.github/workflows/config/spelling_allowlist*.txt; do
+for file in "$REPO_ROOT"/.github/pre-commit/spelling_allowlist*.txt; do
     if [ ! -f "$file" ]; then
         continue
     fi
