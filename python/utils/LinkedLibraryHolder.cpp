@@ -407,12 +407,6 @@ void LinkedLibraryHolder::setTarget(
   if (iter == targets.end())
     throw std::runtime_error("Invalid target name (" + targetName + ").");
 
-  std::vector<std::string> argv;
-  for (const auto &[k, v] : extraConfig) {
-    argv.emplace_back(k);
-    argv.emplace_back(v);
-  }
-
   auto &target = iter->second;
   if (!target.config.WarningMsg.empty()) {
     fmt::print(fmt::fg(fmt::color::red), "[warning] ");
@@ -421,7 +415,7 @@ void LinkedLibraryHolder::setTarget(
                target.config.WarningMsg);
   }
   const std::string targetConfigStr =
-      cudaq::config::processRuntimeArgs(target.config, argv);
+      cudaq::config::processRuntimeArgs(target.config, extraConfig);
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
 
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,

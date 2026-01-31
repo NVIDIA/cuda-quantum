@@ -11,7 +11,7 @@ import os
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
@@ -300,25 +300,45 @@ from .dbg import ast
 # ============================================================================ #
 # Command Line Argument Parsing
 # ============================================================================ #
-initKwargs = {}
 
-# Look for --target=<target> options
-for p in sys.argv:
-    split_params = p.split('=')
-    if len(split_params) == 2:
-        if split_params[0] in ['-target', '--target']:
-            initKwargs['target'] = split_params[1]
 
-# Look for --target <target> (with a space)
-if '-target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('-target') + 1]
-if '--target' in sys.argv:
-    initKwargs['target'] = sys.argv[sys.argv.index('--target') + 1]
-if '--target-option' in sys.argv:
-    initKwargs['option'] = sys.argv[sys.argv.index('--target-option') + 1]
-if '--emulate' in sys.argv:
-    initKwargs['emulate'] = True
-if not '--cudaq-full-stack-trace' in sys.argv:
-    sys.tracebacklimit = 0
+def parse_args(args: Sequence[str] | None = None):
+    """
+    Parse command line arguments and initialize the CUDA-Q environment.
+    """
+    import argparse
 
-cudaq_runtime.initialize_cudaq(**initKwargs)
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--target', '-target', type=str, dest='target')
+    parser.add_argument('--target-option', type=str, dest='option')
+    parser.add_argument('--emulate', action='store_true', dest='emulate')
+    parser.add_argument('--cudaq-full-stack-trace',
+                        action='store_true',
+                        dest='full_stack_trace')
+
+    # Parse only known arguments to avoid errors from unrecognized options
+    args, _ = parser.parse_known_args(args)
+
+    if not args.full_stack_trace:
+        sys.tracebacklimit = 0
+
+    args.remove('--cudaq-full-stack-trace')
+
+    cudaq_runtime.initialize_cudaq(**args)
+
+
+if __name__ == '__main__':
+    parse_args()
+# TODO: remove this
+elif any(
+        w in ''.join(sys.argv) for w in
+    ['-target', '--target-option', '--emulate', '--cudaq-full-stack-trace']):
+    import warnings
+    warnings.warn(
+        "Will now parse command line arguments. This will be removed in a future "
+        "release, call cudaq.parse_args() explicitly to parse arguments.",
+        DeprecationWarning,
+        stacklevel=2)
+    parse_args()
+else:
+    cudaq_runtime.initialize_cudaq()

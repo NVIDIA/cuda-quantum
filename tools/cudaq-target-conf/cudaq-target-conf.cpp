@@ -29,6 +29,22 @@
 using namespace llvm;
 #define DEBUG_TYPE "target-config"
 
+std::string decodeBase64IfPrefixed(llvm::StringRef input) {
+  if (!input.starts_with("base64_"))
+    return input.str();
+
+  if (input.size() <= 7)
+    return "";
+
+  auto encodedStr = input.substr(7);
+  std::vector<char> decodedStr;
+  if (auto err = llvm::decodeBase64(encodedStr, decodedStr)) {
+    llvm::errs() << "DecodeBase64 error for '" << encodedStr << "' string.\n";
+    abort();
+  }
+  return std::string(decodedStr.data(), decodedStr.size());
+}
+
 //===----------------------------------------------------------------------===//
 // Command line options.
 //===----------------------------------------------------------------------===//
@@ -119,45 +135,19 @@ int main(int argc, char **argv) {
     llvm::outs() << BOLD << RED << "Warning: " << CLEAR << config.WarningMsg
                  << "\n";
 
+  std::string targetArgsString = decodeBase64IfPrefixed(targetArgs);
   llvm::SmallVector<llvm::StringRef> args;
-  std::string targetArgsString = targetArgs;
-  if (targetArgsString.starts_with("base64_")) {
-    if (targetArgsString.size() > 7) {
-      auto targetArgsStr = targetArgsString.substr(7);
-      std::vector<char> decodedStr;
-      if (auto err = llvm::decodeBase64(targetArgsStr, decodedStr)) {
-        llvm::errs() << "DecodeBase64 error for '" << targetArgsStr
-                     << "' string.";
-        abort();
-      }
-      std::string decoded(decodedStr.data(), decodedStr.size());
-      targetArgsString = decoded;
-    } else {
-      targetArgsString = "";
-    }
-  }
   llvm::StringRef(targetArgsString).split(args, ' ', -1, false);
-  std::vector<std::string> targetArgv;
-  for (const auto &arg : args) {
-    std::string targetArgsStr = arg.str();
-    if (targetArgsStr.starts_with("base64_")) {
-      targetArgsStr.erase(0, 7); // erase "base64_"
-      std::vector<char> decodedStr;
-      if (auto err = llvm::decodeBase64(targetArgsStr, decodedStr)) {
-        llvm::errs() << "DecodeBase64 error for '" << targetArgsStr
-                     << "' string.";
-        abort();
-      }
-      std::string decoded(decodedStr.data(), decodedStr.size());
-      LLVM_DEBUG(llvm::dbgs() << "Decoded '" << decoded << "' from '"
-                              << targetArgsStr << "\n");
-      targetArgsStr = decoded;
-    }
-    targetArgv.emplace_back(targetArgsStr);
+  std::map<std::string, std::string> argsMap;
+  for (std::size_t idx = 0; idx < args.size() - 1; idx += 2) {
+    std::string argKey = decodeBase64IfPrefixed(args[idx].str());
+    std::string argVal = decodeBase64IfPrefixed(args[idx + 1].str());
+    LLVM_DEBUG(llvm::dbgs()
+               << "Processing arg: '" << argKey << "' = '" << argVal << "'\n");
+    argsMap.insert({argKey, argVal});
   }
 
-  const auto nvqppConfigs =
-      cudaq::config::processRuntimeArgs(config, targetArgv);
+  const auto nvqppConfigs = cudaq::config::processRuntimeArgs(config, argsMap);
   // Success! Dump the config (bash variable setters)
   std::error_code ec;
   ToolOutputFile out(outputFilename, ec, sys::fs::OF_None);

@@ -172,6 +172,6 @@ public:
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,
-                               const std::vector<std::string> &targetArgv);
+                               const std::map<std::string, std::string> &args);
 
 } // namespace cudaq::config
