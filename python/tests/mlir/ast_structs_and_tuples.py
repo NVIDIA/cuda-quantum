@@ -389,5 +389,5 @@ def test_tuple_assign_failures():
 # CHECK-NEXT:    (offending source -> {{.*}}q1, q2, q3{{.*}} = ((cudaq.qubit(), cudaq.qubit()), cudaq.qubit()))
 
 # CHECK-LABEL:   Failure for test3:
-# CHECK:         hybrid quantum-classical data types and nested quantum structs are not allowed
+# CHECK:         Hybrid quantum-classical data types and nested quantum structs are not allowed
 # CHECK-NEXT:    (offending source -> (cudaq.qubit(), 0.5))

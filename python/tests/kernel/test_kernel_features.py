@@ -128,6 +128,39 @@ def test_adjoint():
     assert len(counts) == 1
     assert '101' in counts
 
+    # Testing whether cudaq.adjoint works on a qualified name
+
+    num_electrons = 2
+    num_qubits = 8
+
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
+
+    @cudaq.kernel
+    def kernel(withAdj: bool):
+        qubits = cudaq.qvector(num_qubits)
+        for i in range(num_electrons):
+            x(qubits[i])
+        cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        if withAdj:
+            cudaq.adjoint(cudaq.kernels.uccsd, qubits, thetas, num_electrons,
+                          num_qubits)
+
+    counts = cudaq.sample(kernel, False, shots_count=1000)
+    assert len(counts) == 6
+
+    # FIXME: This current fails due to a bug in ApplySpecialization
+    #counts = cudaq.sample(kernel, True, shots_count=1000)
+    #assert len(counts) == 1 and '00000000' in counts
+
 
 def test_control():
     """Test that we can control on kernel functions."""
@@ -157,6 +190,44 @@ def test_control():
     counts = cudaq.sample(test)
     assert len(counts) == 1
     assert '110' in counts
+
+    # Testing whether cudaq.control works on a qualified name
+    num_electrons = 2
+    num_qubits = 8
+
+    thetas = [
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558,
+        -0.00037043841404585794, 0.0003811110195084151, 0.2286823796532558
+    ]
+
+    @cudaq.kernel
+    def kernel(withCtrl: int):
+        qubits = cudaq.qvector(num_qubits)
+        if not withCtrl:
+            for i in range(num_electrons):
+                x(qubits[i])
+            cudaq.kernels.uccsd(qubits, thetas, num_electrons, num_qubits)
+        else:
+            c = cudaq.qubit()
+            if withCtrl % 2:
+                x(c)
+            for i in range(num_electrons):
+                cx(c, qubits[i])
+            cudaq.control(cudaq.kernels.uccsd, c, qubits, thetas, num_electrons,
+                          num_qubits)
+
+    counts = cudaq.sample(kernel, 0, shots_count=1000)
+    assert len(counts) == 6
+    counts = cudaq.sample(kernel, 1, shots_count=1000)
+    assert len(counts) == 6
+    counts = cudaq.sample(kernel, 2, shots_count=1000)
+    assert len(counts) == 1 and '000000000' in counts
 
 
 def test_multi_control_gates():

@@ -292,13 +292,15 @@ def emitWarning(msg):
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
 
 
-def mlirTryCreateStructType(mlirEleTypes, name="tuple", context=None):
+def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
     tuples and `dataclass` structs of quantum and classical types. Returns
     None if the given element types don't satisfy the restrictions imposed
     on these types.
     """
+
+    name = name or "tuple"
 
     def isQuantumType(ty):
         return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(

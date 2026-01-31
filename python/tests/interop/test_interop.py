@@ -8,9 +8,6 @@
 
 import cudaq, pytest
 
-cudaq_test_cpp_algo = pytest.importorskip(
-    'cudaq_test_cpp_algo', reason="cannot find the cudaq_test_cpp_algo.so")
-
 
 @pytest.fixture(autouse=True)
 def do_something():
@@ -70,6 +67,7 @@ def testSynthTwoArgs():
 
 
 def test_cpp_kernel_from_python_0():
+    pytest.importorskip('cudaq_test_cpp_algo')
 
     from cudaq_test_cpp_algo import qstd
 
@@ -86,8 +84,32 @@ def test_cpp_kernel_from_python_0():
     counts.dump()
     assert len(counts) == 1 and '0010' in counts
 
+    # TODO: currently not supported;
+    # support and test this instead
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def callQftAndAnother(withAdj: bool):
+            q = cudaq.qvector(4)
+            qstd.qft(q)
+            h(q)
+            qstd.another(q, 2)
+            if withAdj:
+                cudaq.adjoint(qstd.another, q, 2)
+                h(q)
+                cudaq.adjoint(qstd.qft, q)
+
+        counts = cudaq.sample(callQftAndAnother, True)
+        assert len(counts) == 1 and '0000' in counts
+
+    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(
+        e.value)
+
 
 def test_cpp_kernel_from_python_1():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def callQftAndAnother():
@@ -102,8 +124,32 @@ def test_cpp_kernel_from_python_1():
     counts.dump()
     assert len(counts) == 1 and '0010' in counts
 
+    # TODO: currently not supported;
+    # support and test this instead
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def callQftAndAnother(withAdj: bool):
+            q = cudaq.qvector(4)
+            cudaq_test_cpp_algo.qstd.qft(q)
+            h(q)
+            cudaq_test_cpp_algo.qstd.another(q, 2)
+            if withAdj:
+                cudaq.adjoint(cudaq_test_cpp_algo.qstd.another, q, 2)
+                h(q)
+                cudaq.adjoint(cudaq_test_cpp_algo.qstd.qft, q)
+
+        counts = cudaq.sample(callQftAndAnother, True)
+        assert len(counts) == 1 and '0000' in counts
+
+    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(
+        e.value)
+
 
 def test_cpp_kernel_from_python_2():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def callUCCSD():
@@ -112,8 +158,30 @@ def test_cpp_kernel_from_python_2():
 
     callUCCSD()
 
+    # TODO: currently not supported;
+    # support and enable test
+    with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def callUCCSD(setControl: bool):
+            c, q = cudaq.qubit(), cudaq.qvector(4)
+            if setControl:
+                x(c)
+            cudaq.control(cudaq_test_cpp_algo.qstd.uccsd, c, q, 2)
+
+        counts = cudaq.sample(callQftAndAnother, False)
+        assert len(counts) == 1 and '0000' in counts
+        counts = cudaq.sample(callQftAndAnother, True)
+        assert len(counts) > 1
+
+    assert "calling cudaq.control or cudaq.adjoint on a kernel defined in C++ is not currently supported" in str(
+        e.value)
+
 
 def test_callbacks():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qnum: int):
@@ -126,6 +194,9 @@ def test_callbacks():
 
 @pytest.mark.skip(reason="temporarily disabled")
 def test_callbacks_b():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qnum: int):
@@ -137,6 +208,9 @@ def test_callbacks_b():
 
 
 def test_callback_with_capture():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def captured_qernel(s: int):
@@ -155,6 +229,9 @@ def test_callback_with_capture():
 
 
 def test_callback_with_capture_quantum():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qs: cudaq.qview):
@@ -166,6 +243,9 @@ def test_callback_with_capture_quantum():
 
 
 def test_callback_with_capture_quantum_and_classical():
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import cudaq_test_cpp_algo
 
     @cudaq.kernel
     def entry(qs: cudaq.qview, i: int):

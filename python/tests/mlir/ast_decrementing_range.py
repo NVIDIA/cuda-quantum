@@ -89,20 +89,19 @@ def test_should_we_really_support_this_in_cuda_q():
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i64
 # CHECK-DAG:       %[[VAL_3:.*]] = arith.constant -1 : i64
 # CHECK-DAG:       %[[VAL_4:.*]] = cc.undef i64
-# CHECK-DAG:       %[[VAL_5:.*]] = cc.undef i64
 # CHECK-DAG:       %[[VAL_6:.*]] = quake.alloca !quake.veq<5>
-# CHECK:           %[[VAL_7:.*]]:3 = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_0]], %[[VAL_9:.*]] = %[[VAL_5]], %[[VAL_10:.*]] = %[[VAL_4]]) -> (i64, i64, i64)) {
+# CHECK:           %[[VAL_7:.*]]:2 = cc.loop while ((%[[VAL_8:.*]] = %[[VAL_0]], %[[VAL_10:.*]] = %[[VAL_4]]) -> (i64, i64)) {
 # CHECK:             %[[VAL_11:.*]] = arith.cmpi sgt, %[[VAL_8]], %[[VAL_1]] : i64
-# CHECK:             cc.condition %[[VAL_11]](%[[VAL_8]], %[[VAL_9]], %[[VAL_10]] : i64, i64, i64)
+# CHECK:             cc.condition %[[VAL_11]](%[[VAL_8]], %[[VAL_10]] : i64, i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_13:.*]]: i64, %[[VAL_14:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_13:.*]]: i64):
 # CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_6]][4] : (!quake.veq<5>) -> !quake.ref
 # CHECK:             quake.h %[[VAL_15]] : (!quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_12]], %[[VAL_12]], %[[VAL_2]] : i64, i64, i64
+# CHECK:             cc.continue %[[VAL_12]], %[[VAL_2]] : i64, i64
 # CHECK:           } step {
-# CHECK:           ^bb0(%[[VAL_16:.*]]: i64, %[[VAL_17:.*]]: i64, %[[VAL_18:.*]]: i64):
+# CHECK:           ^bb0(%[[VAL_16:.*]]: i64, %[[VAL_17:.*]]: i64):
 # CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_16]], %[[VAL_3]] : i64
-# CHECK:             cc.continue %[[VAL_19]], %[[VAL_17]], %[[VAL_18]] : i64, i64, i64
+# CHECK:             cc.continue %[[VAL_19]], %[[VAL_17]] : i64, i64
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<5>
 # CHECK:           return
