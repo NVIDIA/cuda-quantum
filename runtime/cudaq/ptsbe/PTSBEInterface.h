@@ -14,6 +14,7 @@
 #include "nvqir/Gates.h"
 #include <concepts>
 #include <cstddef>
+#include <numeric>
 #include <stdexcept>
 #include <vector>
 
@@ -31,6 +32,14 @@ struct PTSBatch {
   /// NOTE: This currently only applies to kernels that are terminal measurement
   /// only which is a limitation of the current PTSBE implementation.
   std::vector<std::size_t> measureQubits;
+
+  /// @brief Calculate total shots across all trajectories
+  std::size_t totalShots() const {
+    std::size_t total = 0;
+    for (const auto &traj : trajectories)
+      total += traj.num_shots;
+    return total;
+  }
 };
 
 /// @brief Concept for simulators supporting a customized PTSBE implementation
@@ -45,19 +54,6 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
     sim.sampleWithPTSBE(batch)
   } -> std::same_as<std::vector<cudaq::sample_result>>;
 };
-
-/// @brief Execute PTSBE batch with compile-time dispatch
-///
-/// @param simulator Circuit simulator instance
-/// @param batch Batch specification
-/// @return Aggregated execution result
-/// @throws std::runtime_error Not yet implemented
-template <typename ScalarType>
-cudaq::sample_result
-executePTSBE(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
-             const PTSBatch &batch) {
-  throw std::runtime_error("executePTSBE: Not implemented");
-}
 
 /// @brief Convert Trace instruction to simulator task
 ///
@@ -207,6 +203,76 @@ mergeAndConvert(const cudaq::Trace &kernelTrace,
                 const cudaq::KrausTrajectory &trajectory) {
   auto baseTasks = convertTrace<ScalarType>(kernelTrace);
   return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory);
+}
+
+/// @brief Execute PTSBE batch with compile-time dispatch
+///
+/// A generic implementation of batched execution for PTSBE.
+/// Converts base trace once, then for each trajectory:
+/// - Resets simulator to computational zero state
+/// - Applies noise merged circuit
+/// - Samples measurement qubits
+/// - Aggregates counts
+///
+/// If the simulator satisfies the `PTSBECapable` concept then it
+/// delegates to simulator.sampleWithPTSBE(). Otherwise it used
+/// the generic implementation below.
+///
+/// @tparam ScalarType Simulator scalar type
+/// @param simulator Circuit simulator instance
+/// @param batch PTSBE specification
+/// @return Aggregated sample_result from all trajectories
+/// @throws std::runtime_error if gate conversion fails
+template <typename ScalarType>
+cudaq::sample_result
+executePTSBE(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
+             const PTSBatch &batch) {
+  if (batch.trajectories.empty())
+    return cudaq::sample_result{};
+
+  std::size_t totalShots = batch.totalShots();
+  if (totalShots == 0)
+    return cudaq::sample_result{};
+
+  if (batch.measureQubits.empty())
+    return cudaq::sample_result{};
+
+  // Create ExecutionContext without the noiseModel
+  // as noise is pre-sampled.
+  cudaq::ExecutionContext execCtx("sample", totalShots);
+  simulator.setExecutionContext(&execCtx);
+
+  // Allocate qubits based on trace
+  std::size_t numQubits = batch.kernelTrace.getNumQudits();
+  simulator.allocateQubits(numQubits);
+
+  auto baseTasks = convertTrace<ScalarType>(batch.kernelTrace);
+
+  // Aggregated measurement counts
+  cudaq::CountsDictionary aggregatedCounts;
+
+  for (const auto &traj : batch.trajectories) {
+    if (traj.num_shots == 0)
+      continue;
+
+    simulator.setToZeroState();
+
+    auto mergedTasks = mergeTasksWithTrajectory<ScalarType>(baseTasks, traj);
+
+    for (const auto &task : mergedTasks)
+      simulator.applyGate(task);
+    simulator.flushGateQueue();
+
+    auto execResult =
+        simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots));
+
+    for (const auto &[bitstring, count] : execResult.counts)
+      aggregatedCounts[bitstring] += count;
+  }
+
+  simulator.resetExecutionContext();
+
+  return cudaq::sample_result{cudaq::ExecutionResult{aggregatedCounts}};
 }
 
 } // namespace cudaq::ptsbe
