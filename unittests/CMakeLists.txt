@@ -494,7 +494,10 @@ add_executable(test_ptsbe main.cpp
   ptsbe/KrausSelectionTester.cpp
   ptsbe/KrausTrajectoryTester.cpp
   ptsbe/ShotAllocationTester.cpp
-  ptsbe/PTSBEInterfaceTester.cpp)
+  ptsbe/PTSBEInterfaceTester.cpp
+  ptsbe/TraceConversionTester.cpp
+  ptsbe/MergeTasksWithTrajectoryTester.cpp
+  ptsbe/ExecutePTSBETester.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_ptsbe PRIVATE -Wl,--no-as-needed)
 endif()

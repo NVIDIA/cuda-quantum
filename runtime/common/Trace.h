@@ -40,6 +40,8 @@ public:
 
   auto getNumQudits() const { return numQudits; }
 
+  auto getNumInstructions() const { return instructions.size(); }
+
   auto begin() const { return instructions.begin(); }
 
   auto end() const { return instructions.end(); }
