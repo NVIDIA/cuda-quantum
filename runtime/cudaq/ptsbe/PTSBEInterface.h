@@ -205,37 +205,57 @@ mergeAndConvert(const cudaq::Trace &kernelTrace,
   return mergeTasksWithTrajectory<ScalarType>(baseTasks, trajectory);
 }
 
-/// @brief Execute PTSBE batch with compile-time dispatch
+/// @brief Aggregate per-trajectory sample results into a single result
 ///
-/// A generic implementation of batched execution for PTSBE.
+/// Combines counts from all trajectory results into one sample_result.
+/// This is useful for the final aggregation step after PTSBE execution.
+///
+/// @param results Vector of per-trajectory sample results
+/// @return Single aggregated sample_result
+inline cudaq::sample_result
+aggregateResults(const std::vector<cudaq::sample_result> &results) {
+  if (results.empty())
+    return cudaq::sample_result{};
+
+  cudaq::CountsDictionary aggregatedCounts;
+  for (const auto &res : results) {
+    for (const auto &[bitstring, count] : res.to_map())
+      aggregatedCounts[bitstring] += count;
+  }
+  return cudaq::sample_result{cudaq::ExecutionResult{aggregatedCounts}};
+}
+
+/// @brief Generic PTSBE execution implementation
+///
 /// Converts base trace once, then for each trajectory:
 /// - Resets simulator to computational zero state
 /// - Applies noise merged circuit
 /// - Samples measurement qubits
-/// - Aggregates counts
 ///
-/// If the simulator satisfies the `PTSBECapable` concept then it
-/// delegates to simulator.sampleWithPTSBE(). Otherwise it used
-/// the generic implementation below.
+/// Returns per-trajectory results for flexibility. Use aggregateResults()
+/// to combine into a single sample_result if needed.
+///
+/// This is the fallback implementation used when a simulator does not
+/// provide a custom sampleWithPTSBE() method.
 ///
 /// @tparam ScalarType Simulator scalar type
 /// @param simulator Circuit simulator instance
 /// @param batch PTSBE specification
-/// @return Aggregated sample_result from all trajectories
+/// @return Per-trajectory sample results
 /// @throws std::runtime_error if gate conversion fails
 template <typename ScalarType>
-cudaq::sample_result
-executePTSBE(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
-             const PTSBatch &batch) {
+std::vector<cudaq::sample_result>
+executePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
+                    const PTSBatch &batch) {
   if (batch.trajectories.empty())
-    return cudaq::sample_result{};
+    return {};
 
   std::size_t totalShots = batch.totalShots();
   if (totalShots == 0)
-    return cudaq::sample_result{};
+    return {};
 
   if (batch.measureQubits.empty())
-    return cudaq::sample_result{};
+    return {};
 
   // Create ExecutionContext without the noiseModel
   // as noise is pre-sampled.
@@ -248,12 +268,16 @@ executePTSBE(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
 
   auto baseTasks = convertTrace<ScalarType>(batch.kernelTrace);
 
-  // Aggregated measurement counts
-  cudaq::CountsDictionary aggregatedCounts;
+  std::vector<cudaq::sample_result> results;
+  results.reserve(batch.trajectories.size());
 
   for (const auto &traj : batch.trajectories) {
-    if (traj.num_shots == 0)
+    if (traj.num_shots == 0) {
+      // Push empty result to maintain index correspondence with trajectories
+      results.push_back(
+          cudaq::sample_result{cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
       continue;
+    }
 
     simulator.setToZeroState();
 
@@ -266,13 +290,39 @@ executePTSBE(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
     auto execResult =
         simulator.sample(batch.measureQubits, static_cast<int>(traj.num_shots));
 
-    for (const auto &[bitstring, count] : execResult.counts)
-      aggregatedCounts[bitstring] += count;
+    results.push_back(
+        cudaq::sample_result{cudaq::ExecutionResult{execResult.counts}});
   }
 
   simulator.resetExecutionContext();
 
-  return cudaq::sample_result{cudaq::ExecutionResult{aggregatedCounts}};
+  return results;
+}
+
+/// @brief Execute PTSBE batch with compile-time dispatch
+///
+/// Uses compile-time dispatch to select between:
+/// - Custom simulator implementation (if PTSBECapable concept is satisfied)
+/// - Generic fallback implementation (executePTSBEGeneric)
+///
+/// Returns per-trajectory results for flexibility. Use aggregateResults()
+/// to combine into a single sample_result if needed.
+///
+/// @tparam SimulatorType Simulator type (deduced)
+/// @param simulator Circuit simulator instance
+/// @param batch PTSBE specification
+/// @return Per-trajectory sample results
+/// @throws std::runtime_error if gate conversion fails
+template <typename SimulatorType>
+std::vector<cudaq::sample_result> executePTSBE(SimulatorType &simulator,
+                                               const PTSBatch &batch) {
+  if constexpr (PTSBECapable<SimulatorType>) {
+    // Dispatch to custom simulator implementation
+    return simulator.sampleWithPTSBE(batch);
+  } else {
+    // Fall back to generic implementation
+    return executePTSBEGeneric(simulator, batch);
+  }
 }
 
 } // namespace cudaq::ptsbe
