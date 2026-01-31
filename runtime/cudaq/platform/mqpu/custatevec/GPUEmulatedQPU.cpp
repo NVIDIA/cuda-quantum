@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/NoiseModel.h"
 #include "cuda_runtime_api.h"
 #include "cudaq/platform/qpu.h"

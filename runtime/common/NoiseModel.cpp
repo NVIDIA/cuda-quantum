@@ -8,7 +8,7 @@
 
 #include "NoiseModel.h"
 #include "FmtCore.h"
-#include "Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"
 #include <numeric>

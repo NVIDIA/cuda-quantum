@@ -33,7 +33,6 @@ target_link_libraries(${LIBRARY_NAME}
     CUDAQTargetConfigUtil
     pthread
     spdlog::spdlog
-    fmt::fmt-header-only
 )
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)

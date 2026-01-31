@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "Future.h"
-#include "Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"

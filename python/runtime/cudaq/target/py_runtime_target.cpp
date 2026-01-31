@@ -9,7 +9,7 @@
 #include "py_runtime_target.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/platform.h"
 #include "cudaq/target_control.h"
 #include <functional>

@@ -14,9 +14,7 @@ endif()
 target_include_directories(test_record PRIVATE ..)
 target_link_libraries(test_record
   PRIVATE
-    fmt::fmt-header-only 
     cudaq
-    fmt::fmt-header-only 
     cudaq-common 
     gtest_main
     cudaq-platform-default)

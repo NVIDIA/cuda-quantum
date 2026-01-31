@@ -9,7 +9,7 @@
 #include "CircuitSimulator.h"
 #include "NVQIRUtil.h"
 #include "QIRTypes.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"

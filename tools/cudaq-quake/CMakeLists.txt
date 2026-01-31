@@ -28,7 +28,6 @@ target_link_libraries(cudaq-quake
   clangCodeGen
   clangFrontendTool
   clangFrontend
-  fmt::fmt-header-only
 
   CCDialect
   QuakeDialect

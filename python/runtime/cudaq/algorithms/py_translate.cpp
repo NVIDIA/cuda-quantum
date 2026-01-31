@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "py_translate.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/Timing.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"

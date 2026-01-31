@@ -8,7 +8,7 @@
 
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfigYaml.h"

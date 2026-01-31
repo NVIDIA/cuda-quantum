@@ -6,20 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(LIBRARY_NAME nvqir)
+set(LIBRARY_NAME compiler)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
-set(NVQIR_RUNTIME_SRC
-  QIRTypes.cpp
-  NVQIR.cpp
-  resourcecounter/ResourceCounter.cpp
-  ../cudaq/qis/state.cpp
+add_library(${LIBRARY_NAME} SHARED 
+  compiler.cpp
 )
 
-add_library(${LIBRARY_NAME} SHARED ${NVQIR_RUNTIME_SRC})
 target_include_directories(${LIBRARY_NAME}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime> 
          $<INSTALL_INTERFACE:include> 
@@ -31,29 +27,9 @@ set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 # and by keeping it private, others can specify the
 # backend library later on
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-common cudaq-operator dl fmt::fmt-header-only
-  PRIVATE cudaq-logger
-)
+  PUBLIC cudaq-common )
 
 install(TARGETS ${LIBRARY_NAME} 
-        EXPORT nvqir-targets 
+        EXPORT compiler
         LIBRARY DESTINATION lib
-        INCLUDES DESTINATION include/nvqir)
-
-add_subdirectory(qpp)
-add_subdirectory(stim)
-
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
-  add_subdirectory(custatevec)
-endif() 
-if (CUTENSORNET_ROOT AND CUDA_FOUND)
-  add_subdirectory(cutensornet)  
-endif()
-if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
-  add_subdirectory(cudensitymat)
-endif()
-
-install(EXPORT nvqir-targets
-        FILE NVQIRTargets.cmake
-        NAMESPACE nvqir::
-        DESTINATION lib/cmake/nvqir)
+        INCLUDES DESTINATION include/compiler)

@@ -11,7 +11,7 @@
 #include "Gates.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"

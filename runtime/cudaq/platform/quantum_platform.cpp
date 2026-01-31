@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/platform/quantum_platform.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"

@@ -9,7 +9,7 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "common/Timing.h"

@@ -10,7 +10,6 @@ add_backend_unittest_executable(test_quera
   SOURCES JsonPayloadTester.cpp
 
   LINK_LIBS
-  fmt::fmt-header-only 
   cudaq
   cudaq-common 
   gtest_main

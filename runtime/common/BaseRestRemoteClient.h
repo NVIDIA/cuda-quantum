@@ -11,7 +11,7 @@
 #include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/RuntimeMLIR.h"
