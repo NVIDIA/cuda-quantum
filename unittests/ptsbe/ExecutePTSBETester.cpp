@@ -36,7 +36,8 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   KrausTrajectory traj(0, {}, 1.0, 1000);
   batch.trajectories.push_back(traj);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
+  auto result = aggregateResults(results);
 
   // Hadamard creates superposition, expect ~50/50 with 10% tolerance
   std::size_t count0 = result.count("0");
@@ -66,15 +67,21 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
 
-  // X|0> = |1>, so all shots should measure "1"
+  // Verify per-trajectory results
+  EXPECT_EQ(results.size(), 2u);
+  EXPECT_EQ(results[0].count("1"), 700u);
+  EXPECT_EQ(results[1].count("1"), 300u);
+
+  // Verify aggregation
+  auto result = aggregateResults(results);
   EXPECT_EQ(result.count("1"), 1000u);
   EXPECT_EQ(result.count("0"), 0u);
 }
 
-/// Zero-shot trajectories should be skipped during execution
-CUDAQ_TEST(ExecutePTSBETest, SkipsZeroShotTrajectories) {
+/// Zero-shot trajectories return empty result to maintain index correspondence
+CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
   QppSimulator sim;
 
   // Create trace: Y gate
@@ -91,28 +98,50 @@ CUDAQ_TEST(ExecutePTSBETest, SkipsZeroShotTrajectories) {
   batch.trajectories.push_back(zeroShot);
   batch.trajectories.push_back(normalShot);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
 
-  // Y|0> = i|1>, measuring gives "1"
+  // Results maintain index correspondence with trajectories
+  EXPECT_EQ(results.size(), 2u);
+  // results[0] is empty (zero shots) - count returns 0 for any bitstring
+  EXPECT_EQ(results[0].count("0"), 0u);
+  EXPECT_EQ(results[0].count("1"), 0u);
+  // results[1] has actual data: Y|0> = i|1>
+  EXPECT_EQ(results[1].count("1"), 500u);
+
+  auto result = aggregateResults(results);
   EXPECT_EQ(result.count("1"), 500u);
 }
 
-/// Empty trajectories vector should return empty result
-CUDAQ_TEST(ExecutePTSBETest, EmptyTrajectoriesReturnsEmpty) {
+/// Empty inputs (trajectories or measureQubits) should return empty result
+CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
   QppSimulator sim;
 
   Trace trace;
   trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
 
-  PTSBatch batch;
-  batch.kernelTrace = trace;
-  batch.measureQubits = {0};
-  // No trajectories added
+  // Test 1: Empty trajectories vector
+  {
+    PTSBatch batch;
+    batch.kernelTrace = trace;
+    batch.measureQubits = {0};
+    // No trajectories added
 
-  auto result = executePTSBE(sim, batch);
+    auto results = executePTSBE(sim, batch);
+    EXPECT_TRUE(results.empty());
+  }
 
-  // Empty trajectories should produce empty result (no registers)
-  EXPECT_TRUE(result.register_names().empty());
+  // Test 2: Empty measureQubits
+  {
+    PTSBatch batch;
+    batch.kernelTrace = trace;
+    batch.measureQubits = {};
+
+    KrausTrajectory traj(0, {}, 1.0, 100);
+    batch.trajectories.push_back(traj);
+
+    auto results = executePTSBE(sim, batch);
+    EXPECT_TRUE(results.empty());
+  }
 }
 
 /// Bell state: verify (|00> + |11>)/sqrt(2) distribution
@@ -131,7 +160,8 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   KrausTrajectory traj(0, {}, 1.0, 2000);
   batch.trajectories.push_back(traj);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
+  auto result = aggregateResults(results);
 
   // Bell state |00> + |11> should give ~50% each, with 10% tolerance
   std::size_t count00 = result.count("00");
@@ -167,7 +197,8 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   KrausTrajectory traj(0, selections, 1.0, 100);
   batch.trajectories.push_back(traj);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
+  auto result = aggregateResults(results);
 
   // I|0> with X error = X|0> = |1>
   EXPECT_EQ(result.count("1"), 100u);
@@ -199,7 +230,8 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
+  auto result = aggregateResults(results);
 
   EXPECT_EQ(result.count("11"), 100u);
   EXPECT_EQ(result.count("01"), 100u);
@@ -222,7 +254,8 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   KrausTrajectory traj(0, {}, 1.0, 1000);
   batch.trajectories.push_back(traj);
 
-  auto result = executePTSBE(sim, batch);
+  auto results = executePTSBE(sim, batch);
+  auto result = aggregateResults(results);
 
   std::size_t count0 = result.count("0");
   std::size_t count1 = result.count("1");
@@ -251,7 +284,8 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     KrausTrajectory traj(0, {}, 1.0, 100);
     batch.trajectories.push_back(traj);
 
-    auto result = executePTSBE(sim, batch);
+    auto results = executePTSBE(sim, batch);
+    auto result = aggregateResults(results);
     // q0=1, q1=0, order {0,1} -> bitstring "10"
     EXPECT_EQ(result.count("10"), 100u);
   }
@@ -265,40 +299,52 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     KrausTrajectory traj(0, {}, 1.0, 100);
     batch.trajectories.push_back(traj);
 
-    auto result = executePTSBE(sim, batch);
+    auto results = executePTSBE(sim, batch);
+    auto result = aggregateResults(results);
     // q0=1, q1=0, order {1,0} -> bitstring "01"
     EXPECT_EQ(result.count("01"), 100u);
   }
 }
 
-/// Empty measureQubits: returns empty result
-/// NOTE: Callers should use extractMeasureQubits() to populate batch.measureQubits
-/// before calling executePTSBE. This test verifies the low-level behavior.
-CUDAQ_TEST(ExecutePTSBETest, EmptyMeasureQubitsReturnsEmpty) {
+/// Verify state is properly reset between trajectories via setToZeroState()
+/// This ensures state doesn't leak from one trajectory to the next.
+CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   QppSimulator sim;
 
-  // Create state where q0=1, q1=0
+  // Create trace: identity gate only (no state change from |0>)
   Trace trace;
-  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 0)});
-  trace.appendInstruction("id", {}, {}, {QuditInfo(2, 1)});
+  trace.appendInstruction("id", {}, {}, {QuditInfo(2, 0)});
 
   PTSBatch batch;
   batch.kernelTrace = trace;
-  // Empty measureQubits - caller should have populated via extractMeasureQubits()
-  batch.measureQubits = {};
+  batch.measureQubits = {0};
 
-  KrausTrajectory traj(0, {}, 1.0, 100);
-  batch.trajectories.push_back(traj);
+  // Trajectory 1: X error flips to |1>
+  std::vector<KrausSelection> selectionsWithX = {
+      KrausSelection(0, {0}, "x", static_cast<KrausOperatorType>(1))};
+  KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 100);
 
-  auto result = executePTSBE(sim, batch);
+  // Trajectory 2: no noise, stays |0>
+  KrausTrajectory trajNoError(1, {}, 0.5, 100);
 
-  // Empty measureQubits returns empty result (no registers)
-  EXPECT_TRUE(result.register_names().empty());
+  batch.trajectories.push_back(trajWithError);
+  batch.trajectories.push_back(trajNoError);
+
+  auto results = executePTSBE(sim, batch);
+
+  // Verify per-trajectory results (confirms state reset between trajectories)
+  EXPECT_EQ(results.size(), 2u);
+  EXPECT_EQ(results[0].count("1"), 100u); // Trajectory 1: I|0> + X = |1>
+  EXPECT_EQ(results[1].count("0"), 100u); // Trajectory 2: I|0> = |0>
+
+  // Verify aggregation
+  auto result = aggregateResults(results);
+  EXPECT_EQ(result.count("1"), 100u);
+  EXPECT_EQ(result.count("0"), 100u);
 }
 
-
 /// Mock simulator that implements sampleWithPTSBE for testing concept dispatch.
-/// Delegates to the generic executePTSBE fallback via the base class.
+/// Delegates to the generic executePTSBEGeneric fallback via the base class.
 class MockPTSBESimulator : public QppSimulator {
 public:
   // Counter to verify sampleWithPTSBE was called
@@ -307,20 +353,19 @@ public:
   /// Custom PTSBE implementation that delegates to generic fallback.
   /// In a real optimized simulator, this would do batched execution.
   std::vector<cudaq::sample_result>
-  sampleWithPTSBE(const PTSBatch &batch) const {
+  sampleWithPTSBE(const PTSBatch &batch) {
     ++sampleWithPTSBECallCount;
 
-    auto &baseSim = const_cast<QppSimulator &>(
-        static_cast<const QppSimulator &>(*this));
-    auto aggregated = executePTSBE(baseSim, batch);
-
-    return {aggregated};
+    // Use generic implementation via base class
+    return executePTSBEGeneric(*this, batch);
   }
 };
 
-/// Test that mock simulator's sampleWithPTSBE is invoked and produces results
-CUDAQ_TEST(MockPTSBESimulatorTest, SampleWithPTSBEInvoked) {
+/// Verify concept dispatch routes to custom implementation and generic fallback
+/// produces equivalent results
+CUDAQ_TEST(ExecutePTSBETest, ConceptDispatchAndGenericEquivalence) {
   MockPTSBESimulator mock;
+  QppSimulator generic; // Does NOT satisfy PTSBECapable concept
 
   // Create trace: X gate (deterministic |1>)
   Trace trace;
@@ -333,12 +378,16 @@ CUDAQ_TEST(MockPTSBESimulatorTest, SampleWithPTSBEInvoked) {
   KrausTrajectory traj(0, {}, 1.0, 100);
   batch.trajectories.push_back(traj);
 
-  // Call sampleWithPTSBE directly
+  // Test 1: Concept dispatch routes to mock.sampleWithPTSBE
   EXPECT_EQ(mock.sampleWithPTSBECallCount, 0u);
-  auto results = mock.sampleWithPTSBE(batch);
+  auto mockResults = executePTSBE(mock, batch);
   EXPECT_EQ(mock.sampleWithPTSBECallCount, 1u);
 
-  // Verify it produces correct results (via generic fallback)
-  EXPECT_EQ(results.size(), 1u);
-  EXPECT_EQ(results[0].count("1"), 100u);
+  // Test 2: Generic fallback for non-capable simulator
+  auto genericResults = executePTSBE(generic, batch);
+
+  // Both should produce equivalent results (X|0> = |1>)
+  EXPECT_EQ(mockResults.size(), genericResults.size());
+  EXPECT_EQ(mockResults[0].count("1"), 100u);
+  EXPECT_EQ(genericResults[0].count("1"), 100u);
 }
