@@ -5,13 +5,25 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-target_sources(cudaq-fermioniq-qpu PRIVATE FermioniqServerHelper.cpp)
 
-add_library(cudaq-serverhelper-fermioniq SHARED FermioniqServerHelper.cpp )
-target_link_libraries(cudaq-serverhelper-fermioniq
-  PUBLIC 
-    cudaq-common 
-    cudaq-logger 
+add_library(cudaq-logger
+  SHARED
+    Logger.cpp
 )
-install(TARGETS cudaq-serverhelper-fermioniq DESTINATION lib)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-logger)
 
+target_include_directories(cudaq-logger
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE .
+    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
+    ${CMAKE_SOURCE_DIR}/tpls/fmt/include)
+
+target_link_libraries(cudaq-logger
+  PRIVATE
+    spdlog::spdlog
+)
+
+install(TARGETS cudaq-logger EXPORT cudaq-common-targets DESTINATION lib)

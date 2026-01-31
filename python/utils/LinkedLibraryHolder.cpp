@@ -8,7 +8,7 @@
 
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform.h"

@@ -12,5 +12,6 @@ target_link_libraries(gpu-emulated-qpu PUBLIC
                         cudaq-common 
                         CUDA::cudart_static
                         spdlog::spdlog 
+                        cudaq-logger 
 )
 target_include_directories(gpu-emulated-qpu PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)

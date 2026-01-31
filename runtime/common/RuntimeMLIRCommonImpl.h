@@ -10,7 +10,7 @@
 
 #include "CodeGenConfig.h"
 #include "Environment.h"
-#include "Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"

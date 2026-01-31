@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "OrcaRemoteRESTQPU.h"
-#include "common/Logger.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "llvm/Support/Base64.h"
 
 using namespace cudaq;
