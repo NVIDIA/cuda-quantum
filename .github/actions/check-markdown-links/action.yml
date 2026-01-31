@@ -4,7 +4,7 @@ inputs:
   config-file:
     description: 'Path to the markdown link check config file'
     required: false
-    default: '.github/workflows/config/md_link_check_config.json'
+    default: '.github/pre-commit/md_link_check_config.json'
   check-modified-files-only:
     description: 'Whether to check only modified files'
     required: false
