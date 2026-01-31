@@ -70,7 +70,7 @@ struct iqpe {
 
 int main() {
   auto results = cudaq::run(/*shots*/ 10, iqpe{});
-  // Get the counts for cr0, cr1, cr2 and the final measurement
+  // Get the counts for `cr0`, `cr1`, `cr2` and the final measurement
   auto count_bit = [&](std::size_t idx) {
     return std::count_if(results.begin(), results.end(),
                          [idx](auto &r) { return r[idx]; });
