@@ -1,23 +1,10 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s
-
-#include "mid_circuit_measurement.inc"
-
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-// CHECK: 1
-
-// CHECK: done
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && echo skipping
+#include "../execution/conditional_run.cpp"
