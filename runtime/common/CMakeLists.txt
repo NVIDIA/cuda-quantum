@@ -18,7 +18,6 @@ set(COMMON_RUNTIME_SRC
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
-  Logger.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
@@ -46,6 +45,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
   PRIVATE
+    cudaq-logger
     spdlog::spdlog
 )
 
@@ -110,7 +110,6 @@ add_library(cudaq-mlir-runtime
     CodeGenConfig.cpp
     Environment.cpp
     JIT.cpp
-    Logger.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
     RunTheKernel.cpp
@@ -121,7 +120,6 @@ set_source_files_properties(
   CodeGenConfig.cpp
   Environment.cpp
   JIT.cpp
-  Logger.cpp
   RuntimeMLIR.cpp
 )
 
@@ -152,6 +150,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRLLVMToLLVMIRTranslation
   PRIVATE
     cudaq
+    cudaq-logger
     spdlog::spdlog
 )
 

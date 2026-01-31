@@ -12,6 +12,6 @@ add_library(cudaq-serverhelper-quantum_machines SHARED QuantumMachinesServerHelp
 target_link_libraries(cudaq-serverhelper-quantum_machines
   PUBLIC
     cudaq-common
-    fmt::fmt-header-only
+    cudaq-logger
 )
 install(TARGETS cudaq-serverhelper-quantum_machines DESTINATION lib)

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "common/cudaq_fmt.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <cublas_v2.h>
 #include <cudensitymat.h>
 #include <stdexcept>

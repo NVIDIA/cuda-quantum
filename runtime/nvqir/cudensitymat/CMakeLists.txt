@@ -116,7 +116,8 @@ if (${CUDENSITYMAT_VERSION} VERSION_GREATER_EQUAL "0.2")
 
   target_link_libraries(${LIBRARY_NAME}
                         PRIVATE
-                          fmt::fmt-header-only
+                          fmt::fmt-header-only 
+                          cudaq-logger
                           cudaq-common
                           ${CUDENSITYMAT_LIB}
                           ${CUTENSOR_LIB}
