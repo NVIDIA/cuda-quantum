@@ -24,6 +24,6 @@ openfermionpyscf==0.5
 h5py==3.12.1
 matplotlib
 pyspelling==2.10
-pymdown-extensions==10.8.1
+pymdown-extensions==10.16.1
 yapf
 
