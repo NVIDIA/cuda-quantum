@@ -167,14 +167,32 @@ pr-3740
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1777,7 +1795,7 @@ Below is a Schematic depiction of the ADAPT-VQE algorithm
 
 <div>
 
-![ac768b22f39c4c778d0f50252a444f1e](../../_images/adapt-vqe.png){.no-scaled-link
+![654d96032c6a40a8be388da579ddb51b](../../_images/adapt-vqe.png){.no-scaled-link
 style="width: 800px;"}
 
 </div>
@@ -1789,7 +1807,7 @@ style="width: 800px;"}
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     # Requires pyscf to be installed
     %pip install pyscf
@@ -1821,7 +1839,7 @@ style="width: 800px;"}
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     import cudaq
 
@@ -1851,7 +1869,7 @@ molecular orbitals.
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     import numpy as np
     from qchem.classical_pyscf import get_mol_hamiltonian
@@ -1898,7 +1916,7 @@ Convert fermionic Hamiltonian to qubit Hamiltonian.
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     from qchem.hamiltonian import jordan_wigner_fermion
 
@@ -1953,7 +1971,7 @@ X_j Y_k Y_l − X_i Y_j Y_k Y_l) \\prod\_{p=i+1}\^{j-1} Zp
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     from qchem.operator_pool import get_uccsd_pool
 
@@ -2008,7 +2026,7 @@ X_j Y_k Y_l − X_i Y_j Y_k Y_l) \\prod\_{p=i+1}\^{j-1} Zp
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     def commutator(pools, ham):
         com_op = []
@@ -2050,11 +2068,11 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [ ]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     # Get the initial state (reference state).
 
@@ -2066,7 +2084,7 @@ Reference state here is Haretree Fock
         for i in range(nelectrons):
             x(qubits[i])
 
-    state = cudaq.get_state(initial_state, n_qubits, nelectrons)
+    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, n_qubits, nelectrons))
     print(state)
 :::
 :::
@@ -2094,7 +2112,7 @@ Reference state here is Haretree Fock
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     ###################################
     # Quantum kernels
@@ -2139,11 +2157,11 @@ Reference state here is Haretree Fock
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [16]:
+    [ ]:
 :::
 :::
 
-::: {.input_area .highlight-none .notranslate}
+::: {.input_area .highlight-python .notranslate}
 ::: highlight
     from scipy.optimize import minimize
 
@@ -2317,8 +2335,8 @@ Reference state here is Haretree Fock
                 E_prev=result_vqe.fun
 
                 # Prepare a trial state with the current ansatz.
-                state=cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
-                                coef_single, pool_double, coef_double)
+                state=cudaq.StateMemoryView(cudaq.get_state(kernel, theta, n_qubits, nelectrons, pool_single,
+                                coef_single, pool_double, coef_double))
 
     # When using mpi
     #cudaq.mpi.finalize()

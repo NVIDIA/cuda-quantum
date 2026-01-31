@@ -167,14 +167,32 @@ pr-3740
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
-        -   [Built in CUDA-Q Optimizers and
-            Gradients](../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
+        -   [CUDA-Q Optimizer
+            Overview](../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview){.reference
             .internal}
-        -   [Third-Party
-            Optimizers](../../examples/python/optimizers_gradients.html#Third-Party-Optimizers){.reference
+            -   [Gradient-Free Optimizers (no gradients
+                required):](../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):){.reference
+                .internal}
+            -   [Gradient-Based Optimizers (require
+                gradients):](../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):){.reference
+                .internal}
+        -   [1. Built-in CUDA-Q Optimizers and
+            Gradients](../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients){.reference
             .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients){.reference
+            -   [1.1 Adam Optimizer with Parameter
+                Configuration](../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration){.reference
+                .internal}
+            -   [1.2 SGD (Stochastic Gradient Descent)
+                Optimizer](../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer){.reference
+                .internal}
+            -   [1.3 SPSA (Simultaneous Perturbation Stochastic
+                Approximation)](../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)){.reference
+                .internal}
+        -   [2. Third-Party
+            Optimizers](../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers){.reference
+            .internal}
+        -   [3. Parallel Parameter Shift
+            Gradients](../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients){.reference
             .internal}
     -   [Noisy
         Simulations](../../examples/python/noisy_simulations.html){.reference
@@ -1809,7 +1827,7 @@ explained above.
 
 <div>
 
-![dd97386f751248faba7d418a1930c06c](../../_images/adapt-qaoa.png){.no-scaled-link
+![cec2b05da68c4625aaa8ca1a9f200c47](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
@@ -2064,7 +2082,7 @@ in the
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [21]:
+    [ ]:
 :::
 :::
 
@@ -2078,7 +2096,7 @@ in the
         qubits = cudaq.qvector(qubits_num)
         h(qubits)
 
-    state = cudaq.get_state(initial_state, qubits_num)
+    state = cudaq.StateMemoryView(cudaq.get_state(initial_state, qubits_num))
 
     #print(state)
     ###############################################
@@ -2125,7 +2143,7 @@ pool has the same value. For production, users need to remove that.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [22]:
+    [ ]:
 :::
 :::
 
@@ -2245,7 +2263,7 @@ pool has the same value. For production, users need to remove that.
             else:
 
                 # Compute the state of this current step for the gradient
-                state = cudaq.get_state(kernel_qaoa, qubits_num, ham_word, ham_coef,mixer_pool, gamma, beta, num_layer)
+                state = cudaq.StateMemoryView(cudaq.get_state(kernel_qaoa, qubits_num, ham_word, ham_coef,mixer_pool, gamma, beta, num_layer))
                 #print('State at step ', istep)
                 #print(state)
                 istep+=1

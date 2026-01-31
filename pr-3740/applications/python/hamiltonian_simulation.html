@@ -191,9 +191,19 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
@@ -1048,7 +1058,7 @@
 <li><p><span class="math notranslate nohighlight">\(H_i\)</span> are the individual terms in the Hamiltonian.</p></li>
 </ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import Required Libraries</span>
@@ -1070,7 +1080,7 @@
 <h3>1. Prepare initial state<a class="headerlink" href="#1.-Prepare-initial-state" title="Permalink to this heading">¶</a></h3>
 <p>Prepare the initial quantum state of the system. For this simulation, we create the state <span class="math notranslate nohighlight">\(|0101\ldots\rangle\)</span>, where every odd qubit is in the <span class="math notranslate nohighlight">\(|1\rangle\)</span> state, and every even qubit is in the <span class="math notranslate nohighlight">\(|0\rangle\)</span> state.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1095,7 +1105,7 @@
 <div class="line">- <strong>words:</strong> Corresponding Pauli operators (e.g., X, Y, Z) for evolution.</div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1132,7 +1142,7 @@
 <h3>3. <code class="docutils literal notranslate"><span class="pre">Compute</span> <span class="pre">overlap</span></code><a class="headerlink" href="#3.-Compute-overlap" title="Permalink to this heading">¶</a></h3>
 <p>Calculate the probability of the evolved state overlapping with the initial state.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">compute_overlap_probability</span><span class="p">(</span><span class="n">initial_state</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">,</span> <span class="n">evolved_state</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">State</span><span class="p">):</span>
@@ -1151,7 +1161,7 @@
 <div class="line">- <strong>``h_x``, ``h_y``, ``h_z``</strong>: Magnetic field components (currently unused).</div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">create_hamiltonian_heisenberg</span><span class="p">(</span><span class="n">n_spins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">Jx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Jy</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Jz</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">h_x</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">h_y</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">h_z</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
@@ -1173,7 +1183,7 @@
 <h3>5. Construct TFIM Hamiltonian<a class="headerlink" href="#5.-Construct-TFIM-Hamiltonian" title="Permalink to this heading">¶</a></h3>
 <p>Construct the TFIM Hamiltonian as a <code class="docutils literal notranslate"><span class="pre">cudaq.SpinOperator</span></code> object. See formula above.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">create_hamiltonian_tfim</span><span class="p">(</span><span class="n">n_spins</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">h_field</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
@@ -1197,7 +1207,7 @@
 <h3>6. Extract coefficients and Pauli words<a class="headerlink" href="#6.-Extract-coefficients-and-Pauli-words" title="Permalink to this heading">¶</a></h3>
 <p>Extract the coefficients and Pauli words from the provided Hamiltonian for use in the Trotter step.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">extractCoefficients</span><span class="p">(</span><span class="n">hamiltonian</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">SpinOperator</span><span class="p">):</span>
@@ -1223,7 +1233,7 @@
 <h2>Main code<a class="headerlink" href="#Main-code" title="Permalink to this heading">¶</a></h2>
 <p>Import required libraries, set up the simulation parameters, and perform the time evolution.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import Required Libraries</span>
@@ -1291,13 +1301,24 @@
 </pre></div>
 </div>
 </div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/tmp/ipykernel_393541/1011071069.py:4: DeprecationWarning: use `evaluate_coefficient` instead
+  result.append(term.get_coefficient())
+/tmp/ipykernel_393541/1011071069.py:10: DeprecationWarning: use `qubit_count` instead
+  n_spins = hamiltonian.get_qubit_count()
+</pre></div></div>
+</div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Initialize state
-Circuit execution time: 0.060 seconds
+Circuit execution time: 2.244 seconds
 </pre></div></div>
 </div>
 </section>
@@ -1305,7 +1326,7 @@ Circuit execution time: 0.060 seconds
 <h2>Visualization of probablity over time<a class="headerlink" href="#Visualization-of-probablity-over-time" title="Permalink to this heading">¶</a></h2>
 <p>Plot the probability of the system remaining in the initial state as a function of time.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot probability over time</span>
@@ -1330,7 +1351,7 @@ Circuit execution time: 0.060 seconds
 <h2>Expectation value over time:<a class="headerlink" href="#Expectation-value-over-time:" title="Permalink to this heading">¶</a></h2>
 <p>Set up the simulation parameters, perform the time evolution, and visualize results for expectation value over time.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize list to store expectation values</span>
@@ -1354,7 +1375,7 @@ Circuit execution time: 0.060 seconds
 <h2>Visualization of expectation over time<a class="headerlink" href="#Visualization-of-expectation-over-time" title="Permalink to this heading">¶</a></h2>
 <p>Plot the expectation value over time.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot expectation value over time</span>
@@ -1380,7 +1401,7 @@ Circuit execution time: 0.060 seconds
 <h2>Additional information<a class="headerlink" href="#Additional-information" title="Permalink to this heading">¶</a></h2>
 <p>In the code above, we relied on CUDA-Q expectation of Pauli gates. If we needed to do it manually here is how it is done.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1430,7 +1451,7 @@ Circuit execution time: 0.060 seconds
 <li><p><a class="reference external" href="https://arxiv.org/abs/quant-ph/9503016">https://arxiv.org/abs/quant-ph/9503016</a></p></li>
 </ul>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
@@ -1442,7 +1463,7 @@ Circuit execution time: 0.060 seconds
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-CUDA-Q Version 0.9.0 (https://github.com/NVIDIA/cuda-quantum b4d549b1951738f3a5a481d1d93bf090e1e622fa)
+CUDA-Q Version proto-0.8.0 (https://github.com/NVIDIA/cuda-quantum d5e0513d54809a835d1c2c108c0692be10d7d1bb)
 </pre></div></div>
 </div>
 </section>
