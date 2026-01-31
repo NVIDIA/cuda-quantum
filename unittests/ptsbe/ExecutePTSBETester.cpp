@@ -295,3 +295,50 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyMeasureQubitsReturnsEmpty) {
   // Empty measureQubits returns empty result (no registers)
   EXPECT_TRUE(result.register_names().empty());
 }
+
+
+/// Mock simulator that implements sampleWithPTSBE for testing concept dispatch.
+/// Delegates to the generic executePTSBE fallback via the base class.
+class MockPTSBESimulator : public QppSimulator {
+public:
+  // Counter to verify sampleWithPTSBE was called
+  mutable std::size_t sampleWithPTSBECallCount = 0;
+
+  /// Custom PTSBE implementation that delegates to generic fallback.
+  /// In a real optimized simulator, this would do batched execution.
+  std::vector<cudaq::sample_result>
+  sampleWithPTSBE(const PTSBatch &batch) const {
+    ++sampleWithPTSBECallCount;
+
+    auto &baseSim = const_cast<QppSimulator &>(
+        static_cast<const QppSimulator &>(*this));
+    auto aggregated = executePTSBE(baseSim, batch);
+
+    return {aggregated};
+  }
+};
+
+/// Test that mock simulator's sampleWithPTSBE is invoked and produces results
+CUDAQ_TEST(MockPTSBESimulatorTest, SampleWithPTSBEInvoked) {
+  MockPTSBESimulator mock;
+
+  // Create trace: X gate (deterministic |1>)
+  Trace trace;
+  trace.appendInstruction("x", {}, {}, {QuditInfo(2, 0)});
+
+  PTSBatch batch;
+  batch.kernelTrace = trace;
+  batch.measureQubits = {0};
+
+  KrausTrajectory traj(0, {}, 1.0, 100);
+  batch.trajectories.push_back(traj);
+
+  // Call sampleWithPTSBE directly
+  EXPECT_EQ(mock.sampleWithPTSBECallCount, 0u);
+  auto results = mock.sampleWithPTSBE(batch);
+  EXPECT_EQ(mock.sampleWithPTSBECallCount, 1u);
+
+  // Verify it produces correct results (via generic fallback)
+  EXPECT_EQ(results.size(), 1u);
+  EXPECT_EQ(results[0].count("1"), 100u);
+}
