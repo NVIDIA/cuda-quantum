@@ -71,6 +71,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
+config.cudaq_backends_qibo = "@CUDAQ_ENABLE_QIBO_BACKEND@"
+if cmake_boolvar_to_bool(config.cudaq_backends_qibo):
+    config.available_features.add('qibo')
+    config.substitutions.append(('%qibo_avail', 'true'))
+else:
+    config.substitutions.append(('%qibo_avail', 'false'))
+
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 
