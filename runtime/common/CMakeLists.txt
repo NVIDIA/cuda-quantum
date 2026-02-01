@@ -46,7 +46,6 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
   PRIVATE
     cudaq-logger
-    spdlog::spdlog
 )
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
@@ -151,7 +150,6 @@ target_link_libraries(cudaq-mlir-runtime
   PRIVATE
     cudaq
     cudaq-logger
-    spdlog::spdlog
 )
 
 install(TARGETS cudaq-mlir-runtime DESTINATION lib)
