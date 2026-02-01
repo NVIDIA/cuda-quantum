@@ -29,6 +29,7 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE
     cudaq-common
     cudaq-logger
+    fmt::fmt-header-only
     cudaq
     mqpu_util
     CUDAQTargetConfigUtil

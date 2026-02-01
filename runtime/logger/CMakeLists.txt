@@ -17,9 +17,8 @@ target_include_directories(cudaq-logger
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
     $<INSTALL_INTERFACE:include>
-  PRIVATE .
-    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
-    ${CMAKE_SOURCE_DIR}/tpls/fmt/include)
+  PRIVATE 
+    fmt::fmt-header-only
 
 target_link_libraries(cudaq-logger
   PRIVATE
