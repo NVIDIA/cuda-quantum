@@ -634,7 +634,7 @@ void bindSpinOperator(py::module &mod) {
                              "Returns the number of operators in the product.")
       .def_property_readonly(
           "term_count", [](const spin_op_term &) { return 1; },
-          "Returns the number of terms in the operator.")
+          "Returns the number of terms in the operator. Always returns 1.")
       // only exists for spin operators
       .def_property_readonly(
           "qubit_count", &spin_op_term::num_qubits<spin_handler>,
