@@ -47,6 +47,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
   PRIVATE
     cudaq-logger
+    fmt::fmt-header-only
 )
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)

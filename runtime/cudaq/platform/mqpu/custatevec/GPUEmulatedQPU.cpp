@@ -16,7 +16,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <fstream>
 #include <iostream>
-#include <spdlog/cfg/env.h>
 
 namespace {
 

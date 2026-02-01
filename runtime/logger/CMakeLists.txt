@@ -19,7 +19,7 @@ target_include_directories(cudaq-logger
     $<INSTALL_INTERFACE:include>
   PRIVATE 
     fmt::fmt-header-only
-
+)
 target_link_libraries(cudaq-logger
   PRIVATE
     spdlog::spdlog
