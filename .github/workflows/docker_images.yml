@@ -172,7 +172,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/build/devdeps.ext.Dockerfile
+          file: ./docker/build/devcontainer.Dockerfile
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
             base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04
@@ -777,7 +777,7 @@ jobs:
         continue-on-error: true # to be removed once we update all docs for this check to pass
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
-          config_path: '.github/workflows/config/spellcheck_config.yml'
+          config_path: '.github/pre-commit/spellcheck_config.yml'
           task_name: html
           source_files: ${{ join(fromJSON(steps.docs_build.outputs.json).html_files, ' ') }}
 

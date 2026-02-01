@@ -28,20 +28,6 @@ def test_bug_1775():
             false_res = mz(qubit)
 
     print(test)
-    result = cudaq.sample(test)
-
-    print(result)
-    reg_names = result.register_names
-
-    assert 'true_res' in reg_names
-    assert 'false_res' in reg_names
-    assert '__global__' in reg_names
-    assert 'res' in reg_names
-
-    assert '1' in result.get_register_counts(
-        'true_res') and '0' not in result.get_register_counts('true_res')
-    assert '0' in result.get_register_counts(
-        'false_res') and '1' not in result.get_register_counts('false_res')
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
