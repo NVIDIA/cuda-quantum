@@ -10,7 +10,6 @@
 
 #include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
@@ -21,6 +20,7 @@
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"

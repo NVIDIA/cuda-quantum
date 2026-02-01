@@ -6,22 +6,23 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-include(HandleLLVMOptions)
-set(LIBRARY_NAME cudaq-builder)
+add_library(cudaq-logger
+  SHARED
+    Logger.cpp
+)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-logger)
 
-add_library(cudaq-builder SHARED kernel_builder.cpp QuakeValue.cpp kernels.cpp)
-set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
-target_include_directories(cudaq-builder PUBLIC 
-          $<INSTALL_INTERFACE:include> 
-          $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-          $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)
-target_link_libraries(cudaq-builder
-  PRIVATE
-    cudaq
-    cudaq-logger
+target_include_directories(cudaq-logger
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
+    $<INSTALL_INTERFACE:include>
+  PRIVATE 
     fmt::fmt-header-only
-    nvqir
-    cudaq-mlir-runtime
+)
+target_link_libraries(cudaq-logger
+  PRIVATE
+    spdlog::spdlog
 )
 
-install(TARGETS cudaq-builder DESTINATION lib)
+install(TARGETS cudaq-logger EXPORT cudaq-common-targets DESTINATION lib)

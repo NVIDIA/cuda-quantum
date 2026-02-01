@@ -12,6 +12,7 @@ add_library(cudaq-py-utils SHARED LinkedLibraryHolder.cpp)
 target_link_libraries(cudaq-py-utils PRIVATE 
   nvqir 
   cudaq 
+  cudaq-logger
   fmt::fmt-header-only 
   CUDAQTargetConfigUtil 
   cudaq-common

@@ -71,7 +71,6 @@ macro (create_tests_with_backend NVQIR_BACKEND EXTRA_BACKEND_TESTER)
     nvqir-${NVQIR_BACKEND}
     nvqir
     cudaq
-    fmt::fmt-header-only
     cudaq-platform-default
     cudaq-builder
     gtest_main)
@@ -256,7 +255,6 @@ if(TARGET nvqir-tensornet)
         target_link_libraries(test_tensornet_mpi
             PRIVATE
             cudaq
-            fmt::fmt-header-only
             cudaq-platform-default
             nvqir-tensornet
             gtest)
@@ -374,6 +372,7 @@ if (CUDA_FOUND)
    PRIVATE
    cudaq-operator
    cudaq
+   cudaq-logger
    nvqir-dynamics
    ${CUDENSITYMAT_ROOT}/lib/libcudensitymat.so.0
    CUDA::cudart
@@ -382,7 +381,7 @@ if (CUDA_FOUND)
    CUDA::cusparse
    ${CUTENSORNET_LIB}
    gtest_main
-   fmt::fmt-header-only)
+   )
   target_include_directories(test_dynamics PRIVATE ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat)
   gtest_discover_tests(test_dynamics PROPERTIES LABELS "gpu_required")
 
@@ -405,7 +404,7 @@ if (CUDA_FOUND)
    CUDA::cusparse
    ${CUTENSORNET_LIB}
    gtest_main
-   fmt::fmt-header-only)
+   )
   # Count the number of GPUs
   find_program(NVIDIA_SMI "nvidia-smi")
   if(NVIDIA_SMI)
@@ -434,7 +433,7 @@ if (CUDA_FOUND)
           CUDA::cusparse
           ${CUTENSORNET_LIB}
           gtest_main
-          fmt::fmt-header-only)
+          )
 
         add_test(NAME DynamicsMPIBatchingTest COMMAND ${MPIEXEC} --allow-run-as-root -np 2 ${CMAKE_BINARY_DIR}/unittests/test_dynamics_mpi_batching)
         set_tests_properties(DynamicsMPIBatchingTest PROPERTIES LABELS "gpu_required;mgpus_required")
@@ -484,7 +483,7 @@ target_link_libraries(test_utils
   cudaq-platform-default
   cudaq-em-photonics
   nvqir
-  nvqir-qpp fmt::fmt-header-only
+  nvqir-qpp 
   gtest_main)
 gtest_discover_tests(test_utils DISCOVERY_TIMEOUT 120)
 
@@ -498,7 +497,6 @@ target_link_libraries(test_exec_ctx_thread
   PRIVATE
   cudaq
   cudaq-platform-default
-  fmt::fmt-header-only
   gtest_main)
 gtest_discover_tests(test_exec_ctx_thread)
 

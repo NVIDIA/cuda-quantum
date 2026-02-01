@@ -14,6 +14,7 @@ add_library(cudaq-serverhelper-braket SHARED BraketExecutor.cpp BraketServerHelp
 
 target_link_libraries(cudaq-serverhelper-braket
     cudaq-common
+    cudaq-logger
     fmt::fmt-header-only
     ${AWSSDK_LINK_LIBRARIES})
 
