@@ -14,6 +14,8 @@
 #include <string>
 
 namespace cudaq {
+class ExecutionContext;
+
 /// Util to invoke a wrapped kernel defined by LLVM IR with serialized
 /// arguments.
 // Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
@@ -25,6 +27,7 @@ namespace cudaq {
 std::unique_ptr<llvm::orc::LLJIT>
 invokeWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
                     void *args, std::uint64_t argsSize,
+                    ExecutionContext &executionContext,
                     std::size_t numTimes = 1,
                     std::function<void(std::size_t)> postExecCallback = {});
 } // namespace cudaq

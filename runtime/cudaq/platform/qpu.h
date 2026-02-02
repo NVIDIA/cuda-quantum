@@ -48,19 +48,16 @@ protected:
   std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
   std::unique_ptr<QuantumExecutionQueue> execution_queue;
 
-  /// @brief The current execution context.
-  ExecutionContext *executionContext = nullptr;
-
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
 
   /// @brief Check if the current execution context is a `spin_op` observation
   /// and perform state-preparation circuit measurement based on the `spin_op`
   /// terms.
-  void handleObservation(ExecutionContext *localContext) {
+  void handleObservation(ExecutionContext &context) const {
     // The reason for the 2 if checks is simply to do a flushGateQueue() before
     // initiating the trace.
-    bool execute = localContext && localContext->name == "observe";
+    bool execute = context.name == "observe";
     if (execute) {
       ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
                              "handleObservation flushGateQueue()");
@@ -70,21 +67,21 @@ protected:
       ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
                              "QPU::handleObservation (after flush)");
       double sum = 0.0;
-      if (!localContext->spin.has_value())
+      if (!context.spin.has_value())
         throw std::runtime_error("[QPU] Observe ExecutionContext specified "
                                  "without a cudaq::spin_op.");
 
       std::vector<cudaq::ExecutionResult> results;
-      cudaq::spin_op &H = localContext->spin.value();
+      cudaq::spin_op &H = context.spin.value();
       assert(cudaq::spin_op::canonicalize(H) == H);
 
       // If the backend supports the observe task, let it compute the
       // expectation value instead of manually looping over terms, applying
       // basis change ops, and computing <ZZ..ZZZ>
-      if (localContext->canHandleObserve) {
+      if (context.canHandleObserve) {
         auto [exp, data] = cudaq::measure(H);
-        localContext->expectationValue = exp;
-        localContext->result = data;
+        context.expectationValue = exp;
+        context.result = data;
       } else {
 
         // Loop over each term and compute coeff * <term>
@@ -100,8 +97,8 @@ protected:
           }
         };
 
-        localContext->expectationValue = sum;
-        localContext->result = cudaq::sample_result(sum, results);
+        context.expectationValue = sum;
+        context.result = cudaq::sample_result(sum, results);
       }
     }
   }
@@ -164,10 +161,25 @@ public:
   virtual void
   enqueue(QuantumTask &task) = 0; //{ execution_queue->enqueue(task); }
 
-  /// Set the execution context, meant for subtype specification
-  virtual void setExecutionContext(ExecutionContext *context) = 0;
-  /// Reset the execution context, meant for subtype specification
-  virtual void resetExecutionContext() = 0;
+  /// @brief Configure the execution context for this QPU.
+  virtual void configureExecutionContext(ExecutionContext &context) const {}
+
+  /// @brief Post-process the execution results stored in @p context for this
+  /// QPU.
+  virtual void finalizeExecutionContext(ExecutionContext &context) const {}
+
+  /// @brief Prepare the QPU for a new execution.
+  ///
+  /// This is called after the execution context has been configured and is
+  /// already set.
+  virtual void beginExecution() {}
+
+  /// @brief Clean up after an execution on this QPU.
+  ///
+  /// This is called after the execution context has been finalized and before
+  /// the execution context is reset.
+  virtual void endExecution() {}
+
   virtual void setTargetBackend(const std::string &backend) {}
 
   virtual void launchVQE(const std::string &name, const void *kernelArgs,

@@ -170,6 +170,8 @@ protected:
                          const std::vector<std::size_t> &controls,
                          const std::vector<std::size_t> &targets,
                          const std::vector<double> &params) override {
+    auto executionContext = cudaq::getExecutionContext();
+
     // Do nothing if no execution context
     if (!executionContext)
       return;
