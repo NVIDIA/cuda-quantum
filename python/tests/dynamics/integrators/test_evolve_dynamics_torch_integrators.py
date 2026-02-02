@@ -27,7 +27,11 @@ def do_something():
     cudaq.reset_target()
 
 
-all_integrator_classes = [CUDATorchDiffEqDopri5Integrator]
+all_integrator_classes = [
+    CUDATorchDiffEqDopri5Integrator, CUDATorchDiffEqDopri8Integrator,
+    CUDATorchDiffEqBosh3Integrator, CUDATorchDiffEqAdaptiveHeunIntegrator,
+    CUDATorchDiffEqFehlberg2Integrator
+]
 all_models = [
     TestCavityModel, TestCavityModelTimeDependentHam,
     TestCavityModelTimeDependentCollapseOp, TestCompositeSystems,
