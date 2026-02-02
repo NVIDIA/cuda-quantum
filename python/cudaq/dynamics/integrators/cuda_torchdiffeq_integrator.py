@@ -138,6 +138,20 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.stepper.compute_inplace(temp_state, t_scalar, result_state)
         return result_vec
 
+    def _create_wrapped_rhs_func(self):
+        # Wrapper that adds the required callback methods
+        class RHSFuncWrapper:
+            def __init__(self, integrator):
+                self.integrator = integrator
+                self.callback_step = lambda *args, **kwargs: None
+                self.callback_accept_step = lambda *args, **kwargs: None
+                self.callback_reject_step = lambda *args, **kwargs: None
+
+            def __call__(self, t, y, perturb=None):
+                return self.integrator.compute_rhs(t, y)
+
+        return RHSFuncWrapper(self)
+
     def __post_init__(self):
         self.n_steps = self.integrator_options.get('nsteps', 10)
         self.atol = self.integrator_options.get('atol', self.atol)
@@ -197,7 +211,12 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         y0 = torch.from_dlpack(y0_cupy)
 
         if self._is_adaptive_solver():
-            pass
+            solver_class = self._get_solver_class()
+
+            if self._solver_instance is None:
+                wrapped_func = self._create_wrapped_rhs_func()
+            else:
+                pass
         else:
             # time span
             t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
