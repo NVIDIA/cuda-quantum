@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "cudaq/runtime/logger/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include <iostream>
 #include <map>
 #include <regex>

@@ -6,18 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "compiler.h"
-#include "common/FmtCore.h"
-#include "common/Executor.h"
-#include "common/ExecutionContext.h"
 #include "common/ArgumentConversion.h"
 #include "common/DeviceCodeRegistry.h"
-#include "cudaq/runtime/logger/Logger.h"
+#include "common/ExecutionContext.h"
+#include "common/Executor.h"
+#include "common/FmtCore.h"
 #include "common/Resources.h"
 #include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
@@ -45,8 +45,8 @@ bool isUsingResourceCounterSimulator();
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
 nlohmann::json formOutputNames(const std::string &codegenTranslation,
-                                         mlir::ModuleOp moduleOp,
-                                         const std::string &codeStr) {
+                               mlir::ModuleOp moduleOp,
+                               const std::string &codeStr) {
   // Form an output_names mapping from codeStr
   nlohmann::json output_names;
   std::vector<char> bitcode;
@@ -85,7 +85,7 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   }
   return output_names;
 }
-}
+} // namespace
 
 namespace cudaq {
 std::vector<cudaq::KernelExecution> compiler::lowerQuakeCodePart2(

@@ -9,9 +9,9 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include <memory>
 #include <mutex>
 

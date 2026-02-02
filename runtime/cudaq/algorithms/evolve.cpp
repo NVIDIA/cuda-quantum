@@ -8,8 +8,8 @@
 
 #include "common/AnalogHamiltonian.h"
 #include "common/EvolveResult.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/operators.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/schedule.h"
 #include <random>
 #include <sstream>

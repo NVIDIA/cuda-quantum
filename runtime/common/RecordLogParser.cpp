@@ -8,9 +8,9 @@
 
 #include "RecordLogParser.h"
 #include "FmtCore.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "Timing.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/runtime/logger/Logger.h"
 
 void cudaq::RecordLogParser::parse(const std::string &outputLog) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "RecordLogParser::parse");

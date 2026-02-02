@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include <map>
 #include <shared_mutex>
 #include <string>

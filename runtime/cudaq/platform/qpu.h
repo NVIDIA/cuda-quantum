@@ -9,13 +9,13 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "common/Timing.h"
 #include "cudaq/qis/execution_manager.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/remote_capabilities.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace mlir {

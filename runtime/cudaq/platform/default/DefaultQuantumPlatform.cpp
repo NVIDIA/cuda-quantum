@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>

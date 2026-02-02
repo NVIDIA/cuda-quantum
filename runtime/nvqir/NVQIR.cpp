@@ -10,11 +10,11 @@
 #include "NVQIRUtil.h"
 #include "QIRTypes.h"
 #include "common/ExecutionContext.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "common/PluginUtils.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
+#include "cudaq/runtime/logger/Logger.h"
 // TODO: do we want to avoid including this here?
 #include "resourcecounter/ResourceCounter.h"
 #include <cmath>

@@ -11,8 +11,8 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
-#include "cudaq/runtime/logger/Logger.h"
 #include "cudaq/algorithms/integrator.h"
+#include "cudaq/runtime/logger/Logger.h"
 namespace cudaq {
 namespace integrators {
 
