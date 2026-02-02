@@ -280,12 +280,15 @@ please double check that your operating system is listed as
 with an older GNU C library version, you will need to build the installer from 
 source following the instructions in :doc:`data_center_install`.
 
-You can download the `install_cuda_quantum` file for your processor architecture from
-the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+You can download the `install_cuda_quantum` file for your platform from
+the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
+
+- **Linux**: `install_cuda_quantum_cu12.<arch>` or `install_cuda_quantum_cu13.<arch>` (where `<arch>` is `x86_64` or `aarch64`)
+- **macOS**: `install_cuda_quantum_darwin.arm64` (CPU-only, Apple Silicon)
+
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
 pre-built binaries as well as a script to move them to the correct locations. You will need
-`bash`, `tar`, and `gzip` (usually already installed on most Linux distributions) to run 
-the installer.
+`bash`, `tar`, and `gzip` to run the installer.
 The installation location of CUDA-Q is not currently configurable and using the installer
 hence requires admin privileges on the system. We may revise that in the future; please see and
 upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.

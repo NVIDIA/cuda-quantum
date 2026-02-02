@@ -84,10 +84,14 @@ fi
 # ============================================================================ #
 
 # Build installer name based on platform and version
-# Format: install_cuda_quantum[_cu<N>][-<version>].<arch>
+# Format: install_cuda_quantum[_darwin|_cu<N>][-<version>].<arch>
+# - macOS: install_cuda_quantum_darwin[-<version>].arm64
+# - Linux: install_cuda_quantum_cu<N>[-<version>].<arch>
 build_installer_name() {
     local name="install_cuda_quantum"
-    if [ -n "$cuda_variant" ]; then
+    if [ "$platform" = "Darwin" ]; then
+        name="${name}_darwin"
+    elif [ -n "$cuda_variant" ]; then
         name="${name}_cu${cuda_variant}"
     fi
     if [ -n "$cudaq_version" ]; then
