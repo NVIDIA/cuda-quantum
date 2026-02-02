@@ -238,6 +238,9 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
                         dt=self._solver_instance.rk_state.dt,
                         interp_coeff=[y0] * 5
                     )
+
+            t_target = torch.tensor(t, device='cuda', dtype=torch.float64)
+            y_t = self._solver_instance._advance(t_target)
         else:
             # time span
             t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
