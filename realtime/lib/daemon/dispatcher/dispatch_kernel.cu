@@ -242,64 +242,6 @@ extern "C" void cudaq_launch_dispatch_kernel_cooperative(
       dim3(num_blocks), dim3(threads_per_block), kernel_args, 0, stream);
 }
 
-// Graph-enabled launch functions (requires sm_90+)
-// NOTE: These functions should only be called when graph launch support is needed
-// AND the GPU supports it. The kernels include cudaGraphLaunch device-side API
-// which may cause runtime errors on unsupported systems.
-//
-// IMPORTANT: Device-side cudaGraphLaunch can only be called from within a graph
-// execution context. These "legacy" functions launch the dispatch kernel as a
-// regular kernel, so device-side graph launch will NOT work. They are kept for
-// backward compatibility with device-call-only workloads.
-extern "C" void cudaq_launch_dispatch_kernel_with_graph_regular(
-    volatile std::uint64_t* rx_flags,
-    volatile std::uint64_t* tx_flags,
-    cudaq_function_entry_t* function_table,
-    std::size_t func_count,
-    void** graph_buffer_ptr,
-    volatile int* shutdown_flag,
-    std::uint64_t* stats,
-    std::size_t num_slots,
-    std::uint32_t num_blocks,
-    std::uint32_t threads_per_block,
-    cudaStream_t stream) {
-  // WARNING: This launches as a regular kernel, so device-side cudaGraphLaunch
-  // will NOT work. Use cudaq_create_dispatch_graph_* functions instead.
-  cudaq::nvqlink::dispatch_kernel_with_graph<cudaq::realtime::RegularKernel>
-      <<<num_blocks, threads_per_block, 0, stream>>>(
-          rx_flags, tx_flags, function_table, func_count, graph_buffer_ptr,
-          shutdown_flag, stats, num_slots);
-}
-
-extern "C" void cudaq_launch_dispatch_kernel_with_graph_cooperative(
-    volatile std::uint64_t* rx_flags,
-    volatile std::uint64_t* tx_flags,
-    cudaq_function_entry_t* function_table,
-    std::size_t func_count,
-    void** graph_buffer_ptr,
-    volatile int* shutdown_flag,
-    std::uint64_t* stats,
-    std::size_t num_slots,
-    std::uint32_t num_blocks,
-    std::uint32_t threads_per_block,
-    cudaStream_t stream) {
-  void* kernel_args[] = {
-      const_cast<std::uint64_t**>(&rx_flags),
-      const_cast<std::uint64_t**>(&tx_flags),
-      &function_table,
-      &func_count,
-      &graph_buffer_ptr,
-      const_cast<int**>(&shutdown_flag),
-      &stats,
-      &num_slots
-  };
-
-  cudaLaunchCooperativeKernel(
-      reinterpret_cast<void*>(
-          cudaq::nvqlink::dispatch_kernel_with_graph<cudaq::realtime::CooperativeKernel>),
-      dim3(num_blocks), dim3(threads_per_block), kernel_args, 0, stream);
-}
-
 //==============================================================================
 // Graph-Based Dispatch (Proper Device-Side Graph Launch Support)
 //==============================================================================

@@ -131,24 +131,6 @@ void cudaq_launch_dispatch_kernel_cooperative(
 // These functions are only available when compiled for sm_90 or higher
 #if defined(__CUDACC__) || defined(CUDA_VERSION)
 
-// Legacy functions - launch dispatch kernel as regular kernel
-// WARNING: Device-side cudaGraphLaunch() will NOT work with these functions
-// because the dispatch kernel is not running inside a graph execution context.
-// Use cudaq_create_dispatch_graph_* functions instead for device-side graph launch.
-void cudaq_launch_dispatch_kernel_with_graph_regular(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
-    cudaq_function_entry_t *function_table, size_t func_count,
-    void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
-    size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
-    cudaStream_t stream);
-
-void cudaq_launch_dispatch_kernel_with_graph_cooperative(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags,
-    cudaq_function_entry_t *function_table, size_t func_count,
-    void **graph_buffer_ptr, volatile int *shutdown_flag, uint64_t *stats,
-    size_t num_slots, uint32_t num_blocks, uint32_t threads_per_block,
-    cudaStream_t stream);
-
 //==============================================================================
 // Graph-Based Dispatch API (Proper Device-Side Graph Launch Support)
 //==============================================================================
