@@ -196,19 +196,22 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         y0_cupy = to_cupy_array(self.state)
         y0 = torch.from_dlpack(y0_cupy)
 
-        # time span
-        t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
+        if self._is_adaptive_solver():
+            pass
+        else:
+            # time span
+            t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
 
-        # solve ODE using TorchDiffEq
-        solution = odeint(self.compute_rhs,
-                          y0,
-                          t_span,
-                          method=self.solver,
-                          rtol=self.rtol,
-                          atol=self.atol)
+            # solve ODE using TorchDiffEq
+            solution = odeint(self.compute_rhs,
+                            y0,
+                            t_span,
+                            method=self.solver,
+                            rtol=self.rtol,
+                            atol=self.atol)
 
-        # solution at final time
-        y_t = solution[-1]
+            # solution at final time
+            y_t = solution[-1]
 
         # convert the solution back to CuPy array
         y_t_cupy = cp.from_dlpack(y_t)
