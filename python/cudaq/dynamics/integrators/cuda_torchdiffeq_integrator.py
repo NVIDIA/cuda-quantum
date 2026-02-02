@@ -39,6 +39,13 @@ except ImportError:
 
 try:
     from torchdiffeq import odeint
+    from torchdiffeq._impl.dopri5 import Dopri5Solver
+    from torchdiffeq._impl.dopri8 import Dopri8Solver
+    from torchdiffeq._impl.bosh3 import Bosh3Solver
+    from torchdiffeq._impl.adaptive_heun import AdaptiveHeunSolver
+    from torchdiffeq._impl.fehlberg2 import Fehlberg2
+    from torchdiffeq._impl.rk_common import _RungeKuttaState
+    from torchdiffeq._impl.misc import _rms_norm
 except ImportError:
     has_torchdiffeq = False
 
@@ -136,6 +143,20 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.atol = self.integrator_options.get('atol', self.atol)
         self.rtol = self.integrator_options.get('rtol', self.rtol)
         self.order = self.integrator_options.get('order', None)
+
+    def _is_adaptive_solver(self):
+        adaptive_solvers = ['dopri5', 'dopri8', 'bosh3', 'adaptive_heun', 'fehlberg2']
+        return self.solver in adaptive_solvers
+
+    def _get_solver_class(self):
+        solver_map = {
+            'dopri5': Dopri5Solver,
+            'dopri8': Dopri8Solver,
+            'bosh3': Bosh3Solver,
+            'adaptive_heun': AdaptiveHeunSolver,
+            'fehlberg2': Fehlberg2,
+        }
+        return solver_map.get(self.solver)
 
     def integrate(self, t):
         if self.stepper is None:
