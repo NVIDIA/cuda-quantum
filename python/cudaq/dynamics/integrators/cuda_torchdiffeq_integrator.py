@@ -97,6 +97,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.is_density_state = None
         self.batchSize = None
         self._dimensions_list = None
+        self._solver_instance = None
 
     def compute_rhs(self, t, vec):
         if torch.is_tensor(t):
@@ -204,6 +205,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
     def set_state(self, state: cudaq_runtime.State, t: float = 0.0):
         super().set_state(state, t)
         self.batchSize = bindings.getBatchSize(state)
+        self._solver_instance = None
 
 
 class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):
