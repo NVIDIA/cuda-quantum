@@ -747,10 +747,14 @@ index pair.
             self.to_host(hostData, numElements);
             dataPtr = reinterpret_cast<void *>(hostData);
           }
-          hostDataFromDevice.emplace_back(dataPtr, [](void *data) {
+          hostDataFromDevice.emplace_back(dataPtr, [precision](void *data) {
             CUDAQ_INFO("freeing data that was copied from GPU device for "
                        "compatibility with NumPy");
-            free(data);
+            // Use delete[] to match new[] allocation (not free())
+            if (precision == SimulationState::precision::fp32)
+              delete[] static_cast<std::complex<float> *>(data);
+            else
+              delete[] static_cast<std::complex<double> *>(data);
           });
         } else {
           dataPtr = self.get_tensor().data;
