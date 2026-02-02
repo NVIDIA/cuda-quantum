@@ -43,8 +43,7 @@ public:
   explicit qvector(const std::vector<complex> &vector, bool validate)
       : qudits(std::log2(vector.size())) {
     if (Levels == 2) {
-      auto numElements = std::log2(vector.size());
-      if (std::floor(numElements) != numElements)
+      if (vector.empty() || (vector.size() & (vector.size() - 1)) != 0)
         throw std::runtime_error(
             "Invalid state vector passed to qvector initialization - number of "
             "elements must be power of 2.");

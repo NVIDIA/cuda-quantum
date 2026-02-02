@@ -413,7 +413,8 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
                 const_cast<cudaq::state *>(stateArg));
             if (!simState)
               throw std::runtime_error("Error: Unable to retrieve simulation "
-                                       "state from cudaq::state.");
+                                       "state from cudaq::state. The state "
+                                       "contains no simulation state.");
             if (simState->getKernelInfo().has_value()) {
               // For state arguments represented by a kernel, we need to make a
               // copy of the state since this state is lazily evaluated. Note:

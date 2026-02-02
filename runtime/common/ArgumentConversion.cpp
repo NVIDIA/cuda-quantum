@@ -350,7 +350,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
       cudaq::state_helper::getSimulationState(const_cast<cudaq::state *>(v));
   if (!simState)
     throw std::runtime_error(
-        "Error: Unable to retrieve simulation state from cudaq::state.");
+        "Error: Unable to retrieve simulation state from cudaq::state. The "
+        "state contains no simulation state.");
   if (simState->hasData()) {
     // Convert ptr to int
     Value ptrInt =
@@ -460,7 +461,9 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto ctx = builder.getContext();
     auto loc = builder.getUnknownLoc();
 
-    assert(!code.empty() && "Quake code not found for callee");
+    if (code.empty())
+      throw std::runtime_error(
+          "Quake code not found for in cudaq::state kernel information.");
     auto fromModule = parseSourceString<ModuleOp>(code, ctx);
 
     auto calleeFunc = fromModule->lookupSymbol<func::FuncOp>(calleeKernelName);
@@ -475,17 +478,19 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     auto numQubitsKernelName =
         cudaq::runtime::cudaqGenPrefixName + numQubitsName;
 
-    // Create `callee.init_N` and `callee.num_qubits_N` used to replace
+    // Create `callee.init_N` used to replace
     // `quake.materialize_state` in ReplaceStateWithKernel pass
-    if (!converter.isRegisteredKernel(initName) ||
-        !converter.isRegisteredKernel(numQubitsName)) {
+    if (!converter.isRegisteredKernel(initName)) {
       createInitFunc(builder, substMod, calleeFunc, initKernelName);
-      createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
-
       // Convert arguments for `callee.init_N`.
       auto registeredInitName = converter.registerKernel(initName);
       converter.gen(registeredInitName, substMod, calleeArgs);
+    }
 
+    // Create `callee.num_qubits_N` used to replace
+    // `quake.materialize_state` in ReplaceStateWithKernel pass
+    if (!converter.isRegisteredKernel(numQubitsName)) {
+      createNumQubitsFunc(builder, substMod, calleeFunc, numQubitsKernelName);
       // Convert arguments for `callee.num_qubits_N`.
       auto registeredNumQubitsName = converter.registerKernel(numQubitsName);
       converter.gen(registeredNumQubitsName, substMod, calleeArgs);

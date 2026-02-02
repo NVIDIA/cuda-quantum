@@ -76,6 +76,12 @@ test_real_array_param_floating_point(std::vector<cudaq::real> inState) {
   cudaq::qvector q1{inState};
 }
 
+__qpu__ void test_negative_amplitudes() {
+  cudaq::qvector v(
+      std::vector<std::complex<cudaq::real>>({M_SQRT1_2, -M_SQRT1_2}));
+  h(v); // this would result in |1> state
+}
+
 void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};
   for (auto &&[bits, counts] : result)
@@ -247,5 +253,11 @@ int main() {
       // CHECK: 01
       // CHECK: 11
     }
+  }
+  {
+    auto counts = cudaq::sample(test_negative_amplitudes);
+    printCounts(counts);
+
+    // CHECK: 1
   }
 }
