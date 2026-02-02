@@ -26,8 +26,8 @@ __qpu__ void kernel1() {
 }
 // [End Sample2]
 
-// [Begin Sample3]
-__qpu__ void kernel2() {
+// [Begin Run0]
+__qpu__ auto kernel2() {
   cudaq::qvector q(2);
   h(q[0]);
   auto b0 = mz(q[0]);
@@ -37,18 +37,33 @@ __qpu__ void kernel2() {
   if (b0) {
     h(q[1]);
   }
+  return mz(q);
 }
 
 int main() {
-  auto result = cudaq::sample(kernel2);
-  result.dump();
+  auto results = cudaq::run(1000, kernel2);
+  // Count occurrences of each bitstring
+  std::map<std::string, std::size_t> bitstring_counts;
+  for (const auto &result : results) {
+    std::string bits = std::to_string(static_cast<int>(result[0])) +
+                       std::to_string(static_cast<int>(result[1]));
+    bitstring_counts[bits]++;
+  }
+
+  printf("Bitstring counts:\n{\n");
+  for (const auto &[bits, count] : bitstring_counts) {
+    printf("  %s: %zu\n", bits.c_str(), count);
+  }
+  printf("}\n");
+
   return 0;
 }
-// [End Sample3]
+// [End Run0]
 
-/* [Begin Sample4]
+/* [Begin Run1]
+Bitstring counts:
 {
-  __global__ : { 10:728 11:272 }
-   b0 : { 0:505 1:495 }
+  10: 771
+  11: 229
 }
- [End Sample4] */
+ [End Run1] */

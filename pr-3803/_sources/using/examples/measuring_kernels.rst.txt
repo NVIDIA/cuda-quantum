@@ -58,15 +58,15 @@ The results show qubit 0 is one, indicating the reset worked, and qubit 1 has a 
 
     .. literalinclude:: ../../examples/python/measuring_kernels.py
         :language: python
-        :start-after: [Begin Sample3]
-        :end-before: [End Sample3]
+        :start-after: [Begin Run0]
+        :end-before: [End Run0]
 
 .. tab:: C++
 
     .. literalinclude:: ../../examples/cpp/measuring_kernels.cpp
         :language: cpp
-        :start-after: [Begin Sample3]
-        :end-before: [End Sample3]
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
 
 Output
 
@@ -74,12 +74,12 @@ Output
 
     .. literalinclude:: ../../examples/python/measuring_kernels.py
         :language: python
-        :start-after: [Begin Sample4]
-        :end-before: [End Sample4]
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
 
 .. tab:: C++
 
     .. literalinclude:: ../../examples/cpp/measuring_kernels.cpp
         :language: cpp
-        :start-after: [Begin Sample4]
-        :end-before: [End Sample4]
+        :start-after: [Begin Run1]
+        :end-before: [End Run1]
