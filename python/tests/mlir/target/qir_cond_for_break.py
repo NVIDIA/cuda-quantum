@@ -6,26 +6,29 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# RUN: PYTHONPATH=../../.. python3 %s --target quantinuum --emulate
+# RUN: PYTHONPATH=../../.. python3 %s
 
 import cudaq
 
+cudaq.set_target('quantinuum', machine='Helios-1SC', emulate=True)
+
 
 @cudaq.kernel
-def kernel(n_iter: int):
+def kernel(n_iter: int) -> bool:
     q0 = cudaq.qubit()
     for i in range(n_iter):
         h(q0)
         q0Result = mz(q0)
         if q0Result:
             break
+    return mz(q0)
 
 
 nShots = 100
 nIter = 20
 cudaq.set_random_seed(13)
 
-counts = cudaq.sample(kernel, nIter, shots_count=nShots)
-counts.dump()
+results = cudaq.run(kernel, nIter, shots_count=nShots)
+assert all(results)
 
-assert len(counts.register_names) - 1 < nIter
+cudaq.reset_target()

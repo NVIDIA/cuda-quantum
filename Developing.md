@@ -78,27 +78,134 @@ comments as well as a comment at the top of the file to indicating its purpose.
 [cpp_style]: https://www.gnu.org/prep/standards/standards.html
 [llvm_style]: https://llvm.org/docs/CodingStandards.html
 
-### C++ Formatting
+### Automated Code Quality Checks with Pre-commit (Recommended)
+
+We use [pre-commit](https://pre-commit.com/) hooks to automatically check code
+formatting, style, and common issues. This allows you to run the same checks
+locally that run in CI, catching issues before you push.
+
+**Benefits:**
+
+- Catch formatting and linting issues locally before CI runs
+- Same checks run locally and in CI (guaranteed consistency)
+- Automatic formatting fixes where possible
+- Fast incremental checks (only checks changed files)
+
+#### Prerequisites
+
+Most formatting and linting checks work out-of-the-box with pre-commit. However,
+some checks require system dependencies:
+
+- **`aspell`**: for spell checking
+- **`node`/`npm`**: for link validation
+- **`go`**: for license header validation (the `license-eye` tool will be auto-installed)
 
 ```bash
-bash "$CUDAQ_REPO_ROOT/scripts/run_clang_format.sh"
+# Ubuntu/Debian
+sudo apt-get install aspell aspell-en nodejs npm golang
+
+# macOS
+brew install aspell node go
+
+# Fedora/RHEL
+sudo dnf install aspell aspell-en nodejs npm golang
+
+# All platforms: Install markdown-link-check globally
+npm install -g markdown-link-check
 ```
 
-### Python Formatting
+#### Installation (One-time Setup)
+
+> **Devcontainer Users:** If you're developing in the VS Code `devcontainer`,
+> pre-commit and all required dependencies (Node.js, Go, `aspell`) are
+> pre-installed. You only need to run `pre-commit install` to enable the hooks.
 
 ```bash
-yapf -i <file_name>.py
-# To run recursively on a directory
-yapf -i --recursive <directory>
+pip install pre-commit
+pre-commit install  # Enable hooks for this repository
 ```
 
-### Spell checker
+#### Usage
+
+**Automatic (if installed):**
+Pre-commit hooks run automatically when you commit or push. Fast checks (formatting,
+linting) run on commit. All checks including spell checking run on push.
 
 ```bash
-bash "$CUDAQ_REPO_ROOT/scripts/run_all_spelling.sh"
-# To only check the files that have changed from `main`
-bash "$CUDAQ_REPO_ROOT/scripts/run_all_spelling.sh" -d
+git add <files>
+git commit -m "Your message"  # Fast formatting checks run
+git push  # All checks including spell checking run
 ```
+
+**Manual:**
+
+```bash
+# Run on staged files only
+pre-commit run
+
+# Run on all files (fast hooks only)
+pre-commit run --all-files
+
+# Run all hooks including slow ones (spell check, link validation)
+pre-commit run --all-files --hook-stage pre-push
+
+# Run a specific hook
+pre-commit run clang-format --all-files
+pre-commit run yapf --all-files
+```
+
+**Bypass (emergency only):**
+
+```bash
+git commit --no-verify  # Skip pre-commit hooks
+```
+
+#### What Gets Checked
+
+**Fast checks (run on commit):**
+
+- C++ formatting (clang-format-16)
+- Python formatting (`yapf` with Google style)
+- Markdown linting
+- Trailing whitespace, end-of-file fixes
+- Large files, merge conflicts
+
+**All checks (run on push):**
+
+- License header validation
+- Spell checking (Markdown, `.rst`, C++, Python)
+- Link validation in markdown files
+
+#### Troubleshooting
+
+**Hook fails:**
+Read the error message carefully. Most formatting hooks will show a diff of
+required changes. Fix the issue and try committing again.
+
+**Tool not found:**
+If a hook complains about a missing tool:
+
+1. Check if it's a system dependency (`aspell`, `markdown-link-check`, Go) -
+   see Prerequisites section above
+2. For pre-commit-managed tools, run:
+
+```bash
+pre-commit install-hooks  # Reinstalls all hook dependencies
+```
+
+**Cache issues:**
+If hooks behave unexpectedly, try clearing the cache:
+
+```bash
+pre-commit clean  # Clear cached hook environments
+pre-commit run --all-files  # Rebuild cache
+```
+
+### CI Integration
+
+All checks that run in CI can be run locally using pre-commit. This reduces CI
+churn from formatting and linting failures. When you push code, the same
+pre-commit configuration runs in GitHub Actions, ensuring consistency.
 
 ## Testing and debugging
 

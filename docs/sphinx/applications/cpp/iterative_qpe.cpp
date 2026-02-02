@@ -12,10 +12,11 @@
 // nvq++ iterative_qpe.cpp -o qpe.x && ./qpe.x
 // ```
 
+#include <algorithm>
 #include <cudaq.h>
 
 struct iqpe {
-  void operator()() __qpu__ {
+  std::vector<bool> operator()() __qpu__ {
     cudaq::qarray<2> q;
     h(q[0]);
     x(q[1]);
@@ -63,14 +64,22 @@ struct iqpe {
       rz(-M_PI_2, q[0]);
 
     h(q[0]);
-    mz(q[0]);
+    return {cr0, cr1, cr2, mz(q[0])};
   }
 };
 
 int main() {
-  auto counts = cudaq::sample(/*shots*/ 10, iqpe{});
-  counts.dump();
-
+  auto results = cudaq::run(/*shots*/ 10, iqpe{});
+  // Get the counts for `cr0`, `cr1`, `cr2` and the final measurement
+  auto count_bit = [&](std::size_t idx) {
+    return std::count_if(results.begin(), results.end(),
+                         [idx](auto &r) { return r[idx]; });
+  };
+  printf("Iterative QPE Results:\n");
+  printf("cr0 : { 1:%zu }\n", count_bit(0));
+  printf("cr1 : { 1:%zu }\n", count_bit(1));
+  printf("cr2 : { 0:%zu }\n", 10 - count_bit(2));
+  printf("final: { 1:%zu }\n", count_bit(3));
   return 0;
 }
 // [End Documentation]
