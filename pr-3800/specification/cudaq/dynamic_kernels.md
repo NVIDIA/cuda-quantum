@@ -1798,9 +1798,6 @@ takes the following structure
           void h(Value& qubit);
           //... all other quantum operations ...
 
-          // if (mz(q)) thenFunctor()
-          void c_if(Value& result, std::function<void()>&& thenFunctor);
-
           // Invoke a predefined kernel
           template<typename OtherKernelBuilder, typename... Values>
           void call(OtherKernelBuilder&& kernelToCall, Values&... args);
