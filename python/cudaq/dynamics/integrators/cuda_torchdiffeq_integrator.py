@@ -99,7 +99,12 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self._dimensions_list = None
 
     def compute_rhs(self, t, vec):
-        t_scalar = t.item()
+        if torch.is_tensor(t):
+            t_scalar = t.item()
+            if isinstance(t_scalar, complex):
+                t_scalar = t_scalar.real
+        else:
+            t_scalar = float(t.real) if isinstance(t, complex) else float(t)
         # Note: this RHS compute is on the hot path of the integrator;
         # hence, we minimize overhead as much as possible.
         # In particular, avoid data conversion between different frameworks.
