@@ -179,89 +179,61 @@ fi
 # Create staging directory with assets
 # ============================================================================ #
 
-staging_dir="$repo_root/build/installer_staging"
-rm -rf "$staging_dir"
-mkdir -p "$staging_dir"
+# Work in build directory so relative paths in documented snippet work
+assets_parent="$repo_root/build"
+mkdir -p "$assets_parent"
+rm -rf "$assets_parent/cuda_quantum_assets"
 
 echo "Creating installer assets..."
 
-# Copy install script (migrate_assets.sh)
-cp "$this_file_dir/migrate_assets.sh" "$staging_dir/install.sh"
-chmod a+x "$staging_dir/install.sh"
-
-# Copy LLVM assets (minimal set needed for nvq++)
-echo "  Copying LLVM assets..."
-mkdir -p "$staging_dir/llvm/bin" "$staging_dir/llvm/lib" "$staging_dir/llvm/include"
-
-# Copy required binaries (clang, clang++, clang-N, llc, lld, ld.lld)
-cp -a "$llvm_prefix/bin/"clang* "$staging_dir/llvm/bin/" 2>/dev/null || true
-cp -a "$llvm_prefix/bin/llc" "$llvm_prefix/bin/lld" "$llvm_prefix/bin/ld.lld" "$staging_dir/llvm/bin/" 2>/dev/null || true
-# Remove clang-format (not needed)
-rm -f "$staging_dir/llvm/bin/clang-format"*
-
-# Copy all libraries (static + shared needed for nvq++ compilation)
-# This includes the clang resource directory needed for headers
-cp -a "$llvm_prefix/lib/"* "$staging_dir/llvm/lib/" 2>/dev/null || true
-
-# Copy LLVM includes
-cp -a "$llvm_prefix/include/"* "$staging_dir/llvm/include/" 2>/dev/null || true
-
-# Copy cuQuantum and cuTensor (Linux only)
+# Verify CUDA dependencies exist (Linux only)
 if $include_cuda_deps; then
-    cuquantum_prefix="${CUQUANTUM_INSTALL_PREFIX:-/opt/nvidia/cuquantum}"
-    cutensor_prefix="${CUTENSOR_INSTALL_PREFIX:-/opt/nvidia/cutensor}"
-    
-    if [ -d "$cuquantum_prefix" ]; then
-        echo "  Copying cuQuantum assets..."
-        cp -a "$cuquantum_prefix" "$staging_dir/cuquantum"
-    else
-        echo "Error: cuQuantum not found at $cuquantum_prefix" >&2
+    if [ ! -d "${CUQUANTUM_INSTALL_PREFIX}" ]; then
+        echo "Error: cuQuantum not found at ${CUQUANTUM_INSTALL_PREFIX}" >&2
         exit 1
     fi
-    
-    if [ -d "$cutensor_prefix" ]; then
-        echo "  Copying cuTensor assets..."
-        cp -a "$cutensor_prefix" "$staging_dir/cutensor"
-    else
-        echo "Error: cuTensor not found at $cutensor_prefix" >&2
+    if [ ! -d "${CUTENSOR_INSTALL_PREFIX}" ]; then
+        echo "Error: cuTensor not found at ${CUTENSOR_INSTALL_PREFIX}" >&2
         exit 1
     fi
 fi
 
-# Copy CUDA-Q installation
+echo "  Copying LLVM assets..."
 echo "  Copying CUDA-Q assets..."
-cp -a "$install_dir" "$staging_dir/cudaq"
-
-# Copy build_config.xml to staging root
-if [ -f "$install_dir/build_config.xml" ]; then
-    cp "$install_dir/build_config.xml" "$staging_dir/build_config.xml"
+if $include_cuda_deps; then
+    echo "  Copying cuQuantum assets..."
+    echo "  Copying cuTensor assets..."
 fi
 
-# ============================================================================ #
-# Create build_config.xml if not present
-# ============================================================================ #
+# Export CUDAQ_INSTALL_PREFIX so documented snippet works
+export CUDAQ_INSTALL_PREFIX="$install_dir"
 
-if [ ! -f "$staging_dir/build_config.xml" ]; then
-    echo "  Creating build_config.xml..."
-    
-    if [ "$platform" = "Darwin" ]; then
-        # macOS: system-wide paths (same as Linux, CPU-only)
-        cat > "$staging_dir/build_config.xml" << 'EOF'
-<build_config>
-<LLVM_INSTALL_PREFIX>/opt/llvm</LLVM_INSTALL_PREFIX>
-</build_config>
-EOF
-    else
-        # Linux: system-wide installation paths
-        cat > "$staging_dir/build_config.xml" << EOF
-<build_config>
-<LLVM_INSTALL_PREFIX>/opt/llvm</LLVM_INSTALL_PREFIX>
-<CUQUANTUM_INSTALL_PREFIX>/opt/nvidia/cuquantum</CUQUANTUM_INSTALL_PREFIX>
-<CUTENSOR_INSTALL_PREFIX>/opt/nvidia/cutensor</CUTENSOR_INSTALL_PREFIX>
-</build_config>
-EOF
-    fi
-fi
+# Change to build directory so documented relative paths work
+pushd "$assets_parent" > /dev/null
+
+# [>CUDAQuantumAssets]
+mkdir -p cuda_quantum_assets/llvm/bin cuda_quantum_assets/llvm/lib cuda_quantum_assets/llvm/include
+cp -a "${LLVM_INSTALL_PREFIX}/bin/"clang* cuda_quantum_assets/llvm/bin/
+rm -f cuda_quantum_assets/llvm/bin/clang-format*
+cp -a "${LLVM_INSTALL_PREFIX}/bin/llc" "${LLVM_INSTALL_PREFIX}/bin/lld" "${LLVM_INSTALL_PREFIX}/bin/ld.lld" cuda_quantum_assets/llvm/bin/
+cp -a "${LLVM_INSTALL_PREFIX}/lib/"* cuda_quantum_assets/llvm/lib/
+cp -a "${LLVM_INSTALL_PREFIX}/include/"* cuda_quantum_assets/llvm/include/
+# Copy cuTensor and cuQuantum (Linux only)
+cp -a "${CUTENSOR_INSTALL_PREFIX}" cuda_quantum_assets 2>/dev/null || true
+cp -a "${CUQUANTUM_INSTALL_PREFIX}" cuda_quantum_assets 2>/dev/null || true
+# Copy CUDA-Q installation and build config
+cp -a "${CUDAQ_INSTALL_PREFIX}/build_config.xml" cuda_quantum_assets/build_config.xml
+cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
+# [<CUDAQuantumAssets]
+
+popd > /dev/null
+
+# Full path for rest of script
+cuda_quantum_assets="$assets_parent/cuda_quantum_assets"
+
+# Copy install script
+cp "$this_file_dir/migrate_assets.sh" "$cuda_quantum_assets/install.sh"
+chmod a+x "$cuda_quantum_assets/install.sh"
 
 # ============================================================================ #
 # Create self-extracting archive
@@ -285,7 +257,7 @@ fi
 default_target='/opt/nvidia/cudaq'
 
 makeself $makeself_args \
-    "$staging_dir" \
+    "$cuda_quantum_assets" \
     "$output_dir/$installer_name" \
     "CUDA-Q toolkit for heterogeneous quantum-classical workflows" \
     bash install.sh -t "$default_target"
@@ -296,5 +268,5 @@ echo "To install: bash $output_dir/$installer_name --accept"
 
 # Cleanup staging
 if ! $verbose; then
-    rm -rf "$staging_dir"
+    rm -rf "$cuda_quantum_assets"
 fi
