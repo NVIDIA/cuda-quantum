@@ -226,7 +226,18 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
                 t_init = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
                 self._solver_instance._before_integrate(t_init)
             else:
-                pass
+                self._solver_instance.y0 = y0
+                if hasattr(self._solver_instance, 'rk_state'):
+                    t_current = torch.tensor(self.t, device='cuda', dtype=torch.float64)
+                    f1 = self._solver_instance.func(t_current, y0)
+                    self._solver_instance.rk_state = _RungeKuttaState(
+                        y1=y0,
+                        f1=f1,
+                        t0=t_current,
+                        t1=t_current,
+                        dt=self._solver_instance.rk_state.dt,
+                        interp_coeff=[y0] * 5
+                    )
         else:
             # time span
             t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
