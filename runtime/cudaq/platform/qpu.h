@@ -17,7 +17,11 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/IR/BuiltinOps.h"
+
+namespace mlir {
+class ModuleOp;
+class Type;
+} // namespace mlir
 
 namespace cudaq {
 class gradient;

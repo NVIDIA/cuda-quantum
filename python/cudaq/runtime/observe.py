@@ -117,6 +117,12 @@ def observe(kernel,
                                 shots_count=shots_count,
                                 noise_model=noise_model)
 
+    def __computeTermExpectation(term, observe_result):
+        if term.is_identity():
+            return term.evaluate_coefficient().real
+        else:
+            return observe_result.expectation(term)
+
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
 
@@ -200,9 +206,19 @@ def observe(kernel,
 
         results = []
         for op in spin_operator:
+            exp_val = 0.0
+
+            if op.term_count == 1:
+                term = op if isinstance(
+                    op, cudaq_runtime.SpinOperatorTerm) else next(iter(op))
+                exp_val = __computeTermExpectation(term, observeResult)
+            else:
+                for term in op:
+                    exp_val += __computeTermExpectation(term, observeResult)
+
             results.append(
-                cudaq_runtime.ObserveResult(observeResult.expectation(op), op,
-                                            observeResult.counts(op)))
+                cudaq_runtime.ObserveResult(exp_val, op,
+                                            observeResult.counts()))
         ctx.unset_jit_engine()
 
     if noise_model != None:
