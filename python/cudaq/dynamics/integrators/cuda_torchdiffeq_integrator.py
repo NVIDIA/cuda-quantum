@@ -96,6 +96,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.order = None
         self.is_density_state = None
         self.batchSize = None
+        self._dimensions_list = None
 
     def compute_rhs(self, t, vec):
         t_scalar = t.item()
@@ -106,15 +107,19 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         # Get device pointer of the input torch tensor
         device_ptr = vec.data_ptr()
         size = vec.numel()
+
+        if self._dimensions_list is None:
+            self._dimensions_list = list(self.dimensions)
+
         # Wrap the device pointer as a `cudaq::state` (no copy)
         temp_state = bindings.initializeState(device_ptr, size,
-                                              list(self.dimensions),
+                                              self._dimensions_list,
                                               self.batchSize)
         # Pre-allocate output tensor (torch tensor)
         result_vec = torch.zeros_like(vec)
         # Wrap the output tensor device pointer as a `cudaq::state` (no copy)
         result_state = bindings.initializeState(result_vec.data_ptr(), size,
-                                                list(self.dimensions),
+                                                self._dimensions_list,
                                                 self.batchSize)
         # Compute the RHS into the output state
         self.stepper.compute_inplace(temp_state, t_scalar, result_state)
@@ -181,9 +186,12 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         # convert the solution back to CuPy array
         y_t_cupy = cp.from_dlpack(y_t)
 
+        if self._dimensions_list is None:
+            self._dimensions_list = list(self.dimensions)
+
         # Keep results in GPU memory
         self.state = cudaq_runtime.State.from_data(y_t_cupy)
-        self.state = bindings.initializeState(self.state, list(self.dimensions),
+        self.state = bindings.initializeState(self.state, self._dimensions_list,
                                               self.is_density_state,
                                               self.batchSize)
         self.t = t
