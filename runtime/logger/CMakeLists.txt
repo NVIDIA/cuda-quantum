@@ -25,4 +25,8 @@ target_link_libraries(cudaq-logger
     spdlog::spdlog
 )
 
-install(TARGETS cudaq-logger EXPORT cudaq-common-targets DESTINATION lib)
+install(TARGETS cudaq-logger EXPORT cudaq-logger-targets DESTINATION lib)
+install(EXPORT cudaq-logger-targets
+        FILE CUDAQLoggerTargets.cmake
+        NAMESPACE cudaq::
+        DESTINATION lib/cmake/cudaq)
