@@ -215,6 +215,16 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
             if self._solver_instance is None:
                 wrapped_func = self._create_wrapped_rhs_func()
+                self._solver_instance = solver_class(
+                    func=wrapped_func,
+                    y0=y0,
+                    rtol=self.rtol,
+                    atol=self.atol,
+                    norm=_rms_norm
+                )
+                # Initialize solver state
+                t_init = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
+                self._solver_instance._before_integrate(t_init)
             else:
                 pass
         else:
