@@ -61,7 +61,8 @@ concept PTSBECapable = requires(SimulatorType &sim, const PTSBatch &batch) {
 /// a GateApplicationTask with typed parameters and qubit indices.
 ///
 /// @tparam ScalarType Simulator scalar type (float or double)
-/// @param inst Trace instruction containing gate name, params, controls, targets
+/// @param inst Trace instruction containing gate name, parameters, controls,
+/// targets
 /// @return GateApplicationTask with computed unitary matrix
 /// @throws std::runtime_error if gate name is not recognized
 template <typename ScalarType>
@@ -150,11 +151,9 @@ krausSelectionToTask(const cudaq::KrausSelection &sel) {
 template <typename ScalarType>
 std::vector<
     typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-mergeTasksWithTrajectory(
-    const std::vector<
-        typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask>
-        &baseTasks,
-    const cudaq::KrausTrajectory &trajectory) {
+mergeTasksWithTrajectory(const std::vector<typename nvqir::CircuitSimulatorBase<
+                             ScalarType>::GateApplicationTask> &baseTasks,
+                         const cudaq::KrausTrajectory &trajectory) {
   using TaskType =
       typename nvqir::CircuitSimulatorBase<ScalarType>::GateApplicationTask;
 
@@ -274,8 +273,8 @@ executePTSBEGeneric(nvqir::CircuitSimulatorBase<ScalarType> &simulator,
   for (const auto &traj : batch.trajectories) {
     if (traj.num_shots == 0) {
       // Push empty result to maintain index correspondence with trajectories
-      results.push_back(
-          cudaq::sample_result{cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
+      results.push_back(cudaq::sample_result{
+          cudaq::ExecutionResult{cudaq::CountsDictionary{}}});
       continue;
     }
 

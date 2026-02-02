@@ -352,8 +352,7 @@ public:
 
   /// Custom PTSBE implementation that delegates to generic fallback.
   /// In a real optimized simulator, this would do batched execution.
-  std::vector<cudaq::sample_result>
-  sampleWithPTSBE(const PTSBatch &batch) {
+  std::vector<cudaq::sample_result> sampleWithPTSBE(const PTSBatch &batch) {
     ++sampleWithPTSBECallCount;
 
     // Use generic implementation via base class
