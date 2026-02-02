@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "qpu.h"
+#include "mlir/IR/BuiltinOps.h"
 
 LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 

@@ -438,7 +438,7 @@ def test_exp_pauli_zz():
 
 @pytest.mark.parametrize('target', ['default', 'stim'])
 def test_dynamic_circuit(target):
-    """Test that we correctly sample circuits with 
+    """Test that we correctly handle circuits with 
        mid-circuit measurements and conditionals."""
 
     if target == 'stim':
@@ -449,31 +449,28 @@ def test_dynamic_circuit(target):
     def simple():
         q = cudaq.qvector(2)
         h(q[0])
-        i = mz(q[0], register_name="c0")
-        if i:
-            x(q[1])
-        mz(q)
-
-    counts = cudaq.sample(simple, shots_count=100)
-    counts.dump()
-    c0 = counts.get_register_counts('c0')
-    assert '0' in c0 and '1' in c0
-    assert '00' in counts and '11' in counts
-
-    @cudaq.kernel
-    def simple():
-        q = cudaq.qvector(2)
-        h(q[0])
         i = mz(q[0])
         if i:
             x(q[1])
         mz(q)
 
-    counts = cudaq.sample(simple)
-    counts.dump()
-    c0 = counts.get_register_counts('i')
-    assert '0' in c0 and '1' in c0
-    assert '00' in counts and '11' in counts
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(simple, shots_count=100)
+    assert "no longer support" in repr(e)
+
+    @cudaq.kernel
+    def simple_run() -> list[bool]:
+        q = cudaq.qvector(2)
+        h(q[0])
+        i = mz(q[0])
+        if i:
+            x(q[1])
+        return mz(q)
+
+    results = cudaq.run(simple_run, shots_count=10)
+    for result in results:
+        assert len(result) == 2
+        assert result[0] == result[1]
 
     if target == 'stim':
         cudaq.set_target(save_target)
@@ -482,7 +479,7 @@ def test_dynamic_circuit(target):
 def test_teleport():
 
     @cudaq.kernel
-    def teleport():
+    def teleport() -> bool:
         q = cudaq.qvector(3)
         x(q[0])
         h(q[1])
@@ -501,14 +498,11 @@ def test_teleport():
         if b0:
             z(q[2])
 
-        mz(q[2])
+        return mz(q[2])
 
-    counts = cudaq.sample(teleport, shots_count=100)
-    counts.dump()
-    # Note this is testing that we can provide
-    # the register name automatically
-    b0 = counts.get_register_counts('b0')
-    assert '0' in b0 and '1' in b0
+    results = cudaq.run(teleport, shots_count=10)
+    for result in results:
+        assert result  # The teleported qubit should always be |1>
 
 
 def test_transitive_dependencies():
@@ -1073,7 +1067,7 @@ def test_array_value_assignment():
     assert "11" in counts
 
 
-def test_control_operations():
+def test_control_operations_1():
 
     @cudaq.kernel
     def test():
@@ -1085,7 +1079,7 @@ def test_control_operations():
     counts = cudaq.sample(test)
 
 
-def test_control_operations():
+def test_control_operations_2():
 
     @cudaq.kernel
     def test(angle: float):
@@ -1102,18 +1096,18 @@ def test_control_operations():
 def test_bool_op_short_circuit():
 
     @cudaq.kernel
-    def kernel():
+    def kernel() -> bool:
         qubits = cudaq.qvector(2)
         h(qubits[0])
         if mz(qubits[0]) and mz(qubits[1]):
             x(qubits[1])
-        mz(qubits[1])
+        return mz(qubits[1])
 
     print(kernel)
 
-    counts = cudaq.sample(kernel)
-    counts.dump()
-    assert len(counts) == 2 and '10' in counts and '00' in counts
+    results = cudaq.run(kernel, shots_count=10)
+    for res in results:
+        assert not res  # qubit 1 should always be in |0>
 
 
 def test_sample_async_issue_args_processed():
@@ -1390,15 +1384,18 @@ def test_list_float_pass_list_int():
 def test_cmpi_error_ints_different_widths():
 
     @cudaq.kernel
-    def test():
+    def test() -> bool:
         q = cudaq.qubit()
         i = mz(q)
         if i == 1:
             x(q)
+        return mz(q)
 
     test()
-    counts = cudaq.sample(test)
-    assert '0' in counts and len(counts) == 1
+    results = cudaq.run(test, shots_count=10)
+    assert len(results) == 10
+    for res in results:
+        assert res is False
 
 
 def test_aug_assign_add():
@@ -2676,37 +2673,38 @@ def test_attribute_access_on_call_results():
 def test_mid_circuit_measurements():
 
     @cudaq.kernel
-    def callee(register: cudaq.qview):
+    def callee(register: cudaq.qview) -> list[bool]:
+        result = [0, 0, 0, 0, 0, 0, 0, 0]
         for i in range(4):
+            j = i * 2
             if i % 2 == 0:
                 x(register[i])
 
-            m = mz(register[i])
+            result[j] = mz(register[i])
             reset(register[i])
 
-            if m:
+            if result[j]:
                 x(register[i])
             else:
                 h(register[i])
 
+            result[j + 1] = mz(register[i])
+
+        return result
+
     @cudaq.kernel
-    def caller():
+    def caller() -> list[bool]:
         qr = cudaq.qvector(4)
-        callee(qr)
+        return callee(qr)
 
-    counts = cudaq.sample(caller)
-    assert counts.register_names == ["__global__", "m"]
-
-    globalCounts = counts.get_register_counts("__global__")
-    assert len(globalCounts) == 4
-    assert "1010" in globalCounts
-    assert "1011" in globalCounts
-    assert "1110" in globalCounts
-    assert "1111" in globalCounts
-
-    mCounts = counts.get_register_counts("m")
-    assert len(mCounts) == 1
-    assert "1010" in mCounts
+    results = cudaq.run(caller, shots_count=10)
+    assert len(results) == 10
+    for res in results:
+        assert len(res) == 8
+        a0, a1, b0, b1, c0, c1, d0, d1 = res
+        assert a0 and a1 and c0 and c1
+        assert b0 is False and d0 is False
+        assert isinstance(b1, bool) and isinstance(d1, bool)
 
 
 def test_error_on_non_callable_type():
