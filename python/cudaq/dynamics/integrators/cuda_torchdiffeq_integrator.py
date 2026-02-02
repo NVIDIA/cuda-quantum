@@ -141,6 +141,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
     def _create_wrapped_rhs_func(self):
         # Wrapper that adds the required callback methods
         class RHSFuncWrapper:
+
             def __init__(self, integrator):
                 self.integrator = integrator
                 self.callback_step = lambda *args, **kwargs: None
@@ -159,7 +160,9 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
         self.order = self.integrator_options.get('order', None)
 
     def _is_adaptive_solver(self):
-        adaptive_solvers = ['dopri5', 'dopri8', 'bosh3', 'adaptive_heun', 'fehlberg2']
+        adaptive_solvers = [
+            'dopri5', 'dopri8', 'bosh3', 'adaptive_heun', 'fehlberg2'
+        ]
         return self.solver in adaptive_solvers
 
     def _get_solver_class(self):
@@ -215,20 +218,22 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
             if self._solver_instance is None:
                 wrapped_func = self._create_wrapped_rhs_func()
-                self._solver_instance = solver_class(
-                    func=wrapped_func,
-                    y0=y0,
-                    rtol=self.rtol,
-                    atol=self.atol,
-                    norm=_rms_norm
-                )
+                self._solver_instance = solver_class(func=wrapped_func,
+                                                     y0=y0,
+                                                     rtol=self.rtol,
+                                                     atol=self.atol,
+                                                     norm=_rms_norm)
                 # Initialize solver state
-                t_init = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
+                t_init = torch.tensor([self.t, t],
+                                      device='cuda',
+                                      dtype=torch.float64)
                 self._solver_instance._before_integrate(t_init)
             else:
                 self._solver_instance.y0 = y0
                 if hasattr(self._solver_instance, 'rk_state'):
-                    t_current = torch.tensor(self.t, device='cuda', dtype=torch.float64)
+                    t_current = torch.tensor(self.t,
+                                             device='cuda',
+                                             dtype=torch.float64)
                     f1 = self._solver_instance.func(t_current, y0)
                     self._solver_instance.rk_state = _RungeKuttaState(
                         y1=y0,
@@ -236,22 +241,23 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
                         t0=t_current,
                         t1=t_current,
                         dt=self._solver_instance.rk_state.dt,
-                        interp_coeff=[y0] * 5
-                    )
+                        interp_coeff=[y0] * 5)
 
             t_target = torch.tensor(t, device='cuda', dtype=torch.float64)
             y_t = self._solver_instance._advance(t_target)
         else:
             # time span
-            t_span = torch.tensor([self.t, t], device='cuda', dtype=torch.float64)
+            t_span = torch.tensor([self.t, t],
+                                  device='cuda',
+                                  dtype=torch.float64)
 
             # solve ODE using TorchDiffEq
             solution = odeint(self.compute_rhs,
-                            y0,
-                            t_span,
-                            method=self.solver,
-                            rtol=self.rtol,
-                            atol=self.atol)
+                              y0,
+                              t_span,
+                              method=self.solver,
+                              rtol=self.rtol,
+                              atol=self.atol)
 
             # solution at final time
             y_t = solution[-1]
