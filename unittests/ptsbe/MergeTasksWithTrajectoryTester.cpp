@@ -19,8 +19,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceMultiGate) {
   Trace trace;
   trace.appendInstruction("h", {}, {}, {QuditInfo(2, 0)});
   trace.appendInstruction("x", {}, {}, {QuditInfo(2, 1)});
-  trace.appendInstruction(
-      "x", {}, {QuditInfo(2, 0)}, {QuditInfo(2, 1)});
+  trace.appendInstruction("x", {}, {QuditInfo(2, 0)}, {QuditInfo(2, 1)});
 
   auto tasks = convertTrace<double>(trace);
 
@@ -46,10 +45,8 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceMultiGate) {
 /// Verify convertTrace preserves gate parameters
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTracePreservesParameters) {
   Trace trace;
-  trace.appendInstruction(
-      "rx", {M_PI / 2}, {}, {QuditInfo(2, 0)});
-  trace.appendInstruction(
-      "rz", {M_PI / 4}, {}, {QuditInfo(2, 1)});
+  trace.appendInstruction("rx", {M_PI / 2}, {}, {QuditInfo(2, 0)});
+  trace.appendInstruction("rz", {M_PI / 4}, {}, {QuditInfo(2, 1)});
 
   auto tasks = convertTrace<double>(trace);
 
