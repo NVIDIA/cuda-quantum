@@ -62,7 +62,7 @@ public:
 
   /// @brief Constructor
   template <typename... Args>
-  QPUState(std::string &&name, std::string &&quake, Args &&...args) {
+  QPUState(const std::string &name, std::string &&quake, Args &&...args) {
     kernelName = name;
     kernelQuake = quake;
     (addArgument(args), ...);
