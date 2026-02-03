@@ -35,7 +35,6 @@ struct Platform {
   int64_t max_circuit_count = 0;
   std::string availability = "";
   std::string metadata = "";
-};
 
 void from_json(const json& j, Platform& p) {
   get_safe(j, "id", p.id);
@@ -68,6 +67,7 @@ void to_json(json& j, const Platform& p) {
       {"max_circuit_count", p.max_circuit_count}
     };
 }
+};
 
 struct Session {
   std::string id = "";
@@ -84,7 +84,6 @@ struct Session {
   std::string deduplication_id = "";
   std::string progress_message = "";
   std::string parameters = "";
-};
 
 void from_json(const json& j, Session& p) {
   get_safe(j, "id", p.id);
@@ -121,15 +120,15 @@ void to_json(json& j, const Session& p) {
         {"parameters", p.parameters}
     };
 }
+};
 
 struct Model {
   std::string id = "";
   std::string created_at = "";
   std::string url = "";
   std::string project_id = "";
-};
 
-void from_json(const json& j, Model& p) {
+  void from_json(const json& j, Model& p) {
   get_safe(j, "id", p.id);
   get_safe(j, "project_id", p.project_id);
   get_safe(j, "url", p.url);
@@ -144,6 +143,8 @@ void to_json(json& j, const Model& p) {
         {"project_id", p.project_id}
     };
 }
+
+};
 
 struct Job {
   std::string id = "";
@@ -160,9 +161,8 @@ struct Job {
   inline bool is_finished() const {
     return status == "completed" || status == "error" || status == "cancelled";
   }
-};
 
-void from_json(const json& j, Job& p) {
+  void from_json(const json& j, Job& p) {
   get_safe(j, "id", p.id);
   get_safe(j, "name", p.name);
   get_safe(j, "session_id", p.session_id);
@@ -190,6 +190,9 @@ void to_json(json& j, const Job& p) {
     };
 }
 
+};
+
+
 struct JobResult {
   std::string job_id = "";
   std::string result = "";
@@ -203,9 +206,8 @@ struct JobResult {
   inline bool has_download_url() const {
     return !url.empty();
   }
-};
 
-void from_json(const json& j, JobResult& p) {
+  void from_json(const json& j, JobResult& p) {
   get_safe(j, "job_id", p.job_id);
   get_safe(j, "result", p.result);
   get_safe(j, "url", p.url);
@@ -220,5 +222,6 @@ void to_json(json& j, const JobResult& p) {
         {"created_at", p.created_at}
     };
 }
+};
 
 } // namespace cudaq::qaas::v1alpha1
