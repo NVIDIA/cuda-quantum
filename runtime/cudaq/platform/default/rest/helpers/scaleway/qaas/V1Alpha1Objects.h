@@ -89,7 +89,7 @@ struct Model {
 
   // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
   //                                             project_id)
-  friend void from_json(const json& j, JobResult& p) {
+  friend void from_json(const json& j, Model& p) {
     auto get_safe = [&](const char* key, std::string& target) {
         if (j.contains(key) && !j[key].is_null()) {
             j.at(key).get_to(target);
