@@ -27,7 +27,7 @@ struct Platform {
   std::string availability = "";
   std::string metadata = "";
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+  NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
       Platform, id, version, name, provider_name, backend_name, type,
       technology, max_qubit_count, max_shot_count, max_circuit_count,
       availability, metadata)
@@ -49,11 +49,36 @@ struct Session {
   std::string progress_message = "";
   std::string parameters = "";
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
-      Session, id, name, platform_id, created_at, started_at, updated_at,
-      terminated_at, max_idle_duration, max_duration,
-      status, project_id, deduplication_id,
-      progress_message, parameters)
+  friend void from_json(const json& j, Session& p) {
+      auto get_safe = [&](const char* key, std::string& target) {
+          if (j.contains(key) && !j[key].is_null()) {
+              j.at(key).get_to(target);
+          } else {
+<              target = "";
+          }
+      };
+
+      get_safe("id", p.id);
+      get_safe("name", p.name);
+      get_safe("platform_id", p.platform_id);
+      get_safe("created_at", p.created_at);
+      get_safe("started_at", p.started_at);
+      get_safe("updated_at", p.updated_at);
+      get_safe("terminated_at", p.terminated_at);
+      get_safe("max_duration", p.max_duration);
+      get_safe("max_idle_duration", p.max_idle_duration);
+      get_safe("status", p.status);
+      get_safe("project_id", p.project_id);
+      get_safe("deduplication_id", p.deduplication_id);
+      get_safe("progress_message", p.progress_message);
+      get_safe("parameters", p.parameters);
+  }
+
+  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+  //     Session, id, name, platform_id, created_at, started_at, updated_at,
+  //     terminated_at, max_idle_duration, max_duration,
+  //     status, project_id, deduplication_id,
+  //     progress_message, parameters)
 };
 
 struct Model {
@@ -62,8 +87,22 @@ struct Model {
   std::string url = "";
   std::string project_id = "";
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
-                                              project_id)
+  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(Model, id, created_at, url,
+  //                                             project_id)
+  friend void from_json(const json& j, JobResult& p) {
+    auto get_safe = [&](const char* key, std::string& target) {
+        if (j.contains(key) && !j[key].is_null()) {
+            j.at(key).get_to(target);
+        } else {
+            target = "";
+        }
+    };
+
+    get_safe("id", p.id);
+    get_safe("project_id", p.project_id);
+    get_safe("url", p.url);
+    get_safe("created_at", p.created_at);
+  }
 };
 
 struct Job {
@@ -78,12 +117,33 @@ struct Job {
   std::string model_id = "";
   std::string parameters = "";
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
-      Job, id, name, session_id, created_at, started_at, updated_at, status,
-      progress_message, model_id, parameters)
+  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+  //     Job, id, name, session_id, created_at, started_at, updated_at, status,
+  //     progress_message, model_id, parameters)
 
   inline bool is_finished() const {
     return status == "completed" || status == "error" || status == "cancelled";
+  }
+
+  friend void from_json(const json& j, Job& p) {
+      auto get_safe = [&](const char* key, std::string& target) {
+          if (j.contains(key) && !j[key].is_null()) {
+              j.at(key).get_to(target);
+          } else {
+<              target = "";
+          }
+      };
+
+      get_safe("id", p.job_id);
+      get_safe("name", p.name);
+      get_safe("session_id", p.session_id);
+      get_safe("created_at", p.created_at);
+      get_safe("started_at", p.started_at);
+      get_safe("updated_at", p.updated_at);
+      get_safe("status", p.status);
+      get_safe("progress_message", p.progress_message);
+      get_safe("model_id", p.model_id);
+      get_safe("parameters", p.parameters);
   }
 };
 
@@ -93,8 +153,8 @@ struct JobResult {
   std::string url = "";
   std::string created_at = "";
 
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
-                                              created_at)
+  // NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(JobResult, job_id, result, url,
+                                              // created_at)
 
   inline bool has_inline_result() const {
     return !result.empty();
@@ -102,6 +162,21 @@ struct JobResult {
 
   inline bool has_download_url() const {
     return !url.empty();
+  }
+
+  friend void from_json(const json& j, JobResult& p) {
+    auto get_safe = [&](const char* key, std::string& target) {
+        if (j.contains(key) && !j[key].is_null()) {
+            j.at(key).get_to(target);
+        } else {
+            target = "";
+        }
+    };
+
+    get_safe("job_id", p.job_id);
+    get_safe("result", p.result);
+    get_safe("url", p.url);
+    get_safe("created_at", p.created_at);
   }
 };
 } // namespace cudaq::qaas::v1alpha1
