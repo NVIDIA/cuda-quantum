@@ -1,0 +1,498 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/ptsbe/ConditionalSamplingStrategy.h"
+#include "cudaq/ptsbe/ExhaustiveSamplingStrategy.h"
+#include "cudaq/ptsbe/OrderedSamplingStrategy.h"
+#include "cudaq/ptsbe/ProbabilisticSamplingStrategy.h"
+#include "cudaq/ptsbe/PTSSamplingStrategy.h"
+#include <gtest/gtest.h>
+
+using namespace cudaq::ptsbe;
+
+/// @brief A simple 2-noise-point scenario
+std::vector<NoisePoint> createSimpleNoisePoints() {
+  std::vector<NoisePoint> noise_points;
+
+  NoisePoint np1;
+  np1.circuit_location = 0;
+  np1.qubits = {0};
+  np1.op_name = "h";
+  // I, X
+  np1.kraus_operators = {{1.0, 0.0, 0.0, 1.0}, {0.0, 1.0, 1.0, 0.0}};
+  // 90% identity, 10% X error
+  np1.probabilities = {0.9, 0.1};
+  noise_points.push_back(np1);
+
+  NoisePoint np2;
+  np2.circuit_location = 1;
+  np2.qubits = {0};
+  np2.op_name = "x";
+  // I, Y
+  np2.kraus_operators = {{1.0, 0.0, 0.0, 1.0}, {0.0, 0.0, 1.0, 0.0}};
+  // 80% identity, 20% Y error
+  np2.probabilities = {0.8, 0.2};
+  noise_points.push_back(np2);
+
+  return noise_points;
+}
+
+/// @brief A scenario with 3 operators per noise point
+std::vector<NoisePoint> createThreeOperatorNoisePoints() {
+  std::vector<NoisePoint> noise_points;
+
+  NoisePoint np;
+  np.circuit_location = 0;
+  np.qubits = {0};
+  np.op_name = "h";
+  np.kraus_operators = {
+      {1.0, 0.0, 0.0, 1.0},  // I
+      {0.0, 1.0, 1.0, 0.0},  // X
+      {0.0, -1.0, 1.0, 0.0}  // Y
+  };
+  // 70% I, 20% X, 10% Y
+  np.probabilities = {0.7, 0.2, 0.1};
+  noise_points.push_back(np);
+
+  return noise_points;
+}
+
+TEST(ProbabilisticSamplingStrategyTest, BasicGeneration) {
+  auto noise_points = createSimpleNoisePoints();
+  ProbabilisticSamplingStrategy strategy(42);
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+
+  EXPECT_LE(trajectories.size(), 10);
+  EXPECT_GT(trajectories.size(), 0);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_EQ(traj.kraus_selections.size(), 2);
+    EXPECT_GE(traj.probability, 0.0);
+    EXPECT_LE(traj.probability, 1.0);
+    EXPECT_EQ(traj.num_shots, 0);
+  }
+}
+
+TEST(ProbabilisticSamplingStrategyTest, Uniqueness) {
+  auto noise_points = createSimpleNoisePoints();
+  ProbabilisticSamplingStrategy strategy(42);
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 4);
+
+  for (std::size_t i = 0; i < trajectories.size(); ++i) {
+    for (std::size_t j = i + 1; j < trajectories.size(); ++j) {
+      bool same = true;
+      for (std::size_t k = 0; k < trajectories[i].kraus_selections.size();
+           ++k) {
+        if (trajectories[i].kraus_selections[k].kraus_operator_index !=
+            trajectories[j].kraus_selections[k].kraus_operator_index) {
+          same = false;
+          break;
+        }
+      }
+      EXPECT_FALSE(same) << "Found duplicate trajectories at indices " << i
+                         << " and " << j;
+    }
+  }
+}
+
+TEST(ProbabilisticSamplingStrategyTest, Reproducibility) {
+  auto noise_points = createSimpleNoisePoints();
+
+  ProbabilisticSamplingStrategy strategy1(123);
+  ProbabilisticSamplingStrategy strategy2(123);
+
+  auto trajectories1 = strategy1.generateTrajectories(noise_points, 5);
+  auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
+
+  EXPECT_EQ(trajectories1.size(), trajectories2.size());
+
+  for (std::size_t i = 0; i < trajectories1.size(); ++i) {
+    EXPECT_EQ(trajectories1[i].kraus_selections.size(),
+              trajectories2[i].kraus_selections.size());
+    for (std::size_t j = 0; j < trajectories1[i].kraus_selections.size();
+         ++j) {
+      EXPECT_EQ(trajectories1[i].kraus_selections[j].kraus_operator_index,
+                trajectories2[i].kraus_selections[j].kraus_operator_index);
+    }
+  }
+}
+
+TEST(ProbabilisticSamplingStrategyTest, EmptyNoisePoints) {
+  std::vector<NoisePoint> empty_noise_points;
+  ProbabilisticSamplingStrategy strategy(42);
+
+  auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 0);
+}
+
+TEST(ProbabilisticSamplingStrategyTest, ProbabilityCalculation) {
+  auto noise_points = createSimpleNoisePoints();
+  ProbabilisticSamplingStrategy strategy(42);
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 4);
+
+  for (const auto &traj : trajectories) {
+    double expected_prob = 1.0;
+    for (std::size_t i = 0; i < traj.kraus_selections.size(); ++i) {
+      auto idx =
+          static_cast<std::size_t>(traj.kraus_selections[i].kraus_operator_index);
+      expected_prob *= noise_points[i].probabilities[idx];
+    }
+    EXPECT_NEAR(traj.probability, expected_prob, 1e-9);
+  }
+}
+
+TEST(ProbabilisticSamplingStrategyTest, StrategyName) {
+  ProbabilisticSamplingStrategy strategy;
+  EXPECT_STREQ(strategy.name(), "Probabilistic");
+}
+
+TEST(ProbabilisticSamplingStrategyTest, Clone) {
+  ProbabilisticSamplingStrategy strategy(42);
+  auto cloned = strategy.clone();
+
+  EXPECT_NE(cloned.get(), nullptr);
+  EXPECT_STREQ(cloned->name(), "Probabilistic");
+
+  // Test that cloned strategy works
+  auto noise_points = createSimpleNoisePoints();
+  auto trajectories = cloned->generateTrajectories(noise_points, 5);
+  EXPECT_GT(trajectories.size(), 0);
+}
+
+TEST(ExhaustiveSamplingStrategyTest, GeneratesAllTrajectories) {
+  auto noise_points = createSimpleNoisePoints();
+  ExhaustiveSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 100);
+
+  EXPECT_EQ(trajectories.size(), 4);
+}
+
+TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
+  auto noise_points = createSimpleNoisePoints();
+  ExhaustiveSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 100);
+
+  ASSERT_EQ(trajectories.size(), 4);
+
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+
+  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[1].kraus_selections[1].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+
+  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[2].kraus_selections[1].kraus_operator_index,
+            cudaq::KrausOperatorType(1));
+
+  EXPECT_EQ(trajectories[3].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[3].kraus_selections[1].kraus_operator_index,
+            cudaq::KrausOperatorType(1));
+}
+
+TEST(ExhaustiveSamplingStrategyTest, CapsAtMaxTrajectories) {
+  auto noise_points = createSimpleNoisePoints();
+  ExhaustiveSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 2);
+
+  EXPECT_EQ(trajectories.size(), 2);
+}
+
+TEST(ExhaustiveSamplingStrategyTest, ThreeOperators) {
+  auto noise_points = createThreeOperatorNoisePoints();
+  ExhaustiveSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 100);
+
+  EXPECT_EQ(trajectories.size(), 3);
+
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[1].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(1));
+  EXPECT_EQ(trajectories[2].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(2));
+}
+
+TEST(ExhaustiveSamplingStrategyTest, EmptyNoisePoints) {
+  std::vector<NoisePoint> empty_noise_points;
+  ExhaustiveSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 0);
+}
+
+TEST(ExhaustiveSamplingStrategyTest, StrategyName) {
+  ExhaustiveSamplingStrategy strategy;
+  EXPECT_STREQ(strategy.name(), "Exhaustive");
+}
+
+TEST(ExhaustiveSamplingStrategyTest, Clone) {
+  ExhaustiveSamplingStrategy strategy;
+  auto cloned = strategy.clone();
+
+  EXPECT_NE(cloned.get(), nullptr);
+  EXPECT_STREQ(cloned->name(), "Exhaustive");
+}
+
+TEST(OrderedSamplingStrategyTest, SortsByProbability) {
+  auto noise_points = createSimpleNoisePoints();
+  OrderedSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 4);
+
+  EXPECT_EQ(trajectories.size(), 4);
+
+  for (std::size_t i = 0; i < trajectories.size() - 1; ++i) {
+    EXPECT_GE(trajectories[i].probability, trajectories[i + 1].probability)
+        << "Probabilities not in descending order at index " << i;
+  }
+}
+
+TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
+  auto noise_points = createSimpleNoisePoints();
+  OrderedSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 1);
+
+  ASSERT_EQ(trajectories.size(), 1);
+
+  EXPECT_EQ(trajectories[0].kraus_selections[0].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+  EXPECT_EQ(trajectories[0].kraus_selections[1].kraus_operator_index,
+            cudaq::KrausOperatorType(0));
+  EXPECT_NEAR(trajectories[0].probability, 0.72, 1e-9);
+}
+
+TEST(OrderedSamplingStrategyTest, TopKSelection) {
+  auto noise_points = createSimpleNoisePoints();
+  OrderedSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 2);
+
+  EXPECT_EQ(trajectories.size(), 2);
+
+  EXPECT_NEAR(trajectories[0].probability, 0.72, 1e-9);
+  EXPECT_NEAR(trajectories[1].probability, 0.18, 1e-9);
+}
+
+TEST(OrderedSamplingStrategyTest, TrajectoryIDReassignment) {
+  auto noise_points = createSimpleNoisePoints();
+  OrderedSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(noise_points, 4);
+
+  for (std::size_t i = 0; i < trajectories.size(); ++i) {
+    EXPECT_EQ(trajectories[i].trajectory_id, i);
+  }
+}
+
+TEST(OrderedSamplingStrategyTest, EmptyNoisePoints) {
+  std::vector<NoisePoint> empty_noise_points;
+  OrderedSamplingStrategy strategy;
+
+  auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 0);
+}
+
+TEST(OrderedSamplingStrategyTest, StrategyName) {
+  OrderedSamplingStrategy strategy;
+  EXPECT_STREQ(strategy.name(), "Ordered");
+}
+
+TEST(OrderedSamplingStrategyTest, Clone) {
+  OrderedSamplingStrategy strategy;
+  auto cloned = strategy.clone();
+
+  EXPECT_NE(cloned.get(), nullptr);
+  EXPECT_STREQ(cloned->name(), "Ordered");
+}
+
+TEST(ConditionalSamplingStrategyTest, FilterByErrorCount) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &traj) {
+    return traj.countErrors() == 1;
+  };
+
+  ConditionalSamplingStrategy strategy(predicate);
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 2);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_EQ(traj.countErrors(), 1);
+  }
+}
+
+TEST(ConditionalSamplingStrategyTest, FilterByNoErrors) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &traj) {
+    return traj.countErrors() == 0;
+  };
+
+  ConditionalSamplingStrategy strategy(predicate);
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 1);
+  EXPECT_EQ(trajectories[0].countErrors(), 0);
+  EXPECT_NEAR(trajectories[0].probability, 0.72, 1e-9);
+}
+
+TEST(ConditionalSamplingStrategyTest, FilterByProbabilityThreshold) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &traj) {
+    return traj.probability > 0.1;
+  };
+
+  ConditionalSamplingStrategy strategy(predicate);
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 2);
+
+  for (const auto &traj : trajectories) {
+    EXPECT_GT(traj.probability, 0.1);
+  }
+}
+
+TEST(ConditionalSamplingStrategyTest, FilterNonePass) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &traj) {
+    return traj.probability > 1.0;
+  };
+
+  ConditionalSamplingStrategy strategy(predicate);
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 0);
+}
+
+TEST(ConditionalSamplingStrategyTest, FilterAllPass) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
+
+  ConditionalSamplingStrategy strategy(predicate);
+  auto trajectories = strategy.generateTrajectories(noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 4);
+}
+
+TEST(ConditionalSamplingStrategyTest, EarlyExit) {
+  auto noise_points = createSimpleNoisePoints();
+
+  auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
+
+  ConditionalSamplingStrategy strategy(predicate);
+  auto trajectories = strategy.generateTrajectories(noise_points, 2);
+
+  EXPECT_EQ(trajectories.size(), 2);
+}
+
+TEST(ConditionalSamplingStrategyTest, EmptyNoisePoints) {
+  std::vector<NoisePoint> empty_noise_points;
+
+  auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
+  ConditionalSamplingStrategy strategy(predicate);
+
+  auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
+
+  EXPECT_EQ(trajectories.size(), 0);
+}
+
+TEST(ConditionalSamplingStrategyTest, StrategyName) {
+  auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
+  ConditionalSamplingStrategy strategy(predicate);
+
+  EXPECT_STREQ(strategy.name(), "Conditional");
+}
+
+TEST(ConditionalSamplingStrategyTest, Clone) {
+  auto predicate = [](const cudaq::KrausTrajectory &traj) {
+    return traj.countErrors() == 1;
+  };
+  ConditionalSamplingStrategy strategy(predicate);
+  auto cloned = strategy.clone();
+
+  EXPECT_NE(cloned.get(), nullptr);
+  EXPECT_STREQ(cloned->name(), "Conditional");
+
+  auto noise_points = createSimpleNoisePoints();
+  auto trajectories = cloned->generateTrajectories(noise_points, 10);
+  EXPECT_GT(trajectories.size(), 0);
+}
+
+TEST(PTSSamplingStrategyTest, PolymorphicUsage) {
+  auto noise_points = createSimpleNoisePoints();
+
+  std::vector<std::unique_ptr<PTSSamplingStrategy>> strategies;
+  strategies.push_back(std::make_unique<ProbabilisticSamplingStrategy>(42));
+  strategies.push_back(std::make_unique<ExhaustiveSamplingStrategy>());
+  strategies.push_back(std::make_unique<OrderedSamplingStrategy>());
+  strategies.push_back(std::make_unique<ConditionalSamplingStrategy>(
+      [](const cudaq::KrausTrajectory &) { return true; }));
+
+  for (auto &strategy : strategies) {
+    auto trajectories = strategy->generateTrajectories(noise_points, 5);
+    EXPECT_GT(trajectories.size(), 0);
+    EXPECT_NE(strategy->name(), nullptr);
+  }
+}
+
+TEST(PTSSamplingStrategyTest, ClonePolymorphism) {
+  auto noise_points = createSimpleNoisePoints();
+
+  ProbabilisticSamplingStrategy concrete_strategy(42);
+  PTSSamplingStrategy *base_ptr = &concrete_strategy;
+
+  auto cloned = base_ptr->clone();
+
+  EXPECT_NE(cloned.get(), nullptr);
+  EXPECT_STREQ(cloned->name(), "Probabilistic");
+
+  auto trajectories = cloned->generateTrajectories(noise_points, 5);
+  EXPECT_GT(trajectories.size(), 0);
+}
+
+TEST(NoisePointTest, IsUnitaryMixture) {
+  NoisePoint np;
+  np.probabilities = {0.7, 0.2, 0.1};
+
+  EXPECT_TRUE(np.isUnitaryMixture());
+}
+
+TEST(NoisePointTest, IsNotUnitaryMixture) {
+  NoisePoint np;
+  np.probabilities = {0.5, 0.3, 0.1};
+
+  EXPECT_FALSE(np.isUnitaryMixture());
+}
+
+TEST(NoisePointTest, IsUnitaryMixtureWithTolerance) {
+  NoisePoint np;
+  np.probabilities = {0.33333333, 0.33333333, 0.33333334};
+
+  EXPECT_TRUE(np.isUnitaryMixture());
+}
