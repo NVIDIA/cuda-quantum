@@ -25,9 +25,9 @@ def kernel():
 # [End Sample2]
 
 
-# [Begin Sample3]
+# [Begin Run0]
 @cudaq.kernel
-def kernel():
+def kernel() -> list[bool]:
     q = cudaq.qvector(2)
 
     h(q[0])
@@ -38,12 +38,19 @@ def kernel():
     if b0:
         h(q[1])
 
+    return mz(q)
 
-print(cudaq.sample(kernel))
-# [End Sample3]
-''' [Begin Sample4]
-{ 
-  __global__ : { 10:728 11:272 }
-   b0 : { 0:505 1:495 }
-}
- [End Sample4] '''
+
+from collections import Counter
+
+results = cudaq.run(kernel, shots_count=1000)
+# Convert results to bitstrings and count
+bitstring_counts = Counter(
+    ''.join('1' if bit else '0' for bit in result) for result in results)
+
+print(f"Bitstring counts: {dict(bitstring_counts)}")
+
+# [End Run0]
+''' [Begin Run1]
+Bitstring counts: {'11': 247, '10': 753}
+ [End Run1] '''

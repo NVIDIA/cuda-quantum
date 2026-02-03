@@ -6,7 +6,7 @@
 #include <cudaq.h>
 
 struct kernel {
-  void operator()() __qpu__ {
+  auto operator()() __qpu__ {
     cudaq::qarray<3> q;
     // Initial state preparation
     x(q[0]);
@@ -26,24 +26,23 @@ struct kernel {
     if (b0)
       z(q[2]);
 
-    mz(q[2]);
+    return mz(q[2]);
   }
 };
 
 int main() {
 
   int nShots = 100;
-  // Sample
-  auto counts = cudaq::sample(/*shots*/ nShots, kernel{});
-  counts.dump();
-
-  // Get the marginal counts on the second qubit
-  auto resultsOnZero = counts.get_marginal({0});
-  resultsOnZero.dump();
-
-  // Count the "1"
-  auto nOnes = resultsOnZero.count("1");
-
+  auto results = cudaq::run(/*shots*/ nShots, kernel{});
+  std::size_t nOnes = 0;
+  // Count the number of times we measured "1"
+  for (auto r : results) {
+    if (r)
+      nOnes++;
+  }
+  // Print out the results
+  printf("Measured '1' on target qubit %zu times out of %d shots.\n", nOnes,
+         nShots);
   // Will fail if not equal to number of shots
   assert(nOnes == nShots && "Failure to teleport qubit in |1> state.");
 }
